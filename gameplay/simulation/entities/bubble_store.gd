@@ -80,7 +80,7 @@ func spawn_bubble(
 	bubble.cell_y = p_cell_y
 	bubble.spawn_tick = 0  # 由系统设置
 	bubble.explode_tick = p_explode_tick
-	bubble.range = p_range
+	bubble.bubble_range = p_range
 	bubble.alive = true
 	bubble.moving_state = BubbleState.MovingState.STATIC
 

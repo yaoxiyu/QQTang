@@ -33,12 +33,12 @@ func next() -> int:
 	return (_seed * 2685821657736338717) >> 32
 
 # 生成 [0, max) 范围的随机数
-func next_int(max: int) -> int:
-	return next() % max
+func next_int(_max: int) -> int:
+	return next() % _max
 
 # 生成 [min, max] 范围的随机数
-func next_int_range(min: int, max: int) -> int:
-	return min + next() % (max - min + 1)
+func next_int_range(_min: int, _max: int) -> int:
+	return _min + next() % (_max - _min + 1)
 
 # 生成 bool 值
 func next_bool() -> bool:

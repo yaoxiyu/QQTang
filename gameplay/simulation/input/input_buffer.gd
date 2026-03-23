@@ -29,9 +29,10 @@ func consume_or_build_for_tick(
 	tick: int,
 	player_slots: Array[int]
 ) -> InputFrame:
+	var frame : InputFrame
 	# 如果已有该 Tick 的帧，直接返回
 	if tick in frames:
-		var frame : InputFrame = frames[tick]
+		frame = frames[tick]
 		# 确保所有玩家都有命令
 		for slot in player_slots:
 			if not frame.has_command(slot):
@@ -39,7 +40,7 @@ func consume_or_build_for_tick(
 		return frame
 
 	# 否则创建新帧
-	var frame := InputFrame.new()
+	frame = InputFrame.new()
 	frame.tick = tick
 
 	for slot in player_slots:

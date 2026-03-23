@@ -28,7 +28,7 @@ func execute(ctx: SimContext) -> void:
 
 		var center_x = bubble.cell_x
 		var center_y = bubble.cell_y
-		var range = bubble.range
+		var bubble_range = bubble.bubble_range
 
 		# 记录覆盖格子
 		var covered_cells: Array[Vector2i] = []
@@ -46,7 +46,7 @@ func execute(ctx: SimContext) -> void:
 
 		# 向各个方向传播
 		for dir in dirs:
-			for i in range(1, range + 1):
+			for i in range(1, bubble_range + 1):
 				var check_x = center_x + dir.x * i
 				var check_y = center_y + dir.y * i
 

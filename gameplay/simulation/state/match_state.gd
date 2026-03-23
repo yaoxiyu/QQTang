@@ -32,7 +32,7 @@ var mode_id: StringName = "default"
 var map_id: StringName = "default"
 
 # 随机种子
-var seed: int = 0
+var rng_seed: int = 0
 
 # 剩余 Tick 数（用于计时模式）
 var remaining_ticks: int = 0
@@ -63,7 +63,7 @@ func _init(
 	match_id = p_match_id
 	mode_id = p_mode_id
 	map_id = p_map_id
-	seed = p_seed
+	rng_seed = p_seed
 
 # 重置对局状态（保留基本信息）
 func reset() -> void:

@@ -36,7 +36,7 @@ var cell_y: int = 0
 # ====================
 var spawn_tick: int = 0
 var explode_tick: int = 0
-var range: int = 1
+var bubble_range: int = 1
 
 # ====================
 # 移动状态
