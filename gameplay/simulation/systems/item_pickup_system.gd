@@ -64,4 +64,13 @@ func execute(ctx: SimContext) -> void:
 		# 更新玩家状态
 		ctx.state.players.update_player(player)
 
-		# TODO: 推送 ItemPickedEvent
+		# 推送 ItemPickedEvent（第一版使用通用事件结构）
+		var item_event := SimEvent.new(ctx.tick, SimEvent.EventType.ITEM_PICKED)
+		item_event.payload = {
+			"player_id": player_id,
+			"item_id": item_id,
+			"item_type": item.item_type,
+			"cell_x": player_cell_x,
+			"cell_y": player_cell_y
+		}
+		ctx.events.push(item_event)

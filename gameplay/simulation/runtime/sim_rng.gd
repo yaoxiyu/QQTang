@@ -34,10 +34,16 @@ func next() -> int:
 
 # 生成 [0, max) 范围的随机数
 func next_int(_max: int) -> int:
+	if _max <= 0:
+		push_warning("SimRng.next_int called with non-positive max: %d" % _max)
+		return 0
 	return next() % _max
 
 # 生成 [min, max] 范围的随机数
 func next_int_range(_min: int, _max: int) -> int:
+	if _max < _min:
+		push_warning("SimRng.next_int_range invalid bounds: [%d, %d]" % [_min, _max])
+		return _min
 	return _min + next() % (_max - _min + 1)
 
 # 生成 bool 值

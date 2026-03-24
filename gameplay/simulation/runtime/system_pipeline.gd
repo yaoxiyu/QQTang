@@ -28,9 +28,9 @@ func initialize_default_pipeline() -> void:
 	add_system(MovementSystem.new())
 	add_system(BubblePlacementSystem.new())
 	add_system(BombFuseSystem.new())
-	add_system(ItemPickupSystem.new())
 	add_system(ExplosionResolveSystem.new())
 	add_system(StatusEffectSystem.new())
+	add_system(ItemPickupSystem.new())
 	add_system(WinConditionSystem.new())
 	add_system(PostTickSystem.new())
 

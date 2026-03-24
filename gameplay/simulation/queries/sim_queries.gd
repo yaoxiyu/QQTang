@@ -71,7 +71,7 @@ func get_players_at(cell_x: int, cell_y: int) -> Array:
 	if not is_in_bounds(cell_x, cell_y):
 		return []
 	var cell_idx = to_cell_index(cell_x, cell_y)
-	return _state.indexes.players_by_cell[cell_idx]
+	return _state.indexes.players_by_cell[cell_idx].duplicate()
 
 # 获取格子上的泡泡ID
 func get_bubble_at(cell_x: int, cell_y: int) -> int:

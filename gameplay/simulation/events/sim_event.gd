@@ -33,7 +33,11 @@ enum EventType {
 # 事件类型
 var event_type: int = EventType.PLAYER_MOVED
 
+# 事件附加数据（第一版统一使用字典承载）
+var payload: Dictionary = {}
+
 # 初始化构造
 func _init(p_tick: int, p_event_type: int) -> void:
 	tick = p_tick
 	event_type = p_event_type
+	payload = {}

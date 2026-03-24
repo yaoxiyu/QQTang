@@ -14,6 +14,8 @@
 
 extends Node
 
+@export var presentation_root_path: NodePath = ^"../PresentationRoot"
+
 var world: SimWorld = null
 var bridge: Node = null
 var test_suite: Phase0GameplayTestSuite = null
@@ -29,8 +31,12 @@ func _ready() -> void:
 		"grid": grid
 	})
 
-	# 从同一个场景根节点下找到 PresentationRoot
-	bridge = get_parent().get_node("PresentationRoot")
+	# 通过可配置路径查找 PresentationRoot
+	if has_node(presentation_root_path):
+		bridge = get_node(presentation_root_path)
+	else:
+		bridge = null
+		push_warning("PresentationRoot not found at path: %s" % presentation_root_path)
 
 	# 创建测试上下文
 	test_ctx = Phase0TestContext.new()
@@ -41,6 +47,9 @@ func _ready() -> void:
 	# 创建测试套件
 	test_suite = Phase0GameplayTestSuite.new()
 	test_suite.start(test_ctx)
+
+	if bridge != null and bridge.has_method("set_test_suite"):
+		bridge.set_test_suite(test_suite)
 
 func _process(delta: float) -> void:
 	# 推进一帧

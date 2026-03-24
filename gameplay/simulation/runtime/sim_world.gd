@@ -22,6 +22,8 @@ var events: SimEventBuffer = SimEventBuffer.new()
 var rng: SimRng = SimRng.new(12345)
 var input_buffer: InputBuffer = InputBuffer.new()
 var pipeline: SystemPipeline = SystemPipeline.new()
+var _ctx: SimContext = SimContext.new()
+var _input_history_keep_ticks: int = 5
 
 # ====================
 # 初始化
@@ -52,6 +54,12 @@ func bootstrap(p_config: SimConfig, bootstrap_data: Dictionary) -> void:
 
 	# 初始化出生点玩家
 	_initialize_spawned_players()
+
+	# 对局进入进行中状态
+	state.match_state.phase = MatchState.Phase.PLAYING
+
+	# 首 Tick 前先构建一次索引
+	state.indexes.rebuild_from_state(state)
 
 # 初始化出生点的玩家
 func _initialize_spawned_players() -> void:
@@ -104,20 +112,20 @@ func step() -> Dictionary:
 
 	var commands = input_buffer.consume_or_build_for_tick(state.match_state.tick, player_slots)
 
-	# 构建上下文
-	var ctx = SimContext.new()
-	ctx.config = config
-	ctx.state = state
-	ctx.queries = queries
-	ctx.events = events
-	ctx.rng = rng
-	ctx.tick = state.match_state.tick
-	ctx.commands = commands
-	ctx.scratch = SimScratch.new()
-	ctx.worksets = SimWorksets.new()
+	# 复用上下文对象，降低每 Tick 分配压力
+	_ctx.config = config
+	_ctx.state = state
+	_ctx.queries = queries
+	_ctx.events = events
+	_ctx.rng = rng
+	_ctx.tick = state.match_state.tick
+	_ctx.commands = commands
 
 	# 执行所有系统（PreTickSystem 会在第一位执行）
-	pipeline.execute_all(ctx)
+	pipeline.execute_all(_ctx)
+
+	# 清理过旧输入，避免缓冲无限增长
+	input_buffer.clear_before_tick(state.match_state.tick - _input_history_keep_ticks)
 
 	# 返回结果
 	return {

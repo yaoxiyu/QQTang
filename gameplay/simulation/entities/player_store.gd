@@ -33,7 +33,7 @@ func size() -> int:
 
 # 检查玩家是否存在
 func has(player_id: int) -> bool:
-	return _states.has(player_id)
+	return player_id >= 0 and player_id < _states.size() and _states[player_id] != null
 
 # 获取玩家状态（只读）
 func get_player(player_id: int) -> PlayerState:
@@ -49,7 +49,7 @@ func get_player_mut(player_id: int) -> PlayerState:
 
 # 获取活跃玩家ID列表
 func get_active_ids() -> Array[int]:
-	return active_ids
+	return active_ids.duplicate()
 
 # ====================
 # 管理方法

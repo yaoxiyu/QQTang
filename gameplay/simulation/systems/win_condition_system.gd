@@ -45,4 +45,11 @@ func execute(ctx: SimContext) -> void:
 
 		ctx.state.match_state.ended_reason = MatchState.EndReason.LAST_SURVIVOR
 
-		# TODO: 推送 MatchEndedEvent
+		# 推送 MatchEndedEvent（第一版使用通用事件结构）
+		var match_end_event := SimEvent.new(ctx.tick, SimEvent.EventType.MATCH_ENDED)
+		match_end_event.payload = {
+			"winner_player_id": ctx.state.match_state.winner_player_id,
+			"winner_team_id": ctx.state.match_state.winner_team_id,
+			"reason": ctx.state.match_state.ended_reason
+		}
+		ctx.events.push(match_end_event)

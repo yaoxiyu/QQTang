@@ -33,7 +33,7 @@ func push(event: SimEvent) -> void:
 
 # 获取所有事件
 func get_events() -> Array[SimEvent]:
-	return events
+	return events.duplicate()
 
 # 清空
 func clear() -> void:

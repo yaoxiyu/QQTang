@@ -36,10 +36,26 @@ func execute(ctx: SimContext) -> void:
 
 		# 更新活跃列表
 		ctx.state.players.mark_player_dead(player_id)
+		ctx.state.indexes.living_player_ids.erase(player_id)
+		if ctx.state.grid.is_in_bounds(player.cell_x, player.cell_y):
+			var cell_idx := ctx.state.grid.to_cell_index(player.cell_x, player.cell_y)
+			if cell_idx >= 0 and cell_idx < ctx.state.indexes.players_by_cell.size():
+				var players_in_cell: Array = ctx.state.indexes.players_by_cell[cell_idx]
+				var pos := players_in_cell.find(player_id)
+				if pos != -1:
+					players_in_cell.remove_at(pos)
 
 		ctx.state.players.update_player(player)
 
-		# TODO: 推送 PlayerKilledEvent
+		# 推送 PlayerKilledEvent（第一版使用通用事件结构）
+		var killed_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_KILLED)
+		killed_event.payload = {
+			"victim_player_id": player_id,
+			"killer_player_id": player.last_damage_from_player_id,
+			"cell_x": player.cell_x,
+			"cell_y": player.cell_y
+		}
+		ctx.events.push(killed_event)
 
 	# 处理爆炸泡泡返还（在死亡处理之后）
 	for bubble_id in ctx.scratch.exploded_bubble_ids:

@@ -54,8 +54,6 @@ func initialize(grid_size: int) -> void:
 		players_by_cell[i] = []
 		bubbles_by_cell[i] = -1
 		items_by_cell[i] = -1
-		bubbles_by_cell[i] = -1
-		items_by_cell[i] = -1
 
 # ====================
 # 核心方法

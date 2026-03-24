@@ -44,11 +44,6 @@ func execute(ctx: SimContext) -> void:
 		if bubble_at_cell != -1:
 			continue
 
-		# 检查是否有玩家（包括自己）
-		var players_at_cell = ctx.queries.get_players_at(cell_x, cell_y)
-		if players_at_cell.size() > 0:
-			continue
-
 		# 放置泡泡
 		var explode_tick = ctx.tick + player.bomb_fuse_ticks
 		var bubble_id = ctx.state.bubbles.spawn_bubble(
@@ -63,4 +58,21 @@ func execute(ctx: SimContext) -> void:
 		player.bomb_available -= 1
 		ctx.state.players.update_player(player)
 
-		# TODO: 推送 BubblePlacedEvent
+		# 增量更新泡泡索引，保证同 Tick 内可被查询到
+		if ctx.state.grid.is_in_bounds(cell_x, cell_y):
+			var cell_idx := ctx.state.grid.to_cell_index(cell_x, cell_y)
+			if cell_idx >= 0 and cell_idx < ctx.state.indexes.bubbles_by_cell.size():
+				ctx.state.indexes.bubbles_by_cell[cell_idx] = bubble_id
+		if not ctx.state.indexes.active_bubble_ids.has(bubble_id):
+			ctx.state.indexes.active_bubble_ids.append(bubble_id)
+
+		# 推送 BubblePlacedEvent（第一版使用通用事件结构）
+		var placed_event := SimEvent.new(ctx.tick, SimEvent.EventType.BUBBLE_PLACED)
+		placed_event.payload = {
+			"bubble_id": bubble_id,
+			"owner_player_id": player_id,
+			"cell_x": cell_x,
+			"cell_y": cell_y,
+			"explode_tick": explode_tick
+		}
+		ctx.events.push(placed_event)
