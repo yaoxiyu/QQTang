@@ -53,3 +53,11 @@ func next_bool() -> bool:
 # 重新设置种子
 func seed(new_seed: int) -> void:
 	_seed = new_seed
+
+
+func get_state() -> int:
+	return _seed
+
+
+func set_state(state: int) -> void:
+	_seed = state

@@ -1,55 +1,38 @@
-# 角色：
-# 输入缓冲区，管理历史输入帧
-#
-# 读写边界：
-# - 只在 SimulationRunner 中被写入
-# - 只在 InputSystem 中被读取
-#
-# 禁止事项：
-# - 不得在此文件中写规则逻辑
-# - 不得直接读取键盘事件
-
 class_name InputBuffer
 extends RefCounted
 
-# 输入帧字典：tick -> InputFrame
+# Phase0 compatibility: tick -> InputFrame
 var frames: Dictionary = {}
 
-# ====================
-# 核心方法
-# ====================
+# Phase2 sync model: peer_id -> (tick_id -> PlayerInputFrame)
+var frames_by_peer: Dictionary = {}
+var last_ack_tick_by_peer: Dictionary = {}
+var last_input_by_peer: Dictionary = {}
 
-# 推送输入帧
+
 func push_input_frame(frame: InputFrame) -> void:
 	frames[frame.tick] = frame
 
-# 生成或获取指定 Tick 的输入帧
-# 如果缺失玩家命令，自动补 Neutral Command
-func consume_or_build_for_tick(
-	tick: int,
-	player_slots: Array[int]
-) -> InputFrame:
-	var frame : InputFrame
-	# 如果已有该 Tick 的帧，直接返回
+
+func consume_or_build_for_tick(tick: int, player_slots: Array[int]) -> InputFrame:
+	var frame: InputFrame
+
 	if tick in frames:
 		frame = frames[tick]
-		# 确保所有玩家都有命令
 		for slot in player_slots:
 			if not frame.has_command(slot):
 				frame.set_command(slot, PlayerCommand.neutral())
 		return frame
 
-	# 否则创建新帧
 	frame = InputFrame.new()
 	frame.tick = tick
-
 	for slot in player_slots:
 		frame.set_command(slot, PlayerCommand.neutral())
 
 	frames[tick] = frame
 	return frame
 
-# 清除指定 Tick 之前的数据
+
 func clear_before_tick(tick: int) -> void:
 	var to_remove: Array[int] = []
 	for frame_tick in frames:
@@ -59,11 +42,7 @@ func clear_before_tick(tick: int) -> void:
 	for frame_tick in to_remove:
 		frames.erase(frame_tick)
 
-# ====================
-# 辅助方法
-# ====================
 
-# 获取所有已记录的 Tick
 func get_recorded_ticks() -> Array[int]:
 	var ticks: Array[int] = []
 	for tick in frames:
@@ -71,6 +50,95 @@ func get_recorded_ticks() -> Array[int]:
 	ticks.sort()
 	return ticks
 
-# 清空所有输入
+
+func push_input(frame: PlayerInputFrame) -> void:
+	if frame == null:
+		return
+
+	frame.sanitize()
+
+	if not frames_by_peer.has(frame.peer_id):
+		frames_by_peer[frame.peer_id] = {}
+
+	var peer_frames: Dictionary = frames_by_peer[frame.peer_id]
+	if peer_frames.has(frame.tick_id):
+		return
+
+	peer_frames[frame.tick_id] = frame
+	last_input_by_peer[frame.peer_id] = frame
+
+
+func get_input(peer_id: int, tick_id: int) -> PlayerInputFrame:
+	if not frames_by_peer.has(peer_id):
+		return _make_idle_input(peer_id, tick_id)
+
+	var peer_frames: Dictionary = frames_by_peer[peer_id]
+	if peer_frames.has(tick_id):
+		return peer_frames[tick_id]
+
+	return _fallback_input(peer_id, tick_id)
+
+
+func collect_inputs_for_tick(peer_ids: Array[int], tick_id: int) -> Dictionary:
+	var result: Dictionary = {}
+	for peer_id in peer_ids:
+		result[peer_id] = get_input(peer_id, tick_id)
+	return result
+
+
+func ack_peer(peer_id: int, ack_tick: int) -> void:
+	last_ack_tick_by_peer[peer_id] = ack_tick
+
+	if not frames_by_peer.has(peer_id):
+		return
+
+	var peer_frames: Dictionary = frames_by_peer[peer_id]
+	var to_remove: Array[int] = []
+	for tick in peer_frames.keys():
+		if tick <= ack_tick:
+			to_remove.append(tick)
+
+	for tick in to_remove:
+		peer_frames.erase(tick)
+
+
+func get_last_ack_tick(peer_id: int) -> int:
+	return int(last_ack_tick_by_peer.get(peer_id, -1))
+
+
+func _fallback_input(peer_id: int, tick_id: int) -> PlayerInputFrame:
+	if not last_input_by_peer.has(peer_id):
+		return _make_idle_input(peer_id, tick_id)
+
+	var last: PlayerInputFrame = last_input_by_peer[peer_id]
+	var fallback := PlayerInputFrame.new()
+	fallback.peer_id = peer_id
+	fallback.tick_id = tick_id
+	fallback.seq = last.seq
+	fallback.move_x = last.move_x
+	fallback.move_y = last.move_y
+	fallback.action_place = false
+	fallback.action_skill1 = false
+	fallback.action_skill2 = false
+	fallback.sanitize()
+	return fallback
+
+
+func _make_idle_input(peer_id: int, tick_id: int) -> PlayerInputFrame:
+	var idle := PlayerInputFrame.new()
+	idle.peer_id = peer_id
+	idle.tick_id = tick_id
+	idle.seq = 0
+	idle.move_x = 0
+	idle.move_y = 0
+	idle.action_place = false
+	idle.action_skill1 = false
+	idle.action_skill2 = false
+	return idle
+
+
 func clear() -> void:
 	frames.clear()
+	frames_by_peer.clear()
+	last_ack_tick_by_peer.clear()
+	last_input_by_peer.clear()

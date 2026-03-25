@@ -1,0 +1,230 @@
+class_name RollbackController
+extends Node
+
+signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
+signal full_visual_resync(snapshot: WorldSnapshot)
+
+var predicted_sim_world: SimWorld = null
+var snapshot_service: SnapshotService = null
+var snapshot_buffer: SnapshotBuffer = SnapshotBuffer.new()
+var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
+
+var local_peer_id: int = 0
+var last_authoritative_tick: int = 0
+var max_rollback_window: int = 16
+var rollback_count: int = 0
+var last_rollback_from_tick: int = -1
+var avg_replay_ticks: float = 0.0
+var force_resync_count: int = 0
+var predicted_until_tick: int = 0
+
+
+func configure(
+	p_predicted_sim_world: SimWorld,
+	p_snapshot_service: SnapshotService,
+	p_snapshot_buffer: SnapshotBuffer,
+	p_local_input_buffer: InputRingBuffer,
+	p_local_peer_id: int,
+	p_max_rollback_window: int = 16
+) -> void:
+	predicted_sim_world = p_predicted_sim_world
+	snapshot_service = p_snapshot_service
+	snapshot_buffer = p_snapshot_buffer
+	local_input_buffer = p_local_input_buffer
+	local_peer_id = p_local_peer_id
+	max_rollback_window = max(1, p_max_rollback_window)
+	predicted_until_tick = 0
+
+
+func set_predicted_until_tick(tick_id: int) -> void:
+	predicted_until_tick = tick_id
+
+
+func on_authoritative_snapshot(snapshot: WorldSnapshot) -> bool:
+	if snapshot == null:
+		return false
+
+	last_authoritative_tick = snapshot.tick_id
+	if predicted_sim_world == null:
+		return false
+
+	var local_snapshot := snapshot_buffer.get_snapshot(snapshot.tick_id)
+	if local_snapshot == null:
+		_force_resync(snapshot)
+		return true
+
+	if _is_snapshot_equal(local_snapshot, snapshot):
+		return false
+
+	if _should_force_resync(snapshot, local_snapshot):
+		_force_resync(snapshot)
+		return true
+
+	_rollback_from_snapshot(snapshot)
+	return true
+
+
+func on_checksum_mismatch(server_tick: int, server_snapshot: WorldSnapshot = null) -> bool:
+	if predicted_sim_world == null:
+		return false
+	if server_snapshot != null:
+		return on_authoritative_snapshot(server_snapshot)
+
+	var local_snapshot := snapshot_buffer.get_snapshot(server_tick)
+	if local_snapshot == null:
+		return false
+
+	if predicted_until_tick - server_tick > max_rollback_window:
+		_force_resync(local_snapshot)
+		return true
+
+	_rollback_from_snapshot(local_snapshot)
+	return true
+
+
+func _rollback_from_snapshot(authoritative_snapshot: WorldSnapshot) -> void:
+	if predicted_sim_world == null or snapshot_service == null:
+		return
+
+	rollback_count += 1
+	last_rollback_from_tick = authoritative_snapshot.tick_id
+
+	var replay_to : int = max(predicted_until_tick, authoritative_snapshot.tick_id)
+	var replay_count : int = max(0, replay_to - authoritative_snapshot.tick_id)
+	avg_replay_ticks = ((avg_replay_ticks * float(max(rollback_count - 1, 0))) + replay_count) / float(max(rollback_count, 1))
+
+	var before_positions := _capture_player_positions()
+	predicted_sim_world.state.runtime_flags.rollback_mode = true
+	snapshot_service.restore_snapshot(predicted_sim_world, authoritative_snapshot)
+	if predicted_sim_world.tick_runner != null:
+		predicted_sim_world.tick_runner.set_tick(authoritative_snapshot.tick_id)
+
+	while predicted_sim_world.tick_runner != null and predicted_sim_world.tick_runner.current_tick < replay_to:
+		var next_tick := predicted_sim_world.tick_runner.current_tick + 1
+		_inject_local_inputs_for_tick(next_tick)
+		predicted_sim_world.step()
+		if snapshot_service != null:
+			snapshot_buffer.put(snapshot_service.build_light_snapshot(predicted_sim_world, next_tick))
+
+	predicted_sim_world.state.runtime_flags.rollback_mode = false
+	predicted_until_tick = replay_to
+	_emit_visual_corrections(before_positions, _capture_player_positions())
+
+
+func _inject_local_inputs_for_tick(tick_id: int) -> void:
+	if predicted_sim_world == null:
+		return
+
+	var frame := local_input_buffer.get_frame(tick_id)
+	if frame == null:
+		frame = _make_idle_local_input(tick_id)
+
+	var slot := _find_local_player_slot()
+	if slot < 0:
+		return
+
+	var input_frame := InputFrame.new()
+	input_frame.tick = tick_id
+	input_frame.set_command(slot, _to_player_command(frame))
+	predicted_sim_world.enqueue_input(input_frame)
+
+
+func _force_resync(snapshot: WorldSnapshot) -> void:
+	if predicted_sim_world == null or snapshot_service == null or snapshot == null:
+		return
+
+	force_resync_count += 1
+	snapshot_service.restore_snapshot(predicted_sim_world, snapshot)
+	if predicted_sim_world.tick_runner != null:
+		predicted_sim_world.tick_runner.set_tick(snapshot.tick_id)
+	predicted_until_tick = snapshot.tick_id
+	snapshot_buffer.put(snapshot)
+	full_visual_resync.emit(snapshot)
+
+
+func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot) -> bool:
+	if authoritative_snapshot == null or local_snapshot == null:
+		return true
+
+	if predicted_until_tick - authoritative_snapshot.tick_id > max_rollback_window:
+		return true
+	if authoritative_snapshot.rng_state != 0 and local_snapshot.rng_state != 0 and authoritative_snapshot.rng_state != local_snapshot.rng_state:
+		return true
+	if authoritative_snapshot.players.size() != local_snapshot.players.size():
+		return true
+	if authoritative_snapshot.bubbles.size() != local_snapshot.bubbles.size():
+		return true
+	if authoritative_snapshot.items.size() != local_snapshot.items.size():
+		return true
+	return false
+
+
+func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> bool:
+	if local_snapshot == null or authoritative_snapshot == null:
+		return false
+
+	return (
+		local_snapshot.checksum == authoritative_snapshot.checksum
+		and local_snapshot.players == authoritative_snapshot.players
+		and local_snapshot.bubbles == authoritative_snapshot.bubbles
+		and local_snapshot.items == authoritative_snapshot.items
+	)
+
+
+func _find_local_player_slot() -> int:
+	if predicted_sim_world == null:
+		return -1
+
+	for player_id in predicted_sim_world.state.players.active_ids:
+		var player := predicted_sim_world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		if player.player_slot == local_peer_id:
+			return player.player_slot
+
+	return -1
+
+
+func _make_idle_local_input(tick_id: int) -> PlayerInputFrame:
+	var frame := PlayerInputFrame.new()
+	frame.peer_id = local_peer_id
+	frame.tick_id = tick_id
+	frame.seq = tick_id
+	frame.move_x = 0
+	frame.move_y = 0
+	frame.action_place = false
+	frame.action_skill1 = false
+	frame.action_skill2 = false
+	return frame
+
+
+func _to_player_command(frame: PlayerInputFrame) -> PlayerCommand:
+	var command := PlayerCommand.neutral()
+	command.move_x = frame.move_x
+	command.move_y = frame.move_y
+	command.place_bubble = frame.action_place
+	command.remote_trigger = frame.action_skill1 or frame.action_skill2
+	command.sequence_id = frame.seq
+	return command
+
+
+func _capture_player_positions() -> Dictionary:
+	var positions: Dictionary = {}
+	if predicted_sim_world == null:
+		return positions
+
+	for player_id in predicted_sim_world.state.players.active_ids:
+		var player := predicted_sim_world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		positions[player.entity_id] = Vector2i(player.cell_x, player.cell_y)
+
+	return positions
+
+
+func _emit_visual_corrections(before_positions: Dictionary, after_positions: Dictionary) -> void:
+	for entity_id in after_positions.keys():
+		var from_pos: Vector2i = before_positions.get(entity_id, after_positions[entity_id])
+		var to_pos: Vector2i = after_positions[entity_id]
+		if from_pos != to_pos:
+			prediction_corrected.emit(entity_id, from_pos, to_pos)
