@@ -131,3 +131,10 @@ func _apply_controller_type(peer_id: int) -> void:
 		player.controller_type = PlayerState.ControllerType.NETWORK
 		sim_world.state.players.update_player(player)
 		return
+func dispose() -> void:
+	snapshot_buffer.clear()
+	if sim_world != null:
+		sim_world.dispose()
+	sim_world = null
+	input_buffer = null
+

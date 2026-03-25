@@ -20,5 +20,9 @@ var tile_flags: int = 0
 # 如果该格是机制格，可用来索引具体机关类型
 var mechanism_id: int = -1
 
+# 地图主题或皮肤变体，供快照/校验稳定序列化使用
+var theme_variant: int = 0
+
 # 用于记录出生点组，后续多人模式/团队模式可用
 var spawn_group_id: int = -1
+

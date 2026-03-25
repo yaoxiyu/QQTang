@@ -145,3 +145,12 @@ func reset_runtime_only() -> void:
 
 func rebuild_runtime_indexes() -> void:
 	state.indexes.rebuild_from_state(state)
+func dispose() -> void:
+	if tick_runner != null and is_instance_valid(tick_runner):
+		tick_runner.free()
+	tick_runner = null
+	_pending_commands = null
+	input_buffer.clear()
+	if events != null:
+		events.clear()
+

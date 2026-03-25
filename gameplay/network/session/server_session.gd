@@ -82,17 +82,11 @@ func _tick_world(_tick_id: int) -> void:
 	if result.is_empty():
 		return
 
-	var snapshot := active_match.get_snapshot(int(result.get("tick", 0)))
-	if snapshot == null:
-		return
-
+	var tick_id := int(result.get("tick", 0))
 	_queue_message({
-		"msg_type": "SNAPSHOT",
-		"tick": snapshot.tick_id,
-		"players": snapshot.players,
-		"bubbles": snapshot.bubbles,
-		"items": snapshot.items,
-		"checksum": snapshot.checksum
+		"msg_type": "STATE_SUMMARY",
+		"tick": tick_id,
+		"player_summary": active_match.build_player_position_summary()
 	})
 
 
@@ -108,6 +102,7 @@ func _tick_snapshot(tick_id: int) -> void:
 		"msg_type": "CHECKPOINT",
 		"tick": snapshot.tick_id,
 		"players": snapshot.players,
+		"player_summary": active_match.build_player_position_summary(),
 		"bubbles": snapshot.bubbles,
 		"items": snapshot.items,
 		"checksum": snapshot.checksum
@@ -120,3 +115,9 @@ func _queue_message(message: Dictionary) -> void:
 
 func _make_match_id() -> String:
 	return "%s_%d" % [room_session.room_id, Time.get_ticks_msec()]
+
+
+func _exit_tree() -> void:
+	if active_match != null:
+		active_match.dispose()
+		active_match = null

@@ -12,7 +12,7 @@ class_name SimConfig
 extends RefCounted
 
 # 对局配置
-var tick_rate: int = 30
+var tick_rate: int = 20
 var map_def: Resource = null
 var mode_def: Resource = null
 

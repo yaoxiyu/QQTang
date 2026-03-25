@@ -31,9 +31,13 @@ func on_input_ack(ack_tick: int) -> void:
 	last_confirmed_tick = ack_tick
 
 
+func on_state_summary(summary: Dictionary) -> void:
+	latest_snapshot_tick = int(summary.get("tick", 0))
+	latest_player_summary = summary.get("player_summary", summary.get("players", []))
+
+
 func on_snapshot(snapshot: Dictionary) -> void:
-	latest_snapshot_tick = int(snapshot.get("tick", 0))
-	latest_player_summary = snapshot.get("players", [])
+	on_state_summary(snapshot)
 
 
 func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place: bool = false) -> PlayerInputFrame:
