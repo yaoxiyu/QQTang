@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="QQTang"
-run/main_scene="uid://bml4x87rcw4u"
+run/main_scene="uid://0dmt5a5nftsy"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

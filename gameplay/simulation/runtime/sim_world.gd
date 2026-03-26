@@ -153,4 +153,3 @@ func dispose() -> void:
 	input_buffer.clear()
 	if events != null:
 		events.clear()
-

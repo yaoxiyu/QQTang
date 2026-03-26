@@ -19,6 +19,8 @@ func get_name() -> StringName:
 	return "StatusEffectSystem"
 
 func execute(ctx: SimContext) -> void:
+	_process_destroyed_cells(ctx)
+
 	# 处理死亡
 	for player_id in ctx.scratch.players_to_kill:
 		var player = ctx.state.players.get_player(player_id)
@@ -72,3 +74,22 @@ func execute(ctx: SimContext) -> void:
 		if player.bomb_available < player.bomb_capacity:
 			player.bomb_available += 1
 			ctx.state.players.update_player(player)
+
+
+func _process_destroyed_cells(ctx: SimContext) -> void:
+	for cell in ctx.scratch.cells_to_destroy:
+		if not ctx.state.grid.is_in_bounds(cell.x, cell.y):
+			continue
+
+		var static_cell := ctx.state.grid.get_static_cell(cell.x, cell.y)
+		if static_cell.tile_type != TileConstants.TileType.BREAKABLE_BLOCK:
+			continue
+
+		ctx.state.grid.set_static_cell(cell.x, cell.y, TileFactory.make_empty())
+
+		var destroyed_event := SimEvent.new(ctx.tick, SimEvent.EventType.CELL_DESTROYED)
+		destroyed_event.payload = {
+			"cell_x": cell.x,
+			"cell_y": cell.y
+		}
+		ctx.events.push(destroyed_event)

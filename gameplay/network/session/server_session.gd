@@ -52,6 +52,7 @@ func tick_once() -> void:
 	_tick_collect_inputs(next_tick)
 	_tick_world(next_tick)
 	_tick_snapshot(next_tick)
+	_tick_ack_inputs(next_tick)
 
 
 func poll_messages() -> Array[Dictionary]:
@@ -66,12 +67,6 @@ func _tick_collect_inputs(tick_id: int) -> void:
 
 	for peer_id in active_match.peer_ids:
 		active_match.input_buffer.get_input(peer_id, tick_id)
-		_queue_message({
-			"msg_type": "INPUT_ACK",
-			"peer_id": peer_id,
-			"ack_tick": tick_id
-		})
-		active_match.input_buffer.ack_peer(peer_id, tick_id)
 
 
 func _tick_world(_tick_id: int) -> void:
@@ -86,7 +81,8 @@ func _tick_world(_tick_id: int) -> void:
 	_queue_message({
 		"msg_type": "STATE_SUMMARY",
 		"tick": tick_id,
-		"player_summary": active_match.build_player_position_summary()
+		"player_summary": active_match.build_player_position_summary(),
+		"checksum": active_match.compute_checksum(tick_id)
 	})
 
 
@@ -107,6 +103,19 @@ func _tick_snapshot(tick_id: int) -> void:
 		"items": snapshot.items,
 		"checksum": snapshot.checksum
 	})
+
+
+func _tick_ack_inputs(tick_id: int) -> void:
+	if active_match == null:
+		return
+
+	for peer_id in active_match.peer_ids:
+		_queue_message({
+			"msg_type": "INPUT_ACK",
+			"peer_id": peer_id,
+			"ack_tick": tick_id
+		})
+		active_match.input_buffer.ack_peer(peer_id, tick_id)
 
 
 func _queue_message(message: Dictionary) -> void:

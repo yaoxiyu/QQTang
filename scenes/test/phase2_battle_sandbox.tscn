@@ -1,0 +1,45 @@
+[gd_scene format=3 uid="uid://0dmt5a5nftsy"]
+
+[ext_resource type="Script" uid="uid://bs15ut602d2rb" path="res://gameplay/sandbox/phase2/sandbox_bootstrap.gd" id="1_f4shd"]
+[ext_resource type="Script" uid="uid://df084wieqnmik" path="res://presentation/sandbox/phase2/presentation_bridge.gd" id="2_335if"]
+[ext_resource type="Script" uid="uid://b14fddv7j4gjc" path="res://presentation/sandbox/phase2/simple_debug_hud.gd" id="3_k36i0"]
+[ext_resource type="Script" uid="uid://cc4dqfev04opf" path="res://presentation/sandbox/phase2/net_debug_overlay.gd" id="4_0mljc"]
+[ext_resource type="Script" uid="uid://w0jdv7ox8d3k" path="res://gameplay/sandbox/phase2/sandbox_debug_commands.gd" id="5_y000w"]
+
+[node name="Phase2BattleSandbox" type="Node" unique_id=1767150788]
+
+[node name="SandboxBootstrap" type="Node" parent="." unique_id=739753604]
+script = ExtResource("1_f4shd")
+
+[node name="PresentationRoot" type="Node2D" parent="." unique_id=2079799099]
+script = ExtResource("2_335if")
+
+[node name="ActorLayer" type="Node2D" parent="PresentationRoot" unique_id=614597127]
+
+[node name="FxLayer" type="Node2D" parent="PresentationRoot" unique_id=1493162]
+
+[node name="DebugDrawLayer" type="Node2D" parent="PresentationRoot" unique_id=1153033180]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=54546011]
+
+[node name="SimpleDebugHud" type="Label" parent="CanvasLayer" unique_id=815806740]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 56.0
+offset_bottom = 39.0
+script = ExtResource("3_k36i0")
+
+[node name="NetDebugOverlay" type="Label" parent="CanvasLayer" unique_id=545582878]
+custom_minimum_size = Vector2(260, 0)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -270.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 33.0
+grow_horizontal = 0
+script = ExtResource("4_0mljc")
+
+[node name="SandboxDebugCommands" type="Node" parent="." unique_id=645047100]
+script = ExtResource("5_y000w")

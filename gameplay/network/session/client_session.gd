@@ -4,6 +4,7 @@ extends Node
 var local_peer_id: int = 0
 var last_confirmed_tick: int = 0
 var latest_snapshot_tick: int = 0
+var latest_checksum: int = 0
 var outgoing_input_frames: Array[PlayerInputFrame] = []
 var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
 var latest_player_summary: Array[Dictionary] = []
@@ -12,6 +13,11 @@ var latest_player_summary: Array[Dictionary] = []
 func configure(peer_id: int, ring_capacity: int = 64) -> void:
 	local_peer_id = peer_id
 	local_input_buffer = InputRingBuffer.new(ring_capacity)
+	last_confirmed_tick = 0
+	latest_snapshot_tick = 0
+	latest_checksum = 0
+	latest_player_summary.clear()
+	outgoing_input_frames.clear()
 
 
 func send_input(frame: PlayerInputFrame) -> void:
@@ -34,6 +40,7 @@ func on_input_ack(ack_tick: int) -> void:
 func on_state_summary(summary: Dictionary) -> void:
 	latest_snapshot_tick = int(summary.get("tick", 0))
 	latest_player_summary = summary.get("player_summary", summary.get("players", []))
+	latest_checksum = int(summary.get("checksum", latest_checksum))
 
 
 func on_snapshot(snapshot: Dictionary) -> void:
