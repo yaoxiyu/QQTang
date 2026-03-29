@@ -31,10 +31,12 @@ func _test_app_root_runtime_structure() -> void:
 	_assert_true(runtime.has_node("SessionRoot"), "app root exposes SessionRoot")
 	_assert_true(runtime.has_node("BattleRoot"), "app root exposes BattleRoot")
 	_assert_true(runtime.has_node("DebugTools"), "app root exposes DebugTools")
+	_assert_true(runtime.runtime_config != null, "app root exposes runtime config")
 	_assert_true(runtime.room_session_controller != null and runtime.room_session_controller.get_parent() == runtime.session_root, "room session controller lives under SessionRoot")
 	_assert_true(runtime.match_start_coordinator != null and runtime.match_start_coordinator.get_parent() == runtime.session_root, "match start coordinator lives under SessionRoot")
 	_assert_true(runtime.battle_session_adapter != null and runtime.battle_session_adapter.get_parent() == runtime.session_root, "battle session adapter lives under SessionRoot")
 	_assert_true(runtime.debug_tools != null and runtime.debug_tools.get_parent() == runtime, "debug tools live under AppRoot")
+	_assert_true(bool(runtime.debug_dump_runtime_structure().get("has_runtime_config", false)), "runtime structure dump exposes runtime config")
 	runtime.queue_free()
 
 

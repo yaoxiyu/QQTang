@@ -9,6 +9,7 @@ const RoomSessionControllerScript = preload("res://network/session/room_session_
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const DebugToolsScript = preload("res://app/flow/phase3_debug_tools.gd")
+const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
 
 var local_peer_id: int = 1
 var remote_peer_id: int = 2
@@ -21,6 +22,7 @@ var debug_tools: Node = null
 var room_session_controller: Node = null
 var match_start_coordinator: Node = null
 var battle_session_adapter: Node = null
+var runtime_config: RefCounted = null
 
 var current_room_snapshot: RoomSnapshot = null
 var current_start_config: BattleStartConfig = null
@@ -57,6 +59,7 @@ func _ready() -> void:
 func initialize_runtime() -> void:
 	name = ROOT_NODE_NAME
 	_ensure_root_nodes()
+	_ensure_runtime_config()
 
 	if front_flow == null or not is_instance_valid(front_flow):
 		front_flow = FrontFlowControllerScript.new()
@@ -146,6 +149,8 @@ func debug_dump_runtime_structure() -> Dictionary:
 		"has_session_root": session_root != null,
 		"has_battle_root": battle_root != null,
 		"has_debug_tools": debug_tools != null,
+		"has_runtime_config": runtime_config != null,
+		"runtime_config": runtime_config.to_dict() if runtime_config != null else {},
 		"has_active_battle_scene": current_battle_scene != null,
 		"has_active_battle_bootstrap": current_battle_bootstrap != null,
 		"has_active_presentation_bridge": current_presentation_bridge != null,
@@ -153,7 +158,14 @@ func debug_dump_runtime_structure() -> Dictionary:
 		"has_active_battle_camera": current_battle_camera_controller != null,
 		"has_active_settlement": current_settlement_controller != null,
 		"battle_root_children": battle_root.get_child_count() if battle_root != null else 0,
+		"battle_root_child_names": _get_battle_root_child_names(),
 		"battle_root_has_scene": battle_root != null and current_battle_scene != null and current_battle_scene.get_parent() == battle_root,
+		"battle_root_has_multiple_scenes": battle_root != null and battle_root.get_child_count() > 1,
+		"current_scene_path": scene_flow.current_scene_path if scene_flow != null else "",
+		"battle_lifecycle_state": battle_session_adapter.get_lifecycle_state() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state") else -1,
+		"battle_lifecycle_state_name": battle_session_adapter.get_lifecycle_state_name() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state_name") else "UNKNOWN",
+		"battle_is_active": battle_session_adapter.is_battle_active() if battle_session_adapter != null and battle_session_adapter.has_method("is_battle_active") else false,
+		"battle_shutdown_complete": battle_session_adapter.is_shutdown_complete() if battle_session_adapter != null and battle_session_adapter.has_method("is_shutdown_complete") else false,
 	}
 
 
@@ -181,6 +193,20 @@ func _ensure_root_nodes() -> void:
 			debug_tools = DebugToolsScript.new()
 			debug_tools.name = "DebugTools"
 			add_child(debug_tools)
+
+
+func _ensure_runtime_config() -> void:
+	if runtime_config == null:
+		runtime_config = AppRuntimeConfigScript.new()
+
+
+func _get_battle_root_child_names() -> Array:
+	if battle_root == null:
+		return []
+	var names: Array = []
+	for child in battle_root.get_children():
+		names.append(child.name)
+	return names
 
 
 func _reparent_to(node: Node, new_parent: Node) -> void:

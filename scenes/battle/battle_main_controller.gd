@@ -22,6 +22,7 @@ var _pending_settlement_result: BattleResult = null
 var _settlement_delay_remaining: float = 0.0
 var _post_shutdown_action: String = ""
 var _scene_cleanup_queued: bool = false
+var _shutting_down: bool = false
 
 
 func _ready() -> void:
@@ -30,6 +31,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if settlement_controller.visible:
+		return
+	if _shutting_down:
 		return
 	if _pending_settlement_result != null:
 		_settlement_delay_remaining = max(_settlement_delay_remaining - delta, 0.0)
@@ -50,16 +53,7 @@ func _initialize_runtime() -> void:
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
 	if _app_runtime != null:
 		_app_runtime.register_battle_modules(self, battle_bootstrap, presentation_bridge, battle_hud, battle_camera_controller, settlement_controller)
-	if _session_adapter != null and not _session_adapter.battle_context_created.is_connected(_on_battle_context_created):
-		_session_adapter.battle_context_created.connect(_on_battle_context_created)
-	if _session_adapter != null and not _session_adapter.authoritative_tick_completed.is_connected(_on_authoritative_tick_completed):
-		_session_adapter.authoritative_tick_completed.connect(_on_authoritative_tick_completed)
-	if _session_adapter != null and not _session_adapter.battle_finished_authoritatively.is_connected(_on_battle_finished_authoritatively):
-		_session_adapter.battle_finished_authoritatively.connect(_on_battle_finished_authoritatively)
-	if _session_adapter != null and not _session_adapter.battle_session_stopped.is_connected(_on_battle_session_stopped):
-		_session_adapter.battle_session_stopped.connect(_on_battle_session_stopped)
-	if _session_adapter != null and not _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
-		_session_adapter.prediction_debug_event.connect(_on_prediction_debug_event)
+	_connect_session_signals()
 	if not settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
 		settlement_controller.return_to_room_requested.connect(_on_settlement_return_to_room_requested)
 	if not settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
@@ -76,20 +70,12 @@ func _exit_tree() -> void:
 		settlement_controller.return_to_room_requested.disconnect(_on_settlement_return_to_room_requested)
 	if settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
 		settlement_controller.rematch_requested.disconnect(_on_settlement_rematch_requested)
-	if _session_adapter != null:
-		if _session_adapter.battle_context_created.is_connected(_on_battle_context_created):
-			_session_adapter.battle_context_created.disconnect(_on_battle_context_created)
-		if _session_adapter.authoritative_tick_completed.is_connected(_on_authoritative_tick_completed):
-			_session_adapter.authoritative_tick_completed.disconnect(_on_authoritative_tick_completed)
-		if _session_adapter.battle_finished_authoritatively.is_connected(_on_battle_finished_authoritatively):
-			_session_adapter.battle_finished_authoritatively.disconnect(_on_battle_finished_authoritatively)
-		if _session_adapter.battle_session_stopped.is_connected(_on_battle_session_stopped):
-			_session_adapter.battle_session_stopped.disconnect(_on_battle_session_stopped)
-		if _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
-			_session_adapter.prediction_debug_event.disconnect(_on_prediction_debug_event)
+	_disconnect_session_signals(true)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _shutting_down:
+		return
 	if event.is_action_pressed("ui_accept") and settlement_controller.visible:
 		settlement_controller.request_return_to_room()
 		return
@@ -124,6 +110,7 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	_settlement_delay_remaining = 0.0
 	_post_shutdown_action = ""
 	_scene_cleanup_queued = false
+	_shutting_down = false
 	battle_bootstrap.bind_context(_battle_context)
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
@@ -164,6 +151,7 @@ func _on_battle_session_stopped() -> void:
 	_tick_accumulator = 0.0
 	_pending_settlement_result = null
 	_settlement_delay_remaining = 0.0
+	_shutting_down = false
 
 
 func _on_settlement_return_to_room_requested() -> void:
@@ -190,6 +178,7 @@ func _complete_return_to_room() -> void:
 		if _app_runtime.debug_tools != null and _app_runtime.debug_tools.has_method("reset_local_loop_room_ready"):
 			_app_runtime.debug_tools.reset_local_loop_room_ready(
 				_app_runtime.room_session_controller,
+				_app_runtime.runtime_config,
 				_app_runtime.local_peer_id,
 				_app_runtime.remote_peer_id
 			)
@@ -250,16 +239,19 @@ func _on_prediction_debug_event(event: Dictionary) -> void:
 
 
 func _shutdown_active_battle() -> void:
+	_shutting_down = true
+	_tick_accumulator = 0.0
+	_disconnect_session_signals(false)
+	if _session_adapter != null:
+		_session_adapter.shutdown_battle()
+	if battle_bootstrap != null:
+		battle_bootstrap.release_context()
 	if presentation_bridge != null:
 		presentation_bridge.shutdown_bridge()
 	if battle_hud != null:
 		battle_hud.reset_hud()
 	if settlement_controller != null:
 		settlement_controller.reset_settlement()
-	if battle_bootstrap != null:
-		battle_bootstrap.release_context()
-	if _session_adapter != null:
-		_session_adapter.shutdown_battle()
 
 
 func _complete_post_shutdown_action() -> void:
@@ -301,3 +293,33 @@ func _resolve_local_player_entity_id() -> int:
 			if player != null and player.player_slot == slot_index:
 				return player.entity_id
 	return -1
+
+
+func _connect_session_signals() -> void:
+	if _session_adapter == null:
+		return
+	if not _session_adapter.battle_context_created.is_connected(_on_battle_context_created):
+		_session_adapter.battle_context_created.connect(_on_battle_context_created)
+	if not _session_adapter.authoritative_tick_completed.is_connected(_on_authoritative_tick_completed):
+		_session_adapter.authoritative_tick_completed.connect(_on_authoritative_tick_completed)
+	if not _session_adapter.battle_finished_authoritatively.is_connected(_on_battle_finished_authoritatively):
+		_session_adapter.battle_finished_authoritatively.connect(_on_battle_finished_authoritatively)
+	if not _session_adapter.battle_session_stopped.is_connected(_on_battle_session_stopped):
+		_session_adapter.battle_session_stopped.connect(_on_battle_session_stopped)
+	if not _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
+		_session_adapter.prediction_debug_event.connect(_on_prediction_debug_event)
+
+
+func _disconnect_session_signals(include_stop_signal: bool) -> void:
+	if _session_adapter == null:
+		return
+	if _session_adapter.battle_context_created.is_connected(_on_battle_context_created):
+		_session_adapter.battle_context_created.disconnect(_on_battle_context_created)
+	if _session_adapter.authoritative_tick_completed.is_connected(_on_authoritative_tick_completed):
+		_session_adapter.authoritative_tick_completed.disconnect(_on_authoritative_tick_completed)
+	if _session_adapter.battle_finished_authoritatively.is_connected(_on_battle_finished_authoritatively):
+		_session_adapter.battle_finished_authoritatively.disconnect(_on_battle_finished_authoritatively)
+	if include_stop_signal and _session_adapter.battle_session_stopped.is_connected(_on_battle_session_stopped):
+		_session_adapter.battle_session_stopped.disconnect(_on_battle_session_stopped)
+	if _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
+		_session_adapter.prediction_debug_event.disconnect(_on_prediction_debug_event)

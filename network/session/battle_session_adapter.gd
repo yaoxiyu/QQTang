@@ -15,6 +15,15 @@ const DEFAULT_MATCH_DURATION_TICKS: int = 360
 const LATENCY_PROFILES_MS: Array[int] = [0, 80, 150, 250]
 const LOSS_PROFILES: Array[float] = [0.0, 0.05, 0.10, 0.20]
 
+enum BattleLifecycleState {
+	IDLE,
+	STARTING,
+	RUNNING,
+	FINISHING,
+	SHUTTING_DOWN,
+	STOPPED,
+}
+
 var start_config: BattleStartConfig = null
 var client_session: ClientSession = null
 var server_session: ServerSession = null
@@ -39,6 +48,7 @@ var _force_prediction_divergence_pending: bool = false
 var _correction_count: int = 0
 var _last_correction_summary: String = ""
 var _last_resync_tick: int = -1
+var _lifecycle_state: int = BattleLifecycleState.STOPPED
 
 
 func bind_sessions(p_client_session: ClientSession, p_server_session: ServerSession) -> void:
@@ -49,14 +59,18 @@ func bind_sessions(p_client_session: ClientSession, p_server_session: ServerSess
 
 func setup_from_start_config(config: BattleStartConfig) -> void:
 	start_config = config.duplicate_deep() if config != null else null
+	_lifecycle_state = BattleLifecycleState.IDLE if start_config != null else BattleLifecycleState.STOPPED
 
 
 func start_battle() -> void:
 	if start_config == null:
 		return
+	_lifecycle_state = BattleLifecycleState.STARTING
 	_rebuild_runtime()
 	if current_context == null:
+		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
+	_lifecycle_state = BattleLifecycleState.RUNNING
 	battle_session_started.emit(start_config)
 	battle_context_created.emit(current_context)
 
@@ -89,12 +103,16 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> void:
 
 	if int(world.state.match_state.phase) == MatchState.Phase.ENDED:
 		_finished_emitted = true
+		_lifecycle_state = BattleLifecycleState.FINISHING
 		battle_finished_authoritatively.emit(
 			BattleResult.from_authoritative_state(world, current_context.battle_start_config, _local_peer_id)
 		)
 
 
 func shutdown_battle() -> void:
+	if _lifecycle_state != BattleLifecycleState.STOPPED:
+		_lifecycle_state = BattleLifecycleState.SHUTTING_DOWN
+
 	if prediction_controller != null:
 		if prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 			prediction_controller.prediction_corrected.disconnect(_on_prediction_corrected)
@@ -136,7 +154,38 @@ func shutdown_battle() -> void:
 	_last_correction_summary = ""
 	_last_resync_tick = -1
 	_reset_transport_stats()
+	_lifecycle_state = BattleLifecycleState.STOPPED
 	battle_session_stopped.emit()
+
+
+func get_lifecycle_state() -> int:
+	return _lifecycle_state
+
+
+func get_lifecycle_state_name() -> String:
+	match _lifecycle_state:
+		BattleLifecycleState.IDLE:
+			return "IDLE"
+		BattleLifecycleState.STARTING:
+			return "STARTING"
+		BattleLifecycleState.RUNNING:
+			return "RUNNING"
+		BattleLifecycleState.FINISHING:
+			return "FINISHING"
+		BattleLifecycleState.SHUTTING_DOWN:
+			return "SHUTTING_DOWN"
+		BattleLifecycleState.STOPPED:
+			return "STOPPED"
+		_:
+			return "UNKNOWN"
+
+
+func is_battle_active() -> bool:
+	return _lifecycle_state == BattleLifecycleState.STARTING or _lifecycle_state == BattleLifecycleState.RUNNING or _lifecycle_state == BattleLifecycleState.FINISHING or _lifecycle_state == BattleLifecycleState.SHUTTING_DOWN
+
+
+func is_shutdown_complete() -> bool:
+	return _lifecycle_state == BattleLifecycleState.STOPPED
 
 
 func cycle_latency_profile() -> int:
@@ -147,6 +196,7 @@ func cycle_latency_profile() -> int:
 func cycle_loss_profile() -> int:
 	_loss_profile_index = (_loss_profile_index + 1) % LOSS_PROFILES.size()
 	return get_packet_loss_percent()
+
 
 func toggle_remote_debug_inputs() -> bool:
 	use_remote_debug_inputs = not use_remote_debug_inputs
@@ -223,6 +273,7 @@ func _rebuild_runtime() -> void:
 		start_config.start_tick
 	)
 	if not started or server_session.active_match == null:
+		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
 
 	server_session.active_match.sim_world.state.match_state.remaining_ticks = _resolve_match_duration_ticks(start_config)
@@ -366,28 +417,33 @@ func _apply_server_messages(messages: Array) -> void:
 
 
 func _build_runtime_metrics() -> Dictionary:
-	if current_context == null or current_context.sim_world == null:
-		return {}
+	var authoritative_tick: int = current_context.sim_world.state.match_state.tick if current_context != null and current_context.sim_world != null else 0
+	var snapshot_tick: int = client_session.latest_snapshot_tick if client_session != null else authoritative_tick
 	return {
+		"lifecycle_state": _lifecycle_state,
+		"lifecycle_state_name": get_lifecycle_state_name(),
+		"battle_active": is_battle_active(),
+		"shutdown_complete": is_shutdown_complete(),
 		"latency_ms": get_latency_profile_ms(),
 		"packet_loss_percent": get_packet_loss_percent(),
 		"ack_tick": client_session.last_confirmed_tick if client_session != null else 0,
-		"rollback_count": current_context.rollback_controller.rollback_count if current_context.rollback_controller != null else 0,
-		"last_rollback_tick": current_context.rollback_controller.last_rollback_from_tick if current_context.rollback_controller != null else -1,
-		"resync_count": current_context.rollback_controller.force_resync_count if current_context.rollback_controller != null else 0,
-		"predicted_tick": prediction_controller.predicted_until_tick if prediction_controller != null else current_context.sim_world.state.match_state.tick,
-		"authoritative_tick": prediction_controller.authoritative_tick if prediction_controller != null else current_context.sim_world.state.match_state.tick,
-		"snapshot_tick": client_session.latest_snapshot_tick if client_session != null else current_context.sim_world.state.match_state.tick,
+		"rollback_count": current_context.rollback_controller.rollback_count if current_context != null and current_context.rollback_controller != null else 0,
+		"last_rollback_tick": current_context.rollback_controller.last_rollback_from_tick if current_context != null and current_context.rollback_controller != null else -1,
+		"resync_count": current_context.rollback_controller.force_resync_count if current_context != null and current_context.rollback_controller != null else 0,
+		"predicted_tick": prediction_controller.predicted_until_tick if prediction_controller != null else authoritative_tick,
+		"authoritative_tick": prediction_controller.authoritative_tick if prediction_controller != null else authoritative_tick,
+		"snapshot_tick": snapshot_tick,
 		"delivered_messages": int(_transport_stats.get("delivered", 0)),
 		"dropped_messages": int(_transport_stats.get("dropped", 0)),
+		"pending_server_messages": _delayed_server_messages.size(),
 		"prediction_enabled": prediction_controller != null,
 		"network_profile": get_network_profile_summary(),
 		"force_divergence_armed": _force_prediction_divergence_pending,
 		"correction_count": _correction_count,
 		"last_correction": _last_correction_summary,
 		"last_resync_tick": _last_resync_tick,
-        "drop_rate_percent": ItemSpawnSystemScript.get_debug_drop_rate_percent(),
-        "remote_debug_inputs": use_remote_debug_inputs,
+		"drop_rate_percent": ItemSpawnSystemScript.get_debug_drop_rate_percent(),
+		"remote_debug_inputs": use_remote_debug_inputs,
 	}
 
 

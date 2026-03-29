@@ -168,6 +168,7 @@ func _test_shutdown_battle_clears_runtime_without_mutating_room_state() -> void:
 	_assert_true(not bool(dump.get("has_runtime", true)), "battle shutdown clears runtime references")
 	_assert_true(not settlement.visible, "battle shutdown hides settlement")
 	_assert_true(bool(room_dump.get("all_ready", false)), "battle bootstrap release leaves room state untouched")
+	_assert_true(context.sim_world == null and context.client_session == null and context.server_session == null, "battle shutdown clears battle context runtime pointers")
 
 	bootstrap.free()
 	bridge.free()
@@ -270,6 +271,7 @@ func _test_battle_session_adapter_finishes_by_time_limit() -> void:
 	config.sort_players()
 	adapter.setup_from_start_config(config)
 	adapter.use_remote_debug_inputs = false
+	_assert_true(adapter.get_lifecycle_state_name() == "IDLE", "battle session adapter enters idle after setup")
 
 	var finished_box := {"result": null}
 	adapter.battle_finished_authoritatively.connect(func(result) -> void:
@@ -277,6 +279,7 @@ func _test_battle_session_adapter_finishes_by_time_limit() -> void:
 	)
 
 	adapter.start_battle()
+	_assert_true(adapter.get_lifecycle_state_name() == "RUNNING", "battle session adapter enters running after start")
 	for _tick in range(BattleSessionAdapterScript.DEFAULT_MATCH_DURATION_TICKS + 2):
 		adapter.advance_authoritative_tick({})
 		if finished_box["result"] != null:
@@ -286,8 +289,11 @@ func _test_battle_session_adapter_finishes_by_time_limit() -> void:
 	_assert_true(finished_result != null, "battle session adapter emits authoritative finish result")
 	_assert_true(finished_result != null and finished_result.finish_reason == "time_up", "battle session adapter ends match by time limit")
 	_assert_true(finished_result != null and finished_result.finish_tick > 0, "battle session adapter reports finish tick")
+	_assert_true(adapter.get_lifecycle_state_name() == "FINISHING", "battle session adapter enters finishing after authoritative end")
 
 	adapter.shutdown_battle()
+	_assert_true(adapter.get_lifecycle_state_name() == "STOPPED", "battle session adapter enters stopped after shutdown")
+	_assert_true(adapter.is_shutdown_complete(), "battle session adapter reports shutdown complete after shutdown")
 	adapter.free()
 
 
@@ -369,3 +375,4 @@ func _assert_true(condition: bool, message: String) -> void:
 		print("[PASS] %s" % message)
 		return
 	push_error("[FAIL] %s" % message)
+

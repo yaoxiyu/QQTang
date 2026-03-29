@@ -35,8 +35,13 @@ func _initialize_runtime() -> void:
 	_front_flow = _app_runtime.front_flow
 	_coordinator = _app_runtime.match_start_coordinator
 	_connect_runtime_signals()
-	if _app_runtime.debug_tools != null and _app_runtime.debug_tools.has_method("ensure_local_loop_room"):
-		_app_runtime.debug_tools.ensure_local_loop_room(_room_controller, _app_runtime.local_peer_id, _app_runtime.remote_peer_id)
+	if _app_runtime.debug_tools != null and _app_runtime.debug_tools.has_method("bootstrap_local_loop_room_if_enabled"):
+		_app_runtime.debug_tools.bootstrap_local_loop_room_if_enabled(
+			_room_controller,
+			_app_runtime.runtime_config,
+			_app_runtime.local_peer_id,
+			_app_runtime.remote_peer_id
+		)
 	_refresh_room(_room_controller.build_room_snapshot())
 
 
