@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://cjqu2ykmxfuuf"]
+
+[ext_resource type="Script" path="res://scenes/front/loading_scene_controller.gd" id="1_loading"]
+
+[node name="LoadingScene" type="Node" unique_id=2140693164]
+script = ExtResource("1_loading")
+
+[node name="LoadingRoot" type="Control" parent="." unique_id=1204392052]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainLayout" type="VBoxContainer" parent="LoadingRoot" unique_id=654844687]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 64.0
+offset_right = 960.0
+offset_bottom = 640.0
+
+[node name="LoadingLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=319240729]
+layout_mode = 2
+text = "Loading Match..."
+
+[node name="PlayerLoadingList" type="VBoxContainer" parent="LoadingRoot/MainLayout" unique_id=1561636689]
+layout_mode = 2
+
+[node name="TimeoutHint" type="Label" parent="LoadingRoot/MainLayout" unique_id=810322753]
+layout_mode = 2
+autowrap_mode = 3
+text = "Preparing BattleStartConfig..."

@@ -122,3 +122,28 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 
 func _on_full_visual_resync(snapshot: WorldSnapshot) -> void:
 	full_visual_resync.emit(snapshot)
+
+func dispose() -> void:
+	if rollback_controller != null:
+		if rollback_controller.prediction_corrected.is_connected(_on_prediction_corrected):
+			rollback_controller.prediction_corrected.disconnect(_on_prediction_corrected)
+		if rollback_controller.full_visual_resync.is_connected(_on_full_visual_resync):
+			rollback_controller.full_visual_resync.disconnect(_on_full_visual_resync)
+		rollback_controller.dispose()
+		if is_instance_valid(rollback_controller):
+			rollback_controller.free()
+	rollback_controller = null
+
+	if predicted_sim_world != null:
+		predicted_sim_world.dispose()
+	predicted_sim_world = null
+	snapshot_service = null
+	if snapshot_buffer != null:
+		snapshot_buffer.clear()
+	snapshot_buffer = null
+	if local_input_buffer != null:
+		local_input_buffer.clear()
+	local_input_buffer = null
+	local_peer_id = 0
+	predicted_until_tick = 0
+	authoritative_tick = 0

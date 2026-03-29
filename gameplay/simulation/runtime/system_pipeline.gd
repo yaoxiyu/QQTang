@@ -11,6 +11,8 @@
 class_name SystemPipeline
 extends RefCounted
 
+const TimeLimitSystemScript = preload("res://gameplay/simulation/systems/time_limit_system.gd")
+
 # 系统列表
 var _systems: Array[ISimSystem] = []
 
@@ -30,8 +32,10 @@ func initialize_default_pipeline() -> void:
 	add_system(BombFuseSystem.new())
 	add_system(ExplosionResolveSystem.new())
 	add_system(StatusEffectSystem.new())
+	add_system(ItemSpawnSystem.new())
 	add_system(ItemPickupSystem.new())
 	add_system(WinConditionSystem.new())
+	add_system(TimeLimitSystemScript.new())
 	add_system(PostTickSystem.new())
 
 # 添加系统

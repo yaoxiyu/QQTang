@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://corlic5dxf6m7"]
+
+[ext_resource type="Script" path="res://scenes/front/room_scene_controller.gd" id="1_room"]
+[ext_resource type="Script" path="res://presentation/battle/hud/room_hud_controller.gd" id="2_room_hud"]
+
+[node name="RoomScene" type="Node" unique_id=1131888153]
+script = ExtResource("1_room")
+
+[node name="RoomHudController" type="Node" parent="." unique_id=1888156011]
+script = ExtResource("2_room_hud")
+
+[node name="RoomRoot" type="Control" parent="." unique_id=1796033168]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainLayout" type="VBoxContainer" parent="RoomRoot" unique_id=1871591409]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 36.0
+offset_right = 976.0
+offset_bottom = 684.0
+
+[node name="TitleLabel" type="Label" parent="RoomRoot/MainLayout" unique_id=948189458]
+layout_mode = 2
+text = "QQTang Room"
+
+[node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1617999413]
+layout_mode = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=307536689]
+layout_mode = 2
+
+[node name="ReadyButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=412245125]
+layout_mode = 2
+text = "Ready"
+
+[node name="StartButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=2110020796]
+layout_mode = 2
+text = "Start Match"
+
+[node name="SelectorRow" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=875901536]
+layout_mode = 2
+
+[node name="MapLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1179058878]
+layout_mode = 2
+text = "Map"
+
+[node name="MapSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1724911565]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+
+[node name="RuleLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1790361389]
+layout_mode = 2
+text = "Rule"
+
+[node name="RuleSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=782230836]
+layout_mode = 2
+custom_minimum_size = Vector2(220, 0)
+
+[node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DebugLabel" type="Label" parent="RoomRoot/MainLayout/RoomDebugPanel" unique_id=1217322492]
+layout_mode = 2
+text = "Room debug info"
+autowrap_mode = 3

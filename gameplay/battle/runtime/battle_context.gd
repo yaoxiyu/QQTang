@@ -14,12 +14,23 @@ var visual_sync_controller: VisualSyncController = null
 
 
 func clear_runtime_refs() -> void:
+	if rollback_controller != null:
+		rollback_controller.dispose()
+		if is_instance_valid(rollback_controller):
+			rollback_controller.free()
+	rollback_controller = null
+
+	if sim_world != null:
+		sim_world.dispose()
 	sim_world = null
+
+	if tick_runner != null and is_instance_valid(tick_runner):
+		tick_runner.free()
 	tick_runner = null
+
 	client_session = null
 	server_session = null
 	prediction_controller = null
-	rollback_controller = null
 	visual_sync_controller = null
 
 

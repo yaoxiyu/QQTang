@@ -16,13 +16,17 @@ extends RefCounted
 
 static func build_basic_map() -> GridState:
 	var rows: Array[String] = [
-		"#######",
-		"#S...S#",
-		"#.B.B.#",
-		"#.....#",
-		"#.B.B.#",
-		"#.....#",
-		"#######",
+		"#############",
+		"#S..B...B..S#",
+		"#.#B#B#B#B#.#",
+		"#B..B.B.B..B#",
+		"#.#.#...#.#.#",
+		"#..B..M..B..#",
+		"#.#.#...#.#.#",
+		"#B..B.B.B..B#",
+		"#.#B#B#B#B#.#",
+		"#S..B...B..S#",
+		"#############",
 	]
 
 	return _build_from_rows(rows)

@@ -1,0 +1,101 @@
+[gd_scene format=3 uid="uid://cevfyfy6kkt06"]
+
+[ext_resource type="Script" path="res://scenes/battle/battle_main_controller.gd" id="0_root"]
+[ext_resource type="Script" path="res://gameplay/battle/runtime/battle_bootstrap.gd" id="1_boot"]
+[ext_resource type="Script" path="res://presentation/battle/bridge/presentation_bridge.gd" id="2_bridge"]
+[ext_resource type="Script" path="res://presentation/battle/hud/battle_hud_controller.gd" id="3_hud"]
+[ext_resource type="Script" path="res://presentation/battle/hud/countdown_panel.gd" id="4_count"]
+[ext_resource type="Script" path="res://presentation/battle/hud/player_status_panel.gd" id="5_player"]
+[ext_resource type="Script" path="res://presentation/battle/hud/network_status_panel.gd" id="6_net"]
+[ext_resource type="Script" path="res://presentation/battle/hud/match_message_panel.gd" id="7_msg"]
+[ext_resource type="Script" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
+[ext_resource type="Script" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
+[ext_resource type="Script" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
+[ext_resource type="PackedScene" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
+
+[node name="BattleMain" type="Node2D" unique_id=1256179611]
+script = ExtResource("0_root")
+
+[node name="BattleBootstrap" type="Node" parent="." unique_id=227608315]
+script = ExtResource("1_boot")
+
+[node name="PresentationBridge" type="Node2D" parent="BattleBootstrap" unique_id=50886528]
+script = ExtResource("2_bridge")
+
+[node name="WorldRoot" type="Node2D" parent="." unique_id=445906454]
+
+[node name="MapRoot" type="Node2D" parent="WorldRoot" unique_id=980950022]
+script = ExtResource("8_map")
+
+[node name="ActorLayer" type="Node2D" parent="WorldRoot" unique_id=964912531]
+
+[node name="FxLayer" type="Node2D" parent="WorldRoot" unique_id=1005770791]
+
+[node name="DebugLayer" type="Node2D" parent="WorldRoot" unique_id=1227431756]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=389909278]
+zoom = Vector2(0.9, 0.9)
+position = Vector2(168, 168)
+
+[node name="BattleCameraController" type="Node" parent="." unique_id=913028445]
+script = ExtResource("9_camera")
+
+[node name="SpawnFxController" type="Node" parent="." unique_id=733102140]
+script = ExtResource("10_fx")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1994038306]
+
+[node name="BattleHUD" type="Node" parent="CanvasLayer" unique_id=1572829207]
+script = ExtResource("3_hud")
+
+[node name="CountdownPanel" type="Label" parent="CanvasLayer" unique_id=1056216100]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 264.0
+offset_bottom = 60.0
+script = ExtResource("4_count")
+
+[node name="PlayerStatusPanel" type="Label" parent="CanvasLayer" unique_id=1019691312]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 72.0
+offset_right = 264.0
+offset_bottom = 220.0
+script = ExtResource("5_player")
+
+[node name="NetworkStatusPanel" type="Label" parent="CanvasLayer" unique_id=624551940]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 744.0
+offset_top = 20.0
+offset_right = 1016.0
+offset_bottom = 140.0
+script = ExtResource("6_net")
+
+[node name="MatchMessagePanel" type="Label" parent="CanvasLayer" unique_id=1033004102]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 300.0
+offset_top = 18.0
+offset_right = 724.0
+offset_bottom = 66.0
+script = ExtResource("7_msg")
+
+[node name="SettlementPopupAnchor" type="Control" parent="CanvasLayer" unique_id=1491785118]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -140.0
+offset_right = 260.0
+offset_bottom = 140.0
+
+[node name="SettlementController" parent="CanvasLayer/SettlementPopupAnchor" instance=ExtResource("11_settlement") unique_id=1446683117]
+
+[node name="AudioRoot" type="Node" parent="." unique_id=1810718296]

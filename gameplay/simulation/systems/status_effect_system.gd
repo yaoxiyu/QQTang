@@ -85,11 +85,13 @@ func _process_destroyed_cells(ctx: SimContext) -> void:
 		if static_cell.tile_type != TileConstants.TileType.BREAKABLE_BLOCK:
 			continue
 
+		var can_spawn_item: bool = (static_cell.tile_flags & TileConstants.TILE_CAN_SPAWN_ITEM) != 0
 		ctx.state.grid.set_static_cell(cell.x, cell.y, TileFactory.make_empty())
 
 		var destroyed_event := SimEvent.new(ctx.tick, SimEvent.EventType.CELL_DESTROYED)
 		destroyed_event.payload = {
 			"cell_x": cell.x,
-			"cell_y": cell.y
+			"cell_y": cell.y,
+			"can_spawn_item": can_spawn_item,
 		}
 		ctx.events.push(destroyed_event)

@@ -36,6 +36,24 @@ func configure(
 	predicted_until_tick = 0
 
 
+func dispose() -> void:
+	predicted_sim_world = null
+	snapshot_service = null
+	if snapshot_buffer != null:
+		snapshot_buffer.clear()
+	if local_input_buffer != null:
+		local_input_buffer.clear()
+	snapshot_buffer = null
+	local_input_buffer = null
+	local_peer_id = 0
+	last_authoritative_tick = 0
+	rollback_count = 0
+	last_rollback_from_tick = -1
+	avg_replay_ticks = 0.0
+	force_resync_count = 0
+	predicted_until_tick = 0
+
+
 func set_predicted_until_tick(tick_id: int) -> void:
 	predicted_until_tick = tick_id
 
