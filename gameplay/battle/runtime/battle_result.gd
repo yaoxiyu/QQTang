@@ -28,9 +28,9 @@ static func from_dict(data: Dictionary) -> BattleResult:
 	return result
 
 
-static func from_authoritative_state(world: SimWorld, start_config: BattleStartConfig, local_peer_id: int = -1) -> BattleResult:
+static func from_authoritative_state(world: SimWorld, start_config: BattleStartConfig, _local_peer_id: int = -1) -> BattleResult:
 	var result := BattleResult.new()
-	result.local_peer_id = local_peer_id
+	result.local_peer_id = _local_peer_id
 	if world == null:
 		return result
 

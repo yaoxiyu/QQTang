@@ -92,16 +92,17 @@ func bootstrap(p_config: SimConfig, bootstrap_data: Dictionary) -> void:
 
 	state.indexes.initialize(state.grid.width * state.grid.height)
 	state.mode.mode_runtime_type = "default"
-	_initialize_spawned_players()
+	_initialize_spawned_players(bootstrap_data)
 	state.match_state.phase = MatchState.Phase.PLAYING
 	state.indexes.rebuild_from_state(state)
 	tick_runner.set_tick(state.match_state.tick)
 
 
-func _initialize_spawned_players() -> void:
+func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 	var grid = state.grid
-	var player_count = 2
 	var spawn_points: Array[Vector2i] = []
+	var player_slots := _coerce_dict_array(bootstrap_data.get("player_slots", []))
+	var spawn_assignments := _coerce_dict_array(bootstrap_data.get("spawn_assignments", []))
 
 	for y in range(grid.height):
 		for x in range(grid.width):
@@ -113,14 +114,58 @@ func _initialize_spawned_players() -> void:
 		spawn_points.append(Vector2i(1, 1))
 		spawn_points.append(Vector2i(grid.width - 2, grid.height - 2))
 
-	for i in range(player_count):
-		var spawn_point = spawn_points[i % spawn_points.size()]
-		var player_id = state.players.add_player(i, i % 2, spawn_point.x, spawn_point.y)
+	if player_slots.is_empty() and not spawn_assignments.is_empty():
+		for assignment in spawn_assignments:
+			player_slots.append({
+				"peer_id": int(assignment.get("peer_id", -1)),
+				"slot_index": int(assignment.get("slot_index", player_slots.size())),
+			})
+
+	if player_slots.is_empty():
+		for i in range(2):
+			player_slots.append({
+				"peer_id": i + 1,
+				"slot_index": i,
+			})
+
+	player_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var slot_a := int(a.get("slot_index", -1))
+		var slot_b := int(b.get("slot_index", -1))
+		if slot_a == slot_b:
+			return int(a.get("peer_id", -1)) < int(b.get("peer_id", -1))
+		return slot_a < slot_b
+	)
+
+	for i in range(player_slots.size()):
+		var player_entry: Dictionary = player_slots[i]
+		var slot_index := int(player_entry.get("slot_index", i))
+		var spawn_point := _resolve_spawn_point(slot_index, i, spawn_assignments, spawn_points)
+		var player_id = state.players.add_player(slot_index, slot_index % 2, spawn_point.x, spawn_point.y)
 		var player = state.players.get_player(player_id)
 		if player != null:
 			player.alive = true
 			player.life_state = PlayerState.LifeState.NORMAL
 			player.bomb_available = player.bomb_capacity
+
+
+func _resolve_spawn_point(slot_index: int, fallback_index: int, spawn_assignments: Array[Dictionary], spawn_points: Array[Vector2i]) -> Vector2i:
+	for assignment in spawn_assignments:
+		if int(assignment.get("slot_index", -1)) != slot_index:
+			continue
+		return Vector2i(
+			int(assignment.get("spawn_cell_x", 1)),
+			int(assignment.get("spawn_cell_y", 1))
+		)
+	return spawn_points[fallback_index % spawn_points.size()]
+
+
+func _coerce_dict_array(raw_value: Variant) -> Array[Dictionary]:
+	var coerced: Array[Dictionary] = []
+	if raw_value is Array:
+		for entry in raw_value:
+			if entry is Dictionary:
+				coerced.append(entry)
+	return coerced
 
 
 func step() -> Dictionary:

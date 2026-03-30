@@ -39,7 +39,7 @@ func on_input_ack(ack_tick: int) -> void:
 
 func on_state_summary(summary: Dictionary) -> void:
 	latest_snapshot_tick = int(summary.get("tick", 0))
-	latest_player_summary = summary.get("player_summary", summary.get("players", []))
+	latest_player_summary = _coerce_player_summary(summary.get("player_summary", summary.get("players", [])))
 	latest_checksum = int(summary.get("checksum", latest_checksum))
 
 
@@ -61,3 +61,11 @@ func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place:
 
 func get_local_frame(tick_id: int) -> PlayerInputFrame:
 	return local_input_buffer.get_frame(tick_id)
+
+func _coerce_player_summary(raw_summary: Variant) -> Array[Dictionary]:
+	var coerced: Array[Dictionary] = []
+	if raw_summary is Array:
+		for entry in raw_summary:
+			if entry is Dictionary:
+				coerced.append(entry)
+	return coerced

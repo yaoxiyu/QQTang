@@ -182,11 +182,53 @@ func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: W
 		return false
 
 	return (
-		local_snapshot.checksum == authoritative_snapshot.checksum
-		and local_snapshot.players == authoritative_snapshot.players
-		and local_snapshot.bubbles == authoritative_snapshot.bubbles
-		and local_snapshot.items == authoritative_snapshot.items
+		_dictionary_array_equal(local_snapshot.players, authoritative_snapshot.players)
+		and _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles)
+		and _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items)
 	)
+
+
+func _dictionary_array_equal(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
+	if left_values.size() != right_values.size():
+		return false
+	for index in range(left_values.size()):
+		if not _dictionary_equal(left_values[index], right_values[index]):
+			return false
+	return true
+
+
+func _dictionary_equal(left_value: Dictionary, right_value: Dictionary) -> bool:
+	if left_value.size() != right_value.size():
+		return false
+	for key in left_value.keys():
+		if not right_value.has(key):
+			return false
+		if not _variant_equal(left_value[key], right_value[key]):
+			return false
+	return true
+
+
+func _array_equal(left_values: Array, right_values: Array) -> bool:
+	if left_values.size() != right_values.size():
+		return false
+	for index in range(left_values.size()):
+		if not _variant_equal(left_values[index], right_values[index]):
+			return false
+	return true
+
+
+func _variant_equal(left_value: Variant, right_value: Variant) -> bool:
+	if left_value is Dictionary and right_value is Dictionary:
+		return _dictionary_equal(left_value, right_value)
+	if left_value is Array and right_value is Array:
+		return _array_equal(left_value, right_value)
+	if left_value is float and right_value is int:
+		return is_equal_approx(left_value, float(right_value))
+	if left_value is int and right_value is float:
+		return is_equal_approx(float(left_value), right_value)
+	if left_value is float and right_value is float:
+		return is_equal_approx(left_value, right_value)
+	return left_value == right_value
 
 
 func _find_local_player_slot() -> int:

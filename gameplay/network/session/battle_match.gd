@@ -2,7 +2,7 @@ class_name BattleMatch
 extends RefCounted
 
 var match_id: String = ""
-var seed: int = 0
+var match_seed: int = 0
 var start_tick: int = 0
 var peer_ids: Array[int] = []
 var selected_map: String = ""
@@ -20,7 +20,7 @@ var peer_slot_by_peer_id: Dictionary = {}
 
 func configure_from_room(room_session: RoomSession, p_match_id: String, p_seed: int, p_start_tick: int) -> void:
 	match_id = p_match_id
-	seed = p_seed
+	match_seed = p_seed
 	start_tick = p_start_tick
 	peer_ids = room_session.peers.duplicate()
 	selected_map = room_session.selected_map
@@ -39,7 +39,7 @@ func bootstrap_world(config: SimConfig, bootstrap_data: Dictionary = {}) -> void
 	if input_buffer == null:
 		input_buffer = sim_world.input_buffer
 
-	sim_world.rng = SimRng.new(seed)
+	sim_world.rng = SimRng.new(match_seed)
 	sim_world.bootstrap(config, bootstrap_data)
 	for peer_id in peer_ids:
 		_apply_controller_type(peer_id)
@@ -137,4 +137,3 @@ func dispose() -> void:
 		sim_world.dispose()
 	sim_world = null
 	input_buffer = null
-

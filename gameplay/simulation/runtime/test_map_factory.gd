@@ -1,11 +1,12 @@
 # 角色：
-# 测试地图工厂，通过字符串模板构造 GridState
+# 测试/兜底地图工厂，通过字符串模板构造 GridState
 #
 # 读写边界：
-# - 只在测试/初始化时调用
+# - 只在测试、原型运行或正式地图加载失败时调用
 #
 # 禁止事项：
 # - 不得在此写规则逻辑
+# - 不得继续作为正式 battle 地图主路径
 
 class_name TestMapFactory
 extends RefCounted

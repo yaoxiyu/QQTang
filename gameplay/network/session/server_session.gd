@@ -15,24 +15,24 @@ func add_peer(peer_id: int) -> void:
 	room_session.add_peer(peer_id)
 
 
-func set_peer_ready(peer_id: int, ready: bool) -> void:
-	room_session.set_ready(peer_id, ready)
+func set_peer_ready(peer_id: int, _ready: bool) -> void:
+	room_session.set_ready(peer_id, _ready)
 
 
-func start_match(config: SimConfig, bootstrap_data: Dictionary = {}, seed: int = 1, start_tick: int = 0) -> bool:
+func start_match(config: SimConfig, bootstrap_data: Dictionary = {}, _seed: int = 1, start_tick: int = 0) -> bool:
 	if not room_session.can_start():
 		return false
 
 	room_session.lock_config()
 	active_match = BattleMatch.new()
-	active_match.configure_from_room(room_session, _make_match_id(), seed, start_tick)
+	active_match.configure_from_room(room_session, _make_match_id(), _seed, start_tick)
 	active_match.bootstrap_world(config, bootstrap_data)
 
 	_queue_message({
 		"msg_type": "MATCH_START",
 		"match_id": active_match.match_id,
 		"start_tick": start_tick,
-		"seed": seed,
+		"seed": _seed,
 		"peer_ids": active_match.peer_ids
 	})
 	return true
@@ -85,14 +85,13 @@ func _tick_world(_tick_id: int) -> void:
 		"checksum": active_match.compute_checksum(tick_id)
 	})
 
-
 func _tick_snapshot(tick_id: int) -> void:
 	if active_match == null or tick_id % 5 != 0:
 		return
 
 	var snapshot := active_match.get_snapshot(tick_id)
 	if snapshot == null:
-		snapshot = active_match.snapshot_service.build_light_snapshot(active_match.sim_world, tick_id)
+		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
 
 	_queue_message({
 		"msg_type": "CHECKPOINT",
@@ -101,6 +100,9 @@ func _tick_snapshot(tick_id: int) -> void:
 		"player_summary": active_match.build_player_position_summary(),
 		"bubbles": snapshot.bubbles,
 		"items": snapshot.items,
+		"walls": snapshot.walls,
+		"mode_state": snapshot.mode_state.duplicate(true),
+		"rng_state": snapshot.rng_state,
 		"checksum": snapshot.checksum
 	})
 
