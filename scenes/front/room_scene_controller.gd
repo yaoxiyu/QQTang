@@ -182,6 +182,14 @@ func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
 func _on_ready_button_pressed() -> void:
 	if _room_controller == null or _app_runtime == null:
 		return
+	if _should_prepare_manual_local_loop_room():
+		_app_runtime.debug_tools.ensure_manual_local_loop_room(
+			_room_controller,
+			_app_runtime.local_peer_id,
+			_app_runtime.remote_peer_id,
+			_selected_metadata(map_selector),
+			_selected_metadata(rule_selector)
+		)
 	var local_ready := bool(_room_controller.room_session.ready_state.get(_app_runtime.local_peer_id, false))
 	_room_controller.set_member_ready(_app_runtime.local_peer_id, not local_ready)
 
@@ -215,3 +223,15 @@ func _selected_metadata(selector: OptionButton) -> String:
 	if selected_index < 0 or selected_index >= selector.item_count:
 		return ""
 	return String(selector.get_item_metadata(selected_index))
+
+
+func _should_prepare_manual_local_loop_room() -> bool:
+	if _room_controller == null or _app_runtime == null:
+		return false
+	if _app_runtime.debug_tools == null or not _app_runtime.debug_tools.has_method("ensure_manual_local_loop_room"):
+		return false
+	if _room_controller.room_session == null:
+		return true
+	if not _room_controller.room_session.peers.has(_app_runtime.local_peer_id):
+		return true
+	return _room_controller.room_session.peers.size() == 1 and not _room_controller.room_session.peers.has(_app_runtime.remote_peer_id)

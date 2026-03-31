@@ -15,6 +15,7 @@ func _ready() -> void:
 func run_all() -> void:
 	_test_debug_on_bootstraps_local_loop_room()
 	_test_debug_off_does_not_bootstrap_remote_member()
+	_test_manual_local_loop_room_supports_explicit_single_player_start()
 	_test_room_scene_uses_canonical_controller_contract()
 	_test_reset_local_loop_ready_only_applies_when_debug_enabled()
 
@@ -47,6 +48,26 @@ func _test_debug_off_does_not_bootstrap_remote_member() -> void:
 	var snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
 	_assert_true(snapshot.member_count() == 0, "debug off does not auto insert remote member")
 	_assert_true(snapshot.room_id.is_empty(), "debug off keeps room uncreated until explicit action")
+
+	runtime.free()
+
+
+func _test_manual_local_loop_room_supports_explicit_single_player_start() -> void:
+	var runtime: Node = _create_runtime(false, false, false)
+	runtime.debug_tools.ensure_manual_local_loop_room(
+		runtime.room_session_controller,
+		runtime.local_peer_id,
+		runtime.remote_peer_id
+	)
+	runtime.room_session_controller.set_member_ready(runtime.local_peer_id, true)
+
+	var snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
+	var local_member := _find_member(snapshot, runtime.local_peer_id)
+	var remote_member := _find_member(snapshot, runtime.remote_peer_id)
+	_assert_true(snapshot.member_count() == 2, "manual local loop creates explicit single-player room with remote member")
+	_assert_true(local_member != null and local_member.ready, "manual local loop allows local ready state to be set explicitly")
+	_assert_true(remote_member != null and remote_member.ready, "manual local loop keeps debug remote member ready")
+	_assert_true(runtime.room_session_controller.can_request_start_match(runtime.local_peer_id), "manual local loop enables explicit single-player start request")
 
 	runtime.free()
 
@@ -93,7 +114,9 @@ func _test_reset_local_loop_ready_only_applies_when_debug_enabled() -> void:
 	debug_tools.reset_local_loop_room_ready(room_controller, config_off, 1, 2)
 	var snapshot_off: RoomSnapshot = room_controller.build_room_snapshot()
 	var local_off: RoomMemberState = _find_member(snapshot_off, 1)
-	_assert_true(local_off != null and local_off.ready, "debug off reset does not mutate ready state")
+	var remote_off: RoomMemberState = _find_member(snapshot_off, 2)
+	_assert_true(local_off != null and not local_off.ready, "debug off reset still clears local ready for manual local loop room")
+	_assert_true(remote_off != null and remote_off.ready, "debug off reset keeps remote ready for second round")
 
 	debug_tools.free()
 	runtime.free()

@@ -258,7 +258,7 @@ func _refresh_connection_label() -> void:
 		return
 	var is_idle := _mode == BootstrapMode.IDLE
 	var connected : bool = _session_adapter.network_bootstrap_transport_connected()
-	var remote_peer_count := _session_adapter.network_bootstrap_transport_remote_peer_ids().size()
+	var remote_peer_count : int = _session_adapter.network_bootstrap_transport_remote_peer_ids().size()
 	_debug_panel_controller.refresh_connection(is_idle, connected, remote_peer_count)
 
 

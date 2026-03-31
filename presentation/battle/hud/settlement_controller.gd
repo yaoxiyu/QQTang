@@ -85,7 +85,7 @@ func _build_title_text() -> String:
 		return "Victory"
 	if not current_result.winner_peer_ids.is_empty():
 		return "Defeat"
-	if current_result.finish_reason == "time_up":
+	if _is_draw_result(current_result):
 		return "Draw"
 	return "Match Ended"
 
@@ -105,3 +105,11 @@ func _build_detail_text() -> String:
 		lines.append("Eliminated: %s" % str(current_result.eliminated_order))
 
 	return "\n".join(lines)
+
+
+func _is_draw_result(result: BattleResult) -> bool:
+	if result == null:
+		return false
+	if result.finish_reason == "time_up":
+		return true
+	return result.finish_reason == "last_survivor" and result.winner_peer_ids.is_empty()

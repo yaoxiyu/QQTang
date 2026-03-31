@@ -7,6 +7,7 @@ func _ready() -> void:
 
 func run_all() -> void:
 	_test_settlement_show_and_reset()
+	_test_settlement_draw_result_uses_draw_title()
 	_test_battle_hud_debug_dump_reports_text_state()
 	_test_battle_hud_reports_item_pickup_message()
 
@@ -39,6 +40,29 @@ func _test_settlement_show_and_reset() -> void:
 	var reset_dump := settlement.debug_dump_settlement_state()
 	_assert_true(not bool(reset_dump.get("visible", true)), "settlement reset hides panel")
 	_assert_true(not bool(reset_dump.get("input_locked", true)), "settlement reset unlocks input")
+
+	settlement.queue_free()
+
+
+func _test_settlement_draw_result_uses_draw_title() -> void:
+	var settlement := SettlementController.new()
+	var result_label := Label.new()
+	result_label.name = "ResultLabel"
+	var detail_label := Label.new()
+	detail_label.name = "DetailLabel"
+	settlement.add_child(result_label)
+	settlement.add_child(detail_label)
+	add_child(settlement)
+	settlement._ready()
+
+	var result := BattleResult.new()
+	result.local_peer_id = 7
+	result.finish_reason = "last_survivor"
+	result.finish_tick = 88
+	settlement.show_result(result)
+
+	var shown_dump := settlement.debug_dump_settlement_state()
+	_assert_true(String(shown_dump.get("result_text", "")) == "Draw", "settlement shows draw title when no winner survives")
 
 	settlement.queue_free()
 
