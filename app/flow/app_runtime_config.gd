@@ -1,9 +1,9 @@
 class_name AppRuntimeConfig
 extends RefCounted
 
-var enable_local_loop_debug_room: bool = true
-var auto_create_room_on_enter: bool = true
-var auto_add_remote_debug_member: bool = true
+var enable_local_loop_debug_room: bool = false
+var auto_create_room_on_enter: bool = false
+var auto_add_remote_debug_member: bool = false
 
 
 func to_dict() -> Dictionary:
@@ -12,3 +12,4 @@ func to_dict() -> Dictionary:
 		"auto_create_room_on_enter": auto_create_room_on_enter,
 		"auto_add_remote_debug_member": auto_add_remote_debug_member,
 	}
+

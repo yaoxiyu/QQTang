@@ -1,8 +1,8 @@
 class_name Phase3DebugTools
 extends Node
 
-const DEFAULT_MAP_ID: String = "default_map"
-const DEFAULT_RULE_SET_ID: String = "classic"
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const DEFAULT_REMOTE_NAME: String = "RemoteFox"
 const DEFAULT_REMOTE_CHARACTER_ID: String = "hero_remote"
 
@@ -29,7 +29,10 @@ func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config:
 		room_controller.set_member_ready(local_peer_id, false)
 		room_controller.set_member_ready(remote_peer_id, true)
 		if room_controller.room_session.selected_map.is_empty() or room_controller.room_session.selected_mode.is_empty():
-			room_controller.set_room_selection(DEFAULT_MAP_ID, DEFAULT_RULE_SET_ID)
+			room_controller.set_room_selection(
+				MapCatalogScript.get_default_map_id(),
+				RuleCatalogScript.get_default_rule_id()
+			)
 
 
 func reset_local_loop_room_ready(room_controller: Node, runtime_config: RefCounted, local_peer_id: int, remote_peer_id: int) -> void:

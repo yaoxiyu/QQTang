@@ -39,6 +39,23 @@ static func get_map_ids() -> Array[String]:
 	return map_ids
 
 
+static func get_map_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for map_id in get_map_ids():
+		var metadata := get_map_metadata(map_id)
+		if metadata.is_empty():
+			continue
+		entries.append(metadata)
+	return entries
+
+
+static func get_default_map_id() -> String:
+	var map_ids := get_map_ids()
+	if map_ids.is_empty():
+		return ""
+	return map_ids[0]
+
+
 static func has_map(map_id: String) -> bool:
 	return _MAP_ENTRIES.has(map_id)
 

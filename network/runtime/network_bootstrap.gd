@@ -2,20 +2,14 @@ extends Node
 
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const NetworkDebugPanelScript = preload("res://network/runtime/network_debug_panel.gd")
 
 @onready var transport_root: Node = $TransportRoot
 @onready var session_root: Node = $SessionRoot
 @onready var debug_root: Node = $DebugRoot
 @onready var debug_panel: Control = $CanvasLayer/DebugPanel
-@onready var title_label: Label = $CanvasLayer/DebugPanel/TitleLabel
-@onready var mode_label: Label = $CanvasLayer/DebugPanel/ModeLabel
-@onready var connection_label: Label = $CanvasLayer/DebugPanel/ConnectionLabel
-@onready var host_button: Button = $CanvasLayer/DebugPanel/HostButton
-@onready var client_button: Button = $CanvasLayer/DebugPanel/ClientButton
-@onready var address_input: LineEdit = $CanvasLayer/DebugPanel/AddressInput
-@onready var port_input: LineEdit = $CanvasLayer/DebugPanel/PortInput
-@onready var launch_match_button: Button = $CanvasLayer/DebugPanel/LaunchMatchButton
-@onready var log_output: RichTextLabel = $CanvasLayer/DebugPanel/LogOutput
 
 enum BootstrapMode {
 	IDLE,
@@ -31,18 +25,19 @@ var _host_launched: bool = false
 var _host_launch_delay_ticks: int = 0
 var _client_join_sent: bool = false
 var _last_result: BattleResult = null
+var _debug_panel_controller: NetworkDebugPanel = null
 
 
 func _ready() -> void:
 	_session_adapter = BattleSessionAdapterScript.new()
 	session_root.add_child(_session_adapter)
+	_debug_panel_controller = NetworkDebugPanelScript.new()
+	_debug_panel_controller.setup(debug_panel)
 	_bind_ui()
 	_bind_runtime_signals()
 	_bind_transport_signals()
 	_apply_debug_layout()
-	log_output.selection_enabled = true
-	address_input.text = "127.0.0.1"
-	port_input.text = "9000"
+	_debug_panel_controller.initialize_defaults()
 	_refresh_ui()
 	_log("Network bootstrap ready")
 
@@ -68,12 +63,12 @@ func _exit_tree() -> void:
 
 
 func _bind_ui() -> void:
-	if not host_button.pressed.is_connected(_on_host_pressed):
-		host_button.pressed.connect(_on_host_pressed)
-	if not client_button.pressed.is_connected(_on_client_pressed):
-		client_button.pressed.connect(_on_client_pressed)
-	if not launch_match_button.pressed.is_connected(_on_launch_match_pressed):
-		launch_match_button.pressed.connect(_on_launch_match_pressed)
+	if _debug_panel_controller != null:
+		_debug_panel_controller.bind_actions(
+			Callable(self, "_on_host_pressed"),
+			Callable(self, "_on_client_pressed"),
+			Callable(self, "_on_launch_match_pressed")
+		)
 
 
 func _bind_runtime_signals() -> void:
@@ -130,8 +125,10 @@ func _on_client_pressed() -> void:
 	_shutdown_all()
 	_mode = BootstrapMode.CLIENT
 	_session_adapter.network_bootstrap_configure_client(0)
-	_session_adapter.network_bootstrap_start_client_transport(address_input.text.strip_edges(), _resolve_port(), 5.0)
-	_log("Client connecting to %s:%d" % [address_input.text.strip_edges(), _resolve_port()])
+	var address := _resolve_address()
+	var port := _resolve_port()
+	_session_adapter.network_bootstrap_start_client_transport(address, port, 5.0)
+	_log("Client connecting to %s:%d" % [address, port])
 	_refresh_ui()
 
 
@@ -191,8 +188,8 @@ func _build_debug_room_snapshot(remote_peers: Array[int]) -> RoomSnapshot:
 	var snapshot := RoomSnapshot.new()
 	snapshot.room_id = "phase4_network_room"
 	snapshot.owner_peer_id = 1
-	snapshot.selected_map_id = "default_map"
-	snapshot.rule_set_id = "classic"
+	snapshot.selected_map_id = MapCatalogScript.get_default_map_id()
+	snapshot.rule_set_id = RuleCatalogScript.get_default_rule_id()
 	snapshot.all_ready = true
 	snapshot.max_players = remote_peers.size() + 1
 
@@ -238,74 +235,42 @@ func _collect_local_input() -> Dictionary:
 
 
 func _resolve_port() -> int:
-	var port := int(port_input.text.strip_edges().to_int())
-	return port if port > 0 else 9000
+	return _debug_panel_controller.get_port(9000) if _debug_panel_controller != null else 9000
+
+
+func _resolve_address() -> String:
+	return _debug_panel_controller.get_address() if _debug_panel_controller != null else "127.0.0.1"
 
 
 func _refresh_ui() -> void:
-	title_label.text = "Phase4 Network Bootstrap"
+	var mode_name := "Idle"
 	match _mode:
 		BootstrapMode.HOST:
-			mode_label.text = "Mode: Host"
+			mode_name = "Host"
 		BootstrapMode.CLIENT:
-			mode_label.text = "Mode: Client"
-		_:
-			mode_label.text = "Mode: Idle"
-	launch_match_button.disabled = _mode != BootstrapMode.HOST
+			mode_name = "Client"
+	if _debug_panel_controller != null:
+		_debug_panel_controller.refresh_mode(mode_name, _mode == BootstrapMode.HOST)
 
 
 func _refresh_connection_label() -> void:
-	if _mode == BootstrapMode.IDLE:
-		connection_label.text = "Connection: Disconnected"
+	if _debug_panel_controller == null:
 		return
+	var is_idle := _mode == BootstrapMode.IDLE
 	var connected : bool = _session_adapter.network_bootstrap_transport_connected()
-	connection_label.text = "Connection: %s (%d peers)" % [
-		"Connected" if connected else "Connecting",
-		_session_adapter.network_bootstrap_transport_remote_peer_ids().size(),
-	]
+	var remote_peer_count := _session_adapter.network_bootstrap_transport_remote_peer_ids().size()
+	_debug_panel_controller.refresh_connection(is_idle, connected, remote_peer_count)
 
 
 func _apply_debug_layout() -> void:
-	if debug_panel == null:
+	if _debug_panel_controller == null:
 		return
-	var viewport_size := get_viewport().get_visible_rect().size
-	var panel_width := 520.0
-	var panel_height: float = min(max(viewport_size.y - 40.0, 360.0), 760.0)
-	debug_panel.position = Vector2(20, 20)
-	debug_panel.size = Vector2(panel_width, panel_height)
-
-	title_label.position = Vector2(16, 16)
-	title_label.size = Vector2(panel_width - 32, 24)
-
-	mode_label.position = Vector2(16, 44)
-	mode_label.size = Vector2(panel_width - 32, 22)
-
-	connection_label.position = Vector2(16, 68)
-	connection_label.size = Vector2(panel_width - 32, 22)
-
-	host_button.position = Vector2(16, 104)
-	host_button.size = Vector2(110, 32)
-
-	client_button.position = Vector2(136, 104)
-	client_button.size = Vector2(110, 32)
-
-	address_input.position = Vector2(16, 146)
-	address_input.size = Vector2(320, 32)
-
-	port_input.position = Vector2(346, 146)
-	port_input.size = Vector2(80, 32)
-
-	launch_match_button.position = Vector2(16, 188)
-	launch_match_button.size = Vector2(160, 34)
-
-	log_output.position = Vector2(16, 234)
-	log_output.size = Vector2(panel_width - 32, panel_height - 250)
+	_debug_panel_controller.apply_layout(get_viewport().get_visible_rect().size)
 
 
 func _log(message: String) -> void:
-	if log_output == null:
-		return
-	log_output.append_text(message + "\n")
+	if _debug_panel_controller != null:
+		_debug_panel_controller.log(message)
 
 
 func _shutdown_all() -> void:

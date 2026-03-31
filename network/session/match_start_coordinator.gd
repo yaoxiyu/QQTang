@@ -3,6 +3,7 @@ extends Node
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 
 signal battle_start_config_built(config: BattleStartConfig)
 
@@ -27,6 +28,8 @@ func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 	if snapshot.rule_set_id.is_empty():
 		return false
 	if not MapCatalogScript.has_map(snapshot.selected_map_id):
+		return false
+	if not RuleCatalogScript.has_rule(snapshot.rule_set_id):
 		return false
 	return true
 
@@ -156,3 +159,4 @@ func _resolve_match_duration_ticks(rule_set_id: String) -> int:
 			return 480
 		_:
 			return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
+

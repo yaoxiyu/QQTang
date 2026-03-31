@@ -2,6 +2,8 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 
 @onready var room_hud_controller: RoomHudController = $RoomHudController
 @onready var room_root: Control = $RoomRoot
@@ -72,13 +74,29 @@ func _configure_layout() -> void:
 
 func _populate_selectors() -> void:
 	_suppress_selection_callbacks = true
-	if map_selector.item_count == 0:
-		_add_selector_item(map_selector, "Default Plaza", "default_map")
-		_add_selector_item(map_selector, "Large Arena", "large_map")
-	if rule_selector.item_count == 0:
-		_add_selector_item(rule_selector, "Classic", "classic")
-		_add_selector_item(rule_selector, "Team", "team")
+	_populate_map_selector()
+	_populate_rule_selector()
 	_suppress_selection_callbacks = false
+
+
+func _populate_map_selector() -> void:
+	map_selector.clear()
+	for entry in MapCatalogScript.get_map_entries():
+		var map_id := String(entry.get("map_id", ""))
+		if map_id.is_empty():
+			continue
+		var display_name := String(entry.get("display_name", map_id))
+		_add_selector_item(map_selector, display_name, map_id)
+
+
+func _populate_rule_selector() -> void:
+	rule_selector.clear()
+	for entry in RuleCatalogScript.get_rule_entries():
+		var rule_id := String(entry.get("rule_id", ""))
+		if rule_id.is_empty():
+			continue
+		var display_name := String(entry.get("display_name", rule_id))
+		_add_selector_item(rule_selector, display_name, rule_id)
 
 
 func _connect_runtime_signals() -> void:

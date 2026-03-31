@@ -1,8 +1,8 @@
 class_name DualClientRunner
 extends Node
 
-const ServerSessionScript = preload("res://gameplay/network/session/server_session.gd")
-const ClientSessionScript = preload("res://gameplay/network/session/client_session.gd")
+const ServerSessionScript = preload("res://network/session/runtime/server_session.gd")
+const ClientSessionScript = preload("res://network/session/runtime/client_session.gd")
 
 var server: ServerSession = null
 var client_a: ClientSession = null
@@ -29,3 +29,4 @@ func setup(peer_a: int = 101, peer_b: int = 202, seed: int = 1, map_data = null)
 
 func consume_server_messages() -> Array[Dictionary]:
 	return server.poll_messages()
+

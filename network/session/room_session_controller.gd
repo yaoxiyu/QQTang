@@ -1,10 +1,10 @@
 extends Node
 
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 signal room_snapshot_changed(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 
-const DEFAULT_MAP_ID: String = "default_map"
-const DEFAULT_RULE_SET_ID: String = "default_rules"
 
 var room_session: RoomSession = RoomSession.new()
 var owner_peer_id: int = 0
@@ -101,8 +101,8 @@ func request_start_match(requester_peer_id: int) -> void:
 
 func set_room_selection(map_id: String, rule_set_id: String) -> void:
 	room_session.set_selection(
-		map_id if not map_id.is_empty() else DEFAULT_MAP_ID,
-		rule_set_id if not rule_set_id.is_empty() else DEFAULT_RULE_SET_ID
+		map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id(),
+		rule_set_id if not rule_set_id.is_empty() else RuleCatalogScript.get_default_rule_id()
 	)
 	_emit_snapshot_changed()
 
@@ -122,11 +122,11 @@ func _emit_snapshot_changed() -> void:
 
 
 func _resolve_map_id() -> String:
-	return room_session.selected_map if not room_session.selected_map.is_empty() else DEFAULT_MAP_ID
+	return room_session.selected_map if not room_session.selected_map.is_empty() else MapCatalogScript.get_default_map_id()
 
 
 func _resolve_rule_set_id() -> String:
-	return room_session.selected_mode if not room_session.selected_mode.is_empty() else DEFAULT_RULE_SET_ID
+	return room_session.selected_mode if not room_session.selected_mode.is_empty() else RuleCatalogScript.get_default_rule_id()
 
 
 func _are_all_members_ready() -> bool:
