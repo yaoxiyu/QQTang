@@ -56,6 +56,8 @@ func _ready() -> void:
 	_assert(corrected_checksum == expected_checksum, "prediction controller should converge to replayed authoritative state")
 	_assert(corrected_count >= 0, "prediction correction signal should remain observable")
 
+	controller.dispose()
+	controller.free()
 	predicted_world.dispose()
 	authority_world.dispose()
 	expected_world.dispose()
@@ -88,3 +90,4 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_prediction_controller: FAIL - %s" % message)
+

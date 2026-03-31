@@ -59,6 +59,8 @@ func _ready() -> void:
 	_assert(rollback.force_resync_count == 0, "rollback path should correct mismatch without forcing full resync")
 	_assert(correction_count >= 0, "correction signal count should be observable")
 
+	rollback.dispose()
+	rollback.free()
 	predicted_world.dispose()
 	authority_world.dispose()
 	expected_world.dispose()
@@ -91,3 +93,4 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_rollback_controller: FAIL - %s" % message)
+

@@ -35,9 +35,12 @@ func _ready() -> void:
 	_assert(result["client_a_players"] == result["authoritative_summary"], "client A latest summary should match server summary")
 	_assert(result["client_b_players"] == result["authoritative_summary"], "client B latest summary should match server summary")
 
+	runner.free()
+
 	print("test_network_sim_runner: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_network_sim_runner: FAIL - %s" % message)
+

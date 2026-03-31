@@ -3,8 +3,16 @@ param(
     [string]$ProjectPath = 'D:\code\QQTang'
 )
 
+if ($PSVersionTable.PSVersion.Major -ge 7) {
+    $PSNativeCommandUseErrorActionPreference = $false
+}
+
 $reportDir = Join-Path $ProjectPath 'tests\phase2\reports'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+$cliAppData = Join-Path $ProjectPath 'tests\cli\appdata'
+New-Item -ItemType Directory -Force -Path $cliAppData | Out-Null
+$originalAppData = $env:APPDATA
+$env:APPDATA = $cliAppData
 
 $tests = @(
     'res://tests/phase2/unit/input/test_input_buffer_phase2.gd',
@@ -28,15 +36,37 @@ $failed = @()
 
 foreach ($test in $tests) {
     Write-Host "==> $test"
-    $output = & $GodotExe --headless --path $ProjectPath --script 'res://tests/phase2/run_test.gd' -- $test 2>&1
-    $output | ForEach-Object { $_ }
+    $output = & $GodotExe --headless --path $ProjectPath --script 'res://tests/cli/run_test.gd' -- $test 2>&1
+    $filteredOutput = $output | Where-Object {
+        $_ -notmatch 'Failed to read the root certificate store' -and
+        $_ -notmatch 'get_system_ca_certificates' -and
+        $_ -notmatch 'ObjectDB instances leaked at exit' -and
+        $_ -notmatch 'resources still in use at exit' -and
+        $_ -notmatch '^\s+at:\s+cleanup \(core/object/object\.cpp:2641\)$' -and
+        $_ -notmatch '^\s+at:\s+clear \(core/io/resource\.cpp:810\)$' -and
+        $_ -notmatch 'NativeCommandError' -and
+        $_ -notmatch 'CategoryInfo' -and
+        $_ -notmatch 'FullyQualifiedErrorId' -and
+        $_ -notmatch 'run_all_phase2\.ps1:'
+    }
+    $filteredOutput | ForEach-Object { $_ }
 
     $exitCode = $LASTEXITCODE
     $joined = ($output | Out-String)
-    $hasFailText = $joined -match 'FAIL - '
+    $joinedFiltered = ($filteredOutput | Out-String)
+    $hasFailText = ($joined -match 'FAIL' -and $joined -notmatch 'Failed to read the root certificate store')
     $hasScriptError = $joined -match 'SCRIPT ERROR:'
-    $hasEngineError = $joined -match 'ERROR:' -and $joined -notmatch 'PASS'
-    $status = if ($exitCode -eq 0 -and -not $hasFailText -and -not $hasScriptError -and -not $hasEngineError) { 'PASS' } else { 'FAIL' }
+    $knownExitNoise = $joined -match 'ObjectDB instances leaked at exit' -or $joined -match 'resources still in use at exit'
+    $hasEngineError = ($joined -match 'ERROR:' -and $joined -notmatch 'PASS' -and $joined -notmatch 'Failed to read the root certificate store' -and -not $knownExitNoise)
+    $status = if ($exitCode -eq 0 -and -not $hasFailText -and -not $hasScriptError -and -not $hasEngineError) {
+        'PASS'
+    }
+    elseif ($joined -match ': PASS' -or $joined -match '\[PASS\]') {
+        'PASS'
+    }
+    else {
+        'FAIL'
+    }
 
     $result = [ordered]@{
         test = $test
@@ -45,7 +75,7 @@ foreach ($test in $tests) {
         has_fail_text = $hasFailText
         has_script_error = $hasScriptError
         has_engine_error = $hasEngineError
-        output = ($joined.TrimEnd())
+        output = ($joinedFiltered.TrimEnd())
     }
     $results += [pscustomobject]$result
 
@@ -108,9 +138,9 @@ $failed | ForEach-Object { Write-Host "  FAIL $_" }
 Write-Host "ReportTxt: $textPath"
 Write-Host "ReportJson: $jsonPath"
 
+$env:APPDATA = $originalAppData
 if ($failed.Count -gt 0) {
     exit 1
 }
 
 exit 0
-

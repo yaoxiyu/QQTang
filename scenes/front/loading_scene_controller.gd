@@ -58,7 +58,7 @@ func _refresh_loading_view() -> void:
 		return
 
 	loading_label.text = "Loading %s" % config.map_id
-	timeout_hint.text = "Map: %s\nRule: %s\nSeed: %d\nPreparing battle scene..." % [config.map_id, config.rule_set_id, config.seed]
+	timeout_hint.text = "Map: %s\nRule: %s\nSeed: %d\nPreparing battle scene..." % [config.map_id, config.rule_set_id, config.battle_seed]
 
 
 func _begin_loading() -> void:

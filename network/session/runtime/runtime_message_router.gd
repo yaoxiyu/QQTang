@@ -1,0 +1,30 @@
+class_name RuntimeMessageRouter
+extends Node
+
+const DEBUG_ROUTER_LOGS: bool = true
+
+var _handlers: Dictionary = {}
+var _fallback_handler: Callable = Callable()
+
+
+func register_handler(message_type: String, handler: Callable) -> void:
+	if message_type.is_empty():
+		return
+	_handlers[message_type] = handler
+
+
+func set_fallback_handler(handler: Callable) -> void:
+	_fallback_handler = handler
+
+
+func route_messages(messages: Array) -> void:
+	for message in messages:
+		var message_type := str(message.get("message_type", message.get("msg_type", "")))
+		if DEBUG_ROUTER_LOGS:
+			print("[RuntimeMessageRouter] route %s" % message_type)
+		if _handlers.has(message_type):
+			var handler: Callable = _handlers[message_type]
+			if handler.is_valid():
+				handler.call(message)
+		elif _fallback_handler.is_valid():
+			_fallback_handler.call(message)

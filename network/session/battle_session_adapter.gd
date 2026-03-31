@@ -8,6 +8,10 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const RemoteDebugInputDriverScript = preload("res://network/session/runtime/remote_debug_input_driver.gd")
 const PredictionDivergenceDebuggerScript = preload("res://network/session/runtime/prediction_divergence_debugger.gd")
 const BattleRuntimeMetricsBuilderScript = preload("res://network/session/runtime/battle_runtime_metrics_builder.gd")
+const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
+const ClientRuntimeScript = preload("res://network/session/runtime/client_runtime.gd")
+const RuntimeMessageRouterScript = preload("res://network/session/runtime/runtime_message_router.gd")
+const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 
 signal adapter_configured()
 signal battle_session_started(config)
@@ -16,6 +20,15 @@ signal authoritative_tick_completed(context, tick_result, metrics)
 signal battle_finished_authoritatively(result)
 signal battle_session_stopped()
 signal prediction_debug_event(event)
+signal network_log_event(message)
+signal network_host_match_started(config)
+signal network_client_match_started(config)
+signal network_battle_finished(result, is_host)
+signal network_transport_connected()
+signal network_transport_disconnected()
+signal network_transport_peer_connected(peer_id)
+signal network_transport_peer_disconnected(peer_id)
+signal network_transport_error(code, message)
 
 const DEFAULT_MATCH_DURATION_TICKS: int = 360
 
@@ -55,12 +68,11 @@ var _correction_count: int = 0
 var _last_correction_summary: String = ""
 var _last_resync_tick: int = -1
 var _lifecycle_state: int = BattleLifecycleState.STOPPED
-
-
-func bind_sessions(p_client_session: ClientSession, p_server_session: ServerSession) -> void:
-	client_session = p_client_session
-	server_session = p_server_session
-	adapter_configured.emit()
+var _bootstrap_authority_runtime: AuthorityRuntime = null
+var _bootstrap_client_runtime: ClientRuntime = null
+var _bootstrap_coordinator = null
+var _bootstrap_local_peer_id: int = 0
+var _runtime_message_router: RuntimeMessageRouter = null
 
 
 func setup_from_start_config(config: BattleStartConfig) -> void:
@@ -72,8 +84,9 @@ func start_battle() -> void:
 	if start_config == null:
 		return
 	_lifecycle_state = BattleLifecycleState.STARTING
-	_rebuild_runtime()
-	if current_context == null:
+	if not _start_runtime_session(BattleNetworkMode.LOCAL_LOOPBACK, start_config, {
+		"debug_profile": _capture_transport_profile(),
+	}):
 		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
 	_lifecycle_state = BattleLifecycleState.RUNNING
@@ -86,15 +99,25 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> void:
 		return
 	if _finished_emitted:
 		return
+	_advance_local_loopback_runtime_tick(local_input)
 
+
+func _advance_local_loopback_runtime_tick(local_input: Dictionary = {}) -> void:
 	var next_tick: int = server_session.active_match.sim_world.state.match_state.tick + 1
-	_enqueue_local_input(next_tick, local_input)
+	var input_message := _bootstrap_client_runtime.build_local_input_message(local_input) if _bootstrap_client_runtime != null else {}
+	if not input_message.is_empty() and transport != null:
+		transport.send_to_peer(_local_peer_id, input_message)
 	_enqueue_remote_inputs(next_tick)
-	_flush_client_inputs_to_server()
-	server_session.tick_once()
-	_publish_server_messages(server_session.poll_messages(), next_tick)
 	_poll_transport(next_tick)
-	_apply_transport_messages(transport.consume_incoming() if transport != null else [])
+	network_bootstrap_route_messages(transport.consume_incoming() if transport != null else [])
+	_flush_client_inputs_to_server()
+	var outgoing_messages := _bootstrap_authority_runtime.advance_authoritative_tick({}) if _bootstrap_authority_runtime != null else []
+	if transport != null:
+		_set_transport_tick(next_tick)
+		for message in outgoing_messages:
+			transport.broadcast(message)
+	_poll_transport(next_tick)
+	network_bootstrap_route_messages(transport.consume_incoming() if transport != null else [])
 
 	var world: SimWorld = current_context.sim_world
 	if world == null:
@@ -120,18 +143,25 @@ func shutdown_battle() -> void:
 	if _lifecycle_state != BattleLifecycleState.STOPPED:
 		_lifecycle_state = BattleLifecycleState.SHUTTING_DOWN
 
+	var runtime_owned: bool = _current_runtime_owned_by_runtime_modules()
+
 	if prediction_controller != null:
 		if prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 			prediction_controller.prediction_corrected.disconnect(_on_prediction_corrected)
 		if prediction_controller.full_visual_resync.is_connected(_on_full_visual_resync):
 			prediction_controller.full_visual_resync.disconnect(_on_full_visual_resync)
 
-	if current_context != null:
+	if current_context != null and not runtime_owned:
 		current_context.clear_runtime_refs()
 
 	_remote_debug_input_driver.shutdown()
 
-	if prediction_controller != null:
+	if runtime_owned:
+		if _bootstrap_client_runtime != null:
+			_bootstrap_client_runtime.shutdown_runtime()
+		if _bootstrap_authority_runtime != null:
+			_bootstrap_authority_runtime.shutdown_runtime()
+	elif prediction_controller != null:
 		prediction_controller.dispose()
 		if is_instance_valid(prediction_controller):
 			prediction_controller.free()
@@ -141,11 +171,11 @@ func shutdown_battle() -> void:
 		visual_sync_controller.free()
 	visual_sync_controller = null
 
-	if client_session != null and is_instance_valid(client_session):
+	if not runtime_owned and client_session != null and is_instance_valid(client_session):
 		client_session.free()
 	client_session = null
 
-	if server_session != null and is_instance_valid(server_session):
+	if not runtime_owned and server_session != null and is_instance_valid(server_session):
 		server_session.free()
 	server_session = null
 
@@ -240,11 +270,25 @@ func build_runtime_metrics_snapshot() -> Dictionary:
 	return _build_runtime_metrics()
 
 
-func _rebuild_runtime() -> void:
-	var profile := _capture_transport_profile()
+func _start_runtime_session(mode: int, config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	match mode:
+		BattleNetworkMode.LOCAL_LOOPBACK:
+			return _start_local_loopback_runtime(config, options)
+		BattleNetworkMode.HOST:
+			return _start_host_runtime(config, options)
+		BattleNetworkMode.CLIENT:
+			return _start_client_runtime(config, options)
+		_:
+			return false
+
+
+func _start_local_loopback_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	start_config = config.duplicate_deep() if config != null else null
+	var profile: Dictionary = options.get("debug_profile", {})
 	shutdown_battle()
 	if start_config == null:
-		return
+		return false
+	network_mode = BattleNetworkMode.LOCAL_LOOPBACK
 
 	_local_peer_id = _resolve_local_peer_id(start_config)
 	_finished_emitted = false
@@ -253,54 +297,25 @@ func _rebuild_runtime() -> void:
 	_last_correction_summary = ""
 	_last_resync_tick = -1
 
-	server_session = ServerSession.new()
-	add_child(server_session)
-
-	client_session = ClientSession.new()
-	client_session.configure(_local_peer_id)
-	add_child(client_session)
+	_ensure_bootstrap_authority_runtime()
+	_ensure_bootstrap_client_runtime()
+	_bootstrap_authority_runtime.configure(_local_peer_id)
+	_bootstrap_client_runtime.configure(_local_peer_id)
 
 	_remote_debug_input_driver.setup(self, start_config, _local_peer_id)
 
 	_initialize_transport(profile)
 
-	server_session.create_room(start_config.room_id, start_config.map_id, start_config.rule_set_id)
-	for player_entry in start_config.players:
-		var peer_id: int = int(player_entry.get("peer_id", -1))
-		if peer_id < 0:
-			continue
-		server_session.add_peer(peer_id)
-		server_session.set_peer_ready(peer_id, true)
-
-	var started: bool = server_session.start_match(
-		SimConfig.new(),
-		{
-			"grid": _build_grid_for_map(start_config.map_id),
-			"player_slots": start_config.player_slots.duplicate(true),
-			"spawn_assignments": start_config.spawn_assignments.duplicate(true),
-		},
-		start_config.battle_seed,
-		start_config.start_tick
-	)
-	if not started or server_session.active_match == null:
+	var authority_started: bool = _bootstrap_authority_runtime.start_match(start_config)
+	var client_started: bool = _bootstrap_client_runtime.start_match(start_config)
+	server_session = _bootstrap_authority_runtime.server_session
+	client_session = _bootstrap_client_runtime.client_session
+	prediction_controller = _bootstrap_client_runtime.prediction_controller
+	if not authority_started or not client_started or server_session == null or server_session.active_match == null or client_session == null or prediction_controller == null:
 		_lifecycle_state = BattleLifecycleState.STOPPED
-		return
-
-	server_session.active_match.sim_world.state.match_state.remaining_ticks = _resolve_match_duration_ticks(start_config)
-	server_session.active_match.sim_world.state.match_state.phase = MatchState.Phase.PLAYING
-
-	prediction_controller = PredictionController.new()
-	add_child(prediction_controller)
+		return false
 	visual_sync_controller = VisualSyncController.new()
 	add_child(visual_sync_controller)
-
-	var predicted_world: SimWorld = _build_predicted_world_from_authoritative(server_session.active_match)
-	prediction_controller.configure(
-		predicted_world,
-		server_session.active_match.snapshot_service,
-		client_session.local_input_buffer,
-		_resolve_local_slot(start_config)
-	)
 	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
 	if not prediction_controller.full_visual_resync.is_connected(_on_full_visual_resync):
@@ -323,18 +338,23 @@ func _rebuild_runtime() -> void:
 	current_context.visual_sync_controller = visual_sync_controller
 
 	adapter_configured.emit()
+	return true
 
 
-func _enqueue_local_input(tick_id: int, local_input: Dictionary) -> void:
-	if client_session == null:
-		return
-	var move_x: int = clamp(int(local_input.get("move_x", 0)), -1, 1)
-	var move_y: int = clamp(int(local_input.get("move_y", 0)), -1, 1)
-	var action_place: bool = bool(local_input.get("action_place", false))
-	var frame: PlayerInputFrame = client_session.sample_input_for_tick(tick_id, move_x, move_y, action_place)
-	client_session.send_input(frame)
-	if prediction_controller != null:
-		prediction_controller.predict_to_tick(tick_id)
+func _start_host_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	_ensure_bootstrap_authority_runtime()
+	start_config = config.duplicate_deep() if config != null else null
+	_bootstrap_local_peer_id = int(options.get("local_peer_id", _bootstrap_local_peer_id))
+	_bootstrap_authority_runtime.configure(_bootstrap_local_peer_id if _bootstrap_local_peer_id > 0 else 1)
+	return _bootstrap_authority_runtime.start_match(start_config)
+
+
+func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	_ensure_bootstrap_client_runtime()
+	start_config = config.duplicate_deep() if config != null else null
+	_bootstrap_local_peer_id = int(options.get("local_peer_id", _bootstrap_local_peer_id))
+	_bootstrap_client_runtime.configure(_bootstrap_local_peer_id)
+	return _bootstrap_client_runtime.start_match(start_config)
 
 
 func _enqueue_remote_inputs(tick_id: int) -> void:
@@ -350,48 +370,11 @@ func _flush_client_inputs_to_server() -> void:
 	_remote_debug_input_driver.flush_to_server(server_session)
 
 
-func _publish_server_messages(messages: Array, server_tick: int) -> void:
-	if transport == null:
-		return
-	_set_transport_tick(server_tick)
-	for message in messages:
-		transport.send_to_peer(_local_peer_id, message)
-
-
 func _poll_transport(current_tick: int) -> void:
 	if transport == null:
 		return
 	_set_transport_tick(current_tick)
 	transport.poll()
-
-
-func _apply_transport_messages(messages: Array) -> void:
-	for message in messages:
-		var msg_type: String = str(message.get("msg_type", ""))
-		match msg_type:
-			TransportMessageTypesScript.INPUT_ACK:
-				if client_session != null and int(message.get("peer_id", -1)) == client_session.local_peer_id:
-					client_session.on_input_ack(int(message.get("ack_tick", 0)))
-			TransportMessageTypesScript.STATE_SUMMARY:
-				if client_session != null:
-					client_session.on_state_summary(message)
-			TransportMessageTypesScript.CHECKPOINT:
-				if client_session != null:
-					client_session.on_snapshot(message)
-				if prediction_controller != null and server_session != null and server_session.active_match != null:
-					var snapshot: WorldSnapshot = server_session.active_match.get_snapshot(int(message.get("tick", 0)))
-					if snapshot == null:
-						snapshot = server_session.active_match.snapshot_service.build_light_snapshot(
-							server_session.active_match.sim_world,
-							int(message.get("tick", 0))
-						)
-					if _prediction_debugger.is_armed():
-						var debug_event := _prediction_debugger.inject(snapshot, prediction_controller)
-						if not debug_event.is_empty():
-							prediction_debug_event.emit(debug_event)
-					prediction_controller.on_authoritative_snapshot(snapshot)
-			_:
-				pass
 
 
 func _build_runtime_metrics() -> Dictionary:
@@ -472,6 +455,17 @@ func _resolve_match_duration_ticks(config: BattleStartConfig) -> int:
 			return DEFAULT_MATCH_DURATION_TICKS
 
 
+func _current_runtime_owned_by_runtime_modules() -> bool:
+	if _bootstrap_authority_runtime != null and server_session != null and server_session == _bootstrap_authority_runtime.server_session:
+		return true
+	if _bootstrap_client_runtime != null:
+		if client_session != null and client_session == _bootstrap_client_runtime.client_session:
+			return true
+		if prediction_controller != null and prediction_controller == _bootstrap_client_runtime.prediction_controller:
+			return true
+	return false
+
+
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
 	_last_correction_summary = "E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)]
@@ -530,6 +524,7 @@ func _initialize_transport(debug_profile: Dictionary = {}) -> void:
 	if transport == null:
 		return
 	add_child(transport)
+	_connect_transport_bridge_signals()
 	transport.initialize(transport_config)
 
 
@@ -581,3 +576,279 @@ func _get_transport_stats() -> Dictionary:
 	else:
 		stats["pending"] = 0
 	return stats
+
+
+func network_bootstrap_configure_host(local_peer_id: int = 1) -> void:
+	_ensure_bootstrap_authority_runtime()
+	network_mode = BattleNetworkMode.HOST
+	_bootstrap_local_peer_id = local_peer_id
+	_bootstrap_authority_runtime.configure(local_peer_id)
+
+
+func network_bootstrap_configure_client(local_peer_id: int = 0) -> void:
+	_ensure_bootstrap_client_runtime()
+	network_mode = BattleNetworkMode.CLIENT
+	_bootstrap_local_peer_id = local_peer_id
+
+
+func network_bootstrap_set_local_peer_id(local_peer_id: int) -> void:
+	_bootstrap_local_peer_id = local_peer_id
+
+
+func network_bootstrap_start_host_match(config: BattleStartConfig) -> bool:
+	return _start_runtime_session(BattleNetworkMode.HOST, config, {
+		"local_peer_id": _bootstrap_local_peer_id,
+	})
+
+
+func network_bootstrap_build_start_config(snapshot: RoomSnapshot) -> BattleStartConfig:
+	_ensure_bootstrap_coordinator()
+	return _bootstrap_coordinator.build_start_config(snapshot)
+
+
+func network_bootstrap_route_messages(messages: Array[Dictionary]) -> void:
+	_ensure_runtime_message_router()
+	_runtime_message_router.route_messages(messages)
+
+
+func network_bootstrap_build_host_tick_messages(local_input: Dictionary = {}) -> Array[Dictionary]:
+	if _bootstrap_authority_runtime == null:
+		return []
+	return _bootstrap_authority_runtime.advance_authoritative_tick(local_input)
+
+
+func network_bootstrap_build_client_input_message(local_input: Dictionary = {}) -> Dictionary:
+	if _bootstrap_client_runtime == null:
+		return {}
+	return _bootstrap_client_runtime.build_local_input_message(local_input)
+
+
+func network_bootstrap_is_host_match_running() -> bool:
+	return _bootstrap_authority_runtime != null and _bootstrap_authority_runtime.is_match_running()
+
+
+func network_bootstrap_is_client_active() -> bool:
+	return _bootstrap_client_runtime != null and _bootstrap_client_runtime.is_active()
+
+
+func network_bootstrap_build_client_metrics() -> Dictionary:
+	if _bootstrap_client_runtime == null:
+		return {}
+	return _bootstrap_client_runtime.build_metrics()
+
+
+func network_bootstrap_shutdown() -> void:
+	if _bootstrap_authority_runtime != null:
+		_bootstrap_authority_runtime.shutdown_runtime()
+		if is_instance_valid(_bootstrap_authority_runtime):
+			_bootstrap_authority_runtime.queue_free()
+		_bootstrap_authority_runtime = null
+	if _bootstrap_client_runtime != null:
+		_bootstrap_client_runtime.shutdown_runtime()
+		if is_instance_valid(_bootstrap_client_runtime):
+			_bootstrap_client_runtime.queue_free()
+		_bootstrap_client_runtime = null
+	if _bootstrap_coordinator != null:
+		if is_instance_valid(_bootstrap_coordinator):
+			_bootstrap_coordinator.queue_free()
+		_bootstrap_coordinator = null
+	if _runtime_message_router != null:
+		if is_instance_valid(_runtime_message_router):
+			_runtime_message_router.queue_free()
+		_runtime_message_router = null
+	_shutdown_transport(false)
+	start_config = null
+	_bootstrap_local_peer_id = 0
+
+
+func network_bootstrap_start_host_transport(port: int, max_clients: int) -> void:
+	_ensure_bootstrap_authority_runtime()
+	network_port = port
+	network_max_clients = max_clients
+	network_mode = BattleNetworkMode.HOST
+	_initialize_transport({})
+
+
+func network_bootstrap_start_client_transport(host: String, port: int, connect_timeout_seconds: float = 5.0) -> void:
+	_ensure_bootstrap_client_runtime()
+	network_host = host
+	network_port = port
+	network_mode = BattleNetworkMode.CLIENT
+	_initialize_transport({
+		"connect_timeout_seconds": connect_timeout_seconds,
+	})
+
+
+func network_bootstrap_poll_transport() -> void:
+	if transport == null:
+		return
+	transport.poll()
+	network_bootstrap_route_messages(transport.consume_incoming())
+
+
+func network_bootstrap_transport_connected() -> bool:
+	return transport != null and transport.is_transport_connected()
+
+
+func network_bootstrap_transport_remote_peer_ids() -> Array[int]:
+	if transport == null:
+		return []
+	return transport.get_remote_peer_ids()
+
+
+func network_bootstrap_transport_local_peer_id() -> int:
+	if transport == null:
+		return 0
+	return transport.get_local_peer_id()
+
+
+func network_bootstrap_send_to_peer(peer_id: int, message: Dictionary) -> void:
+	if transport == null:
+		return
+	transport.send_to_peer(peer_id, message)
+
+
+func network_bootstrap_broadcast(message: Dictionary) -> void:
+	if transport == null:
+		return
+	transport.broadcast(message)
+
+
+func _ensure_bootstrap_coordinator() -> void:
+	if _bootstrap_coordinator == null:
+		_bootstrap_coordinator = MatchStartCoordinatorScript.new()
+		add_child(_bootstrap_coordinator)
+
+
+func _ensure_runtime_message_router() -> void:
+	if _runtime_message_router == null:
+		_runtime_message_router = RuntimeMessageRouterScript.new()
+		add_child(_runtime_message_router)
+		_runtime_message_router.register_handler(TransportMessageTypesScript.JOIN_BATTLE_REQUEST, Callable(self, "_on_bootstrap_join_battle_request"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED, Callable(self, "_on_bootstrap_join_battle_accepted"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.JOIN_BATTLE_REJECTED, Callable(self, "_on_bootstrap_join_battle_rejected"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.INPUT_FRAME, Callable(self, "_on_bootstrap_input_frame_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.INPUT_ACK, Callable(self, "_on_bootstrap_client_runtime_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.STATE_SUMMARY, Callable(self, "_on_bootstrap_client_runtime_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.CHECKPOINT, Callable(self, "_on_bootstrap_client_runtime_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT, Callable(self, "_on_bootstrap_client_runtime_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.MATCH_START, Callable(self, "_on_bootstrap_match_start_message"))
+		_runtime_message_router.register_handler(TransportMessageTypesScript.MATCH_FINISHED, Callable(self, "_on_bootstrap_match_finished_message"))
+		_runtime_message_router.set_fallback_handler(Callable(self, "_on_bootstrap_unhandled_message"))
+
+
+func _ensure_bootstrap_authority_runtime() -> void:
+	if _bootstrap_authority_runtime == null:
+		_bootstrap_authority_runtime = AuthorityRuntimeScript.new()
+		add_child(_bootstrap_authority_runtime)
+		_bootstrap_authority_runtime.log_event.connect(func(message: String) -> void:
+			network_log_event.emit(message)
+		)
+		_bootstrap_authority_runtime.match_started.connect(func(config: BattleStartConfig) -> void:
+			network_host_match_started.emit(config)
+		)
+		_bootstrap_authority_runtime.battle_finished.connect(func(result: BattleResult) -> void:
+			network_battle_finished.emit(result, true)
+		)
+
+
+func _ensure_bootstrap_client_runtime() -> void:
+	if _bootstrap_client_runtime == null:
+		_bootstrap_client_runtime = ClientRuntimeScript.new()
+		add_child(_bootstrap_client_runtime)
+		_bootstrap_client_runtime.log_event.connect(func(message: String) -> void:
+			network_log_event.emit(message)
+		)
+		_bootstrap_client_runtime.config_accepted.connect(func(config: BattleStartConfig) -> void:
+			start_config = config.duplicate_deep()
+			network_client_match_started.emit(config)
+		)
+		_bootstrap_client_runtime.prediction_event.connect(func(event: Dictionary) -> void:
+			prediction_debug_event.emit(event)
+		)
+		_bootstrap_client_runtime.battle_finished.connect(func(result: BattleResult) -> void:
+			network_battle_finished.emit(result, false)
+		)
+
+
+func _connect_transport_bridge_signals() -> void:
+	if transport == null:
+		return
+	if not transport.connected.is_connected(_on_transport_connected):
+		transport.connected.connect(_on_transport_connected)
+	if not transport.disconnected.is_connected(_on_transport_disconnected):
+		transport.disconnected.connect(_on_transport_disconnected)
+	if not transport.peer_connected.is_connected(_on_transport_peer_connected):
+		transport.peer_connected.connect(_on_transport_peer_connected)
+	if not transport.peer_disconnected.is_connected(_on_transport_peer_disconnected):
+		transport.peer_disconnected.connect(_on_transport_peer_disconnected)
+	if not transport.transport_error.is_connected(_on_transport_error):
+		transport.transport_error.connect(_on_transport_error)
+
+
+func _on_transport_connected() -> void:
+	network_transport_connected.emit()
+
+
+func _on_transport_disconnected() -> void:
+	network_transport_disconnected.emit()
+
+
+func _on_transport_peer_connected(peer_id: int) -> void:
+	network_transport_peer_connected.emit(peer_id)
+
+
+func _on_transport_peer_disconnected(peer_id: int) -> void:
+	network_transport_peer_disconnected.emit(peer_id)
+
+
+func _on_transport_error(code: int, message: String) -> void:
+	network_transport_error.emit(code, message)
+
+
+func _on_bootstrap_join_battle_request(message: Dictionary) -> void:
+	if network_mode != BattleNetworkMode.HOST:
+		return
+	network_log_event.emit("Host received join request from peer %d" % int(message.get("sender_peer_id", -1)))
+
+
+func _on_bootstrap_join_battle_accepted(message: Dictionary) -> void:
+	if network_mode != BattleNetworkMode.CLIENT:
+		return
+	_ensure_bootstrap_coordinator()
+	var config := BattleStartConfig.from_dict(message.get("start_config", {}))
+	var validation: Dictionary = _bootstrap_coordinator.validate_start_config(config)
+	if not bool(validation.get("ok", false)):
+		network_log_event.emit("Client rejected config: %s" % str(validation.get("errors", [])))
+		return
+	_start_runtime_session(BattleNetworkMode.CLIENT, config, {
+		"local_peer_id": _bootstrap_local_peer_id,
+	})
+
+
+func _on_bootstrap_join_battle_rejected(message: Dictionary) -> void:
+	network_log_event.emit("Join rejected: %s" % str(message))
+
+
+func _on_bootstrap_input_frame_message(message: Dictionary) -> void:
+	if (network_mode == BattleNetworkMode.HOST or network_mode == BattleNetworkMode.LOCAL_LOOPBACK) and _bootstrap_authority_runtime != null:
+		_bootstrap_authority_runtime.ingest_network_message(message)
+
+
+func _on_bootstrap_client_runtime_message(message: Dictionary) -> void:
+	if (network_mode == BattleNetworkMode.CLIENT or network_mode == BattleNetworkMode.LOCAL_LOOPBACK) and _bootstrap_client_runtime != null:
+		_bootstrap_client_runtime.ingest_network_message(message)
+
+
+func _on_bootstrap_match_start_message(_message: Dictionary) -> void:
+	pass
+
+
+func _on_bootstrap_match_finished_message(message: Dictionary) -> void:
+	if (network_mode == BattleNetworkMode.CLIENT or network_mode == BattleNetworkMode.LOCAL_LOOPBACK) and _bootstrap_client_runtime != null:
+		_bootstrap_client_runtime.ingest_network_message(message)
+
+
+func _on_bootstrap_unhandled_message(message: Dictionary) -> void:
+	if not message.is_empty():
+		network_log_event.emit("Unhandled message %s" % str(message.get("message_type", message.get("msg_type", "unknown"))))

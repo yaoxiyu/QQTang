@@ -35,6 +35,8 @@ func _ready() -> void:
 	_assert(predicted_world.state.match_state.tick == 1, "predicted world should snap to authoritative tick")
 	_assert(rollback.predicted_until_tick == 1, "force resync should reset predicted frontier to snapshot tick")
 
+	rollback.dispose()
+	rollback.free()
 	predicted_world.dispose()
 	authority_world.dispose()
 
@@ -66,3 +68,4 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_force_resync_window: FAIL - %s" % message)
+

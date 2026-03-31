@@ -13,6 +13,7 @@ var authoritative_tick: int = 0
 var snapshot_tick: int = 0
 var delivered_messages: int = 0
 var dropped_messages: int = 0
+var pending_server_messages: int = 0
 var prediction_enabled: bool = false
 var force_divergence_armed: bool = false
 var correction_count: int = 0
@@ -41,6 +42,7 @@ func apply_network_metrics(metrics: Dictionary) -> void:
 	snapshot_tick = int(metrics.get("snapshot_tick", 0))
 	delivered_messages = int(metrics.get("delivered_messages", 0))
 	dropped_messages = int(metrics.get("dropped_messages", 0))
+	pending_server_messages = int(metrics.get("pending_server_messages", 0))
 	prediction_enabled = bool(metrics.get("prediction_enabled", false))
 	force_divergence_armed = bool(metrics.get("force_divergence_armed", false))
 	correction_count = int(metrics.get("correction_count", 0))
@@ -66,6 +68,7 @@ func _refresh_text() -> void:
 		"CorrectionCount: %d" % correction_count,
 		"Delivered: %d" % delivered_messages,
 		"Dropped: %d" % dropped_messages,
+		"Pending: %d" % pending_server_messages,
 		"Prediction: %s" % ("on" if prediction_enabled else "off"),
 		"ForceDivergence: %s" % ("armed" if force_divergence_armed else "idle"),
 		"DropRate: %d%%" % drop_rate_percent,

@@ -46,6 +46,8 @@ func _ready() -> void:
 	var expected_checksum := checksum_builder.build(expected_world, expected_world.state.match_state.tick)
 	_assert(corrected_checksum == expected_checksum, "checksum mismatch recovery should converge to expected replayed state")
 
+	rollback.dispose()
+	rollback.free()
 	predicted_world.dispose()
 	server_world.dispose()
 	expected_world.dispose()
@@ -78,3 +80,4 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_checksum_mismatch_recovery: FAIL - %s" % message)
+

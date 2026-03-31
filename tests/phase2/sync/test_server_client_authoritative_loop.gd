@@ -54,6 +54,10 @@ func _ready() -> void:
 	var checksum := server.active_match.compute_checksum(server.active_match.sim_world.state.match_state.tick)
 	_assert(checksum != 0, "authoritative checksum should be generated after sync ticks")
 
+	server.free()
+	client_a.free()
+	client_b.free()
+
 	print("test_server_client_authoritative_loop: PASS")
 
 
@@ -81,3 +85,4 @@ func _apply_server_messages(server: ServerSession, client_a: ClientSession, clie
 func _assert(condition: bool, message: String) -> void:
 	if not condition:
 		push_error("test_server_client_authoritative_loop: FAIL - %s" % message)
+
