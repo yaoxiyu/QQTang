@@ -2,6 +2,7 @@ extends Node
 
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
 const LocalLoopbackTransportScript = preload("res://network/transport/local_loopback_transport.gd")
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -271,6 +272,8 @@ func build_runtime_metrics_snapshot() -> Dictionary:
 
 
 func _start_runtime_session(mode: int, config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	if not _validate_runtime_start_config(config):
+		return false
 	match mode:
 		BattleNetworkMode.LOCAL_LOOPBACK:
 			return _start_local_loopback_runtime(config, options)
@@ -424,8 +427,8 @@ func _build_grid_for_map(map_id: String):
 	var grid := MapLoaderScript.build_grid_state(map_id)
 	if grid != null:
 		return grid
-	push_warning("MapLoader failed for %s, falling back to TestMapFactory" % map_id)
-	return TestMapFactory.build_basic_map()
+	push_error("MapLoader failed: %s" % map_id)
+	return null
 
 
 func _resolve_local_peer_id(config: BattleStartConfig) -> int:
@@ -448,11 +451,32 @@ func _resolve_match_duration_ticks(config: BattleStartConfig) -> int:
 		return DEFAULT_MATCH_DURATION_TICKS
 	if int(config.match_duration_ticks) > 0:
 		return int(config.match_duration_ticks)
-	match str(config.rule_set_id):
-		"team":
-			return 480
-		_:
-			return DEFAULT_MATCH_DURATION_TICKS
+	var rule_config := RuleLoaderScript.load_rule_config(String(config.rule_set_id))
+	if rule_config.is_empty():
+		push_error("Failed to load rule config: %s" % String(config.rule_set_id))
+		return DEFAULT_MATCH_DURATION_TICKS
+	var round_time_sec := int(rule_config.get("round_time_sec", 0))
+	if round_time_sec <= 0:
+		return DEFAULT_MATCH_DURATION_TICKS
+	return round_time_sec * 2
+
+
+func _validate_runtime_start_config(config: BattleStartConfig) -> bool:
+	if config == null:
+		push_error("Failed to start battle: missing BattleStartConfig")
+		return false
+	var map_id := String(config.map_id)
+	var rule_id := String(config.rule_set_id)
+
+	var map_config := MapLoaderScript.load_map_config(map_id)
+	if map_config.is_empty():
+		push_error("Failed to load map config: %s" % map_id)
+		return false
+	var rule_config := RuleLoaderScript.load_rule_config(rule_id)
+	if rule_config.is_empty():
+		push_error("Failed to load rule config: %s" % rule_id)
+		return false
+	return true
 
 
 func _current_runtime_owned_by_runtime_modules() -> bool:
@@ -852,3 +876,5 @@ func _on_bootstrap_match_finished_message(message: Dictionary) -> void:
 func _on_bootstrap_unhandled_message(message: Dictionary) -> void:
 	if not message.is_empty():
 		network_log_event.emit("Unhandled message %s" % str(message.get("message_type", message.get("msg_type", "unknown"))))
+
+

@@ -1,3 +1,7 @@
+# LEGACY / PROTOTYPE FILE
+# Retained for historical testing or Phase0 compatibility.
+# Not part of the production battle startup path.
+
 class_name Phase0TestContext
 extends RefCounted
 
@@ -6,3 +10,4 @@ var runner: Node = null
 var bridge: Node = null
 
 var tick: int = 0
+

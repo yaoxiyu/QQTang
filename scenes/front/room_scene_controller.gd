@@ -83,7 +83,7 @@ func _populate_selectors() -> void:
 func _populate_map_selector() -> void:
 	map_selector.clear()
 	for entry in MapCatalogScript.get_map_entries():
-		var map_id := String(entry.get("map_id", ""))
+		var map_id := String(entry.get("id", ""))
 		if map_id.is_empty():
 			continue
 		var display_name := String(entry.get("display_name", map_id))
@@ -93,7 +93,7 @@ func _populate_map_selector() -> void:
 func _populate_rule_selector() -> void:
 	rule_selector.clear()
 	for entry in RuleCatalogScript.get_rule_entries():
-		var rule_id := String(entry.get("rule_id", ""))
+		var rule_id := String(entry.get("id", ""))
 		if rule_id.is_empty():
 			continue
 		var display_name := String(entry.get("display_name", rule_id))

@@ -1,3 +1,7 @@
+# LEGACY / PROTOTYPE FILE
+# Retained for historical testing or Phase0 compatibility.
+# Not part of the production battle startup path.
+
 # 角色：
 # Presentation Bridge - 连接仿真与渲染
 #
@@ -20,3 +24,4 @@ func consume_tick(result: Dictionary) -> void:
 	# 调用测试套件观察
 	if test_suite != null:
 		test_suite.on_bridge_observe(result)
+

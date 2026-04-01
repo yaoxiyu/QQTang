@@ -1,3 +1,7 @@
+# LEGACY / PROTOTYPE FILE
+# Retained for historical testing or Phase0 compatibility.
+# Not part of the production battle startup path.
+
 # 角色：
 # Simulation Runner - 测试模式
 # 驱动游戏仿真并执行测试套件
@@ -62,3 +66,4 @@ func _process(delta: float) -> void:
 	# 通知桥接器
 	if bridge != null:
 		bridge.consume_tick(result)
+

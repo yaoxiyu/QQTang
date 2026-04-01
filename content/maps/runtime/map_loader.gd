@@ -5,6 +5,37 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapRuntimeLayoutScript = preload("res://content/maps/runtime/map_runtime_layout.gd")
 
 
+static func load_map_config(map_id: String) -> Dictionary:
+	if map_id.is_empty() or not MapCatalogScript.has_map(map_id):
+		push_error("MapLoader.load_map_config failed: unknown map_id=%s" % map_id)
+		return {}
+
+	var def_path := MapCatalogScript.get_map_def_path(map_id)
+	if def_path.is_empty():
+		push_error("MapLoader.load_map_config failed: missing map def path for map_id=%s" % map_id)
+		return {}
+
+	var map_script := load(def_path)
+	if map_script == null:
+		push_error("MapLoader.load_map_config failed: unable to load map def script path=%s" % def_path)
+		return {}
+	if not map_script.has_method("build"):
+		push_error("MapLoader.load_map_config failed: map def has no build() path=%s" % def_path)
+		return {}
+
+	var config_value = map_script.build()
+	if not (config_value is Dictionary):
+		push_error("MapLoader.load_map_config failed: build() did not return Dictionary path=%s" % def_path)
+		return {}
+
+	var config: Dictionary = config_value
+	if not _validate_map_config(config):
+		push_error("MapLoader.load_map_config failed: invalid map config map_id=%s" % map_id)
+		return {}
+
+	return config.duplicate(true)
+
+
 static func load_map_metadata(map_id: String) -> Dictionary:
 	var layout := load_runtime_layout(map_id)
 	if layout == null:
@@ -23,18 +54,10 @@ static func load_map_metadata(map_id: String) -> Dictionary:
 
 
 static func load_runtime_layout(map_id: String) -> MapRuntimeLayout:
-	if map_id.is_empty() or not MapCatalogScript.has_map(map_id):
+	var config := load_map_config(map_id)
+	if config.is_empty():
 		return null
-
-	var resource_path := MapCatalogScript.get_map_path(map_id)
-	if resource_path.is_empty() or not ResourceLoader.exists(resource_path):
-		return _build_layout_from_metadata(MapCatalogScript.get_map_metadata(map_id))
-
-	var resource := load(resource_path)
-	if resource is MapResource:
-		return _build_layout_from_resource(resource)
-
-	return _build_layout_from_metadata(MapCatalogScript.get_map_metadata(map_id))
+	return _build_layout_from_config(config)
 
 
 static func build_grid_state(map_id: String) -> GridState:
@@ -102,6 +125,25 @@ static func _build_layout_from_metadata(metadata: Dictionary) -> MapRuntimeLayou
 	return layout if _validate_layout(layout) else null
 
 
+static func _build_layout_from_config(config: Dictionary) -> MapRuntimeLayout:
+	if config.is_empty():
+		return null
+	var layout := MapRuntimeLayoutScript.new()
+	layout.map_id = String(config.get("map_id", ""))
+	layout.display_name = String(config.get("display_name", ""))
+	layout.version = 1
+	layout.width = int(config.get("width", 0))
+	layout.height = int(config.get("height", 0))
+	layout.solid_cells = _to_vector2i_array(config.get("static_blocks", []))
+	layout.breakable_cells = _to_vector2i_array(config.get("breakable_blocks", []))
+	layout.mechanism_cells = []
+	layout.spawn_points = _to_vector2i_array(config.get("spawn_points", []))
+	layout.item_spawn_profile_id = "default_items"
+	layout.content_hash = "map_def_%s" % layout.map_id
+	layout.tile_theme_id = ""
+	return layout if _validate_layout(layout) else null
+
+
 static func _validate_layout(layout: MapRuntimeLayout) -> bool:
 	if layout == null:
 		return false
@@ -128,3 +170,65 @@ static func _validate_layout(layout: MapRuntimeLayout) -> bool:
 
 static func _is_in_bounds(layout: MapRuntimeLayout, cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.x < layout.width and cell.y >= 0 and cell.y < layout.height
+
+
+static func _validate_map_config(config: Dictionary) -> bool:
+	var map_id := String(config.get("map_id", ""))
+	var display_name := String(config.get("display_name", ""))
+	var width := int(config.get("width", 0))
+	var height := int(config.get("height", 0))
+	var tile_size := int(config.get("tile_size", 0))
+
+	if map_id.is_empty() or display_name.is_empty():
+		return false
+	if width <= 0 or height <= 0 or tile_size <= 0:
+		return false
+	if not config.has("spawn_points") or not config.has("static_blocks") or not config.has("breakable_blocks"):
+		return false
+
+	var spawn_points = config.get("spawn_points", [])
+	var static_blocks = config.get("static_blocks", [])
+	var breakable_blocks = config.get("breakable_blocks", [])
+	if not (spawn_points is Array and static_blocks is Array and breakable_blocks is Array):
+		return false
+	if (spawn_points as Array).size() < 2:
+		return false
+
+	if not _all_cells_in_bounds(spawn_points as Array, width, height):
+		return false
+	if not _all_cells_in_bounds(static_blocks as Array, width, height):
+		return false
+	if not _all_cells_in_bounds(breakable_blocks as Array, width, height):
+		return false
+	if _has_overlap(static_blocks as Array, breakable_blocks as Array):
+		return false
+	return true
+
+
+static func _all_cells_in_bounds(cells: Array, width: int, height: int) -> bool:
+	for cell in cells:
+		if not (cell is Vector2i):
+			return false
+		var pos: Vector2i = cell
+		if pos.x < 0 or pos.x >= width or pos.y < 0 or pos.y >= height:
+			return false
+	return true
+
+
+static func _has_overlap(a_cells: Array, b_cells: Array) -> bool:
+	var occupied := {}
+	for cell in a_cells:
+		if cell is Vector2i:
+			occupied[String(cell)] = true
+	for cell in b_cells:
+		if cell is Vector2i and occupied.has(String(cell)):
+			return true
+	return false
+
+
+static func _to_vector2i_array(values: Array) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	for value in values:
+		if value is Vector2i:
+			result.append(value)
+	return result

@@ -1,3 +1,7 @@
+# LEGACY / PROTOTYPE FILE
+# Retained for historical testing or Phase0 compatibility.
+# Not part of the production battle startup path.
+
 class_name Phase0GameplayTestSuite
 extends RefCounted
 
@@ -211,3 +215,4 @@ func test_win_condition() -> void:
 	if not _assert_true(_find_event(result["events"], SimEvent.EventType.MATCH_ENDED), "MATCH_ENDED event emitted"):
 		return
 	_pass("win condition")
+
