@@ -10,6 +10,9 @@ const MatchStartCoordinatorScript = preload("res://network/session/match_start_c
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const DebugToolsScript = preload("res://app/flow/phase3_debug_tools.gd")
 const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
+const NetworkErrorRouterScript = preload("res://network/runtime/network_error_router.gd")
+const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
+const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnostics.gd")
 
 var local_peer_id: int = 1
 var remote_peer_id: int = 2
@@ -23,6 +26,9 @@ var room_session_controller: Node = null
 var match_start_coordinator: Node = null
 var battle_session_adapter: Node = null
 var runtime_config: RefCounted = null
+var error_router: NetworkErrorRouter = NetworkErrorRouterScript.new()
+var session_diagnostics: SessionDiagnostics = SessionDiagnosticsScript.new()
+var last_runtime_error: Dictionary = {}
 
 var current_room_snapshot: RoomSnapshot = null
 var current_start_config: BattleStartConfig = null
@@ -79,6 +85,8 @@ func initialize_runtime() -> void:
 		session_root.add_child(room_session_controller)
 	elif room_session_controller.get_parent() != session_root:
 		_reparent_to(room_session_controller, session_root)
+	if room_session_controller != null and room_session_controller.has_method("set_local_player_id"):
+		room_session_controller.set_local_player_id(local_peer_id)
 
 	if match_start_coordinator == null or not is_instance_valid(match_start_coordinator):
 		match_start_coordinator = MatchStartCoordinatorScript.new()
@@ -104,7 +112,33 @@ func build_and_store_start_config(snapshot: RoomSnapshot) -> BattleStartConfig:
 	if snapshot == null or match_start_coordinator == null:
 		return null
 	current_room_snapshot = snapshot.duplicate_deep()
-	current_start_config = match_start_coordinator.build_start_config(snapshot)
+	if error_router != null:
+		error_router.clear_last_error(self)
+
+	var prepare_result: Dictionary = match_start_coordinator.prepare_start_config(snapshot) if match_start_coordinator.has_method("prepare_start_config") else {}
+	current_start_config = prepare_result.get("config", null)
+	if not bool(prepare_result.get("ok", false)):
+		if error_router != null:
+			var validation: Dictionary = prepare_result.get("validation", {})
+			var user_message := String(validation.get("error_message", "Failed to build battle start config"))
+			if user_message.is_empty():
+				user_message = "Failed to build battle start config"
+			error_router.route_error(
+				self,
+				String(validation.get("error_code", NetworkErrorCodesScript.MATCH_CONFIG_BUILD_FAILED)),
+				"match_start",
+				"build_and_store_start_config",
+				user_message,
+				{
+					"snapshot": snapshot.to_dict(),
+					"validation": validation,
+				},
+				"return_to_room",
+				true
+			)
+		return current_start_config
+	if room_session_controller != null and current_start_config != null and not current_start_config.match_id.is_empty() and room_session_controller.has_method("set_pending_match_id"):
+		room_session_controller.set_pending_match_id(current_start_config.match_id)
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
 	return current_start_config
@@ -112,6 +146,12 @@ func build_and_store_start_config(snapshot: RoomSnapshot) -> BattleStartConfig:
 
 func clear_battle_payload() -> void:
 	current_start_config = null
+	current_battle_scene = null
+	current_battle_bootstrap = null
+	current_presentation_bridge = null
+	current_battle_hud_controller = null
+	current_battle_camera_controller = null
+	current_settlement_controller = null
 
 
 func register_battle_modules(
@@ -144,6 +184,7 @@ func unregister_battle_modules(battle_scene: Node) -> void:
 
 
 func debug_dump_runtime_structure() -> Dictionary:
+	var diagnostics_dump: Dictionary = session_diagnostics.build_runtime_dump(self) if session_diagnostics != null else {}
 	return {
 		"root_name": name,
 		"has_session_root": session_root != null,
@@ -166,7 +207,13 @@ func debug_dump_runtime_structure() -> Dictionary:
 		"battle_lifecycle_state_name": battle_session_adapter.get_lifecycle_state_name() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state_name") else "UNKNOWN",
 		"battle_is_active": battle_session_adapter.is_battle_active() if battle_session_adapter != null and battle_session_adapter.has_method("is_battle_active") else false,
 		"battle_shutdown_complete": battle_session_adapter.is_shutdown_complete() if battle_session_adapter != null and battle_session_adapter.has_method("is_shutdown_complete") else false,
+		"last_runtime_error": last_runtime_error.duplicate(true),
+		"diagnostics": diagnostics_dump,
 	}
+
+
+func _on_network_error_routed(payload: Dictionary) -> void:
+	last_runtime_error = payload.duplicate(true)
 
 
 func _ensure_root_nodes() -> void:

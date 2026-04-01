@@ -3,6 +3,9 @@ extends Node2D
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
+const BattleExitRecoveryScript = preload("res://gameplay/battle/runtime/battle_exit_recovery.gd")
+const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_return_recovery.gd")
+const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
@@ -23,6 +26,8 @@ var _settlement_delay_remaining: float = 0.0
 var _post_shutdown_action: String = ""
 var _scene_cleanup_queued: bool = false
 var _shutting_down: bool = false
+var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
+var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 
 
 func _ready() -> void:
@@ -100,6 +105,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_battle_context_created(context: BattleContext) -> void:
 	if context == null or context.sim_world == null:
+		if _app_runtime != null and _app_runtime.error_router != null:
+			_app_runtime.error_router.route_error(
+				_app_runtime,
+				NetworkErrorCodesScript.MATCH_START_RUNTIME_BOOTSTRAP_FAILED,
+				"battle_start",
+				"battle_context_created",
+				"Battle runtime bootstrap failed",
+				{},
+				"return_to_room",
+				true
+			)
 		battle_hud.match_message_panel.apply_message("Missing battle runtime")
 		return
 
@@ -112,6 +128,9 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	_scene_cleanup_queued = false
 	_shutting_down = false
 	battle_bootstrap.bind_context(_battle_context)
+	if _app_runtime != null and _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("mark_match_started"):
+		var match_id: String = _app_runtime.current_start_config.match_id if _app_runtime.current_start_config != null else ""
+		_app_runtime.room_session_controller.mark_match_started(match_id)
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
 	battle_hud.consume_battle_state(_battle_context.sim_world)
@@ -138,6 +157,9 @@ func _on_battle_finished_authoritatively(result: BattleResult) -> void:
 	if _finished:
 		return
 	_finished = true
+	if _app_runtime != null and _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("mark_match_finished"):
+		var match_id: String = _app_runtime.current_start_config.match_id if _app_runtime != null and _app_runtime.current_start_config != null else ""
+		_app_runtime.room_session_controller.mark_match_finished(match_id)
 	_pending_settlement_result = result.duplicate_deep() if result != null else null
 	_settlement_delay_remaining = SETTLEMENT_SHOW_DELAY_SEC
 	battle_hud.match_message_panel.apply_message("Battle resolved...")
@@ -152,6 +174,25 @@ func _on_battle_session_stopped() -> void:
 	_pending_settlement_result = null
 	_settlement_delay_remaining = 0.0
 	_shutting_down = false
+
+
+func _on_transport_runtime_error(code: int, message: String) -> void:
+	if _app_runtime != null and _app_runtime.error_router != null:
+		_app_runtime.error_router.route_error(
+			_app_runtime,
+			NetworkErrorCodesScript.BATTLE_DISCONNECTED,
+			"transport",
+			"battle_runtime",
+			"Battle transport disconnected",
+			{
+				"transport_code": code,
+				"transport_message": message,
+			},
+			"return_to_room",
+			true
+		)
+	if battle_hud != null and battle_hud.match_message_panel != null:
+		battle_hud.match_message_panel.apply_message("Transport error: %s" % message)
 
 
 func _on_settlement_return_to_room_requested() -> void:
@@ -173,18 +214,7 @@ func _request_post_shutdown_action(action: String) -> void:
 func _complete_return_to_room() -> void:
 	if _app_runtime == null:
 		return
-	if _app_runtime.room_session_controller != null:
-		_app_runtime.room_session_controller.reset_ready_state()
-		if _app_runtime.debug_tools != null and _app_runtime.debug_tools.has_method("reset_local_loop_room_ready"):
-			_app_runtime.debug_tools.reset_local_loop_room_ready(
-				_app_runtime.room_session_controller,
-				_app_runtime.runtime_config,
-				_app_runtime.local_peer_id,
-				_app_runtime.remote_peer_id
-			)
-	if _app_runtime.front_flow != null:
-		_app_runtime.front_flow.return_to_room()
-		_app_runtime.front_flow.on_return_to_room_completed()
+	_room_return_recovery.recover(_app_runtime, _post_shutdown_action)
 
 
 func _consume_battle_events(events: Array) -> void:
@@ -241,17 +271,14 @@ func _on_prediction_debug_event(event: Dictionary) -> void:
 func _shutdown_active_battle() -> void:
 	_shutting_down = true
 	_tick_accumulator = 0.0
-	_disconnect_session_signals(false)
-	if _session_adapter != null:
-		_session_adapter.shutdown_battle()
-	if battle_bootstrap != null:
-		battle_bootstrap.release_context()
-	if presentation_bridge != null:
-		presentation_bridge.shutdown_bridge()
-	if battle_hud != null:
-		battle_hud.reset_hud()
-	if settlement_controller != null:
-		settlement_controller.reset_settlement()
+	_battle_exit_recovery.recover(
+		_session_adapter,
+		battle_bootstrap,
+		presentation_bridge,
+		battle_hud,
+		settlement_controller,
+		Callable(self, "_disconnect_session_signals")
+	)
 
 
 func _complete_post_shutdown_action() -> void:
@@ -308,6 +335,8 @@ func _connect_session_signals() -> void:
 		_session_adapter.battle_session_stopped.connect(_on_battle_session_stopped)
 	if not _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
 		_session_adapter.prediction_debug_event.connect(_on_prediction_debug_event)
+	if not _session_adapter.network_transport_error.is_connected(_on_transport_runtime_error):
+		_session_adapter.network_transport_error.connect(_on_transport_runtime_error)
 
 
 func _disconnect_session_signals(include_stop_signal: bool) -> void:
@@ -323,3 +352,6 @@ func _disconnect_session_signals(include_stop_signal: bool) -> void:
 		_session_adapter.battle_session_stopped.disconnect(_on_battle_session_stopped)
 	if _session_adapter.prediction_debug_event.is_connected(_on_prediction_debug_event):
 		_session_adapter.prediction_debug_event.disconnect(_on_prediction_debug_event)
+	if _session_adapter.network_transport_error.is_connected(_on_transport_runtime_error):
+		_session_adapter.network_transport_error.disconnect(_on_transport_runtime_error)
+

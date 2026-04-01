@@ -4,6 +4,7 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 
 @onready var room_hud_controller: RoomHudController = $RoomHudController
 @onready var room_root: Control = $RoomRoot
@@ -144,14 +145,20 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 	if room_hud_controller != null:
 		debug_label.text = room_hud_controller.build_debug_text(snapshot, _front_flow.get_state_name())
 	else:
-		var lines := [
-			"Room: %s" % snapshot.room_id,
-			"Owner: %d" % snapshot.owner_peer_id,
-			"Map: %s" % snapshot.selected_map_id,
-			"Rule: %s" % snapshot.rule_set_id,
-			"AllReady: %s" % str(snapshot.all_ready),
-			"Flow: %s" % String(_front_flow.get_state_name())
-		]
+		var lines: PackedStringArray = PackedStringArray()
+		if _app_runtime != null and _app_runtime.session_diagnostics != null:
+			lines = _app_runtime.session_diagnostics.build_room_debug_lines(_app_runtime, String(_front_flow.get_state_name()))
+		else:
+			lines = PackedStringArray([
+				"Room: %s" % snapshot.room_id,
+				"Match: %s" % String(_room_controller.room_runtime_context.pending_match_id if _room_controller != null and _room_controller.room_runtime_context != null else ""),
+				"Map: %s" % snapshot.selected_map_id,
+				"Rule: %s" % snapshot.rule_set_id,
+				"RoomFlow: %s" % String(_room_controller.get_room_flow_state_name() if _room_controller != null and _room_controller.has_method("get_room_flow_state_name") else "UNKNOWN"),
+				"SessionFlow: %s" % String(_room_controller.get_session_lifecycle_state_name() if _room_controller != null and _room_controller.has_method("get_session_lifecycle_state_name") else "UNKNOWN"),
+				"FrontFlow: %s" % String(_front_flow.get_state_name()),
+				"AllReady: %s" % str(snapshot.all_ready),
+			])
 		debug_label.text = "\n".join(lines)
 
 
@@ -173,8 +180,9 @@ func _on_room_snapshot_changed(snapshot: RoomSnapshot) -> void:
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
 	var config: BattleStartConfig = _app_runtime.build_and_store_start_config(snapshot)
-	if config == null:
-		debug_label.text = "Failed to build start config"
+	if config == null or config.match_id.is_empty():
+		var last_error: Dictionary = _app_runtime.last_runtime_error if _app_runtime != null else {}
+		debug_label.text = String(last_error.get("user_message", "Failed to build start config"))
 		return
 	_front_flow.request_start_match()
 
@@ -190,29 +198,48 @@ func _on_ready_button_pressed() -> void:
 			_selected_metadata(map_selector),
 			_selected_metadata(rule_selector)
 		)
-	var local_ready := bool(_room_controller.room_session.ready_state.get(_app_runtime.local_peer_id, false))
-	_room_controller.set_member_ready(_app_runtime.local_peer_id, not local_ready)
+	var result: Dictionary = _room_controller.request_toggle_ready(_app_runtime.local_peer_id) if _room_controller.has_method("request_toggle_ready") else {"ok": false}
+	if not bool(result.get("ok", false)):
+		debug_label.text = String(result.get("user_message", "Failed to toggle ready"))
 
 
 func _on_start_button_pressed() -> void:
 	if _room_controller == null or _app_runtime == null:
 		return
-	_room_controller.request_start_match(_app_runtime.local_peer_id)
+	var result: Dictionary = _room_controller.request_begin_match(_app_runtime.local_peer_id) if _room_controller.has_method("request_begin_match") else {}
+	if not bool(result.get("ok", false)):
+		if _app_runtime.error_router != null:
+			_app_runtime.error_router.route_error(
+				_app_runtime,
+				String(result.get("error_code", NetworkErrorCodesScript.ROOM_START_FORBIDDEN)),
+				"room",
+				"start_button_pressed",
+				String(result.get("user_message", "Unable to start match")),
+				{
+					"room_snapshot": _room_controller.build_room_snapshot().to_dict(),
+					"requester_peer_id": _app_runtime.local_peer_id,
+				},
+				"stay_in_room",
+				true
+			)
+		return
 
 
 func _on_map_selected(index: int) -> void:
-	if _suppress_selection_callbacks or _room_controller == null:
+	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
-	_room_controller.set_room_selection(
+	_room_controller.request_update_selection(
+		_app_runtime.local_peer_id,
 		String(map_selector.get_item_metadata(index)),
 		_selected_metadata(rule_selector)
 	)
 
 
 func _on_rule_selected(index: int) -> void:
-	if _suppress_selection_callbacks or _room_controller == null:
+	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
-	_room_controller.set_room_selection(
+	_room_controller.request_update_selection(
+		_app_runtime.local_peer_id,
 		_selected_metadata(map_selector),
 		String(rule_selector.get_item_metadata(index))
 	)
