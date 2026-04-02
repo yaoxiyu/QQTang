@@ -1,9 +1,27 @@
-# Godot 4+ specific ignores
+# Godot editor/import/runtime cache
 .godot/
-/android/
-.vscode/
-tests/phase2/reports/
-*.tmp
-*.log
+.import/
+export.cfg
+export_presets.cfg
 
+# Godot local user data / logs
+Godot/
 app_userdata/
+logs/
+*.log
+*.tmp
+
+# IDE / local tool config
+.vscode/
+.claude/
+
+# Test runtime artifacts
+tests/cli/appdata/
+tests/**/reports/
+tests/**/*.json.tmp
+tests/**/*.txt.tmp
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

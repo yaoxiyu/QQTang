@@ -22,14 +22,14 @@ extends Node
 
 var world: SimWorld = null
 var bridge: Node = null
-var test_suite: Phase0GameplayTestSuite = null
-var test_ctx: Phase0TestContext = null
+var test_suite: GameplayTestSuite = null
+var test_ctx: TestContext = null
 
 func _ready() -> void:
 	world = SimWorld.new()
 
 	var config := SimConfig.new()
-	var grid := TestMapFactory.build_basic_map()
+	var grid := BuiltinMapFactory.build_basic_map()
 
 	world.bootstrap(config, {
 		"grid": grid
@@ -43,13 +43,13 @@ func _ready() -> void:
 		push_warning("PresentationRoot not found at path: %s" % presentation_root_path)
 
 	# 创建测试上下文
-	test_ctx = Phase0TestContext.new()
+	test_ctx = TestContext.new()
 	test_ctx.world = world
 	test_ctx.runner = self
 	test_ctx.bridge = bridge
 
 	# 创建测试套件
-	test_suite = Phase0GameplayTestSuite.new()
+	test_suite = GameplayTestSuite.new()
 	test_suite.start(test_ctx)
 
 	if bridge != null and bridge.has_method("set_test_suite"):
@@ -66,4 +66,3 @@ func _process(delta: float) -> void:
 	# 通知桥接器
 	if bridge != null:
 		bridge.consume_tick(result)
-

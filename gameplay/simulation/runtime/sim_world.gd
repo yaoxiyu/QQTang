@@ -25,7 +25,7 @@ var pipeline: SystemPipeline = SystemPipeline.new()
 var _ctx: SimContext = SimContext.new()
 var _input_history_keep_ticks: int = 5
 
-# Phase2 骨架组件（按 04/05 文档挂接）
+# 运行期骨架组件（按当前仿真装配方式挂接）
 var tick_runner: TickRunner = TickRunner.new()
 var entity_store: EntityStore = EntityStore.new()
 var player_system = null
@@ -43,10 +43,9 @@ var _pending_commands: InputFrame = null
 func _init() -> void:
 	queries.set_state(state)
 	pipeline.initialize_default_pipeline()
-	_init_phase2_scaffold()
+	_init_runtime_scaffold()
 
-
-func _init_phase2_scaffold() -> void:
+func _init_runtime_scaffold() -> void:
 	tick_runner.reset()
 	_register_ticks()
 

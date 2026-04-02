@@ -1,9 +1,50 @@
 Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
 
-ERROR: Failed to read the root certificate store.
-   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2570)
-test_network_sim_runner: PASS
-WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
-   at: cleanup (core/object/object.cpp:2641)
-ERROR: 18 resources still in use at exit (run with --verbose for details).
-   at: clear (core/io/resource.cpp:810)
+SCRIPT ERROR: Parse Error: Identifier "InputBuffer" not declared in the current scope.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:5)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "buffer" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:5)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Identifier "PlayerInputFrame" not declared in the current scope.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:7)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "frame" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:7)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Identifier "PlayerInputFrame" not declared in the current scope.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:15)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "duplicate" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:15)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "exact" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:22)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "fallback" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:27)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "idle" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:32)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Parse Error: Cannot infer the type of "collected" variable because the value doesn't have a set type.
+   at: GDScript::reload (res://tests/unit/network/input/input_buffer_test.gd:36)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+ERROR: Failed to load script "res://tests/unit/network/input/input_buffer_test.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript.cpp:2907)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:15)
+SCRIPT ERROR: Invalid call. Nonexistent function 'new' in base 'GDScript'.
+   at: _initialize (res://tests/cli/run_test.gd:21)
+   GDScript backtrace (most recent call first):
+       [0] _initialize (res://tests/cli/run_test.gd:21)

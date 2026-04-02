@@ -8,12 +8,14 @@ const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
-const DebugToolsScript = preload("res://app/flow/phase3_debug_tools.gd")
+const DebugToolsScript = preload("res://app/debug/runtime_debug_tools.gd")
 const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
 const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
 const NetworkErrorRouterScript = preload("res://network/runtime/network_error_router.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnostics.gd")
+const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
+const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 
 var local_peer_id: int = 1
 var remote_peer_id: int = 2
@@ -28,18 +30,18 @@ var match_start_coordinator: Node = null
 var battle_session_adapter: Node = null
 var client_room_runtime: Node = null
 var runtime_config: RefCounted = null
-var error_router: NetworkErrorRouter = NetworkErrorRouterScript.new()
-var session_diagnostics: SessionDiagnostics = SessionDiagnosticsScript.new()
+var error_router: RefCounted = NetworkErrorRouterScript.new()
+var session_diagnostics: RefCounted = SessionDiagnosticsScript.new()
 var last_runtime_error: Dictionary = {}
 
-var current_room_snapshot: RoomSnapshot = null
-var current_start_config: BattleStartConfig = null
+var current_room_snapshot = null
+var current_start_config = null
 var current_battle_scene: Node = null
-var current_battle_bootstrap: BattleBootstrap = null
-var current_presentation_bridge: BattlePresentationBridge = null
-var current_battle_hud_controller: BattleHudController = null
-var current_battle_camera_controller: BattleCameraController = null
-var current_settlement_controller: SettlementController = null
+var current_battle_bootstrap: Node = null
+var current_presentation_bridge: Node = null
+var current_battle_hud_controller: Node = null
+var current_battle_camera_controller: Node = null
+var current_settlement_controller: Node = null
 
 
 static func ensure_in_tree(tree: SceneTree):
@@ -125,7 +127,7 @@ func initialize_runtime() -> void:
 		front_flow.current_state = FrontFlowControllerScript.FlowState.ROOM
 
 
-func build_and_store_start_config(snapshot: RoomSnapshot) -> BattleStartConfig:
+func build_and_store_start_config(snapshot):
 	if snapshot == null or match_start_coordinator == null:
 		return null
 	current_room_snapshot = snapshot.duplicate_deep()
@@ -171,7 +173,7 @@ func clear_battle_payload() -> void:
 	current_settlement_controller = null
 
 
-func apply_canonical_start_config(config: BattleStartConfig) -> void:
+func apply_canonical_start_config(config) -> void:
 	current_start_config = config.duplicate_deep() if config != null else null
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
@@ -187,11 +189,11 @@ func set_local_peer_id(peer_id: int) -> void:
 
 func register_battle_modules(
 	battle_scene: Node,
-	bootstrap: BattleBootstrap,
-	bridge: BattlePresentationBridge,
-	hud: BattleHudController,
-	camera_controller: BattleCameraController,
-	settlement_controller: SettlementController
+	bootstrap: Node,
+	bridge: Node,
+	hud: Node,
+	camera_controller: Node,
+	settlement_controller: Node
 ) -> void:
 	current_battle_scene = battle_scene
 	current_battle_bootstrap = bootstrap

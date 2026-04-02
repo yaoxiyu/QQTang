@@ -1,9 +1,0 @@
-Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
-
-ERROR: Failed to read the root certificate store.
-   at: get_system_ca_certificates (platform/windows/os_windows.cpp:2570)
-test_rollback_controller: PASS
-WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
-   at: cleanup (core/object/object.cpp:2641)
-ERROR: 18 resources still in use at exit (run with --verbose for details).
-   at: clear (core/io/resource.cpp:810)

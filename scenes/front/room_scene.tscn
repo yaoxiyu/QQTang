@@ -71,6 +71,14 @@ custom_minimum_size = Vector2(80, 0)
 layout_mode = 2
 placeholder_text = "9000"
 
+[node name="RoomIdLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=333079547]
+layout_mode = 2
+text = "Room"
+
+[node name="RoomIdInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1636090354]
+layout_mode = 2
+placeholder_text = "room_id(optional)"
+
 [node name="PlayerRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1605948189]
 layout_mode = 2
 

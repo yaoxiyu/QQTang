@@ -13,7 +13,7 @@ const MAP_REGISTRY := {
 	},
 	"test_square": {
 		"display_name": "测试方形图",
-		"def_path": "res://gameplay/config/map_defs/test_square_map_def.gd",
+		"def_path": "res://gameplay/config/map_defs/square_map_def.gd",
 	}
 }
 
