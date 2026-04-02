@@ -17,6 +17,10 @@ static func load_character_resource(character_id: String) -> CharacterResource:
 	return resource
 
 
+static func load_character_metadata(character_id: String) -> Dictionary:
+	return CharacterCatalogScript.get_character_metadata(character_id)
+
+
 static func build_character_loadout(character_id: String, peer_id: int) -> Dictionary:
 	var resource := load_character_resource(character_id)
 	if resource == null:

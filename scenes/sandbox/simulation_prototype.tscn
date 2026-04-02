@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://lpphh23tjddj" path="res://gameplay/simulation/runtime/simulation_runner_node.gd" id="1_vd6sc"]
 [ext_resource type="Script" uid="uid://h635mgkrrpw8" path="res://presentation/runtime/presentation_bridge.gd" id="2_bln38"]
 
-[node name="Phase0PrototypeRoot" type="Node" unique_id=2130091115]
+[node name="SimulationPrototypeRoot" type="Node" unique_id=2130091115]
 
 [node name="SimulationRunnerNode" type="Node" parent="." unique_id=860992896]
 script = ExtResource("1_vd6sc")

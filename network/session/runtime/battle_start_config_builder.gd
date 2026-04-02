@@ -55,6 +55,7 @@ func build_client_request_payload(
 	var config := _build_start_config_internal(snapshot, false, room_runtime_context)
 	if config == null:
 		return BattleStartConfig.new()
+	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
 	config.session_mode = "network_client"
 	config.topology = "dedicated_server"
 	config.authority_host = authority_host
@@ -78,6 +79,7 @@ func build_server_canonical_config(
 	if not can_build_from_room(snapshot):
 		return BattleStartConfig.new()
 	var config := _build_start_config_internal(snapshot, true, room_runtime_context)
+	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANONICAL
 	config.session_mode = "network_dedicated_server"
 	config.topology = "dedicated_server"
 	config.authority_host = authority_host
@@ -143,10 +145,12 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 			resolved_rule_set_id = room_runtime_context.selected_rule_set_id
 
 	var map_metadata := _load_map_metadata(resolved_map_id)
+	var rule_metadata := _load_rule_metadata(resolved_rule_set_id)
 	var player_slots := assign_spawn_slots(snapshot)
 	var config := BattleStartConfig.new()
 	config.protocol_version = DEFAULT_PROTOCOL_VERSION
-	config.gameplay_rule_version = DEFAULT_GAMEPLAY_RULE_VERSION
+	config.gameplay_rule_version = int(rule_metadata.get("version", DEFAULT_GAMEPLAY_RULE_VERSION))
+	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
 	config.room_id = snapshot.room_id
 	config.match_id = _generate_match_id(snapshot) if consume_match_id else _peek_match_id(snapshot)
 	config.map_id = resolved_map_id
@@ -208,8 +212,12 @@ func _load_map_metadata(map_id: String) -> Dictionary:
 	return MapLoaderScript.load_map_metadata(map_id)
 
 
+func _load_rule_metadata(rule_set_id: String) -> Dictionary:
+	return RuleLoaderScript.load_rule_config(rule_set_id)
+
+
 func _resolve_match_duration_ticks(rule_set_id: String) -> int:
-	var rule_config := RuleLoaderScript.load_rule_config(rule_set_id)
+	var rule_config := _load_rule_metadata(rule_set_id)
 	if rule_config.is_empty():
 		return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
 	var round_time_sec := int(rule_config.get("round_time_sec", 0))

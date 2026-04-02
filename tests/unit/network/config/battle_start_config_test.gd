@@ -4,6 +4,8 @@ const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 
 
 func _ready() -> void:
@@ -107,9 +109,13 @@ func _test_invalid_spawn_assignment_fails_validation() -> bool:
 
 func _make_valid_config() -> BattleStartConfig:
 	var metadata := MapLoaderScript.load_map_metadata("default_map")
+	var rule_metadata := RuleCatalogScript.get_rule_metadata("classic")
+	var host_character_metadata := CharacterCatalogScript.get_character_metadata("hero_default")
+	var client_character_metadata := CharacterCatalogScript.get_character_metadata("hero_runner")
 	var config := BattleStartConfigScript.new()
 	config.protocol_version = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
-	config.gameplay_rule_version = BattleStartConfigScript.DEFAULT_GAMEPLAY_RULE_VERSION
+	config.gameplay_rule_version = int(rule_metadata.get("version", BattleStartConfigScript.DEFAULT_GAMEPLAY_RULE_VERSION))
+	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
 	config.room_id = "config_test_room"
 	config.match_id = "config_test_match"
 	config.map_id = "default_map"
@@ -120,23 +126,40 @@ func _make_valid_config() -> BattleStartConfig:
 	config.start_tick = 0
 	config.match_duration_ticks = 60
 	config.item_spawn_profile_id = String(metadata.get("item_spawn_profile_id", "default_items"))
+	config.session_mode = "singleplayer_local"
+	config.topology = "listen"
+	config.local_peer_id = 1
+	config.controlled_peer_id = 1
+	config.owner_peer_id = 1
 	config.player_slots = [
 		{
 			"peer_id": 1,
 			"player_name": "Host",
 			"slot_index": 0,
 			"spawn_slot": 0,
-			"character_id": "hero_1",
+			"character_id": "hero_default",
 		},
 		{
 			"peer_id": 2,
 			"player_name": "Client",
 			"slot_index": 1,
 			"spawn_slot": 1,
-			"character_id": "hero_2",
+			"character_id": "hero_runner",
 		},
 	]
 	config.players = config.player_slots.duplicate(true)
+	config.character_loadouts = [
+		{
+			"peer_id": 1,
+			"character_id": "hero_default",
+			"content_hash": String(host_character_metadata.get("content_hash", "")),
+		},
+		{
+			"peer_id": 2,
+			"character_id": "hero_runner",
+			"content_hash": String(client_character_metadata.get("content_hash", "")),
+		},
+	]
 	var spawn_points: Array = metadata.get("spawn_points", [])
 	config.spawn_assignments = [
 		{
@@ -172,7 +195,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	host.player_name = "Host"
 	host.ready = true
 	host.slot_index = 0
-	host.character_id = "hero_1"
+	host.character_id = "hero_default"
 	snapshot.members.append(host)
 
 	var client := RoomMemberState.new()
@@ -180,7 +203,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.player_name = "Client"
 	client.ready = true
 	client.slot_index = 1
-	client.character_id = "hero_2"
+	client.character_id = "hero_runner"
 	snapshot.members.append(client)
 	return snapshot
 

@@ -31,13 +31,18 @@ static func load_rule_config(rule_id: String) -> Dictionary:
 	if not _validate_rule_config(config):
 		push_error("RuleLoader.load_rule_config failed: invalid rule config rule_id=%s" % rule_id)
 		return {}
-
-	return config.duplicate(true)
+	var normalized := config.duplicate(true)
+	normalized["rule_id"] = String(normalized.get("rule_id", rule_id))
+	normalized["display_name"] = String(normalized.get("display_name", RuleCatalogScript.RULE_REGISTRY[rule_id].get("display_name", rule_id)))
+	normalized["version"] = int(normalized.get("version", 1))
+	normalized["description"] = String(normalized.get("description", ""))
+	return normalized
 
 
 static func _validate_rule_config(config: Dictionary) -> bool:
 	var rule_id := String(config.get("rule_id", ""))
 	var display_name := String(config.get("display_name", ""))
+	var version := int(config.get("version", 1))
 	var round_time_sec := int(config.get("round_time_sec", 0))
 	var starting_bomb_count := int(config.get("starting_bomb_count", 0))
 	var starting_firepower := int(config.get("starting_firepower", 0))
@@ -45,6 +50,8 @@ static func _validate_rule_config(config: Dictionary) -> bool:
 	var victory_mode := String(config.get("victory_mode", ""))
 
 	if rule_id.is_empty() or display_name.is_empty() or victory_mode.is_empty():
+		return false
+	if version <= 0:
 		return false
 	if round_time_sec <= 0:
 		return false

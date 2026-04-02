@@ -29,6 +29,7 @@ func _ready() -> void:
 		"port": listen_port,
 		"max_clients": max_clients,
 	})
+	_connect_transport_signals()
 	print("[DedicatedServerBootstrap] started on %s:%d" % [authority_host, listen_port])
 
 
@@ -58,6 +59,19 @@ func _connect_services() -> void:
 		_match_service.broadcast_message.connect(_broadcast_message)
 	if not _match_service.send_to_peer.is_connected(_send_to_peer):
 		_match_service.send_to_peer.connect(_send_to_peer)
+	if not _match_service.match_finished.is_connected(_on_match_finished):
+		_match_service.match_finished.connect(_on_match_finished)
+
+
+func _connect_transport_signals() -> void:
+	if _transport == null:
+		return
+	if not _transport.peer_connected.is_connected(_on_transport_peer_connected):
+		_transport.peer_connected.connect(_on_transport_peer_connected)
+	if not _transport.peer_disconnected.is_connected(_on_transport_peer_disconnected):
+		_transport.peer_disconnected.connect(_on_transport_peer_disconnected)
+	if not _transport.transport_error.is_connected(_on_transport_error):
+		_transport.transport_error.connect(_on_transport_error)
 
 
 func _route_message(message: Dictionary) -> void:
@@ -95,3 +109,23 @@ func _broadcast_message(message: Dictionary) -> void:
 	if _transport == null:
 		return
 	_transport.broadcast(message)
+
+
+func _on_transport_peer_connected(peer_id: int) -> void:
+	print("[DedicatedServerBootstrap] peer connected: %d" % peer_id)
+
+
+func _on_transport_peer_disconnected(peer_id: int) -> void:
+	print("[DedicatedServerBootstrap] peer disconnected: %d" % peer_id)
+	if _match_service != null and _match_service.has_method("is_match_active") and _match_service.is_match_active():
+		_match_service.abort_match_due_to_disconnect(peer_id)
+	_room_service.handle_peer_disconnected(peer_id)
+
+
+func _on_transport_error(code: int, message: String) -> void:
+	push_warning("[DedicatedServerBootstrap] transport error %d: %s" % [code, message])
+
+
+func _on_match_finished(_result: BattleResult) -> void:
+	if _room_service != null and _room_service.has_method("handle_match_finished"):
+		_room_service.handle_match_finished()

@@ -1,3 +1,10 @@
+## DEBUG ONLY
+## This transport bootstrap scene is a QA / protocol debug shell.
+## It is not a formal product entry for Room, Battle, or Dedicated Server flow.
+## Phase6 and later formal gameplay entry must continue through:
+## - res://scenes/front/room_scene.tscn
+## - res://scenes/network/dedicated_server_scene.tscn
+
 extends Node
 
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")

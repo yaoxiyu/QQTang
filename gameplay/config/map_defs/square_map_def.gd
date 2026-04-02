@@ -1,3 +1,7 @@
+## DEBUG ONLY
+## SquareMapDef is a legacy script-defined fallback map for sandbox / test flows.
+## It must not be used as a formal Room map entry when `.tres` map resources are available.
+
 extends RefCounted
 class_name SquareMapDef
 

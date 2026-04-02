@@ -2,6 +2,7 @@ extends Node
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
 const RoomRuntimeContextScript = preload("res://network/session/runtime/room_runtime_context.gd")
@@ -110,9 +111,9 @@ func set_member_ready(peer_id: int, ready: bool) -> void:
 func can_start_match() -> bool:
 	if room_session.peers.size() < 2:
 		return false
-	if _resolve_map_id().is_empty():
+	if not MapCatalogScript.has_map(_resolve_map_id()):
 		return false
-	if _resolve_rule_set_id().is_empty():
+	if not RuleCatalogScript.has_rule(_resolve_rule_set_id()):
 		return false
 	return _are_all_members_ready()
 
@@ -139,7 +140,7 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 			"error_code": "ROOM_MEMBER_NOT_READY",
 			"user_message": "At least two players are required to start",
 		}
-	if _resolve_map_id().is_empty() or _resolve_rule_set_id().is_empty():
+	if not MapCatalogScript.has_map(_resolve_map_id()) or not RuleCatalogScript.has_rule(_resolve_rule_set_id()):
 		return {
 			"error_code": "ROOM_SELECTION_INVALID",
 			"user_message": "Map or rule selection is invalid",
@@ -171,6 +172,18 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 			"error_code": "ROOM_SELECTION_INVALID",
 			"user_message": "Room is not ready for selection update",
 		}
+	if requester_peer_id != owner_peer_id:
+		return {
+			"ok": false,
+			"error_code": "ROOM_START_FORBIDDEN",
+			"user_message": "Only the host can change map or rule selection",
+		}
+	if not MapCatalogScript.has_map(map_id) or not RuleCatalogScript.has_rule(rule_set_id):
+		return {
+			"ok": false,
+			"error_code": "ROOM_SELECTION_INVALID",
+			"user_message": "Map or rule selection is invalid",
+		}
 	set_room_selection(map_id, rule_set_id)
 	return {"ok": true}
 
@@ -182,9 +195,16 @@ func request_update_member_profile(peer_id: int, player_name: String, character_
 			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
 			"user_message": "Room is not ready for profile update",
 		}
+	var trimmed_character_id := character_id.strip_edges()
+	if trimmed_character_id.is_empty() or not CharacterCatalogScript.has_character(trimmed_character_id):
+		return {
+			"ok": false,
+			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Character selection is invalid",
+		}
 	var profile: Dictionary = member_profiles.get(peer_id, {})
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
-	profile["character_id"] = character_id.strip_edges()
+	profile["character_id"] = trimmed_character_id
 	member_profiles[peer_id] = profile
 	_emit_snapshot_changed()
 	return {"ok": true}

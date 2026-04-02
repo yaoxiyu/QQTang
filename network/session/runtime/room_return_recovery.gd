@@ -1,6 +1,8 @@
 class_name RoomReturnRecovery
 extends RefCounted
 
+const ClientLaunchModeScript = preload("res://network/runtime/client_launch_mode.gd")
+
 
 func recover(
 	app_runtime: Node,
@@ -12,7 +14,9 @@ func recover(
 	var room_controller = app_runtime.room_session_controller
 	if room_controller != null and room_controller.has_method("begin_return_to_room"):
 		room_controller.begin_return_to_room()
-	if room_controller != null:
+	var launch_mode := int(app_runtime.runtime_config.launch_mode) if app_runtime != null and app_runtime.runtime_config != null else ClientLaunchModeScript.Value.LOCAL_SINGLEPLAYER
+	var is_network_client := launch_mode == ClientLaunchModeScript.Value.NETWORK_CLIENT
+	if room_controller != null and not is_network_client:
 		room_controller.reset_ready_state()
 		if app_runtime.debug_tools != null and app_runtime.debug_tools.has_method("reset_local_loop_room_ready"):
 			app_runtime.debug_tools.reset_local_loop_room_ready(
@@ -31,4 +35,6 @@ func recover(
 				pass
 
 	if room_controller != null and room_controller.has_method("complete_return_to_room"):
+		if app_runtime != null:
+			app_runtime.current_room_snapshot = room_controller.build_room_snapshot().duplicate_deep()
 		room_controller.complete_return_to_room()

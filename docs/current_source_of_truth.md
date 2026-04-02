@@ -58,6 +58,19 @@
   - presentation bridge
   - HUD / 网络状态面板等表现层控制
 
+当前正式入口进一步明确为：
+
+- `res://scenes/front/room_scene.tscn`
+  - 正式客户端入口
+  - 承载本地单机模式与 Dedicated Server 客户端接入
+- `res://scenes/network/dedicated_server_scene.tscn`
+  - 正式 Dedicated Server 进程入口
+- `res://scenes/battle/battle_main.tscn`
+  - 正式 Battle 场景入口
+- `res://scenes/network/network_bootstrap_scene.tscn`
+  - 仅限 QA / transport / protocol 调试
+  - **不是正式玩法入口**
+
 任何旧测试沙盒路径、历史 sandbox 场景，都不应再被理解为正式入口。
 
 ## 2.3 当前工程已经采用 canonical path 思路
@@ -210,6 +223,22 @@
 - 前台场景负责“流程入口”和“UI 交互”
 - 不负责伪造 battle 规则真相
 - debug 自举只能是显式可控能力，不能作为默认正式行为
+- `room_scene.tscn` 是当前唯一正式客户端房间入口
+
+## 3.6.1 `res://scenes/network/`
+
+**定位：网络运行场景入口目录**
+
+职责包括：
+
+- Dedicated Server 进程场景
+- transport / protocol 调试场景
+
+约束：
+
+- `dedicated_server_scene.tscn` 是当前唯一正式 Dedicated Server 入口
+- `network_bootstrap_scene.tscn` 仅限 debug-only / QA 回归使用
+- 不允许把 `network_bootstrap_scene.tscn` 继续扩展成正式产品入口
 
 ## 3.7 `res://tests/`
 

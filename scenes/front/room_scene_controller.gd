@@ -6,6 +6,7 @@ const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const ClientLaunchModeScript = preload("res://network/runtime/client_launch_mode.gd")
+const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
 
 @onready var room_hud_controller: RoomHudController = $RoomHudController
 @onready var room_root: Control = $RoomRoot
@@ -40,6 +41,7 @@ var _room_controller: Node = null
 var _front_flow: Node = null
 var _coordinator: Node = null
 var _client_room_runtime: Node = null
+var _room_client_gateway: Node = null
 var _suppress_selection_callbacks: bool = false
 
 
@@ -55,6 +57,7 @@ func _initialize_runtime() -> void:
 	_front_flow = _app_runtime.front_flow
 	_coordinator = _app_runtime.match_start_coordinator
 	_client_room_runtime = _app_runtime.client_room_runtime
+	_ensure_room_client_gateway()
 	_connect_runtime_signals()
 	_apply_runtime_config_to_ui()
 	if _app_runtime.debug_tools != null and _app_runtime.debug_tools.has_method("bootstrap_local_loop_room_if_enabled"):
@@ -73,6 +76,15 @@ func _exit_tree() -> void:
 			_room_controller.room_snapshot_changed.disconnect(_on_room_snapshot_changed)
 		if _room_controller.start_match_requested.is_connected(_on_start_match_requested):
 			_room_controller.start_match_requested.disconnect(_on_start_match_requested)
+	if _room_client_gateway != null:
+		if _room_client_gateway.transport_connected.is_connected(_on_network_transport_connected):
+			_room_client_gateway.transport_connected.disconnect(_on_network_transport_connected)
+		if _room_client_gateway.room_snapshot_received.is_connected(_on_network_room_snapshot_received):
+			_room_client_gateway.room_snapshot_received.disconnect(_on_network_room_snapshot_received)
+		if _room_client_gateway.room_error.is_connected(_on_network_room_error):
+			_room_client_gateway.room_error.disconnect(_on_network_room_error)
+		if _room_client_gateway.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
+			_room_client_gateway.canonical_start_config_received.disconnect(_on_canonical_start_config_received)
 
 
 func _configure_layout() -> void:
@@ -152,15 +164,15 @@ func _connect_runtime_signals() -> void:
 			_room_controller.room_snapshot_changed.connect(_on_room_snapshot_changed)
 		if not _room_controller.start_match_requested.is_connected(_on_start_match_requested):
 			_room_controller.start_match_requested.connect(_on_start_match_requested)
-	if _client_room_runtime != null:
-		if not _client_room_runtime.transport_connected.is_connected(_on_network_transport_connected):
-			_client_room_runtime.transport_connected.connect(_on_network_transport_connected)
-		if not _client_room_runtime.room_snapshot_received.is_connected(_on_network_room_snapshot_received):
-			_client_room_runtime.room_snapshot_received.connect(_on_network_room_snapshot_received)
-		if not _client_room_runtime.room_error.is_connected(_on_network_room_error):
-			_client_room_runtime.room_error.connect(_on_network_room_error)
-		if not _client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
-			_client_room_runtime.canonical_start_config_received.connect(_on_canonical_start_config_received)
+	if _room_client_gateway != null:
+		if not _room_client_gateway.transport_connected.is_connected(_on_network_transport_connected):
+			_room_client_gateway.transport_connected.connect(_on_network_transport_connected)
+		if not _room_client_gateway.room_snapshot_received.is_connected(_on_network_room_snapshot_received):
+			_room_client_gateway.room_snapshot_received.connect(_on_network_room_snapshot_received)
+		if not _room_client_gateway.room_error.is_connected(_on_network_room_error):
+			_room_client_gateway.room_error.connect(_on_network_room_error)
+		if not _room_client_gateway.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
+			_room_client_gateway.canonical_start_config_received.connect(_on_canonical_start_config_received)
 
 	if not ready_button.pressed.is_connected(_on_ready_button_pressed):
 		ready_button.pressed.connect(_on_ready_button_pressed)
@@ -305,8 +317,8 @@ func _on_room_snapshot_changed(snapshot: RoomSnapshot) -> void:
 
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
-	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _client_room_runtime != null:
-		_client_room_runtime.request_start_match()
+	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _room_client_gateway != null:
+		_room_client_gateway.request_start_match()
 		return
 	var config: BattleStartConfig = _app_runtime.build_and_store_start_config(snapshot)
 	if config == null or config.match_id.is_empty():
@@ -324,12 +336,12 @@ func _on_ready_button_pressed() -> void:
 		_app_runtime.set_local_peer_id(1)
 		_ensure_local_room_created()
 		_apply_local_profile_to_room()
-	elif _client_room_runtime != null:
-		_client_room_runtime.request_update_profile(
+	elif _room_client_gateway != null:
+		_room_client_gateway.request_update_profile(
 			_app_runtime.runtime_config.client_connection.player_name,
 			_app_runtime.runtime_config.client_connection.selected_character_id
 		)
-		_client_room_runtime.request_toggle_ready()
+		_room_client_gateway.request_toggle_ready()
 		return
 	if _should_prepare_manual_local_loop_room():
 		_app_runtime.debug_tools.ensure_manual_local_loop_room(
@@ -351,8 +363,8 @@ func _on_start_button_pressed() -> void:
 	if _selected_launch_mode() == ClientLaunchModeScript.Value.LOCAL_SINGLEPLAYER:
 		_app_runtime.set_local_peer_id(1)
 		_apply_local_profile_to_room()
-	elif _client_room_runtime != null:
-		_client_room_runtime.request_start_match()
+	elif _room_client_gateway != null:
+		_room_client_gateway.request_start_match()
 		return
 	var result: Dictionary = _room_controller.request_begin_match(_app_runtime.local_peer_id) if _room_controller.has_method("request_begin_match") else {}
 	if not bool(result.get("ok", false)):
@@ -376,8 +388,8 @@ func _on_start_button_pressed() -> void:
 func _on_map_selected(index: int) -> void:
 	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
-	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _client_room_runtime != null:
-		_client_room_runtime.request_update_selection(
+	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _room_client_gateway != null:
+		_room_client_gateway.request_update_selection(
 			String(map_selector.get_item_metadata(index)),
 			_selected_metadata(rule_selector)
 		)
@@ -392,8 +404,8 @@ func _on_map_selected(index: int) -> void:
 func _on_rule_selected(index: int) -> void:
 	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
-	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _client_room_runtime != null:
-		_client_room_runtime.request_update_selection(
+	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _room_client_gateway != null:
+		_room_client_gateway.request_update_selection(
 			_selected_metadata(map_selector),
 			String(rule_selector.get_item_metadata(index))
 		)
@@ -424,11 +436,8 @@ func _on_connect_button_pressed() -> void:
 			_app_runtime.runtime_config.client_connection.server_port
 		) if _coordinator != null and _coordinator.has_method("build_client_request_payload") else null
 		_app_runtime.current_start_config = candidate_config
-		_client_room_runtime.connect_to_server(
-			_app_runtime.runtime_config.client_connection.server_host,
-			_app_runtime.runtime_config.client_connection.server_port,
-			_app_runtime.runtime_config.client_connection.connect_timeout_sec
-		)
+		if _room_client_gateway != null:
+			_room_client_gateway.connect_to_server(_app_runtime.runtime_config.client_connection)
 		debug_label.text = "Connecting to dedicated server...\n" + debug_label.text
 	else:
 		debug_label.text = "Local singleplayer mode does not require remote connect.\n" + debug_label.text
@@ -445,12 +454,8 @@ func _on_create_room_button_pressed() -> void:
 		_room_controller.set_room_selection(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 		_refresh_room(_room_controller.build_room_snapshot())
 		return
-	if _client_room_runtime != null:
-		_client_room_runtime.request_create_or_join_room(
-			_app_runtime.runtime_config.client_connection.room_id_hint,
-			_app_runtime.runtime_config.client_connection.player_name,
-			_app_runtime.runtime_config.client_connection.selected_character_id
-		)
+	if _room_client_gateway != null:
+		_room_client_gateway.request_join_room(_app_runtime.runtime_config.client_connection)
 		debug_label.text = "Requesting dedicated server room join...\n" + debug_label.text
 
 
@@ -461,6 +466,8 @@ func _on_network_transport_connected() -> void:
 func _on_network_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	if _room_controller != null and _room_controller.has_method("apply_authoritative_snapshot"):
 		_room_controller.apply_authoritative_snapshot(snapshot)
+	if _app_runtime != null:
+		_app_runtime.current_room_snapshot = snapshot.duplicate_deep()
 
 
 func _on_network_room_error(_error_code: String, user_message: String) -> void:
@@ -472,6 +479,22 @@ func _on_canonical_start_config_received(config: BattleStartConfig) -> void:
 		return
 	_app_runtime.apply_canonical_start_config(config)
 	_front_flow.request_start_match()
+
+
+func _ensure_room_client_gateway() -> void:
+	if _app_runtime == null:
+		return
+	if _room_client_gateway == null or not is_instance_valid(_room_client_gateway):
+		_room_client_gateway = RoomClientGatewayScript.new()
+		_room_client_gateway.name = "RoomClientGateway"
+		_app_runtime.session_root.add_child(_room_client_gateway)
+	elif _room_client_gateway.get_parent() != _app_runtime.session_root:
+		var old_parent := _room_client_gateway.get_parent()
+		if old_parent != null:
+			old_parent.remove_child(_room_client_gateway)
+		_app_runtime.session_root.add_child(_room_client_gateway)
+	if _room_client_gateway != null and _room_client_gateway.has_method("bind_runtime"):
+		_room_client_gateway.bind_runtime(_app_runtime, _client_room_runtime)
 
 
 func _ensure_local_room_created() -> void:

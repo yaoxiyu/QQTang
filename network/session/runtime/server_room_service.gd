@@ -3,6 +3,8 @@ extends Node
 
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
@@ -17,6 +19,13 @@ func handle_peer_disconnected(peer_id: int) -> void:
 	if room_state == null or not room_state.members.has(peer_id):
 		return
 	room_state.remove_member(peer_id)
+	_broadcast_snapshot()
+
+
+func handle_match_finished() -> void:
+	if room_state == null:
+		return
+	room_state.reset_ready_state()
 	_broadcast_snapshot()
 
 
@@ -43,12 +52,20 @@ func _handle_join_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
+	var requested_character_id := String(message.get("character_id", "")).strip_edges()
+	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Character selection is invalid",
+		})
+		return
 	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
 	room_state.ensure_room(requested_room_id, peer_id)
 	room_state.upsert_member(
 		peer_id,
 		String(message.get("player_name", "Player%d" % peer_id)),
-		String(message.get("character_id", CharacterCatalogScript.get_default_character_id()))
+		requested_character_id
 	)
 	room_state.set_ready(peer_id, false)
 	send_to_peer.emit(peer_id, {
@@ -61,10 +78,18 @@ func _handle_join_request(message: Dictionary) -> void:
 
 func _handle_update_profile(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	var character_id := String(message.get("character_id", "")).strip_edges()
+	if character_id.is_empty() or not CharacterCatalogScript.has_character(character_id):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Character selection is invalid",
+		})
+		return
 	room_state.update_profile(
 		peer_id,
 		String(message.get("player_name", "Player%d" % peer_id)),
-		String(message.get("character_id", ""))
+		character_id
 	)
 	_broadcast_snapshot()
 
@@ -72,6 +97,18 @@ func _handle_update_profile(message: Dictionary) -> void:
 func _handle_update_selection(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id != room_state.owner_peer_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_START_FORBIDDEN",
+			"user_message": "Only the host can change map or rule selection",
+		})
+		return
+	if not MapCatalogScript.has_map(String(message.get("map_id", ""))) or not RuleCatalogScript.has_rule(String(message.get("rule_set_id", ""))):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_SELECTION_INVALID",
+			"user_message": "Map or rule selection is invalid",
+		})
 		return
 	room_state.set_selection(
 		String(message.get("map_id", "")),

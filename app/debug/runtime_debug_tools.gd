@@ -1,3 +1,7 @@
+## DEBUG ONLY
+## RuntimeDebugTools only supports local loop debug bootstrap and developer validation flows.
+## It must not become the default formal Room / Battle entry path.
+
 class_name RuntimeDebugTools
 extends Node
 

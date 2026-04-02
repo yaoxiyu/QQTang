@@ -57,6 +57,8 @@ static func load_map_metadata(map_id: String) -> Dictionary:
 		"item_spawn_profile_id": layout.item_spawn_profile_id,
 		"content_hash": layout.content_hash,
 		"resource_path": MapCatalogScript.get_map_path(map_id),
+		"is_formal": bool(MapCatalogScript.MAP_REGISTRY.get(map_id, {}).get("is_formal", true)),
+		"debug_only": bool(MapCatalogScript.MAP_REGISTRY.get(map_id, {}).get("debug_only", false)),
 	}
 
 

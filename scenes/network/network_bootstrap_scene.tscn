@@ -23,7 +23,7 @@ offset_bottom = 40.0
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
-text = "Transport Debug Shell (Not Formal Game Entry)"
+text = "DEBUG ONLY: Transport QA Shell (Not Formal Game Entry)"
 
 [node name="ModeLabel" type="Label" parent="CanvasLayer/DebugPanel" unique_id=559289448]
 layout_mode = 0
@@ -41,13 +41,13 @@ text = "Connection: Disconnected"
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
-text = "Start Host"
+text = "Host Debug Session"
 
 [node name="ClientButton" type="Button" parent="CanvasLayer/DebugPanel" unique_id=635892104]
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
-text = "Start Client"
+text = "Join Debug Session"
 
 [node name="AddressInput" type="LineEdit" parent="CanvasLayer/DebugPanel" unique_id=2049442588]
 layout_mode = 0
@@ -65,7 +65,7 @@ placeholder_text = "9000"
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
-text = "Launch Match"
+text = "Launch Debug Match"
 
 [node name="LogOutput" type="RichTextLabel" parent="CanvasLayer/DebugPanel" unique_id=1250970430]
 layout_mode = 0

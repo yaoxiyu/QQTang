@@ -6,9 +6,12 @@ const DEFAULT_GAMEPLAY_RULE_VERSION: int = 1
 const DEFAULT_MAP_VERSION: int = 1
 const DEFAULT_MATCH_DURATION_TICKS: int = 360
 const DEFAULT_ITEM_SPAWN_PROFILE_ID: String = "default_items"
+const BUILD_MODE_CANDIDATE: String = "candidate"
+const BUILD_MODE_CANONICAL: String = "canonical"
 
 var protocol_version: int = DEFAULT_PROTOCOL_VERSION
 var gameplay_rule_version: int = DEFAULT_GAMEPLAY_RULE_VERSION
+var build_mode: String = BUILD_MODE_CANDIDATE
 var room_id: String = ""
 var match_id: String = ""
 var map_id: String = ""
@@ -41,6 +44,7 @@ func to_dict() -> Dictionary:
 	return {
 		"protocol_version": protocol_version,
 		"gameplay_rule_version": gameplay_rule_version,
+		"build_mode": build_mode,
 		"room_id": room_id,
 		"match_id": match_id,
 		"map_id": map_id,
@@ -73,6 +77,7 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	var config := BattleStartConfig.new()
 	config.protocol_version = int(data.get("protocol_version", DEFAULT_PROTOCOL_VERSION))
 	config.gameplay_rule_version = int(data.get("gameplay_rule_version", DEFAULT_GAMEPLAY_RULE_VERSION))
+	config.build_mode = String(data.get("build_mode", BUILD_MODE_CANDIDATE))
 	config.room_id = String(data.get("room_id", ""))
 	config.match_id = String(data.get("match_id", ""))
 	config.map_id = String(data.get("map_id", ""))
@@ -138,6 +143,8 @@ func validate(options: Dictionary = {}) -> Dictionary:
 		errors.append("protocol_version mismatch: expected %d, got %d" % [expected_protocol_version, protocol_version])
 	if gameplay_rule_version != expected_gameplay_rule_version:
 		errors.append("gameplay_rule_version mismatch: expected %d, got %d" % [expected_gameplay_rule_version, gameplay_rule_version])
+	if build_mode != BUILD_MODE_CANDIDATE and build_mode != BUILD_MODE_CANONICAL:
+		errors.append("build_mode is invalid: %s" % build_mode)
 	if room_id.is_empty():
 		errors.append("room_id is required")
 	if match_id.is_empty():
@@ -217,8 +224,18 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			if controlled_peer_id != 0:
 				errors.append("network_dedicated_server config must not control a player peer")
 	if topology == "listen":
+		if session_mode != "singleplayer_local":
+			errors.append("listen topology requires session_mode=singleplayer_local")
+		if local_peer_id <= 0:
+			errors.append("listen topology requires a valid local_peer_id")
 		if session_mode == "singleplayer_local" and controlled_peer_id <= 0:
 			errors.append("singleplayer_local config requires controlled_peer_id")
+		if controlled_peer_id != local_peer_id:
+			errors.append("listen topology requires controlled_peer_id to match local_peer_id")
+	if owner_peer_id <= 0:
+		errors.append("owner_peer_id is required")
+	elif not peer_ids.has(owner_peer_id):
+		errors.append("owner_peer_id must belong to player_slots")
 
 	if not map_metadata.is_empty():
 		if map_id != String(map_metadata.get("map_id", map_id)):
@@ -250,6 +267,8 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			loadout_peer_ids[loadout_peer_id] = true
 			if String(loadout.get("character_id", "")).is_empty():
 				errors.append("character_loadouts contains empty character_id for peer %d" % loadout_peer_id)
+			if String(loadout.get("content_hash", "")).is_empty():
+				errors.append("character_loadouts contains empty content_hash for peer %d" % loadout_peer_id)
 
 	return {
 		"ok": errors.is_empty(),

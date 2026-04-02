@@ -75,6 +75,11 @@ func can_start() -> bool:
 	return true
 
 
+func reset_ready_state() -> void:
+	for peer_id in members.keys():
+		ready_map[peer_id] = false
+
+
 func build_snapshot() -> RoomSnapshot:
 	var snapshot := RoomSnapshot.new()
 	snapshot.room_id = room_id

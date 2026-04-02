@@ -13,6 +13,7 @@
 - 历史 sandbox 场景已退役
 - 正式前台流程只能进入 `res://scenes/battle/battle_main.tscn`
 - 后续测试、工具、调试若需载入正式战斗，默认使用 `battle_main.tscn`
+- `res://scenes/sandbox/simulation_prototype.tscn` 仅保留为 sandbox / prototype 调试场景，不是正式入口
 
 ## Room Scene
 
@@ -88,3 +89,4 @@ BattleMain 是当前正式战斗入口，前台流程层只允许切入正式 Ba
 
 - 正式流程层只允许使用 `SceneFlowController.BATTLE_SCENE_PATH = res://scenes/battle/battle_main.tscn`
 - 正式路径不得反向依赖任何 sandbox 场景或 sandbox 表现组件
+- sandbox 场景只能用于原型验证、测试或开发期调试

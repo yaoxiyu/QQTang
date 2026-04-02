@@ -5,8 +5,5 @@
 [node name="DedicatedServerScene" type="Node" unique_id=1597336451]
 script = ExtResource("1_ds")
 
-[node name="TransportRoot" type="Node" parent="." unique_id=46895862]
-
-[node name="SessionRoot" type="Node" parent="." unique_id=45742088]
-
-[node name="RuntimeRoot" type="Node" parent="." unique_id=1173132537]
+[node name="DedicatedServerBootstrap" type="Node" parent="." unique_id=46895862]
+script = ExtResource("1_ds")

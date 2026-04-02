@@ -23,9 +23,14 @@ static func get_rule_entries() -> Array:
 	for rule_id in get_rule_ids():
 		var entry: Dictionary = RULE_REGISTRY[rule_id]
 		var display_name := String(entry.get("display_name", rule_id))
+		var metadata := get_rule_metadata(rule_id)
 		entries.append({
 			"id": rule_id,
-			"display_name": display_name
+			"display_name": display_name,
+			"version": int(metadata.get("version", 1)),
+			"description": String(metadata.get("description", "")),
+			"round_time_sec": int(metadata.get("round_time_sec", 0)),
+			"victory_mode": String(metadata.get("victory_mode", "")),
 		})
 	return entries
 
@@ -44,6 +49,12 @@ static func get_rule_metadata(rule_id: String) -> Dictionary:
 	var config := _load_rule_def_config(rule_id)
 	if config.is_empty():
 		return {}
+	config["id"] = rule_id
+	config["display_name"] = String(RULE_REGISTRY[rule_id].get("display_name", config.get("display_name", rule_id)))
+	if not config.has("version"):
+		config["version"] = 1
+	if not config.has("description"):
+		config["description"] = ""
 	return config
 
 

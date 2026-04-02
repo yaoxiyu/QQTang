@@ -2,6 +2,7 @@ class_name ServerMatchService
 extends Node
 
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
@@ -9,6 +10,7 @@ const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
 signal canonical_config_ready(config: BattleStartConfig)
+signal match_finished(result: BattleResult)
 
 var authority_host: String = "127.0.0.1"
 var authority_port: int = 9000
@@ -73,6 +75,9 @@ func start_match(snapshot: RoomSnapshot) -> Dictionary:
 		if peer_id <= 0:
 			continue
 		var peer_config := _current_config.duplicate_deep()
+		peer_config.build_mode = BattleStartConfig.BUILD_MODE_CANDIDATE
+		peer_config.session_mode = "network_client"
+		peer_config.topology = "dedicated_server"
 		peer_config.local_peer_id = peer_id
 		peer_config.controlled_peer_id = peer_id
 		send_to_peer.emit(peer_id, {
@@ -90,6 +95,34 @@ func ingest_runtime_message(message: Dictionary) -> void:
 	if not _active or _authority_runtime == null:
 		return
 	_authority_runtime.ingest_network_message(message)
+
+
+func is_match_active() -> bool:
+	return _active and _authority_runtime != null and _authority_runtime.is_match_running()
+
+
+func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
+	if not is_match_active():
+		return null
+	var result := BattleResultScript.new()
+	var aborted_config := _current_config.duplicate_deep() if _current_config != null else null
+	result.finish_reason = "peer_disconnected"
+	result.finish_tick = 0
+	if _authority_runtime != null and _authority_runtime.server_session != null and _authority_runtime.server_session.active_match != null:
+		result.finish_tick = _authority_runtime.server_session.active_match.sim_world.state.match_state.tick
+	shutdown_match()
+	broadcast_message.emit({
+		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"protocol_version": int(aborted_config.protocol_version) if aborted_config != null else 1,
+		"match_id": String(aborted_config.match_id) if aborted_config != null else "",
+		"sender_peer_id": 1,
+		"tick": result.finish_tick,
+		"result": result.to_dict(),
+		"disconnect_peer_id": peer_id,
+	})
+	match_finished.emit(result)
+	return result
 
 
 func shutdown_match() -> void:
@@ -113,4 +146,5 @@ func _ensure_runtime() -> void:
 
 
 func _on_battle_finished(_result: BattleResult) -> void:
-	_active = false
+	shutdown_match()
+	match_finished.emit(_result)

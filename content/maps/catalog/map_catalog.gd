@@ -6,14 +6,18 @@ const MAP_REGISTRY := {
 		"display_name": "Default Plaza",
 		"resource_path": "res://content/maps/resources/map_small_square.tres",
 		"is_default": true,
+		"is_formal": true,
 	},
 	"large_map": {
 		"display_name": "Cross Arena",
 		"resource_path": "res://content/maps/resources/map_cross_arena.tres",
+		"is_formal": true,
 	},
 	"test_square": {
 		"display_name": "测试方形图",
 		"def_path": "res://gameplay/config/map_defs/square_map_def.gd",
+		"is_formal": false,
+		"debug_only": true,
 	}
 }
 
@@ -30,12 +34,21 @@ static func get_map_entries() -> Array:
 	var entries: Array = []
 	for map_id in get_map_ids():
 		var entry: Dictionary = MAP_REGISTRY[map_id]
+		if not bool(entry.get("is_formal", true)):
+			continue
 		var display_name := String(entry.get("display_name", map_id))
 		if display_name.is_empty():
 			continue
+		var metadata := get_map_metadata(map_id)
 		entries.append({
 			"id": map_id,
-			"display_name": display_name
+			"display_name": display_name,
+			"version": int(metadata.get("version", 1)),
+			"content_hash": String(metadata.get("content_hash", "")),
+			"width": int(metadata.get("width", 0)),
+			"height": int(metadata.get("height", 0)),
+			"item_spawn_profile_id": String(metadata.get("item_spawn_profile_id", "")),
+			"resource_path": get_map_path(map_id),
 		})
 	return entries
 
@@ -70,10 +83,25 @@ static func get_map_path(map_id: String) -> String:
 
 
 static func get_map_metadata(map_id: String) -> Dictionary:
-	var config := _load_map_def_config(map_id)
-	if config.is_empty():
+	if map_id.is_empty() or not has_map(map_id):
 		return {}
-	return config
+	var entry: Dictionary = MAP_REGISTRY[map_id]
+	var metadata: Dictionary = {}
+	if String(entry.get("resource_path", "")).ends_with(".tres"):
+		var map_resource := load(String(entry.get("resource_path", "")))
+		if map_resource != null and map_resource is MapResource:
+			metadata = (map_resource as MapResource).to_metadata()
+	if metadata.is_empty():
+		metadata = _load_map_def_config(map_id)
+	if metadata.is_empty():
+		return {}
+	metadata["id"] = map_id
+	metadata["display_name"] = String(entry.get("display_name", metadata.get("display_name", map_id)))
+	metadata["resource_path"] = String(entry.get("resource_path", ""))
+	metadata["def_path"] = String(entry.get("def_path", ""))
+	metadata["is_formal"] = bool(entry.get("is_formal", true))
+	metadata["debug_only"] = bool(entry.get("debug_only", false))
+	return metadata
 
 
 static func _load_map_def_config(map_id: String) -> Dictionary:
