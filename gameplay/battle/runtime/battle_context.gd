@@ -4,6 +4,7 @@ extends RefCounted
 # Runtime-only assembly context for Phase3 battle flow.
 # This object is not a serializable config payload.
 var battle_start_config: BattleStartConfig = null
+var battle_content_manifest: Dictionary = {}
 var sim_world: SimWorld = null
 var tick_runner: TickRunner = null
 var client_session: ClientSession = null
@@ -32,6 +33,7 @@ func clear_runtime_refs() -> void:
 	server_session = null
 	prediction_controller = null
 	visual_sync_controller = null
+	battle_content_manifest = {}
 
 
 func has_runtime() -> bool:

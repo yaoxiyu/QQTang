@@ -24,6 +24,33 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 88.0
 offset_right = 504.0
-offset_bottom = 248.0
+offset_bottom = 184.0
 autowrap_mode = 3
 text = "Detail"
+
+[node name="MapSummaryLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 196.0
+offset_right = 504.0
+offset_bottom = 228.0
+autowrap_mode = 3
+text = "Map Summary"
+
+[node name="RuleSummaryLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 236.0
+offset_right = 504.0
+offset_bottom = 284.0
+autowrap_mode = 3
+text = "Rule Summary"
+
+[node name="FinishReasonLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 292.0
+offset_right = 504.0
+offset_bottom = 332.0
+autowrap_mode = 3
+text = "Finish Reason"

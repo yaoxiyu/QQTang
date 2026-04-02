@@ -33,9 +33,14 @@ static func load_rule_config(rule_id: String) -> Dictionary:
 		return {}
 	var normalized := config.duplicate(true)
 	normalized["rule_id"] = String(normalized.get("rule_id", rule_id))
+	normalized["rule_set_id"] = String(normalized.get("rule_set_id", normalized.get("rule_id", rule_id)))
 	normalized["display_name"] = String(normalized.get("display_name", RuleCatalogScript.RULE_REGISTRY[rule_id].get("display_name", rule_id)))
 	normalized["version"] = int(normalized.get("version", 1))
 	normalized["description"] = String(normalized.get("description", ""))
+	normalized["item_drop_profile"] = String(normalized.get("item_drop_profile", ""))
+	normalized["gameplay_params"] = normalized.get("gameplay_params", {}).duplicate(true)
+	normalized["enabled"] = bool(RuleCatalogScript.RULE_REGISTRY[rule_id].get("enabled", true))
+	normalized["ui_tags"] = RuleCatalogScript.RULE_REGISTRY[rule_id].get("ui_tags", []).duplicate()
 	return normalized
 
 

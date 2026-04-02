@@ -132,6 +132,23 @@ text = "Rule"
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 
+[node name="SelectionPreviewPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1792024101]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="MapPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2011024101]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Map Preview"
+
+[node name="RulePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2111024101]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+text = "Rule Preview"
+
 [node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
 layout_mode = 2
 size_flags_vertical = 3

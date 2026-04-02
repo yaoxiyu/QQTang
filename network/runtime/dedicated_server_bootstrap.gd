@@ -123,7 +123,11 @@ func _on_transport_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_transport_error(code: int, message: String) -> void:
-	push_warning("[DedicatedServerBootstrap] transport error %d: %s" % [code, message])
+	push_warning("[DedicatedServerBootstrap] transport error %d: %s | peers=%s" % [
+		code,
+		message,
+		str(_transport.get_remote_peer_ids() if _transport != null else []),
+	])
 
 
 func _on_match_finished(_result: BattleResult) -> void:

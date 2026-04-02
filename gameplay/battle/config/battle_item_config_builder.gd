@@ -1,0 +1,95 @@
+class_name BattleItemConfigBuilder
+extends RefCounted
+
+const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
+const ItemLoaderScript = preload("res://content/items/runtime/item_loader.gd")
+
+const DROP_PROFILE_REGISTRY := {
+	"default_items": {
+		"drop_enabled": true,
+		"brick_drop_mode": "weighted_random",
+		"max_spawn_per_match": 999,
+		"drop_pool": [
+			{"item_id": "bomb_up", "weight": 30},
+			{"item_id": "power_up", "weight": 30},
+			{"item_id": "speed_up", "weight": 25},
+		],
+		"empty_weight": 55,
+	},
+	"classic_plus_items": {
+		"drop_enabled": true,
+		"brick_drop_mode": "weighted_random",
+		"max_spawn_per_match": 999,
+		"drop_pool": [
+			{"item_id": "bomb_up", "weight": 35},
+			{"item_id": "power_up", "weight": 35},
+			{"item_id": "speed_up", "weight": 30},
+		],
+		"empty_weight": 40,
+	},
+	"quick_match_items": {
+		"drop_enabled": true,
+		"brick_drop_mode": "weighted_random",
+		"max_spawn_per_match": 999,
+		"drop_pool": [
+			{"item_id": "bomb_up", "weight": 25},
+			{"item_id": "power_up", "weight": 40},
+			{"item_id": "speed_up", "weight": 35},
+		],
+		"empty_weight": 35,
+	},
+}
+
+
+func build_for_start_config(start_config: BattleStartConfig) -> Dictionary:
+	if start_config == null:
+		return {}
+	return build_for_rule(
+		String(start_config.rule_set_id),
+		String(start_config.item_spawn_profile_id)
+	)
+
+
+func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_items") -> Dictionary:
+	var rule_config := RuleLoaderScript.load_rule_config(rule_set_id)
+	var gameplay_params: Dictionary = rule_config.get("gameplay_params", {})
+	var profile_id := String(gameplay_params.get("item_drop_profile_override", ""))
+	if profile_id.is_empty():
+		profile_id = String(rule_config.get("item_drop_profile", ""))
+	if profile_id.is_empty():
+		profile_id = fallback_profile_id
+	if profile_id.is_empty():
+		profile_id = "default_items"
+
+	var profile_template: Dictionary = DROP_PROFILE_REGISTRY.get(profile_id, DROP_PROFILE_REGISTRY["default_items"]).duplicate(true)
+	var resolved_pool: Array[Dictionary] = []
+	var enabled_items: Array[Dictionary] = []
+	var items_by_type := {}
+	for drop_entry in profile_template.get("drop_pool", []):
+		var item_id := String(drop_entry.get("item_id", ""))
+		if item_id.is_empty() or not ItemCatalogScript.has_item(item_id):
+			continue
+		var item_definition := ItemLoaderScript.load_item_definition(item_id)
+		if item_definition.is_empty():
+			continue
+		enabled_items.append(item_definition.duplicate(true))
+		items_by_type[int(item_definition.get("item_type", 0))] = item_definition.duplicate(true)
+		resolved_pool.append({
+			"item_id": item_id,
+			"item_type": int(item_definition.get("item_type", 0)),
+			"display_name": String(item_definition.get("display_name", item_id)),
+			"pickup_effect_type": String(item_definition.get("pickup_effect_type", "")),
+			"weight": int(drop_entry.get("weight", 0)),
+		})
+
+	return {
+		"profile_id": profile_id,
+		"drop_enabled": bool(profile_template.get("drop_enabled", true)),
+		"brick_drop_mode": String(profile_template.get("brick_drop_mode", "weighted_random")),
+		"max_spawn_per_match": int(profile_template.get("max_spawn_per_match", 999)),
+		"empty_weight": int(profile_template.get("empty_weight", 0)),
+		"drop_pool": resolved_pool,
+		"enabled_items": enabled_items,
+		"items_by_type": items_by_type,
+	}

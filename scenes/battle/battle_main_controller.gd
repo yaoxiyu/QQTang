@@ -6,6 +6,7 @@ const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_sp
 const BattleExitRecoveryScript = preload("res://gameplay/battle/runtime/battle_exit_recovery.gd")
 const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_return_recovery.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
+const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
@@ -13,6 +14,10 @@ const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
 @onready var battle_bootstrap: BattleBootstrap = $BattleBootstrap
 @onready var presentation_bridge: BattlePresentationBridge = $BattleBootstrap/PresentationBridge
 @onready var battle_hud: BattleHudController = $CanvasLayer/BattleHUD
+@onready var battle_meta_panel: BattleMetaPanel = $CanvasLayer/BattleMetaPanel
+@onready var battle_meta_map_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MapNameLabel
+@onready var battle_meta_rule_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/RuleNameLabel
+@onready var battle_meta_match_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MatchMetaLabel
 @onready var settlement_controller: SettlementController = $CanvasLayer/SettlementPopupAnchor/SettlementController
 @onready var battle_camera_controller: BattleCameraController = $BattleCameraController
 
@@ -28,6 +33,7 @@ var _scene_cleanup_queued: bool = false
 var _shutting_down: bool = false
 var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
 var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
+var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 
 func _ready() -> void:
@@ -120,6 +126,12 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		return
 
 	_battle_context = context
+	var resolved_manifest: Dictionary = {}
+	if _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
+		resolved_manifest = _app_runtime.current_battle_content_manifest.duplicate(true)
+	elif _battle_context != null and _battle_context.battle_start_config != null:
+		resolved_manifest = _content_manifest_builder.build_for_start_config(_battle_context.battle_start_config)
+	_battle_context.battle_content_manifest = resolved_manifest
 	_tick_accumulator = 0.0
 	_finished = false
 	_pending_settlement_result = null
@@ -133,6 +145,9 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		_app_runtime.room_session_controller.mark_match_started(match_id)
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
+	battle_hud.set_local_player_entity_id(_resolve_local_player_entity_id())
+	_apply_battle_metadata()
+	call_deferred("_apply_battle_metadata")
 	battle_hud.consume_battle_state(_battle_context.sim_world)
 	if _session_adapter != null:
 		battle_hud.consume_network_metrics(_session_adapter.build_runtime_metrics_snapshot())
@@ -328,6 +343,54 @@ func _resolve_local_player_entity_id() -> int:
 			if player != null and player.player_slot == slot_index:
 				return player.entity_id
 	return -1
+
+
+func _apply_battle_metadata() -> void:
+	if battle_hud == null:
+		return
+	var resolved_start_config: BattleStartConfig = null
+	if _battle_context != null and _battle_context.battle_start_config != null:
+		resolved_start_config = _battle_context.battle_start_config
+	elif _app_runtime != null and _app_runtime.current_start_config != null:
+		resolved_start_config = _app_runtime.current_start_config
+	if resolved_start_config == null:
+		return
+	var manifest: Dictionary = {}
+	if _battle_context != null and not _battle_context.battle_content_manifest.is_empty():
+		manifest = _battle_context.battle_content_manifest
+	elif _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
+		manifest = _app_runtime.current_battle_content_manifest
+	if manifest.is_empty():
+		manifest = _content_manifest_builder.build_for_start_config(resolved_start_config)
+		if _battle_context != null:
+			_battle_context.battle_content_manifest = manifest.duplicate(true)
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
+	var match_meta_text := "Match: %s | Profile: %s" % [
+		String(resolved_start_config.match_id),
+		String(ui_summary.get("item_profile_id", resolved_start_config.item_spawn_profile_id)),
+	]
+	var item_brief := String(ui_summary.get("item_brief", ""))
+	if not item_brief.is_empty():
+		match_meta_text = "%s | %s" % [match_meta_text, item_brief]
+	battle_hud.set_battle_metadata(
+		String(ui_summary.get("map_display_name", resolved_start_config.map_id)),
+		String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id)),
+		match_meta_text
+	)
+	var resolved_map_display_name := String(ui_summary.get("map_display_name", resolved_start_config.map_id))
+	var resolved_rule_display_name := String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id))
+	if battle_meta_panel != null:
+		battle_meta_panel.apply_metadata(
+			resolved_map_display_name,
+			resolved_rule_display_name,
+			match_meta_text
+		)
+	if battle_meta_map_label != null:
+		battle_meta_map_label.text = "地图: %s" % resolved_map_display_name
+	if battle_meta_rule_label != null:
+		battle_meta_rule_label.text = "规则: %s" % resolved_rule_display_name
+	if battle_meta_match_label != null:
+		battle_meta_match_label.text = match_meta_text
 
 
 func _connect_session_signals() -> void:

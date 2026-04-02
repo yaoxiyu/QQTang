@@ -16,6 +16,7 @@ signal battle_message_received(message: Dictionary)
 var _transport: ENetBattleTransport = null
 var _last_snapshot: RoomSnapshot = null
 var _connected: bool = false
+var _connecting: bool = false
 
 
 func _process(_delta: float) -> void:
@@ -27,14 +28,17 @@ func _process(_delta: float) -> void:
 
 
 func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> void:
+	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
+	var normalized_port := port if port > 0 else 9000
 	_shutdown_transport()
+	_connecting = true
 	_transport = ENetBattleTransportScript.new()
 	add_child(_transport)
 	_connect_transport_signals()
 	_transport.initialize({
 		"is_server": false,
-		"host": host,
-		"port": port,
+		"host": normalized_host,
+		"port": normalized_port,
 		"connect_timeout_seconds": timeout_sec,
 	})
 
@@ -136,6 +140,7 @@ func _send_to_server(message: Dictionary) -> void:
 
 func _on_transport_connected() -> void:
 	_connected = true
+	_connecting = false
 	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(_transport.get_local_peer_id())
@@ -144,6 +149,7 @@ func _on_transport_connected() -> void:
 
 func _on_transport_disconnected() -> void:
 	_connected = false
+	_connecting = false
 	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(1)
@@ -151,11 +157,13 @@ func _on_transport_disconnected() -> void:
 
 
 func _on_transport_error(_code: int, message: String) -> void:
+	_connecting = false
 	room_error.emit("ROOM_CONNECT_FAILED", message)
 
 
 func _shutdown_transport() -> void:
 	_connected = false
+	_connecting = false
 	_last_snapshot = null
 	if _transport != null:
 		_transport.shutdown()

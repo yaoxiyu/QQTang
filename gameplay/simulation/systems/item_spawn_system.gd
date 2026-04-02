@@ -52,7 +52,7 @@ func _spawn_items_from_destroyed_cells(ctx: SimContext) -> void:
 		if _find_item_id_at_cell(ctx, cell_x, cell_y) != -1:
 			continue
 
-		var item_type: int = _resolve_item_type(cell_x, cell_y)
+		var item_type: int = _resolve_item_type(ctx)
 		if item_type == 0:
 			continue
 
@@ -85,10 +85,38 @@ func _find_item_id_at_cell(ctx: SimContext, cell_x: int, cell_y: int) -> int:
 	return -1
 
 
-func _resolve_item_type(cell_x: int, cell_y: int) -> int:
-	var drop_selector: int = abs(cell_x * 31 + cell_y * 17) % 100
+func _resolve_item_type(ctx: SimContext) -> int:
+	if ctx == null or ctx.config == null:
+		return _resolve_legacy_debug_item_type(ctx)
+	var item_drop_profile: Dictionary = ctx.config.system_flags.get("item_drop_profile", {})
+	if not item_drop_profile.is_empty():
+		return _roll_item_type_from_profile(ctx, item_drop_profile)
+	return _resolve_legacy_debug_item_type(ctx)
+
+
+func _roll_item_type_from_profile(ctx: SimContext, item_drop_profile: Dictionary) -> int:
+	if not bool(item_drop_profile.get("drop_enabled", true)):
+		return 0
+	var total_weight: int = max(int(item_drop_profile.get("empty_weight", 0)), 0)
+	for entry in item_drop_profile.get("drop_pool", []):
+		total_weight += max(int(entry.get("weight", 0)), 0)
+	if total_weight <= 0:
+		return 0
+	var roll: int = int(ctx.rng.range_int(0, total_weight - 1))
+	var cursor: int = max(int(item_drop_profile.get("empty_weight", 0)), 0)
+	if roll < cursor:
+		return 0
+	for entry in item_drop_profile.get("drop_pool", []):
+		cursor += max(int(entry.get("weight", 0)), 0)
+		if roll < cursor:
+			return int(entry.get("item_type", 0))
+	return 0
+
+
+func _resolve_legacy_debug_item_type(ctx: SimContext) -> int:
+	if ctx == null or ctx.rng == null:
+		return 0
+	var drop_selector: int = ctx.rng.range_int(0, 99)
 	if drop_selector >= get_debug_drop_rate_percent():
 		return 0
-
-	var type_selector: int = abs(cell_x * 13 + cell_y * 29) % 3
-	return type_selector + 1
+	return ctx.rng.range_int(1, 3)

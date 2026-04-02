@@ -4,7 +4,6 @@
 - Current branch before cleanup: `main`
 - Cleanup branch: `refactor/source-layout-cleanup`
 - Working tree state before edits: clean
-- File tree snapshot: `docs/tmp_before_cleanup_tree.txt`
 
 ## Main Scene
 - `project.godot`

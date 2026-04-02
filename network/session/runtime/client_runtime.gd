@@ -2,6 +2,7 @@ class_name ClientRuntime
 extends Node
 
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 signal config_accepted(config: BattleStartConfig)
@@ -44,11 +45,14 @@ func start_match(config: BattleStartConfig) -> bool:
 	add_child(prediction_controller)
 
 	var predicted_world := SimWorld.new()
-	predicted_world.bootstrap(SimConfig.new(), {
+	var sim_config := BattleSimConfigBuilderScript.new().build_for_start_config(start_config)
+	predicted_world.bootstrap(sim_config, {
 		"grid": MapLoaderScript.build_grid_state(start_config.map_id),
 		"player_slots": start_config.player_slots.duplicate(true),
 		"spawn_assignments": start_config.spawn_assignments.duplicate(true),
 	})
+	predicted_world.state.match_state.remaining_ticks = int(start_config.match_duration_ticks)
+	predicted_world.state.match_state.phase = MatchState.Phase.PLAYING
 	_mark_predicted_players_as_network(predicted_world)
 	prediction_controller.configure(
 		predicted_world,

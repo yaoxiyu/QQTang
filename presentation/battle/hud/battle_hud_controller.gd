@@ -5,19 +5,29 @@ const CountdownPanelScript = preload("res://presentation/battle/hud/countdown_pa
 const PlayerStatusPanelScript = preload("res://presentation/battle/hud/player_status_panel.gd")
 const NetworkStatusPanelScript = preload("res://presentation/battle/hud/network_status_panel.gd")
 const MatchMessagePanelScript = preload("res://presentation/battle/hud/match_message_panel.gd")
+const BattleMetaPanelScript = preload("res://presentation/battle/hud/battle_meta_panel.gd")
+const LocalPlayerAbilityPanelScript = preload("res://presentation/battle/hud/local_player_ability_panel.gd")
 
 @export var countdown_panel_path: NodePath = ^"../CountdownPanel"
 @export var player_status_panel_path: NodePath = ^"../PlayerStatusPanel"
 @export var network_status_panel_path: NodePath = ^"../NetworkStatusPanel"
 @export var match_message_panel_path: NodePath = ^"../MatchMessagePanel"
+@export var battle_meta_panel_path: NodePath = ^"../BattleMetaPanel"
+@export var local_player_ability_panel_path: NodePath = ^"../LocalPlayerAbilityPanel"
 @export var tick_rate: int = 20
 
 var countdown_panel: CountdownPanel = null
 var player_status_panel: PlayerStatusPanel = null
 var network_status_panel: NetworkStatusPanel = null
 var match_message_panel: MatchMessagePanel = null
+var battle_meta_panel: Node = null
+var local_player_ability_panel: Node = null
 
 var _last_message: String = ""
+var _local_player_entity_id: int = -1
+var _pending_map_display_name: String = ""
+var _pending_rule_display_name: String = ""
+var _pending_match_meta_text: String = ""
 
 
 func _ready() -> void:
@@ -25,6 +35,9 @@ func _ready() -> void:
 	player_status_panel = _resolve_panel(player_status_panel_path, PlayerStatusPanelScript)
 	network_status_panel = _resolve_panel(network_status_panel_path, NetworkStatusPanelScript)
 	match_message_panel = _resolve_panel(match_message_panel_path, MatchMessagePanelScript)
+	battle_meta_panel = _resolve_panel(battle_meta_panel_path, BattleMetaPanelScript)
+	local_player_ability_panel = _resolve_panel(local_player_ability_panel_path, LocalPlayerAbilityPanelScript)
+	_apply_pending_battle_metadata()
 
 
 func consume_battle_state(world: SimWorld) -> void:
@@ -36,6 +49,9 @@ func consume_battle_state(world: SimWorld) -> void:
 
 	if player_status_panel != null:
 		player_status_panel.apply_player_statuses(_build_player_statuses(world))
+
+	if local_player_ability_panel != null:
+		local_player_ability_panel.apply_player_ability(_build_local_player_status(world))
 
 	if match_message_panel != null:
 		match_message_panel.apply_message(_build_phase_message(world))
@@ -98,11 +114,15 @@ func on_match_ended_event(event: SimEvent, local_peer_id: int = -1) -> void:
 
 
 func debug_dump_hud_state() -> Dictionary:
+	var meta_dump: Dictionary = battle_meta_panel.debug_dump_state() if battle_meta_panel != null and battle_meta_panel.has_method("debug_dump_state") else {}
 	return {
 		"countdown_text": countdown_panel.text if countdown_panel != null else "",
 		"player_status_text": player_status_panel.text if player_status_panel != null else "",
 		"network_status_text": network_status_panel.text if network_status_panel != null else "",
 		"match_message_text": match_message_panel.text if match_message_panel != null else "",
+		"battle_meta_map_text": String(meta_dump.get("map_text", "")),
+		"battle_meta_rule_text": String(meta_dump.get("rule_text", "")),
+		"battle_meta_match_text": String(meta_dump.get("match_text", "")),
 	}
 
 
@@ -116,11 +136,16 @@ func reset_hud() -> void:
 		network_status_panel.apply_network_metrics({})
 	if match_message_panel != null:
 		match_message_panel.apply_message("")
+	if battle_meta_panel != null:
+		battle_meta_panel.apply_metadata("", "", "")
+	if local_player_ability_panel != null:
+		local_player_ability_panel.apply_player_ability({})
 
 
 func _resolve_panel(path: NodePath, fallback_script: Script) -> Node:
-	if has_node(path):
-		return get_node(path)
+	var existing := get_node_or_null(path)
+	if existing != null:
+		return existing
 	if fallback_script == null:
 		return null
 	var panel: Node = fallback_script.new()
@@ -138,15 +163,49 @@ func _build_player_statuses(world: SimWorld) -> Array[Dictionary]:
 		if player == null:
 			continue
 		statuses.append({
+			"entity_id": player.entity_id,
 			"player_slot": player.player_slot,
 			"alive": player.alive,
 			"life_state_text": _life_state_to_text(player.life_state),
 			"bomb_available": player.bomb_available,
 			"bomb_capacity": player.bomb_capacity,
 			"bomb_range": player.bomb_range,
+			"speed_level": player.speed_level,
+			"has_kick": player.has_kick,
 		})
 
 	return statuses
+
+
+func set_battle_metadata(map_display_name: String, rule_display_name: String, match_meta_text: String) -> void:
+	_pending_map_display_name = map_display_name
+	_pending_rule_display_name = rule_display_name
+	_pending_match_meta_text = match_meta_text
+	_apply_pending_battle_metadata()
+
+
+func set_local_player_entity_id(entity_id: int) -> void:
+	_local_player_entity_id = entity_id
+
+
+func _build_local_player_status(world: SimWorld) -> Dictionary:
+	if world == null:
+		return {}
+	for player_id in world.state.players.active_ids:
+		var player := world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		if _local_player_entity_id >= 0 and player.entity_id != _local_player_entity_id:
+			continue
+		return {
+			"entity_id": player.entity_id,
+			"bomb_available": player.bomb_available,
+			"bomb_capacity": player.bomb_capacity,
+			"bomb_range": player.bomb_range,
+			"speed_level": player.speed_level,
+			"has_kick": player.has_kick,
+		}
+	return {}
 
 
 func _build_phase_message(world: SimWorld) -> String:
@@ -177,3 +236,13 @@ func _life_state_to_text(life_state: int) -> String:
 			return "REVIVING"
 		_:
 			return "UNKNOWN"
+
+
+func _apply_pending_battle_metadata() -> void:
+	if battle_meta_panel == null:
+		return
+	battle_meta_panel.apply_metadata(
+		_pending_map_display_name,
+		_pending_rule_display_name,
+		_pending_match_meta_text
+	)

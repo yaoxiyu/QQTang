@@ -4,6 +4,7 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const ClientLaunchModeScript = preload("res://network/runtime/client_launch_mode.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
@@ -34,6 +35,8 @@ const RoomClientGatewayScript = preload("res://network/runtime/room_client_gatew
 @onready var map_selector: OptionButton = $RoomRoot/MainLayout/SelectorRow/MapSelector
 @onready var rule_label: Label = $RoomRoot/MainLayout/SelectorRow/RuleLabel
 @onready var rule_selector: OptionButton = $RoomRoot/MainLayout/SelectorRow/RuleSelector
+@onready var map_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/MapPreviewLabel
+@onready var rule_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/RulePreviewLabel
 @onready var debug_label: Label = $RoomRoot/MainLayout/RoomDebugPanel/DebugLabel
 
 var _app_runtime: Node = null
@@ -43,6 +46,7 @@ var _coordinator: Node = null
 var _client_room_runtime: Node = null
 var _room_client_gateway: Node = null
 var _suppress_selection_callbacks: bool = false
+var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 
 func _ready() -> void:
@@ -115,6 +119,10 @@ func _configure_layout() -> void:
 	player_name_input.placeholder_text = "Player1"
 	debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	debug_label.text = "Initializing room runtime..."
+	map_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rule_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	map_preview_label.text = "地图预览加载中..."
+	rule_preview_label.text = "规则预览加载中..."
 
 
 func _populate_selectors() -> void:
@@ -124,6 +132,7 @@ func _populate_selectors() -> void:
 	_populate_map_selector()
 	_populate_rule_selector()
 	_suppress_selection_callbacks = false
+	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
 func _populate_mode_selector() -> void:
@@ -209,6 +218,7 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 
 	_select_metadata(map_selector, snapshot.selected_map_id)
 	_select_metadata(rule_selector, snapshot.rule_set_id)
+	_update_selection_preview(snapshot.selected_map_id, snapshot.rule_set_id)
 
 	var local_ready := bool(_room_controller.room_session.ready_state.get(_app_runtime.local_peer_id, false))
 	ready_button.text = "Cancel Ready" if local_ready else "Ready"
@@ -388,15 +398,17 @@ func _on_start_button_pressed() -> void:
 func _on_map_selected(index: int) -> void:
 	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
+	var selected_map_id := String(map_selector.get_item_metadata(index))
+	_update_selection_preview(selected_map_id, _selected_metadata(rule_selector))
 	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _room_client_gateway != null:
 		_room_client_gateway.request_update_selection(
-			String(map_selector.get_item_metadata(index)),
+			selected_map_id,
 			_selected_metadata(rule_selector)
 		)
 		return
 	_room_controller.request_update_selection(
 		_app_runtime.local_peer_id,
-		String(map_selector.get_item_metadata(index)),
+		selected_map_id,
 		_selected_metadata(rule_selector)
 	)
 
@@ -404,16 +416,18 @@ func _on_map_selected(index: int) -> void:
 func _on_rule_selected(index: int) -> void:
 	if _suppress_selection_callbacks or _room_controller == null or _app_runtime == null:
 		return
+	var selected_rule_id := String(rule_selector.get_item_metadata(index))
+	_update_selection_preview(_selected_metadata(map_selector), selected_rule_id)
 	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT and _room_client_gateway != null:
 		_room_client_gateway.request_update_selection(
 			_selected_metadata(map_selector),
-			String(rule_selector.get_item_metadata(index))
+			selected_rule_id
 		)
 		return
 	_room_controller.request_update_selection(
 		_app_runtime.local_peer_id,
 		_selected_metadata(map_selector),
-		String(rule_selector.get_item_metadata(index))
+		selected_rule_id
 	)
 
 
@@ -556,3 +570,41 @@ func _launch_mode_to_string(mode: int) -> String:
 			return "TRANSPORT_DEBUG"
 		_:
 			return "UNKNOWN"
+
+
+func _update_selection_preview(map_id: String, rule_id: String) -> void:
+	map_preview_label.text = _build_map_preview_text(map_id)
+	rule_preview_label.text = _build_rule_preview_text(rule_id)
+
+
+func _build_map_preview_text(map_id: String) -> String:
+	var manifest: Dictionary = _content_manifest_builder.build_preview_manifest(map_id, _selected_metadata(rule_selector))
+	var map_manifest: Dictionary = manifest.get("map", {})
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
+	if map_manifest.is_empty():
+		return "地图: %s\n暂无地图摘要" % map_id
+	var display_name := String(map_manifest.get("display_name", map_id))
+	var tags := PackedStringArray(map_manifest.get("tags", []))
+	var item_brief := String(ui_summary.get("item_brief", ""))
+	if not item_brief.is_empty():
+		return "地图: %s\n%s\n%s" % [display_name, " | ".join(tags), item_brief]
+	return "地图: %s\n%s" % [display_name, " | ".join(tags)]
+
+
+func _build_rule_preview_text(rule_id: String) -> String:
+	var manifest: Dictionary = _content_manifest_builder.build_preview_manifest(_selected_metadata(map_selector), rule_id)
+	var rule_manifest: Dictionary = manifest.get("rule", {})
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
+	if rule_manifest.is_empty():
+		return "规则: %s\n暂无规则摘要" % rule_id
+	var display_name := String(rule_manifest.get("display_name", rule_id))
+	var description := String(rule_manifest.get("description", "")).strip_edges()
+	var summary := String(rule_manifest.get("brief", ""))
+	var item_brief := String(ui_summary.get("item_brief", ""))
+	if not description.is_empty():
+		if not item_brief.is_empty():
+			return "规则: %s\n%s\n%s\n%s" % [display_name, description, summary, item_brief]
+		return "规则: %s\n%s\n%s" % [display_name, description, summary]
+	if not item_brief.is_empty():
+		return "规则: %s\n%s\n%s" % [display_name, summary, item_brief]
+	return "规则: %s\n%s" % [display_name, summary]

@@ -16,6 +16,7 @@ const NetworkErrorCodesScript = preload("res://network/runtime/network_error_cod
 const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnostics.gd")
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
+const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 
 var local_peer_id: int = 1
 var remote_peer_id: int = 2
@@ -36,12 +37,14 @@ var last_runtime_error: Dictionary = {}
 
 var current_room_snapshot = null
 var current_start_config = null
+var current_battle_content_manifest: Dictionary = {}
 var current_battle_scene: Node = null
 var current_battle_bootstrap: Node = null
 var current_presentation_bridge: Node = null
 var current_battle_hud_controller: Node = null
 var current_battle_camera_controller: Node = null
 var current_settlement_controller: Node = null
+var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 
 static func ensure_in_tree(tree: SceneTree):
@@ -136,6 +139,7 @@ func build_and_store_start_config(snapshot):
 
 	var prepare_result: Dictionary = match_start_coordinator.prepare_start_config(snapshot) if match_start_coordinator.has_method("prepare_start_config") else {}
 	current_start_config = prepare_result.get("config", null)
+	_update_current_battle_content_manifest()
 	if not bool(prepare_result.get("ok", false)):
 		if error_router != null:
 			var validation: Dictionary = prepare_result.get("validation", {})
@@ -165,6 +169,7 @@ func build_and_store_start_config(snapshot):
 
 func clear_battle_payload() -> void:
 	current_start_config = null
+	current_battle_content_manifest = {}
 	current_battle_scene = null
 	current_battle_bootstrap = null
 	current_presentation_bridge = null
@@ -175,6 +180,7 @@ func clear_battle_payload() -> void:
 
 func apply_canonical_start_config(config) -> void:
 	current_start_config = config.duplicate_deep() if config != null else null
+	_update_current_battle_content_manifest()
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
 
@@ -231,6 +237,7 @@ func debug_dump_runtime_structure() -> Dictionary:
 		"has_active_battle_hud": current_battle_hud_controller != null,
 		"has_active_battle_camera": current_battle_camera_controller != null,
 		"has_active_settlement": current_settlement_controller != null,
+		"current_battle_content_manifest": current_battle_content_manifest.duplicate(true),
 		"battle_root_children": battle_root.get_child_count() if battle_root != null else 0,
 		"battle_root_child_names": _get_battle_root_child_names(),
 		"battle_root_has_scene": battle_root != null and current_battle_scene != null and current_battle_scene.get_parent() == battle_root,
@@ -318,3 +325,10 @@ func _reparent_to(node: Node, new_parent: Node) -> void:
 	if old_parent != null:
 		old_parent.remove_child(node)
 	new_parent.add_child(node)
+
+
+func _update_current_battle_content_manifest() -> void:
+	if current_start_config == null:
+		current_battle_content_manifest = {}
+		return
+	current_battle_content_manifest = _content_manifest_builder.build_for_start_config(current_start_config)

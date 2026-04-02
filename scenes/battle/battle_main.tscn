@@ -12,6 +12,8 @@
 [ext_resource type="Script" uid="uid://c7vpwopxwju7n" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
 [ext_resource type="Script" uid="uid://dq081f5vel7m7" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
 [ext_resource type="PackedScene" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
+[ext_resource type="Script" path="res://presentation/battle/hud/battle_meta_panel.gd" id="12_meta"]
+[ext_resource type="Script" path="res://presentation/battle/hud/local_player_ability_panel.gd" id="13_ability"]
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")
@@ -75,6 +77,55 @@ offset_top = 18.0
 offset_right = 724.0
 offset_bottom = 66.0
 script = ExtResource("7_msg")
+
+[node name="BattleMetaPanel" type="PanelContainer" parent="CanvasLayer" unique_id=1703300412]
+offset_left = 24.0
+offset_top = 228.0
+offset_right = 284.0
+offset_bottom = 328.0
+script = ExtResource("12_meta")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BattleMetaPanel" unique_id=1703300413]
+layout_mode = 2
+
+[node name="MapNameLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300414]
+layout_mode = 2
+text = "地图:"
+
+[node name="RuleNameLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300415]
+layout_mode = 2
+text = "规则:"
+
+[node name="MatchMetaLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300416]
+layout_mode = 2
+text = "Match:"
+
+[node name="LocalPlayerAbilityPanel" type="PanelContainer" parent="CanvasLayer" unique_id=1703300417]
+offset_left = 24.0
+offset_top = 340.0
+offset_right = 372.0
+offset_bottom = 388.0
+script = ExtResource("13_ability")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/LocalPlayerAbilityPanel" unique_id=1703300418]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BombCountLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300419]
+layout_mode = 2
+text = "Bomb 0/0"
+
+[node name="PowerLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300420]
+layout_mode = 2
+text = "Power 0"
+
+[node name="SpeedLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300421]
+layout_mode = 2
+text = "Speed 0"
+
+[node name="AbilityLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300422]
+layout_mode = 2
+text = "Kick Off"
 
 [node name="SettlementPopupAnchor" type="Control" parent="CanvasLayer" unique_id=1491785118]
 layout_mode = 3

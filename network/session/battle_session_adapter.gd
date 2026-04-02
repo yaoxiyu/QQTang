@@ -13,6 +13,7 @@ const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_
 const ClientRuntimeScript = preload("res://network/session/runtime/client_runtime.gd")
 const RuntimeMessageRouterScript = preload("res://network/session/runtime/runtime_message_router.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
+const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 
 signal adapter_configured()
 signal battle_session_started(config)
@@ -499,7 +500,8 @@ func _emit_client_runtime_tick() -> void:
 
 func _build_predicted_world_from_authoritative(authoritative_match: BattleMatch) -> SimWorld:
 	var predicted_world := SimWorld.new()
-	predicted_world.bootstrap(SimConfig.new(), {
+	var sim_config := BattleSimConfigBuilderScript.new().build_for_start_config(start_config)
+	predicted_world.bootstrap(sim_config, {
 			"grid": _build_grid_for_map(start_config.map_id),
 			"player_slots": start_config.player_slots.duplicate(true),
 			"spawn_assignments": start_config.spawn_assignments.duplicate(true),

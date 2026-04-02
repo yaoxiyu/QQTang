@@ -118,6 +118,9 @@ func send_to_peer(peer_id: int, message: Dictionary) -> void:
 	var result := _peer.put_packet(payload)
 	_debug_log("send %s -> %d result=%d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), peer_id, result])
 	if result != OK:
+		if result == ERR_INVALID_PARAMETER and _remote_peer_ids.has(peer_id):
+			_remote_peer_ids.erase(peer_id)
+			_debug_log("removed invalid remote peer %d after send failure, peers=%s" % [peer_id, str(_remote_peer_ids)])
 		transport_error.emit(result, "ENet transport failed to send packet")
 
 

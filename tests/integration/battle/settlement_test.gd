@@ -18,8 +18,17 @@ func _test_settlement_show_and_reset() -> void:
 	result_label.name = "ResultLabel"
 	var detail_label := Label.new()
 	detail_label.name = "DetailLabel"
+	var map_summary_label := Label.new()
+	map_summary_label.name = "MapSummaryLabel"
+	var rule_summary_label := Label.new()
+	rule_summary_label.name = "RuleSummaryLabel"
+	var finish_reason_label := Label.new()
+	finish_reason_label.name = "FinishReasonLabel"
 	settlement.add_child(result_label)
 	settlement.add_child(detail_label)
+	settlement.add_child(map_summary_label)
+	settlement.add_child(rule_summary_label)
+	settlement.add_child(finish_reason_label)
 	add_child(settlement)
 	settlement._ready()
 
@@ -35,6 +44,7 @@ func _test_settlement_show_and_reset() -> void:
 	_assert_true(bool(shown_dump.get("visible", false)), "settlement becomes visible after result")
 	_assert_true(String(shown_dump.get("result_text", "")) == "Victory", "settlement shows local victory title")
 	_assert_true(String(shown_dump.get("detail_text", "")).contains("FinishTick: 120"), "settlement detail includes finish tick")
+	_assert_true(String(shown_dump.get("finish_reason_text", "")).contains("Reason:"), "settlement shows finish reason summary")
 
 	settlement.reset_settlement()
 	var reset_dump := settlement.debug_dump_settlement_state()
@@ -50,8 +60,17 @@ func _test_settlement_draw_result_uses_draw_title() -> void:
 	result_label.name = "ResultLabel"
 	var detail_label := Label.new()
 	detail_label.name = "DetailLabel"
+	var map_summary_label := Label.new()
+	map_summary_label.name = "MapSummaryLabel"
+	var rule_summary_label := Label.new()
+	rule_summary_label.name = "RuleSummaryLabel"
+	var finish_reason_label := Label.new()
+	finish_reason_label.name = "FinishReasonLabel"
 	settlement.add_child(result_label)
 	settlement.add_child(detail_label)
+	settlement.add_child(map_summary_label)
+	settlement.add_child(rule_summary_label)
+	settlement.add_child(finish_reason_label)
 	add_child(settlement)
 	settlement._ready()
 

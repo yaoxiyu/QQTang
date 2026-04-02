@@ -2,6 +2,7 @@ class_name AuthorityRuntime
 extends Node
 
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 signal match_started(config: BattleStartConfig)
@@ -35,8 +36,9 @@ func start_match(config: BattleStartConfig) -> bool:
 		server_session.add_peer(peer_id)
 		server_session.set_peer_ready(peer_id, true)
 
+	var sim_config := BattleSimConfigBuilderScript.new().build_for_start_config(start_config)
 	var started := server_session.start_match(
-		SimConfig.new(),
+		sim_config,
 		{
 			"grid": MapLoaderScript.build_grid_state(start_config.map_id),
 			"player_slots": start_config.player_slots.duplicate(true),

@@ -6,6 +6,9 @@ const StateToViewMapperScript = preload("res://presentation/battle/bridge/state_
 const BattleEventRouterScript = preload("res://presentation/battle/bridge/battle_event_router.gd")
 const ExplosionActorViewScript = preload("res://presentation/battle/actors/explosion_actor_view.gd")
 const CorrectionMarkerViewScript = preload("res://presentation/battle/actors/correction_marker_view.gd")
+const BrickBreakFxPlayerScript = preload("res://presentation/battle/fx/brick_break_fx_player.gd")
+const ItemSpawnFxPlayerScript = preload("res://presentation/battle/fx/item_spawn_fx_player.gd")
+const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
 @export var actor_layer_path: NodePath = ^"../../WorldRoot/ActorLayer"
@@ -52,6 +55,9 @@ func _ready() -> void:
 	battle_event_router = BattleEventRouterScript.new()
 	add_child(battle_event_router)
 	battle_event_router.explosion_event_routed.connect(_on_explosion_event_routed)
+	battle_event_router.cell_destroyed_event_routed.connect(_on_cell_destroyed_event_routed)
+	battle_event_router.item_spawned_event_routed.connect(_on_item_spawned_event_routed)
+	battle_event_router.item_picked_event_routed.connect(_on_item_picked_event_routed)
 
 
 func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = []) -> void:
@@ -95,6 +101,12 @@ func dispose() -> void:
 	if battle_event_router != null:
 		if battle_event_router.explosion_event_routed.is_connected(_on_explosion_event_routed):
 			battle_event_router.explosion_event_routed.disconnect(_on_explosion_event_routed)
+		if battle_event_router.cell_destroyed_event_routed.is_connected(_on_cell_destroyed_event_routed):
+			battle_event_router.cell_destroyed_event_routed.disconnect(_on_cell_destroyed_event_routed)
+		if battle_event_router.item_spawned_event_routed.is_connected(_on_item_spawned_event_routed):
+			battle_event_router.item_spawned_event_routed.disconnect(_on_item_spawned_event_routed)
+		if battle_event_router.item_picked_event_routed.is_connected(_on_item_picked_event_routed):
+			battle_event_router.item_picked_event_routed.disconnect(_on_item_picked_event_routed)
 		if battle_event_router.get_parent() == self:
 			remove_child(battle_event_router)
 		battle_event_router.free()
@@ -160,9 +172,52 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 	fx_layer.add_child(view)
 
 
+func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
+	if event == null or fx_layer == null:
+		return
+	var fx = BrickBreakFxPlayerScript.new()
+	fx.configure(
+		_to_world_center(Vector2i(
+			int(event.payload.get("cell_x", 0)),
+			int(event.payload.get("cell_y", 0))
+		)),
+		cell_size
+	)
+	fx_layer.add_child(fx)
+
+
+func _on_item_spawned_event_routed(event: SimEvent) -> void:
+	if event == null or fx_layer == null:
+		return
+	var fx = ItemSpawnFxPlayerScript.new()
+	fx.configure(
+		_to_world_center(Vector2i(
+			int(event.payload.get("cell_x", 0)),
+			int(event.payload.get("cell_y", 0))
+		)),
+		cell_size,
+		int(event.payload.get("item_type", 0))
+	)
+	fx_layer.add_child(fx)
+
+
+func _on_item_picked_event_routed(event: SimEvent) -> void:
+	if event == null or fx_layer == null:
+		return
+	var fx = ItemPickupFxPlayerScript.new()
+	fx.configure(
+		_to_world_center(Vector2i(
+			int(event.payload.get("cell_x", 0)),
+			int(event.payload.get("cell_y", 0))
+		)),
+		cell_size,
+		int(event.payload.get("item_type", 0))
+	)
+	fx_layer.add_child(fx)
+
+
 func _to_world_center(cell: Vector2i) -> Vector2:
 	return Vector2(
 		(float(cell.x) + 0.5) * cell_size,
 		(float(cell.y) + 0.5) * cell_size
 	)
-

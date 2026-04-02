@@ -4,6 +4,3 @@
 
 [node name="DedicatedServerScene" type="Node" unique_id=1597336451]
 script = ExtResource("1_ds")
-
-[node name="DedicatedServerBootstrap" type="Node" parent="." unique_id=46895862]
-script = ExtResource("1_ds")

@@ -46,6 +46,10 @@ func next_int_range(_min: int, _max: int) -> int:
 		return _min
 	return _min + next() % (_max - _min + 1)
 
+
+func range_int(_min: int, _max: int) -> int:
+	return next_int_range(_min, _max)
+
 # 生成 bool 值
 func next_bool() -> bool:
 	return next() % 2 == 0
