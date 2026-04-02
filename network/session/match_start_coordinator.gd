@@ -23,6 +23,40 @@ func build_start_config(snapshot: RoomSnapshot) -> BattleStartConfig:
 	return result.get("config", BattleStartConfig.new())
 
 
+func build_client_request_payload(
+	snapshot: RoomSnapshot,
+	local_peer_id: int,
+	authority_host: String = "127.0.0.1",
+	authority_port: int = 9000
+) -> BattleStartConfig:
+	_sync_builder_settings()
+	var room_runtime_context := _resolve_room_runtime_context()
+	return _builder.build_client_request_payload(
+		snapshot,
+		local_peer_id,
+		authority_host,
+		authority_port,
+		room_runtime_context
+	)
+
+
+func build_server_canonical_config(
+	snapshot: RoomSnapshot,
+	authority_host: String,
+	authority_port: int,
+	server_match_revision: int
+) -> BattleStartConfig:
+	_sync_builder_settings()
+	var room_runtime_context := _resolve_room_runtime_context()
+	return _builder.build_server_canonical_config(
+		snapshot,
+		authority_host,
+		authority_port,
+		server_match_revision,
+		room_runtime_context
+	)
+
+
 func prepare_start_config(snapshot: RoomSnapshot) -> Dictionary:
 	_sync_builder_settings()
 	_sync_validator_settings()

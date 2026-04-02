@@ -3,8 +3,9 @@ extends Node
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const DEFAULT_REMOTE_NAME: String = "RemoteFox"
-const DEFAULT_REMOTE_CHARACTER_ID: String = "hero_remote"
+const DEFAULT_REMOTE_CHARACTER_ID: String = "hero_runner"
 
 
 func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config: RefCounted, local_peer_id: int, remote_peer_id: int) -> void:
@@ -22,7 +23,7 @@ func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config:
 		remote_member.player_name = DEFAULT_REMOTE_NAME
 		remote_member.ready = true
 		remote_member.slot_index = 1
-		remote_member.character_id = DEFAULT_REMOTE_CHARACTER_ID
+		remote_member.character_id = _resolve_debug_character_id(DEFAULT_REMOTE_CHARACTER_ID)
 		room_controller.join_room(remote_member)
 
 	if room_controller.room_session.peers.size() == 2 and room_controller.room_session.peers.has(local_peer_id) and room_controller.room_session.peers.has(remote_peer_id):
@@ -48,7 +49,7 @@ func ensure_manual_local_loop_room(room_controller: Node, local_peer_id: int, re
 		remote_member.player_name = DEFAULT_REMOTE_NAME
 		remote_member.ready = true
 		remote_member.slot_index = 1
-		remote_member.character_id = DEFAULT_REMOTE_CHARACTER_ID
+		remote_member.character_id = _resolve_debug_character_id(DEFAULT_REMOTE_CHARACTER_ID)
 		room_controller.join_room(remote_member)
 	else:
 		room_controller.set_member_ready(remote_peer_id, true)
@@ -74,3 +75,9 @@ func debug_dump(runtime_config: RefCounted = null) -> Dictionary:
 		"auto_create_room_on_enter": runtime_config.auto_create_room_on_enter if runtime_config != null else false,
 		"auto_add_remote_debug_member": runtime_config.auto_add_remote_debug_member if runtime_config != null else false,
 	}
+
+
+func _resolve_debug_character_id(character_id: String) -> String:
+	if CharacterCatalogScript.has_character(character_id):
+		return character_id
+	return CharacterCatalogScript.get_default_character_id()

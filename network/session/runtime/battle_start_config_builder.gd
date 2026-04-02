@@ -5,6 +5,9 @@ const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_sta
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 
 const DEFAULT_START_TICK: int = 0
 const DEFAULT_PROTOCOL_VERSION: int = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
@@ -40,6 +43,54 @@ func build_start_config(snapshot: RoomSnapshot, room_runtime_context: RoomRuntim
 	return _build_start_config_internal(snapshot, true, room_runtime_context)
 
 
+func build_client_request_payload(
+	snapshot: RoomSnapshot,
+	local_peer_id: int,
+	authority_host: String = "127.0.0.1",
+	authority_port: int = 9000,
+	room_runtime_context: RoomRuntimeContext = null
+) -> BattleStartConfig:
+	if snapshot == null:
+		return BattleStartConfig.new()
+	var config := _build_start_config_internal(snapshot, false, room_runtime_context)
+	if config == null:
+		return BattleStartConfig.new()
+	config.session_mode = "network_client"
+	config.topology = "dedicated_server"
+	config.authority_host = authority_host
+	config.authority_port = authority_port
+	config.local_peer_id = local_peer_id
+	config.controlled_peer_id = local_peer_id
+	config.owner_peer_id = snapshot.owner_peer_id
+	config.server_match_revision = 0
+	config.character_loadouts = _build_character_loadouts(config.player_slots)
+	config.sort_players()
+	return config
+
+
+func build_server_canonical_config(
+	snapshot: RoomSnapshot,
+	authority_host: String,
+	authority_port: int,
+	server_match_revision: int,
+	room_runtime_context: RoomRuntimeContext = null
+) -> BattleStartConfig:
+	if not can_build_from_room(snapshot):
+		return BattleStartConfig.new()
+	var config := _build_start_config_internal(snapshot, true, room_runtime_context)
+	config.session_mode = "network_dedicated_server"
+	config.topology = "dedicated_server"
+	config.authority_host = authority_host
+	config.authority_port = authority_port
+	config.local_peer_id = 0
+	config.controlled_peer_id = 0
+	config.owner_peer_id = snapshot.owner_peer_id
+	config.server_match_revision = server_match_revision
+	config.character_loadouts = _build_character_loadouts(config.player_slots)
+	config.sort_players()
+	return config
+
+
 func assign_spawn_slots(snapshot: RoomSnapshot) -> Array[Dictionary]:
 	var players: Array[Dictionary] = []
 	for member in snapshot.sorted_members():
@@ -49,7 +100,7 @@ func assign_spawn_slots(snapshot: RoomSnapshot) -> Array[Dictionary]:
 			"display_name": member.player_name,
 			"slot_index": member.slot_index,
 			"spawn_slot": member.slot_index,
-			"character_id": member.character_id,
+			"character_id": _resolve_character_id(member.character_id),
 		})
 	return players
 
@@ -109,6 +160,12 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.start_tick = DEFAULT_START_TICK
 	config.match_duration_ticks = _resolve_match_duration_ticks(resolved_rule_set_id)
 	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
+	config.session_mode = "singleplayer_local"
+	config.topology = "listen"
+	config.local_peer_id = int(player_slots[0].get("peer_id", 0)) if not player_slots.is_empty() else 0
+	config.controlled_peer_id = config.local_peer_id
+	config.owner_peer_id = snapshot.owner_peer_id
+	config.character_loadouts = _build_character_loadouts(player_slots)
 	config.sort_players()
 	return config
 
@@ -135,13 +192,33 @@ func _resolve_spawn_point(spawn_points: Array, index: int) -> Vector2i:
 	return Vector2i(index + 1, index + 1)
 
 
+func _build_character_loadouts(player_slots: Array[Dictionary]) -> Array[Dictionary]:
+	var loadouts: Array[Dictionary] = []
+	for player_entry in player_slots:
+		loadouts.append(
+			CharacterLoaderScript.build_character_loadout(
+				_resolve_character_id(String(player_entry.get("character_id", ""))),
+				int(player_entry.get("peer_id", -1))
+			)
+		)
+	return loadouts
+
+
 func _load_map_metadata(map_id: String) -> Dictionary:
 	return MapLoaderScript.load_map_metadata(map_id)
 
 
 func _resolve_match_duration_ticks(rule_set_id: String) -> int:
-	match rule_set_id:
-		"team":
-			return 480
-		_:
-			return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
+	var rule_config := RuleLoaderScript.load_rule_config(rule_set_id)
+	if rule_config.is_empty():
+		return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
+	var round_time_sec := int(rule_config.get("round_time_sec", 0))
+	if round_time_sec <= 0:
+		return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
+	return round_time_sec * 2
+
+
+func _resolve_character_id(character_id: String) -> String:
+	if CharacterCatalogScript.has_character(character_id):
+		return character_id
+	return CharacterCatalogScript.get_default_character_id()

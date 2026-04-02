@@ -48,7 +48,7 @@ func initialize_defaults() -> void:
 
 func refresh_mode(mode_name: String, launch_enabled: bool) -> void:
 	if title_label != null:
-		title_label.text = "Phase4 Network Bootstrap"
+		title_label.text = "Transport Debug Shell (Not Formal Game Entry)"
 	if mode_label != null:
 		mode_label.text = "Mode: %s" % mode_name
 	if launch_match_button != null:
@@ -119,3 +119,4 @@ func get_port(default_port: int = 9000) -> int:
 		return default_port
 	var port := int(port_input.text.strip_edges().to_int())
 	return port if port > 0 else default_port
+

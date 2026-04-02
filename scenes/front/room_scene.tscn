@@ -28,6 +28,69 @@ offset_bottom = 684.0
 layout_mode = 2
 text = "QQTang Room"
 
+[node name="NetworkConfigPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=594818945]
+layout_mode = 2
+
+[node name="ModeRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1059481894]
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=405948189]
+layout_mode = 2
+text = "Mode"
+
+[node name="ModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=605948189]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="ConnectButton" type="Button" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=705948189]
+layout_mode = 2
+text = "Connect"
+
+[node name="CreateRoomButton" type="Button" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=805948189]
+layout_mode = 2
+text = "Create/Join Room"
+
+[node name="ServerRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=905948189]
+layout_mode = 2
+
+[node name="HostLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1005948189]
+layout_mode = 2
+text = "Host"
+
+[node name="HostInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1105948189]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+
+[node name="PortLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1205948189]
+layout_mode = 2
+text = "Port"
+
+[node name="PortInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1305948189]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+placeholder_text = "9000"
+
+[node name="PlayerRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1605948189]
+layout_mode = 2
+
+[node name="PlayerNameLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1705948189]
+layout_mode = 2
+text = "Player"
+
+[node name="PlayerNameInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1805948189]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+placeholder_text = "Player1"
+
+[node name="CharacterLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1905948189]
+layout_mode = 2
+text = "Character"
+
+[node name="CharacterSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=2005948189]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
 [node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1617999413]
 layout_mode = 2
 

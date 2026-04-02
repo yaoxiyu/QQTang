@@ -23,7 +23,7 @@ offset_bottom = 40.0
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
-text = "Phase4 Network Bootstrap"
+text = "Transport Debug Shell (Not Formal Game Entry)"
 
 [node name="ModeLabel" type="Label" parent="CanvasLayer/DebugPanel" unique_id=559289448]
 layout_mode = 0
@@ -71,3 +71,4 @@ text = "Launch Match"
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
+

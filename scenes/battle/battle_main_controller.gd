@@ -227,7 +227,12 @@ func _consume_battle_events(events: Array) -> void:
 			SimEvent.EventType.ITEM_PICKED:
 				battle_hud.on_item_picked_event(event, _resolve_local_player_entity_id())
 			SimEvent.EventType.MATCH_ENDED:
-				battle_hud.on_match_ended_event(event, _app_runtime.local_peer_id if _app_runtime != null else -1)
+				var resolved_peer_id := -1
+				if _app_runtime != null and _app_runtime.current_start_config != null:
+					resolved_peer_id = int(_app_runtime.current_start_config.controlled_peer_id)
+				if resolved_peer_id <= 0 and _app_runtime != null:
+					resolved_peer_id = _app_runtime.local_peer_id
+				battle_hud.on_match_ended_event(event, resolved_peer_id)
 
 
 func _collect_local_input() -> Dictionary:
@@ -311,8 +316,11 @@ func _cleanup_detached_battle_scene() -> void:
 func _resolve_local_player_entity_id() -> int:
 	if _battle_context == null or _battle_context.sim_world == null or _app_runtime == null or _app_runtime.current_start_config == null:
 		return -1
+	var controlled_peer_id := int(_app_runtime.current_start_config.controlled_peer_id)
+	if controlled_peer_id <= 0:
+		controlled_peer_id = _app_runtime.local_peer_id
 	for player_entry in _app_runtime.current_start_config.players:
-		if int(player_entry.get("peer_id", -1)) != _app_runtime.local_peer_id:
+		if int(player_entry.get("peer_id", -1)) != controlled_peer_id:
 			continue
 		var slot_index: int = int(player_entry.get("slot_index", -1))
 		for player_id in _battle_context.sim_world.state.players.active_ids:

@@ -25,6 +25,15 @@ var item_spawn_profile_id: String = DEFAULT_ITEM_SPAWN_PROFILE_ID
 var snapshot_interval: int = 0
 var checksum_interval: int = 0
 var rollback_window: int = 0
+var session_mode: String = "singleplayer_local"
+var topology: String = "listen"
+var authority_host: String = "127.0.0.1"
+var authority_port: int = 9000
+var local_peer_id: int = 0
+var controlled_peer_id: int = 0
+var owner_peer_id: int = 0
+var server_match_revision: int = 0
+var character_loadouts: Array[Dictionary] = []
 
 
 func to_dict() -> Dictionary:
@@ -48,6 +57,15 @@ func to_dict() -> Dictionary:
 		"snapshot_interval": snapshot_interval,
 		"checksum_interval": checksum_interval,
 		"rollback_window": rollback_window,
+		"session_mode": session_mode,
+		"topology": topology,
+		"authority_host": authority_host,
+		"authority_port": authority_port,
+		"local_peer_id": local_peer_id,
+		"controlled_peer_id": controlled_peer_id,
+		"owner_peer_id": owner_peer_id,
+		"server_match_revision": server_match_revision,
+		"character_loadouts": character_loadouts.duplicate(true),
 	}
 
 
@@ -71,6 +89,15 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.snapshot_interval = int(data.get("snapshot_interval", 0))
 	config.checksum_interval = int(data.get("checksum_interval", 0))
 	config.rollback_window = int(data.get("rollback_window", 0))
+	config.session_mode = String(data.get("session_mode", "singleplayer_local"))
+	config.topology = String(data.get("topology", "listen"))
+	config.authority_host = String(data.get("authority_host", "127.0.0.1"))
+	config.authority_port = int(data.get("authority_port", 9000))
+	config.local_peer_id = int(data.get("local_peer_id", 0))
+	config.controlled_peer_id = int(data.get("controlled_peer_id", 0))
+	config.owner_peer_id = int(data.get("owner_peer_id", 0))
+	config.server_match_revision = int(data.get("server_match_revision", 0))
+	config.character_loadouts = _duplicate_dict_array(data.get("character_loadouts", []))
 	config._sync_player_aliases()
 	config.sort_players()
 	return config
@@ -127,6 +154,16 @@ func validate(options: Dictionary = {}) -> Dictionary:
 		errors.append("player_slots must not be empty")
 	if spawn_assignments.is_empty():
 		errors.append("spawn_assignments must not be empty")
+	if authority_port <= 0:
+		errors.append("authority_port must be positive")
+	if session_mode.is_empty():
+		errors.append("session_mode is required")
+	if topology.is_empty():
+		errors.append("topology is required")
+	if session_mode != "singleplayer_local" and session_mode != "network_client" and session_mode != "network_dedicated_server":
+		errors.append("session_mode is invalid: %s" % session_mode)
+	if topology != "listen" and topology != "dedicated_server":
+		errors.append("topology is invalid: %s" % topology)
 
 	var peer_ids: Dictionary = {}
 	var slot_indices: Dictionary = {}
@@ -160,6 +197,28 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			spawn_peer_ids[peer_id] = true
 	if spawn_peer_ids.size() != peer_ids.size() and not peer_ids.is_empty():
 		errors.append("spawn_assignments must cover every player_slot")
+	if topology == "dedicated_server":
+		if local_peer_id < 0:
+			errors.append("local_peer_id must not be negative")
+		if controlled_peer_id < 0:
+			errors.append("controlled_peer_id must not be negative")
+		if local_peer_id > 0 and not peer_ids.has(local_peer_id):
+			errors.append("local_peer_id must belong to player_slots in dedicated_server topology")
+		if controlled_peer_id > 0 and not peer_ids.has(controlled_peer_id):
+			errors.append("controlled_peer_id must belong to player_slots in dedicated_server topology")
+		if session_mode == "network_client":
+			if local_peer_id <= 0:
+				errors.append("network_client config requires a valid local_peer_id")
+			if controlled_peer_id <= 0:
+				errors.append("network_client config requires a valid controlled_peer_id")
+		if session_mode == "network_dedicated_server":
+			if local_peer_id != 0:
+				errors.append("network_dedicated_server config must not control a local peer")
+			if controlled_peer_id != 0:
+				errors.append("network_dedicated_server config must not control a player peer")
+	if topology == "listen":
+		if session_mode == "singleplayer_local" and controlled_peer_id <= 0:
+			errors.append("singleplayer_local config requires controlled_peer_id")
 
 	if not map_metadata.is_empty():
 		if map_id != String(map_metadata.get("map_id", map_id)):
@@ -176,6 +235,21 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			errors.append("map spawn_points are insufficient for player_slots")
 	else:
 		warnings.append("map_metadata unavailable for validation")
+	if not character_loadouts.is_empty():
+		if character_loadouts.size() != player_slots.size():
+			errors.append("character_loadouts must cover every player_slot")
+		var loadout_peer_ids: Dictionary = {}
+		for loadout in character_loadouts:
+			var loadout_peer_id := int(loadout.get("peer_id", -1))
+			if loadout_peer_id <= 0 or not peer_ids.has(loadout_peer_id):
+				errors.append("character_loadouts contains unknown peer_id: %d" % loadout_peer_id)
+				continue
+			if loadout_peer_ids.has(loadout_peer_id):
+				errors.append("duplicate peer_id in character_loadouts: %d" % loadout_peer_id)
+				continue
+			loadout_peer_ids[loadout_peer_id] = true
+			if String(loadout.get("character_id", "")).is_empty():
+				errors.append("character_loadouts contains empty character_id for peer %d" % loadout_peer_id)
 
 	return {
 		"ok": errors.is_empty(),

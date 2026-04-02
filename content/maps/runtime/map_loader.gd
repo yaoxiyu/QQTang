@@ -10,6 +10,10 @@ static func load_map_config(map_id: String) -> Dictionary:
 		push_error("MapLoader.load_map_config failed: unknown map_id=%s" % map_id)
 		return {}
 
+	var map_resource := load_map_resource(map_id)
+	if map_resource != null:
+		return _build_config_from_resource(map_resource)
+
 	var def_path := MapCatalogScript.get_map_def_path(map_id)
 	if def_path.is_empty():
 		push_error("MapLoader.load_map_config failed: missing map def path for map_id=%s" % map_id)
@@ -37,6 +41,9 @@ static func load_map_config(map_id: String) -> Dictionary:
 
 
 static func load_map_metadata(map_id: String) -> Dictionary:
+	var map_resource := load_map_resource(map_id)
+	if map_resource != null:
+		return map_resource.to_metadata()
 	var layout := load_runtime_layout(map_id)
 	if layout == null:
 		return {}
@@ -54,6 +61,9 @@ static func load_map_metadata(map_id: String) -> Dictionary:
 
 
 static func load_runtime_layout(map_id: String) -> MapRuntimeLayout:
+	var map_resource := load_map_resource(map_id)
+	if map_resource != null:
+		return _build_layout_from_resource(map_resource)
 	var config := load_map_config(map_id)
 	if config.is_empty():
 		return null
@@ -91,6 +101,19 @@ static func has_map_metadata(map_id: String) -> bool:
 	return load_runtime_layout(map_id) != null
 
 
+static func load_map_resource(map_id: String) -> MapResource:
+	if map_id.is_empty() or not MapCatalogScript.has_map(map_id):
+		return null
+	var resource_path := MapCatalogScript.get_map_path(map_id)
+	if resource_path.is_empty() or not resource_path.ends_with(".tres"):
+		return null
+	var resource := load(resource_path)
+	if resource == null or not resource is MapResource:
+		push_error("MapLoader.load_map_resource failed: invalid map resource path=%s" % resource_path)
+		return null
+	return resource
+
+
 static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayout:
 	if resource == null:
 		return null
@@ -108,6 +131,21 @@ static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayo
 	layout.content_hash = resource.content_hash
 	layout.tile_theme_id = resource.tile_theme_id
 	return layout if _validate_layout(layout) else null
+
+
+static func _build_config_from_resource(resource: MapResource) -> Dictionary:
+	if resource == null:
+		return {}
+	return {
+		"map_id": resource.map_id,
+		"display_name": resource.display_name,
+		"width": resource.width,
+		"height": resource.height,
+		"tile_size": 32,
+		"spawn_points": resource.spawn_points.duplicate(),
+		"static_blocks": resource.solid_cells.duplicate(),
+		"breakable_blocks": resource.breakable_cells.duplicate(),
+	}
 
 
 static func _build_layout_from_metadata(metadata: Dictionary) -> MapRuntimeLayout:
@@ -219,9 +257,9 @@ static func _has_overlap(a_cells: Array, b_cells: Array) -> bool:
 	var occupied := {}
 	for cell in a_cells:
 		if cell is Vector2i:
-			occupied[String(cell)] = true
+			occupied[cell] = true
 	for cell in b_cells:
-		if cell is Vector2i and occupied.has(String(cell)):
+		if cell is Vector2i and occupied.has(cell):
 			return true
 	return false
 

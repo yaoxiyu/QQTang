@@ -11,6 +11,7 @@ signal log_event(message: String)
 
 var start_config: BattleStartConfig = null
 var local_peer_id: int = 0
+var controlled_peer_id: int = 0
 var client_session: ClientSession = null
 var prediction_controller: PredictionController = null
 var snapshot_service: SnapshotService = null
@@ -24,12 +25,17 @@ func configure(peer_id: int) -> void:
 	local_peer_id = peer_id
 
 
+func configure_controlled_peer(peer_id: int) -> void:
+	controlled_peer_id = peer_id
+
+
 func start_match(config: BattleStartConfig) -> bool:
 	shutdown_runtime()
 	if config == null:
 		return false
 
 	start_config = config.duplicate_deep()
+	controlled_peer_id = int(start_config.controlled_peer_id) if start_config != null and int(start_config.controlled_peer_id) > 0 else local_peer_id
 	client_session = ClientSession.new()
 	client_session.configure(local_peer_id)
 	add_child(client_session)
@@ -48,7 +54,7 @@ func start_match(config: BattleStartConfig) -> bool:
 		predicted_world,
 		snapshot_service,
 		client_session.local_input_buffer,
-		_resolve_local_slot(start_config)
+		_resolve_controlled_slot(start_config)
 	)
 	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
@@ -139,15 +145,17 @@ func shutdown_runtime() -> void:
 		client_session.free()
 	client_session = null
 	snapshot_service = null
+	controlled_peer_id = 0
 	_correction_count = 0
 	_last_resync_tick = -1
 
 
-func _resolve_local_slot(config: BattleStartConfig) -> int:
+func _resolve_controlled_slot(config: BattleStartConfig) -> int:
 	if config == null:
 		return 0
+	var resolved_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	for player_entry in config.player_slots:
-		if int(player_entry.get("peer_id", -1)) == local_peer_id:
+		if int(player_entry.get("peer_id", -1)) == resolved_peer_id:
 			return int(player_entry.get("slot_index", 0))
 	return 0
 

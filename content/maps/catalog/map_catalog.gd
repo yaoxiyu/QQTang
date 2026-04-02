@@ -2,9 +2,18 @@ class_name MapCatalog
 extends RefCounted
 
 const MAP_REGISTRY := {
+	"default_map": {
+		"display_name": "Default Plaza",
+		"resource_path": "res://content/maps/resources/map_small_square.tres",
+		"is_default": true,
+	},
+	"large_map": {
+		"display_name": "Cross Arena",
+		"resource_path": "res://content/maps/resources/map_cross_arena.tres",
+	},
 	"test_square": {
 		"display_name": "测试方形图",
-		"def_path": "res://gameplay/config/map_defs/test_square_map_def.gd"
+		"def_path": "res://gameplay/config/map_defs/test_square_map_def.gd",
 	}
 }
 
@@ -32,6 +41,9 @@ static func get_map_entries() -> Array:
 
 
 static func get_default_map_id() -> String:
+	for map_id in get_map_ids():
+		if bool(MAP_REGISTRY[map_id].get("is_default", false)):
+			return map_id
 	var map_ids := get_map_ids()
 	if map_ids.is_empty():
 		return ""
@@ -49,6 +61,11 @@ static func get_map_def_path(map_id: String) -> String:
 
 
 static func get_map_path(map_id: String) -> String:
+	if not MAP_REGISTRY.has(map_id):
+		return ""
+	var resource_path := String(MAP_REGISTRY[map_id].get("resource_path", ""))
+	if not resource_path.is_empty():
+		return resource_path
 	return get_map_def_path(map_id)
 
 

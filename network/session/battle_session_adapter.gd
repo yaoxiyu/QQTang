@@ -84,23 +84,38 @@ func setup_from_start_config(config: BattleStartConfig) -> void:
 func start_battle() -> void:
 	if start_config == null:
 		return
+	if is_battle_active():
+		shutdown_battle()
+	var config := start_config.duplicate_deep()
+	var mode := _resolve_runtime_mode(config)
+	if mode < 0:
+		push_error("BattleSessionAdapter.start_battle rejected session_mode=%s topology=%s" % [String(config.session_mode), String(config.topology)])
+		_lifecycle_state = BattleLifecycleState.STOPPED
+		return
 	_lifecycle_state = BattleLifecycleState.STARTING
-	if not _start_runtime_session(BattleNetworkMode.LOCAL_LOOPBACK, start_config, {
-		"debug_profile": _capture_transport_profile(),
-	}):
+	var options: Dictionary = {}
+	if mode == BattleNetworkMode.LOCAL_LOOPBACK:
+		options["debug_profile"] = _capture_transport_profile()
+	if not _start_runtime_session(mode, config, options):
 		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
 	_lifecycle_state = BattleLifecycleState.RUNNING
-	battle_session_started.emit(start_config)
+	battle_session_started.emit(config)
 	battle_context_created.emit(current_context)
 
 
 func advance_authoritative_tick(local_input: Dictionary = {}) -> void:
-	if current_context == null or server_session == null or server_session.active_match == null:
+	if current_context == null or _finished_emitted:
 		return
-	if _finished_emitted:
-		return
-	_advance_local_loopback_runtime_tick(local_input)
+	match network_mode:
+		BattleNetworkMode.LOCAL_LOOPBACK:
+			if server_session == null or server_session.active_match == null:
+				return
+			_advance_local_loopback_runtime_tick(local_input)
+		BattleNetworkMode.CLIENT:
+			_advance_client_runtime_tick(local_input)
+		_:
+			return
 
 
 func _advance_local_loopback_runtime_tick(local_input: Dictionary = {}) -> void:
@@ -353,11 +368,57 @@ func _start_host_runtime(config: BattleStartConfig, options: Dictionary = {}) ->
 
 
 func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	shutdown_battle()
 	_ensure_bootstrap_client_runtime()
 	start_config = config.duplicate_deep() if config != null else null
-	_bootstrap_local_peer_id = int(options.get("local_peer_id", _bootstrap_local_peer_id))
+	if start_config == null:
+		return false
+	network_mode = BattleNetworkMode.CLIENT
+	_bootstrap_local_peer_id = int(options.get("local_peer_id", int(start_config.local_peer_id if start_config != null else _bootstrap_local_peer_id)))
+	var controlled_peer_id := int(options.get("controlled_peer_id", int(start_config.controlled_peer_id if start_config != null else _bootstrap_local_peer_id)))
 	_bootstrap_client_runtime.configure(_bootstrap_local_peer_id)
-	return _bootstrap_client_runtime.start_match(start_config)
+	_bootstrap_client_runtime.configure_controlled_peer(controlled_peer_id)
+	var client_started := _bootstrap_client_runtime.start_match(start_config)
+	client_session = _bootstrap_client_runtime.client_session
+	prediction_controller = _bootstrap_client_runtime.prediction_controller
+	if not client_started or client_session == null or prediction_controller == null:
+		return false
+	_local_peer_id = _bootstrap_local_peer_id
+	_finished_emitted = false
+	_correction_count = 0
+	_last_correction_summary = ""
+	_last_resync_tick = -1
+	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
+		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
+	if not prediction_controller.full_visual_resync.is_connected(_on_full_visual_resync):
+		prediction_controller.full_visual_resync.connect(_on_full_visual_resync)
+	visual_sync_controller = VisualSyncController.new()
+	add_child(visual_sync_controller)
+	current_context = BattleContext.new()
+	current_context.battle_start_config = start_config.duplicate_deep()
+	current_context.sim_world = prediction_controller.predicted_sim_world
+	current_context.tick_runner = prediction_controller.predicted_sim_world.tick_runner if prediction_controller.predicted_sim_world != null else null
+	current_context.client_session = client_session
+	current_context.prediction_controller = prediction_controller
+	current_context.rollback_controller = prediction_controller.rollback_controller
+	current_context.visual_sync_controller = visual_sync_controller
+	adapter_configured.emit()
+	return true
+
+
+func _advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
+	if _bootstrap_client_runtime == null:
+		return
+	var app_runtime = get_parent().get_parent() if get_parent() != null and get_parent().get_parent() != null else null
+	if app_runtime == null or not app_runtime.has_method("apply_canonical_start_config"):
+		app_runtime = null
+	var room_runtime = app_runtime.client_room_runtime if app_runtime != null and app_runtime.client_room_runtime != null else null
+	if room_runtime == null or not room_runtime.has_method("send_battle_input"):
+		return
+	var input_message := _bootstrap_client_runtime.build_local_input_message(local_input)
+	if not input_message.is_empty():
+		room_runtime.send_battle_input(input_message)
+	_emit_client_runtime_tick()
 
 
 func _enqueue_remote_inputs(tick_id: int) -> void:
@@ -410,6 +471,32 @@ func _build_runtime_metrics() -> Dictionary:
 	return _runtime_metrics_builder.build(metrics, transport_stats)
 
 
+func ingest_dedicated_server_message(message: Dictionary) -> void:
+	if _bootstrap_client_runtime == null or message.is_empty():
+		return
+	if network_mode != BattleNetworkMode.CLIENT:
+		return
+	_bootstrap_client_runtime.ingest_network_message(message)
+	_emit_client_runtime_tick()
+	if String(message.get("message_type", message.get("msg_type", ""))) == TransportMessageTypesScript.MATCH_FINISHED and current_context != null:
+		_finished_emitted = true
+		_lifecycle_state = BattleLifecycleState.FINISHING
+
+
+func _emit_client_runtime_tick() -> void:
+	if current_context == null or prediction_controller == null or current_context.sim_world == null:
+		return
+	current_context.sim_world = prediction_controller.predicted_sim_world
+	current_context.tick_runner = prediction_controller.predicted_sim_world.tick_runner if prediction_controller.predicted_sim_world != null else null
+	var world: SimWorld = current_context.sim_world
+	var tick_result := {
+		"tick": world.state.match_state.tick if world != null else 0,
+		"events": world.events.get_events() if world != null and world.events != null else [],
+		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
+	}
+	authoritative_tick_completed.emit(current_context, tick_result, _build_runtime_metrics())
+
+
 func _build_predicted_world_from_authoritative(authoritative_match: BattleMatch) -> SimWorld:
 	var predicted_world := SimWorld.new()
 	predicted_world.bootstrap(SimConfig.new(), {
@@ -432,9 +519,25 @@ func _build_grid_for_map(map_id: String):
 
 
 func _resolve_local_peer_id(config: BattleStartConfig) -> int:
-	if config == null or config.players.is_empty():
+	if config == null:
+		return 1
+	if int(config.local_peer_id) > 0:
+		return int(config.local_peer_id)
+	if config.players.is_empty():
 		return 1
 	return int(config.players[0].get("peer_id", 1))
+
+
+func _resolve_runtime_mode(config: BattleStartConfig) -> int:
+	if config == null:
+		return BattleNetworkMode.LOCAL_LOOPBACK
+	if String(config.session_mode) == "network_client" and String(config.topology) == "dedicated_server":
+		return BattleNetworkMode.CLIENT
+	if String(config.session_mode) == "network_dedicated_server":
+		return -1
+	if String(config.session_mode) == "singleplayer_local" and String(config.topology) == "listen":
+		return BattleNetworkMode.LOCAL_LOOPBACK
+	return BattleNetworkMode.LOCAL_LOOPBACK
 
 
 func _resolve_local_slot(config: BattleStartConfig) -> int:
@@ -619,6 +722,25 @@ func network_bootstrap_set_local_peer_id(local_peer_id: int) -> void:
 	_bootstrap_local_peer_id = local_peer_id
 
 
+func notify_dedicated_server_transport_connected() -> void:
+	if network_mode != BattleNetworkMode.CLIENT:
+		return
+	network_transport_connected.emit()
+
+
+func notify_dedicated_server_transport_disconnected() -> void:
+	if network_mode != BattleNetworkMode.CLIENT:
+		return
+	network_transport_disconnected.emit()
+	network_transport_error.emit(ERR_CONNECTION_ERROR, "Dedicated server transport disconnected")
+
+
+func notify_dedicated_server_transport_error(error_code: String, user_message: String) -> void:
+	if network_mode != BattleNetworkMode.CLIENT:
+		return
+	network_transport_error.emit(ERR_CONNECTION_ERROR, "%s: %s" % [error_code, user_message])
+
+
 func network_bootstrap_start_host_match(config: BattleStartConfig) -> bool:
 	return _start_runtime_session(BattleNetworkMode.HOST, config, {
 		"local_peer_id": _bootstrap_local_peer_id,
@@ -791,6 +913,10 @@ func _ensure_bootstrap_client_runtime() -> void:
 			prediction_debug_event.emit(event)
 		)
 		_bootstrap_client_runtime.battle_finished.connect(func(result: BattleResult) -> void:
+			if network_mode == BattleNetworkMode.CLIENT:
+				_finished_emitted = true
+				_lifecycle_state = BattleLifecycleState.FINISHING
+				battle_finished_authoritatively.emit(result)
 			network_battle_finished.emit(result, false)
 		)
 
@@ -876,5 +1002,3 @@ func _on_bootstrap_match_finished_message(message: Dictionary) -> void:
 func _on_bootstrap_unhandled_message(message: Dictionary) -> void:
 	if not message.is_empty():
 		network_log_event.emit("Unhandled message %s" % str(message.get("message_type", message.get("msg_type", "unknown"))))
-
-

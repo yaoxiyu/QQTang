@@ -2,8 +2,13 @@ extends Node
 
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const NetworkDebugPanelScript = preload("res://network/runtime/network_debug_panel.gd")
 
 @onready var transport_root: Node = $TransportRoot
@@ -39,7 +44,8 @@ func _ready() -> void:
 	_apply_debug_layout()
 	_debug_panel_controller.initialize_defaults()
 	_refresh_ui()
-	_log("Network bootstrap ready")
+	_log("Transport debug shell ready")
+	_log("DEBUG ONLY: this scene is not the formal room or battle entry")
 
 
 func _process(delta: float) -> void:
@@ -74,11 +80,11 @@ func _bind_ui() -> void:
 func _bind_runtime_signals() -> void:
 	_session_adapter.network_log_event.connect(_log)
 	_session_adapter.network_host_match_started.connect(func(config: BattleStartConfig) -> void:
-		_log("Host entered battle %s" % config.match_id)
+		_log("Host entered debug battle %s" % config.match_id)
 	)
 	_session_adapter.network_client_match_started.connect(func(config: BattleStartConfig) -> void:
 		_active_config = config.duplicate_deep()
-		_log("Client entered battle %s" % config.match_id)
+		_log("Client entered debug battle %s" % config.match_id)
 	)
 	_session_adapter.prediction_debug_event.connect(func(event: Dictionary) -> void:
 		_log(str(event.get("message", "prediction event")))
@@ -140,10 +146,9 @@ func _on_launch_match_pressed() -> void:
 	if remote_peers.is_empty():
 		_log("Host cannot launch: no clients connected")
 		return
-	var snapshot := _build_debug_room_snapshot(remote_peers)
-	var config: BattleStartConfig = _session_adapter.network_bootstrap_build_start_config(snapshot)
+	var config := _build_transport_debug_start_config(remote_peers)
 	if config == null or config.match_id.is_empty():
-		_log("Host failed to build BattleStartConfig")
+		_log("Host failed to build transport debug config")
 		return
 	config.match_duration_ticks = min(config.match_duration_ticks, 60)
 	_active_config = config.duplicate_deep()
@@ -162,7 +167,7 @@ func _on_launch_match_pressed() -> void:
 	_host_launch_delay_ticks = 5
 	_log("Host broadcasting JOIN_BATTLE_ACCEPTED to peers=%s" % str(remote_peers))
 	_session_adapter.network_bootstrap_broadcast(accepted_message)
-	_log("Host launched match %s for %d peers" % [config.match_id, remote_peers.size() + 1])
+	_log("Host launched debug match %s for %d peers" % [config.match_id, remote_peers.size() + 1])
 	_refresh_ui()
 
 
@@ -184,35 +189,65 @@ func _process_network_tick() -> void:
 			pass
 
 
-func _build_debug_room_snapshot(remote_peers: Array[int]) -> RoomSnapshot:
-	var snapshot := RoomSnapshot.new()
-	snapshot.room_id = "phase4_network_room"
-	snapshot.owner_peer_id = 1
-	snapshot.selected_map_id = MapCatalogScript.get_default_map_id()
-	snapshot.rule_set_id = RuleCatalogScript.get_default_rule_id()
-	snapshot.all_ready = true
-	snapshot.max_players = remote_peers.size() + 1
+func _build_transport_debug_start_config(remote_peers: Array[int]) -> BattleStartConfig:
+	var map_id := MapCatalogScript.get_default_map_id()
+	var rule_id := RuleCatalogScript.get_default_rule_id()
+	var map_metadata := MapLoaderScript.load_map_metadata(map_id)
+	var rule_config := RuleLoaderScript.load_rule_config(rule_id)
+	if map_metadata.is_empty() or rule_config.is_empty():
+		return null
 
-	var host_member := RoomMemberState.new()
-	host_member.peer_id = 1
-	host_member.player_name = "Host"
-	host_member.ready = true
-	host_member.slot_index = 0
-	host_member.character_id = "hero_1"
-	snapshot.members.append(host_member)
+	var player_slots: Array[Dictionary] = [{
+		"peer_id": 1,
+		"player_name": "Host",
+		"display_name": "Host",
+		"slot_index": 0,
+		"spawn_slot": 0,
+		"character_id": CharacterCatalogScript.get_default_character_id(),
+	}]
+	var spawn_assignments: Array[Dictionary] = []
+	var spawn_points: Array = map_metadata.get("spawn_points", [])
 
-	var next_slot := 1
-	for peer_id in remote_peers:
-		var member := RoomMemberState.new()
-		member.peer_id = int(peer_id)
-		member.player_name = "Client%d" % peer_id
-		member.ready = true
-		member.slot_index = next_slot
-		member.character_id = "hero_%d" % (next_slot + 1)
-		snapshot.members.append(member)
-		next_slot += 1
+	for index in range(remote_peers.size()):
+		var peer_id := int(remote_peers[index])
+		var slot_index := index + 1
+		player_slots.append({
+			"peer_id": peer_id,
+			"player_name": "Client%d" % peer_id,
+			"display_name": "Client%d" % peer_id,
+			"slot_index": slot_index,
+			"spawn_slot": slot_index,
+			"character_id": _resolve_debug_character_id(slot_index),
+		})
 
-	return snapshot
+	for index in range(player_slots.size()):
+		var spawn_point: Vector2i = spawn_points[index] if index < spawn_points.size() and spawn_points[index] is Vector2i else Vector2i(index + 1, index + 1)
+		var player_entry: Dictionary = player_slots[index]
+		spawn_assignments.append({
+			"peer_id": int(player_entry.get("peer_id", -1)),
+			"slot_index": int(player_entry.get("slot_index", -1)),
+			"spawn_index": index,
+			"spawn_cell_x": spawn_point.x,
+			"spawn_cell_y": spawn_point.y,
+		})
+
+	var config := BattleStartConfigScript.new()
+	config.room_id = "transport_debug_room"
+	config.match_id = "transport_debug_match"
+	config.map_id = map_id
+	config.map_version = int(map_metadata.get("version", BattleStartConfigScript.DEFAULT_MAP_VERSION))
+	config.map_content_hash = String(map_metadata.get("content_hash", ""))
+	config.rule_set_id = rule_id
+	config.players = player_slots.duplicate(true)
+	config.player_slots = player_slots.duplicate(true)
+	config.spawn_assignments = spawn_assignments
+	config.battle_seed = int(Time.get_unix_time_from_system())
+	config.start_tick = 0
+	config.match_duration_ticks = max(int(rule_config.get("round_time_sec", 180)) * 2, 60)
+	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
+	config.character_loadouts = _build_debug_character_loadouts(player_slots)
+	config.sort_players()
+	return config
 
 
 func _collect_local_input() -> Dictionary:
@@ -299,3 +334,22 @@ func _on_adapter_battle_finished(result: BattleResult, is_host: bool) -> void:
 			int(metrics.get("correction_count", 0)),
 		])
 	_refresh_ui()
+
+
+func _resolve_debug_character_id(slot_index: int) -> String:
+	var entries := CharacterCatalogScript.get_character_entries()
+	if slot_index >= 0 and slot_index < entries.size():
+		return String(entries[slot_index].get("id", CharacterCatalogScript.get_default_character_id()))
+	return CharacterCatalogScript.get_default_character_id()
+
+
+func _build_debug_character_loadouts(player_slots: Array[Dictionary]) -> Array[Dictionary]:
+	var loadouts: Array[Dictionary] = []
+	for player_entry in player_slots:
+		loadouts.append(
+			CharacterLoaderScript.build_character_loadout(
+				String(player_entry.get("character_id", CharacterCatalogScript.get_default_character_id())),
+				int(player_entry.get("peer_id", -1))
+			)
+		)
+	return loadouts

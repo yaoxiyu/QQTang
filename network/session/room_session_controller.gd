@@ -175,6 +175,42 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 	return {"ok": true}
 
 
+func request_update_member_profile(peer_id: int, player_name: String, character_id: String) -> Dictionary:
+	if not _can_interact_in_room() or peer_id == 0 or not room_session.peers.has(peer_id):
+		return {
+			"ok": false,
+			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Room is not ready for profile update",
+		}
+	var profile: Dictionary = member_profiles.get(peer_id, {})
+	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
+	profile["character_id"] = character_id.strip_edges()
+	member_profiles[peer_id] = profile
+	_emit_snapshot_changed()
+	return {"ok": true}
+
+
+func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
+	if snapshot == null:
+		return
+	room_session = RoomSession.new(snapshot.room_id)
+	owner_peer_id = snapshot.owner_peer_id
+	max_players = snapshot.max_players
+	member_profiles.clear()
+	for member in snapshot.sorted_members():
+		room_session.add_peer(member.peer_id)
+		room_session.set_ready(member.peer_id, member.ready)
+		member_profiles[member.peer_id] = {
+			"player_name": member.player_name,
+			"character_id": member.character_id,
+		}
+	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id)
+	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")
+	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "authoritative_snapshot")
+	_sync_runtime_context()
+	_emit_snapshot_changed()
+
+
 func request_begin_match(requester_peer_id: int) -> Dictionary:
 	var blocker := get_start_match_blocker(requester_peer_id)
 	if not blocker.is_empty():
@@ -354,5 +390,6 @@ func _can_interact_in_room() -> bool:
 
 func _reassign_owner() -> void:
 	owner_peer_id = room_session.peers[0] if not room_session.peers.is_empty() else 0
+
 
 

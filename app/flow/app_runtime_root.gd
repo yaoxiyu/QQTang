@@ -10,6 +10,7 @@ const MatchStartCoordinatorScript = preload("res://network/session/match_start_c
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const DebugToolsScript = preload("res://app/flow/phase3_debug_tools.gd")
 const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
+const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
 const NetworkErrorRouterScript = preload("res://network/runtime/network_error_router.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnostics.gd")
@@ -25,6 +26,7 @@ var debug_tools: Node = null
 var room_session_controller: Node = null
 var match_start_coordinator: Node = null
 var battle_session_adapter: Node = null
+var client_room_runtime: Node = null
 var runtime_config: RefCounted = null
 var error_router: NetworkErrorRouter = NetworkErrorRouterScript.new()
 var session_diagnostics: SessionDiagnostics = SessionDiagnosticsScript.new()
@@ -102,6 +104,21 @@ func initialize_runtime() -> void:
 	elif battle_session_adapter.get_parent() != session_root:
 		_reparent_to(battle_session_adapter, session_root)
 
+	if client_room_runtime == null or not is_instance_valid(client_room_runtime):
+		client_room_runtime = ClientRoomRuntimeScript.new()
+		client_room_runtime.name = "ClientRoomRuntime"
+		session_root.add_child(client_room_runtime)
+	elif client_room_runtime.get_parent() != session_root:
+		_reparent_to(client_room_runtime, session_root)
+	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.battle_message_received.is_connected(_on_client_runtime_battle_message_received):
+		client_room_runtime.battle_message_received.connect(_on_client_runtime_battle_message_received)
+	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.transport_connected.is_connected(_on_client_runtime_transport_connected):
+		client_room_runtime.transport_connected.connect(_on_client_runtime_transport_connected)
+	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.transport_disconnected.is_connected(_on_client_runtime_transport_disconnected):
+		client_room_runtime.transport_disconnected.connect(_on_client_runtime_transport_disconnected)
+	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.room_error.is_connected(_on_client_runtime_room_error):
+		client_room_runtime.room_error.connect(_on_client_runtime_room_error)
+
 	if scene_flow.current_scene_path.is_empty():
 		scene_flow.current_scene_path = ROOM_SCENE_PATH
 	if int(front_flow.current_state) == int(FrontFlowControllerScript.FlowState.BOOT):
@@ -152,6 +169,20 @@ func clear_battle_payload() -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+
+
+func apply_canonical_start_config(config: BattleStartConfig) -> void:
+	current_start_config = config.duplicate_deep() if config != null else null
+	if battle_session_adapter != null and current_start_config != null:
+		battle_session_adapter.setup_from_start_config(current_start_config)
+
+
+func set_local_peer_id(peer_id: int) -> void:
+	if peer_id <= 0:
+		return
+	local_peer_id = peer_id
+	if room_session_controller != null and room_session_controller.has_method("set_local_player_id"):
+		room_session_controller.set_local_player_id(local_peer_id)
 
 
 func register_battle_modules(
@@ -214,6 +245,26 @@ func debug_dump_runtime_structure() -> Dictionary:
 
 func _on_network_error_routed(payload: Dictionary) -> void:
 	last_runtime_error = payload.duplicate(true)
+
+
+func _on_client_runtime_battle_message_received(message: Dictionary) -> void:
+	if battle_session_adapter != null and battle_session_adapter.has_method("ingest_dedicated_server_message"):
+		battle_session_adapter.ingest_dedicated_server_message(message)
+
+
+func _on_client_runtime_transport_connected() -> void:
+	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_connected"):
+		battle_session_adapter.notify_dedicated_server_transport_connected()
+
+
+func _on_client_runtime_transport_disconnected() -> void:
+	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_disconnected"):
+		battle_session_adapter.notify_dedicated_server_transport_disconnected()
+
+
+func _on_client_runtime_room_error(error_code: String, user_message: String) -> void:
+	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_error"):
+		battle_session_adapter.notify_dedicated_server_transport_error(error_code, user_message)
 
 
 func _ensure_root_nodes() -> void:

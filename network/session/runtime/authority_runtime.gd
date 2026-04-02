@@ -76,7 +76,8 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionar
 		return []
 
 	var next_tick := server_session.active_match.sim_world.state.match_state.tick + 1
-	server_session.receive_input(_build_local_input_frame(next_tick, local_input))
+	if local_peer_id > 0:
+		server_session.receive_input(_build_local_input_frame(next_tick, local_input))
 	server_session.tick_once()
 	var outgoing := _decorate_messages(server_session.poll_messages())
 
