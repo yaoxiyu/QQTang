@@ -12,8 +12,7 @@ const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
-const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const NetworkDebugPanelScript = preload("res://network/runtime/network_debug_panel.gd")
@@ -198,9 +197,9 @@ func _process_network_tick() -> void:
 
 func _build_transport_debug_start_config(remote_peers: Array[int]) -> BattleStartConfig:
 	var map_id := MapCatalogScript.get_default_map_id()
-	var rule_id := RuleCatalogScript.get_default_rule_id()
+	var rule_id := RuleSetCatalogScript.get_default_rule_id()
 	var map_metadata := MapLoaderScript.load_map_metadata(map_id)
-	var rule_config := RuleLoaderScript.load_rule_config(rule_id)
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(rule_id)
 	if map_metadata.is_empty() or rule_config.is_empty():
 		return null
 

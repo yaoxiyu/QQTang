@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://digi2wle5r3qo"]
+
+[node name="ShadowCharacterOverlay" type="Node2D"]
+
+[node name="BodyShade" type="Polygon2D" parent="."]
+color = Color(0.247059, 0.247059, 0.341176, 0.5)
+polygon = PackedVector2Array(-14, -20, 14, -20, 14, 20, -14, 20)
+
+[node name="HeadShade" type="Polygon2D" parent="."]
+position = Vector2(0, -24)
+color = Color(0.180392, 0.180392, 0.270588, 0.58)
+polygon = PackedVector2Array(-10, -8, 10, -8, 10, 8, -10, 8)

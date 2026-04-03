@@ -1,39 +1,57 @@
 class_name MapCatalog
 extends RefCounted
 
-const MAP_REGISTRY := {
-	"default_map": {
-		"display_name": "Default Plaza",
-		"resource_path": "res://content/maps/resources/map_small_square.tres",
-		"is_default": true,
-		"is_formal": true,
-	},
-	"large_map": {
-		"display_name": "Cross Arena",
-		"resource_path": "res://content/maps/resources/map_cross_arena.tres",
-		"is_formal": true,
-	},
-	"test_square": {
-		"display_name": "测试方形图",
-		"def_path": "res://gameplay/config/map_defs/square_map_def.gd",
-		"is_formal": false,
-		"debug_only": true,
-	}
-}
+const MapResourceScript = preload("res://content/maps/resources/map_resource.gd")
+const DATA_DIR := "res://content/maps/resources"
+
+const LEGACY_MAP_REGISTRY := {}
+
+static var _map_registry: Dictionary = {}
+static var _ordered_map_ids: Array[String] = []
+
+
+static func load_all() -> void:
+	_map_registry.clear()
+	_ordered_map_ids.clear()
+
+	if DirAccess.dir_exists_absolute(DATA_DIR):
+		for file_name in DirAccess.get_files_at(DATA_DIR):
+			if not file_name.ends_with(".tres"):
+				continue
+			var resource_path := "%s/%s" % [DATA_DIR, file_name]
+			var resource := load(resource_path)
+			if resource == null or not resource is MapResourceScript:
+				push_error("MapCatalog failed to load MapResource: %s" % resource_path)
+				continue
+			var map_resource := resource as MapResource
+			if map_resource.map_id.is_empty():
+				push_error("MapCatalog map_id is empty: %s" % resource_path)
+				continue
+			_map_registry[map_resource.map_id] = {
+				"display_name": String(map_resource.display_name if not map_resource.display_name.is_empty() else map_resource.map_id),
+				"resource_path": resource_path,
+				"is_formal": true,
+			}
+
+	if _map_registry.is_empty():
+		for map_id in LEGACY_MAP_REGISTRY.keys():
+			_map_registry[String(map_id)] = LEGACY_MAP_REGISTRY[map_id].duplicate(true)
+
+	for map_id in _map_registry.keys():
+		_ordered_map_ids.append(String(map_id))
+	_ordered_map_ids.sort()
 
 
 static func get_map_ids() -> Array[String]:
-	var map_ids: Array[String] = []
-	for map_id in MAP_REGISTRY.keys():
-		map_ids.append(String(map_id))
-	map_ids.sort()
-	return map_ids
+	_ensure_loaded()
+	return _ordered_map_ids.duplicate()
 
 
 static func get_map_entries() -> Array:
+	_ensure_loaded()
 	var entries: Array = []
-	for map_id in get_map_ids():
-		var entry: Dictionary = MAP_REGISTRY[map_id]
+	for map_id in _ordered_map_ids:
+		var entry: Dictionary = _map_registry[map_id]
 		if not bool(entry.get("is_formal", true)):
 			continue
 		var display_name := String(entry.get("display_name", map_id))
@@ -54,66 +72,49 @@ static func get_map_entries() -> Array:
 
 
 static func get_default_map_id() -> String:
-	for map_id in get_map_ids():
-		if bool(MAP_REGISTRY[map_id].get("is_default", false)):
-			return map_id
-	var map_ids := get_map_ids()
-	if map_ids.is_empty():
+	_ensure_loaded()
+	if _ordered_map_ids.is_empty():
 		return ""
-	return map_ids[0]
+	return _ordered_map_ids[0]
 
 
 static func has_map(map_id: String) -> bool:
-	return MAP_REGISTRY.has(map_id)
+	_ensure_loaded()
+	return _map_registry.has(map_id)
 
 
-static func get_map_def_path(map_id: String) -> String:
-	if not MAP_REGISTRY.has(map_id):
-		return ""
-	return String(MAP_REGISTRY[map_id].get("def_path", ""))
+static func get_map_def_path(_map_id: String) -> String:
+	return ""
 
 
 static func get_map_path(map_id: String) -> String:
-	if not MAP_REGISTRY.has(map_id):
+	_ensure_loaded()
+	if not has_map(map_id):
 		return ""
-	var resource_path := String(MAP_REGISTRY[map_id].get("resource_path", ""))
-	if not resource_path.is_empty():
-		return resource_path
-	return get_map_def_path(map_id)
+	return String(_map_registry[map_id].get("resource_path", ""))
 
 
 static func get_map_metadata(map_id: String) -> Dictionary:
+	_ensure_loaded()
 	if map_id.is_empty() or not has_map(map_id):
 		return {}
-	var entry: Dictionary = MAP_REGISTRY[map_id]
-	var metadata: Dictionary = {}
-	if String(entry.get("resource_path", "")).ends_with(".tres"):
-		var map_resource := load(String(entry.get("resource_path", "")))
-		if map_resource != null and map_resource is MapResource:
-			metadata = (map_resource as MapResource).to_metadata()
-	if metadata.is_empty():
-		metadata = _load_map_def_config(map_id)
-	if metadata.is_empty():
+	var entry: Dictionary = _map_registry[map_id]
+	var resource_path := String(entry.get("resource_path", ""))
+	if resource_path.is_empty():
 		return {}
+	var map_resource := load(resource_path)
+	if map_resource == null or not map_resource is MapResource:
+		return {}
+	var metadata := (map_resource as MapResource).to_metadata()
 	metadata["id"] = map_id
 	metadata["display_name"] = String(entry.get("display_name", metadata.get("display_name", map_id)))
-	metadata["resource_path"] = String(entry.get("resource_path", ""))
-	metadata["def_path"] = String(entry.get("def_path", ""))
+	metadata["resource_path"] = resource_path
+	metadata["def_path"] = ""
 	metadata["is_formal"] = bool(entry.get("is_formal", true))
 	metadata["debug_only"] = bool(entry.get("debug_only", false))
 	return metadata
 
 
-static func _load_map_def_config(map_id: String) -> Dictionary:
-	if map_id.is_empty() or not has_map(map_id):
-		return {}
-	var def_path := get_map_def_path(map_id)
-	if def_path.is_empty():
-		return {}
-	var script := load(def_path)
-	if script == null or not script.has_method("build"):
-		return {}
-	var built_config = script.build()
-	if built_config is Dictionary:
-		return (built_config as Dictionary).duplicate(true)
-	return {}
+static func _ensure_loaded() -> void:
+	if _map_registry.is_empty():
+		load_all()

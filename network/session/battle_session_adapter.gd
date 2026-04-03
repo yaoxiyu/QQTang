@@ -2,7 +2,7 @@ extends Node
 
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const LocalLoopbackTransportScript = preload("res://network/transport/local_loopback_transport.gd")
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -556,7 +556,7 @@ func _resolve_match_duration_ticks(config: BattleStartConfig) -> int:
 		return DEFAULT_MATCH_DURATION_TICKS
 	if int(config.match_duration_ticks) > 0:
 		return int(config.match_duration_ticks)
-	var rule_config := RuleLoaderScript.load_rule_config(String(config.rule_set_id))
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(String(config.rule_set_id))
 	if rule_config.is_empty():
 		push_error("Failed to load rule config: %s" % String(config.rule_set_id))
 		return DEFAULT_MATCH_DURATION_TICKS
@@ -577,7 +577,7 @@ func _validate_runtime_start_config(config: BattleStartConfig) -> bool:
 	if map_config.is_empty():
 		push_error("Failed to load map config: %s" % map_id)
 		return false
-	var rule_config := RuleLoaderScript.load_rule_config(rule_id)
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(rule_id)
 	if rule_config.is_empty():
 		push_error("Failed to load rule config: %s" % rule_id)
 		return false

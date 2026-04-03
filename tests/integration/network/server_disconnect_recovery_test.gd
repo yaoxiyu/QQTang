@@ -81,7 +81,7 @@ func _test_disconnect_aborts_match_and_recovers_room() -> bool:
 func _seed_room_state(room_service: ServerRoomService) -> void:
 	room_service.room_state.ensure_room("disconnect_recovery_room", 2)
 	room_service.room_state.upsert_member(2, "Host", "hero_default")
-	room_service.room_state.upsert_member(3, "Client", "hero_runner")
+	room_service.room_state.upsert_member(3, "Client", "hero_default")
 	room_service.room_state.set_selection("default_map", "classic")
 	room_service.room_state.set_ready(2, true)
 	room_service.room_state.set_ready(3, true)

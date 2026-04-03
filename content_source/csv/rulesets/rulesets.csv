@@ -1,0 +1,3 @@
+rule_set_id,time_limit_sec,round_count,respawn_enabled,friendly_fire,sudden_death_enabled,item_drop_profile_id,score_policy
+ruleset_classic,180,1,false,false,true,,last_survivor
+ruleset_quick_match,120,1,false,false,true,,last_survivor

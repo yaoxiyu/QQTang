@@ -1,0 +1,3 @@
+bubble_skin_id,display_name,overlay_scene_path,icon_path,tags
+bubble_skin_gold,黄金泡泡,res://scenes/skins/bubbles/gold_bubble_overlay.tscn,res://assets/ui/bubbles/gold_skin_icon.png,gold
+bubble_skin_ice,冰霜泡泡,res://scenes/skins/bubbles/ice_bubble_overlay.tscn,res://assets/ui/bubbles/ice_skin_icon.png,ice

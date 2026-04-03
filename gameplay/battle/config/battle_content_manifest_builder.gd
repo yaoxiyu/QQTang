@@ -2,7 +2,7 @@ class_name BattleContentManifestBuilder
 extends RefCounted
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const BattleItemConfigBuilderScript = preload("res://gameplay/battle/config/battle_item_config_builder.gd")
 const BattleBubbleContentBuilderScript = preload("res://gameplay/battle/config/battle_bubble_content_builder.gd")
@@ -17,7 +17,7 @@ func build_for_start_config(start_config: BattleStartConfig) -> Dictionary:
 	if start_config == null:
 		return {}
 	var map_metadata := MapCatalogScript.get_map_metadata(String(start_config.map_id))
-	var rule_metadata := RuleCatalogScript.get_rule_metadata(String(start_config.rule_set_id))
+	var rule_metadata := RuleSetCatalogScript.get_rule_metadata(String(start_config.rule_set_id))
 	var item_config := _item_config_builder.build_for_start_config(start_config)
 	var mode_metadata := _mode_content_builder.build_for_mode_id(String(start_config.mode_id))
 	var characters := _build_character_entries(start_config)
@@ -27,7 +27,7 @@ func build_for_start_config(start_config: BattleStartConfig) -> Dictionary:
 
 func build_preview_manifest(map_id: String, rule_set_id: String) -> Dictionary:
 	var map_metadata := MapCatalogScript.get_map_metadata(map_id)
-	var rule_metadata := RuleCatalogScript.get_rule_metadata(rule_set_id)
+	var rule_metadata := RuleSetCatalogScript.get_rule_metadata(rule_set_id)
 	var fallback_item_profile_id := String(map_metadata.get("item_spawn_profile_id", "default_items"))
 	var item_config := _item_config_builder.build_for_rule(rule_set_id, fallback_item_profile_id)
 	return _build_manifest(map_metadata, rule_metadata, {}, item_config, [], [], map_id, rule_set_id, "")

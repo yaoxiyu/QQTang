@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://cq0j6qv3r8w0r"]
+
+[node name="GoldBubbleOverlay" type="Node2D"]
+
+[node name="BubbleRing" type="Polygon2D" parent="."]
+color = Color(1, 0.839216, 0.25098, 0.5)
+polygon = PackedVector2Array(0, -18, 13, -13, 18, 0, 13, 13, 0, 18, -13, 13, -18, 0, -13, -13)
+
+[node name="BubbleCore" type="Polygon2D" parent="."]
+color = Color(1, 0.94902, 0.654902, 0.22)
+polygon = PackedVector2Array(0, -12, 9, -9, 12, 0, 9, 9, 0, 12, -9, 9, -12, 0, -9, -9)

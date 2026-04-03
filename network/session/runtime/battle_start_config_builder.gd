@@ -4,8 +4,7 @@ extends RefCounted
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
-const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
@@ -35,7 +34,7 @@ func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 		return false
 	if not MapCatalogScript.has_map(snapshot.selected_map_id):
 		return false
-	if not RuleCatalogScript.has_rule(snapshot.rule_set_id):
+	if not RuleSetCatalogScript.has_rule(snapshot.rule_set_id):
 		return false
 	return true
 
@@ -238,7 +237,7 @@ func _load_map_metadata(map_id: String) -> Dictionary:
 
 
 func _load_rule_metadata(rule_set_id: String) -> Dictionary:
-	return RuleLoaderScript.load_rule_config(rule_set_id)
+	return RuleSetCatalogScript.get_rule_metadata(rule_set_id)
 
 
 func _resolve_match_duration_ticks(rule_set_id: String) -> int:

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BubbleSkinDef" format=3 uid="uid://b17mi6josmk0u"]
+
+[ext_resource type="PackedScene" uid="uid://cq0j6qv3r8w0r" path="res://scenes/skins/bubbles/gold_bubble_overlay.tscn" id="1_en0uy"]
+[ext_resource type="Texture2D" uid="uid://56phy048t6og" path="res://assets/ui/bubbles/gold_skin_icon.png" id="1_uoxfj"]
+[ext_resource type="Script" uid="uid://mo5jvrmxrwha" path="res://content/bubble_skins/defs/bubble_skin_def.gd" id="2_uoxfj"]
+
+[resource]
+script = ExtResource("2_uoxfj")
+bubble_skin_id = "bubble_skin_gold"
+display_name = "黄金泡泡"
+overlay_scene = ExtResource("1_en0uy")
+icon = ExtResource("1_uoxfj")
+tags = PackedStringArray("gold")

@@ -4,7 +4,7 @@ extends Node
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
@@ -103,7 +103,7 @@ func _handle_update_selection(message: Dictionary) -> void:
 			"user_message": "Only the host can change map or rule selection",
 		})
 		return
-	if not MapCatalogScript.has_map(String(message.get("map_id", ""))) or not RuleCatalogScript.has_rule(String(message.get("rule_set_id", ""))):
+	if not MapCatalogScript.has_map(String(message.get("map_id", ""))) or not RuleSetCatalogScript.has_rule(String(message.get("rule_set_id", ""))):
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_SELECTION_INVALID",

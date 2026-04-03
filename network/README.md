@@ -3,26 +3,11 @@
 ## 目录定位
 正式联机实现主目录。
 
-## 职责范围
-- runtime
-- session
-- transport
-- 错误路由与 runtime 诊断
+## 子目录职责
+- `runtime/`：联机运行期配置、bootstrap 相关运行对象。
+- `session/`：正式会话控制、开战协调、battle start config 构建。
+- `transport/`：网络传输抽象、协议调试与 transport 支撑。
 
-## 允许放入
-- 正式联机实现
-- 网络 bootstrap/config/diagnostics
-
-## 禁止放入
-- 把正式逻辑写回 gameplay legacy 层
-- UI 场景主流程
-- 与联机无关的临时脚本
-
-## 对外依赖
-- 可依赖 `res://content/`、`res://gameplay/battle/`
-- 不反向依赖 gameplay legacy wrapper
-
-## 维护约束
-- 联机正式逻辑以此为主
-- runtime/session/transport 分层明确
-- 路径命名长期稳定
+## 维护规则
+- 新增正式联机逻辑优先进入本层。
+- 不把正式实现继续写回 `gameplay/network/` 的 legacy wrapper。

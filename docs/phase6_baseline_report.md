@@ -244,20 +244,13 @@ Phase6 snapshot entries:
   - display name: `Default Hero`
   - legacy compatible resource path: `res://content/characters/resources/default_hero.tres`
   - default: `true`
-- `hero_runner`
-  - display name: `Runner Hero`
-  - legacy compatible resource path: `res://content/characters/resources/runner_hero.tres`
 
 Current Phase7 formalized resource paths:
 
 - `hero_default`
-  - def: `res://content/characters/resources/hero_default_def.tres`
-  - stats: `res://content/characters/resources/hero_default_stats.tres`
-  - presentation: `res://content/characters/resources/hero_default_presentation.tres`
-- `hero_runner`
-  - def: `res://content/characters/resources/hero_runner_def.tres`
-  - stats: `res://content/characters/resources/hero_runner_stats.tres`
-  - presentation: `res://content/characters/resources/hero_runner_presentation.tres`
+  - def: `res://content/characters/data/character/hero_default_def.tres`
+  - stats: `res://content/characters/data/stats/hero_default_stats.tres`
+  - presentation: `res://content/characters/data/presentation/hero_default_presentation.tres`
 
 Current output structure:
 
@@ -281,7 +274,9 @@ Current Phase7 behavior:
   - `CharacterDef`
   - `CharacterStatsDef`
   - `CharacterPresentationDef`
-- Legacy `CharacterResource` path is compatibility-only and must not be treated as the long-term source of truth
+- Historical note:
+  - `CharacterResource` was a temporary compatibility layer during the early Phase7 migration
+  - It has been removed from the current runtime chain and must not be treated as an active dependency
 
 Baseline conclusion:
 

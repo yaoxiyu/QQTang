@@ -21,6 +21,10 @@ tests/**/reports/
 tests/**/*.json.tmp
 tests/**/*.txt.tmp
 
+# Content CSV import noise
+content_source/csv/**/*.translation
+content_source/csv/**/*.csv.import
+
 # OS junk
 .DS_Store
 Thumbs.db

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterPresentationDef" format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/actors/characters/character_body_base.tscn" id="1"]
+[ext_resource type="Script" path="res://content/characters/defs/character_presentation_def.gd" id="2"]
+
+[resource]
+script = ExtResource("2")
+presentation_id = "char_pres_mage"
+display_name = "法师"
+body_scene = ExtResource("1")
+idle_anim = "idle"
+run_anim = "run"
+dead_anim = "dead"
+skin_anchor_slots = PackedStringArray("body_overlay", "head_overlay", "back_overlay", "front_overlay")
+actor_scene_path = "res://scenes/actors/characters/character_body_base.tscn"
+content_hash = "char_pres_char_pres_mage_csv_v1"
+metadata/_custom_type_script = "res://content/characters/defs/character_presentation_def.gd"

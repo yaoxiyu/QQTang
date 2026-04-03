@@ -2,8 +2,8 @@ class_name BubbleLoader
 extends RefCounted
 
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleStyleDefScript = preload("res://content/bubbles/resources/bubble_style_def.gd")
-const BubbleGameplayDefScript = preload("res://content/bubbles/resources/bubble_gameplay_def.gd")
+const BubbleStyleDefScript = preload("res://content/bubbles/defs/bubble_style_def.gd")
+const BubbleGameplayDefScript = preload("res://content/bubbles/defs/bubble_gameplay_def.gd")
 
 
 static func load_style(bubble_id: String) -> BubbleStyleDef:

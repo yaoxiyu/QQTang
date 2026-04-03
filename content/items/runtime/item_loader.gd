@@ -2,7 +2,7 @@ class_name ItemLoader
 extends RefCounted
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
-const ItemDefinitionScript = preload("res://content/items/resources/item_definition.gd")
+const ItemDefinitionScript = preload("res://content/items/defs/item_definition.gd")
 
 
 static func load_item_definition(item_id: String) -> Dictionary:

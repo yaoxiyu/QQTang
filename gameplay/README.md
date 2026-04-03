@@ -1,28 +1,16 @@
 # gameplay
 
 ## 目录定位
-玩法逻辑与仿真装配层。
+玩法装配、战斗运行时、仿真与 legacy 兼容层。
 
-## 职责范围
-- battle 启动装配
-- 配置定义
-- simulation 主体
-- legacy wrapper 容器
+## 子目录职责
+- `battle/`：战斗启动装配、battle runtime、与内容/表现桥接相关的 gameplay 侧逻辑。
+- `simulation/`：离散仿真核心与运行时仿真支撑。
+- `front/`：前台玩法态数据，例如房间选择状态与前台 flow 数据。
+- `network/`：legacy wrapper / compatibility 层，只保留旧接口适配与转发。
+- `config/`：仍被旧链路使用的配置层与历史配置定义。
 
-## 允许放入
-- gameplay 侧 battle/config/simulation 逻辑
-- 显式 compatibility 包装层
-
-## 禁止放入
-- UI 流程主逻辑
-- 编辑器缓存
-- 调试日志产物
-
-## 对外依赖
-- 可依赖 `res://content/` 与正式 `res://network/`
-- 不承载 presentation UI 主流程
-
-## 维护约束
-- 正式实现与 legacy wrapper 分区明确
-- 仿真层不可被 Node/UI 反向侵入
-- 不新增 phase 型目录
+## 维护规则
+- 仿真层不被 Node/UI 反向侵入。
+- 正式联机实现优先进入 `res://network/`，不是这里。
+- 新逻辑优先落到 battle / simulation / front 的清晰职责边界里。

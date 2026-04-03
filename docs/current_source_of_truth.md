@@ -18,7 +18,7 @@
   - Battle 正式链路已经从测试沙盒走向正式场景
   - Room / Loading / Battle 已形成前台链路
   - 网络层已开始抽象出 transport / bootstrap / runtime 结构
-  - 地图资源化已经开始落地（MapCatalog / MapLoader / MapResource）
+  - 内容资源化已经从地图扩展到角色、泡泡、模式、皮肤、规则集与内容管线
 
 当前真正需要做的，不是推翻重写，而是：
 
@@ -82,9 +82,12 @@
 - `res://network/...`
 - `res://gameplay/battle/...`
 - `res://presentation/...`
-- `res://content/maps/...`
+- `res://content/...`
+- `res://content_source/...`
 - `res://scenes/front/...`
 - `res://scenes/battle/...`
+- `res://assets/...`
+- `res://tools/content_pipeline/...`
 - `res://tests/unit/...`
 - `res://tests/integration/...`
 - `res://tests/contracts/...`
@@ -190,23 +193,91 @@
 - 不允许反向侵入仿真层数据设计
 - 表现层消费 tick/result，而不是决定玩法真相
 
-## 3.5 `res://content/maps/`
+## 3.5 `res://content/`
 
-**定位：地图资源真相源**
+**定位：正式内容定义、内容数据资产与运行时内容索引层**
 
 职责包括：
 
-- map catalog
-- map loader
-- map resource
-- 地图资源注册
-- 后续扩图的唯一资源入口
+- 角色、泡泡、模式、地图、道具、Tile 等内容定义
+- 角色皮肤、泡泡皮肤、地图主题、规则集等新增内容类型
+- catalog / loader / builder / 自动扫描索引
+- 正式运行时消费的 `.tres` 资产真相源
+
+当前子目录应理解为：
+
+- `characters/`
+  - 角色本体定义、数值、表现数据与运行时加载
+- `character_skins/`
+  - 角色皮肤定义、生成产物与自动扫描 catalog
+- `bubbles/`
+  - 泡泡样式与玩法配置
+- `bubble_skins/`
+  - 泡泡皮肤定义、生成产物与自动扫描 catalog
+- `maps/`
+  - 地图内容真相源
+- `map_themes/`
+  - 地图主题定义与环境 scene 引用
+- `rules/`
+  - 旧规则目录，保留给当前仍在使用的旧链路
+- `rulesets/`
+  - 新规则集定义、生成产物与自动扫描 catalog
+- `modes/`
+  - 玩法模式定义与运行时装配
+- `tiles/`
+  - 地图块定义与表现配置
+- `items/`
+  - 道具定义与道具数据
+
+统一目录规则：
+
+- `defs/`
+  - 放资源定义脚本 `.gd`
+- `data/`
+  - 放正式内容资产 `.tres`
+- `catalog/`
+  - 放索引、注册与自动扫描入口
+- `runtime/`
+  - 放加载器、builder 与运行时装配逻辑
+- `resources/`
+  - 仅允许保留尚未迁移完的 legacy 资源，不再作为新正式结构
 
 约束：
 
-- 新地图进入工程时，必须先进入此目录体系
-- 不允许继续让 Room UI 直接硬编码地图列表作为长期方案
-- 地图 ID、版本、资源、hash 等信息都应由该体系统一管理
+- 新内容进入工程时，必须优先进入该目录体系
+- 不允许继续让 Room UI 或 battle 启动脚本长期硬编码内容列表
+- 内容 ID、版本、hash、默认项等信息由本层统一管理
+
+## 3.5.1 `res://content_source/`
+
+**定位：内容生产源文件目录**
+
+职责包括：
+
+- `csv/` 策划维护源
+- 供内容管线读取的原始输入文件
+
+约束：
+
+- 这里是生产输入，不是运行时直接消费的正式资产目录
+- 运行时正式资产必须落到 `res://content/*/data/`
+
+## 3.5.2 `res://tools/content_pipeline/`
+
+**定位：内容管线工具目录**
+
+职责包括：
+
+- CSV 解析基类
+- generator
+- validator
+- report
+- editor 运行入口
+
+约束：
+
+- 这里只放离线内容工具，不承载正式游戏运行逻辑
+- 生成结果应写回 `res://content/*/data/`
 
 ## 3.6 `res://scenes/front/`
 
@@ -224,6 +295,32 @@
 - 不负责伪造 battle 规则真相
 - debug 自举只能是显式可控能力，不能作为默认正式行为
 - `room_scene.tscn` 是当前唯一正式客户端房间入口
+
+## 3.6.2 `res://scenes/`
+
+**定位：项目级可实例化场景目录**
+
+职责包括：
+
+- `front/`
+  - 前台正式场景
+- `battle/`
+  - 正式 battle 场景
+- `network/`
+  - Dedicated Server 与网络调试场景
+- `sandbox/`
+  - 历史验证或实验场景
+- `actors/`
+  - 角色、泡泡等可实例化本体 scene
+- `skins/`
+  - 角色皮肤、泡泡皮肤等 overlay scene
+- `map_themes/`
+  - 地图主题环境 scene
+
+约束：
+
+- 可实例化节点树放在这里，不放进 `res://content/`
+- 正式入口与调试/实验场景必须明确区分
 
 ## 3.6.1 `res://scenes/network/`
 
@@ -259,6 +356,21 @@
 - 不再按历史阶段拆分目录
 - 测试运行产物、日志、appdata 不入库
 - 正式业务实现不得反向依赖测试目录
+
+## 3.8 `res://assets/`
+
+**定位：原始静态资产目录**
+
+职责包括：
+
+- UI 图标
+- 头像
+- 原始贴图等非脚本静态资源
+
+约束：
+
+- 这里放原始资源文件，不承载内容 id 真相
+- 若某类资产参与正式内容装配，仍需要在 `res://content/` 层有对应数据定义
 
 ---
 

@@ -2,14 +2,14 @@ class_name RoomServerState
 extends RefCounted
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 var room_id: String = ""
 var owner_peer_id: int = 0
 var max_players: int = 8
 var selected_map_id: String = MapCatalogScript.get_default_map_id()
-var selected_rule_id: String = RuleCatalogScript.get_default_rule_id()
+var selected_rule_id: String = RuleSetCatalogScript.get_default_rule_id()
 var members: Dictionary = {}
 var ready_map: Dictionary = {}
 
@@ -61,7 +61,7 @@ func toggle_ready(peer_id: int) -> bool:
 
 func set_selection(map_id: String, rule_id: String) -> void:
 	selected_map_id = map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id()
-	selected_rule_id = rule_id if not rule_id.is_empty() else RuleCatalogScript.get_default_rule_id()
+	selected_rule_id = rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 
 
 func can_start() -> bool:

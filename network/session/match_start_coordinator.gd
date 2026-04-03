@@ -148,8 +148,11 @@ func _sync_builder_settings() -> void:
 	_builder.next_match_sequence = next_match_sequence
 	_builder.forced_seed = forced_seed
 	var app_runtime := _resolve_app_runtime()
-	if app_runtime != null and app_runtime.runtime_config != null and app_runtime.runtime_config.client_connection != null:
-		var connection = app_runtime.runtime_config.client_connection
+	var runtime_config = null
+	if app_runtime != null:
+		runtime_config = app_runtime.get("runtime_config")
+	if runtime_config != null and runtime_config.client_connection != null:
+		var connection = runtime_config.client_connection
 		_builder.selected_mode_id = String(connection.selected_mode_id)
 		_builder.local_player_bubble_style_id = String(connection.selected_bubble_style_id)
 	else:
@@ -160,7 +163,12 @@ func _sync_builder_settings() -> void:
 func _resolve_app_runtime() -> Node:
 	if get_parent() == null:
 		return null
-	return get_parent().get_parent()
+	var candidate := get_parent().get_parent()
+	if candidate == null:
+		return null
+	if candidate.get("runtime_config") == null:
+		return null
+	return candidate
 
 
 func _sync_validator_settings() -> void:

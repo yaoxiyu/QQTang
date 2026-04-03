@@ -3,7 +3,7 @@ extends RefCounted
 
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 const ERROR_CODE_NULL_CONFIG := "MATCH_CONFIG_VALIDATE_NULL"
@@ -28,7 +28,7 @@ func validate_start_config(config: BattleStartConfig) -> Dictionary:
 			"warnings": [],
 		}
 
-	var rule_config := RuleLoaderScript.load_rule_config(config.rule_set_id)
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(config.rule_set_id)
 	var expected_rule_version := int(rule_config.get("version", expected_gameplay_rule_version))
 	var validation := config.validate({
 		"expected_protocol_version": expected_protocol_version,
@@ -108,7 +108,7 @@ func _validate_ds_contract(config: BattleStartConfig, errors: Array) -> void:
 func _validate_content_contract(config: BattleStartConfig, errors: Array) -> void:
 	if config == null:
 		return
-	var rule_config := RuleLoaderScript.load_rule_config(config.rule_set_id)
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(config.rule_set_id)
 	if rule_config.is_empty():
 		errors.append("rule_set_id is invalid: %s" % config.rule_set_id)
 	else:

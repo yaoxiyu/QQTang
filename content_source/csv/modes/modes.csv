@@ -1,0 +1,3 @@
+mode_id,display_name,rule_set_id,min_player_count,max_player_count,allow_character_select,allow_bubble_select,allow_skin_select,allow_map_select,hud_layout_id
+mode_classic,经典模式,ruleset_classic,2,4,true,true,true,true,default
+mode_quick_match,快速模式,ruleset_quick_match,2,4,true,true,true,true,default

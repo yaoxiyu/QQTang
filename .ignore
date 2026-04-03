@@ -1,0 +1,3 @@
+# Content CSV import noise
+content_source/csv/**/*.translation
+content_source/csv/**/*.csv.import

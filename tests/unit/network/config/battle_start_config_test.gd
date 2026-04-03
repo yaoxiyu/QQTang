@@ -5,7 +5,7 @@ const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_sta
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
 func _ready() -> void:
@@ -109,9 +109,9 @@ func _test_invalid_spawn_assignment_fails_validation() -> bool:
 
 func _make_valid_config() -> BattleStartConfig:
 	var metadata := MapLoaderScript.load_map_metadata("default_map")
-	var rule_metadata := RuleCatalogScript.get_rule_metadata("classic")
+	var rule_metadata := RuleSetCatalogScript.get_rule_metadata("ruleset_classic")
 	var host_character_metadata := CharacterCatalogScript.get_character_metadata("hero_default")
-	var client_character_metadata := CharacterCatalogScript.get_character_metadata("hero_runner")
+	var client_character_metadata := CharacterCatalogScript.get_character_metadata("hero_default")
 	var config := BattleStartConfigScript.new()
 	config.protocol_version = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
 	config.gameplay_rule_version = int(rule_metadata.get("version", BattleStartConfigScript.DEFAULT_GAMEPLAY_RULE_VERSION))
@@ -121,7 +121,7 @@ func _make_valid_config() -> BattleStartConfig:
 	config.map_id = "default_map"
 	config.map_version = int(metadata.get("version", 1))
 	config.map_content_hash = String(metadata.get("content_hash", "hash"))
-	config.rule_set_id = "classic"
+	config.rule_set_id = "ruleset_classic"
 	config.battle_seed = 12345
 	config.start_tick = 0
 	config.match_duration_ticks = 60
@@ -144,7 +144,7 @@ func _make_valid_config() -> BattleStartConfig:
 			"player_name": "Client",
 			"slot_index": 1,
 			"spawn_slot": 1,
-			"character_id": "hero_runner",
+			"character_id": "hero_default",
 		},
 	]
 	config.players = config.player_slots.duplicate(true)
@@ -156,7 +156,7 @@ func _make_valid_config() -> BattleStartConfig:
 		},
 		{
 			"peer_id": 2,
-			"character_id": "hero_runner",
+			"character_id": "hero_default",
 			"content_hash": String(client_character_metadata.get("content_hash", "")),
 		},
 	]
@@ -186,7 +186,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	snapshot.room_id = "config_test_room"
 	snapshot.owner_peer_id = 1
 	snapshot.selected_map_id = "default_map"
-	snapshot.rule_set_id = "classic"
+	snapshot.rule_set_id = "ruleset_classic"
 	snapshot.all_ready = true
 	snapshot.max_players = 2
 
@@ -203,7 +203,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.player_name = "Client"
 	client.ready = true
 	client.slot_index = 1
-	client.character_id = "hero_runner"
+	client.character_id = "hero_default"
 	snapshot.members.append(client)
 	return snapshot
 

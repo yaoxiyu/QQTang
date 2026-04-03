@@ -2,8 +2,8 @@ class_name ModeLoader
 extends RefCounted
 
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
-const ModeDefScript = preload("res://content/modes/resources/mode_def.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const ModeDefScript = preload("res://content/modes/defs/mode_def.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 
 
@@ -37,7 +37,7 @@ static func load_metadata(mode_id: String) -> Dictionary:
 		"hud_layout_id": mode_def.hud_layout_id,
 		"content_hash": mode_def.content_hash,
 	}
-	var rule_metadata := RuleCatalogScript.get_rule_metadata(String(metadata.get("rule_set_id", "")))
+	var rule_metadata := RuleSetCatalogScript.get_rule_metadata(String(metadata.get("rule_set_id", "")))
 	if not rule_metadata.is_empty():
 		metadata["rule_display_name"] = String(rule_metadata.get("display_name", ""))
 	var map_metadata := MapCatalogScript.get_map_metadata(String(metadata.get("default_map_id", "")))

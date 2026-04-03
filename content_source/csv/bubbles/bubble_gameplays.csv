@@ -1,0 +1,3 @@
+bubble_gameplay_id,fuse_ticks,move_speed,can_be_kicked,chain_reaction_enabled
+bubble_gameplay_default,180,0.0,false,true
+bubble_gameplay_round,180,0.0,true,true

@@ -50,7 +50,7 @@ text = "Connect"
 layout_mode = 2
 text = "Create/Join Room"
 
-[node name="ServerRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=905948189]
+[node name="ServerRow" type="HFlowContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=905948189]
 layout_mode = 2
 
 [node name="HostLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1005948189]
@@ -79,7 +79,7 @@ text = "Room"
 layout_mode = 2
 placeholder_text = "room_id(optional)"
 
-[node name="PlayerRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1605948189]
+[node name="PlayerRow" type="HFlowContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1605948189]
 layout_mode = 2
 
 [node name="PlayerNameLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1705948189]
@@ -87,7 +87,7 @@ layout_mode = 2
 text = "Player"
 
 [node name="PlayerNameInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1805948189]
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 placeholder_text = "Player1"
 
@@ -96,7 +96,15 @@ layout_mode = 2
 text = "Character"
 
 [node name="CharacterSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=2005948189]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+layout_mode = 2
+text = "Skin"
+
+[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="BubbleLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1485132415]
@@ -104,7 +112,15 @@ layout_mode = 2
 text = "Bubble"
 
 [node name="BubbleSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1004238987]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+layout_mode = 2
+text = "Bubble Skin"
+
+[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
 [node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1617999413]
@@ -121,7 +137,7 @@ text = "Ready"
 layout_mode = 2
 text = "Start Match"
 
-[node name="SelectorRow" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=875901536]
+[node name="SelectorRow" type="HFlowContainer" parent="RoomRoot/MainLayout" unique_id=875901536]
 layout_mode = 2
 
 [node name="MapLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1179058878]
@@ -129,7 +145,7 @@ layout_mode = 2
 text = "Map"
 
 [node name="MapSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1724911565]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 
 [node name="RuleLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1790361389]
@@ -137,7 +153,7 @@ layout_mode = 2
 text = "Rule"
 
 [node name="RuleSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=782230836]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 
 [node name="GameModeLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=533009439]
@@ -145,7 +161,7 @@ layout_mode = 2
 text = "Game Mode"
 
 [node name="GameModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=152762671]
-custom_minimum_size = Vector2(220, 0)
+custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 
 [node name="SelectionPreviewPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1792024101]
@@ -169,9 +185,29 @@ autowrap_mode = 3
 layout_mode = 2
 autowrap_mode = 3
 
+[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+stretch_mode = 5
+expand_mode = 1
+
 [node name="BubblePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=87503918]
 layout_mode = 2
 autowrap_mode = 3
+
+[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+stretch_mode = 5
+expand_mode = 1
 
 [node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=64871967]
 layout_mode = 2

@@ -1,7 +1,7 @@
 extends Node
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
@@ -113,7 +113,7 @@ func can_start_match() -> bool:
 		return false
 	if not MapCatalogScript.has_map(_resolve_map_id()):
 		return false
-	if not RuleCatalogScript.has_rule(_resolve_rule_set_id()):
+	if not RuleSetCatalogScript.has_rule(_resolve_rule_set_id()):
 		return false
 	return _are_all_members_ready()
 
@@ -140,7 +140,7 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 			"error_code": "ROOM_MEMBER_NOT_READY",
 			"user_message": "At least two players are required to start",
 		}
-	if not MapCatalogScript.has_map(_resolve_map_id()) or not RuleCatalogScript.has_rule(_resolve_rule_set_id()):
+	if not MapCatalogScript.has_map(_resolve_map_id()) or not RuleSetCatalogScript.has_rule(_resolve_rule_set_id()):
 		return {
 			"error_code": "ROOM_SELECTION_INVALID",
 			"user_message": "Map or rule selection is invalid",
@@ -178,7 +178,7 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Only the host can change map or rule selection",
 		}
-	if not MapCatalogScript.has_map(map_id) or not RuleCatalogScript.has_rule(rule_set_id):
+	if not MapCatalogScript.has_map(map_id) or not RuleSetCatalogScript.has_rule(rule_set_id):
 		return {
 			"ok": false,
 			"error_code": "ROOM_SELECTION_INVALID",
@@ -254,7 +254,7 @@ func request_start_match(requester_peer_id: int) -> void:
 func set_room_selection(map_id: String, rule_set_id: String) -> void:
 	room_session.set_selection(
 		map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id(),
-		rule_set_id if not rule_set_id.is_empty() else RuleCatalogScript.get_default_rule_id()
+		rule_set_id if not rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 	)
 	_sync_runtime_context()
 	_emit_snapshot_changed()
@@ -391,7 +391,7 @@ func _resolve_map_id() -> String:
 
 
 func _resolve_rule_set_id() -> String:
-	return room_session.selected_mode if not room_session.selected_mode.is_empty() else RuleCatalogScript.get_default_rule_id()
+	return room_session.selected_mode if not room_session.selected_mode.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 
 
 func _are_all_members_ready() -> bool:
@@ -410,6 +410,3 @@ func _can_interact_in_room() -> bool:
 
 func _reassign_owner() -> void:
 	owner_peer_id = room_session.peers[0] if not room_session.peers.is_empty() else 0
-
-
-

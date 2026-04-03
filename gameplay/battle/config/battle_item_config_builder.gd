@@ -1,7 +1,7 @@
 class_name BattleItemConfigBuilder
 extends RefCounted
 
-const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 const ItemLoaderScript = preload("res://content/items/runtime/item_loader.gd")
 
@@ -52,11 +52,8 @@ func build_for_start_config(start_config: BattleStartConfig) -> Dictionary:
 
 
 func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_items") -> Dictionary:
-	var rule_config := RuleLoaderScript.load_rule_config(rule_set_id)
-	var gameplay_params: Dictionary = rule_config.get("gameplay_params", {})
-	var profile_id := String(gameplay_params.get("item_drop_profile_override", ""))
-	if profile_id.is_empty():
-		profile_id = String(rule_config.get("item_drop_profile", ""))
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(rule_set_id)
+	var profile_id := String(rule_config.get("item_drop_profile", ""))
 	if profile_id.is_empty():
 		profile_id = fallback_profile_id
 	if profile_id.is_empty():

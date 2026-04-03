@@ -1,0 +1,2 @@
+map_id,display_name,preview_image_path,width,height,layout_rows,spawn_points,supported_player_count,default_rule_set_id,theme_id
+map_classic_square,经典广场,res://ui/maps/classic_square.png,13,11,"#############;#...*...*...#;#.#.#.#.#.#.#;#...*...*...#;#.#.#.#.#.#.#;#...*...*...#;#.#.#.#.#.#.#;#...*...*...#;#.#.#.#.#.#.#;#...*...*...#;#############","1:1;11:1;1:9;11:9","2;4",ruleset_classic,map_theme_default

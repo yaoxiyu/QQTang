@@ -1,22 +1,22 @@
 class_name ItemCatalog
 extends RefCounted
 
-const ItemDefinitionScript = preload("res://content/items/resources/item_definition.gd")
+const ItemDefinitionScript = preload("res://content/items/defs/item_definition.gd")
 
 const ITEM_REGISTRY := {
 	"bomb_up": {
 		"display_name": "Bomb Up",
-		"resource_path": "res://content/items/resources/bomb_up_item.tres",
+		"resource_path": "res://content/items/data/item/bomb_up_item.tres",
 		"is_default_enabled": true,
 	},
 	"power_up": {
 		"display_name": "Power Up",
-		"resource_path": "res://content/items/resources/power_up_item.tres",
+		"resource_path": "res://content/items/data/item/power_up_item.tres",
 		"is_default_enabled": true,
 	},
 	"speed_up": {
 		"display_name": "Speed Up",
-		"resource_path": "res://content/items/resources/speed_up_item.tres",
+		"resource_path": "res://content/items/data/item/speed_up_item.tres",
 		"is_default_enabled": true,
 	},
 }

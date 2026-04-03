@@ -2,7 +2,7 @@ class_name TileLoader
 extends RefCounted
 
 const TileCatalogScript = preload("res://content/tiles/catalog/tile_catalog.gd")
-const TileDefScript = preload("res://content/tiles/resources/tile_def.gd")
+const TileDefScript = preload("res://content/tiles/defs/tile_def.gd")
 
 
 static func load_tile_def(tile_id: String) -> TileDef:

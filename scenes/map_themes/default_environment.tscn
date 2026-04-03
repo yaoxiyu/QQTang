@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://cxg8atlsqf0hr"]
+
+[node name="DefaultMapEnvironment" type="Node2D"]
+
+[node name="Backdrop" type="Polygon2D" parent="."]
+position = Vector2(168, 168)
+color = Color(0.109804, 0.145098, 0.188235, 1)
+polygon = PackedVector2Array(-240, -180, 240, -180, 240, 180, -240, 180)
+
+[node name="AmbientGlow" type="Polygon2D" parent="."]
+position = Vector2(168, 96)
+color = Color(0.215686, 0.423529, 0.596078, 0.24)
+polygon = PackedVector2Array(-120, -60, 120, -60, 120, 60, -120, 60)

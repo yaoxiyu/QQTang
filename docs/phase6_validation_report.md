@@ -37,7 +37,6 @@ Current reading note:
 - Action taken:
   - Updated the test fixture to match current formal content truth:
     - `hero_default`
-    - `hero_runner`
     - canonical rule version from `RuleCatalog`
     - formal `character_loadouts`
     - explicit listen/singleplayer ownership fields

@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://yj3o1cbi64sl"]
+
+[node name="CharacterBodyBase" type="Node2D" unique_id=2129698942]
+
+[node name="BodyRoot" type="Node2D" parent="." unique_id=1428177149]
+
+[node name="SkinAnchor_BackOverlay" type="Node2D" parent="." unique_id=1425719658]
+
+[node name="SkinAnchor_BodyOverlay" type="Node2D" parent="." unique_id=444586497]
+
+[node name="SkinAnchor_HeadOverlay" type="Node2D" parent="." unique_id=297380627]
+
+[node name="SkinAnchor_FrontOverlay" type="Node2D" parent="." unique_id=1843354208]

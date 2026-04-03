@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://dbjvrh4e7d7ku"]
+
+[node name="GoldCharacterOverlay" type="Node2D"]
+
+[node name="BodyGlow" type="Polygon2D" parent="."]
+color = Color(1, 0.843137, 0.239216, 0.35)
+polygon = PackedVector2Array(-14, -20, 14, -20, 14, 20, -14, 20)
+
+[node name="HeadGlow" type="Polygon2D" parent="."]
+position = Vector2(0, -24)
+color = Color(1, 0.909804, 0.462745, 0.45)
+polygon = PackedVector2Array(-10, -8, 10, -8, 10, 8, -10, 8)

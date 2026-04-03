@@ -1,0 +1,2 @@
+theme_id,display_name,bgm_key,environment_scene_path
+map_theme_default,默认主题,bgm_classic,res://scenes/map_themes/default_environment.tscn

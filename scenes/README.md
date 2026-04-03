@@ -1,29 +1,17 @@
 # scenes
 
 ## 目录定位
-正式场景与 sandbox 场景目录。
+项目级可实例化场景目录。
 
-## 职责范围
-- 前台场景
-- 战斗场景
-- 网络启动场景
-- sandbox 场景承载
+## 子目录职责
+- `front/`：前台正式场景。
+- `battle/`：正式 battle 场景。
+- `network/`：Dedicated Server 与网络调试相关场景。
+- `sandbox/`：仅历史/验证用途的实验场景。
+- `actors/`：角色、泡泡等可实例化本体 scene。
+- `skins/`：角色皮肤、泡泡皮肤等可挂接 overlay scene。
+- `map_themes/`：地图主题环境 scene。
 
-## 允许放入
-- 正式 `.tscn`
-- 与场景绑定的控制器
-- 场景契约相关文档引用
-
-## 禁止放入
-- 阶段性命名散落
-- 无文档的临时场景
-- 与场景无关的脚本堆积
-
-## 对外依赖
-- 可依赖 app/gameplay/network/presentation 正式路径
-- 不承担资源真相定义职责
-
-## 维护约束
-- 正式入口与 sandbox 明确分离
-- 场景重命名需同步脚本路径
-- 不再继续按 phase 命名
+## 维护规则
+- 可实例化节点树放这里，不放进 `content/`。
+- 正式入口与 debug / sandbox 场景必须明确区分。

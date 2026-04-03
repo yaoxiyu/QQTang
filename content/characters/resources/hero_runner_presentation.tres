@@ -1,7 +1,0 @@
-[gd_resource type="Resource" script_class="CharacterPresentationDef" format=3 uid="uid://bv407ycyfchwp"]
-
-[ext_resource type="Script" uid="uid://jtget13nh715" path="res://content/characters/resources/character_presentation_def.gd" id="1_xlnj3"]
-
-[resource]
-script = ExtResource("1_xlnj3")
-metadata/_custom_type_script = "uid://jtget13nh715"

@@ -4,16 +4,16 @@ extends RefCounted
 const TILE_REGISTRY := {
 	"tile_floor": {
 		"display_name": "地板",
-		"resource_path": "res://content/tiles/resources/tile_floor.tres",
+		"resource_path": "res://content/tiles/data/tile/tile_floor.tres",
 		"is_default": true,
 	},
 	"tile_solid_wall": {
 		"display_name": "实心墙",
-		"resource_path": "res://content/tiles/resources/tile_solid_wall.tres",
+		"resource_path": "res://content/tiles/data/tile/tile_solid_wall.tres",
 	},
 	"tile_breakable_brick": {
 		"display_name": "可破坏砖块",
-		"resource_path": "res://content/tiles/resources/tile_breakable_brick.tres",
+		"resource_path": "res://content/tiles/data/tile/tile_breakable_brick.tres",
 	},
 }
 

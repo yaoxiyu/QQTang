@@ -1,0 +1,3 @@
+stats_id,base_bomb_count,base_power,base_speed,extra_flags
+char_stats_knight,1,1,1.0,
+char_stats_mage,1,2,0.95,
