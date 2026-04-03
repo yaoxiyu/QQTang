@@ -1,5 +1,7 @@
 # Phase6 Validation Report
 
+> Archival note: this file records a Phase6 validation pass on 2026-04-02. It is a historical validation artifact, not a declaration of current post-Phase7 validation status.
+
 ## Date
 - 2026-04-02
 
@@ -14,6 +16,10 @@
 - Project root: `D:\code\Personal\QQTang`
 - Godot executable: `F:\Godot\Godot_v4.6.1-stable_win64_console.exe`
 - Execution mode: headless CLI test runner via `res://tests/cli/run_test.gd`
+
+Current reading note:
+- The executable path and results below reflect the validation environment at that time.
+- Treat them as historical evidence only; re-run validation in the current environment before relying on them for present-day release confidence.
 
 ## Executed Tests
 

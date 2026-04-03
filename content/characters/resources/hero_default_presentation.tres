@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="CharacterPresentationDef" format=3 uid="uid://dwmceswh2cbpb"]
+
+[ext_resource type="Script" uid="uid://jtget13nh715" path="res://content/characters/resources/character_presentation_def.gd" id="1_neg6m"]
+
+[resource]
+script = ExtResource("1_neg6m")
+metadata/_custom_type_script = "uid://jtget13nh715"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ModeDef" format=3 uid="uid://dgctm4ck7d74q"]
+
+[ext_resource type="Script" uid="uid://cii2x7aaiv1eu" path="res://content/modes/resources/mode_def.gd" id="1_tuqp0"]
+
+[resource]
+script = ExtResource("1_tuqp0")
+mode_id = "mode_classic"
+display_name = "经典模式"
+rule_set_id = "classic"
+default_map_id = "default_map"
+content_hash = "mode_classic_v1"
+metadata/_custom_type_script = "uid://cii2x7aaiv1eu"

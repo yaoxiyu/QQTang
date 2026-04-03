@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ModeDef" format=3 uid="uid://1xs3a8fj4ac6"]
+
+[ext_resource type="Script" uid="uid://cii2x7aaiv1eu" path="res://content/modes/resources/mode_def.gd" id="1_06dxd"]
+
+[resource]
+script = ExtResource("1_06dxd")
+mode_id = "mode_quick_match"
+display_name = "快速对局"
+rule_set_id = "quick_match"
+default_map_id = "large_map"
+content_hash = "mode_quick_match_v1"
+metadata/_custom_type_script = "uid://cii2x7aaiv1eu"

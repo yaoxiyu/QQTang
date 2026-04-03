@@ -1,5 +1,7 @@
 # Cleanup Validation Report
 
+> Archival note: this report captures a past cleanup validation pass. It should not be used as the current implementation truth or current validation status without cross-checking `docs/current_source_of_truth.md` and the latest phase documents.
+
 ## 概述
 
 本报告记录本次源码整理的结构收口结果，以及最小回归验证结论。
@@ -182,3 +184,7 @@
 本次源码整理已完成结构收口、路径语义收口、旧 phase 目录移除、README 骨架补齐与关键 CLI 回归验证。
 
 在当前验证范围内，可以认为本次 cleanup 已达到“可继续开发、不会误导后续 AI / 人工维护”的阶段性目标。
+
+Current reading note:
+- The conclusion above applies to the cleanup milestone at the time of writing.
+- Later Phase7 resource-system changes may supersede specific validation details in this report.

@@ -99,6 +99,14 @@ text = "Character"
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 
+[node name="BubbleLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1485132415]
+layout_mode = 2
+text = "Bubble"
+
+[node name="BubbleSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1004238987]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
 [node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1617999413]
 layout_mode = 2
 
@@ -132,6 +140,14 @@ text = "Rule"
 custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 
+[node name="GameModeLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=533009439]
+layout_mode = 2
+text = "Game Mode"
+
+[node name="GameModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=152762671]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
 [node name="SelectionPreviewPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1792024101]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -140,14 +156,26 @@ theme_override_constants/separation = 6
 [node name="MapPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2011024101]
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
 text = "Map Preview"
+autowrap_mode = 3
 
 [node name="RulePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2111024101]
 layout_mode = 2
 size_flags_horizontal = 3
-autowrap_mode = 3
 text = "Rule Preview"
+autowrap_mode = 3
+
+[node name="CharacterPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=916113492]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="BubblePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=87503918]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=64871967]
+layout_mode = 2
+autowrap_mode = 3
 
 [node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
 layout_mode = 2

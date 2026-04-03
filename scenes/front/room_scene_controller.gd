@@ -4,7 +4,10 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
+const RoomSelectionBuilderScript = preload("res://gameplay/front/room_selection/room_selection_builder.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const ClientLaunchModeScript = preload("res://network/runtime/client_launch_mode.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
@@ -28,6 +31,8 @@ const RoomClientGatewayScript = preload("res://network/runtime/room_client_gatew
 @onready var player_name_input: LineEdit = $RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow/PlayerNameInput
 @onready var character_label: Label = $RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow/CharacterLabel
 @onready var character_selector: OptionButton = $RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow/CharacterSelector
+@onready var bubble_label: Label = $RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow/BubbleLabel
+@onready var bubble_selector: OptionButton = $RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow/BubbleSelector
 @onready var member_list: VBoxContainer = $RoomRoot/MainLayout/MemberList
 @onready var ready_button: Button = $RoomRoot/MainLayout/ActionRow/ReadyButton
 @onready var start_button: Button = $RoomRoot/MainLayout/ActionRow/StartButton
@@ -35,8 +40,13 @@ const RoomClientGatewayScript = preload("res://network/runtime/room_client_gatew
 @onready var map_selector: OptionButton = $RoomRoot/MainLayout/SelectorRow/MapSelector
 @onready var rule_label: Label = $RoomRoot/MainLayout/SelectorRow/RuleLabel
 @onready var rule_selector: OptionButton = $RoomRoot/MainLayout/SelectorRow/RuleSelector
+@onready var game_mode_label: Label = $RoomRoot/MainLayout/SelectorRow/GameModeLabel
+@onready var game_mode_selector: OptionButton = $RoomRoot/MainLayout/SelectorRow/GameModeSelector
 @onready var map_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/MapPreviewLabel
 @onready var rule_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/RulePreviewLabel
+@onready var character_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/CharacterPreviewLabel
+@onready var bubble_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/BubblePreviewLabel
+@onready var mode_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/ModePreviewLabel
 @onready var debug_label: Label = $RoomRoot/MainLayout/RoomDebugPanel/DebugLabel
 
 var _app_runtime: Node = null
@@ -109,8 +119,10 @@ func _configure_layout() -> void:
 	room_id_label.text = "Room"
 	player_name_label.text = "Player"
 	character_label.text = "Character"
+	bubble_label.text = "Bubble"
 	map_label.text = "Map"
 	rule_label.text = "Rule"
+	game_mode_label.text = "Game Mode"
 	connect_button.text = "Connect"
 	create_room_button.text = "Create/Join Room"
 	host_input.placeholder_text = "127.0.0.1"
@@ -121,16 +133,24 @@ func _configure_layout() -> void:
 	debug_label.text = "Initializing room runtime..."
 	map_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	character_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bubble_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mode_preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	map_preview_label.text = "地图预览加载中..."
 	rule_preview_label.text = "规则预览加载中..."
+	character_preview_label.text = "角色预览加载中..."
+	bubble_preview_label.text = "泡泡预览加载中..."
+	mode_preview_label.text = "模式预览加载中..."
 
 
 func _populate_selectors() -> void:
 	_suppress_selection_callbacks = true
 	_populate_mode_selector()
 	_populate_character_selector()
+	_populate_bubble_selector()
 	_populate_map_selector()
 	_populate_rule_selector()
+	_populate_game_mode_selector()
 	_suppress_selection_callbacks = false
 	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
@@ -145,6 +165,16 @@ func _populate_character_selector() -> void:
 	character_selector.clear()
 	for entry in CharacterCatalogScript.get_character_entries():
 		_add_selector_item(character_selector, String(entry.get("display_name", "")), String(entry.get("id", "")))
+
+
+func _populate_bubble_selector() -> void:
+	bubble_selector.clear()
+	for entry in BubbleCatalogScript.get_bubble_entries():
+		var bubble_id := String(entry.get("id", ""))
+		if bubble_id.is_empty():
+			continue
+		var display_name := String(entry.get("display_name", bubble_id))
+		_add_selector_item(bubble_selector, display_name, bubble_id)
 
 
 func _populate_map_selector() -> void:
@@ -165,6 +195,16 @@ func _populate_rule_selector() -> void:
 			continue
 		var display_name := String(entry.get("display_name", rule_id))
 		_add_selector_item(rule_selector, display_name, rule_id)
+
+
+func _populate_game_mode_selector() -> void:
+	game_mode_selector.clear()
+	for entry in ModeCatalogScript.get_mode_entries():
+		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
+		if mode_id.is_empty():
+			continue
+		var display_name := String(entry.get("display_name", mode_id))
+		_add_selector_item(game_mode_selector, display_name, mode_id)
 
 
 func _connect_runtime_signals() -> void:
@@ -191,6 +231,10 @@ func _connect_runtime_signals() -> void:
 		map_selector.item_selected.connect(_on_map_selected)
 	if not rule_selector.item_selected.is_connected(_on_rule_selected):
 		rule_selector.item_selected.connect(_on_rule_selected)
+	if not bubble_selector.item_selected.is_connected(_on_bubble_selected):
+		bubble_selector.item_selected.connect(_on_bubble_selected)
+	if not game_mode_selector.item_selected.is_connected(_on_game_mode_selected):
+		game_mode_selector.item_selected.connect(_on_game_mode_selected)
 	if not mode_selector.item_selected.is_connected(_on_mode_selected):
 		mode_selector.item_selected.connect(_on_mode_selected)
 	if not connect_button.pressed.is_connected(_on_connect_button_pressed):
@@ -218,6 +262,10 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 
 	_select_metadata(map_selector, snapshot.selected_map_id)
 	_select_metadata(rule_selector, snapshot.rule_set_id)
+	if game_mode_selector.item_count > 0 and game_mode_selector.selected < 0:
+		_select_metadata(game_mode_selector, String(ModeCatalogScript.get_default_mode_id()))
+	if bubble_selector.item_count > 0 and bubble_selector.selected < 0:
+		_select_metadata(bubble_selector, String(BubbleCatalogScript.get_default_bubble_id()))
 	_update_selection_preview(snapshot.selected_map_id, snapshot.rule_set_id)
 
 	var local_ready := bool(_room_controller.room_session.ready_state.get(_app_runtime.local_peer_id, false))
@@ -259,7 +307,8 @@ func _build_connection_debug_lines() -> PackedStringArray:
 	if connection != null:
 		lines.append("Authority: %s:%d" % [connection.server_host, connection.server_port])
 		lines.append("RoomHint: %s" % connection.room_id_hint)
-		lines.append("PlayerProfile: %s / %s" % [connection.player_name, connection.selected_character_id])
+		lines.append("PlayerProfile: %s / %s / %s" % [connection.player_name, connection.selected_character_id, connection.selected_bubble_style_id])
+		lines.append("GameMode: %s" % connection.selected_mode_id)
 	return lines
 
 
@@ -291,6 +340,8 @@ func _apply_runtime_config_to_ui() -> void:
 	room_id_input.text = connection.room_id_hint
 	player_name_input.text = connection.player_name
 	_select_metadata(character_selector, connection.selected_character_id)
+	_select_metadata(bubble_selector, connection.selected_bubble_style_id)
+	_select_metadata(game_mode_selector, connection.selected_mode_id)
 	_update_network_controls_for_mode(launch_mode)
 
 
@@ -310,6 +361,8 @@ func _apply_connection_config_from_ui() -> void:
 	connection.room_id_hint = room_id_input.text.strip_edges()
 	connection.player_name = player_name_input.text.strip_edges() if not player_name_input.text.strip_edges().is_empty() else "Player%d" % _app_runtime.local_peer_id
 	connection.selected_character_id = _selected_metadata(character_selector)
+	connection.selected_bubble_style_id = _selected_metadata(bubble_selector)
+	connection.selected_mode_id = _selected_metadata(game_mode_selector)
 	_update_network_controls_for_mode(selected_mode)
 
 
@@ -436,6 +489,18 @@ func _on_mode_selected(_index: int) -> void:
 		return
 	_apply_connection_config_from_ui()
 	_refresh_room(_room_controller.build_room_snapshot())
+
+
+func _on_bubble_selected(_index: int) -> void:
+	if _suppress_selection_callbacks:
+		return
+	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
+
+
+func _on_game_mode_selected(_index: int) -> void:
+	if _suppress_selection_callbacks:
+		return
+	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
 func _on_connect_button_pressed() -> void:
@@ -573,8 +638,24 @@ func _launch_mode_to_string(mode: int) -> String:
 
 
 func _update_selection_preview(map_id: String, rule_id: String) -> void:
+	var room_selection := RoomSelectionBuilderScript.build_selection_state(
+		_selected_metadata(game_mode_selector),
+		map_id,
+		rule_id,
+		[
+			{
+				"peer_id": int(_app_runtime.local_peer_id if _app_runtime != null else 1),
+				"character_id": _selected_metadata(character_selector),
+				"bubble_style_id": _selected_metadata(bubble_selector),
+				"ready": false,
+			}
+		]
+	)
 	map_preview_label.text = _build_map_preview_text(map_id)
 	rule_preview_label.text = _build_rule_preview_text(rule_id)
+	character_preview_label.text = _build_character_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("character_id", _selected_metadata(character_selector))))
+	bubble_preview_label.text = _build_bubble_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("bubble_style_id", _selected_metadata(bubble_selector))))
+	mode_preview_label.text = _build_mode_preview_text(String(room_selection.get("mode_id", _selected_metadata(game_mode_selector))), rule_id)
 
 
 func _build_map_preview_text(map_id: String) -> String:
@@ -608,3 +689,48 @@ func _build_rule_preview_text(rule_id: String) -> String:
 	if not item_brief.is_empty():
 		return "规则: %s\n%s\n%s" % [display_name, summary, item_brief]
 	return "规则: %s\n%s" % [display_name, summary]
+
+
+func _build_character_preview_text(character_id: String) -> String:
+	var character_entry := _find_entry_by_id(CharacterCatalogScript.get_character_entries(), character_id)
+	if character_entry.is_empty():
+		return "角色: %s\n暂无角色摘要" % character_id
+	return "角色: %s | 炸弹:%d 火力:%d 速度:%d" % [
+		String(character_entry.get("display_name", character_id)),
+		int(character_entry.get("base_bomb_count", 0)),
+		int(character_entry.get("base_firepower", 0)),
+		int(character_entry.get("base_move_speed", 0)),
+	]
+
+
+func _build_bubble_preview_text(bubble_id: String) -> String:
+	var bubble_entry := _find_entry_by_id(BubbleCatalogScript.get_bubble_entries(), bubble_id)
+	if bubble_entry.is_empty():
+		return "泡泡: %s\n暂无泡泡摘要" % bubble_id
+	return "泡泡: %s | 风格: %s" % [
+		String(bubble_entry.get("display_name", bubble_id)),
+		bubble_id,
+	]
+
+
+func _build_mode_preview_text(mode_id: String, rule_id: String) -> String:
+	var mode_entry := _find_entry_by_id(ModeCatalogScript.get_mode_entries(), mode_id, "mode_id")
+	if mode_entry.is_empty():
+		return "模式: %s\n暂无模式摘要" % mode_id
+	return "模式: %s | 规则: %s | 人数: %d-%d" % [
+		String(mode_entry.get("display_name", mode_id)),
+		String(mode_entry.get("rule_set_id", rule_id)),
+		int(mode_entry.get("min_player_count", 1)),
+		int(mode_entry.get("max_player_count", 4)),
+	]
+
+
+func _find_entry_by_id(entries: Array, entry_id: String, key_name: String = "id") -> Dictionary:
+	for entry in entries:
+		if not entry is Dictionary:
+			continue
+		var dict_entry: Dictionary = entry
+		var candidate_id := String(dict_entry.get(key_name, dict_entry.get("id", "")))
+		if candidate_id == entry_id:
+			return dict_entry
+	return {}

@@ -18,6 +18,8 @@ const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
 @onready var battle_meta_map_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MapNameLabel
 @onready var battle_meta_rule_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/RuleNameLabel
 @onready var battle_meta_match_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MatchMetaLabel
+@onready var battle_meta_character_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/CharacterNameLabel
+@onready var battle_meta_bubble_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/BubbleStyleLabel
 @onready var settlement_controller: SettlementController = $CanvasLayer/SettlementPopupAnchor/SettlementController
 @onready var battle_camera_controller: BattleCameraController = $BattleCameraController
 
@@ -144,6 +146,7 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		var match_id: String = _app_runtime.current_start_config.match_id if _app_runtime.current_start_config != null else ""
 		_app_runtime.room_session_controller.mark_match_started(match_id)
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
+	_apply_content_style_overrides()
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
 	battle_hud.set_local_player_entity_id(_resolve_local_player_entity_id())
 	_apply_battle_metadata()
@@ -365,25 +368,33 @@ func _apply_battle_metadata() -> void:
 		if _battle_context != null:
 			_battle_context.battle_content_manifest = manifest.duplicate(true)
 	var ui_summary: Dictionary = manifest.get("ui_summary", {})
-	var match_meta_text := "Match: %s | Profile: %s" % [
+	var local_character_display_name := _resolve_local_character_display_name(manifest, resolved_start_config)
+	var local_bubble_display_name := _resolve_local_bubble_display_name(manifest, resolved_start_config)
+	var mode_display_name := String(ui_summary.get("mode_display_name", resolved_start_config.mode_id))
+	var match_meta_text := "模式: %s | Match: %s | Profile: %s" % [
+		mode_display_name,
 		String(resolved_start_config.match_id),
 		String(ui_summary.get("item_profile_id", resolved_start_config.item_spawn_profile_id)),
 	]
 	var item_brief := String(ui_summary.get("item_brief", ""))
 	if not item_brief.is_empty():
 		match_meta_text = "%s | %s" % [match_meta_text, item_brief]
-	battle_hud.set_battle_metadata(
+	battle_hud.set_extended_battle_metadata(
 		String(ui_summary.get("map_display_name", resolved_start_config.map_id)),
 		String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id)),
-		match_meta_text
+		match_meta_text,
+		local_character_display_name,
+		local_bubble_display_name
 	)
 	var resolved_map_display_name := String(ui_summary.get("map_display_name", resolved_start_config.map_id))
 	var resolved_rule_display_name := String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id))
 	if battle_meta_panel != null:
-		battle_meta_panel.apply_metadata(
+		battle_meta_panel.apply_extended_metadata(
 			resolved_map_display_name,
 			resolved_rule_display_name,
-			match_meta_text
+			match_meta_text,
+			local_character_display_name,
+			local_bubble_display_name
 		)
 	if battle_meta_map_label != null:
 		battle_meta_map_label.text = "地图: %s" % resolved_map_display_name
@@ -391,6 +402,105 @@ func _apply_battle_metadata() -> void:
 		battle_meta_rule_label.text = "规则: %s" % resolved_rule_display_name
 	if battle_meta_match_label != null:
 		battle_meta_match_label.text = match_meta_text
+	if battle_meta_character_label != null:
+		battle_meta_character_label.text = "角色: %s" % local_character_display_name
+	if battle_meta_bubble_label != null:
+		battle_meta_bubble_label.text = "泡泡: %s" % local_bubble_display_name
+
+
+func _apply_content_style_overrides() -> void:
+	if presentation_bridge == null or _app_runtime == null or _app_runtime.current_start_config == null:
+		return
+	var player_style_by_slot: Dictionary = {}
+	var bubble_style_by_slot: Dictionary = {}
+	for loadout in _app_runtime.current_start_config.character_loadouts:
+		var peer_id := int(loadout.get("peer_id", -1))
+		var slot_index := _find_slot_index_for_peer(peer_id)
+		if slot_index < 0:
+			continue
+		player_style_by_slot[slot_index] = _resolve_character_color(String(loadout.get("character_id", "")), slot_index)
+	for loadout in _app_runtime.current_start_config.player_bubble_loadouts:
+		var peer_id := int(loadout.get("peer_id", -1))
+		var slot_index := _find_slot_index_for_peer(peer_id)
+		if slot_index < 0:
+			continue
+		bubble_style_by_slot[slot_index] = _resolve_bubble_color(String(loadout.get("bubble_style_id", "")), slot_index)
+	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
+
+
+func _find_slot_index_for_peer(peer_id: int) -> int:
+	if _app_runtime == null or _app_runtime.current_start_config == null:
+		return -1
+	for player_entry in _app_runtime.current_start_config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == peer_id:
+			return int(player_entry.get("slot_index", -1))
+	return -1
+
+
+func _resolve_character_color(character_id: String, slot_index: int) -> Color:
+	return _resolve_stable_style_color(
+		character_id,
+		[
+			Color(0.20, 0.70, 1.0, 1.0),
+			Color(1.0, 0.45, 0.25, 1.0),
+			Color(0.35, 0.90, 0.50, 1.0),
+			Color(1.0, 0.85, 0.30, 1.0),
+		],
+		slot_index
+	)
+
+
+func _resolve_bubble_color(bubble_style_id: String, slot_index: int) -> Color:
+	return _resolve_stable_style_color(
+		bubble_style_id,
+		[
+			Color(0.28, 0.52, 1.0, 1.0),
+			Color(1.0, 0.62, 0.18, 1.0),
+			Color(0.40, 0.92, 0.56, 1.0),
+			Color(1.0, 0.86, 0.30, 1.0),
+		],
+		slot_index
+	)
+
+
+func _resolve_local_character_display_name(manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
+	var local_peer_id := _resolve_local_peer_id(resolved_start_config)
+	for entry in manifest.get("characters", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			return String(entry.get("display_name", entry.get("character_id", "")))
+	if not resolved_start_config.character_loadouts.is_empty():
+		return String(resolved_start_config.character_loadouts[0].get("display_name", resolved_start_config.character_loadouts[0].get("character_id", "")))
+	return ""
+
+
+func _resolve_local_bubble_display_name(manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
+	var local_peer_id := _resolve_local_peer_id(resolved_start_config)
+	for entry in manifest.get("bubbles", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			return String(entry.get("display_name", entry.get("bubble_style_id", "")))
+	if not resolved_start_config.player_bubble_loadouts.is_empty():
+		return String(resolved_start_config.player_bubble_loadouts[0].get("bubble_style_id", ""))
+	return ""
+
+
+func _resolve_local_peer_id(resolved_start_config: BattleStartConfig) -> int:
+	var local_peer_id := int(resolved_start_config.controlled_peer_id)
+	if local_peer_id <= 0:
+		local_peer_id = int(resolved_start_config.local_peer_id)
+	if local_peer_id <= 0 and _app_runtime != null:
+		local_peer_id = int(_app_runtime.local_peer_id)
+	return local_peer_id
+
+
+func _resolve_stable_style_color(resource_id: String, palette: Array[Color], slot_index: int) -> Color:
+	if palette.is_empty():
+		return Color.WHITE
+	if resource_id.is_empty():
+		return palette[slot_index % palette.size()]
+	var hash_value := 0
+	for i in range(resource_id.length()):
+		hash_value = int((hash_value * 33 + resource_id.unicode_at(i)) % 2147483647)
+	return palette[hash_value % palette.size()]
 
 
 func _connect_session_signals() -> void:

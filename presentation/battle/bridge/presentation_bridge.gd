@@ -134,6 +134,12 @@ func debug_dump_actor_summary() -> Dictionary:
 	return dump
 
 
+func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary) -> void:
+	if state_to_view_mapper == null:
+		return
+	state_to_view_mapper.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
+
+
 func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("show_prediction_correction"):
 		spawn_fx_controller.show_prediction_correction(_to_world_center(from_pos), _to_world_center(to_pos))

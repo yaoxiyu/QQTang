@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="TileDef" format=3 uid="uid://b24foitlcmobm"]
+
+[ext_resource type="Script" uid="uid://c4qgdw2l1swe2" path="res://content/tiles/resources/tile_def.gd" id="1_ulv5e"]
+
+[resource]
+script = ExtResource("1_ulv5e")
+metadata/_custom_type_script = "uid://c4qgdw2l1swe2"

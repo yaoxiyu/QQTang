@@ -3,6 +3,7 @@
 > Purpose: freeze the current Phase5-closeout baseline before Phase6 implementation.
 > Source date: 2026-04-02
 > Source of truth priority: `docs/current_source_of_truth.md`
+> Archival note: this file is a **Phase6 historical snapshot**. For current implementation truth after Phase7 resource formalization, prefer `docs/current_source_of_truth.md` and the latest Phase7 documents.
 
 ## 1. Formal entry baseline
 
@@ -237,15 +238,26 @@ Catalog file:
 
 - `res://content/characters/catalog/character_catalog.gd`
 
-Current registry entries:
+Phase6 snapshot entries:
 
 - `hero_default`
   - display name: `Default Hero`
-  - resource path: `res://content/characters/resources/default_hero.tres`
+  - legacy compatible resource path: `res://content/characters/resources/default_hero.tres`
   - default: `true`
 - `hero_runner`
   - display name: `Runner Hero`
-  - resource path: `res://content/characters/resources/runner_hero.tres`
+  - legacy compatible resource path: `res://content/characters/resources/runner_hero.tres`
+
+Current Phase7 formalized resource paths:
+
+- `hero_default`
+  - def: `res://content/characters/resources/hero_default_def.tres`
+  - stats: `res://content/characters/resources/hero_default_stats.tres`
+  - presentation: `res://content/characters/resources/hero_default_presentation.tres`
+- `hero_runner`
+  - def: `res://content/characters/resources/hero_runner_def.tres`
+  - stats: `res://content/characters/resources/hero_runner_stats.tres`
+  - presentation: `res://content/characters/resources/hero_runner_presentation.tres`
 
 Current output structure:
 
@@ -257,11 +269,19 @@ Loader file:
 
 - `res://content/characters/runtime/character_loader.gd`
 
-Current loader behavior:
+Phase6 snapshot behavior:
 
 - Loads `.tres` resource by `character_id`
 - Falls back to default character if unknown id is provided
 - `build_character_loadout(character_id, peer_id)` returns runtime loadout dictionary from resource
+
+Current Phase7 behavior:
+
+- New resource chain is preferred:
+  - `CharacterDef`
+  - `CharacterStatsDef`
+  - `CharacterPresentationDef`
+- Legacy `CharacterResource` path is compatibility-only and must not be treated as the long-term source of truth
 
 Baseline conclusion:
 

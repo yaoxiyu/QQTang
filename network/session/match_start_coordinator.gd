@@ -147,6 +147,20 @@ func _sync_builder_settings() -> void:
 	_builder.match_id_prefix = match_id_prefix
 	_builder.next_match_sequence = next_match_sequence
 	_builder.forced_seed = forced_seed
+	var app_runtime := _resolve_app_runtime()
+	if app_runtime != null and app_runtime.runtime_config != null and app_runtime.runtime_config.client_connection != null:
+		var connection = app_runtime.runtime_config.client_connection
+		_builder.selected_mode_id = String(connection.selected_mode_id)
+		_builder.local_player_bubble_style_id = String(connection.selected_bubble_style_id)
+	else:
+		_builder.selected_mode_id = ""
+		_builder.local_player_bubble_style_id = ""
+
+
+func _resolve_app_runtime() -> Node:
+	if get_parent() == null:
+		return null
+	return get_parent().get_parent()
 
 
 func _sync_validator_settings() -> void:

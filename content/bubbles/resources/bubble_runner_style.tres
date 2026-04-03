@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BubbleStyleDef" format=3 uid="uid://cy16o1dwk8t8v"]
+
+[ext_resource type="Script" uid="uid://rmjtmvflxvhl" path="res://content/bubbles/resources/bubble_style_def.gd" id="1_21e1u"]
+
+[resource]
+script = ExtResource("1_21e1u")
+metadata/_custom_type_script = "uid://rmjtmvflxvhl"

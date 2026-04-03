@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3 uid="uid://6htawa7t2sml"]
+
+[ext_resource type="Script" uid="uid://bujkqtducqy1l" path="res://content/characters/resources/character_def.gd" id="1_l77pp"]
+
+[resource]
+script = ExtResource("1_l77pp")
+character_id = "hero_default"
+display_name = "Default Hero"
+stats_id = "stats_default"
+presentation_id = "presentation_default"
+default_bubble_style_id = "bubble_default"
+content_hash = "char_def_hero_default_v1"
+metadata/_custom_type_script = "uid://bujkqtducqy1l"

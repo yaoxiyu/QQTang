@@ -15,6 +15,13 @@ var _item_palette := {
 	2: Color(0.50, 0.95, 1.0, 1.0),
 	3: Color(0.70, 1.0, 0.45, 1.0),
 }
+var _player_style_by_slot: Dictionary = {}
+var _bubble_style_by_slot: Dictionary = {}
+
+
+func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary) -> void:
+	_player_style_by_slot = player_style_by_slot.duplicate(true)
+	_bubble_style_by_slot = bubble_style_by_slot.duplicate(true)
 
 
 func build_grid_cache(world: SimWorld) -> Dictionary:
@@ -91,6 +98,8 @@ func build_item_views(world: SimWorld) -> Array[Dictionary]:
 
 
 func map_player_state(player: PlayerState) -> Dictionary:
+	var default_color: Color = _player_palette[player.player_slot % _player_palette.size()]
+	var configured_color: Color = _player_style_by_slot.get(player.player_slot, default_color)
 	return {
 		"entity_id": player.entity_id,
 		"player_slot": player.player_slot,
@@ -100,7 +109,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"move_state": player.move_state,
 		"position": _to_world_position(player.cell_x, player.cell_y),
 		"offset": Vector2(player.offset_x, player.offset_y),
-		"color": _player_palette[player.player_slot % _player_palette.size()],
+		"color": configured_color,
 	}
 
 
@@ -133,4 +142,5 @@ func _bubble_color_for_owner(world: SimWorld, owner_player_id: int) -> Color:
 	var player := world.state.players.get_player(owner_player_id)
 	if player == null:
 		return Color(0.30, 0.50, 1.0, 1.0)
-	return _player_palette[player.player_slot % _player_palette.size()].lightened(0.1)
+	var default_color: Color = _player_palette[player.player_slot % _player_palette.size()].lightened(0.1)
+	return _bubble_style_by_slot.get(player.player_slot, default_color)

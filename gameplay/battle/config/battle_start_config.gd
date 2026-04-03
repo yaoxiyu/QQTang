@@ -17,6 +17,7 @@ var match_id: String = ""
 var map_id: String = ""
 var map_version: int = DEFAULT_MAP_VERSION
 var map_content_hash: String = ""
+var mode_id: String = ""
 var rule_set_id: String = ""
 var players: Array[Dictionary] = []
 var player_slots: Array[Dictionary] = []
@@ -37,6 +38,7 @@ var controlled_peer_id: int = 0
 var owner_peer_id: int = 0
 var server_match_revision: int = 0
 var character_loadouts: Array[Dictionary] = []
+var player_bubble_loadouts: Array[Dictionary] = []
 
 
 func to_dict() -> Dictionary:
@@ -50,6 +52,7 @@ func to_dict() -> Dictionary:
 		"map_id": map_id,
 		"map_version": map_version,
 		"map_content_hash": map_content_hash,
+		"mode_id": mode_id,
 		"rule_set_id": rule_set_id,
 		"players": players.duplicate(true),
 		"player_slots": player_slots.duplicate(true),
@@ -70,6 +73,7 @@ func to_dict() -> Dictionary:
 		"owner_peer_id": owner_peer_id,
 		"server_match_revision": server_match_revision,
 		"character_loadouts": character_loadouts.duplicate(true),
+		"player_bubble_loadouts": player_bubble_loadouts.duplicate(true),
 	}
 
 
@@ -83,6 +87,7 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.map_id = String(data.get("map_id", ""))
 	config.map_version = int(data.get("map_version", DEFAULT_MAP_VERSION))
 	config.map_content_hash = String(data.get("map_content_hash", ""))
+	config.mode_id = String(data.get("mode_id", ""))
 	config.rule_set_id = String(data.get("rule_set_id", ""))
 	config.players = _duplicate_dict_array(data.get("players", []))
 	config.player_slots = _duplicate_dict_array(data.get("player_slots", config.players))
@@ -103,6 +108,7 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.owner_peer_id = int(data.get("owner_peer_id", 0))
 	config.server_match_revision = int(data.get("server_match_revision", 0))
 	config.character_loadouts = _duplicate_dict_array(data.get("character_loadouts", []))
+	config.player_bubble_loadouts = _duplicate_dict_array(data.get("player_bubble_loadouts", []))
 	config._sync_player_aliases()
 	config.sort_players()
 	return config
@@ -110,6 +116,14 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 
 func duplicate_deep() -> BattleStartConfig:
 	return BattleStartConfig.from_dict(to_dict())
+
+
+func set_mode_id(value: String) -> void:
+	mode_id = value
+
+
+func set_player_bubble_loadouts(value: Array[Dictionary]) -> void:
+	player_bubble_loadouts = _duplicate_dict_array(value)
 
 
 func sort_players() -> void:
@@ -151,6 +165,8 @@ func validate(options: Dictionary = {}) -> Dictionary:
 		errors.append("match_id is required")
 	if map_id.is_empty():
 		errors.append("map_id is required")
+	if mode_id.is_empty():
+		errors.append("mode_id is required")
 	if map_version <= 0:
 		errors.append("map_version must be positive")
 	if map_content_hash.is_empty():
@@ -269,6 +285,21 @@ func validate(options: Dictionary = {}) -> Dictionary:
 				errors.append("character_loadouts contains empty character_id for peer %d" % loadout_peer_id)
 			if String(loadout.get("content_hash", "")).is_empty():
 				errors.append("character_loadouts contains empty content_hash for peer %d" % loadout_peer_id)
+	if not player_bubble_loadouts.is_empty():
+		if player_bubble_loadouts.size() != player_slots.size():
+			errors.append("player_bubble_loadouts must cover every player_slot")
+		var bubble_loadout_peer_ids: Dictionary = {}
+		for loadout in player_bubble_loadouts:
+			var loadout_peer_id := int(loadout.get("peer_id", -1))
+			if loadout_peer_id <= 0 or not peer_ids.has(loadout_peer_id):
+				errors.append("player_bubble_loadouts contains unknown peer_id: %d" % loadout_peer_id)
+				continue
+			if bubble_loadout_peer_ids.has(loadout_peer_id):
+				errors.append("duplicate peer_id in player_bubble_loadouts: %d" % loadout_peer_id)
+				continue
+			bubble_loadout_peer_ids[loadout_peer_id] = true
+			if String(loadout.get("bubble_style_id", "")).is_empty():
+				errors.append("player_bubble_loadouts contains empty bubble_style_id for peer %d" % loadout_peer_id)
 
 	return {
 		"ok": errors.is_empty(),

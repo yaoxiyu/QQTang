@@ -8,6 +8,8 @@ const RuleCatalogScript = preload("res://content/rules/rule_catalog.gd")
 const RuleLoaderScript = preload("res://content/rules/rule_loader.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
+const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 
 const DEFAULT_START_TICK: int = 0
 const DEFAULT_PROTOCOL_VERSION: int = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
@@ -16,6 +18,8 @@ const DEFAULT_GAMEPLAY_RULE_VERSION: int = BattleStartConfigScript.DEFAULT_GAMEP
 var match_id_prefix: String = "match"
 var next_match_sequence: int = 1
 var forced_seed: int = -1
+var selected_mode_id: String = ""
+var local_player_bubble_style_id: String = ""
 
 
 func can_build_from_room(snapshot: RoomSnapshot) -> bool:
@@ -65,6 +69,7 @@ func build_client_request_payload(
 	config.owner_peer_id = snapshot.owner_peer_id
 	config.server_match_revision = 0
 	config.character_loadouts = _build_character_loadouts(config.player_slots)
+	config.player_bubble_loadouts = _build_player_bubble_loadouts(config.player_slots, local_peer_id)
 	config.sort_players()
 	return config
 
@@ -89,6 +94,7 @@ func build_server_canonical_config(
 	config.owner_peer_id = snapshot.owner_peer_id
 	config.server_match_revision = server_match_revision
 	config.character_loadouts = _build_character_loadouts(config.player_slots)
+	config.player_bubble_loadouts = _build_player_bubble_loadouts(config.player_slots, 0)
 	config.sort_players()
 	return config
 
@@ -147,6 +153,7 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	var map_metadata := _load_map_metadata(resolved_map_id)
 	var rule_metadata := _load_rule_metadata(resolved_rule_set_id)
 	var player_slots := assign_spawn_slots(snapshot)
+	var resolved_mode_id := _resolve_mode_id(resolved_rule_set_id)
 	var config := BattleStartConfig.new()
 	config.protocol_version = DEFAULT_PROTOCOL_VERSION
 	config.gameplay_rule_version = int(rule_metadata.get("version", DEFAULT_GAMEPLAY_RULE_VERSION))
@@ -156,6 +163,7 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.map_id = resolved_map_id
 	config.map_version = int(map_metadata.get("version", BattleStartConfigScript.DEFAULT_MAP_VERSION))
 	config.map_content_hash = String(map_metadata.get("content_hash", ""))
+	config.mode_id = resolved_mode_id
 	config.rule_set_id = resolved_rule_set_id
 	config.players = player_slots.duplicate(true)
 	config.player_slots = player_slots.duplicate(true)
@@ -170,6 +178,10 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.controlled_peer_id = config.local_peer_id
 	config.owner_peer_id = snapshot.owner_peer_id
 	config.character_loadouts = _build_character_loadouts(player_slots)
+	config.player_bubble_loadouts = _build_player_bubble_loadouts(
+		player_slots,
+		room_runtime_context.local_player_id if room_runtime_context != null else config.local_peer_id
+	)
 	config.sort_players()
 	return config
 
@@ -208,6 +220,19 @@ func _build_character_loadouts(player_slots: Array[Dictionary]) -> Array[Diction
 	return loadouts
 
 
+func _build_player_bubble_loadouts(player_slots: Array[Dictionary], local_peer_id: int) -> Array[Dictionary]:
+	var loadouts: Array[Dictionary] = []
+	for player_entry in player_slots:
+		var peer_id := int(player_entry.get("peer_id", -1))
+		var character_id := _resolve_character_id(String(player_entry.get("character_id", "")))
+		var bubble_style_id := _resolve_bubble_style_id(character_id, peer_id, local_peer_id)
+		loadouts.append({
+			"peer_id": peer_id,
+			"bubble_style_id": bubble_style_id,
+		})
+	return loadouts
+
+
 func _load_map_metadata(map_id: String) -> Dictionary:
 	return MapLoaderScript.load_map_metadata(map_id)
 
@@ -230,3 +255,22 @@ func _resolve_character_id(character_id: String) -> String:
 	if CharacterCatalogScript.has_character(character_id):
 		return character_id
 	return CharacterCatalogScript.get_default_character_id()
+
+
+func _resolve_mode_id(rule_set_id: String) -> String:
+	if ModeCatalogScript.has_mode(selected_mode_id):
+		return selected_mode_id
+	for entry in ModeCatalogScript.get_mode_entries():
+		if String(entry.get("rule_set_id", "")) == rule_set_id:
+			return String(entry.get("mode_id", entry.get("id", "")))
+	return ModeCatalogScript.get_default_mode_id()
+
+
+func _resolve_bubble_style_id(character_id: String, peer_id: int, local_peer_id: int) -> String:
+	if peer_id == local_peer_id and BubbleCatalogScript.has_bubble(local_player_bubble_style_id):
+		return local_player_bubble_style_id
+	var character_metadata := CharacterLoaderScript.build_character_metadata(character_id)
+	var default_bubble_style_id := String(character_metadata.get("default_bubble_style_id", ""))
+	if BubbleCatalogScript.has_bubble(default_bubble_style_id):
+		return default_bubble_style_id
+	return BubbleCatalogScript.get_default_bubble_id()

@@ -1,5 +1,7 @@
 # Cleanup Baseline
 
+> Archival note: this file records a historical cleanup baseline. It is not the current implementation source of truth. For current canonical paths and directory semantics, prefer `docs/current_source_of_truth.md`.
+
 ## Git Baseline
 - Current branch before cleanup: `main`
 - Cleanup branch: `refactor/source-layout-cleanup`
@@ -17,6 +19,10 @@
 - Network bootstrap: `res://scenes/network/network_bootstrap_scene.tscn`
 - Dedicated server: `res://scenes/network/dedicated_server_scene.tscn`
 - Sandbox prototype: `res://scenes/sandbox/simulation_prototype.tscn`
+
+Historical reading note:
+- `network_bootstrap_scene.tscn` in this report is a cleanup-time snapshot entry.
+- Under the current source-of-truth contract, it must be interpreted as QA/debug-only rather than formal gameplay entry.
 
 ## Key Entry Scripts
 - App runtime root: `res://app/flow/app_runtime_root.gd`

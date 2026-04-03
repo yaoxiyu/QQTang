@@ -28,6 +28,8 @@ var _local_player_entity_id: int = -1
 var _pending_map_display_name: String = ""
 var _pending_rule_display_name: String = ""
 var _pending_match_meta_text: String = ""
+var _pending_character_display_name: String = ""
+var _pending_bubble_display_name: String = ""
 
 
 func _ready() -> void:
@@ -137,7 +139,10 @@ func reset_hud() -> void:
 	if match_message_panel != null:
 		match_message_panel.apply_message("")
 	if battle_meta_panel != null:
-		battle_meta_panel.apply_metadata("", "", "")
+		if battle_meta_panel.has_method("apply_extended_metadata"):
+			battle_meta_panel.apply_extended_metadata("", "", "", "", "")
+		else:
+			battle_meta_panel.apply_metadata("", "", "")
 	if local_player_ability_panel != null:
 		local_player_ability_panel.apply_player_ability({})
 
@@ -181,6 +186,21 @@ func set_battle_metadata(map_display_name: String, rule_display_name: String, ma
 	_pending_map_display_name = map_display_name
 	_pending_rule_display_name = rule_display_name
 	_pending_match_meta_text = match_meta_text
+	_apply_pending_battle_metadata()
+
+
+func set_extended_battle_metadata(
+	map_display_name: String,
+	rule_display_name: String,
+	match_meta_text: String,
+	character_display_name: String,
+	bubble_display_name: String
+) -> void:
+	_pending_map_display_name = map_display_name
+	_pending_rule_display_name = rule_display_name
+	_pending_match_meta_text = match_meta_text
+	_pending_character_display_name = character_display_name
+	_pending_bubble_display_name = bubble_display_name
 	_apply_pending_battle_metadata()
 
 
@@ -241,8 +261,17 @@ func _life_state_to_text(life_state: int) -> String:
 func _apply_pending_battle_metadata() -> void:
 	if battle_meta_panel == null:
 		return
-	battle_meta_panel.apply_metadata(
-		_pending_map_display_name,
-		_pending_rule_display_name,
-		_pending_match_meta_text
-	)
+	if battle_meta_panel.has_method("apply_extended_metadata"):
+		battle_meta_panel.apply_extended_metadata(
+			_pending_map_display_name,
+			_pending_rule_display_name,
+			_pending_match_meta_text,
+			_pending_character_display_name,
+			_pending_bubble_display_name
+		)
+	else:
+		battle_meta_panel.apply_metadata(
+			_pending_map_display_name,
+			_pending_rule_display_name,
+			_pending_match_meta_text
+		)
