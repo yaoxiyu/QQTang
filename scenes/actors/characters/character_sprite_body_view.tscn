@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://bgqvna1ssi0o1"]
+
+[ext_resource type="Script" uid="uid://8w5eb4yidsqy" path="res://presentation/battle/actors/character_sprite_body_view.gd" id="1_u55mi"]
+
+[node name="CharacterSpriteBodyView" type="Node2D" unique_id=913510198]
+script = ExtResource("1_u55mi")
+
+[node name="BodySprite" type="AnimatedSprite2D" parent="." unique_id=280519313]
+
+[node name="SkinAnchor_BackOverlay" type="Node2D" parent="." unique_id=1630758554]
+
+[node name="SkinAnchor_BodyOverlay" type="Node2D" parent="." unique_id=1662051309]
+
+[node name="SkinAnchor_HeadOverlay" type="Node2D" parent="." unique_id=557971783]
+
+[node name="SkinAnchor_FrontOverlay" type="Node2D" parent="." unique_id=1827765673]

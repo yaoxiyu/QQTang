@@ -1,15 +1,15 @@
 [gd_resource type="Resource" script_class="CharacterSkinDef" format=3 uid="uid://dsrnhurjk1ik2"]
 
-[ext_resource type="PackedScene" uid="uid://digi2wle5r3qo" path="res://scenes/skins/characters/shadow_overlay.tscn" id="1_1m4lg"]
-[ext_resource type="Script" uid="uid://dgyp7gr3p3ghu" path="res://content/character_skins/defs/character_skin_def.gd" id="2_y8xgd"]
-[ext_resource type="Texture2D" uid="uid://mlgp81c0nph2" path="res://assets/ui/skins/shadow_icon.png" id="3_y8xgd"]
+[ext_resource type="PackedScene" uid="uid://digi2wle5r3qo" path="res://scenes/skins/characters/shadow_overlay.tscn" id="1_y8xgd"]
+[ext_resource type="Script" uid="uid://dgyp7gr3p3ghu" path="res://content/character_skins/defs/character_skin_def.gd" id="2_thcei"]
+[ext_resource type="Texture2D" uid="uid://mlgp81c0nph2" path="res://assets/ui/skins/shadow_icon.png" id="3_myhd1"]
 
 [resource]
-script = ExtResource("2_y8xgd")
+script = ExtResource("2_thcei")
 skin_id = "skin_shadow"
 display_name = "暗影皮肤"
-overlay_scene = ExtResource("1_1m4lg")
+overlay_scene = ExtResource("1_y8xgd")
 applicable_slots = PackedStringArray("body_overlay", "head_overlay")
-ui_icon = ExtResource("3_y8xgd")
+ui_icon = ExtResource("3_myhd1")
 rarity = "epic"
 tags = PackedStringArray("shadow")

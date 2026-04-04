@@ -4,6 +4,7 @@ class_name BattleRuntimeConfigBuilder
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const ModeLoaderScript = preload("res://content/modes/runtime/mode_loader.gd")
+const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const MapThemeCatalogScript = preload("res://content/map_themes/catalog/map_theme_catalog.gd")
@@ -88,10 +89,10 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterPresentationDef for peer=%d, character=%s" % [peer_id, character_id])
 
 	var character_skin_id := String(state.get("character_skin_id", ""))
-	if character_skin_id.is_empty():
-		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: character_skin_id is empty for peer=%d" % peer_id)
-	var character_skin := CharacterSkinCatalogScript.get_by_id(character_skin_id)
-	if character_skin == null:
+	var character_skin: CharacterSkinDef = null
+	if not character_skin_id.is_empty():
+		character_skin = CharacterSkinCatalogScript.get_by_id(character_skin_id)
+	if not character_skin_id.is_empty() and character_skin == null:
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterSkinDef for peer=%d, skin=%s" % [peer_id, character_skin_id])
 
 	var bubble_style_id := String(state.get("bubble_style_id", ""))
@@ -106,10 +107,10 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load BubbleGameplayDef for peer=%d, bubble=%s" % [peer_id, bubble_style_id])
 
 	var bubble_skin_id := String(state.get("bubble_skin_id", ""))
-	if bubble_skin_id.is_empty():
-		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: bubble_skin_id is empty for peer=%d" % peer_id)
-	var bubble_skin := BubbleSkinCatalogScript.get_by_id(bubble_skin_id)
-	if bubble_skin == null:
+	var bubble_skin: BubbleSkinDef = null
+	if not bubble_skin_id.is_empty():
+		bubble_skin = BubbleSkinCatalogScript.get_by_id(bubble_skin_id)
+	if not bubble_skin_id.is_empty() and bubble_skin == null:
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load BubbleSkinDef for peer=%d, skin=%s" % [peer_id, bubble_skin_id])
 
 	var player_config := PlayerRuntimeConfig.new()
@@ -125,14 +126,23 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 
 func _load_map_def(map_id: String) -> MapDef:
 	var resource_path := "%s/%s.tres" % [MAP_DATA_DIR, map_id]
-	if not ResourceLoader.exists(resource_path):
+	if ResourceLoader.exists(resource_path):
+		var resource := load(resource_path)
+		if resource != null and resource is MapDef:
+			return resource as MapDef
+		push_error("BattleRuntimeConfigBuilder._load_map_def: invalid MapDef resource: %s" % resource_path)
+	var map_resource := MapLoaderScript.load_map_resource(map_id)
+	if map_resource == null:
 		push_error("BattleRuntimeConfigBuilder._load_map_def: missing map resource: %s" % resource_path)
 		return null
-	var resource := load(resource_path)
-	if resource == null or not resource is MapDef:
-		push_error("BattleRuntimeConfigBuilder._load_map_def: invalid MapDef resource: %s" % resource_path)
-		return null
-	return resource as MapDef
+	var compat_def := MapDef.new()
+	compat_def.map_id = String(map_resource.map_id)
+	compat_def.display_name = String(map_resource.display_name)
+	compat_def.width = int(map_resource.width)
+	compat_def.height = int(map_resource.height)
+	compat_def.spawn_points = map_resource.spawn_points.duplicate()
+	compat_def.theme_id = String(map_resource.tile_theme_id)
+	return compat_def
 
 
 func _fail_with(message: String):

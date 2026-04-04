@@ -1,0 +1,2 @@
+animation_set_id,display_name,down_strip_path,left_strip_path,right_strip_path,up_strip_path,frame_width,frame_height,frames_per_direction,run_fps,idle_frame_index,pivot_x,pivot_y,loop_run,loop_idle,content_hash
+char_anim_huoying,火影,res://assets/animation/characters/huoying/char_red_down.png,res://assets/animation/characters/huoying/char_red_left.png,res://assets/animation/characters/huoying/char_red_right.png,res://assets/animation/characters/huoying/char_red_up.png,100,100,4,8,0,50,100,true,false,char_anim_huoying_csv_v1

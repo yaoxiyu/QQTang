@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3 uid="uid://d353ofeo0xl0e"]
+
+[ext_resource type="Script" uid="uid://bujkqtducqy1l" path="res://content/characters/defs/character_def.gd" id="1_eq675"]
+
+[resource]
+script = ExtResource("1_eq675")
+character_id = "char_huoying"
+display_name = "火影"
+stats_id = "char_stats_huoying"
+presentation_id = "char_pres_huoying"
+default_bubble_style_id = "bubble_round"
+selection_order = 10
+content_hash = "char_def_char_huoying_csv_v1"

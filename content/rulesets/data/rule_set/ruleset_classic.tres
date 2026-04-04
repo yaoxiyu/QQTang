@@ -5,5 +5,3 @@
 [resource]
 script = ExtResource("1_lcphx")
 rule_set_id = "ruleset_classic"
-item_drop_profile_id = ""
-score_policy = "last_survivor"

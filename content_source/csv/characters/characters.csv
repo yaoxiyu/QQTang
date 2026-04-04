@@ -1,3 +1,2 @@
 character_id,display_name,stats_id,presentation_id,default_bubble_style_id,selection_order,tags
-char_knight,骑士,char_stats_knight,char_pres_knight,bubble_round,10,starter;melee
-char_mage,法师,char_stats_mage,char_pres_mage,bubble_round,20,starter;ranged
+char_huoying,火影,char_stats_huoying,char_pres_huoying,bubble_round,10,starter

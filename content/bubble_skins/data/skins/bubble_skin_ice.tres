@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="BubbleSkinDef" format=3 uid="uid://stpyl6o3hciq"]
 
 [ext_resource type="Texture2D" uid="uid://cnqy7nm1y2b8" path="res://assets/ui/bubbles/ice_skin_icon.png" id="1_sq4ly"]
-[ext_resource type="PackedScene" uid="uid://cx4gynq5eqs0h" path="res://scenes/skins/bubbles/ice_bubble_overlay.tscn" id="1_yawh5"]
-[ext_resource type="Script" uid="uid://mo5jvrmxrwha" path="res://content/bubble_skins/defs/bubble_skin_def.gd" id="2_sq4ly"]
+[ext_resource type="PackedScene" uid="uid://cx4gynq5eqs0h" path="res://scenes/skins/bubbles/ice_bubble_overlay.tscn" id="2_10l4r"]
+[ext_resource type="Script" uid="uid://mo5jvrmxrwha" path="res://content/bubble_skins/defs/bubble_skin_def.gd" id="3_kvxwt"]
 
 [resource]
-script = ExtResource("2_sq4ly")
+script = ExtResource("3_kvxwt")
 bubble_skin_id = "bubble_skin_ice"
 display_name = "冰霜泡泡"
-overlay_scene = ExtResource("1_yawh5")
+overlay_scene = ExtResource("2_10l4r")
 icon = ExtResource("1_sq4ly")
 tags = PackedStringArray("ice")

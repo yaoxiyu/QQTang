@@ -7,6 +7,12 @@ const BattleExitRecoveryScript = preload("res://gameplay/battle/runtime/battle_e
 const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_return_recovery.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
+const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/battle_runtime_config_builder.gd")
+const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
+const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
+const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
+const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
@@ -36,6 +42,8 @@ var _shutting_down: bool = false
 var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
 var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
+var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
+var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
 
 
 func _ready() -> void:
@@ -64,6 +72,10 @@ func _process(delta: float) -> void:
 func _initialize_runtime() -> void:
 	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
+	if _app_runtime != null and _app_runtime.current_start_config == null and _session_adapter != null:
+		var adapter_config: BattleStartConfig = _session_adapter.get("start_config")
+		if adapter_config != null:
+			_app_runtime.apply_canonical_start_config(adapter_config)
 	if _app_runtime != null:
 		_app_runtime.register_battle_modules(self, battle_bootstrap, presentation_bridge, battle_hud, battle_camera_controller, settlement_controller)
 	_connect_session_signals()
@@ -128,6 +140,8 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		return
 
 	_battle_context = context
+	if _app_runtime != null and _app_runtime.current_start_config == null and _battle_context.battle_start_config != null:
+		_app_runtime.apply_canonical_start_config(_battle_context.battle_start_config)
 	var resolved_manifest: Dictionary = {}
 	if _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
 		resolved_manifest = _app_runtime.current_battle_content_manifest.duplicate(true)
@@ -147,6 +161,7 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		_app_runtime.room_session_controller.mark_match_started(match_id)
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
 	_apply_content_style_overrides()
+	_apply_player_visual_profiles()
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
 	battle_hud.set_local_player_entity_id(_resolve_local_player_entity_id())
 	_apply_battle_metadata()
@@ -428,6 +443,60 @@ func _apply_content_style_overrides() -> void:
 	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
 
 
+func _apply_player_visual_profiles() -> void:
+	if presentation_bridge == null or _app_runtime == null:
+		return
+	var room_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot
+	var start_config: BattleStartConfig = _app_runtime.current_start_config
+	if room_snapshot == null or start_config == null:
+		return
+	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	if runtime_config == null:
+		return
+	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
+	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
+
+
+func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> RoomSelectionState:
+	var state := RoomSelectionStateScript.new()
+	state.mode_id = String(start_config.mode_id)
+	state.map_id = String(snapshot.selected_map_id)
+	state.rule_set_id = String(snapshot.rule_set_id)
+	for member in snapshot.sorted_members():
+		state.players[member.peer_id] = {
+			"peer_id": member.peer_id,
+			"character_id": member.character_id,
+			"character_skin_id": _resolve_character_skin_id(member.character_skin_id),
+			"bubble_style_id": _resolve_bubble_style_id(member.bubble_style_id),
+			"bubble_skin_id": _resolve_bubble_skin_id(member.bubble_skin_id),
+			"ready": member.ready,
+		}
+	return state
+
+
+func _resolve_character_skin_id(character_skin_id: String) -> String:
+	if character_skin_id.is_empty():
+		return ""
+	if CharacterSkinCatalogScript.has_id(character_skin_id):
+		return character_skin_id
+	return ""
+
+
+func _resolve_bubble_style_id(bubble_style_id: String) -> String:
+	if BubbleCatalogScript.has_bubble(bubble_style_id):
+		return bubble_style_id
+	return BubbleCatalogScript.get_default_bubble_id()
+
+
+func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
+	if bubble_skin_id.is_empty():
+		return ""
+	if BubbleSkinCatalogScript.has_id(bubble_skin_id):
+		return bubble_skin_id
+	return ""
+
+
 func _find_slot_index_for_peer(peer_id: int) -> int:
 	if _app_runtime == null or _app_runtime.current_start_config == null:
 		return -1
@@ -535,4 +604,3 @@ func _disconnect_session_signals(include_stop_signal: bool) -> void:
 		_session_adapter.prediction_debug_event.disconnect(_on_prediction_debug_event)
 	if _session_adapter.network_transport_error.is_connected(_on_transport_runtime_error):
 		_session_adapter.network_transport_error.disconnect(_on_transport_runtime_error)
-

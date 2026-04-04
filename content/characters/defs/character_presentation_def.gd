@@ -4,6 +4,8 @@ extends Resource
 @export var presentation_id: String = ""
 @export var display_name: String = ""
 @export var body_scene: PackedScene
+@export var animation_set_id: String = ""
+@export var body_view_type: String = "sprite_frames_2d"
 @export var animation_library_path: String = ""
 @export var idle_anim: String = "idle"
 @export var run_anim: String = "run"

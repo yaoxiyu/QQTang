@@ -13,9 +13,9 @@ var connect_timeout_sec: float = 5.0
 var room_id_hint: String = ""
 var player_name: String = "Player1"
 var selected_character_id: String = CharacterCatalogScript.get_default_character_id()
-var selected_character_skin_id: String = CharacterSkinCatalogScript.get_default_skin_id()
+var selected_character_skin_id: String = ""
 var selected_bubble_style_id: String = BubbleCatalogScript.get_default_bubble_id()
-var selected_bubble_skin_id: String = BubbleSkinCatalogScript.get_default_skin_id()
+var selected_bubble_skin_id: String = ""
 var selected_mode_id: String = ModeCatalogScript.get_default_mode_id()
 
 

@@ -1,3 +1,2 @@
-presentation_id,body_scene_path,animation_library_path,idle_anim,run_anim,dead_anim,hud_portrait_small_path,hud_portrait_large_path,skin_anchor_slots
-char_pres_knight,res://scenes/actors/characters/character_body_base.tscn,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
-char_pres_mage,res://scenes/actors/characters/character_body_base.tscn,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+presentation_id,body_scene_path,animation_set_id,body_view_type,animation_library_path,idle_anim,run_anim,dead_anim,hud_portrait_small_path,hud_portrait_large_path,skin_anchor_slots
+char_pres_huoying,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_huoying,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay

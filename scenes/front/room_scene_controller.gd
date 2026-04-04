@@ -221,6 +221,7 @@ func _populate_bubble_selector() -> void:
 
 func _populate_character_skin_selector() -> void:
 	character_skin_selector.clear()
+	_add_selector_item(character_skin_selector, "None", "")
 	CharacterSkinCatalogScript.load_all()
 	for skin_def in CharacterSkinCatalogScript.get_all():
 		if skin_def == null:
@@ -230,6 +231,7 @@ func _populate_character_skin_selector() -> void:
 
 func _populate_bubble_skin_selector() -> void:
 	bubble_skin_selector.clear()
+	_add_selector_item(bubble_skin_selector, "None", "")
 	BubbleSkinCatalogScript.load_all()
 	for skin_def in BubbleSkinCatalogScript.get_all():
 		if skin_def == null:
@@ -336,11 +338,11 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 	if game_mode_selector.item_count > 0 and game_mode_selector.selected < 0:
 		_select_metadata(game_mode_selector, String(ModeCatalogScript.get_default_mode_id()))
 	if character_skin_selector.item_count > 0 and character_skin_selector.selected < 0:
-		_select_metadata(character_skin_selector, String(CharacterSkinCatalogScript.get_default_skin_id()))
+		_select_metadata(character_skin_selector, "")
 	if bubble_selector.item_count > 0 and bubble_selector.selected < 0:
 		_select_metadata(bubble_selector, String(BubbleCatalogScript.get_default_bubble_id()))
 	if bubble_skin_selector.item_count > 0 and bubble_skin_selector.selected < 0:
-		_select_metadata(bubble_skin_selector, String(BubbleSkinCatalogScript.get_default_skin_id()))
+		_select_metadata(bubble_skin_selector, "")
 	_update_selection_preview(snapshot.selected_map_id, snapshot.rule_set_id)
 
 	var local_ready := bool(_room_controller.room_session.ready_state.get(_app_runtime.local_peer_id, false))
@@ -493,7 +495,10 @@ func _on_ready_button_pressed() -> void:
 	elif _room_client_gateway != null:
 		_room_client_gateway.request_update_profile(
 			_app_runtime.runtime_config.client_connection.player_name,
-			_app_runtime.runtime_config.client_connection.selected_character_id
+			_app_runtime.runtime_config.client_connection.selected_character_id,
+			_app_runtime.runtime_config.client_connection.selected_character_skin_id,
+			_app_runtime.runtime_config.client_connection.selected_bubble_style_id,
+			_app_runtime.runtime_config.client_connection.selected_bubble_skin_id
 		)
 		_room_client_gateway.request_toggle_ready()
 		return
@@ -560,12 +565,16 @@ func _on_map_selected(index: int) -> void:
 func _on_character_selected(_index: int) -> void:
 	if _suppress_selection_callbacks:
 		return
+	_apply_connection_config_from_ui()
+	_push_local_profile_update()
 	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
 func _on_character_skin_selected(_index: int) -> void:
 	if _suppress_selection_callbacks:
 		return
+	_apply_connection_config_from_ui()
+	_push_local_profile_update()
 	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
@@ -597,12 +606,16 @@ func _on_mode_selected(_index: int) -> void:
 func _on_bubble_selected(_index: int) -> void:
 	if _suppress_selection_callbacks:
 		return
+	_apply_connection_config_from_ui()
+	_push_local_profile_update()
 	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
 func _on_bubble_skin_selected(_index: int) -> void:
 	if _suppress_selection_callbacks:
 		return
+	_apply_connection_config_from_ui()
+	_push_local_profile_update()
 	_update_selection_preview(_selected_metadata(map_selector), _selected_metadata(rule_selector))
 
 
@@ -705,8 +718,30 @@ func _apply_local_profile_to_room() -> void:
 		_room_controller.request_update_member_profile(
 			_app_runtime.local_peer_id,
 			connection.player_name,
-			connection.selected_character_id
+			connection.selected_character_id,
+			connection.selected_character_skin_id,
+			connection.selected_bubble_style_id,
+			connection.selected_bubble_skin_id
 		)
+
+
+func _push_local_profile_update() -> void:
+	if _app_runtime == null or _app_runtime.runtime_config == null:
+		return
+	var connection = _app_runtime.runtime_config.client_connection
+	if connection == null:
+		return
+	if _selected_launch_mode() == ClientLaunchModeScript.Value.NETWORK_CLIENT:
+		if _room_client_gateway != null:
+			_room_client_gateway.request_update_profile(
+				connection.player_name,
+				connection.selected_character_id,
+				connection.selected_character_skin_id,
+				connection.selected_bubble_style_id,
+				connection.selected_bubble_skin_id
+			)
+		return
+	_apply_local_profile_to_room()
 
 
 func _selected_metadata(selector: OptionButton) -> String:
@@ -829,6 +864,8 @@ func _build_bubble_preview_text(bubble_id: String) -> String:
 
 
 func _build_character_skin_preview_text(skin_id: String) -> String:
+	if skin_id.is_empty():
+		return "角色皮肤: None"
 	var skin_def := CharacterSkinCatalogScript.get_by_id(skin_id)
 	if skin_def == null:
 		return "角色皮肤: %s\n暂无角色皮肤摘要" % skin_id
@@ -839,6 +876,8 @@ func _build_character_skin_preview_text(skin_id: String) -> String:
 
 
 func _build_bubble_skin_preview_text(skin_id: String) -> String:
+	if skin_id.is_empty():
+		return "泡泡皮肤: None"
 	var skin_def := BubbleSkinCatalogScript.get_by_id(skin_id)
 	if skin_def == null:
 		return "泡泡皮肤: %s\n暂无泡泡皮肤摘要" % skin_id
@@ -879,13 +918,19 @@ func _configure_preview_icon(icon_rect: TextureRect) -> void:
 
 
 func _update_character_skin_icon(skin_id: String) -> void:
-	var resolved_skin_id := skin_id if CharacterSkinCatalogScript.has_id(skin_id) else CharacterSkinCatalogScript.get_default_skin_id()
+	if skin_id.is_empty():
+		_set_preview_icon(character_skin_icon, null)
+		return
+	var resolved_skin_id := skin_id if CharacterSkinCatalogScript.has_id(skin_id) else ""
 	var skin_def := CharacterSkinCatalogScript.get_by_id(resolved_skin_id)
 	_set_preview_icon(character_skin_icon, skin_def.ui_icon if skin_def != null else null)
 
 
 func _update_bubble_skin_icon(skin_id: String) -> void:
-	var resolved_skin_id := skin_id if BubbleSkinCatalogScript.has_id(skin_id) else BubbleSkinCatalogScript.get_default_skin_id()
+	if skin_id.is_empty():
+		_set_preview_icon(bubble_skin_icon, null)
+		return
+	var resolved_skin_id := skin_id if BubbleSkinCatalogScript.has_id(skin_id) else ""
 	var skin_def := BubbleSkinCatalogScript.get_by_id(resolved_skin_id)
 	_set_preview_icon(bubble_skin_icon, skin_def.icon if skin_def != null else null)
 

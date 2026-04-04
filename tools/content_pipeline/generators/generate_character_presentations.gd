@@ -20,6 +20,10 @@ func generate() -> void:
 		def.presentation_id = get_cell(row, header_index, "presentation_id")
 		def.display_name = _build_display_name_from_presentation_id(def.presentation_id)
 		def.body_scene = load_resource_or_null(get_cell(row, header_index, "body_scene_path")) as PackedScene
+		def.animation_set_id = get_cell(row, header_index, "animation_set_id")
+		def.body_view_type = get_cell(row, header_index, "body_view_type")
+		if def.body_view_type.is_empty():
+			def.body_view_type = "sprite_frames_2d"
 		def.animation_library_path = get_cell(row, header_index, "animation_library_path")
 		def.idle_anim = get_cell(row, header_index, "idle_anim")
 		def.run_anim = get_cell(row, header_index, "run_anim")

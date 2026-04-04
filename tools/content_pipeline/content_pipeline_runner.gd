@@ -4,6 +4,7 @@ class_name ContentPipelineRunner
 
 const GenerateCharactersScript = preload("res://tools/content_pipeline/generators/generate_characters.gd")
 const GenerateCharacterStatsScript = preload("res://tools/content_pipeline/generators/generate_character_stats.gd")
+const GenerateCharacterAnimationSetsScript = preload("res://tools/content_pipeline/generators/generate_character_animation_sets.gd")
 const GenerateCharacterPresentationsScript = preload("res://tools/content_pipeline/generators/generate_character_presentations.gd")
 const GenerateBubbleStylesScript = preload("res://tools/content_pipeline/generators/generate_bubble_styles.gd")
 const GenerateBubbleGameplaysScript = preload("res://tools/content_pipeline/generators/generate_bubble_gameplays.gd")
@@ -21,6 +22,7 @@ func _run() -> void:
 func run_all() -> void:
 	GenerateCharactersScript.new().generate()
 	GenerateCharacterStatsScript.new().generate()
+	GenerateCharacterAnimationSetsScript.new().generate()
 	GenerateCharacterPresentationsScript.new().generate()
 	GenerateBubbleStylesScript.new().generate()
 	GenerateBubbleGameplaysScript.new().generate()

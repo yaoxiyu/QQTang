@@ -1,12 +1,10 @@
-[gd_resource type="Resource" script_class="BubbleGameplayDef" format=3]
+[gd_resource type="Resource" script_class="BubbleGameplayDef" format=3 uid="uid://dsg1grc8dcnb"]
 
-[ext_resource type="Script" path="res://content/bubbles/defs/bubble_gameplay_def.gd" id="1"]
+[ext_resource type="Script" uid="uid://cmhxuvlq2skbi" path="res://content/bubbles/defs/bubble_gameplay_def.gd" id="1_btbej"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_btbej")
 bubble_gameplay_id = "bubble_gameplay_round"
 fuse_ticks = 180
-move_speed_level = 0
 can_be_kicked = true
 content_hash = "bubble_gameplay_bubble_gameplay_round_csv_v1"
-metadata/_custom_type_script = "res://content/bubbles/defs/bubble_gameplay_def.gd"

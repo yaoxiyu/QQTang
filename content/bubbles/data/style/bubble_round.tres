@@ -1,10 +1,9 @@
-[gd_resource type="Resource" script_class="BubbleStyleDef" format=3]
+[gd_resource type="Resource" script_class="BubbleStyleDef" format=3 uid="uid://d0gx03hht2jny"]
 
-[ext_resource type="Script" path="res://content/bubbles/defs/bubble_style_def.gd" id="1"]
+[ext_resource type="Script" uid="uid://rmjtmvflxvhl" path="res://content/bubbles/defs/bubble_style_def.gd" id="1_46x11"]
 
 [resource]
-script = ExtResource("1")
+script = ExtResource("1_46x11")
 bubble_style_id = "bubble_round"
 display_name = "圆形泡泡"
 content_hash = "bubble_style_bubble_round_csv_v1"
-metadata/_custom_type_script = "res://content/bubbles/defs/bubble_style_def.gd"

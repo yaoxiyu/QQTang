@@ -85,9 +85,11 @@ func setup_from_start_config(config: BattleStartConfig) -> void:
 func start_battle() -> void:
 	if start_config == null:
 		return
+	var pending_config := start_config.duplicate_deep()
 	if is_battle_active():
 		shutdown_battle()
-	var config := start_config.duplicate_deep()
+	start_config = pending_config.duplicate_deep() if pending_config != null else null
+	var config := pending_config.duplicate_deep() if pending_config != null else null
 	var mode := _resolve_runtime_mode(config)
 	if mode < 0:
 		push_error("BattleSessionAdapter.start_battle rejected session_mode=%s topology=%s" % [String(config.session_mode), String(config.topology)])
@@ -199,6 +201,7 @@ func shutdown_battle() -> void:
 	_shutdown_transport(false)
 
 	current_context = null
+	start_config = null
 	_local_peer_id = 0
 	_finished_emitted = false
 	_prediction_debugger.clear()
@@ -302,9 +305,10 @@ func _start_runtime_session(mode: int, config: BattleStartConfig, options: Dicti
 
 
 func _start_local_loopback_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
-	start_config = config.duplicate_deep() if config != null else null
+	var pending_config: BattleStartConfig = config.duplicate_deep() if config != null else null
 	var profile: Dictionary = options.get("debug_profile", {})
 	shutdown_battle()
+	start_config = pending_config.duplicate_deep() if pending_config != null else null
 	if start_config == null:
 		return false
 	network_mode = BattleNetworkMode.LOCAL_LOOPBACK

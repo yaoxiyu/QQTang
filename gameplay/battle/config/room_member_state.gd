@@ -6,6 +6,9 @@ var player_name: String = ""
 var ready: bool = false
 var slot_index: int = -1
 var character_id: String = ""
+var character_skin_id: String = ""
+var bubble_style_id: String = ""
+var bubble_skin_id: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -15,6 +18,9 @@ func to_dict() -> Dictionary:
 		"ready": ready,
 		"slot_index": slot_index,
 		"character_id": character_id,
+		"character_skin_id": character_skin_id,
+		"bubble_style_id": bubble_style_id,
+		"bubble_skin_id": bubble_skin_id,
 	}
 
 
@@ -25,6 +31,9 @@ static func from_dict(data: Dictionary) -> RoomMemberState:
 	state.ready = bool(data.get("ready", false))
 	state.slot_index = int(data.get("slot_index", -1))
 	state.character_id = String(data.get("character_id", ""))
+	state.character_skin_id = String(data.get("character_skin_id", ""))
+	state.bubble_style_id = String(data.get("bubble_style_id", ""))
+	state.bubble_skin_id = String(data.get("bubble_skin_id", ""))
 	return state
 
 

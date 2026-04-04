@@ -55,6 +55,9 @@ func build_room_snapshot() -> RoomSnapshot:
 		member.ready = bool(room_session.ready_state.get(peer_id, false))
 		member.slot_index = int(slot_map.get(peer_id, -1))
 		member.character_id = String(profile.get("character_id", ""))
+		member.character_skin_id = String(profile.get("character_skin_id", ""))
+		member.bubble_style_id = String(profile.get("bubble_style_id", ""))
+		member.bubble_skin_id = String(profile.get("bubble_skin_id", ""))
 		snapshot.members.append(member)
 
 	return snapshot
@@ -86,6 +89,9 @@ func join_room(member_state: RoomMemberState) -> void:
 	member_profiles[member_state.peer_id] = {
 		"player_name": member_state.player_name,
 		"character_id": member_state.character_id,
+		"character_skin_id": member_state.character_skin_id,
+		"bubble_style_id": member_state.bubble_style_id,
+		"bubble_skin_id": member_state.bubble_skin_id,
 	}
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "join_room_completed")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "join_room_completed")
@@ -188,7 +194,14 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 	return {"ok": true}
 
 
-func request_update_member_profile(peer_id: int, player_name: String, character_id: String) -> Dictionary:
+func request_update_member_profile(
+	peer_id: int,
+	player_name: String,
+	character_id: String,
+	character_skin_id: String = "",
+	bubble_style_id: String = "",
+	bubble_skin_id: String = ""
+) -> Dictionary:
 	if not _can_interact_in_room() or peer_id == 0 or not room_session.peers.has(peer_id):
 		return {
 			"ok": false,
@@ -205,6 +218,9 @@ func request_update_member_profile(peer_id: int, player_name: String, character_
 	var profile: Dictionary = member_profiles.get(peer_id, {})
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
 	profile["character_id"] = trimmed_character_id
+	profile["character_skin_id"] = character_skin_id.strip_edges()
+	profile["bubble_style_id"] = bubble_style_id
+	profile["bubble_skin_id"] = bubble_skin_id.strip_edges()
 	member_profiles[peer_id] = profile
 	_emit_snapshot_changed()
 	return {"ok": true}
@@ -223,6 +239,9 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 		member_profiles[member.peer_id] = {
 			"player_name": member.player_name,
 			"character_id": member.character_id,
+			"character_skin_id": member.character_skin_id,
+			"bubble_style_id": member.bubble_style_id,
+			"bubble_skin_id": member.bubble_skin_id,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id)
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")

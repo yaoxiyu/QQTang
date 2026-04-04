@@ -12,6 +12,7 @@ var item_scene: PackedScene = null
 var _player_views: Dictionary = {}
 var _bubble_views: Dictionary = {}
 var _item_views: Dictionary = {}
+var _player_visual_profiles: Dictionary = {}
 
 
 func configure(
@@ -22,6 +23,10 @@ func configure(
 	player_scene = p_player_scene
 	bubble_scene = p_bubble_scene
 	item_scene = p_item_scene
+
+
+func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> void:
+	_player_visual_profiles = player_visual_profiles.duplicate()
 
 
 func sync_players(parent: Node, players: Array[Dictionary]) -> void:
@@ -47,6 +52,7 @@ func dispose() -> void:
 	player_scene = null
 	bubble_scene = null
 	item_scene = null
+	_player_visual_profiles.clear()
 	_player_views.clear()
 	_bubble_views.clear()
 	_item_views.clear()
@@ -94,6 +100,10 @@ func _sync_group(
 				continue
 			parent.add_child(view)
 			views[entity_id] = view
+
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_visual_profile"):
+			var player_slot := int(view_state.get("player_slot", -1))
+			view.configure_visual_profile(_player_visual_profiles.get(player_slot, null))
 
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)

@@ -34,14 +34,23 @@ func request_join_room(connection_config: ClientConnectionConfig) -> void:
 	client_room_runtime.request_create_or_join_room(
 		connection_config.room_id_hint,
 		connection_config.player_name,
-		connection_config.selected_character_id
+		connection_config.selected_character_id,
+		connection_config.selected_character_skin_id,
+		connection_config.selected_bubble_style_id,
+		connection_config.selected_bubble_skin_id
 	)
 
 
-func request_update_profile(player_name: String, character_id: String) -> void:
+func request_update_profile(
+	player_name: String,
+	character_id: String,
+	character_skin_id: String,
+	bubble_style_id: String,
+	bubble_skin_id: String
+) -> void:
 	if client_room_runtime == null:
 		return
-	client_room_runtime.request_update_profile(player_name, character_id)
+	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id)
 
 
 func request_update_selection(map_id: String, rule_id: String) -> void:

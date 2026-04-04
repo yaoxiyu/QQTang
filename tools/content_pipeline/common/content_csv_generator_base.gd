@@ -16,7 +16,7 @@ func load_csv_lines(csv_path: String) -> Array[String]:
     return lines
 
 func split_csv_line(line: String) -> PackedStringArray:
-    return line.split(",", false)
+    return line.split(",", true)
 
 func build_header_index(header: PackedStringArray) -> Dictionary:
     var result: Dictionary = {}

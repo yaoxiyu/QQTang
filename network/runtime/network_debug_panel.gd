@@ -119,4 +119,3 @@ func get_port(default_port: int = 9000) -> int:
 		return default_port
 	var port := int(port_input.text.strip_edges().to_int())
 	return port if port > 0 else default_port
-

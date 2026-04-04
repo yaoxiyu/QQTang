@@ -6,5 +6,3 @@
 script = ExtResource("1_arrsm")
 rule_set_id = "ruleset_quick_match"
 time_limit_sec = 120
-item_drop_profile_id = ""
-score_policy = "last_survivor"

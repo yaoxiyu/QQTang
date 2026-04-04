@@ -208,8 +208,12 @@
 
 - `characters/`
   - 角色本体定义、数值、表现数据与运行时加载
+- `character_animation_sets/`
+  - 角色主体动画集定义、生成产物、catalog 与 runtime loader
+  - `SpriteFrames` 由内容管线预生成，不在 Battle 运行期动态切 strip
 - `character_skins/`
   - 角色皮肤定义、生成产物与自动扫描 catalog
+  - 语义固定为 overlay，不承载角色主体动画
 - `bubbles/`
   - 泡泡样式与玩法配置
 - `bubble_skins/`
@@ -247,6 +251,8 @@
 - 新内容进入工程时，必须优先进入该目录体系
 - 不允许继续让 Room UI 或 battle 启动脚本长期硬编码内容列表
 - 内容 ID、版本、hash、默认项等信息由本层统一管理
+- `CharacterPresentationDef.animation_set_id` 是角色主体动画的正式入口
+- `CharacterPresentationDef.body_view_type` 用于约束 body 消费方式，当前正式值为 `sprite_frames_2d`
 
 ## 3.5.1 `res://content_source/`
 
@@ -488,9 +494,10 @@ Battle 的正式启动应理解为：
 
 1. 前台 Room 确定房间状态与开战配置
 2. 配置被写入 battle start config
-3. battle runtime 按 battle start config 启动
-4. presentation bridge 消费 battle tick / result
-5. HUD 与 network status panel 仅表现状态，不定义玩法真相
+3. Battle 表现层根据 Room 真相重建 `BattleRuntimeConfig` 视觉侧配置，并按 `player_slot` 装配 player visual profile
+4. `player_actor_view.gd` 当前已从 `Polygon2D` 占位体升级为正式角色 body 容器，消费 `CharacterPresentationDef`、`CharacterAnimationSetDef` 与 `CharacterSkinDef`
+5. presentation bridge 消费 battle tick / result
+6. HUD 与 network status panel 仅表现状态，不定义玩法真相
 
 ---
 
@@ -530,6 +537,7 @@ Battle 的正式启动应理解为：
 6. **前台场景只负责流程与交互，不伪造玩法真相**
 7. **表现层只消费结果，不反向定义仿真**
 8. **打包交付时排除 `.godot/`、缓存、编辑器状态文件**
+9. **角色主体动画必须走 `content/character_animation_sets` 正式子系统，不能并入 `character_skins`**
 
 ---
 

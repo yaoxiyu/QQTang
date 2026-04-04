@@ -28,6 +28,7 @@ var _grid_cache: Dictionary = {}
 var actor_registry: BattleActorRegistry = null
 var state_to_view_mapper: BattleStateToViewMapper = null
 var battle_event_router: BattleEventRouter = null
+var _player_visual_profiles: Dictionary = {}
 
 var _last_consumed_tick: int = -1
 
@@ -50,6 +51,7 @@ func _ready() -> void:
 
 	actor_registry = ActorRegistryScript.new()
 	actor_registry.configure(player_actor_scene, bubble_actor_scene, item_actor_scene)
+	actor_registry.configure_player_visual_profiles(_player_visual_profiles)
 	state_to_view_mapper = StateToViewMapperScript.new()
 	state_to_view_mapper.cell_size = cell_size
 	battle_event_router = BattleEventRouterScript.new()
@@ -138,6 +140,12 @@ func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_
 	if state_to_view_mapper == null:
 		return
 	state_to_view_mapper.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
+
+
+func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> void:
+	_player_visual_profiles = player_visual_profiles.duplicate()
+	if actor_registry != null:
+		actor_registry.configure_player_visual_profiles(_player_visual_profiles)
 
 
 func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:

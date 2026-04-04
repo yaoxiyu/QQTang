@@ -22,6 +22,7 @@ func _ready() -> void:
 func _initialize_runtime() -> void:
 	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	_front_flow = _app_runtime.front_flow
+	_restore_missing_start_config_from_adapter()
 	_refresh_loading_view()
 	call_deferred("_begin_loading")
 
@@ -65,8 +66,18 @@ func _begin_loading() -> void:
 	if _loading_started:
 		return
 	_loading_started = true
+	_restore_missing_start_config_from_adapter()
 	if _app_runtime == null or _app_runtime.current_start_config == null:
 		return
 	await get_tree().create_timer(0.75).timeout
 	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
 		_front_flow.on_match_loading_ready(_app_runtime.current_start_config)
+
+
+func _restore_missing_start_config_from_adapter() -> void:
+	if _app_runtime == null or _app_runtime.current_start_config != null or _app_runtime.battle_session_adapter == null:
+		return
+	var adapter_config: BattleStartConfig = _app_runtime.battle_session_adapter.get("start_config")
+	if adapter_config == null:
+		return
+	_app_runtime.apply_canonical_start_config(adapter_config)

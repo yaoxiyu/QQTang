@@ -176,6 +176,8 @@ func clear_battle_payload() -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+	if battle_session_adapter != null:
+		battle_session_adapter.setup_from_start_config(null)
 
 
 func apply_canonical_start_config(config) -> void:

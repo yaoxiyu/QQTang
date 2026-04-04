@@ -51,20 +51,39 @@ func is_transport_connected() -> bool:
 	return _connected and _transport != null and _transport.is_transport_connected()
 
 
-func request_create_or_join_room(room_id_hint: String, player_name: String, character_id: String) -> void:
+func request_create_or_join_room(
+	room_id_hint: String,
+	player_name: String,
+	character_id: String,
+	character_skin_id: String = "",
+	bubble_style_id: String = "",
+	bubble_skin_id: String = ""
+) -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_REQUEST,
 		"room_id_hint": room_id_hint,
 		"player_name": player_name,
 		"character_id": character_id,
+		"character_skin_id": character_skin_id,
+		"bubble_style_id": bubble_style_id,
+		"bubble_skin_id": bubble_skin_id,
 	})
 
 
-func request_update_profile(player_name: String, character_id: String) -> void:
+func request_update_profile(
+	player_name: String,
+	character_id: String,
+	character_skin_id: String,
+	bubble_style_id: String,
+	bubble_skin_id: String
+) -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_UPDATE_PROFILE,
 		"player_name": player_name,
 		"character_id": character_id,
+		"character_skin_id": character_skin_id,
+		"bubble_style_id": bubble_style_id,
+		"bubble_skin_id": bubble_skin_id,
 	})
 
 
