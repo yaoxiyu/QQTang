@@ -17,9 +17,18 @@ func generate() -> void:
 
 	var header := split_csv_line(lines[0])
 	var header_index := build_header_index(header)
+	var seen_animation_set_ids: Dictionary = {}
 
 	for i in range(1, lines.size()):
 		var row := split_csv_line(lines[i])
+		var animation_set_id := get_cell(row, header_index, "animation_set_id")
+		if animation_set_id.is_empty():
+			push_error("character_animation_sets.csv animation_set_id is empty")
+			continue
+		if seen_animation_set_ids.has(animation_set_id):
+			push_error("character_animation_sets.csv duplicate animation_set_id: %s" % animation_set_id)
+			continue
+		seen_animation_set_ids[animation_set_id] = true
 		_generate_row(row, header_index)
 
 
@@ -52,6 +61,9 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 
 	var sprite_frames := SpriteFrames.new()
 	var run_fps := get_cell(row, header_index, "run_fps").to_float()
+	if run_fps <= 0.0:
+		push_error("CharacterAnimationSet %s invalid run_fps: %s" % [animation_set_id, str(run_fps)])
+		return
 	var idle_frame_index := clampi(get_cell(row, header_index, "idle_frame_index").to_int(), 0, frames_per_direction - 1)
 	var loop_run := _parse_bool(get_cell(row, header_index, "loop_run"))
 	var loop_idle := _parse_bool(get_cell(row, header_index, "loop_idle"))

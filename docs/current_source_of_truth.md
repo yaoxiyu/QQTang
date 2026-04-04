@@ -314,6 +314,27 @@
 - debug 自举只能是显式可控能力，不能作为默认正式行为
 - `room_scene.tscn` 是当前唯一正式客户端房间入口
 
+## 3.6.1 `res://presentation/front/preview/`
+
+**定位：前台正式预览表现组件目录**
+
+职责包括：
+
+- Room 等前台界面的正式内容预览组件
+- 复用正式内容链路进行角色主体动画与皮肤预览
+
+当前正式组件包括：
+
+- `room_character_preview.gd`
+  - 复用 `CharacterPresentationDef + CharacterAnimationSetDef + CharacterSkinDef`
+  - 通过 `SubViewportContainer + SubViewport + Node2D body scene` 在 Room 中显示角色动画预览
+  - 预览动画当前按四方向 `run_*` 轮播，不单独发明 Room 专用角色系统
+
+约束：
+
+- 前台预览必须复用正式内容链路，不允许维护第二套 Room 专用角色表现配置
+- Room 角色预览的正式场景入口是 `res://scenes/front/components/room_character_preview.tscn`
+
 ## 3.6.2 `res://scenes/`
 
 **定位：项目级可实例化场景目录**
@@ -340,7 +361,7 @@
 - 可实例化节点树放在这里，不放进 `res://content/`
 - 正式入口与调试/实验场景必须明确区分
 
-## 3.6.1 `res://scenes/network/`
+## 3.6.3 `res://scenes/network/`
 
 **定位：网络运行场景入口目录**
 
@@ -510,9 +531,21 @@ Battle 的正式启动应理解为：
 1. 前台 Room 确定房间状态与开战配置
 2. 配置被写入 battle start config
 3. Battle 表现层根据 Room 真相重建 `BattleRuntimeConfig` 视觉侧配置，并按 `player_slot` 装配 player visual profile
+4. `BattleRuntimeConfigBuilder` 当前会对角色动画配置做前置合法性校验：
+   - `character_presentation.body_scene != null`
+   - `body_view_type == sprite_frames_2d`
+   - `animation_set_id` 非空
+   - `CharacterAnimationSetDef` 可加载
+   配置不合法时直接 fail-fast，不允许带着空 body 进入 Battle
 4. `player_actor_view.gd` 当前已从 `Polygon2D` 占位体升级为正式角色 body 容器，消费 `CharacterPresentationDef`、`CharacterAnimationSetDef` 与 `CharacterSkinDef`
 5. presentation bridge 消费 battle tick / result
 6. HUD 与 network status panel 仅表现状态，不定义玩法真相
+
+补充说明：
+
+- `battle_player_visual_profile_builder.gd` 当前会对角色动画视觉装配失败输出明确错误日志
+- `player_actor_view.gd` 正式消费 body scene + animation set + skin overlay
+- `character_sprite_body_view.gd` 当前动画切换优先按输入状态驱动，再回退到 `move_state`
 
 ---
 
@@ -554,6 +587,8 @@ Battle 的正式启动应理解为：
 8. **打包交付时排除 `.godot/`、缓存、编辑器状态文件**
 9. **角色主体动画必须走 `content/character_animation_sets` 正式子系统，不能并入 `character_skins`**
 10. **泡泡主体动画必须走 `content/bubble_animation_sets` + `BubbleStyleDef.animation_set_id`，不允许保留 Battle 占位圆形回退**
+11. **Room 角色预览必须复用 `CharacterPresentationDef + CharacterAnimationSetDef + CharacterSkinDef` 正式链路，不允许维护第二套 Room 专用角色预览配置**
+12. **角色动画收口的最小回归测试当前固定为 `tests/contracts/content/character_animation_pipeline_contract_test.gd` 与 `tests/integration/battle/player_actor_animation_binding_test.gd`**
 
 ---
 

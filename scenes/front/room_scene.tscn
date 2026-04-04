@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d3fu7by27bgxk" path="res://scenes/front/room_scene_controller.gd" id="1_room"]
 [ext_resource type="Script" uid="uid://b5kv8wffwjnso" path="res://presentation/battle/hud/room_hud_controller.gd" id="2_room_hud"]
+[ext_resource type="PackedScene" uid="uid://duw51tworhklw" path="res://scenes/front/components/room_character_preview.tscn" id="3_xxaqq"]
 
 [node name="RoomScene" type="Node" unique_id=1131888153]
 script = ExtResource("1_room")
@@ -99,11 +100,11 @@ text = "Character"
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 
-[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1623222871]
 layout_mode = 2
 text = "Skin"
 
-[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=498317205]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
@@ -115,11 +116,11 @@ text = "Bubble"
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 
-[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1432516287]
 layout_mode = 2
 text = "Bubble Skin"
 
-[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow"]
+[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1507518752]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
 
@@ -185,29 +186,32 @@ autowrap_mode = 3
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+[node name="CharacterPreviewViewport" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=1078934354 instance=ExtResource("3_xxaqq")]
+layout_mode = 2
+
+[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=1449032046]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=973833100]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-stretch_mode = 5
 expand_mode = 1
+stretch_mode = 5
 
 [node name="BubblePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=87503918]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=286596181]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel"]
+[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=294171914]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
-stretch_mode = 5
 expand_mode = 1
+stretch_mode = 5
 
 [node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=64871967]
 layout_mode = 2

@@ -1,6 +1,7 @@
 extends ContentCsvGeneratorBase
 class_name GenerateCharacterPresentations
 
+const CharacterAnimationSetCatalogScript = preload("res://content/character_animation_sets/catalog/character_animation_set_catalog.gd")
 const INPUT_CSV_PATH := "res://content_source/csv/characters/character_presentations.csv"
 const OUTPUT_DIR := "res://content/characters/data/presentation/"
 
@@ -21,6 +22,12 @@ func generate() -> void:
 		def.display_name = _build_display_name_from_presentation_id(def.presentation_id)
 		def.body_scene = load_resource_or_null(get_cell(row, header_index, "body_scene_path")) as PackedScene
 		def.animation_set_id = get_cell(row, header_index, "animation_set_id")
+		if not def.animation_set_id.is_empty() and not CharacterAnimationSetCatalogScript.has_id(def.animation_set_id):
+			push_error(
+				"GenerateCharacterPresentations invalid animation_set_id for presentation=%s, animation_set_id=%s"
+				% [def.presentation_id, def.animation_set_id]
+			)
+			continue
 		def.body_view_type = get_cell(row, header_index, "body_view_type")
 		if def.body_view_type.is_empty():
 			def.body_view_type = "sprite_frames_2d"

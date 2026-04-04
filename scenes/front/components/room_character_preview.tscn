@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://duw51tworhklw"]
+
+[ext_resource type="Script" path="res://presentation/front/preview/room_character_preview.gd" id="1_1xv1d"]
+
+[node name="RoomCharacterPreview" type="SubViewportContainer" unique_id=1078934354]
+script = ExtResource("1_1xv1d")
+custom_minimum_size = Vector2(180, 180)
+
+[node name="PreviewViewport" type="SubViewport" parent="." unique_id=1592007117]
+disable_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(180, 180)
+render_target_update_mode = 4
+
+[node name="PreviewRoot" type="Node2D" parent="PreviewViewport" unique_id=1326974033]

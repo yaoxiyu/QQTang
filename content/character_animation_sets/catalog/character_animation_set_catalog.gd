@@ -27,6 +27,9 @@ static func load_all() -> void:
 		if def.animation_set_id.is_empty():
 			push_error("CharacterAnimationSetCatalog animation_set_id is empty: %s" % resource_path)
 			continue
+		if _animation_sets_by_id.has(def.animation_set_id):
+			push_error("CharacterAnimationSetCatalog duplicate animation_set_id: %s" % def.animation_set_id)
+			continue
 		_animation_sets_by_id[def.animation_set_id] = def
 
 	for animation_set_id in _animation_sets_by_id.keys():

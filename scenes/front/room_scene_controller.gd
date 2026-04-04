@@ -54,6 +54,7 @@ const RoomClientGatewayScript = preload("res://network/runtime/room_client_gatew
 @onready var rule_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/RulePreviewLabel
 @onready var selection_preview_panel: VBoxContainer = $RoomRoot/MainLayout/SelectionPreviewPanel
 @onready var character_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/CharacterPreviewLabel
+@onready var character_preview_viewport: RoomCharacterPreview = $RoomRoot/MainLayout/SelectionPreviewPanel/CharacterPreviewViewport
 @onready var character_skin_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/CharacterSkinPreviewLabel
 @onready var character_skin_icon: TextureRect = $RoomRoot/MainLayout/SelectionPreviewPanel/CharacterSkinIcon
 @onready var bubble_preview_label: Label = $RoomRoot/MainLayout/SelectionPreviewPanel/BubblePreviewLabel
@@ -782,6 +783,9 @@ func _launch_mode_to_string(mode: int) -> String:
 
 
 func _update_selection_preview(map_id: String, rule_id: String) -> void:
+	var selected_character_id := _selected_metadata(character_selector)
+	var selected_character_skin_id := _selected_metadata(character_skin_selector)
+	var local_peer_id := int(_app_runtime.local_peer_id if _app_runtime != null else 1)
 	var room_selection := RoomSelectionBuilderScript.build_selection_state(
 		_selected_metadata(game_mode_selector),
 		map_id,
@@ -789,23 +793,36 @@ func _update_selection_preview(map_id: String, rule_id: String) -> void:
 		[
 			{
 				"peer_id": int(_app_runtime.local_peer_id if _app_runtime != null else 1),
-				"character_id": _selected_metadata(character_selector),
-				"character_skin_id": _selected_metadata(character_skin_selector),
+				"character_id": selected_character_id,
+				"character_skin_id": selected_character_skin_id,
 				"bubble_style_id": _selected_metadata(bubble_selector),
 				"bubble_skin_id": _selected_metadata(bubble_skin_selector),
 				"ready": false,
 			}
 		]
 	)
+	var players : Dictionary = room_selection.get("players", {})
+	var local_player : Dictionary = players.get(local_peer_id, {})
+	var preview_character_id := String(local_player.get("character_id", selected_character_id))
+	var preview_skin_id := String(local_player.get("character_skin_id", selected_character_skin_id))
 	map_preview_label.text = _build_map_preview_text(map_id)
 	rule_preview_label.text = _build_rule_preview_text(rule_id)
-	character_preview_label.text = _build_character_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("character_id", _selected_metadata(character_selector))))
-	character_skin_preview_label.text = _build_character_skin_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("character_skin_id", _selected_metadata(character_skin_selector))))
-	bubble_preview_label.text = _build_bubble_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("bubble_style_id", _selected_metadata(bubble_selector))))
-	bubble_skin_preview_label.text = _build_bubble_skin_preview_text(String(room_selection.get("players", {}).get(int(_app_runtime.local_peer_id if _app_runtime != null else 1), {}).get("bubble_skin_id", _selected_metadata(bubble_skin_selector))))
+	character_preview_label.text = _build_character_preview_text(preview_character_id)
+	character_skin_preview_label.text = _build_character_skin_preview_text(preview_skin_id)
+	_update_character_preview_visual(preview_character_id, preview_skin_id)
+	bubble_preview_label.text = _build_bubble_preview_text(String(local_player.get("bubble_style_id", _selected_metadata(bubble_selector))))
+	bubble_skin_preview_label.text = _build_bubble_skin_preview_text(String(local_player.get("bubble_skin_id", _selected_metadata(bubble_skin_selector))))
 	mode_preview_label.text = _build_mode_preview_text(String(room_selection.get("mode_id", _selected_metadata(game_mode_selector))), rule_id)
-	_update_character_skin_icon(_selected_metadata(character_skin_selector))
+	_update_character_skin_icon(selected_character_skin_id)
 	_update_bubble_skin_icon(_selected_metadata(bubble_skin_selector))
+
+
+func _update_character_preview_visual(character_id: String, skin_id: String) -> void:
+	if character_preview_viewport == null:
+		return
+	if not character_preview_viewport.has_method("configure_preview"):
+		return
+	character_preview_viewport.configure_preview(character_id, skin_id)
 
 
 func _build_map_preview_text(map_id: String) -> String:

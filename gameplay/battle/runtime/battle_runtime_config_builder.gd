@@ -2,6 +2,7 @@ extends RefCounted
 class_name BattleRuntimeConfigBuilder
 
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
+const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const ModeLoaderScript = preload("res://content/modes/runtime/mode_loader.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
@@ -87,6 +88,17 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 	var character_presentation := CharacterLoaderScript.load_character_presentation(character_id)
 	if character_presentation == null:
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterPresentationDef for peer=%d, character=%s" % [peer_id, character_id])
+	if character_presentation.body_scene == null:
+		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: missing body_scene for peer=%d, character=%s" % [peer_id, character_id])
+	if String(character_presentation.body_view_type) == "sprite_frames_2d":
+		var animation_set_id := String(character_presentation.animation_set_id)
+		if animation_set_id.is_empty():
+			return _fail_with("BattleRuntimeConfigBuilder._build_player_config: empty animation_set_id for peer=%d, character=%s" % [peer_id, character_id])
+		if CharacterAnimationSetLoaderScript.load_animation_set(animation_set_id) == null:
+			return _fail_with(
+				"BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterAnimationSetDef for peer=%d, character=%s, animation_set_id=%s"
+				% [peer_id, character_id, animation_set_id]
+			)
 
 	var character_skin_id := String(state.get("character_skin_id", ""))
 	var character_skin: CharacterSkinDef = null
