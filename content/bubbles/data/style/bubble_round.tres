@@ -6,4 +6,5 @@
 script = ExtResource("1_46x11")
 bubble_style_id = "bubble_round"
 display_name = "圆形泡泡"
+animation_set_id = "bubble_anim_normal"
 content_hash = "bubble_style_bubble_round_csv_v1"

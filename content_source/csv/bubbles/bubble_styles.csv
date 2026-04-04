@@ -1,2 +1,2 @@
-bubble_style_id,display_name,base_scene_path,idle_anim,move_anim,explode_anim,hud_icon_path
-bubble_round,圆形泡泡,,idle,move,explode,
+bubble_style_id,display_name,animation_set_id,base_scene_path,idle_anim,move_anim,explode_anim,hud_icon_path
+bubble_round,圆形泡泡,bubble_anim_normal,,idle,move,explode,

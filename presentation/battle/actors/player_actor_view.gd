@@ -4,6 +4,8 @@ extends Node2D
 const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
 
+const PLAYER_Z_INDEX := 20
+
 var player_id: int = -1
 var player_slot: int = 0
 var alive: bool = true
@@ -20,6 +22,8 @@ func apply_view_state(view_state: Dictionary) -> void:
 	alive = bool(view_state.get("alive", true))
 	facing = int(view_state.get("facing", 0))
 	position = view_state.get("position", Vector2.ZERO)
+	z_as_relative = false
+	z_index = PLAYER_Z_INDEX
 	_last_view_state = view_state.duplicate(true)
 
 	if _body_view != null and _body_view.has_method("apply_actor_state"):

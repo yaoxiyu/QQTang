@@ -216,6 +216,10 @@
   - 语义固定为 overlay，不承载角色主体动画
 - `bubbles/`
   - 泡泡样式与玩法配置
+  - `BubbleStyleDef.animation_set_id` 是泡泡主体动画的正式入口
+- `bubble_animation_sets/`
+  - 泡泡主体动画集定义、生成产物与 catalog
+  - `SpriteFrames` 由内容管线预生成，不在 Battle 运行期动态切 grid / strip
 - `bubble_skins/`
   - 泡泡皮肤定义、生成产物与自动扫描 catalog
 - `maps/`
@@ -253,6 +257,7 @@
 - 内容 ID、版本、hash、默认项等信息由本层统一管理
 - `CharacterPresentationDef.animation_set_id` 是角色主体动画的正式入口
 - `CharacterPresentationDef.body_view_type` 用于约束 body 消费方式，当前正式值为 `sprite_frames_2d`
+- `BubbleStyleDef.animation_set_id` 是泡泡主体动画的正式入口
 
 ## 3.5.1 `res://content_source/`
 
@@ -262,6 +267,10 @@
 
 - `csv/` 策划维护源
 - 供内容管线读取的原始输入文件
+- `character_animation_sets/`
+  - 角色主体动画源 CSV
+- `bubble_animation_sets/`
+  - 泡泡主体动画源 CSV
 
 约束：
 
@@ -279,6 +288,9 @@
 - validator
 - report
 - editor 运行入口
+- 当前动画相关 generator 包括：
+  - `generate_character_animation_sets.gd`
+  - `generate_bubble_animation_sets.gd`
 
 约束：
 
@@ -377,6 +389,9 @@
 
 - 这里放原始资源文件，不承载内容 id 真相
 - 若某类资产参与正式内容装配，仍需要在 `res://content/` 层有对应数据定义
+- `res://assets/animation/`
+  - 角色与泡泡动画原始 png 资产目录
+  - 只作为内容生产源，不作为 Battle 运行期直接消费真相
 
 ---
 
@@ -538,6 +553,7 @@ Battle 的正式启动应理解为：
 7. **表现层只消费结果，不反向定义仿真**
 8. **打包交付时排除 `.godot/`、缓存、编辑器状态文件**
 9. **角色主体动画必须走 `content/character_animation_sets` 正式子系统，不能并入 `character_skins`**
+10. **泡泡主体动画必须走 `content/bubble_animation_sets` + `BubbleStyleDef.animation_set_id`，不允许保留 Battle 占位圆形回退**
 
 ---
 

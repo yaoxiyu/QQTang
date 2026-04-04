@@ -19,6 +19,7 @@ func generate() -> void:
 		var def := BubbleStyleDef.new()
 		def.bubble_style_id = get_cell(row, header_index, "bubble_style_id")
 		def.display_name = get_cell(row, header_index, "display_name")
+		def.animation_set_id = get_cell(row, header_index, "animation_set_id")
 		def.bubble_scene_path = get_cell(row, header_index, "base_scene_path")
 		def.icon_path = get_cell(row, header_index, "hud_icon_path")
 		def.content_hash = "bubble_style_%s_csv_v1" % def.bubble_style_id

@@ -40,6 +40,7 @@ static func load_metadata(bubble_id: String) -> Dictionary:
 	return {
 		"bubble_style_id": style.bubble_style_id,
 		"display_name": style.display_name,
+		"animation_set_id": style.animation_set_id,
 		"bubble_scene_path": style.bubble_scene_path,
 		"icon_path": style.icon_path,
 		"spawn_fx_id": style.spawn_fx_id,

@@ -136,10 +136,10 @@ func debug_dump_actor_summary() -> Dictionary:
 	return dump
 
 
-func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary) -> void:
+func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
 	if state_to_view_mapper == null:
 		return
-	state_to_view_mapper.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
+	state_to_view_mapper.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
 
 
 func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> void:

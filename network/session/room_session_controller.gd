@@ -63,6 +63,7 @@ func build_room_snapshot() -> RoomSnapshot:
 	return snapshot
 
 
+
 func create_room(owner_peer_id: int) -> void:
 	set_room_flow_state(RoomFlowStateScript.Value.ENTERING, "create_room_requested")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.CREATING_ROOM, "create_room_requested")

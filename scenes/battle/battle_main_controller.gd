@@ -44,6 +44,7 @@ var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
 var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
+var _pressed_direction_stack: Array[String] = []
 
 
 func _ready() -> void:
@@ -269,22 +270,58 @@ func _consume_battle_events(events: Array) -> void:
 
 
 func _collect_local_input() -> Dictionary:
+	_refresh_direction_stack()
 	var move_x := 0
 	var move_y := 0
-	if Input.is_action_pressed("ui_left"):
-		move_x -= 1
-	if Input.is_action_pressed("ui_right"):
-		move_x += 1
-	if move_x == 0:
-		if Input.is_action_pressed("ui_up"):
-			move_y -= 1
-		if Input.is_action_pressed("ui_down"):
-			move_y += 1
+	if not _pressed_direction_stack.is_empty():
+		match String(_pressed_direction_stack[_pressed_direction_stack.size() - 1]):
+			"left":
+				move_x = -1
+			"right":
+				move_x = 1
+			"up":
+				move_y = -1
+			"down":
+				move_y = 1
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
 		"action_place": Input.is_key_pressed(KEY_SPACE),
 	}
+
+
+func _refresh_direction_stack() -> void:
+	_prune_released_directions()
+	_update_direction_stack_entry("ui_left", "left")
+	_update_direction_stack_entry("ui_right", "right")
+	_update_direction_stack_entry("ui_up", "up")
+	_update_direction_stack_entry("ui_down", "down")
+
+
+func _update_direction_stack_entry(action_name: String, direction: String) -> void:
+	if Input.is_action_pressed(action_name):
+		if Input.is_action_just_pressed(action_name) or not _pressed_direction_stack.has(direction):
+			_pressed_direction_stack.erase(direction)
+			_pressed_direction_stack.append(direction)
+
+
+func _prune_released_directions() -> void:
+	var active_directions: Array[String] = []
+	if Input.is_action_pressed("ui_left"):
+		active_directions.append("left")
+	if Input.is_action_pressed("ui_right"):
+		active_directions.append("right")
+	if Input.is_action_pressed("ui_up"):
+		active_directions.append("up")
+	if Input.is_action_pressed("ui_down"):
+		active_directions.append("down")
+	var stale_directions: Array[String] = []
+	for direction in _pressed_direction_stack:
+		var direction_name := String(direction)
+		if not active_directions.has(direction_name):
+			stale_directions.append(direction_name)
+	for direction_name in stale_directions:
+		_pressed_direction_stack.erase(direction_name)
 
 
 func _show_pending_settlement() -> void:
@@ -428,6 +465,7 @@ func _apply_content_style_overrides() -> void:
 		return
 	var player_style_by_slot: Dictionary = {}
 	var bubble_style_by_slot: Dictionary = {}
+	var bubble_color_by_slot: Dictionary = {}
 	for loadout in _app_runtime.current_start_config.character_loadouts:
 		var peer_id := int(loadout.get("peer_id", -1))
 		var slot_index := _find_slot_index_for_peer(peer_id)
@@ -439,8 +477,10 @@ func _apply_content_style_overrides() -> void:
 		var slot_index := _find_slot_index_for_peer(peer_id)
 		if slot_index < 0:
 			continue
-		bubble_style_by_slot[slot_index] = _resolve_bubble_color(String(loadout.get("bubble_style_id", "")), slot_index)
-	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot)
+		var bubble_style_id := String(loadout.get("bubble_style_id", ""))
+		bubble_style_by_slot[slot_index] = bubble_style_id
+		bubble_color_by_slot[slot_index] = _resolve_bubble_color(bubble_style_id, slot_index)
+	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
 
 
 func _apply_player_visual_profiles() -> void:

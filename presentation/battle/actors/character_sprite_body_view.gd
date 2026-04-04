@@ -29,8 +29,11 @@ func apply_actor_state(view_state: Dictionary) -> void:
 
 	var facing := int(view_state.get("facing", 1))
 	var move_state := int(view_state.get("move_state", 0))
+	var has_input_state := view_state.has("input_move_x") or view_state.has("input_move_y")
+	var input_move_x := int(view_state.get("input_move_x", 0))
+	var input_move_y := int(view_state.get("input_move_y", 0))
 	var alive := bool(view_state.get("alive", true))
-	var animation_name := _resolve_animation_name(facing, move_state, alive)
+	var animation_name := _resolve_animation_name(facing, move_state, has_input_state, input_move_x, input_move_y, alive)
 	if animation_name == _current_animation_name:
 		return
 	if not _body_sprite.sprite_frames.has_animation(animation_name):
@@ -40,10 +43,14 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	_body_sprite.play(animation_name)
 
 
-func _resolve_animation_name(facing: int, move_state: int, alive: bool) -> String:
-	var direction_suffix := _resolve_direction_suffix(facing)
+func _resolve_animation_name(facing: int, move_state: int, has_input_state: bool, input_move_x: int, input_move_y: int, alive: bool) -> String:
+	var direction_suffix := _resolve_direction_suffix_for_state(facing, has_input_state, input_move_x, input_move_y)
 	if not alive:
 		return "dead_%s" % direction_suffix
+	if has_input_state:
+		if _has_move_input(input_move_x, input_move_y):
+			return "run_%s" % direction_suffix
+		return "idle_%s" % direction_suffix
 	if _is_moving_state(move_state):
 		return "run_%s" % direction_suffix
 	return "idle_%s" % direction_suffix
@@ -63,8 +70,25 @@ func _resolve_direction_suffix(facing: int) -> String:
 			return "down"
 
 
+func _resolve_direction_suffix_for_state(facing: int, has_input_state: bool, input_move_x: int, input_move_y: int) -> String:
+	if has_input_state and _has_move_input(input_move_x, input_move_y):
+		if input_move_y < 0:
+			return "up"
+		if input_move_y > 0:
+			return "down"
+		if input_move_x < 0:
+			return "left"
+		if input_move_x > 0:
+			return "right"
+	return _resolve_direction_suffix(facing)
+
+
 func _is_moving_state(move_state: int) -> bool:
 	return move_state == 1 or move_state == 3
+
+
+func _has_move_input(input_move_x: int, input_move_y: int) -> bool:
+	return input_move_x != 0 or input_move_y != 0
 
 
 func _resolve_sprite_pivot(animation_set: CharacterAnimationSetDef) -> Vector2:

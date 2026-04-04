@@ -257,22 +257,58 @@ func _build_transport_debug_start_config(remote_peers: Array[int]) -> BattleStar
 
 
 func _collect_local_input() -> Dictionary:
+	if not has_meta("pressed_direction_stack"):
+		set_meta("pressed_direction_stack", [])
+	var pressed_direction_stack: Array = get_meta("pressed_direction_stack", [])
+	_prune_released_directions(pressed_direction_stack)
+	_update_direction_stack_entry(pressed_direction_stack, "ui_left", "left")
+	_update_direction_stack_entry(pressed_direction_stack, "ui_right", "right")
+	_update_direction_stack_entry(pressed_direction_stack, "ui_up", "up")
+	_update_direction_stack_entry(pressed_direction_stack, "ui_down", "down")
+	set_meta("pressed_direction_stack", pressed_direction_stack)
 	var move_x := 0
 	var move_y := 0
-	if Input.is_action_pressed("ui_left"):
-		move_x -= 1
-	if Input.is_action_pressed("ui_right"):
-		move_x += 1
-	if move_x == 0:
-		if Input.is_action_pressed("ui_up"):
-			move_y -= 1
-		if Input.is_action_pressed("ui_down"):
-			move_y += 1
+	if not pressed_direction_stack.is_empty():
+		match String(pressed_direction_stack[pressed_direction_stack.size() - 1]):
+			"left":
+				move_x = -1
+			"right":
+				move_x = 1
+			"up":
+				move_y = -1
+			"down":
+				move_y = 1
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
 		"action_place": Input.is_key_pressed(KEY_SPACE),
 	}
+
+
+func _update_direction_stack_entry(pressed_direction_stack: Array, action_name: String, direction: String) -> void:
+	if Input.is_action_pressed(action_name):
+		if Input.is_action_just_pressed(action_name) or not pressed_direction_stack.has(direction):
+			pressed_direction_stack.erase(direction)
+			pressed_direction_stack.append(direction)
+
+
+func _prune_released_directions(pressed_direction_stack: Array) -> void:
+	var active_directions: Array[String] = []
+	if Input.is_action_pressed("ui_left"):
+		active_directions.append("left")
+	if Input.is_action_pressed("ui_right"):
+		active_directions.append("right")
+	if Input.is_action_pressed("ui_up"):
+		active_directions.append("up")
+	if Input.is_action_pressed("ui_down"):
+		active_directions.append("down")
+	var stale_directions: Array[String] = []
+	for direction in pressed_direction_stack:
+		var direction_name := String(direction)
+		if not active_directions.has(direction_name):
+			stale_directions.append(direction_name)
+	for direction_name in stale_directions:
+		pressed_direction_stack.erase(direction_name)
 
 
 func _resolve_port() -> int:
