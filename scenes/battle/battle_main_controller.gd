@@ -28,6 +28,8 @@ const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
 @onready var battle_meta_bubble_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/BubbleStyleLabel
 @onready var settlement_controller: SettlementController = $CanvasLayer/SettlementPopupAnchor/SettlementController
 @onready var battle_camera_controller: BattleCameraController = $BattleCameraController
+@onready var map_theme_environment_controller: MapThemeEnvironmentController = $MapThemeEnvironmentController
+@onready var map_root: BattleMapViewController = $WorldRoot/MapRoot
 
 var _app_runtime: Node = null
 var _battle_context: BattleContext = null
@@ -163,6 +165,7 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
 	_apply_content_style_overrides()
 	_apply_player_visual_profiles()
+	_apply_map_theme()
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
 	battle_hud.set_local_player_entity_id(_resolve_local_player_entity_id())
 	_apply_battle_metadata()
@@ -496,6 +499,66 @@ func _apply_player_visual_profiles() -> void:
 		return
 	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
 	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
+
+
+func _apply_map_theme() -> void:
+	if _app_runtime == null:
+		return
+	var room_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot
+	var start_config: BattleStartConfig = _app_runtime.current_start_config
+	if start_config == null:
+		return
+	if room_snapshot == null:
+		room_snapshot = _build_fallback_room_snapshot_from_start_config(start_config)
+	if room_snapshot == null:
+		return
+	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	if runtime_config == null or runtime_config.map_theme == null:
+		return
+	if map_theme_environment_controller != null:
+		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
+	if map_root != null:
+		map_root.apply_map_theme(runtime_config.map_theme)
+
+
+func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartConfig) -> RoomSnapshot:
+	if start_config == null:
+		return null
+	var snapshot := RoomSnapshot.new()
+	snapshot.selected_map_id = String(start_config.map_id)
+	snapshot.rule_set_id = String(start_config.rule_set_id)
+	for player_entry in start_config.player_slots:
+		var peer_id := int(player_entry.get("peer_id", -1))
+		if peer_id <= 0:
+			continue
+		var member := RoomMemberState.new()
+		member.peer_id = peer_id
+		member.player_name = String(player_entry.get("player_name", player_entry.get("display_name", "Player%d" % peer_id)))
+		member.ready = true
+		member.slot_index = int(player_entry.get("slot_index", -1))
+		member.character_id = _resolve_character_id_from_start_config(start_config, peer_id)
+		member.bubble_style_id = _resolve_bubble_style_id_from_start_config(start_config, peer_id)
+		snapshot.members.append(member)
+	return snapshot
+
+
+func _resolve_character_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	for loadout in start_config.character_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("character_id", ""))
+	return ""
+
+
+func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	for loadout in start_config.player_bubble_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("bubble_style_id", ""))
+	return ""
 
 
 func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> RoomSelectionState:

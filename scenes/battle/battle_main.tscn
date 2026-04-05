@@ -11,9 +11,10 @@
 [ext_resource type="Script" uid="uid://cdmn5fxorgqai" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
 [ext_resource type="Script" uid="uid://c7vpwopxwju7n" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
 [ext_resource type="Script" uid="uid://dq081f5vel7m7" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
-[ext_resource type="PackedScene" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
+[ext_resource type="PackedScene" uid="uid://bd4vkx6o4px6e" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
 [ext_resource type="Script" uid="uid://mamfws2873ns" path="res://presentation/battle/hud/battle_meta_panel.gd" id="12_meta"]
 [ext_resource type="Script" uid="uid://d23hcfdjqmwg5" path="res://presentation/battle/hud/local_player_ability_panel.gd" id="13_ability"]
+[ext_resource type="Script" uid="uid://b8hlpavjx4lw6" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")
@@ -25,6 +26,8 @@ script = ExtResource("1_boot")
 script = ExtResource("2_bridge")
 
 [node name="WorldRoot" type="Node2D" parent="." unique_id=445906454]
+
+[node name="EnvironmentRoot" type="Node2D" parent="WorldRoot" unique_id=956782632]
 
 [node name="MapRoot" type="Node2D" parent="WorldRoot" unique_id=980950022]
 script = ExtResource("8_map")
@@ -142,10 +145,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -140.0
-offset_right = 260.0
-offset_bottom = 140.0
+offset_left = -300.0
+offset_top = -220.0
+offset_right = 300.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -153,3 +156,6 @@ grow_vertical = 2
 layout_mode = 1
 
 [node name="AudioRoot" type="Node" parent="." unique_id=1810718296]
+
+[node name="MapThemeEnvironmentController" type="Node" parent="." unique_id=1569095758]
+script = ExtResource("15_ppvt3")

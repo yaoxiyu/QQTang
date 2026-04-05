@@ -29,6 +29,8 @@ var actor_registry: BattleActorRegistry = null
 var state_to_view_mapper: BattleStateToViewMapper = null
 var battle_event_router: BattleEventRouter = null
 var _player_visual_profiles: Dictionary = {}
+var _bubble_style_by_slot: Dictionary = {}
+var _bubble_color_by_slot: Dictionary = {}
 
 var _last_consumed_tick: int = -1
 
@@ -137,6 +139,8 @@ func debug_dump_actor_summary() -> Dictionary:
 
 
 func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
+	_bubble_style_by_slot = bubble_style_by_slot.duplicate(true)
+	_bubble_color_by_slot = bubble_color_by_slot.duplicate(true)
 	if state_to_view_mapper == null:
 		return
 	state_to_view_mapper.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
@@ -171,8 +175,16 @@ func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vect
 func _on_explosion_event_routed(event: SimEvent) -> void:
 	if event == null:
 		return
+	var owner_player_id := int(event.payload.get("owner_player_id", -1))
+	var bubble_style_id := ""
+	var bubble_color := Color.WHITE
+	var player_actor := actor_registry.get_actor_view(owner_player_id) if actor_registry != null else null
+	if player_actor != null:
+		var player_slot := int(player_actor.get("player_slot"))
+		bubble_style_id = String(_bubble_style_by_slot.get(player_slot, ""))
+		bubble_color = _bubble_color_by_slot.get(player_slot, bubble_color)
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("spawn_explosion"):
-		spawn_fx_controller.spawn_explosion(event, cell_size)
+		spawn_fx_controller.spawn_explosion(event, cell_size, bubble_style_id, bubble_color)
 		return
 	if fx_layer == null:
 		return
@@ -182,7 +194,7 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 		cells.append(cell)
 
 	var view: BattleExplosionActorView = ExplosionActorViewScript.new()
-	view.configure(cells, cell_size)
+	view.configure(cells, cell_size, bubble_style_id, bubble_color)
 	fx_layer.add_child(view)
 
 

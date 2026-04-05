@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cjqu2ykmxfuuf"]
 
-[ext_resource type="Script" path="res://scenes/front/loading_scene_controller.gd" id="1_loading"]
+[ext_resource type="Script" uid="uid://co64heammstho" path="res://scenes/front/loading_scene_controller.gd" id="1_loading"]
 
 [node name="LoadingScene" type="Node" unique_id=2140693164]
 script = ExtResource("1_loading")
@@ -24,10 +24,45 @@ offset_bottom = 640.0
 layout_mode = 2
 text = "Loading Match..."
 
+[node name="ManifestSummaryPanel" type="PanelContainer" parent="LoadingRoot/MainLayout" unique_id=2068405271]
+layout_mode = 2
+
+[node name="SummaryVBox" type="VBoxContainer" parent="LoadingRoot/MainLayout/ManifestSummaryPanel" unique_id=923705793]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MapSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=577511229]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="RuleSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=117688132]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ModeSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=1679274070]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="ItemSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=1747081274]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CharacterSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=625648661]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="BubbleSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=7230736]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="PlayerLoadoutTitleLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1713046708]
+layout_mode = 2
+text = "Players"
+
 [node name="PlayerLoadingList" type="VBoxContainer" parent="LoadingRoot/MainLayout" unique_id=1561636689]
 layout_mode = 2
 
 [node name="TimeoutHint" type="Label" parent="LoadingRoot/MainLayout" unique_id=810322753]
 layout_mode = 2
-autowrap_mode = 3
 text = "Preparing BattleStartConfig..."
+autowrap_mode = 3

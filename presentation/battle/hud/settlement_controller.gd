@@ -13,12 +13,22 @@ signal input_frozen(frozen: bool)
 @export var map_summary_label_path: NodePath = ^"MapSummaryLabel"
 @export var rule_summary_label_path: NodePath = ^"RuleSummaryLabel"
 @export var finish_reason_label_path: NodePath = ^"FinishReasonLabel"
+@export var mode_summary_label_path: NodePath = ^"ModeSummaryLabel"
+@export var character_summary_label_path: NodePath = ^"CharacterSummaryLabel"
+@export var bubble_summary_label_path: NodePath = ^"BubbleSummaryLabel"
+@export var return_button_path: NodePath = ^"ActionRow/ReturnToRoomButton"
+@export var rematch_button_path: NodePath = ^"ActionRow/RematchButton"
 
 var result_label: Label = null
 var detail_label: Label = null
 var map_summary_label: Label = null
 var rule_summary_label: Label = null
 var finish_reason_label: Label = null
+var mode_summary_label: Label = null
+var character_summary_label: Label = null
+var bubble_summary_label: Label = null
+var return_button: Button = null
+var rematch_button: Button = null
 var current_result: BattleResult = null
 var input_locked: bool = false
 
@@ -34,6 +44,21 @@ func _ready() -> void:
 		rule_summary_label = get_node(rule_summary_label_path)
 	if has_node(finish_reason_label_path):
 		finish_reason_label = get_node(finish_reason_label_path)
+	if has_node(mode_summary_label_path):
+		mode_summary_label = get_node(mode_summary_label_path)
+	if has_node(character_summary_label_path):
+		character_summary_label = get_node(character_summary_label_path)
+	if has_node(bubble_summary_label_path):
+		bubble_summary_label = get_node(bubble_summary_label_path)
+	if has_node(return_button_path):
+		return_button = get_node(return_button_path)
+	if has_node(rematch_button_path):
+		rematch_button = get_node(rematch_button_path)
+
+	if return_button != null and not return_button.pressed.is_connected(request_return_to_room):
+		return_button.pressed.connect(request_return_to_room)
+	if rematch_button != null and not rematch_button.pressed.is_connected(request_rematch):
+		rematch_button.pressed.connect(request_rematch)
 
 	visible = false
 	_refresh_text()
@@ -79,6 +104,9 @@ func debug_dump_settlement_state() -> Dictionary:
 		"map_summary_text": map_summary_label.text if map_summary_label != null else "",
 		"rule_summary_text": rule_summary_label.text if rule_summary_label != null else "",
 		"finish_reason_text": finish_reason_label.text if finish_reason_label != null else "",
+		"mode_summary_text": mode_summary_label.text if mode_summary_label != null else "",
+		"character_summary_text": character_summary_label.text if character_summary_label != null else "",
+		"bubble_summary_text": bubble_summary_label.text if bubble_summary_label != null else "",
 	}
 
 
@@ -98,6 +126,12 @@ func _refresh_text() -> void:
 		rule_summary_label.text = _build_rule_summary_text()
 	if finish_reason_label != null:
 		finish_reason_label.text = _build_finish_reason_text()
+	if mode_summary_label != null:
+		mode_summary_label.text = _build_mode_summary_text()
+	if character_summary_label != null:
+		character_summary_label.text = _build_character_summary_text()
+	if bubble_summary_label != null:
+		bubble_summary_label.text = _build_bubble_summary_text()
 
 
 func _build_title_text() -> String:
@@ -131,13 +165,15 @@ func _build_detail_text() -> String:
 
 func _build_map_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
 	var map_manifest: Dictionary = manifest.get("map", {})
 	if map_manifest.is_empty():
 		return ""
-	var display_name := String(map_manifest.get("display_name", map_manifest.get("map_id", "")))
-	var width := int(map_manifest.get("width", 0))
-	var height := int(map_manifest.get("height", 0))
-	return "Map: %s (%dx%d)" % [display_name, width, height]
+	var display_name := String(ui_summary.get("map_display_name", map_manifest.get("display_name", map_manifest.get("map_id", ""))))
+	var map_brief := String(ui_summary.get("map_brief", map_manifest.get("brief", "")))
+	if not map_brief.is_empty():
+		return "地图: %s\n%s" % [display_name, map_brief]
+	return "地图: %s" % display_name
 
 
 func _build_rule_summary_text() -> String:
@@ -146,18 +182,53 @@ func _build_rule_summary_text() -> String:
 	var ui_summary: Dictionary = manifest.get("ui_summary", {})
 	if rule_manifest.is_empty():
 		return ""
-	var display_name := String(rule_manifest.get("display_name", rule_manifest.get("rule_set_id", "")))
-	var round_time_sec := int(rule_manifest.get("round_time_sec", 0))
+	var display_name := String(ui_summary.get("rule_display_name", rule_manifest.get("display_name", rule_manifest.get("rule_set_id", ""))))
+	var rule_brief := String(ui_summary.get("rule_brief", rule_manifest.get("brief", "")))
 	var item_brief := String(ui_summary.get("item_brief", ""))
+	var detail_lines: PackedStringArray = PackedStringArray()
+	if not rule_brief.is_empty():
+		detail_lines.append(rule_brief)
 	if not item_brief.is_empty():
-		return "Rule: %s (%ds)\n%s" % [display_name, round_time_sec, item_brief]
-	return "Rule: %s (%ds)" % [display_name, round_time_sec]
+		detail_lines.append(item_brief)
+	if not detail_lines.is_empty():
+		return "规则: %s\n%s" % [display_name, "\n".join(detail_lines)]
+	return "规则: %s" % display_name
 
 
 func _build_finish_reason_text() -> String:
 	if current_result == null:
 		return ""
-	return "Reason: %s" % _map_finish_reason_text(current_result.finish_reason)
+	return "原因: %s" % _map_finish_reason_text(current_result.finish_reason)
+
+
+func _build_mode_summary_text() -> String:
+	var manifest := _resolve_current_manifest()
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
+	var mode_manifest: Dictionary = manifest.get("mode", {})
+	var display_name := String(ui_summary.get("mode_display_name", mode_manifest.get("display_name", mode_manifest.get("mode_id", ""))))
+	if display_name.is_empty():
+		return ""
+	return "模式: %s" % display_name
+
+
+func _build_character_summary_text() -> String:
+	var manifest := _resolve_current_manifest()
+	var local_peer_id := _resolve_local_peer_id()
+	for entry in manifest.get("characters", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			var display_name := String(entry.get("display_name", entry.get("character_id", "")))
+			return "角色: %s" % display_name
+	return ""
+
+
+func _build_bubble_summary_text() -> String:
+	var manifest := _resolve_current_manifest()
+	var local_peer_id := _resolve_local_peer_id()
+	for entry in manifest.get("bubbles", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			var display_name := String(entry.get("display_name", entry.get("bubble_style_id", "")))
+			return "泡泡: %s" % display_name
+	return ""
 
 
 func _resolve_current_start_config():
@@ -182,6 +253,16 @@ func _resolve_current_manifest() -> Dictionary:
 	if app_runtime == null:
 		return {}
 	return app_runtime.current_battle_content_manifest.duplicate(true)
+
+
+func _resolve_local_peer_id() -> int:
+	var start_config = _resolve_current_start_config()
+	if start_config == null:
+		return -1
+	var controlled_peer_id := int(start_config.controlled_peer_id)
+	if controlled_peer_id > 0:
+		return controlled_peer_id
+	return int(start_config.local_peer_id)
 
 
 func _map_finish_reason_text(finish_reason: String) -> String:

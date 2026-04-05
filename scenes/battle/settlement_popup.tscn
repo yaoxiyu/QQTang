@@ -1,8 +1,8 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bd4vkx6o4px6e"]
 
-[ext_resource type="Script" path="res://presentation/battle/hud/settlement_controller.gd" id="1_controller"]
+[ext_resource type="Script" uid="uid://d1kjie3nk2vog" path="res://presentation/battle/hud/settlement_controller.gd" id="1_controller"]
 
-[node name="SettlementController" type="Control"]
+[node name="SettlementController" type="Control" unique_id=548600662]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
 
-[node name="ResultLabel" type="Label" parent="."]
+[node name="ResultLabel" type="Label" parent="." unique_id=1513084540]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 24.0
@@ -19,38 +19,75 @@ offset_right = 504.0
 offset_bottom = 72.0
 text = "Result"
 
-[node name="DetailLabel" type="Label" parent="."]
+[node name="DetailLabel" type="Label" parent="." unique_id=282006103]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 88.0
 offset_right = 504.0
 offset_bottom = 184.0
-autowrap_mode = 3
 text = "Detail"
+autowrap_mode = 3
 
-[node name="MapSummaryLabel" type="Label" parent="."]
+[node name="MapSummaryLabel" type="Label" parent="." unique_id=987099176]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 196.0
-offset_right = 504.0
-offset_bottom = 228.0
-autowrap_mode = 3
+offset_right = 560.0
+offset_bottom = 232.0
 text = "Map Summary"
+autowrap_mode = 3
 
-[node name="RuleSummaryLabel" type="Label" parent="."]
+[node name="RuleSummaryLabel" type="Label" parent="." unique_id=2086406814]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 236.0
-offset_right = 504.0
+offset_right = 560.0
 offset_bottom = 284.0
-autowrap_mode = 3
 text = "Rule Summary"
+autowrap_mode = 3
 
-[node name="FinishReasonLabel" type="Label" parent="."]
+[node name="FinishReasonLabel" type="Label" parent="." unique_id=1625101886]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 292.0
 offset_right = 504.0
 offset_bottom = 332.0
-autowrap_mode = 3
 text = "Finish Reason"
+autowrap_mode = 3
+
+[node name="ModeSummaryLabel" type="Label" parent="." unique_id=867285694]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 340.0
+offset_right = 560.0
+offset_bottom = 372.0
+
+[node name="CharacterSummaryLabel" type="Label" parent="." unique_id=482950974]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 380.0
+offset_right = 560.0
+offset_bottom = 412.0
+
+[node name="BubbleSummaryLabel" type="Label" parent="." unique_id=1699996993]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 420.0
+offset_right = 560.0
+offset_bottom = 452.0
+
+[node name="ActionRow" type="HBoxContainer" parent="." unique_id=621369778]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 468.0
+offset_right = 320.0
+offset_bottom = 508.0
+theme_override_constants/separation = 12
+
+[node name="ReturnToRoomButton" type="Button" parent="ActionRow" unique_id=1499231930]
+layout_mode = 2
+text = "返回房间"
+
+[node name="RematchButton" type="Button" parent="ActionRow" unique_id=2054571691]
+layout_mode = 2
+text = "再来一局"

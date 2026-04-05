@@ -8,7 +8,7 @@ func _ready() -> void:
 	_ensure_visuals()
 
 
-func configure(world_position: Vector2, cell_size: float) -> void:
+func configure(world_position: Vector2, cell_size: float, break_color: Color = Color(0.95, 0.72, 0.42, 0.75)) -> void:
 	position = world_position
 	_ensure_visuals()
 	var half: float = max(cell_size * 0.35, 8.0)
@@ -18,7 +18,7 @@ func configure(world_position: Vector2, cell_size: float) -> void:
 		Vector2(half, half),
 		Vector2(-half, half),
 	])
-	_quad.color = Color(0.95, 0.72, 0.42, 0.75)
+	_quad.color = break_color
 	scale = Vector2.ONE
 	modulate = Color(1, 1, 1, 1)
 	var tween := create_tween()

@@ -14,14 +14,19 @@ func _ready() -> void:
 		fx_layer = get_node(fx_layer_path) as Node2D
 
 
-func spawn_explosion(event: SimEvent, cell_size: float) -> void:
+func spawn_explosion(
+	event: SimEvent,
+	cell_size: float,
+	bubble_style_id: String = "",
+	bubble_color: Color = Color.WHITE
+) -> void:
 	if fx_layer == null or event == null:
 		return
 	var cells: Array[Vector2i] = []
 	for cell in event.payload.get("covered_cells", []):
 		cells.append(cell)
 	var view: BattleExplosionActorView = ExplosionActorViewScript.new()
-	view.configure(cells, cell_size)
+	view.configure(cells, cell_size, bubble_style_id, bubble_color)
 	fx_layer.add_child(view)
 
 

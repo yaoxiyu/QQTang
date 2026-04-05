@@ -1,6 +1,9 @@
 class_name ItemPickupFxPlayer
 extends Node2D
 
+const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
+
+var _icon_sprite: Sprite2D = null
 var _diamond: Polygon2D = null
 
 
@@ -11,14 +14,7 @@ func _ready() -> void:
 func configure(world_position: Vector2, cell_size: float, item_type: int) -> void:
 	position = world_position
 	_ensure_visuals()
-	var half: float = max(cell_size * 0.16, 6.0)
-	_diamond.polygon = PackedVector2Array([
-		Vector2(0, -half),
-		Vector2(half, 0),
-		Vector2(0, half),
-		Vector2(-half, 0),
-	])
-	_diamond.color = _resolve_item_color(item_type)
+	_apply_item_visual(cell_size, item_type, 0.16, 0.76)
 	scale = Vector2.ONE
 	modulate = Color(1, 1, 1, 0.95)
 	var tween := create_tween()
@@ -30,9 +26,54 @@ func configure(world_position: Vector2, cell_size: float, item_type: int) -> voi
 
 
 func _ensure_visuals() -> void:
+	if _icon_sprite == null:
+		_icon_sprite = Sprite2D.new()
+		_icon_sprite.centered = true
+		_icon_sprite.visible = false
+		add_child(_icon_sprite)
 	if _diamond == null:
 		_diamond = Polygon2D.new()
 		add_child(_diamond)
+
+
+func _apply_item_visual(cell_size: float, item_type: int, diamond_ratio: float, icon_ratio: float) -> void:
+	var icon := _resolve_item_icon(item_type)
+	if icon != null:
+		_icon_sprite.texture = icon
+		_icon_sprite.scale = _resolve_icon_scale(icon, cell_size, icon_ratio)
+		_icon_sprite.visible = true
+		_diamond.visible = false
+		return
+	_icon_sprite.texture = null
+	_icon_sprite.visible = false
+	_diamond.visible = true
+	var half: float = max(cell_size * diamond_ratio, 6.0)
+	_diamond.polygon = PackedVector2Array([
+		Vector2(0, -half),
+		Vector2(half, 0),
+		Vector2(0, half),
+		Vector2(-half, 0),
+	])
+	_diamond.color = _resolve_item_color(item_type)
+
+
+func _resolve_item_icon(item_type: int) -> Texture2D:
+	var entry := ItemCatalogScript.get_item_entry_by_type(item_type)
+	var icon_path := String(entry.get("icon_path", ""))
+	if icon_path.is_empty():
+		return null
+	return load(icon_path) as Texture2D
+
+
+func _resolve_icon_scale(icon: Texture2D, cell_size: float, icon_ratio: float) -> Vector2:
+	if icon == null:
+		return Vector2.ONE
+	var texture_size := icon.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return Vector2.ONE
+	var target_size : float = max(cell_size * icon_ratio, 10.0)
+	var scale_factor : float = target_size / max(texture_size.x, texture_size.y)
+	return Vector2.ONE * scale_factor
 
 
 func _resolve_item_color(item_type: int) -> Color:
