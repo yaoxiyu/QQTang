@@ -10,6 +10,7 @@ const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config
 const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/battle_runtime_config_builder.gd")
 const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
 const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
+const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
@@ -107,6 +108,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_accept") and settlement_controller.visible:
 		settlement_controller.request_return_to_room()
 		return
+	if event.is_action_pressed("ui_left"):
+		_push_direction("left")
+	elif event.is_action_released("ui_left"):
+		_remove_direction("left")
+	if event.is_action_pressed("ui_right"):
+		_push_direction("right")
+	elif event.is_action_released("ui_right"):
+		_remove_direction("right")
+	if event.is_action_pressed("ui_up"):
+		_push_direction("up")
+	elif event.is_action_released("ui_up"):
+		_remove_direction("up")
+	if event.is_action_pressed("ui_down"):
+		_push_direction("down")
+	elif event.is_action_released("ui_down"):
+		_remove_direction("down")
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
 		match event.keycode:
 			KEY_J:
@@ -273,7 +290,6 @@ func _consume_battle_events(events: Array) -> void:
 
 
 func _collect_local_input() -> Dictionary:
-	_refresh_direction_stack()
 	var move_x := 0
 	var move_y := 0
 	if not _pressed_direction_stack.is_empty():
@@ -293,38 +309,13 @@ func _collect_local_input() -> Dictionary:
 	}
 
 
-func _refresh_direction_stack() -> void:
-	_prune_released_directions()
-	_update_direction_stack_entry("ui_left", "left")
-	_update_direction_stack_entry("ui_right", "right")
-	_update_direction_stack_entry("ui_up", "up")
-	_update_direction_stack_entry("ui_down", "down")
+func _push_direction(direction: String) -> void:
+	_pressed_direction_stack.erase(direction)
+	_pressed_direction_stack.append(direction)
 
 
-func _update_direction_stack_entry(action_name: String, direction: String) -> void:
-	if Input.is_action_pressed(action_name):
-		if Input.is_action_just_pressed(action_name) or not _pressed_direction_stack.has(direction):
-			_pressed_direction_stack.erase(direction)
-			_pressed_direction_stack.append(direction)
-
-
-func _prune_released_directions() -> void:
-	var active_directions: Array[String] = []
-	if Input.is_action_pressed("ui_left"):
-		active_directions.append("left")
-	if Input.is_action_pressed("ui_right"):
-		active_directions.append("right")
-	if Input.is_action_pressed("ui_up"):
-		active_directions.append("up")
-	if Input.is_action_pressed("ui_down"):
-		active_directions.append("down")
-	var stale_directions: Array[String] = []
-	for direction in _pressed_direction_stack:
-		var direction_name := String(direction)
-		if not active_directions.has(direction_name):
-			stale_directions.append(direction_name)
-	for direction_name in stale_directions:
-		_pressed_direction_stack.erase(direction_name)
+func _remove_direction(direction: String) -> void:
+	_pressed_direction_stack.erase(direction)
 
 
 func _show_pending_settlement() -> void:
@@ -513,9 +504,12 @@ func _apply_map_theme() -> void:
 	if room_snapshot == null:
 		return
 	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var map_runtime_layout := MapLoaderScript.load_runtime_layout(String(room_selection_state.map_id))
 	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
 	if runtime_config == null or runtime_config.map_theme == null:
 		return
+	if presentation_bridge != null and map_runtime_layout != null:
+		presentation_bridge.configure_map_presentation(map_runtime_layout, runtime_config.map_theme)
 	if map_theme_environment_controller != null:
 		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
 	if map_root != null:

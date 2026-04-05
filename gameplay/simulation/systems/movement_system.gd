@@ -13,6 +13,9 @@
 class_name MovementSystem
 extends ISimSystem
 
+const CELL_OFFSET_UNITS := 1000
+const HALF_CELL_OFFSET_UNITS := CELL_OFFSET_UNITS / 2
+
 # ====================
 # 系统接口
 # ====================
@@ -38,8 +41,15 @@ func execute(ctx: SimContext) -> void:
 			move_x = 0
 			move_y = 0
 
+		if player.move_state == PlayerState.MoveState.MOVING and (player.offset_x != 0 or player.offset_y != 0):
+			_continue_movement(ctx, player_id, player)
+			continue
+
 		# 如果没有移动命令，跳过
 		if move_x == 0 and move_y == 0:
+			if player.move_state != PlayerState.MoveState.IDLE:
+				player.move_state = PlayerState.MoveState.IDLE
+				ctx.state.players.update_player(player)
 			continue
 
 		# 计算目标位置
@@ -50,6 +60,14 @@ func execute(ctx: SimContext) -> void:
 		if ctx.queries.is_move_blocked_for_player(player_id, target_x, target_y):
 			# 移动被阻挡
 			player.move_state = PlayerState.MoveState.BLOCKED
+			if move_y > 0:
+				player.facing = PlayerState.FacingDir.DOWN
+			elif move_y < 0:
+				player.facing = PlayerState.FacingDir.UP
+			elif move_x > 0:
+				player.facing = PlayerState.FacingDir.RIGHT
+			elif move_x < 0:
+				player.facing = PlayerState.FacingDir.LEFT
 			ctx.state.players.update_player(player)
 			var blocked_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_BLOCKED)
 			blocked_event.payload = {
@@ -62,12 +80,10 @@ func execute(ctx: SimContext) -> void:
 			ctx.events.push(blocked_event)
 			continue
 
-		# 更新玩家位置
 		var old_cell_x = player.cell_x
 		var old_cell_y = player.cell_y
+		var move_units := _movement_units_per_tick(player.speed_level)
 
-		player.cell_x = target_x
-		player.cell_y = target_y
 		player.move_state = PlayerState.MoveState.MOVING
 		player.last_non_zero_move_x = move_x
 		player.last_non_zero_move_y = move_y
@@ -82,21 +98,99 @@ func execute(ctx: SimContext) -> void:
 		elif move_x < 0:
 			player.facing = PlayerState.FacingDir.LEFT
 
+		player.offset_x = move_x * move_units
+		player.offset_y = move_y * move_units
+		_apply_offset_rebase(player)
+
+		if player.offset_x == 0 and player.offset_y == 0:
+			player.move_state = PlayerState.MoveState.IDLE
+
 		# 更新玩家存储
 		ctx.state.players.update_player(player)
 
-		# 增量更新占格索引，保证同 Tick 后续系统读到最新位置
-		_update_player_cell_index(ctx, player_id, old_cell_x, old_cell_y, target_x, target_y)
+		_emit_cell_changed_if_needed(ctx, player_id, old_cell_x, old_cell_y, player.cell_x, player.cell_y)
 
-		var moved_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_MOVED)
-		moved_event.payload = {
-			"player_id": player_id,
-			"from_cell_x": old_cell_x,
-			"from_cell_y": old_cell_y,
-			"to_cell_x": target_x,
-			"to_cell_y": target_y
-		}
-		ctx.events.push(moved_event)
+
+func _continue_movement(ctx: SimContext, player_id: int, player: PlayerState) -> void:
+	var move_x := player.last_non_zero_move_x
+	var move_y := player.last_non_zero_move_y
+	if move_x == 0 and move_y == 0:
+		player.offset_x = 0
+		player.offset_y = 0
+		player.move_state = PlayerState.MoveState.IDLE
+		ctx.state.players.update_player(player)
+		return
+
+	var old_cell_x := player.cell_x
+	var old_cell_y := player.cell_y
+	var move_units := _movement_units_per_tick(player.speed_level)
+	player.offset_x += move_x * move_units
+	player.offset_y += move_y * move_units
+	_apply_offset_rebase(player)
+
+	if player.offset_x == 0 and player.offset_y == 0:
+		player.move_state = PlayerState.MoveState.IDLE
+	else:
+		player.move_state = PlayerState.MoveState.MOVING
+
+	ctx.state.players.update_player(player)
+	_emit_cell_changed_if_needed(ctx, player_id, old_cell_x, old_cell_y, player.cell_x, player.cell_y)
+
+
+func _apply_offset_rebase(player: PlayerState) -> void:
+	while player.offset_x > HALF_CELL_OFFSET_UNITS:
+		player.cell_x += 1
+		player.offset_x -= CELL_OFFSET_UNITS
+	while player.offset_x < -HALF_CELL_OFFSET_UNITS:
+		player.cell_x -= 1
+		player.offset_x += CELL_OFFSET_UNITS
+	while player.offset_y > HALF_CELL_OFFSET_UNITS:
+		player.cell_y += 1
+		player.offset_y -= CELL_OFFSET_UNITS
+	while player.offset_y < -HALF_CELL_OFFSET_UNITS:
+		player.cell_y -= 1
+		player.offset_y += CELL_OFFSET_UNITS
+
+	if player.offset_y == 0 and abs(player.offset_x) < _movement_units_per_tick(player.speed_level):
+		player.offset_x = 0
+	if player.offset_x == 0 and abs(player.offset_y) < _movement_units_per_tick(player.speed_level):
+		player.offset_y = 0
+
+
+func _movement_units_per_tick(speed_level: int) -> int:
+	match max(speed_level, 1):
+		1:
+			return 250
+		2:
+			return 334
+		3:
+			return 500
+		_:
+			return 500
+
+
+func _emit_cell_changed_if_needed(
+	ctx: SimContext,
+	player_id: int,
+	from_x: int,
+	from_y: int,
+	to_x: int,
+	to_y: int
+) -> void:
+	if from_x == to_x and from_y == to_y:
+		return
+
+	_update_player_cell_index(ctx, player_id, from_x, from_y, to_x, to_y)
+
+	var moved_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_MOVED)
+	moved_event.payload = {
+		"player_id": player_id,
+		"from_cell_x": from_x,
+		"from_cell_y": from_y,
+		"to_cell_x": to_x,
+		"to_cell_y": to_y
+	}
+	ctx.events.push(moved_event)
 
 func _update_player_cell_index(
 	ctx: SimContext,

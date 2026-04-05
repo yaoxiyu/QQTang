@@ -12,7 +12,9 @@ const GenerateBubbleGameplaysScript = preload("res://tools/content_pipeline/gene
 const GenerateModesScript = preload("res://tools/content_pipeline/generators/generate_modes.gd")
 const GenerateCharacterSkinsScript = preload("res://tools/content_pipeline/generators/generate_character_skins.gd")
 const GenerateBubbleSkinsScript = preload("res://tools/content_pipeline/generators/generate_bubble_skins.gd")
+const GenerateMapsScript = preload("res://tools/content_pipeline/generators/generate_maps.gd")
 const GenerateMapThemesScript = preload("res://tools/content_pipeline/generators/generate_map_themes.gd")
+const GenerateTilePresentationsScript = preload("res://tools/content_pipeline/generators/generate_tile_presentations.gd")
 const GenerateRulesetsScript = preload("res://tools/content_pipeline/generators/generate_rulesets.gd")
 
 
@@ -31,6 +33,8 @@ func run_all() -> void:
 	GenerateModesScript.new().generate()
 	GenerateCharacterSkinsScript.new().generate()
 	GenerateBubbleSkinsScript.new().generate()
+	GenerateMapsScript.new().generate()
 	GenerateMapThemesScript.new().generate()
+	GenerateTilePresentationsScript.new().generate()
 	GenerateRulesetsScript.new().generate()
 	print("ContentPipelineRunner: generation finished")

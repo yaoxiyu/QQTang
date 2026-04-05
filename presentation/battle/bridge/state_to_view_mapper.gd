@@ -2,6 +2,7 @@ class_name BattleStateToViewMapper
 extends RefCounted
 
 var cell_size: float = 48.0
+const CELL_OFFSET_UNITS := 1000.0
 
 var _player_palette := [
 	Color(0.20, 0.70, 1.0, 1.0),
@@ -116,7 +117,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"move_state": player.move_state,
 		"input_move_x": input_move_x,
 		"input_move_y": input_move_y,
-		"position": _to_world_position(player.cell_x, player.cell_y),
+		"position": _to_world_position(player.cell_x, player.cell_y) + _to_world_offset(player.offset_x, player.offset_y),
 		"offset": Vector2(player.offset_x, player.offset_y),
 		"color": configured_color,
 	}
@@ -146,6 +147,13 @@ func _to_world_position(cell_x: int, cell_y: int) -> Vector2:
 	return Vector2(
 		(float(cell_x) + 0.5) * cell_size,
 		(float(cell_y) + 0.5) * cell_size
+	)
+
+
+func _to_world_offset(offset_x: int, offset_y: int) -> Vector2:
+	return Vector2(
+		(float(offset_x) / CELL_OFFSET_UNITS) * cell_size,
+		(float(offset_y) / CELL_OFFSET_UNITS) * cell_size
 	)
 
 

@@ -21,12 +21,15 @@ func generate() -> void:
 		def.display_name = get_cell(row, header_index, "display_name")
 		def.bgm_key = get_cell(row, header_index, "bgm_key")
 		def.environment_scene = load_resource_or_null(get_cell(row, header_index, "environment_scene_path")) as PackedScene
+		def.solid_presentation_id = get_cell(row, header_index, "solid_presentation_id")
+		def.breakable_presentation_id = get_cell(row, header_index, "breakable_presentation_id")
 		def.tile_palette = {
 			"ground": _parse_hex_color(get_cell(row, header_index, "ground_color"), Color(0.88, 0.88, 0.82, 1.0)),
 			"solid": _parse_hex_color(get_cell(row, header_index, "solid_color"), Color(0.20, 0.22, 0.28, 1.0)),
 			"breakable": _parse_hex_color(get_cell(row, header_index, "breakable_color"), Color(0.70, 0.50, 0.28, 1.0)),
 			"spawn": _parse_hex_color(get_cell(row, header_index, "spawn_color"), Color(0.24, 0.42, 0.26, 1.0)),
 			"grid_line": _parse_hex_color(get_cell(row, header_index, "grid_line_color"), Color(0.10, 0.12, 0.18, 0.35)),
+			"occluder": _parse_hex_color(get_cell(row, header_index, "occluder_color"), Color(0.31, 0.48, 0.32, 1.0)),
 		}
 
 		var output_path := OUTPUT_DIR + def.theme_id + ".tres"

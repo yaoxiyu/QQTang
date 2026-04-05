@@ -5,3 +5,13 @@
 [resource]
 script = ExtResource("1_j3mr7")
 metadata/_custom_type_script = "uid://c4qgdw2l1swe2"
+tile_id = "tile_floor"
+display_name = "地板"
+tile_type = "floor"
+scene_path = ""
+is_walkable = true
+is_breakable = false
+blocks_blast = false
+blocks_movement = false
+break_fx_id = ""
+content_hash = "tile_floor_v1"

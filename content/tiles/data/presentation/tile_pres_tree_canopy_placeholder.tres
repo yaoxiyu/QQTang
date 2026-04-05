@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TilePresentationDef" format=3 uid="uid://nnd6x1nk7mov"]
+
+[ext_resource type="Script" uid="uid://bivi1b5gl7tv6" path="res://content/tiles/defs/tile_presentation_def.gd" id="1_fl24m"]
+[ext_resource type="PackedScene" uid="uid://d1gvg3ajv6vih" path="res://scenes/tiles/map_occluder_view.tscn" id="2_83j7v"]
+
+[resource]
+script = ExtResource("1_fl24m")
+presentation_id = "tile_pres_tree_canopy_placeholder"
+display_name = "树冠占位遮挡"
+render_role = "foreground_occluder"
+tile_scene = ExtResource("2_83j7v")
+height_px = 0.0
+fade_when_actor_inside = true
+content_hash = "tile_pres_tree_canopy_placeholder_v1"

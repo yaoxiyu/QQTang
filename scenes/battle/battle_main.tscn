@@ -32,7 +32,15 @@ script = ExtResource("2_bridge")
 [node name="MapRoot" type="Node2D" parent="WorldRoot" unique_id=980950022]
 script = ExtResource("8_map")
 
+[node name="GroundLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=1672313657]
+
+[node name="StaticBlockLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=246488867]
+
+[node name="BreakableBlockLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=1710311965]
+
 [node name="ActorLayer" type="Node2D" parent="WorldRoot" unique_id=964912531]
+
+[node name="OccluderLayer" type="Node2D" parent="WorldRoot" unique_id=916302218]
 
 [node name="FxLayer" type="Node2D" parent="WorldRoot" unique_id=1005770791]
 

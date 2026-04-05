@@ -12,6 +12,7 @@ extends Resource
 @export var spawn_points: Array[Vector2i] = []
 @export var item_spawn_profile_id: String = "default_items"
 @export var tile_theme_id: String = ""
+@export var foreground_overlay_entries: Array[Dictionary] = []
 @export var content_hash: String = ""
 
 

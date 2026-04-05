@@ -133,6 +133,7 @@ static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayo
 	layout.item_spawn_profile_id = resource.item_spawn_profile_id
 	layout.content_hash = resource.content_hash
 	layout.tile_theme_id = resource.tile_theme_id
+	layout.foreground_overlay_entries = resource.foreground_overlay_entries.duplicate(true)
 	return layout if _validate_layout(layout) else null
 
 
@@ -148,6 +149,7 @@ static func _build_config_from_resource(resource: MapResource) -> Dictionary:
 		"spawn_points": resource.spawn_points.duplicate(),
 		"static_blocks": resource.solid_cells.duplicate(),
 		"breakable_blocks": resource.breakable_cells.duplicate(),
+		"foreground_overlay_entries": resource.foreground_overlay_entries.duplicate(true),
 	}
 
 

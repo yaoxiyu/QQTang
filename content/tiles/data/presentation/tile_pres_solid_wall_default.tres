@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TilePresentationDef" format=3 uid="uid://cnslsxm7lc36g"]
+
+[ext_resource type="Script" uid="uid://bivi1b5gl7tv6" path="res://content/tiles/defs/tile_presentation_def.gd" id="1_y6e3r"]
+[ext_resource type="PackedScene" uid="uid://um5ficyncaqv" path="res://scenes/tiles/map_static_block_view.tscn" id="2_p5b5b"]
+
+[resource]
+script = ExtResource("1_y6e3r")
+presentation_id = "tile_pres_solid_wall_default"
+display_name = "默认实心墙"
+render_role = "static_block"
+tile_scene = ExtResource("2_p5b5b")
+height_px = 18.0
+fade_alpha = 1.0
+content_hash = "tile_pres_solid_wall_default_v1"

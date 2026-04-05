@@ -13,6 +13,7 @@ var spawn_points: Array[Vector2i] = []
 var item_spawn_profile_id: String = "default_items"
 var content_hash: String = ""
 var tile_theme_id: String = ""
+var foreground_overlay_entries: Array[Dictionary] = []
 
 
 func to_dict() -> Dictionary:
@@ -29,4 +30,5 @@ func to_dict() -> Dictionary:
 		"item_spawn_profile_id": item_spawn_profile_id,
 		"content_hash": content_hash,
 		"tile_theme_id": tile_theme_id,
+		"foreground_overlay_entries": foreground_overlay_entries.duplicate(true),
 	}

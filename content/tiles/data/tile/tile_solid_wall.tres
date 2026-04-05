@@ -5,3 +5,13 @@
 [resource]
 script = ExtResource("1_ulv5e")
 metadata/_custom_type_script = "uid://c4qgdw2l1swe2"
+tile_id = "tile_solid_wall"
+display_name = "实心墙"
+tile_type = "solid_wall"
+scene_path = ""
+is_walkable = false
+is_breakable = false
+blocks_blast = true
+blocks_movement = true
+break_fx_id = ""
+content_hash = "tile_solid_wall_v1"

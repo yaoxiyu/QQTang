@@ -1,0 +1,12 @@
+[gd_scene format=3 uid="uid://blvy4jna4r0wp"]
+
+[ext_resource type="Script" uid="uid://b3i2xraty7fue" path="res://presentation/battle/tiles/map_breakable_block_view.gd" id="1_mlp27"]
+
+[node name="MapBreakableBlockView" type="Node2D" unique_id=1423088918]
+script = ExtResource("1_mlp27")
+
+[node name="ShadowPolygon" type="Polygon2D" parent="." unique_id=2136987375]
+
+[node name="BasePolygon" type="Polygon2D" parent="." unique_id=1641289968]
+
+[node name="TopPolygon" type="Polygon2D" parent="." unique_id=1849859606]

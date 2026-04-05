@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TilePresentationDef" format=3 uid="uid://0octw4l405rn"]
+
+[ext_resource type="Script" uid="uid://bivi1b5gl7tv6" path="res://content/tiles/defs/tile_presentation_def.gd" id="1_lmx82"]
+[ext_resource type="PackedScene" uid="uid://blvy4jna4r0wp" path="res://scenes/tiles/map_breakable_block_view.tscn" id="2_emxm5"]
+
+[resource]
+script = ExtResource("1_lmx82")
+presentation_id = "tile_pres_breakable_brick_default"
+display_name = "默认可破坏砖块"
+render_role = "breakable_block"
+tile_scene = ExtResource("2_emxm5")
+height_px = 14.0
+fade_alpha = 1.0
+content_hash = "tile_pres_breakable_brick_default_v1"

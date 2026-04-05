@@ -82,6 +82,11 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	_last_consumed_tick = tick_id
 
 
+func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef) -> void:
+	if map_view != null and map_view.has_method("configure_map_presentation"):
+		map_view.configure_map_presentation(layout, map_theme, cell_size)
+
+
 func clear_bridge() -> void:
 	_last_consumed_tick = -1
 	_grid_cache.clear()
@@ -201,12 +206,15 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 	if event == null or fx_layer == null:
 		return
+	var destroyed_cell := Vector2i(
+		int(event.payload.get("cell_x", 0)),
+		int(event.payload.get("cell_y", 0))
+	)
+	if map_view != null and map_view.has_method("handle_cell_destroyed"):
+		map_view.handle_cell_destroyed(destroyed_cell)
 	var fx = BrickBreakFxPlayerScript.new()
 	fx.configure(
-		_to_world_center(Vector2i(
-			int(event.payload.get("cell_x", 0)),
-			int(event.payload.get("cell_y", 0))
-		)),
+		_to_world_center(destroyed_cell),
 		cell_size
 	)
 	fx_layer.add_child(fx)
