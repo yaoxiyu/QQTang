@@ -3,6 +3,7 @@ extends RefCounted
 
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const DEBUG_REMOTE_ANIM_LOG := false
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 
@@ -22,6 +23,7 @@ var _player_style_by_slot: Dictionary = {}
 var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
 var _local_player_entity_id: int = -1
+var _last_player_positions: Dictionary = {}
 
 
 func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
@@ -108,6 +110,7 @@ func build_item_views(world: SimWorld) -> Array[Dictionary]:
 
 
 func map_player_state(player: PlayerState) -> Dictionary:
+	var is_local_player := player.entity_id == _local_player_entity_id
 	var default_color: Color = _player_palette[player.player_slot % _player_palette.size()]
 	var configured_color: Color = _player_style_by_slot.get(player.player_slot, default_color)
 	var input_move_x := 0
@@ -115,18 +118,48 @@ func map_player_state(player: PlayerState) -> Dictionary:
 	if player.last_applied_command != null:
 		input_move_x = int(player.last_applied_command.move_x)
 		input_move_y = int(player.last_applied_command.move_y)
+	var position := _to_world_position(player.cell_x, player.cell_y) + _to_world_offset(player.offset_x, player.offset_y)
+	var animation_state := _resolve_player_animation_state(
+		player,
+		position,
+		is_local_player,
+		input_move_x,
+		input_move_y
+	)
+	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
+		print(
+			"[qq_remote_anim][mapper] entity=%d slot=%d move_state=%d facing=%d last=(%d,%d) input=(%d,%d) anim_moving=%s anim_dir=(%d,%d) pos=%s" % [
+				player.entity_id,
+				player.player_slot,
+				player.move_state,
+				player.facing,
+				player.last_non_zero_move_x,
+				player.last_non_zero_move_y,
+				input_move_x,
+				input_move_y,
+				str(bool(animation_state.get("is_moving", false))),
+				int(animation_state.get("move_x", 0)),
+				int(animation_state.get("move_y", 0)),
+				str(position),
+			]
+		)
 	return {
 		"entity_id": player.entity_id,
 		"player_slot": player.player_slot,
 		"cell_size": cell_size,
-		"is_local_player": player.entity_id == _local_player_entity_id,
+		"is_local_player": is_local_player,
 		"alive": player.alive,
 		"life_state": player.life_state,
 		"facing": player.facing,
 		"move_state": player.move_state,
+		"last_non_zero_move_x": player.last_non_zero_move_x,
+		"last_non_zero_move_y": player.last_non_zero_move_y,
 		"input_move_x": input_move_x,
 		"input_move_y": input_move_y,
-		"position": _to_world_position(player.cell_x, player.cell_y) + _to_world_offset(player.offset_x, player.offset_y),
+		"anim_is_moving": bool(animation_state.get("is_moving", false)),
+		"anim_move_x": int(animation_state.get("move_x", 0)),
+		"anim_move_y": int(animation_state.get("move_y", 0)),
+		"position": position,
 		"offset": Vector2(player.offset_x, player.offset_y),
 		"color": configured_color,
 	}
@@ -180,3 +213,42 @@ func _bubble_style_for_owner(world: SimWorld, owner_player_id: int) -> String:
 	if player == null:
 		return ""
 	return String(_bubble_style_by_slot.get(player.player_slot, ""))
+
+
+func _resolve_player_animation_state(
+	player: PlayerState,
+	position: Vector2,
+	is_local_player: bool,
+	input_move_x: int,
+	input_move_y: int
+) -> Dictionary:
+	var move_x := 0
+	var move_y := 0
+	var is_moving := false
+	if is_local_player and (input_move_x != 0 or input_move_y != 0):
+		move_x = input_move_x
+		move_y = input_move_y
+		is_moving = true
+	elif _is_moving_state(player.move_state) and (player.last_non_zero_move_x != 0 or player.last_non_zero_move_y != 0):
+		move_x = player.last_non_zero_move_x
+		move_y = player.last_non_zero_move_y
+		is_moving = true
+	else:
+		var last_position := _last_player_positions.get(player.entity_id, position) as Vector2
+		var visual_delta := position - last_position
+		if visual_delta.length_squared() > 1.0:
+			if absf(visual_delta.x) >= absf(visual_delta.y):
+				move_x = 1 if visual_delta.x > 0.0 else -1
+			else:
+				move_y = 1 if visual_delta.y > 0.0 else -1
+			is_moving = true
+	_last_player_positions[player.entity_id] = position
+	return {
+		"is_moving": is_moving,
+		"move_x": move_x,
+		"move_y": move_y,
+	}
+
+
+func _is_moving_state(move_state: int) -> bool:
+	return move_state == 1 or move_state == 3

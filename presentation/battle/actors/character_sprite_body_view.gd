@@ -3,6 +3,7 @@ extends Node2D
 
 const CharacterAnimationSetDefScript = preload("res://content/character_animation_sets/defs/character_animation_set_def.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const DEBUG_REMOTE_ANIM_LOG := false
 
 @onready var _body_sprite: AnimatedSprite2D = $BodySprite
 
@@ -37,29 +38,74 @@ func apply_actor_state(view_state: Dictionary) -> void:
 
 	var facing := int(view_state.get("facing", 1))
 	var move_state := int(view_state.get("move_state", 0))
-	var has_input_state := view_state.has("input_move_x") or view_state.has("input_move_y")
-	var input_move_x := int(view_state.get("input_move_x", 0))
-	var input_move_y := int(view_state.get("input_move_y", 0))
+	var is_local_player := bool(view_state.get("is_local_player", false))
+	var anim_is_moving := bool(view_state.get("anim_is_moving", _is_moving_state(move_state)))
+	var anim_move_x := int(view_state.get("anim_move_x", 0))
+	var anim_move_y := int(view_state.get("anim_move_y", 0))
 	var alive := bool(view_state.get("alive", true))
-	var animation_name := _resolve_animation_name(facing, move_state, has_input_state, input_move_x, input_move_y, alive)
+	var animation_name := _resolve_animation_name(
+		facing,
+		anim_is_moving,
+		anim_move_x,
+		anim_move_y,
+		alive
+	)
 	if animation_name == _current_animation_name:
+		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
+			print(
+				"[qq_remote_anim][body] entity=%d animation=%s unchanged anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
+					int(view_state.get("entity_id", -1)),
+					animation_name,
+					str(anim_is_moving),
+					anim_move_x,
+					anim_move_y,
+					move_state,
+					facing,
+				]
+			)
 		return
 	if not _body_sprite.sprite_frames.has_animation(animation_name):
+		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
+			print(
+				"[qq_remote_anim][body] entity=%d missing_animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
+					int(view_state.get("entity_id", -1)),
+					animation_name,
+					str(anim_is_moving),
+					anim_move_x,
+					anim_move_y,
+					move_state,
+					facing,
+				]
+			)
 		return
 
 	_current_animation_name = animation_name
 	_body_sprite.play(animation_name)
+	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
+		print(
+			"[qq_remote_anim][body] entity=%d animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
+				int(view_state.get("entity_id", -1)),
+				animation_name,
+				str(anim_is_moving),
+				anim_move_x,
+				anim_move_y,
+				move_state,
+				facing,
+			]
+		)
 
 
-func _resolve_animation_name(facing: int, move_state: int, has_input_state: bool, input_move_x: int, input_move_y: int, alive: bool) -> String:
-	var direction_suffix := _resolve_direction_suffix_for_state(facing, has_input_state, input_move_x, input_move_y)
+func _resolve_animation_name(
+	facing: int,
+	anim_is_moving: bool,
+	anim_move_x: int,
+	anim_move_y: int,
+	alive: bool
+) -> String:
+	var direction_suffix := _resolve_direction_suffix(facing)
 	if not alive:
 		return "dead_%s" % direction_suffix
-	if has_input_state:
-		if _has_move_input(input_move_x, input_move_y):
-			return "run_%s" % direction_suffix
-		return "idle_%s" % direction_suffix
-	if _is_moving_state(move_state):
+	if anim_is_moving:
 		return "run_%s" % direction_suffix
 	return "idle_%s" % direction_suffix
 
@@ -78,25 +124,8 @@ func _resolve_direction_suffix(facing: int) -> String:
 			return "down"
 
 
-func _resolve_direction_suffix_for_state(facing: int, has_input_state: bool, input_move_x: int, input_move_y: int) -> String:
-	if has_input_state and _has_move_input(input_move_x, input_move_y):
-		if input_move_y < 0:
-			return "up"
-		if input_move_y > 0:
-			return "down"
-		if input_move_x < 0:
-			return "left"
-		if input_move_x > 0:
-			return "right"
-	return _resolve_direction_suffix(facing)
-
-
 func _is_moving_state(move_state: int) -> bool:
 	return move_state == 1 or move_state == 3
-
-
-func _has_move_input(input_move_x: int, input_move_y: int) -> bool:
-	return input_move_x != 0 or input_move_y != 0
 
 
 func _resolve_sprite_pivot(animation_set: CharacterAnimationSetDef) -> Vector2:

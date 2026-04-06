@@ -13,6 +13,8 @@ func _ready() -> void:
 
 func run_all() -> void:
 	_test_player_actor_binds_character_animation_set()
+	_test_remote_player_actor_uses_move_state_for_run_animation()
+	_test_remote_player_actor_uses_authoritative_anim_direction()
 
 
 func _test_player_actor_binds_character_animation_set() -> void:
@@ -47,14 +49,82 @@ func _test_player_actor_binds_character_animation_set() -> void:
 		"alive": true,
 		"facing": 1,
 		"position": Vector2.ZERO,
-		"move_state": 1,
-		"input_move_x": 0,
-		"input_move_y": 1,
+		"anim_is_moving": true,
+		"anim_move_x": 0,
+		"anim_move_y": 1,
 	})
 
 	_assert_true(body_sprite != null and body_sprite.sprite_frames != null, "BodySprite binds SpriteFrames")
 	if body_sprite != null:
 		_assert_true(String(body_sprite.animation) == "run_down", "BodySprite plays run_down for down input")
+
+	actor_view.free()
+
+
+func _test_remote_player_actor_uses_move_state_for_run_animation() -> void:
+	var actor_view = BattlePlayerActorViewScript.new()
+	add_child(actor_view)
+
+	var profile = BattlePlayerVisualProfileScript.new()
+	profile.player_slot = 0
+	profile.character_id = "char_huoying"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_huoying")
+	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_huoying")
+	actor_view.configure_visual_profile(profile)
+
+	var body_view = actor_view.get("_body_view") as Node2D
+	var body_sprite := body_view.get_node_or_null("BodySprite") as AnimatedSprite2D if body_view != null else null
+	_assert_true(body_sprite != null, "remote body view contains BodySprite")
+
+	actor_view.apply_view_state({
+		"entity_id": 2,
+		"player_slot": 0,
+		"is_local_player": false,
+		"alive": true,
+		"facing": 3,
+		"position": Vector2.ZERO,
+		"anim_is_moving": true,
+		"anim_move_x": 1,
+		"anim_move_y": 0,
+	})
+
+	if body_sprite != null:
+		_assert_true(String(body_sprite.animation) == "run_right", "Remote BodySprite plays run_right from move_state")
+
+	actor_view.free()
+
+
+func _test_remote_player_actor_uses_authoritative_anim_direction() -> void:
+	var actor_view = BattlePlayerActorViewScript.new()
+	add_child(actor_view)
+
+	var profile = BattlePlayerVisualProfileScript.new()
+	profile.player_slot = 0
+	profile.character_id = "char_huoying"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_huoying")
+	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_huoying")
+	actor_view.configure_visual_profile(profile)
+
+	var body_view = actor_view.get("_body_view") as Node2D
+	var body_sprite := body_view.get_node_or_null("BodySprite") as AnimatedSprite2D if body_view != null else null
+	_assert_true(body_sprite != null, "remote directional body view contains BodySprite")
+
+	actor_view.apply_view_state({
+		"entity_id": 3,
+		"player_slot": 0,
+		"is_local_player": false,
+		"alive": true,
+		"facing": 1,
+		"anim_is_moving": true,
+		"anim_move_x": -1,
+		"anim_move_y": 0,
+		"position": Vector2.ZERO,
+	})
+
+	if body_sprite != null:
+		_assert_true(String(body_sprite.animation) == "run_left", "Remote BodySprite uses authoritative anim direction")
 
 	actor_view.free()
 

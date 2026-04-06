@@ -26,8 +26,19 @@ func execute(ctx: SimContext) -> void:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
 			continue
+		if _should_preserve_authoritative_remote_state(ctx, player):
+			continue
 
 		# 从输入帧获取该玩家的命令
 		var cmd = ctx.commands.get_command(player.player_slot)
 		player.last_applied_command = cmd
 		ctx.state.players.update_player(player)
+
+
+func _should_preserve_authoritative_remote_state(ctx: SimContext, player: PlayerState) -> bool:
+	if ctx == null or ctx.state == null or player == null:
+		return false
+	var runtime_flags := ctx.state.runtime_flags
+	if runtime_flags == null or not runtime_flags.client_prediction_mode:
+		return false
+	return player.player_slot != runtime_flags.client_controlled_player_slot

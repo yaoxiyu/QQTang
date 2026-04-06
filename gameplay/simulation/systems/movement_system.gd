@@ -19,6 +19,7 @@ const RailConstraint = preload("res://gameplay/simulation/movement/rail_constrai
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
 const DEBUG_MOVEMENT_SNAP := true
+const DEBUG_REMOTE_ANIM_LOG := false
 
 
 func get_name() -> StringName:
@@ -29,6 +30,8 @@ func execute(ctx: SimContext) -> void:
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
+			continue
+		if _should_preserve_authoritative_remote_state(ctx, player):
 			continue
 
 		var input := _sanitize_single_axis_input(
@@ -83,6 +86,27 @@ func execute(ctx: SimContext) -> void:
 				blocked_cell.x,
 				blocked_cell.y
 			)
+
+
+func _should_preserve_authoritative_remote_state(ctx: SimContext, player: PlayerState) -> bool:
+	if ctx == null or ctx.state == null or player == null:
+		return false
+	var runtime_flags := ctx.state.runtime_flags
+	if runtime_flags == null or not runtime_flags.client_prediction_mode:
+		return false
+	var preserve : bool = player.player_slot != runtime_flags.client_controlled_player_slot
+	if preserve and DEBUG_REMOTE_ANIM_LOG:
+		print(
+			"[qq_remote_anim][movement_preserve] slot=%d controlled_slot=%d move_state=%d facing=%d last=(%d,%d)" % [
+				player.player_slot,
+				runtime_flags.client_controlled_player_slot,
+				player.move_state,
+				player.facing,
+				player.last_non_zero_move_x,
+				player.last_non_zero_move_y,
+			]
+		)
+	return preserve
 
 
 func _execute_move_substeps(

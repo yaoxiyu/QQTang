@@ -91,9 +91,13 @@ func build_player_position_summary() -> Array[Dictionary]:
 		summary.append({
 			"entity_id": player.entity_id,
 			"player_slot": player.player_slot,
+			"alive": player.alive,
+			"life_state": player.life_state,
 			"grid_pos": Vector2i(player.cell_x, player.cell_y),
 			"move_dir": Vector2i(player.last_non_zero_move_x, player.last_non_zero_move_y),
-			"move_progress": Vector2i(player.offset_x, player.offset_y)
+			"move_progress": Vector2i(player.offset_x, player.offset_y),
+			"facing": player.facing,
+			"move_state": player.move_state
 		})
 
 	return summary

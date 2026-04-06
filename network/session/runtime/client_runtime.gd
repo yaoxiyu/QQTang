@@ -54,11 +54,14 @@ func start_match(config: BattleStartConfig) -> bool:
 	predicted_world.state.match_state.remaining_ticks = int(start_config.match_duration_ticks)
 	predicted_world.state.match_state.phase = MatchState.Phase.PLAYING
 	_mark_predicted_players_as_network(predicted_world)
+	var controlled_slot := _resolve_controlled_slot(start_config)
+	predicted_world.state.runtime_flags.client_prediction_mode = true
+	predicted_world.state.runtime_flags.client_controlled_player_slot = controlled_slot
 	prediction_controller.configure(
 		predicted_world,
 		snapshot_service,
 		client_session.local_input_buffer,
-		_resolve_controlled_slot(start_config)
+		controlled_slot
 	)
 	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
@@ -106,8 +109,10 @@ func ingest_network_message(message: Dictionary) -> void:
 				client_session.on_input_ack(int(message.get("ack_tick", 0)))
 		TransportMessageTypesScript.STATE_SUMMARY:
 			client_session.on_state_summary(message)
+			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
 		TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 			client_session.on_snapshot(message)
+			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
 			if prediction_controller != null:
 				var authoritative_snapshot := _snapshot_from_message(message)
 				_log_snapshot_mismatch(authoritative_snapshot)
@@ -221,6 +226,79 @@ func _mark_predicted_players_as_network(predicted_world: SimWorld) -> void:
 			continue
 		player.controller_type = PlayerState.ControllerType.NETWORK
 		predicted_world.state.players.update_player(player)
+
+
+func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dictionary]) -> void:
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return
+	if player_summary.is_empty():
+		return
+
+	var predicted_world := prediction_controller.predicted_sim_world
+	var controlled_slot := int(predicted_world.state.runtime_flags.client_controlled_player_slot)
+	var any_updated := false
+	for entry in player_summary:
+		var player := _find_predicted_player_for_summary(predicted_world, entry)
+		if player == null:
+			continue
+		if player.player_slot == controlled_slot:
+			continue
+
+		var grid_pos: Variant = entry.get("grid_pos", Vector2i(player.cell_x, player.cell_y))
+		var move_progress: Variant = entry.get("move_progress", Vector2i(player.offset_x, player.offset_y))
+		var move_dir: Variant = entry.get("move_dir", Vector2i(player.last_non_zero_move_x, player.last_non_zero_move_y))
+
+		if grid_pos is Vector2i:
+			player.cell_x = grid_pos.x
+			player.cell_y = grid_pos.y
+		elif grid_pos is Vector2:
+			player.cell_x = int(grid_pos.x)
+			player.cell_y = int(grid_pos.y)
+
+		if move_progress is Vector2i:
+			player.offset_x = move_progress.x
+			player.offset_y = move_progress.y
+		elif move_progress is Vector2:
+			player.offset_x = int(move_progress.x)
+			player.offset_y = int(move_progress.y)
+
+		if move_dir is Vector2i:
+			player.last_non_zero_move_x = move_dir.x
+			player.last_non_zero_move_y = move_dir.y
+		elif move_dir is Vector2:
+			player.last_non_zero_move_x = int(move_dir.x)
+			player.last_non_zero_move_y = int(move_dir.y)
+
+		player.alive = bool(entry.get("alive", player.alive))
+		player.life_state = int(entry.get("life_state", player.life_state))
+		player.facing = int(entry.get("facing", player.facing))
+		player.move_state = int(entry.get("move_state", player.move_state))
+		predicted_world.state.players.update_player(player)
+		any_updated = true
+
+	if any_updated:
+		predicted_world.rebuild_runtime_indexes()
+
+
+func _find_predicted_player_for_summary(predicted_world: SimWorld, entry: Dictionary) -> PlayerState:
+	if predicted_world == null:
+		return null
+
+	var entity_id := int(entry.get("entity_id", -1))
+	if entity_id >= 0:
+		var by_entity := predicted_world.state.players.get_player(entity_id)
+		if by_entity != null:
+			return by_entity
+
+	var player_slot := int(entry.get("player_slot", -1))
+	if player_slot < 0:
+		return null
+
+	for player_id in predicted_world.state.players.active_ids:
+		var player := predicted_world.state.players.get_player(player_id)
+		if player != null and player.player_slot == player_slot:
+			return player
+	return null
 
 
 func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:

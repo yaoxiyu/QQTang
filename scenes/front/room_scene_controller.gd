@@ -489,6 +489,8 @@ func _on_ready_button_pressed() -> void:
 	if _room_controller == null or _app_runtime == null:
 		return
 	_apply_connection_config_from_ui()
+	var selected_map_id := _selected_metadata(map_selector)
+	var selected_rule_id := _selected_metadata(rule_selector)
 	if _selected_launch_mode() == ClientLaunchModeScript.Value.LOCAL_SINGLEPLAYER:
 		_app_runtime.set_local_peer_id(1)
 		_ensure_local_room_created()
@@ -508,8 +510,8 @@ func _on_ready_button_pressed() -> void:
 			_room_controller,
 			_app_runtime.local_peer_id,
 			_app_runtime.remote_peer_id,
-			_selected_metadata(map_selector),
-			_selected_metadata(rule_selector)
+			selected_map_id,
+			selected_rule_id
 		)
 	var result: Dictionary = _room_controller.request_toggle_ready(_app_runtime.local_peer_id) if _room_controller.has_method("request_toggle_ready") else {"ok": false}
 	if not bool(result.get("ok", false)):
