@@ -16,12 +16,9 @@ extends ISimSystem
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
+const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
-const TURN_SNAP_WINDOW_UNITS := 300
-const PASS_OFFSET_UNITS := 300
-const SPEED_UNITS_LV1 := 250
-const SPEED_UNITS_LV2 := 334
-const SPEED_UNITS_LV3 := 500
+const DEBUG_MOVEMENT_SNAP := true
 
 
 func get_name() -> StringName:
@@ -51,30 +48,14 @@ func execute(ctx: SimContext) -> void:
 		player.last_non_zero_move_y = move_y
 		_update_facing_from_input(player, move_x, move_y)
 
-		var foot_cell := PlayerLocator.get_foot_cell(player)
-		var target_cell := foot_cell + Vector2i(move_x, move_y)
-		var direct_target_blocked := ctx.queries.is_transition_blocked_for_player(
-			player_id,
-			foot_cell.x,
-			foot_cell.y,
-			target_cell.x,
-			target_cell.y
-		)
+		var move_summary := _execute_move_substeps(ctx, player_id, player, move_x, move_y)
+		var blocked_cell: Vector2i = move_summary["blocked_cell"]
+		var was_blocked := bool(move_summary["blocked"])
+		var turn_only := bool(move_summary["turn_only"])
 
-		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
-		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y, TURN_SNAP_WINDOW_UNITS):
+		if turn_only:
 			player.move_state = PlayerState.MoveState.TURN_ONLY
-			ctx.state.players.update_player(player)
-			continue
-
-		var step_units := _movement_units_per_tick(player.speed_level)
-		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units)
-		var resolved_abs_pos: Vector2i = move_result["abs_pos"]
-		var blocked_cell: Vector2i = move_result["blocked_cell"]
-		var was_blocked := bool(move_result["blocked"])
-		GridMotionMath.write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y)
-
-		if was_blocked:
+		elif was_blocked:
 			player.move_state = PlayerState.MoveState.BLOCKED
 		else:
 			player.move_state = PlayerState.MoveState.MOVING
@@ -101,6 +82,54 @@ func execute(ctx: SimContext) -> void:
 				blocked_cell.x,
 				blocked_cell.y
 			)
+
+
+func _execute_move_substeps(
+	ctx: SimContext,
+	player_id: int,
+	player: PlayerState,
+	move_x: int,
+	move_y: int
+) -> Dictionary:
+	var blocked := false
+	var turn_only := false
+	var blocked_cell := Vector2i.ZERO
+	var total_units := _movement_units_per_tick(player.speed_level)
+	var substep_units := _split_movement_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
+	var window_step_units := _substep_window_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
+
+	for step_units in substep_units:
+		if step_units <= 0:
+			continue
+
+		var foot_cell := PlayerLocator.get_foot_cell(player)
+		var target_cell := foot_cell + Vector2i(move_x, move_y)
+		var direct_target_blocked := ctx.queries.is_transition_blocked_for_player(
+			player_id,
+			foot_cell.x,
+			foot_cell.y,
+			target_cell.x,
+			target_cell.y
+		)
+		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
+		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y, total_units):
+			turn_only = true
+			break
+
+		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, total_units)
+		var resolved_abs_pos: Vector2i = move_result["abs_pos"]
+		GridMotionMath.write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y)
+
+		if bool(move_result["blocked"]):
+			blocked = true
+			blocked_cell = move_result["blocked_cell"]
+			break
+
+	return {
+		"blocked": blocked,
+		"blocked_cell": blocked_cell,
+		"turn_only": turn_only,
+	}
 
 
 func _refresh_bubble_overlap_ignores(ctx: SimContext, player_id: int) -> void:
@@ -141,13 +170,18 @@ func _try_apply_turn_snap(
 	rail: int,
 	move_x: int,
 	move_y: int,
-	snap_window_units: int
+	total_units: int
 ) -> bool:
 	if rail == RailConstraint.Type.CENTER_PIVOT:
 		return false
 
 	if RailConstraint.requires_center_for_vertical_turn(rail) and move_y != 0:
-		if abs(player.offset_x) > snap_window_units:
+		var distance_substeps := MovementTuning.distance_units_to_substeps(
+			abs(player.offset_x),
+			total_units,
+			MovementTuning.MOVEMENT_SUBSTEP_COUNT
+		)
+		if distance_substeps > MovementTuning.TURN_SNAP_SUBSTEP_WINDOW:
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -157,7 +191,12 @@ func _try_apply_turn_snap(
 		)
 
 	if RailConstraint.requires_center_for_horizontal_turn(rail) and move_x != 0:
-		if abs(player.offset_y) > snap_window_units:
+		var distance_substeps := MovementTuning.distance_units_to_substeps(
+			abs(player.offset_y),
+			total_units,
+			MovementTuning.MOVEMENT_SUBSTEP_COUNT
+		)
+		if distance_substeps > MovementTuning.TURN_SNAP_SUBSTEP_WINDOW:
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -175,7 +214,8 @@ func _try_move_along_axis(
 	player: PlayerState,
 	move_x: int,
 	move_y: int,
-	step_units: int
+	step_units: int,
+	total_units: int
 ) -> Dictionary:
 	var abs_pos := GridMotionMath.get_player_abs_pos(player)
 	var foot_cell := PlayerLocator.get_foot_cell(player)
@@ -189,7 +229,7 @@ func _try_move_along_axis(
 	)
 	var tentative := abs_pos + Vector2i(move_x * step_units, move_y * step_units)
 	if direct_target_blocked:
-		var clamped_abs_pos := _clamp_abs_to_blocked_axis_center(tentative, foot_cell, move_x, move_y)
+		var clamped_abs_pos := _clamp_abs_to_blocked_axis_limit(tentative, foot_cell, move_x, move_y)
 		var collision_blocked := clamped_abs_pos == abs_pos
 		return {
 			"abs_pos": clamped_abs_pos,
@@ -197,61 +237,144 @@ func _try_move_along_axis(
 			"blocked_cell": target_cell,
 		}
 	var blocked_hit := _find_overlap_blocked_cell(ctx, player_id, tentative, foot_cell, target_cell, move_x, move_y)
-	if bool(blocked_hit["found"]):
-		var blocked_cell: Vector2i = blocked_hit["cell"]
-		var snapped_tentative := _try_apply_pass_offset_snap(abs_pos, tentative, move_x, move_y, PASS_OFFSET_UNITS)
-		var snapped_blocked_hit := _find_overlap_blocked_cell(ctx, player_id, snapped_tentative, foot_cell, target_cell, move_x, move_y)
-		if bool(snapped_blocked_hit["found"]):
-			return {
-				"abs_pos": abs_pos,
-				"blocked": true,
-				"blocked_cell": blocked_cell,
-			}
-		return {
-			"abs_pos": snapped_tentative,
-			"blocked": false,
-			"blocked_cell": target_cell,
-		}
-
-	if not _crosses_cell_boundary(tentative, foot_cell, move_x, move_y):
+	if not bool(blocked_hit["found"]):
 		return {
 			"abs_pos": tentative,
 			"blocked": false,
 			"blocked_cell": target_cell,
 		}
 
+	var snapped_tentative := _try_apply_lane_center_snap(
+		ctx,
+		player_id,
+		abs_pos,
+		tentative,
+		foot_cell,
+		target_cell,
+		move_x,
+		move_y,
+		total_units
+	)
+	var snapped_blocked_hit := _find_overlap_blocked_cell(ctx, player_id, snapped_tentative, foot_cell, target_cell, move_x, move_y)
+	if snapped_tentative == tentative:
+		var blocked_cell: Vector2i = blocked_hit["cell"]
+		return {
+			"abs_pos": abs_pos,
+			"blocked": true,
+			"blocked_cell": blocked_cell,
+		}
+	if bool(snapped_blocked_hit["found"]):
+		var blocked_cell: Vector2i = snapped_blocked_hit["cell"]
+		return {
+			"abs_pos": abs_pos,
+			"blocked": true,
+			"blocked_cell": blocked_cell,
+		}
+
+	if not _crosses_cell_boundary(snapped_tentative, foot_cell, move_x, move_y):
+		return {
+			"abs_pos": snapped_tentative,
+			"blocked": false,
+			"blocked_cell": target_cell,
+		}
+
 	return {
-		"abs_pos": tentative,
+		"abs_pos": snapped_tentative,
 		"blocked": false,
 		"blocked_cell": target_cell,
 	}
 
 
-func _try_apply_pass_offset_snap(
+func _try_apply_lane_center_snap(
+	ctx: SimContext,
+	player_id: int,
 	current_abs_pos: Vector2i,
 	tentative_abs_pos: Vector2i,
+	foot_cell: Vector2i,
+	target_cell: Vector2i,
 	move_x: int,
 	move_y: int,
-	pass_offset_units: int
+	total_units: int
 ) -> Vector2i:
 	var snapped := tentative_abs_pos
+	var pass_window_units := MovementTuning.pass_absorb_window_units(total_units)
 	if move_x > 0:
-		var offset_y := current_abs_pos.y - _get_containing_cell_center(current_abs_pos.y)
-		if abs(offset_y) <= pass_offset_units:
-			snapped.y = _get_containing_cell_center(current_abs_pos.y)
+		var offset_y := current_abs_pos.y - GridMotionMath.get_cell_center_abs_y(foot_cell.y)
+		if offset_y == 0:
+			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
+			return snapped
+		if abs(offset_y) <= pass_window_units:
+			snapped.y = GridMotionMath.get_cell_center_abs_y(foot_cell.y)
+			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), true, total_units, pass_window_units)
+		else:
+			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), false, total_units, pass_window_units)
 	elif move_x < 0:
-		var offset_y := current_abs_pos.y - _get_containing_cell_center(current_abs_pos.y)
-		if abs(offset_y) <= pass_offset_units:
-			snapped.y = _get_containing_cell_center(current_abs_pos.y)
+		var offset_y := current_abs_pos.y - GridMotionMath.get_cell_center_abs_y(foot_cell.y)
+		if offset_y == 0:
+			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
+			return snapped
+		if abs(offset_y) <= pass_window_units:
+			snapped.y = GridMotionMath.get_cell_center_abs_y(foot_cell.y)
+			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), true, total_units, pass_window_units)
+		else:
+			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), false, total_units, pass_window_units)
 	elif move_y > 0:
-		var offset_x := current_abs_pos.x - _get_containing_cell_center(current_abs_pos.x)
-		if abs(offset_x) <= pass_offset_units:
-			snapped.x = _get_containing_cell_center(current_abs_pos.x)
+		var offset_x := current_abs_pos.x - GridMotionMath.get_cell_center_abs_x(foot_cell.x)
+		if offset_x == 0:
+			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
+			return snapped
+		if abs(offset_x) <= pass_window_units:
+			snapped.x = GridMotionMath.get_cell_center_abs_x(foot_cell.x)
+			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), true, total_units, pass_window_units)
+		else:
+			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), false, total_units, pass_window_units)
 	elif move_y < 0:
-		var offset_x := current_abs_pos.x - _get_containing_cell_center(current_abs_pos.x)
-		if abs(offset_x) <= pass_offset_units:
-			snapped.x = _get_containing_cell_center(current_abs_pos.x)
+		var offset_x := current_abs_pos.x - GridMotionMath.get_cell_center_abs_x(foot_cell.x)
+		if offset_x == 0:
+			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
+			return snapped
+		if abs(offset_x) <= pass_window_units:
+			snapped.x = GridMotionMath.get_cell_center_abs_x(foot_cell.x)
+			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), true, total_units, pass_window_units)
+		else:
+			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), false, total_units, pass_window_units)
 	return snapped
+
+
+func _debug_snap(
+	stage: String,
+	player_id: int,
+	foot_cell: Vector2i,
+	target_cell: Vector2i,
+	move_x: int,
+	move_y: int,
+	current_abs_pos: Vector2i,
+	lateral_distance_units: int,
+	did_snap: bool,
+	total_units: int,
+	window_units: int
+) -> void:
+	if not DEBUG_MOVEMENT_SNAP:
+		return
+	print(
+		"[qq_move_snap] stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d lateral_substeps=%d window_units=%d snapped=%s" % [
+			stage,
+			player_id,
+			str(foot_cell),
+			str(target_cell),
+			move_x,
+			move_y,
+			str(current_abs_pos),
+			lateral_distance_units,
+			MovementTuning.distance_units_to_substeps(
+				lateral_distance_units,
+				total_units,
+				MovementTuning.MOVEMENT_SUBSTEP_COUNT
+			) if lateral_distance_units > 0 else 0,
+			window_units,
+			str(did_snap)
+		]
+	)
 
 
 func _find_overlap_blocked_cell(
@@ -331,30 +454,43 @@ func _clamp_abs_to_current_cell_boundary(
 	return clamped
 
 
-func _clamp_abs_to_blocked_axis_center(
+func _clamp_abs_to_blocked_axis_limit(
 	abs_pos: Vector2i,
 	foot_cell: Vector2i,
 	move_x: int,
 	move_y: int
 ) -> Vector2i:
 	var clamped := abs_pos
-	if move_x != 0:
-		clamped.x = GridMotionMath.get_cell_center_abs_x(foot_cell.x)
-	if move_y != 0:
-		clamped.y = GridMotionMath.get_cell_center_abs_y(foot_cell.y)
+	if move_x > 0:
+		clamped.x = min(clamped.x, GridMotionMath.get_cell_center_abs_x(foot_cell.x))
+	elif move_x < 0:
+		clamped.x = max(clamped.x, GridMotionMath.get_cell_center_abs_x(foot_cell.x))
+	elif move_y > 0:
+		clamped.y = min(clamped.y, GridMotionMath.get_cell_center_abs_y(foot_cell.y))
+	elif move_y < 0:
+		clamped.y = max(clamped.y, GridMotionMath.get_cell_center_abs_y(foot_cell.y))
 	return clamped
 
 
 func _movement_units_per_tick(speed_level: int) -> int:
-	match max(speed_level, 1):
-		1:
-			return SPEED_UNITS_LV1
-		2:
-			return SPEED_UNITS_LV2
-		3:
-			return SPEED_UNITS_LV3
-		_:
-			return SPEED_UNITS_LV3
+	return MovementTuning.movement_units_per_tick(speed_level)
+
+
+func _split_movement_units(total_units: int, substep_count: int) -> PackedInt32Array:
+	var steps := PackedInt32Array()
+	var safe_count : int = max(substep_count, 1)
+	var base_units := int(total_units / safe_count)
+	var remainder := total_units % safe_count
+	for i in range(safe_count):
+		var step_units := base_units
+		if i < remainder:
+			step_units += 1
+		steps.append(step_units)
+	return steps
+
+
+func _substep_window_units(total_units: int, substep_count: int) -> int:
+	return MovementTuning.substep_window_units(total_units, substep_count)
 
 
 func _emit_cell_changed_if_needed(

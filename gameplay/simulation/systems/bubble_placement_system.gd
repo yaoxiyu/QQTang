@@ -13,6 +13,7 @@ extends ISimSystem
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
 # ====================
 # 系统接口
@@ -100,20 +101,69 @@ func execute(ctx: SimContext) -> void:
 
 
 func _resolve_bubble_place_cell(player: PlayerState) -> Vector2i:
-	var foot_cell := PlayerLocator.get_foot_cell(player)
 	var abs_pos := GridMotionMath.get_player_abs_pos(player)
-	var place_cell := foot_cell
+	match player.facing:
+		PlayerState.FacingDir.RIGHT:
+			return Vector2i(
+				_resolve_forward_axis_cell(abs_pos.x, true, _bubble_forward_window_units(player)),
+				_resolve_lateral_axis_cell(abs_pos.y, true)
+			)
+		PlayerState.FacingDir.LEFT:
+			return Vector2i(
+				_resolve_forward_axis_cell(abs_pos.x, false, _bubble_forward_window_units(player)),
+				_resolve_lateral_axis_cell(abs_pos.y, false)
+			)
+		PlayerState.FacingDir.UP:
+			return Vector2i(
+				_resolve_lateral_axis_cell(abs_pos.x, true),
+				_resolve_forward_axis_cell(abs_pos.y, false, _bubble_forward_window_units(player))
+			)
+		_:
+			return Vector2i(
+				_resolve_lateral_axis_cell(abs_pos.x, false),
+				_resolve_forward_axis_cell(abs_pos.y, true, _bubble_forward_window_units(player))
+			)
 
-	if abs_pos.x % GridMotionMath.CELL_UNITS == 0:
-		if player.facing == PlayerState.FacingDir.RIGHT:
-			place_cell.x -= 1
-		elif player.facing == PlayerState.FacingDir.LEFT:
-			place_cell.x += 1
 
-	if abs_pos.y % GridMotionMath.CELL_UNITS == 0:
-		if player.facing == PlayerState.FacingDir.DOWN:
-			place_cell.y -= 1
-		elif player.facing == PlayerState.FacingDir.UP:
-			place_cell.y += 1
+func _bubble_forward_window_units(player: PlayerState) -> int:
+	var total_units := MovementTuning.movement_units_per_tick(player.speed_level)
+	var window_step_units := MovementTuning.substep_window_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
+	return window_step_units * max(MovementTuning.BUBBLE_FORWARD_PLACE_SUBSTEP_WINDOW, 1)
 
-	return place_cell
+
+func _resolve_forward_axis_cell(abs_value: int, positive_forward: bool, forward_window_units: int) -> int:
+	var axis := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
+	var cell := int(axis["cell_x"])
+	var offset := int(axis["offset_x"])
+	var front_cell := cell
+	var back_cell := cell
+
+	if positive_forward:
+		if offset <= 0:
+			front_cell = cell
+			back_cell = cell - 1
+		else:
+			front_cell = cell + 1
+			back_cell = cell
+	else:
+		if offset >= 0:
+			front_cell = cell
+			back_cell = cell + 1
+		else:
+			front_cell = cell - 1
+			back_cell = cell
+
+	var front_center := GridMotionMath.get_cell_center_abs_x(front_cell)
+	var front_distance : int = abs(abs_value - front_center)
+	if front_distance <= forward_window_units:
+		return front_cell
+	return back_cell
+
+
+func _resolve_lateral_axis_cell(abs_value: int, positive_right: bool) -> int:
+	var axis := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
+	var cell := int(axis["cell_x"])
+	var offset := int(axis["offset_x"])
+	if offset == -GridMotionMath.HALF_CELL_UNITS:
+		return cell if positive_right else cell - 1
+	return cell
