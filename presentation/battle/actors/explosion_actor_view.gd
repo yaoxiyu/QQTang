@@ -3,12 +3,22 @@ extends Node2D
 
 const BubbleFxRegistryScript = preload("res://presentation/battle/fx/bubble_fx_registry.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const SEGMENT_TEXTURE_PATHS := {
+	"center": "res://assets/animation/explosions/normal/segments/center.png",
+	"arm_horizontal": "res://assets/animation/explosions/normal/segments/arm_horizontal.png",
+	"arm_vertical": "res://assets/animation/explosions/normal/segments/arm_vertical.png",
+	"tail_up": "res://assets/animation/explosions/normal/segments/tail_up.png",
+	"tail_down": "res://assets/animation/explosions/normal/segments/tail_down.png",
+	"tail_left": "res://assets/animation/explosions/normal/segments/tail_left.png",
+	"tail_right": "res://assets/animation/explosions/normal/segments/tail_right.png",
+}
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var covered_cells: Array[Vector2i] = []
 var lifetime: float = 0.18
 var bubble_style_id: String = ""
 var bubble_color: Color = Color.WHITE
+var _segment_textures: Dictionary = {}
 
 
 func configure(
@@ -42,26 +52,7 @@ func _rebuild_cells() -> void:
 
 	for cell in covered_cells:
 		var segment_type := _resolve_segment_type(cell, center_cell)
-		var segment_root := Node2D.new()
-		segment_root.position = Vector2(cell.x, cell.y) * cell_size
-		add_child(segment_root)
-
-		var fill := Polygon2D.new()
-		fill.polygon = _build_segment_polygon(segment_type)
-		fill.color = _build_segment_fill_color(segment_type, style)
-		segment_root.add_child(fill)
-
-		var outline := Line2D.new()
-		outline.default_color = Color(style.get("outline_color", Color.WHITE))
-		outline.width = 2.0
-		outline.closed = true
-		outline.points = fill.polygon
-		segment_root.add_child(outline)
-
-		var core := Polygon2D.new()
-		core.polygon = _build_segment_core_polygon(segment_type)
-		core.color = Color(style.get("core_color", Color.WHITE))
-		segment_root.add_child(core)
+		_build_segment_node(cell, segment_type, style)
 
 
 func _resolve_center_cell() -> Vector2i:
@@ -97,140 +88,43 @@ func _resolve_segment_type(cell: Vector2i, center_cell: Vector2i) -> String:
 	return "center"
 
 
-func _build_segment_polygon(segment_type: String) -> PackedVector2Array:
-	var min_edge := cell_size * 0.18
-	var max_edge := cell_size * 0.82
-	var center_band_min := cell_size * 0.34
-	var center_band_max := cell_size * 0.66
-	match segment_type:
-		"center":
-			return PackedVector2Array([
-				Vector2(center_band_min, min_edge),
-				Vector2(center_band_max, min_edge),
-				Vector2(max_edge, center_band_min),
-				Vector2(max_edge, center_band_max),
-				Vector2(center_band_max, max_edge),
-				Vector2(center_band_min, max_edge),
-				Vector2(min_edge, center_band_max),
-				Vector2(min_edge, center_band_min),
-			])
-		"arm_horizontal":
-			return PackedVector2Array([
-				Vector2(min_edge, center_band_min),
-				Vector2(max_edge, center_band_min),
-				Vector2(max_edge, center_band_max),
-				Vector2(min_edge, center_band_max),
-			])
-		"arm_vertical":
-			return PackedVector2Array([
-				Vector2(center_band_min, min_edge),
-				Vector2(center_band_max, min_edge),
-				Vector2(center_band_max, max_edge),
-				Vector2(center_band_min, max_edge),
-			])
-		"tail_up":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.5, min_edge),
-				Vector2(center_band_max, cell_size * 0.28),
-				Vector2(center_band_max, max_edge),
-				Vector2(center_band_min, max_edge),
-				Vector2(center_band_min, cell_size * 0.28),
-			])
-		"tail_down":
-			return PackedVector2Array([
-				Vector2(center_band_min, min_edge),
-				Vector2(center_band_max, min_edge),
-				Vector2(center_band_max, cell_size * 0.72),
-				Vector2(cell_size * 0.5, max_edge),
-				Vector2(center_band_min, cell_size * 0.72),
-			])
-		"tail_left":
-			return PackedVector2Array([
-				Vector2(min_edge, cell_size * 0.5),
-				Vector2(cell_size * 0.28, center_band_min),
-				Vector2(max_edge, center_band_min),
-				Vector2(max_edge, center_band_max),
-				Vector2(cell_size * 0.28, center_band_max),
-			])
-		"tail_right":
-			return PackedVector2Array([
-				Vector2(min_edge, center_band_min),
-				Vector2(cell_size * 0.72, center_band_min),
-				Vector2(max_edge, cell_size * 0.5),
-				Vector2(cell_size * 0.72, center_band_max),
-				Vector2(min_edge, center_band_max),
-			])
-		_:
-			return PackedVector2Array([
-				Vector2(0, 0),
-				Vector2(cell_size, 0),
-				Vector2(cell_size, cell_size),
-				Vector2(0, cell_size),
-			])
+func _build_segment_node(cell: Vector2i, segment_type: String, style: Dictionary) -> void:
+	var texture := _get_segment_texture(segment_type)
+	if texture == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = false
+	sprite.position = Vector2(cell.x, cell.y) * cell_size
+	sprite.scale = _resolve_texture_scale(texture)
+	sprite.modulate = _build_segment_modulate(segment_type, style)
+	add_child(sprite)
 
 
-func _build_segment_core_polygon(segment_type: String) -> PackedVector2Array:
-	var center_band_min := cell_size * 0.40
-	var center_band_max := cell_size * 0.60
-	match segment_type:
-		"center":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.5, cell_size * 0.22),
-				Vector2(cell_size * 0.78, cell_size * 0.5),
-				Vector2(cell_size * 0.5, cell_size * 0.78),
-				Vector2(cell_size * 0.22, cell_size * 0.5),
-			])
-		"arm_horizontal":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.22, center_band_min),
-				Vector2(cell_size * 0.78, center_band_min),
-				Vector2(cell_size * 0.78, center_band_max),
-				Vector2(cell_size * 0.22, center_band_max),
-			])
-		"arm_vertical":
-			return PackedVector2Array([
-				Vector2(center_band_min, cell_size * 0.22),
-				Vector2(center_band_max, cell_size * 0.22),
-				Vector2(center_band_max, cell_size * 0.78),
-				Vector2(center_band_min, cell_size * 0.78),
-			])
-		"tail_up":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.5, cell_size * 0.30),
-				Vector2(center_band_max, cell_size * 0.46),
-				Vector2(center_band_min, cell_size * 0.46),
-			])
-		"tail_down":
-			return PackedVector2Array([
-				Vector2(center_band_min, cell_size * 0.54),
-				Vector2(center_band_max, cell_size * 0.54),
-				Vector2(cell_size * 0.5, cell_size * 0.70),
-			])
-		"tail_left":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.30, cell_size * 0.5),
-				Vector2(cell_size * 0.46, center_band_min),
-				Vector2(cell_size * 0.46, center_band_max),
-			])
-		"tail_right":
-			return PackedVector2Array([
-				Vector2(cell_size * 0.54, center_band_min),
-				Vector2(cell_size * 0.70, cell_size * 0.5),
-				Vector2(cell_size * 0.54, center_band_max),
-			])
-		_:
-			return PackedVector2Array([
-				Vector2(cell_size * 0.25, cell_size * 0.25),
-				Vector2(cell_size * 0.75, cell_size * 0.25),
-				Vector2(cell_size * 0.75, cell_size * 0.75),
-				Vector2(cell_size * 0.25, cell_size * 0.75),
-			])
+func _get_segment_texture(segment_key: String) -> Texture2D:
+	if _segment_textures.has(segment_key):
+		return _segment_textures[segment_key]
+	var path := String(SEGMENT_TEXTURE_PATHS.get(segment_key, ""))
+	if path.is_empty():
+		return null
+	var tex := load(path) as Texture2D
+	_segment_textures[segment_key] = tex
+	return tex
 
 
-func _build_segment_fill_color(segment_type: String, style: Dictionary) -> Color:
-	var fill_color := Color(style.get("fill_color", Color.WHITE))
+func _resolve_texture_scale(texture: Texture2D) -> Vector2:
+	if texture == null:
+		return Vector2.ONE
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return Vector2.ONE
+	return Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+
+
+func _build_segment_modulate(segment_type: String, style: Dictionary) -> Color:
+	var modulate := Color(style.get("fill_color", Color.WHITE))
 	if segment_type.begins_with("tail_"):
-		fill_color.a *= float(style.get("tail_alpha", 0.72))
+		modulate.a *= float(style.get("tail_alpha", 0.72))
 	elif segment_type == "center":
-		fill_color = fill_color.lightened(0.12)
-	return fill_color
+		modulate = modulate.lightened(0.12)
+	return modulate

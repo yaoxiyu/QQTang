@@ -1,0 +1,75 @@
+{
+  "asset_pack_id": "explosion_normal",
+  "project_target_path": "res://assets/animation/explosions/normal/",
+  "source_sheet": {
+    "path": "res://assets/animation/explosions/normal/source/bomberbomb1.png",
+    "original_size": [
+      512,
+      64
+    ],
+    "effective_grid": {
+      "columns": 7,
+      "rows": 1,
+      "cell_width": 56,
+      "cell_height": 56
+    },
+    "notes": [
+      "source image contains 7 usable 56x56 cells",
+      "columns 392-511 are blank trailing padding",
+      "bottom rows 56-63 are blank trailing padding",
+      "source sheet does not contain a dedicated center cell"
+    ]
+  },
+  "runtime_export": {
+    "segment_canvas_size": [
+      64,
+      64
+    ],
+    "padding": [
+      4,
+      4
+    ],
+    "segments_dir": "res://assets/animation/explosions/normal/segments/"
+  },
+  "segment_mapping": {
+    "tail_up": {
+      "source_cell_index": 0,
+      "generated": false
+    },
+    "tail_down": {
+      "source_cell_index": 1,
+      "generated": false
+    },
+    "tail_left": {
+      "source_cell_index": 2,
+      "generated": false
+    },
+    "tail_right": {
+      "source_cell_index": 3,
+      "generated": false
+    },
+    "arm_horizontal": {
+      "source_cell_index": 4,
+      "generated": false
+    },
+    "arm_vertical": {
+      "source_cell_index": 5,
+      "generated": false
+    },
+    "center": {
+      "source_cell_index": null,
+      "generated": true,
+      "generation_rule": "lighter(arm_horizontal, arm_vertical)"
+    }
+  },
+  "recommended_runtime_keys": [
+    "center",
+    "arm_horizontal",
+    "arm_vertical",
+    "tail_up",
+    "tail_down",
+    "tail_left",
+    "tail_right"
+  ],
+  "integration_note": "Current repo has no standalone explosion asset content tree yet. Use these segment textures from code in BattleExplosionActorView / bubble_fx_registry style lookup."
+}
