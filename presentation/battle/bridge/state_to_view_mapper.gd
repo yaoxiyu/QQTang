@@ -19,12 +19,17 @@ var _item_palette := {
 var _player_style_by_slot: Dictionary = {}
 var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
+var _local_player_entity_id: int = -1
 
 
 func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
 	_player_style_by_slot = player_style_by_slot.duplicate(true)
 	_bubble_style_by_slot = bubble_style_by_slot.duplicate(true)
 	_bubble_color_by_slot = bubble_color_by_slot.duplicate(true)
+
+
+func set_local_player_entity_id(entity_id: int) -> void:
+	_local_player_entity_id = entity_id
 
 
 func build_grid_cache(world: SimWorld) -> Dictionary:
@@ -111,6 +116,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 	return {
 		"entity_id": player.entity_id,
 		"player_slot": player.player_slot,
+		"is_local_player": player.entity_id == _local_player_entity_id,
 		"alive": player.alive,
 		"life_state": player.life_state,
 		"facing": player.facing,

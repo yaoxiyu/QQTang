@@ -1,10 +1,12 @@
 class_name BattleStartConfig
 extends RefCounted
 
+const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+
 const DEFAULT_PROTOCOL_VERSION: int = 1
 const DEFAULT_GAMEPLAY_RULE_VERSION: int = 1
 const DEFAULT_MAP_VERSION: int = 1
-const DEFAULT_MATCH_DURATION_TICKS: int = 360
+const DEFAULT_MATCH_DURATION_TICKS: int = 180 * TickRunnerScript.TICK_RATE
 const DEFAULT_ITEM_SPAWN_PROFILE_ID: String = "default_items"
 const BUILD_MODE_CANDIDATE: String = "candidate"
 const BUILD_MODE_CANONICAL: String = "canonical"

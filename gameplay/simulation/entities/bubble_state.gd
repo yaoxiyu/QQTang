@@ -60,3 +60,6 @@ var chain_triggered: bool = false
 
 # 遥控爆炸组ID（用于远程引爆）
 var remote_group_id: int = 0
+
+# 当前允许与该泡泡重叠并穿出的玩家ID列表
+var ignore_player_ids: Array[int] = []

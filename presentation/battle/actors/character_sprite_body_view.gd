@@ -94,6 +94,8 @@ func _has_move_input(input_move_x: int, input_move_y: int) -> bool:
 func _resolve_sprite_pivot(animation_set: CharacterAnimationSetDef) -> Vector2:
 	if animation_set == null:
 		return Vector2.ZERO
-	if animation_set.pivot != Vector2.ZERO:
-		return animation_set.pivot
-	return Vector2(float(animation_set.frame_width) * 0.5, float(animation_set.frame_height))
+	var default_origin := Vector2(float(animation_set.frame_width) * 0.5, float(animation_set.frame_height))
+	var resolved_origin := animation_set.pivot_origin if animation_set.pivot_origin != Vector2.ZERO else default_origin
+	if animation_set.pivot_origin == Vector2.ZERO and animation_set.pivot != Vector2.ZERO:
+		resolved_origin = animation_set.pivot
+	return resolved_origin + animation_set.pivot_adjust

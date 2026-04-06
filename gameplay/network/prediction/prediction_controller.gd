@@ -117,6 +117,7 @@ func _ensure_rollback_controller() -> void:
 
 
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
+	# from_pos/to_pos are absolute fixed-point positions, not cell coordinates.
 	prediction_corrected.emit(entity_id, from_pos, to_pos)
 
 

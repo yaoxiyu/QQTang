@@ -11,6 +11,9 @@
 class_name BubblePlacementSystem
 extends ISimSystem
 
+const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
+const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+
 # ====================
 # 系统接口
 # ====================
@@ -28,20 +31,29 @@ func execute(ctx: SimContext) -> void:
 		var cmd = player.last_applied_command
 
 		# 只处理边沿触发的 place_bubble
-		if not cmd.place_bubble:
+		var place_pressed := bool(cmd.place_bubble)
+		if not place_pressed:
+			player.last_place_bubble_pressed = false
+			ctx.state.players.update_player(player)
 			continue
+		if player.last_place_bubble_pressed:
+			continue
+		player.last_place_bubble_pressed = true
 
 		# 检查泡泡容量
 		if player.bomb_available <= 0:
+			ctx.state.players.update_player(player)
 			continue
 
 		# 检查脚下格
-		var cell_x = player.cell_x
-		var cell_y = player.cell_y
+		var place_cell := _resolve_bubble_place_cell(player)
+		var cell_x := place_cell.x
+		var cell_y := place_cell.y
 
 		# 检查当前格是否有泡泡
 		var bubble_at_cell = ctx.queries.get_bubble_at(cell_x, cell_y)
 		if bubble_at_cell != -1:
+			ctx.state.players.update_player(player)
 			continue
 
 		# 放置泡泡
@@ -57,6 +69,15 @@ func execute(ctx: SimContext) -> void:
 		# 更新玩家状态
 		player.bomb_available -= 1
 		ctx.state.players.update_player(player)
+
+		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble != null:
+			for overlap_player_id in ctx.state.players.active_ids:
+				if ctx.queries.is_player_overlapping_bubble(overlap_player_id, bubble_id):
+					if not bubble.ignore_player_ids.has(overlap_player_id):
+						bubble.ignore_player_ids.append(overlap_player_id)
+			bubble.ignore_player_ids.sort()
+			ctx.state.bubbles.update_bubble(bubble)
 
 		# 增量更新泡泡索引，保证同 Tick 内可被查询到
 		if ctx.state.grid.is_in_bounds(cell_x, cell_y):
@@ -76,3 +97,23 @@ func execute(ctx: SimContext) -> void:
 			"explode_tick": explode_tick
 		}
 		ctx.events.push(placed_event)
+
+
+func _resolve_bubble_place_cell(player: PlayerState) -> Vector2i:
+	var foot_cell := PlayerLocator.get_foot_cell(player)
+	var abs_pos := GridMotionMath.get_player_abs_pos(player)
+	var place_cell := foot_cell
+
+	if abs_pos.x % GridMotionMath.CELL_UNITS == 0:
+		if player.facing == PlayerState.FacingDir.RIGHT:
+			place_cell.x -= 1
+		elif player.facing == PlayerState.FacingDir.LEFT:
+			place_cell.x += 1
+
+	if abs_pos.y % GridMotionMath.CELL_UNITS == 0:
+		if player.facing == PlayerState.FacingDir.DOWN:
+			place_cell.y -= 1
+		elif player.facing == PlayerState.FacingDir.UP:
+			place_cell.y += 1
+
+	return place_cell

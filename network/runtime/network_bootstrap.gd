@@ -249,7 +249,7 @@ func _build_transport_debug_start_config(remote_peers: Array[int]) -> BattleStar
 	config.spawn_assignments = spawn_assignments
 	config.battle_seed = int(Time.get_unix_time_from_system())
 	config.start_tick = 0
-	config.match_duration_ticks = max(int(rule_config.get("round_time_sec", 180)) * 2, 60)
+	config.match_duration_ticks = max(int(rule_config.get("round_time_sec", 180)) * TickRunnerScript.TICK_RATE, 60)
 	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
 	config.character_loadouts = _build_debug_character_loadouts(player_slots)
 	config.sort_players()
@@ -259,6 +259,8 @@ func _build_transport_debug_start_config(remote_peers: Array[int]) -> BattleStar
 func _collect_local_input() -> Dictionary:
 	if not has_meta("pressed_direction_stack"):
 		set_meta("pressed_direction_stack", [])
+	if not has_meta("last_place_pressed"):
+		set_meta("last_place_pressed", false)
 	var pressed_direction_stack: Array = get_meta("pressed_direction_stack", [])
 	_prune_released_directions(pressed_direction_stack)
 	_update_direction_stack_entry(pressed_direction_stack, "ui_left", "left")
@@ -278,10 +280,14 @@ func _collect_local_input() -> Dictionary:
 				move_y = -1
 			"down":
 				move_y = 1
+	var place_pressed := Input.is_key_pressed(KEY_SPACE)
+	var last_place_pressed := bool(get_meta("last_place_pressed", false))
+	var place_just_pressed := place_pressed and not last_place_pressed
+	set_meta("last_place_pressed", place_pressed)
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
-		"action_place": Input.is_key_pressed(KEY_SPACE),
+		"action_place": place_just_pressed,
 	}
 
 

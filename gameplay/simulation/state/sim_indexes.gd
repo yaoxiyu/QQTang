@@ -11,6 +11,8 @@
 class_name SimIndexes
 extends RefCounted
 
+const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+
 # ====================
 # 格子索引
 # ====================
@@ -87,7 +89,8 @@ func rebuild_from_state(state: SimState) -> void:
 		if player != null and player.alive:
 			living_player_ids.append(player_id)
 
-			var cell_idx = state.grid.to_cell_index(player.cell_x, player.cell_y)
+			var foot_cell := PlayerLocator.get_foot_cell(player)
+			var cell_idx = state.grid.to_cell_index(foot_cell.x, foot_cell.y)
 			if cell_idx >= 0 and cell_idx < players_by_cell.size():
 				players_by_cell[cell_idx].append(player_id)
 

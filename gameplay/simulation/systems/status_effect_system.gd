@@ -11,6 +11,8 @@
 class_name StatusEffectSystem
 extends ISimSystem
 
+const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+
 # ====================
 # 系统接口
 # ====================
@@ -39,8 +41,9 @@ func execute(ctx: SimContext) -> void:
 		# 更新活跃列表
 		ctx.state.players.mark_player_dead(player_id)
 		ctx.state.indexes.living_player_ids.erase(player_id)
-		if ctx.state.grid.is_in_bounds(player.cell_x, player.cell_y):
-			var cell_idx := ctx.state.grid.to_cell_index(player.cell_x, player.cell_y)
+		var foot_cell := PlayerLocator.get_foot_cell(player)
+		if ctx.state.grid.is_in_bounds(foot_cell.x, foot_cell.y):
+			var cell_idx := ctx.state.grid.to_cell_index(foot_cell.x, foot_cell.y)
 			if cell_idx >= 0 and cell_idx < ctx.state.indexes.players_by_cell.size():
 				var players_in_cell: Array = ctx.state.indexes.players_by_cell[cell_idx]
 				var pos := players_in_cell.find(player_id)
@@ -54,8 +57,8 @@ func execute(ctx: SimContext) -> void:
 		killed_event.payload = {
 			"victim_player_id": player_id,
 			"killer_player_id": player.last_damage_from_player_id,
-			"cell_x": player.cell_x,
-			"cell_y": player.cell_y
+			"cell_x": foot_cell.x,
+			"cell_y": foot_cell.y
 		}
 		ctx.events.push(killed_event)
 

@@ -5,6 +5,8 @@ const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
 
 const PLAYER_Z_INDEX := 20
+const LOCAL_VISUAL_LERP_SPEED := 16.0
+const REMOTE_VISUAL_LERP_SPEED := 22.0
 
 var player_id: int = -1
 var player_slot: int = 0
@@ -14,14 +16,32 @@ var facing: int = 0
 var _body_view: Node2D = null
 var _last_view_state: Dictionary = {}
 var _visual_profile = null
+var _target_position: Vector2 = Vector2.ZERO
+var _has_visual_target: bool = false
+var _is_local_player: bool = false
+
+
+func _ready() -> void:
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	if not _has_visual_target:
+		return
+	var lerp_speed := LOCAL_VISUAL_LERP_SPEED if _is_local_player else REMOTE_VISUAL_LERP_SPEED
+	position = position.lerp(_target_position, min(delta * lerp_speed, 1.0))
 
 
 func apply_view_state(view_state: Dictionary) -> void:
 	player_id = int(view_state.get("entity_id", -1))
 	player_slot = int(view_state.get("player_slot", 0))
+	_is_local_player = bool(view_state.get("is_local_player", false))
 	alive = bool(view_state.get("alive", true))
 	facing = int(view_state.get("facing", 0))
-	position = view_state.get("position", Vector2.ZERO)
+	_target_position = view_state.get("position", Vector2.ZERO)
+	if not _has_visual_target:
+		position = _target_position
+	_has_visual_target = true
 	z_as_relative = false
 	z_index = PLAYER_Z_INDEX
 	_last_view_state = view_state.duplicate(true)

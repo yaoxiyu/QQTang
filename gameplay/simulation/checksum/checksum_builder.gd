@@ -16,6 +16,7 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(player.last_non_zero_move_y)
 		parts.append(player.offset_x)
 		parts.append(player.offset_y)
+		parts.append(int(player.last_place_bubble_pressed))
 		parts.append(int(player.alive))
 		parts.append(player.life_state)
 		parts.append(player.bomb_available)
@@ -28,6 +29,9 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(bubble.explode_tick)
 		parts.append(bubble.bubble_range)
 		parts.append(int(bubble.alive))
+		for ignored_player_id in bubble.ignore_player_ids:
+			parts.append(ignored_player_id)
+		parts.append(-999999)
 
 	for item in _get_sorted_items(sim_world):
 		parts.append(item.entity_id)

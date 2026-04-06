@@ -71,6 +71,7 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"cell_y": player.cell_y,
 			"offset_x": player.offset_x,
 			"offset_y": player.offset_y,
+			"last_place_bubble_pressed": player.last_place_bubble_pressed,
 			"facing": player.facing,
 			"move_state": player.move_state,
 			"last_non_zero_move_x": player.last_non_zero_move_x,
@@ -122,7 +123,8 @@ func _capture_bubbles(sim_world: SimWorld) -> Array[Dictionary]:
 			"move_dir_y": bubble.move_dir_y,
 			"pierce": bubble.pierce,
 			"chain_triggered": bubble.chain_triggered,
-			"remote_group_id": bubble.remote_group_id
+			"remote_group_id": bubble.remote_group_id,
+			"ignore_player_ids": bubble.ignore_player_ids.duplicate()
 		})
 	bubbles.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return bubbles
@@ -194,6 +196,7 @@ func _restore_players(sim_world: SimWorld, players: Array[Dictionary]) -> void:
 		player.life_state = int(data.get("life_state", player.life_state))
 		player.offset_x = int(data.get("offset_x", 0))
 		player.offset_y = int(data.get("offset_y", 0))
+		player.last_place_bubble_pressed = bool(data.get("last_place_bubble_pressed", false))
 		player.facing = int(data.get("facing", player.facing))
 		player.move_state = int(data.get("move_state", player.move_state))
 		player.last_non_zero_move_x = int(data.get("last_non_zero_move_x", 0))
@@ -243,6 +246,9 @@ func _restore_bubbles(sim_world: SimWorld, bubbles: Array[Dictionary]) -> void:
 		bubble.pierce = bool(data.get("pierce", false))
 		bubble.chain_triggered = bool(data.get("chain_triggered", false))
 		bubble.remote_group_id = int(data.get("remote_group_id", 0))
+		bubble.ignore_player_ids.clear()
+		for ignored_player_id in data.get("ignore_player_ids", []):
+			bubble.ignore_player_ids.append(int(ignored_player_id))
 		sim_world.state.bubbles.update_bubble(bubble)
 
 

@@ -1,6 +1,8 @@
 class_name ItemPickupSystem
 extends ISimSystem
 
+const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+
 func get_name() -> StringName:
 	return "ItemPickupSystem"
 
@@ -10,8 +12,9 @@ func execute(ctx: SimContext) -> void:
 		if player == null or not player.alive:
 			continue
 
-		var player_cell_x = player.cell_x
-		var player_cell_y = player.cell_y
+		var foot_cell := PlayerLocator.get_foot_cell(player)
+		var player_cell_x := foot_cell.x
+		var player_cell_y := foot_cell.y
 		var item_id = ctx.queries.get_item_at(player_cell_x, player_cell_y)
 		if item_id == -1:
 			continue
@@ -36,8 +39,8 @@ func execute(ctx: SimContext) -> void:
 			"player_id": player_id,
 			"item_id": item_id,
 			"item_type": item.item_type,
-			"cell_x": player_cell_x,
-			"cell_y": player_cell_y
+			"cell_x": foot_cell.x,
+			"cell_y": foot_cell.y
 		}
 		ctx.events.push(item_event)
 

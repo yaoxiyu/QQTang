@@ -14,6 +14,7 @@ const ClientRuntimeScript = preload("res://network/session/runtime/client_runtim
 const RuntimeMessageRouterScript = preload("res://network/session/runtime/runtime_message_router.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
+const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 
 signal adapter_configured()
 signal battle_session_started(config)
@@ -32,7 +33,7 @@ signal network_transport_peer_connected(peer_id)
 signal network_transport_peer_disconnected(peer_id)
 signal network_transport_error(code, message)
 
-const DEFAULT_MATCH_DURATION_TICKS: int = 360
+const DEFAULT_MATCH_DURATION_TICKS: int = 180 * TickRunnerScript.TICK_RATE
 
 enum BattleLifecycleState {
 	IDLE,
@@ -567,7 +568,7 @@ func _resolve_match_duration_ticks(config: BattleStartConfig) -> int:
 	var round_time_sec := int(rule_config.get("round_time_sec", 0))
 	if round_time_sec <= 0:
 		return DEFAULT_MATCH_DURATION_TICKS
-	return round_time_sec * 2
+	return round_time_sec * TickRunnerScript.TICK_RATE
 
 
 func _validate_runtime_start_config(config: BattleStartConfig) -> bool:
@@ -601,13 +602,13 @@ func _current_runtime_owned_by_runtime_modules() -> bool:
 
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
-	_last_correction_summary = "E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)]
+	_last_correction_summary = "E%d(fp) %s -> %s" % [entity_id, str(from_pos), str(to_pos)]
 	prediction_debug_event.emit({
 		"type": "prediction_corrected",
 		"entity_id": entity_id,
 		"from_pos": from_pos,
 		"to_pos": to_pos,
-		"message": "Rollback corrected E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)],
+		"message": "Rollback corrected(fp) E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)],
 	})
 
 

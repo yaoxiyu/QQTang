@@ -1,6 +1,8 @@
 class_name BattlePresentationBridge
 extends Node2D
 
+const CELL_OFFSET_UNITS := 1000.0
+
 const ActorRegistryScript = preload("res://presentation/battle/bridge/actor_registry.gd")
 const StateToViewMapperScript = preload("res://presentation/battle/bridge/state_to_view_mapper.gd")
 const BattleEventRouterScript = preload("res://presentation/battle/bridge/battle_event_router.gd")
@@ -157,12 +159,18 @@ func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> voi
 		actor_registry.configure_player_visual_profiles(_player_visual_profiles)
 
 
+func set_local_player_entity_id(entity_id: int) -> void:
+	if state_to_view_mapper == null:
+		return
+	state_to_view_mapper.set_local_player_entity_id(entity_id)
+
+
 func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("show_prediction_correction"):
-		spawn_fx_controller.show_prediction_correction(_to_world_center(from_pos), _to_world_center(to_pos))
+		spawn_fx_controller.show_prediction_correction(_fp_to_world_position(from_pos), _fp_to_world_position(to_pos))
 	elif fx_layer != null:
 		var marker := CorrectionMarkerViewScript.new()
-		marker.configure(_to_world_center(from_pos), _to_world_center(to_pos))
+		marker.configure(_fp_to_world_position(from_pos), _fp_to_world_position(to_pos))
 		fx_layer.add_child(marker)
 
 	if actor_registry == null:
@@ -254,4 +262,11 @@ func _to_world_center(cell: Vector2i) -> Vector2:
 	return Vector2(
 		(float(cell.x) + 0.5) * cell_size,
 		(float(cell.y) + 0.5) * cell_size
+	)
+
+
+func _fp_to_world_position(fp_pos: Vector2i) -> Vector2:
+	return Vector2(
+		(float(fp_pos.x) / CELL_OFFSET_UNITS) * cell_size,
+		(float(fp_pos.y) / CELL_OFFSET_UNITS) * cell_size
 	)

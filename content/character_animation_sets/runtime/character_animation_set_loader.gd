@@ -25,6 +25,8 @@ static func build_animation_metadata(animation_set_id: String) -> Dictionary:
 		"frames_per_direction": animation_set.frames_per_direction,
 		"run_fps": animation_set.run_fps,
 		"idle_frame_index": animation_set.idle_frame_index,
+		"pivot_origin": animation_set.pivot_origin,
+		"pivot_adjust": animation_set.pivot_adjust,
 		"pivot": animation_set.pivot,
 		"loop_run": animation_set.loop_run,
 		"loop_idle": animation_set.loop_idle,

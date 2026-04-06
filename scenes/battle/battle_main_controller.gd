@@ -48,6 +48,7 @@ var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
 var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
 var _pressed_direction_stack: Array[String] = []
+var _last_place_pressed: bool = false
 
 
 func _ready() -> void:
@@ -184,7 +185,9 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	_apply_player_visual_profiles()
 	_apply_map_theme()
 	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
-	battle_hud.set_local_player_entity_id(_resolve_local_player_entity_id())
+	var local_player_entity_id := _resolve_local_player_entity_id()
+	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
+	battle_hud.set_local_player_entity_id(local_player_entity_id)
 	_apply_battle_metadata()
 	call_deferred("_apply_battle_metadata")
 	battle_hud.consume_battle_state(_battle_context.sim_world)
@@ -302,10 +305,13 @@ func _collect_local_input() -> Dictionary:
 				move_y = -1
 			"down":
 				move_y = 1
+	var place_pressed := Input.is_key_pressed(KEY_SPACE)
+	var place_just_pressed := place_pressed and not _last_place_pressed
+	_last_place_pressed = place_pressed
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
-		"action_place": Input.is_key_pressed(KEY_SPACE),
+		"action_place": place_just_pressed,
 	}
 
 

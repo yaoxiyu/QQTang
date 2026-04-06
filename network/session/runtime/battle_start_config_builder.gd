@@ -9,6 +9,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 
 const DEFAULT_START_TICK: int = 0
 const DEFAULT_PROTOCOL_VERSION: int = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
@@ -247,7 +248,7 @@ func _resolve_match_duration_ticks(rule_set_id: String) -> int:
 	var round_time_sec := int(rule_config.get("round_time_sec", 0))
 	if round_time_sec <= 0:
 		return BattleStartConfigScript.DEFAULT_MATCH_DURATION_TICKS
-	return round_time_sec * 2
+	return round_time_sec * TickRunnerScript.TICK_RATE
 
 
 func _resolve_character_id(character_id: String) -> String:

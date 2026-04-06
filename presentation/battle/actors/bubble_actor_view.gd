@@ -31,8 +31,7 @@ func apply_view_state(view_state: Dictionary) -> void:
 func _ensure_visuals() -> void:
 	if _sprite == null:
 		_sprite = AnimatedSprite2D.new()
-		_sprite.centered = false
-		_sprite.position = Vector2(-32.0, -32.0)
+		_sprite.centered = true
 		add_child(_sprite)
 
 

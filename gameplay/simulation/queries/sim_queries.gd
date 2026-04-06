@@ -13,6 +13,9 @@
 class_name SimQueries
 extends RefCounted
 
+const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
+const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
+
 # ====================
 # 依赖注入
 # ====================
@@ -140,19 +143,68 @@ func is_move_blocked_for_player(player_id: int, cell_x: int, cell_y: int) -> boo
 		return true
 
 	# 检查是否有泡泡（玩家不能进入有泡泡的格子）
-	var bubble_id = get_bubble_at(cell_x, cell_y)
-	if bubble_id != -1:
+	var bubble_id := get_bubble_at(cell_x, cell_y)
+	if bubble_id != -1 and _is_bubble_blocking_for_player(player_id, bubble_id):
 		return true
 
-	# 检查是否有其他玩家
-	var players_at_cell = get_players_at(cell_x, cell_y)
-	for pid in players_at_cell:
-		if pid != player_id:
-			var other = get_player(pid)
-			if other != null and other.alive:
-				return true
-
 	return false
+
+
+func is_lane_blocked_for_player(player_id: int, cell_x: int, cell_y: int) -> bool:
+	if player_id < 0:
+		return true
+
+	if is_hard_blocked(cell_x, cell_y):
+		return true
+
+	var bubble_id := get_bubble_at(cell_x, cell_y)
+	return bubble_id != -1 and _is_bubble_blocking_for_player(player_id, bubble_id)
+
+
+func is_transition_blocked_for_player(
+	player_id: int,
+	from_x: int,
+	from_y: int,
+	to_x: int,
+	to_y: int
+) -> bool:
+	if from_x == to_x and from_y == to_y:
+		return false
+
+	return is_move_blocked_for_player(player_id, to_x, to_y)
+
+
+func get_player_rail_constraint(player_id: int, cell_x: int, cell_y: int) -> int:
+	var up_blocked := is_lane_blocked_for_player(player_id, cell_x, cell_y - 1)
+	var down_blocked := is_lane_blocked_for_player(player_id, cell_x, cell_y + 1)
+	var left_blocked := is_lane_blocked_for_player(player_id, cell_x - 1, cell_y)
+	var right_blocked := is_lane_blocked_for_player(player_id, cell_x + 1, cell_y)
+	return RailConstraint.resolve_from_neighbors(
+		up_blocked,
+		down_blocked,
+		left_blocked,
+		right_blocked
+	)
+
+
+func is_player_overlapping_bubble(player_id: int, bubble_id: int) -> bool:
+	var player := get_player(player_id)
+	var bubble := get_bubble(bubble_id)
+	if player == null or bubble == null or not player.alive or not bubble.alive:
+		return false
+
+	var player_abs_x := GridMotionMath.to_abs_x(player.cell_x, player.offset_x)
+	var player_abs_y := GridMotionMath.to_abs_y(player.cell_y, player.offset_y)
+	var bubble_abs_x := GridMotionMath.get_cell_center_abs_x(bubble.cell_x)
+	var bubble_abs_y := GridMotionMath.get_cell_center_abs_y(bubble.cell_y)
+	return abs(player_abs_x - bubble_abs_x) < GridMotionMath.CELL_UNITS and abs(player_abs_y - bubble_abs_y) < GridMotionMath.CELL_UNITS
+
+
+func _is_bubble_blocking_for_player(player_id: int, bubble_id: int) -> bool:
+	var bubble := get_bubble(bubble_id)
+	if bubble == null or not bubble.alive:
+		return false
+	return not bubble.ignore_player_ids.has(player_id)
 
 # ====================
 # 游戏状态查询

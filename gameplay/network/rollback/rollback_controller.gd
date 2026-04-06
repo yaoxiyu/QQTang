@@ -1,6 +1,8 @@
 class_name RollbackController
 extends Node
 
+const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
+
 signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
 signal full_visual_resync(snapshot: WorldSnapshot)
 
@@ -277,7 +279,7 @@ func _capture_player_positions() -> Dictionary:
 		var player := predicted_sim_world.state.players.get_player(player_id)
 		if player == null:
 			continue
-		positions[player.entity_id] = Vector2i(player.cell_x, player.cell_y)
+		positions[player.entity_id] = GridMotionMath.get_player_abs_pos(player)
 
 	return positions
 

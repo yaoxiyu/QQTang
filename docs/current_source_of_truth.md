@@ -597,6 +597,13 @@ Battle 的正式启动应理解为：
 10. **泡泡主体动画必须走 `content/bubble_animation_sets` + `BubbleStyleDef.animation_set_id`，不允许保留 Battle 占位圆形回退**
 11. **Room 角色预览必须复用 `CharacterPresentationDef + CharacterAnimationSetDef + CharacterSkinDef` 正式链路，不允许维护第二套 Room 专用角色预览配置**
 12. **角色动画收口的最小回归测试当前固定为 `tests/contracts/content/character_animation_pipeline_contract_test.gd` 与 `tests/integration/battle/player_actor_animation_binding_test.gd`**
+13. **角色站位锚点必须落在 `CharacterAnimationSetDef` 资源字段中统一管理**
+   - 地图块继续使用格子左上角为铺设原点
+   - 玩家逻辑点, 泡泡, 道具继续使用格心为世界锚点
+   - 角色美术锚点固定解释为"脚下占格中心"
+   - `pivot_origin` 表示角色资产默认脚底中心点
+   - `pivot_adjust` 表示该资产相对默认脚底中心点的固定校准值
+   - Battle 运行时不允许再额外写角色显示偏移来修站位, 新角色资产必须按该规范填写
 
 ---
 

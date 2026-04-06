@@ -281,7 +281,7 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 		"entity_id": entity_id,
 		"from_pos": from_pos,
 		"to_pos": to_pos,
-		"message": "Client correction E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)],
+		"message": "Client correction(fp) E%d %s -> %s" % [entity_id, str(from_pos), str(to_pos)],
 	})
 
 
