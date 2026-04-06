@@ -12,7 +12,6 @@ class_name BubblePlacementSystem
 extends ISimSystem
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
-const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
 # ====================
@@ -102,30 +101,31 @@ func execute(ctx: SimContext) -> void:
 
 func _resolve_bubble_place_cell(player: PlayerState) -> Vector2i:
 	var abs_pos := GridMotionMath.get_player_abs_pos(player)
+	var forward_window_units := _bubble_forward_window_units()
 	match player.facing:
 		PlayerState.FacingDir.RIGHT:
 			return Vector2i(
-				_resolve_forward_axis_cell(abs_pos.x, true, _bubble_forward_window_units(player)),
+				_resolve_forward_axis_cell(abs_pos.x, true, forward_window_units),
 				_resolve_lateral_axis_cell(abs_pos.y, true)
 			)
 		PlayerState.FacingDir.LEFT:
 			return Vector2i(
-				_resolve_forward_axis_cell(abs_pos.x, false, _bubble_forward_window_units(player)),
+				_resolve_forward_axis_cell(abs_pos.x, false, forward_window_units),
 				_resolve_lateral_axis_cell(abs_pos.y, false)
 			)
 		PlayerState.FacingDir.UP:
 			return Vector2i(
 				_resolve_lateral_axis_cell(abs_pos.x, true),
-				_resolve_forward_axis_cell(abs_pos.y, false, _bubble_forward_window_units(player))
+				_resolve_forward_axis_cell(abs_pos.y, false, forward_window_units)
 			)
 		_:
 			return Vector2i(
 				_resolve_lateral_axis_cell(abs_pos.x, false),
-				_resolve_forward_axis_cell(abs_pos.y, true, _bubble_forward_window_units(player))
+				_resolve_forward_axis_cell(abs_pos.y, true, forward_window_units)
 			)
 
 
-func _bubble_forward_window_units(player: PlayerState) -> int:
+func _bubble_forward_window_units() -> int:
 	return MovementTuning.bubble_forward_place_window_units()
 
 
@@ -158,10 +158,10 @@ func _resolve_forward_axis_cell(abs_value: int, positive_forward: bool, forward_
 	return back_cell
 
 
-func _resolve_lateral_axis_cell(abs_value: int, positive_right: bool) -> int:
+func _resolve_lateral_axis_cell(abs_value: int, prefer_positive_on_tie: bool) -> int:
 	var axis := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
 	var cell := int(axis["cell_x"])
 	var offset := int(axis["offset_x"])
 	if offset == -GridMotionMath.HALF_CELL_UNITS:
-		return cell if positive_right else cell - 1
+		return cell if prefer_positive_on_tie else cell - 1
 	return cell

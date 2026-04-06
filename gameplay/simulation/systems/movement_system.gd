@@ -348,7 +348,7 @@ func _debug_snap(
 	if not DEBUG_MOVEMENT_SNAP:
 		return
 	print(
-		"[qq_move_snap] stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d lateral_substeps=%d window_units=%d snapped=%s" % [
+		"[qq_move_snap] stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d window_units=%d snapped=%s" % [
 			stage,
 			player_id,
 			str(foot_cell),
@@ -357,11 +357,6 @@ func _debug_snap(
 			move_y,
 			str(current_abs_pos),
 			lateral_distance_units,
-			MovementTuning.distance_units_to_substeps(
-				lateral_distance_units,
-				total_units,
-				MovementTuning.MOVEMENT_SUBSTEP_COUNT
-			) if lateral_distance_units > 0 else 0,
 			window_units,
 			str(did_snap)
 		]
