@@ -10,3 +10,7 @@ script = ExtResource("1_mlp27")
 [node name="BasePolygon" type="Polygon2D" parent="." unique_id=1641289968]
 
 [node name="TopPolygon" type="Polygon2D" parent="." unique_id=1849859606]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1498234401]
+visible = false
+centered = false

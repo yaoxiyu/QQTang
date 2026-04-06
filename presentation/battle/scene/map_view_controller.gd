@@ -3,6 +3,7 @@ extends Node2D
 
 const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_presentation_loader.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
 @export var static_block_layer_path: NodePath = ^"StaticBlockLayer"
@@ -21,6 +22,9 @@ var actor_layer: Node2D = null
 var _grid_cache: Dictionary = {}
 var _runtime_layout: MapRuntimeLayout = null
 var _map_theme: MapThemeDef = null
+var _theme_materials: Dictionary = {}
+var _ground_views_by_cell: Dictionary = {}
+var _spawn_marker_views_by_cell: Dictionary = {}
 var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
@@ -44,34 +48,38 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 	_map_theme = map_theme
 	cell_size = p_cell_size
 	if _map_theme != null:
+		_theme_materials = MapThemeMaterialRegistryScript.get_theme_materials(String(_map_theme.theme_id))
 		apply_tile_palette(_map_theme.tile_palette)
 	_clear_runtime_layers()
+	_rebuild_ground_tiles()
 	_rebuild_static_blocks()
 	_rebuild_breakable_blocks()
 	_rebuild_occluders()
-	queue_redraw()
 
 
 func apply_grid_cache(grid_cache: Dictionary, p_cell_size: float) -> void:
 	_grid_cache = grid_cache.duplicate(true)
 	cell_size = p_cell_size
+	_sync_ground_tiles_from_grid_cache()
 	_prune_missing_breakable_views_from_grid_cache()
-	queue_redraw()
 
 
 func clear_map() -> void:
 	_grid_cache.clear()
 	_runtime_layout = null
 	_map_theme = null
+	_theme_materials.clear()
 	_clear_runtime_layers()
-	queue_redraw()
 
 
 func apply_map_theme(map_theme: MapThemeDef) -> void:
 	if map_theme == null:
 		return
 	_map_theme = map_theme
+	_theme_materials = MapThemeMaterialRegistryScript.get_theme_materials(String(map_theme.theme_id))
 	apply_tile_palette(map_theme.tile_palette)
+	_rebuild_ground_tiles()
+	_rebuild_static_blocks()
 
 
 func apply_tile_palette(tile_palette: Dictionary) -> void:
@@ -81,7 +89,6 @@ func apply_tile_palette(tile_palette: Dictionary) -> void:
 	for key in ["ground", "solid", "breakable", "spawn", "grid_line", "occluder"]:
 		if tile_palette.has(key):
 			_tile_palette[key] = tile_palette[key]
-	queue_redraw()
 
 
 func handle_cell_destroyed(cell: Vector2i) -> void:
@@ -107,21 +114,6 @@ func debug_dump_map_state() -> Dictionary:
 	}
 
 
-func _draw() -> void:
-	if _grid_cache.is_empty():
-		return
-
-	for cell_data in _grid_cache.get("cells", []):
-		var tile_type := int(cell_data.get("tile_type", TileConstants.TileType.EMPTY))
-		var x := int(cell_data.get("x", 0))
-		var y := int(cell_data.get("y", 0))
-		var rect := Rect2(Vector2(x, y) * cell_size, Vector2.ONE * cell_size)
-		draw_rect(rect, _ground_color(tile_type), true)
-		if tile_type == TileConstants.TileType.SPAWN:
-			draw_rect(rect, _resolve_palette_color("spawn", Color(0.24, 0.42, 0.26, 1.0)), true)
-		draw_rect(rect, _resolve_palette_color("grid_line", Color(0.10, 0.12, 0.18, 0.35)), false, 1.0)
-
-
 func _bind_layers() -> void:
 	if ground_layer == null and has_node(ground_layer_path):
 		ground_layer = get_node(ground_layer_path) as Node2D
@@ -136,9 +128,12 @@ func _bind_layers() -> void:
 
 
 func _clear_runtime_layers() -> void:
+	_clear_layer(ground_layer)
 	_clear_layer(static_block_layer)
 	_clear_layer(breakable_block_layer)
 	_clear_layer(occluder_layer)
+	_ground_views_by_cell.clear()
+	_spawn_marker_views_by_cell.clear()
 	_static_views_by_cell.clear()
 	_breakable_views_by_cell.clear()
 	_occluder_views.clear()
@@ -152,35 +147,45 @@ func _clear_layer(layer: Node) -> void:
 
 
 func _rebuild_static_blocks() -> void:
-	if _runtime_layout == null or _map_theme == null or static_block_layer == null:
+	_clear_layer(static_block_layer)
+	_static_views_by_cell.clear()
+	if _runtime_layout == null or static_block_layer == null:
 		return
-	var presentation_id := String(_map_theme.solid_presentation_id)
-	var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
-	if presentation == null or presentation.tile_scene == null:
-		return
+	var solid_texture := _theme_materials.get("solid_base", null) as Texture2D
 	for cell in _runtime_layout.solid_cells:
-		var view := presentation.tile_scene.instantiate()
-		if view == null or not view is Node2D:
+		var node: Node2D = null
+		if solid_texture != null:
+			node = _build_textured_cell_sprite(solid_texture, cell)
+		elif _map_theme != null:
+			var presentation_id := String(_map_theme.solid_presentation_id)
+			var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
+			if presentation != null and presentation.tile_scene != null:
+				var view := presentation.tile_scene.instantiate()
+				if view != null and view is Node2D:
+					node = view as Node2D
+					node.position = Vector2(cell.x, cell.y) * cell_size
+					if node.has_method("configure"):
+						node.configure(
+							cell_size,
+							_resolve_palette_color("solid", Color(0.20, 0.22, 0.28, 1.0)),
+							float(presentation.height_px)
+						)
+		if node == null:
 			continue
-		var node := view as Node2D
-		node.position = Vector2(cell.x, cell.y) * cell_size
-		if node.has_method("configure"):
-			node.configure(
-				cell_size,
-				_resolve_palette_color("solid", Color(0.20, 0.22, 0.28, 1.0)),
-				float(presentation.height_px)
-			)
 		static_block_layer.add_child(node)
 		_static_views_by_cell[cell] = node
 
 
 func _rebuild_breakable_blocks() -> void:
+	_clear_layer(breakable_block_layer)
+	_breakable_views_by_cell.clear()
 	if _runtime_layout == null or _map_theme == null or breakable_block_layer == null:
 		return
 	var presentation_id := String(_map_theme.breakable_presentation_id)
 	var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
 	if presentation == null or presentation.tile_scene == null:
 		return
+	var breakable_texture := _theme_materials.get("breakable_block", null) as Texture2D
 	for cell in _runtime_layout.breakable_cells:
 		var view := presentation.tile_scene.instantiate()
 		if view == null or not view is Node2D:
@@ -193,13 +198,23 @@ func _rebuild_breakable_blocks() -> void:
 				_resolve_palette_color("breakable", Color(0.70, 0.50, 0.28, 1.0)),
 				float(presentation.height_px)
 			)
+		if breakable_texture != null and node.has_method("set_texture"):
+			node.set_texture(breakable_texture)
 		breakable_block_layer.add_child(node)
 		_breakable_views_by_cell[cell] = node
 
 
 func _rebuild_occluders() -> void:
+	_clear_layer(occluder_layer)
+	_occluder_views.clear()
 	if _runtime_layout == null or occluder_layer == null:
 		return
+	var occluder_materials := _theme_materials.get("occluders", {}) as Dictionary
+	var occluder_textures := [
+		occluder_materials.get("primary", null) as Texture2D,
+		occluder_materials.get("secondary", null) as Texture2D,
+	]
+	var occluder_index := 0
 	for entry in _runtime_layout.foreground_overlay_entries:
 		var presentation_id := String(entry.get("presentation_id", ""))
 		var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
@@ -218,8 +233,56 @@ func _rebuild_occluders() -> void:
 				actor_layer,
 				float(presentation.fade_alpha)
 			)
+		if node.has_method("set_texture"):
+			var occluder_texture : Texture2D = occluder_textures[occluder_index % occluder_textures.size()]
+			if occluder_texture != null:
+				node.set_texture(occluder_texture)
+		occluder_index += 1
 		occluder_layer.add_child(node)
 		_occluder_views.append(node)
+
+
+func _rebuild_ground_tiles() -> void:
+	_clear_layer(ground_layer)
+	_ground_views_by_cell.clear()
+	_spawn_marker_views_by_cell.clear()
+	_sync_ground_tiles_from_grid_cache()
+
+
+func _sync_ground_tiles_from_grid_cache() -> void:
+	if ground_layer == null or _grid_cache.is_empty():
+		return
+	var alive_ground_cells := {}
+	var alive_spawn_cells := {}
+	for cell_data in _grid_cache.get("cells", []):
+		var cell := Vector2i(int(cell_data.get("x", 0)), int(cell_data.get("y", 0)))
+		alive_ground_cells[cell] = true
+		_ensure_ground_view(cell)
+		var tile_type := int(cell_data.get("tile_type", TileConstants.TileType.EMPTY))
+		if tile_type == TileConstants.TileType.SPAWN:
+			alive_spawn_cells[cell] = true
+			_ensure_spawn_marker_view(cell)
+		elif _spawn_marker_views_by_cell.has(cell):
+			var marker := _spawn_marker_views_by_cell[cell] as Node
+			_spawn_marker_views_by_cell.erase(cell)
+			if marker != null and is_instance_valid(marker):
+				marker.queue_free()
+	for cell_variant in _ground_views_by_cell.keys():
+		var existing_cell := cell_variant as Vector2i
+		if alive_ground_cells.has(existing_cell):
+			continue
+		var ground_view := _ground_views_by_cell[existing_cell] as Node
+		_ground_views_by_cell.erase(existing_cell)
+		if ground_view != null and is_instance_valid(ground_view):
+			ground_view.queue_free()
+	for cell_variant in _spawn_marker_views_by_cell.keys():
+		var existing_cell := cell_variant as Vector2i
+		if alive_spawn_cells.has(existing_cell):
+			continue
+		var spawn_view := _spawn_marker_views_by_cell[existing_cell] as Node
+		_spawn_marker_views_by_cell.erase(existing_cell)
+		if spawn_view != null and is_instance_valid(spawn_view):
+			spawn_view.queue_free()
 
 
 func _prune_missing_breakable_views_from_grid_cache() -> void:
@@ -243,10 +306,63 @@ func _prune_missing_breakable_views_from_grid_cache() -> void:
 		handle_cell_destroyed(cell)
 
 
-func _ground_color(tile_type: int) -> Color:
-	if tile_type == TileConstants.TileType.SPAWN:
-		return _resolve_palette_color("ground", Color(0.88, 0.88, 0.82, 1.0))
-	return _resolve_palette_color("ground", Color(0.88, 0.88, 0.82, 1.0))
+func _ensure_ground_view(cell: Vector2i) -> void:
+	if _ground_views_by_cell.has(cell):
+		return
+	var ground_texture := _select_ground_texture(cell)
+	if ground_texture == null:
+		return
+	var sprite := _build_textured_cell_sprite(ground_texture, cell)
+	ground_layer.add_child(sprite)
+	_ground_views_by_cell[cell] = sprite
+
+
+func _ensure_spawn_marker_view(cell: Vector2i) -> void:
+	if _spawn_marker_views_by_cell.has(cell):
+		return
+	var spawn_texture := _theme_materials.get("spawn_marker", null) as Texture2D
+	if spawn_texture == null:
+		return
+	var sprite := _build_textured_cell_sprite(spawn_texture, cell)
+	sprite.z_index = 1
+	ground_layer.add_child(sprite)
+	_spawn_marker_views_by_cell[cell] = sprite
+
+
+func _select_ground_texture(cell: Vector2i) -> Texture2D:
+	var base_texture := _theme_materials.get("ground", null) as Texture2D
+	var variants := _theme_materials.get("ground_variants", []) as Array
+	if variants.is_empty():
+		return base_texture
+	var hash_value := _stable_cell_hash(cell)
+	if hash_value % 11 == 0:
+		return variants[0] as Texture2D
+	if hash_value % 17 == 0 and variants.size() > 1:
+		return variants[1] as Texture2D
+	return base_texture
+
+
+func _build_textured_cell_sprite(texture: Texture2D, cell: Vector2i) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.centered = false
+	sprite.texture = texture
+	sprite.position = Vector2(cell.x, cell.y) * cell_size
+	sprite.scale = _resolve_texture_scale(texture)
+	return sprite
+
+
+func _resolve_texture_scale(texture: Texture2D) -> Vector2:
+	if texture == null:
+		return Vector2.ONE
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return Vector2.ONE
+	return Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+
+
+func _stable_cell_hash(cell: Vector2i) -> int:
+	var hash_value := int((cell.x * 73856093) ^ (cell.y * 19349663))
+	return absi(hash_value)
 
 
 func _resolve_palette_color(key: String, fallback: Color) -> Color:

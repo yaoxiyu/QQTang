@@ -6,3 +6,7 @@
 script = ExtResource("1_xb1ge")
 
 [node name="CanopyPolygon" type="Polygon2D" parent="." unique_id=1936146274]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1312058711]
+centered = false
+visible = false

@@ -15,7 +15,9 @@ var actor_layer: Node = null
 var fade_alpha: float = 0.35
 
 var _canopy_polygon: Polygon2D = null
+var _sprite: Sprite2D = null
 var _is_player_inside: bool = false
+var _texture_mode: bool = false
 
 
 func _ready() -> void:
@@ -60,6 +62,8 @@ func _process(delta: float) -> void:
 func _bind_nodes() -> void:
 	if _canopy_polygon == null and has_node(^"CanopyPolygon"):
 		_canopy_polygon = get_node(^"CanopyPolygon") as Polygon2D
+	if _sprite == null and has_node(^"Sprite2D"):
+		_sprite = get_node(^"Sprite2D") as Sprite2D
 
 
 func _rebuild_geometry() -> void:
@@ -73,7 +77,30 @@ func _rebuild_geometry() -> void:
 		Vector2(-cell_size * 0.28, cell_size * 0.28),
 	])
 	_canopy_polygon.color = primary_color
+	_apply_visual_mode()
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+
+func set_texture(texture: Texture2D) -> void:
+	_bind_nodes()
+	if _sprite == null:
+		return
+	_texture_mode = texture != null
+	_sprite.texture = texture
+	_sprite.centered = false
+	if texture != null:
+		var texture_size := texture.get_size()
+		if texture_size.x > 0.0 and texture_size.y > 0.0:
+			_sprite.scale = Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+			_sprite.position = Vector2.ZERO
+	_apply_visual_mode()
+
+
+func _apply_visual_mode() -> void:
+	if _canopy_polygon != null:
+		_canopy_polygon.visible = not _texture_mode
+	if _sprite != null:
+		_sprite.visible = _texture_mode
 
 
 func _has_player_inside() -> bool:

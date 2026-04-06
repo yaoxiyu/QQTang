@@ -11,7 +11,9 @@ var height_px: float = 14.0
 var _shadow_polygon: Polygon2D = null
 var _base_polygon: Polygon2D = null
 var _top_polygon: Polygon2D = null
+var _sprite: Sprite2D = null
 var _is_breaking: bool = false
+var _texture_mode: bool = false
 
 
 func _ready() -> void:
@@ -24,7 +26,25 @@ func configure(p_cell_size: float, p_primary_color: Color, p_height_px: float) -
 	primary_color = p_primary_color
 	height_px = max(p_height_px, 0.0)
 	_bind_nodes()
+	_texture_mode = false
 	_rebuild_geometry()
+
+
+func set_texture(texture: Texture2D) -> void:
+	_bind_nodes()
+	if _sprite == null:
+		return
+	_texture_mode = texture != null
+	_sprite.texture = texture
+	_sprite.centered = false
+	_apply_visual_mode()
+	if texture == null:
+		return
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		_sprite.scale = Vector2.ONE
+		return
+	_sprite.scale = Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
 
 
 func play_break_and_dispose() -> void:
@@ -46,6 +66,8 @@ func _bind_nodes() -> void:
 		_base_polygon = get_node(^"BasePolygon") as Polygon2D
 	if _top_polygon == null and has_node(^"TopPolygon"):
 		_top_polygon = get_node(^"TopPolygon") as Polygon2D
+	if _sprite == null and has_node(^"Sprite2D"):
+		_sprite = get_node(^"Sprite2D") as Sprite2D
 
 
 func _rebuild_geometry() -> void:
@@ -76,6 +98,18 @@ func _rebuild_geometry() -> void:
 	_top_polygon.color = _lighten(primary_color, 0.12)
 	_base_polygon.color = primary_color
 	_shadow_polygon.color = Color(primary_color.r * 0.42, primary_color.g * 0.42, primary_color.b * 0.42, 0.42)
+	_apply_visual_mode()
+
+
+func _apply_visual_mode() -> void:
+	if _shadow_polygon != null:
+		_shadow_polygon.visible = not _texture_mode
+	if _base_polygon != null:
+		_base_polygon.visible = not _texture_mode
+	if _top_polygon != null:
+		_top_polygon.visible = not _texture_mode
+	if _sprite != null:
+		_sprite.visible = _texture_mode
 
 
 func _lighten(color_value: Color, amount: float) -> Color:

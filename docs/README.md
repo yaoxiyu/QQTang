@@ -5,6 +5,7 @@
 
 ## 子目录职责
 - 当前目录下的 `current_source_of_truth.md` 是当前源码结构与职责的唯一真相文档。
+- `map_theme_material_integration.md` 记录当前地图材质包的格式要求与接入流程。
 - 其它 `baseline / validation / cleanup / phase` 文档默认视为历史材料或阶段记录，除非文件内明确声明自己是当前真相。
 
 ## 维护规则
