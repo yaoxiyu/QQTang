@@ -94,13 +94,14 @@ func _execute_move_substeps(
 	var blocked := false
 	var turn_only := false
 	var blocked_cell := Vector2i.ZERO
-	var total_units := _movement_units_per_tick(player.speed_level)
-	var substep_units := _split_movement_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
-	var window_step_units := _substep_window_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
+	var fixed_step_units := MovementTuning.movement_step_units()
+	var gained_budget_units := _movement_units_per_tick(player.speed_level)
+	player.move_budget_units += gained_budget_units
+	var step_count := int(player.move_budget_units / max(fixed_step_units, 1))
+	player.move_budget_units = player.move_budget_units % max(fixed_step_units, 1)
 
-	for step_units in substep_units:
-		if step_units <= 0:
-			continue
+	for _i in range(step_count):
+		var step_units := fixed_step_units
 
 		var foot_cell := PlayerLocator.get_foot_cell(player)
 		var target_cell := foot_cell + Vector2i(move_x, move_y)
@@ -112,11 +113,11 @@ func _execute_move_substeps(
 			target_cell.y
 		)
 		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
-		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y, total_units):
+		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y, fixed_step_units):
 			turn_only = true
 			break
 
-		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, total_units)
+		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, fixed_step_units)
 		var resolved_abs_pos: Vector2i = move_result["abs_pos"]
 		GridMotionMath.write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y)
 

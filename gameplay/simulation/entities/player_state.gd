@@ -128,3 +128,4 @@ var score: int = 0
 var pending_command: PlayerCommand = PlayerCommand.new()
 var last_applied_command: PlayerCommand = PlayerCommand.new()
 var last_place_bubble_pressed: bool = false
+var move_budget_units: int = 0

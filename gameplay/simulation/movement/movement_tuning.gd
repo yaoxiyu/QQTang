@@ -7,6 +7,7 @@ const PASS_OFFSET_SUBSTEP_WINDOW := 2
 const PASS_ABSORB_TICK_WINDOW := 1
 const BUBBLE_FORWARD_PLACE_SUBSTEP_WINDOW := 2
 
+const MOVE_STEP_UNITS := 250
 const SPEED_UNITS_LV1 := 250
 const SPEED_UNITS_LV2 := 334
 const SPEED_UNITS_LV3 := 500
@@ -22,6 +23,10 @@ static func movement_units_per_tick(speed_level: int) -> int:
 			return SPEED_UNITS_LV3
 		_:
 			return SPEED_UNITS_LV3
+
+
+static func movement_step_units() -> int:
+	return MOVE_STEP_UNITS
 
 
 static func substep_window_units(total_units: int, substep_count: int) -> int:
