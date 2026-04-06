@@ -1,8 +1,10 @@
 class_name BattleStateToViewMapper
 extends RefCounted
 
-var cell_size: float = 48.0
-const CELL_OFFSET_UNITS := 1000.0
+const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 
 var _player_palette := [
 	Color(0.20, 0.70, 1.0, 1.0),
@@ -116,6 +118,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 	return {
 		"entity_id": player.entity_id,
 		"player_slot": player.player_slot,
+		"cell_size": cell_size,
 		"is_local_player": player.entity_id == _local_player_entity_id,
 		"alive": player.alive,
 		"life_state": player.life_state,
@@ -144,6 +147,7 @@ func map_item_state(item: ItemState) -> Dictionary:
 	return {
 		"entity_id": item.entity_id,
 		"item_type": item.item_type,
+		"cell_size": cell_size,
 		"position": _to_world_position(item.cell_x, item.cell_y),
 		"color": _item_palette.get(item.item_type, Color(1.0, 1.0, 1.0, 1.0)),
 	}
@@ -158,8 +162,8 @@ func _to_world_position(cell_x: int, cell_y: int) -> Vector2:
 
 func _to_world_offset(offset_x: int, offset_y: int) -> Vector2:
 	return Vector2(
-		(float(offset_x) / CELL_OFFSET_UNITS) * cell_size,
-		(float(offset_y) / CELL_OFFSET_UNITS) * cell_size
+		(float(offset_x) / float(WorldMetrics.CELL_UNITS)) * cell_size,
+		(float(offset_y) / float(WorldMetrics.CELL_UNITS)) * cell_size
 	)
 
 

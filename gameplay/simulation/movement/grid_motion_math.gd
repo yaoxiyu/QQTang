@@ -1,8 +1,10 @@
 class_name GridMotionMath
 extends RefCounted
 
-const CELL_UNITS := 1000
-const HALF_CELL_UNITS := 500
+const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
+
+const CELL_UNITS := WorldMetrics.CELL_UNITS
+const HALF_CELL_UNITS := WorldMetrics.HALF_CELL_UNITS
 
 
 static func to_abs_x(cell_x: int, offset_x: int) -> int:

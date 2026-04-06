@@ -40,6 +40,7 @@ func execute(ctx: SimContext) -> void:
 		var old_foot_cell := PlayerLocator.get_foot_cell(player)
 
 		if move_x == 0 and move_y == 0:
+			player.move_phase_ticks = 0
 			player.move_state = PlayerState.MoveState.IDLE
 			ctx.state.players.update_player(player)
 			continue
@@ -95,10 +96,10 @@ func _execute_move_substeps(
 	var turn_only := false
 	var blocked_cell := Vector2i.ZERO
 	var fixed_step_units := MovementTuning.movement_step_units()
-	var gained_budget_units := _movement_units_per_tick(player.speed_level)
-	player.move_budget_units += gained_budget_units
-	var step_count := int(player.move_budget_units / max(fixed_step_units, 1))
-	player.move_budget_units = player.move_budget_units % max(fixed_step_units, 1)
+	var required_ticks : int = max(MovementTuning.ticks_per_step(player.speed_level), 1)
+	player.move_phase_ticks += 1
+	var step_count := int(player.move_phase_ticks / required_ticks)
+	player.move_phase_ticks = player.move_phase_ticks % required_ticks
 
 	for _i in range(step_count):
 		var step_units := fixed_step_units
@@ -113,7 +114,7 @@ func _execute_move_substeps(
 			target_cell.y
 		)
 		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
-		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y, fixed_step_units):
+		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y):
 			turn_only = true
 			break
 
@@ -170,19 +171,13 @@ func _try_apply_turn_snap(
 	foot_cell: Vector2i,
 	rail: int,
 	move_x: int,
-	move_y: int,
-	total_units: int
+	move_y: int
 ) -> bool:
 	if rail == RailConstraint.Type.CENTER_PIVOT:
 		return false
 
 	if RailConstraint.requires_center_for_vertical_turn(rail) and move_y != 0:
-		var distance_substeps := MovementTuning.distance_units_to_substeps(
-			abs(player.offset_x),
-			total_units,
-			MovementTuning.MOVEMENT_SUBSTEP_COUNT
-		)
-		if distance_substeps > MovementTuning.TURN_SNAP_SUBSTEP_WINDOW:
+		if abs(player.offset_x) > MovementTuning.turn_snap_window_units():
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -192,12 +187,7 @@ func _try_apply_turn_snap(
 		)
 
 	if RailConstraint.requires_center_for_horizontal_turn(rail) and move_x != 0:
-		var distance_substeps := MovementTuning.distance_units_to_substeps(
-			abs(player.offset_y),
-			total_units,
-			MovementTuning.MOVEMENT_SUBSTEP_COUNT
-		)
-		if distance_substeps > MovementTuning.TURN_SNAP_SUBSTEP_WINDOW:
+		if abs(player.offset_y) > MovementTuning.turn_snap_window_units():
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -298,7 +288,7 @@ func _try_apply_lane_center_snap(
 	total_units: int
 ) -> Vector2i:
 	var snapped := tentative_abs_pos
-	var pass_window_units := MovementTuning.pass_absorb_window_units(total_units)
+	var pass_window_units := MovementTuning.pass_absorb_window_units()
 	if move_x > 0:
 		var offset_y := current_abs_pos.y - GridMotionMath.get_cell_center_abs_y(foot_cell.y)
 		if offset_y == 0:
@@ -471,27 +461,6 @@ func _clamp_abs_to_blocked_axis_limit(
 	elif move_y < 0:
 		clamped.y = max(clamped.y, GridMotionMath.get_cell_center_abs_y(foot_cell.y))
 	return clamped
-
-
-func _movement_units_per_tick(speed_level: int) -> int:
-	return MovementTuning.movement_units_per_tick(speed_level)
-
-
-func _split_movement_units(total_units: int, substep_count: int) -> PackedInt32Array:
-	var steps := PackedInt32Array()
-	var safe_count : int = max(substep_count, 1)
-	var base_units := int(total_units / safe_count)
-	var remainder := total_units % safe_count
-	for i in range(safe_count):
-		var step_units := base_units
-		if i < remainder:
-			step_units += 1
-		steps.append(step_units)
-	return steps
-
-
-func _substep_window_units(total_units: int, substep_count: int) -> int:
-	return MovementTuning.substep_window_units(total_units, substep_count)
 
 
 func _emit_cell_changed_if_needed(

@@ -3,12 +3,12 @@ extends Node2D
 
 const DEFAULT_PRIMARY_COLOR := Color(0.31, 0.48, 0.32, 1.0)
 const OCCLUDER_Z_INDEX := 40
-const PLAYER_SAMPLE_SIZE := Vector2(20.0, 28.0)
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const OCCLUDER_TRIGGER_OFFSET := Vector2(-0.9, -0.6)
 const OCCLUDER_TRIGGER_SIZE := Vector2(2.3, 2.0)
 
 var cell: Vector2i = Vector2i.ZERO
-var cell_size: float = 48.0
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var primary_color: Color = DEFAULT_PRIMARY_COLOR
 var offset_px: Vector2 = Vector2.ZERO
 var actor_layer: Node = null
@@ -89,9 +89,10 @@ func _has_player_inside() -> bool:
 		var player := child as BattlePlayerActorView
 		if not player.alive:
 			continue
+		var player_sample_size := BattleViewMetrics.player_sample_size(cell_size)
 		var player_rect := Rect2(
-			player.global_position - PLAYER_SAMPLE_SIZE * 0.5,
-			PLAYER_SAMPLE_SIZE
+			player.global_position - player_sample_size * 0.5,
+			player_sample_size
 		)
 		if occluder_rect.intersects(player_rect):
 			return true

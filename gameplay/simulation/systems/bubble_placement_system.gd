@@ -126,9 +126,7 @@ func _resolve_bubble_place_cell(player: PlayerState) -> Vector2i:
 
 
 func _bubble_forward_window_units(player: PlayerState) -> int:
-	var total_units := MovementTuning.movement_step_units()
-	var window_step_units := MovementTuning.substep_window_units(total_units, MovementTuning.MOVEMENT_SUBSTEP_COUNT)
-	return window_step_units * max(MovementTuning.BUBBLE_FORWARD_PLACE_SUBSTEP_WINDOW, 1)
+	return MovementTuning.bubble_forward_place_window_units()
 
 
 func _resolve_forward_axis_cell(abs_value: int, positive_forward: bool, forward_window_units: int) -> int:

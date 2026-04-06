@@ -2,8 +2,10 @@ extends Node
 
 class_name TickRunner
 
-const TICK_RATE: int = 20
-const TICK_DT: float = 1.0 / float(TICK_RATE)
+const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
+
+const TICK_RATE: int = WorldTiming.TICK_RATE
+const TICK_DT: float = WorldTiming.TICK_DT
 
 enum TickPhase {
 	INPUT,

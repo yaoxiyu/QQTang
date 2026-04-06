@@ -7,6 +7,7 @@ const NetworkStatusPanelScript = preload("res://presentation/battle/hud/network_
 const MatchMessagePanelScript = preload("res://presentation/battle/hud/match_message_panel.gd")
 const BattleMetaPanelScript = preload("res://presentation/battle/hud/battle_meta_panel.gd")
 const LocalPlayerAbilityPanelScript = preload("res://presentation/battle/hud/local_player_ability_panel.gd")
+const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
 
 @export var countdown_panel_path: NodePath = ^"../CountdownPanel"
 @export var player_status_panel_path: NodePath = ^"../PlayerStatusPanel"
@@ -14,7 +15,7 @@ const LocalPlayerAbilityPanelScript = preload("res://presentation/battle/hud/loc
 @export var match_message_panel_path: NodePath = ^"../MatchMessagePanel"
 @export var battle_meta_panel_path: NodePath = ^"../BattleMetaPanel"
 @export var local_player_ability_panel_path: NodePath = ^"../LocalPlayerAbilityPanel"
-@export var tick_rate: int = 20
+@export var tick_rate: int = WorldTiming.TICK_RATE
 
 var countdown_panel: CountdownPanel = null
 var player_status_panel: PlayerStatusPanel = null

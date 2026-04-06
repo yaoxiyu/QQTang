@@ -72,7 +72,7 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"offset_x": player.offset_x,
 			"offset_y": player.offset_y,
 			"last_place_bubble_pressed": player.last_place_bubble_pressed,
-			"move_budget_units": player.move_budget_units,
+			"move_phase_ticks": player.move_phase_ticks,
 			"facing": player.facing,
 			"move_state": player.move_state,
 			"last_non_zero_move_x": player.last_non_zero_move_x,
@@ -198,7 +198,7 @@ func _restore_players(sim_world: SimWorld, players: Array[Dictionary]) -> void:
 		player.offset_x = int(data.get("offset_x", 0))
 		player.offset_y = int(data.get("offset_y", 0))
 		player.last_place_bubble_pressed = bool(data.get("last_place_bubble_pressed", false))
-		player.move_budget_units = int(data.get("move_budget_units", 0))
+		player.move_phase_ticks = int(data.get("move_phase_ticks", 0))
 		player.facing = int(data.get("facing", player.facing))
 		player.move_state = int(data.get("move_state", player.move_state))
 		player.last_non_zero_move_x = int(data.get("last_non_zero_move_x", 0))

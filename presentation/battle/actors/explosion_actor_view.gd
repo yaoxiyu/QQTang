@@ -2,8 +2,9 @@ class_name BattleExplosionActorView
 extends Node2D
 
 const BubbleFxRegistryScript = preload("res://presentation/battle/fx/bubble_fx_registry.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
-var cell_size: float = 48.0
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var covered_cells: Array[Vector2i] = []
 var lifetime: float = 0.18
 var bubble_style_id: String = ""

@@ -2,6 +2,7 @@ class_name BattleMapViewController
 extends Node2D
 
 const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_presentation_loader.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
 @export var static_block_layer_path: NodePath = ^"StaticBlockLayer"
@@ -9,7 +10,7 @@ const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_p
 @export var occluder_layer_path: NodePath = ^"../OccluderLayer"
 @export var actor_layer_path: NodePath = ^"../ActorLayer"
 
-var cell_size: float = 48.0
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 
 var ground_layer: Node2D = null
 var static_block_layer: Node2D = null

@@ -1,8 +1,6 @@
 class_name BattlePresentationBridge
 extends Node2D
 
-const CELL_OFFSET_UNITS := 1000.0
-
 const ActorRegistryScript = preload("res://presentation/battle/bridge/actor_registry.gd")
 const StateToViewMapperScript = preload("res://presentation/battle/bridge/state_to_view_mapper.gd")
 const BattleEventRouterScript = preload("res://presentation/battle/bridge/battle_event_router.gd")
@@ -11,12 +9,14 @@ const CorrectionMarkerViewScript = preload("res://presentation/battle/actors/cor
 const BrickBreakFxPlayerScript = preload("res://presentation/battle/fx/brick_break_fx_player.gd")
 const ItemSpawnFxPlayerScript = preload("res://presentation/battle/fx/item_spawn_fx_player.gd")
 const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
 @export var actor_layer_path: NodePath = ^"../../WorldRoot/ActorLayer"
 @export var fx_layer_path: NodePath = ^"../../WorldRoot/FxLayer"
 @export var spawn_fx_controller_path: NodePath = ^"../../SpawnFxController"
-@export var cell_size: float = 48.0
+@export var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 @export var player_actor_scene: PackedScene
 @export var bubble_actor_scene: PackedScene
 @export var item_actor_scene: PackedScene
@@ -193,7 +193,9 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 	var bubble_color := Color.WHITE
 	var player_actor := actor_registry.get_actor_view(owner_player_id) if actor_registry != null else null
 	if player_actor != null:
-		var player_slot := int(player_actor.get("player_slot"))
+		var player_slot := -1
+		if player_actor is BattlePlayerActorView:
+			player_slot = (player_actor as BattlePlayerActorView).player_slot
 		bubble_style_id = String(_bubble_style_by_slot.get(player_slot, ""))
 		bubble_color = _bubble_color_by_slot.get(player_slot, bubble_color)
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("spawn_explosion"):
@@ -267,6 +269,6 @@ func _to_world_center(cell: Vector2i) -> Vector2:
 
 func _fp_to_world_position(fp_pos: Vector2i) -> Vector2:
 	return Vector2(
-		(float(fp_pos.x) / CELL_OFFSET_UNITS) * cell_size,
-		(float(fp_pos.y) / CELL_OFFSET_UNITS) * cell_size
+		(float(fp_pos.x) / float(WorldMetrics.CELL_UNITS)) * cell_size,
+		(float(fp_pos.y) / float(WorldMetrics.CELL_UNITS)) * cell_size
 	)

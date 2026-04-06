@@ -2,8 +2,9 @@ class_name MapBreakableBlockView
 extends Node2D
 
 const DEFAULT_PRIMARY_COLOR := Color(0.70, 0.50, 0.28, 1.0)
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
-var cell_size: float = 48.0
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var primary_color: Color = DEFAULT_PRIMARY_COLOR
 var height_px: float = 14.0
 

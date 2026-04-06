@@ -1,7 +1,9 @@
 class_name BattleMapView
 extends Node2D
 
-var cell_size: float = 48.0
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+
+var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var _grid_cache: Dictionary = {}
 
 

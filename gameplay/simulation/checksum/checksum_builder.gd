@@ -17,7 +17,7 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(player.offset_x)
 		parts.append(player.offset_y)
 		parts.append(int(player.last_place_bubble_pressed))
-		parts.append(player.move_budget_units)
+		parts.append(player.move_phase_ticks)
 		parts.append(int(player.alive))
 		parts.append(player.life_state)
 		parts.append(player.bomb_available)

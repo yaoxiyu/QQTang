@@ -11,8 +11,10 @@
 class_name SimConfig
 extends RefCounted
 
+const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
+
 # 对局配置
-var tick_rate: int = 20
+var tick_rate: int = WorldTiming.TICK_RATE
 var map_def: Resource = null
 var mode_def: Resource = null
 

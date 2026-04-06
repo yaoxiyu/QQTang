@@ -2,6 +2,7 @@ class_name CharacterSpriteBodyView
 extends Node2D
 
 const CharacterAnimationSetDefScript = preload("res://content/character_animation_sets/defs/character_animation_set_def.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
 @onready var _body_sprite: AnimatedSprite2D = $BodySprite
 
@@ -20,12 +21,19 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 	_body_sprite.centered = false
 	var resolved_pivot := _resolve_sprite_pivot(_animation_set)
 	_body_sprite.position = -resolved_pivot
+	scale = Vector2.ONE * BattleViewMetrics.player_body_scale(
+		BattleViewMetrics.DEFAULT_CELL_PIXELS,
+		float(_animation_set.frame_height)
+	)
 	_current_animation_name = ""
 
 
 func apply_actor_state(view_state: Dictionary) -> void:
 	if _animation_set == null or _body_sprite.sprite_frames == null:
 		return
+
+	var cell_size := float(view_state.get("cell_size", BattleViewMetrics.DEFAULT_CELL_PIXELS))
+	scale = Vector2.ONE * BattleViewMetrics.player_body_scale(cell_size, float(_animation_set.frame_height))
 
 	var facing := int(view_state.get("facing", 1))
 	var move_state := int(view_state.get("move_state", 0))

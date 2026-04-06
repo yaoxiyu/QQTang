@@ -1,8 +1,10 @@
 class_name CountdownPanel
 extends Label
 
+const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
+
 var remaining_ticks: int = 0
-var tick_rate: int = 20
+var tick_rate: int = WorldTiming.TICK_RATE
 var countdown_text: String = ""
 
 
@@ -12,7 +14,7 @@ func _ready() -> void:
 	_refresh_text()
 
 
-func apply_countdown(remaining_tick_count: int, battle_tick_rate: int = 20) -> void:
+func apply_countdown(remaining_tick_count: int, battle_tick_rate: int = WorldTiming.TICK_RATE) -> void:
 	remaining_ticks = max(remaining_tick_count, 0)
 	tick_rate = max(battle_tick_rate, 1)
 	_refresh_text()

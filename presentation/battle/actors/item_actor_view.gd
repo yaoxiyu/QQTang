@@ -2,11 +2,13 @@ class_name BattleItemActorView
 extends Node2D
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
 var item_id: int = -1
 var item_type: int = 0
 var item_color: Color = Color(1.0, 0.9, 0.2, 1.0)
-var size_px: float = 10.0
+var cell_size_px: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
+var size_px: float = BattleViewMetrics.item_half_size_px()
 
 var _icon_sprite: Sprite2D = null
 var _fallback_body: Polygon2D = null
@@ -21,6 +23,8 @@ func _ready() -> void:
 func apply_view_state(view_state: Dictionary) -> void:
 	item_id = int(view_state.get("entity_id", -1))
 	item_type = int(view_state.get("item_type", 0))
+	cell_size_px = float(view_state.get("cell_size", cell_size_px))
+	size_px = BattleViewMetrics.item_half_size_px(cell_size_px)
 	position = view_state.get("position", Vector2.ZERO)
 	item_color = view_state.get("color", item_color)
 	_refresh_visuals()
