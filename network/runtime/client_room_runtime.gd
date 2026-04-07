@@ -51,7 +51,32 @@ func is_transport_connected() -> bool:
 	return _connected and _transport != null and _transport.is_transport_connected()
 
 
-func request_create_or_join_room(
+func request_create_room(
+	room_id_hint: String,
+	player_name: String,
+	character_id: String,
+	character_skin_id: String = "",
+	bubble_style_id: String = "",
+	bubble_skin_id: String = "",
+	map_id: String = "",
+	rule_set_id: String = "",
+	mode_id: String = ""
+) -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_CREATE_REQUEST,
+		"room_id_hint": room_id_hint,
+		"player_name": player_name,
+		"character_id": character_id,
+		"character_skin_id": character_skin_id,
+		"bubble_style_id": bubble_style_id,
+		"bubble_skin_id": bubble_skin_id,
+		"map_id": map_id,
+		"rule_set_id": rule_set_id,
+		"mode_id": mode_id,
+	})
+
+
+func request_join_room(
 	room_id_hint: String,
 	player_name: String,
 	character_id: String,
@@ -87,11 +112,12 @@ func request_update_profile(
 	})
 
 
-func request_update_selection(map_id: String, rule_set_id: String) -> void:
+func request_update_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_UPDATE_SELECTION,
 		"map_id": map_id,
 		"rule_set_id": rule_set_id,
+		"mode_id": mode_id,
 	})
 
 
@@ -125,6 +151,11 @@ func _connect_transport_signals() -> void:
 func _route_message(message: Dictionary) -> void:
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	match message_type:
+		TransportMessageTypesScript.ROOM_CREATE_ACCEPTED:
+			if _last_snapshot != null:
+				room_joined.emit(_last_snapshot)
+		TransportMessageTypesScript.ROOM_CREATE_REJECTED:
+			room_error.emit("ROOM_CREATE_FAILED", String(message.get("user_message", "Room create failed")))
 		TransportMessageTypesScript.ROOM_JOIN_ACCEPTED:
 			if _last_snapshot != null:
 				room_joined.emit(_last_snapshot)

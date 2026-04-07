@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://bvaiy4xcssbor"]
+
+[ext_resource type="Script" uid="uid://bsgajvlmf083c" path="res://scenes/front/boot_scene_controller.gd" id="1_nf02q"]
+
+[node name="BootScene" type="Node" unique_id=1949162486]
+script = ExtResource("1_nf02q")
+
+[node name="BootRoot" type="Control" parent="." unique_id=606568044]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterPanel" type="PanelContainer" parent="BootRoot" unique_id=232543766]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -38.5
+offset_right = 20.0
+offset_bottom = 38.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="BootRoot/CenterPanel" unique_id=643730117]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="MainLayout" type="VBoxContainer" parent="BootRoot/CenterPanel/MarginContainer" unique_id=1535925449]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="BootRoot/CenterPanel/MarginContainer/MainLayout" unique_id=1001557620]
+layout_mode = 2
+text = "QQTang"
+
+[node name="StatusLabel" type="Label" parent="BootRoot/CenterPanel/MarginContainer/MainLayout" unique_id=1232437839]
+layout_mode = 2
+text = "Initializing Front Runtime..."
+autowrap_mode = 3
+
+[node name="HintLabel" type="Label" parent="BootRoot/CenterPanel/MarginContainer/MainLayout" unique_id=18194556]
+layout_mode = 2
+text = "Boot scene only decides login or lobby."
+autowrap_mode = 3

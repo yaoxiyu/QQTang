@@ -2,6 +2,11 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
+const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
 func _ready() -> void:
@@ -82,16 +87,45 @@ func _test_app_root_dump_reports_battle_lifecycle() -> void:
 
 
 func _make_config() -> BattleStartConfig:
-	var config := BattleStartConfig.new()
+	var mode_id := ModeCatalogScript.get_default_mode_id()
+	var mode_metadata := ModeCatalogScript.get_mode_metadata(mode_id)
+	var map_id := String(mode_metadata.get("default_map_id", MapCatalogScript.get_default_map_id()))
+	var rule_set_id := String(mode_metadata.get("rule_set_id", RuleSetCatalogScript.get_default_rule_id()))
+	var map_metadata := MapLoaderScript.load_map_metadata(map_id)
+	var host_character_id := CharacterCatalogScript.get_default_character_id()
+	var client_character_id := CharacterCatalogScript.get_default_character_id()
+	var host_character_metadata := CharacterCatalogScript.get_character_metadata(host_character_id)
+	var client_character_metadata := CharacterCatalogScript.get_character_metadata(client_character_id)
+	var config := BattleStartConfigScript.new()
 	config.room_id = "lifecycle_contract_room"
 	config.match_id = "lifecycle_contract_match"
-	config.map_id = "default_map"
-	config.rule_set_id = "classic"
-	config.seed = 20260329
+	config.map_id = map_id
+	config.map_version = int(map_metadata.get("version", 1))
+	config.map_content_hash = String(map_metadata.get("content_hash", ""))
+	config.mode_id = mode_id
+	config.rule_set_id = rule_set_id
+	config.battle_seed = 20260329
 	config.start_tick = 0
-	config.players = [
-		{"peer_id": 1, "player_name": "P1", "slot_index": 0, "spawn_slot": 0, "character_id": "hero_1"},
-		{"peer_id": 2, "player_name": "P2", "slot_index": 1, "spawn_slot": 1, "character_id": "hero_2"},
+	config.match_duration_ticks = 10
+	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", "default_items"))
+	config.session_mode = "singleplayer_local"
+	config.topology = "listen"
+	config.local_peer_id = 1
+	config.controlled_peer_id = 1
+	config.owner_peer_id = 1
+	config.player_slots = [
+		{"peer_id": 1, "player_name": "P1", "slot_index": 0, "spawn_slot": 0, "character_id": host_character_id},
+		{"peer_id": 2, "player_name": "P2", "slot_index": 1, "spawn_slot": 1, "character_id": client_character_id},
+	]
+	config.players = config.player_slots.duplicate(true)
+	config.character_loadouts = [
+		{"peer_id": 1, "character_id": host_character_id, "content_hash": String(host_character_metadata.get("content_hash", ""))},
+		{"peer_id": 2, "character_id": client_character_id, "content_hash": String(client_character_metadata.get("content_hash", ""))},
+	]
+	var spawn_points: Array = map_metadata.get("spawn_points", [])
+	config.spawn_assignments = [
+		{"peer_id": 1, "slot_index": 0, "spawn_index": 0, "spawn_cell_x": spawn_points[0].x, "spawn_cell_y": spawn_points[0].y},
+		{"peer_id": 2, "slot_index": 1, "spawn_index": 1, "spawn_cell_x": spawn_points[1].x, "spawn_cell_y": spawn_points[1].y},
 	]
 	config.sort_players()
 	return config
@@ -102,3 +136,4 @@ func _assert_true(condition: bool, message: String) -> void:
 		print("[PASS] %s" % message)
 		return
 	push_error("[FAIL] %s" % message)
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")

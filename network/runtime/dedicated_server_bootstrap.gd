@@ -79,6 +79,7 @@ func _route_message(message: Dictionary) -> void:
 	match message_type:
 		TransportMessageTypesScript.INPUT_FRAME:
 			_match_service.ingest_runtime_message(message)
+		TransportMessageTypesScript.ROOM_CREATE_REQUEST, \
 		TransportMessageTypesScript.ROOM_JOIN_REQUEST, \
 		TransportMessageTypesScript.ROOM_UPDATE_PROFILE, \
 		TransportMessageTypesScript.ROOM_UPDATE_SELECTION, \

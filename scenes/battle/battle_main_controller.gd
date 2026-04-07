@@ -488,7 +488,11 @@ func _apply_player_visual_profiles() -> void:
 		return
 	var room_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot
 	var start_config: BattleStartConfig = _app_runtime.current_start_config
-	if room_snapshot == null or start_config == null:
+	if start_config == null:
+		return
+	if room_snapshot == null:
+		room_snapshot = _build_fallback_room_snapshot_from_start_config(start_config)
+	if room_snapshot == null:
 		return
 	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
 	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)

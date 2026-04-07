@@ -2,10 +2,14 @@ class_name RoomSession
 extends RefCounted
 
 var room_id: String = ""
+var room_kind: String = ""
+var topology: String = ""
 var peers: Array[int] = []
 var ready_state: Dictionary = {}
-var selected_map: String = ""
-var selected_mode: String = ""
+var selected_map_id: String = ""
+var selected_rule_set_id: String = ""
+var selected_mode_id: String = ""
+var min_start_players: int = 2
 var locked: bool = false
 
 
@@ -36,12 +40,13 @@ func set_ready(peer_id: int, ready: bool) -> void:
 	ready_state[peer_id] = ready
 
 
-func set_selection(map_id: String, mode_id: String) -> void:
+func set_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
 	if locked:
 		return
 
-	selected_map = map_id
-	selected_mode = mode_id
+	selected_map_id = map_id
+	selected_rule_set_id = rule_set_id
+	selected_mode_id = mode_id
 
 
 func can_start() -> bool:

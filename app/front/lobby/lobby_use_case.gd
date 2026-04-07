@@ -1,0 +1,171 @@
+class_name LobbyUseCase
+extends RefCounted
+
+const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
+const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
+const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
+const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
+const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+
+var auth_session_state: AuthSessionState = null
+var player_profile_state: PlayerProfileState = null
+var front_settings_state: FrontSettingsState = null
+var practice_room_factory: PracticeRoomFactory = null
+
+
+func configure(
+	p_auth_session_state: AuthSessionState,
+	p_player_profile_state: PlayerProfileState,
+	p_front_settings_state: FrontSettingsState,
+	p_practice_room_factory: PracticeRoomFactory
+) -> void:
+	auth_session_state = p_auth_session_state
+	player_profile_state = p_player_profile_state
+	front_settings_state = p_front_settings_state
+	practice_room_factory = p_practice_room_factory
+
+
+func enter_lobby() -> Dictionary:
+	var view_state := LobbyViewStateScript.new()
+	if player_profile_state != null:
+		view_state.profile_name = player_profile_state.nickname
+		view_state.default_character_id = player_profile_state.default_character_id
+		view_state.default_character_skin_id = player_profile_state.default_character_skin_id
+		view_state.default_bubble_style_id = player_profile_state.default_bubble_style_id
+		view_state.default_bubble_skin_id = player_profile_state.default_bubble_skin_id
+		view_state.preferred_map_id = player_profile_state.preferred_map_id
+		view_state.preferred_rule_id = player_profile_state.preferred_rule_set_id
+		view_state.preferred_mode_id = player_profile_state.preferred_mode_id
+	if front_settings_state != null:
+		view_state.last_server_host = front_settings_state.last_server_host
+		view_state.last_server_port = front_settings_state.last_server_port
+		view_state.last_room_id = front_settings_state.last_room_id
+		view_state.reconnect_room_id = front_settings_state.reconnect_room_id
+		view_state.reconnect_host = front_settings_state.reconnect_host
+		view_state.reconnect_port = front_settings_state.reconnect_port
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"view_state": view_state,
+	}
+
+
+func start_practice(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
+	if practice_room_factory == null:
+		return _fail("PRACTICE_ROOM_FACTORY_MISSING", "Practice room factory is not configured")
+	return practice_room_factory.create_practice_room(
+		player_profile_state,
+		map_id,
+		rule_id,
+		mode_id
+	)
+
+
+func create_private_room(host: String, port: int) -> Dictionary:
+	var normalized_host := _normalize_host(host)
+	var normalized_port := _normalize_port(port)
+	_update_last_server(normalized_host, normalized_port)
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": _build_online_entry_context(
+			FrontEntryKindScript.ONLINE_CREATE,
+			normalized_host,
+			normalized_port,
+			"",
+			true,
+			false
+		),
+	}
+
+
+func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
+	var normalized_room_id := room_id.strip_edges()
+	if normalized_room_id.is_empty():
+		return _fail("ROOM_ID_REQUIRED", "Room id is required")
+	var normalized_host := _normalize_host(host)
+	var normalized_port := _normalize_port(port)
+	_update_last_server(normalized_host, normalized_port)
+	if front_settings_state != null:
+		front_settings_state.last_room_id = normalized_room_id
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": _build_online_entry_context(
+			FrontEntryKindScript.ONLINE_JOIN,
+			normalized_host,
+			normalized_port,
+			normalized_room_id,
+			true,
+			true
+		),
+	}
+
+
+func logout() -> Dictionary:
+	if auth_session_state != null:
+		auth_session_state.clear()
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": null,
+	}
+
+
+func _build_online_entry_context(
+	entry_kind: String,
+	host: String,
+	port: int,
+	room_id: String,
+	should_auto_connect: bool,
+	should_auto_join: bool
+) -> RoomEntryContext:
+	var entry_context := RoomEntryContextScript.new()
+	entry_context.entry_kind = entry_kind
+	entry_context.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
+	entry_context.server_host = host
+	entry_context.server_port = port
+	entry_context.target_room_id = room_id
+	entry_context.return_target = FrontReturnTargetScript.LOBBY
+	entry_context.should_auto_connect = should_auto_connect
+	entry_context.should_auto_join = should_auto_join
+	return entry_context
+
+
+func _normalize_host(host: String) -> String:
+	var trimmed := host.strip_edges()
+	if not trimmed.is_empty():
+		return trimmed
+	if front_settings_state != null and not front_settings_state.last_server_host.strip_edges().is_empty():
+		return front_settings_state.last_server_host.strip_edges()
+	return "127.0.0.1"
+
+
+func _normalize_port(port: int) -> int:
+	if port > 0:
+		return port
+	if front_settings_state != null and front_settings_state.last_server_port > 0:
+		return front_settings_state.last_server_port
+	return 9000
+
+
+func _update_last_server(host: String, port: int) -> void:
+	if front_settings_state == null:
+		return
+	front_settings_state.last_server_host = host
+	front_settings_state.last_server_port = port
+
+
+func _fail(error_code: String, user_message: String) -> Dictionary:
+	return {
+		"ok": false,
+		"error_code": error_code,
+		"user_message": user_message,
+		"entry_context": null,
+	}

@@ -1,0 +1,138 @@
+[gd_scene format=3 uid="uid://cgplqglnt25n1"]
+
+[ext_resource type="Script" uid="uid://dfbtfjcfs8p3m" path="res://scenes/front/login_scene_controller.gd" id="1_eng5b"]
+
+[node name="LoginScene" type="Node" unique_id=2061590289]
+script = ExtResource("1_eng5b")
+
+[node name="LoginRoot" type="Control" parent="." unique_id=150156454]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainLayout" type="VBoxContainer" parent="LoginRoot" unique_id=1502542696]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 32.0
+offset_right = 960.0
+offset_bottom = 680.0
+theme_override_constants/separation = 16
+
+[node name="TitleLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=1658449048]
+layout_mode = 2
+text = "QQTang Login"
+
+[node name="IntroLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=2033382970]
+layout_mode = 2
+text = "Guest / Pass-through login. Real auth will be connected later."
+autowrap_mode = 3
+
+[node name="ProfileCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1895139282]
+layout_mode = 2
+
+[node name="ProfileVBox" type="VBoxContainer" parent="LoginRoot/MainLayout/ProfileCard" unique_id=51979953]
+layout_mode = 2
+
+[node name="PlayerNameRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=1958605384]
+layout_mode = 2
+
+[node name="PlayerNameLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=1150442701]
+layout_mode = 2
+text = "Player1"
+
+[node name="PlayerNameInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=722437112]
+layout_mode = 2
+
+[node name="CharacterRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=821291347]
+layout_mode = 2
+
+[node name="CharacterLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterRow" unique_id=619264373]
+layout_mode = 2
+
+[node name="CharacterSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterRow" unique_id=946220885]
+layout_mode = 2
+
+[node name="CharacterSkinRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=234668356]
+layout_mode = 2
+
+[node name="CharacterSkinLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterSkinRow" unique_id=2059133043]
+layout_mode = 2
+
+[node name="CharacterSkinSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterSkinRow" unique_id=793074779]
+layout_mode = 2
+
+[node name="BubbleRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=1825632978]
+layout_mode = 2
+
+[node name="BubbleLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleRow" unique_id=727159326]
+layout_mode = 2
+
+[node name="BubbleSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleRow" unique_id=1443250003]
+layout_mode = 2
+
+[node name="BubbleSkinRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=80466986]
+layout_mode = 2
+
+[node name="BubbleSkinLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleSkinRow" unique_id=1292166828]
+layout_mode = 2
+
+[node name="BubbleSkinSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleSkinRow" unique_id=649575435]
+layout_mode = 2
+
+[node name="EndpointCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1112918397]
+layout_mode = 2
+
+[node name="EndpointVBox" type="HBoxContainer" parent="LoginRoot/MainLayout/EndpointCard" unique_id=1026540810]
+layout_mode = 2
+
+[node name="HostRow" type="HBoxContainer" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox" unique_id=1469628652]
+layout_mode = 2
+
+[node name="HostLabel" type="Label" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox/HostRow" unique_id=2137777506]
+layout_mode = 2
+
+[node name="HostInput" type="LineEdit" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox/HostRow" unique_id=671971406]
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+
+[node name="PortRow" type="HBoxContainer" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox" unique_id=492933065]
+layout_mode = 2
+
+[node name="PortLabel" type="Label" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox/PortRow" unique_id=1638411625]
+layout_mode = 2
+
+[node name="PortInput" type="LineEdit" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox/PortRow" unique_id=189229112]
+layout_mode = 2
+placeholder_text = "9000"
+
+[node name="AuthCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1855811312]
+layout_mode = 2
+
+[node name="AuthVBox" type="VBoxContainer" parent="LoginRoot/MainLayout/AuthCard" unique_id=636945376]
+layout_mode = 2
+
+[node name="AuthModeLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=1189697663]
+layout_mode = 2
+text = "Auth Mode: pass_through"
+
+[node name="AuthStatusLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=730030213]
+layout_mode = 2
+text = "Validation is bypassed in Phase13."
+
+[node name="ActionRow" type="HBoxContainer" parent="LoginRoot/MainLayout" unique_id=1238031278]
+layout_mode = 2
+
+[node name="EnterLobbyButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=573103895]
+layout_mode = 2
+text = "Enter Lobby"
+
+[node name="ExitButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=2024060268]
+layout_mode = 2
+text = "Exit"
+
+[node name="MessageLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=2011124465]
+layout_mode = 2
+autowrap_mode = 3

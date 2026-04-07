@@ -4,6 +4,7 @@ extends Node
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
@@ -35,6 +36,8 @@ func handle_match_finished() -> void:
 func handle_message(message: Dictionary) -> void:
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	match message_type:
+		TransportMessageTypesScript.ROOM_CREATE_REQUEST:
+			_handle_create_request(message)
 		TransportMessageTypesScript.ROOM_JOIN_REQUEST:
 			_handle_join_request(message)
 		TransportMessageTypesScript.ROOM_UPDATE_PROFILE:
@@ -51,6 +54,42 @@ func handle_message(message: Dictionary) -> void:
 			pass
 
 
+func _handle_create_request(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if peer_id <= 0:
+		return
+	var requested_character_id := String(message.get("character_id", "")).strip_edges()
+	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Character selection is invalid",
+		})
+		return
+	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
+	room_state.ensure_room(requested_room_id, peer_id)
+	room_state.set_selection(
+		String(message.get("map_id", "")),
+		String(message.get("rule_set_id", "")),
+		String(message.get("mode_id", ""))
+	)
+	room_state.upsert_member(
+		peer_id,
+		String(message.get("player_name", "Player%d" % peer_id)),
+		requested_character_id,
+		_resolve_character_skin_id(String(message.get("character_skin_id", ""))),
+		_resolve_bubble_style_id(String(message.get("bubble_style_id", ""))),
+		_resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+	)
+	room_state.set_ready(peer_id, false)
+	send_to_peer.emit(peer_id, {
+		"message_type": TransportMessageTypesScript.ROOM_CREATE_ACCEPTED,
+		"room_id": room_state.room_id,
+		"owner_peer_id": room_state.owner_peer_id,
+	})
+	_broadcast_snapshot()
+
+
 func _handle_join_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
@@ -64,7 +103,13 @@ func _handle_join_request(message: Dictionary) -> void:
 		})
 		return
 	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
-	room_state.ensure_room(requested_room_id, peer_id)
+	if room_state.room_id.is_empty() or requested_room_id.is_empty() or room_state.room_id != requested_room_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "ROOM_NOT_FOUND",
+			"user_message": "Target room does not exist",
+		})
+		return
 	room_state.upsert_member(
 		peer_id,
 		String(message.get("player_name", "Player%d" % peer_id)),
@@ -109,19 +154,32 @@ func _handle_update_selection(message: Dictionary) -> void:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_START_FORBIDDEN",
-			"user_message": "Only the host can change map or rule selection",
+			"user_message": "Only the host can change room selection",
 		})
 		return
-	if not MapCatalogScript.has_map(String(message.get("map_id", ""))) or not RuleSetCatalogScript.has_rule(String(message.get("rule_set_id", ""))):
+	var map_id := String(message.get("map_id", ""))
+	var rule_set_id := String(message.get("rule_set_id", ""))
+	var mode_id := String(message.get("mode_id", ""))
+	if not MapCatalogScript.has_map(map_id) or not RuleSetCatalogScript.has_rule(rule_set_id) or not ModeCatalogScript.has_mode(mode_id):
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_SELECTION_INVALID",
-			"user_message": "Map or rule selection is invalid",
+			"user_message": "Map, rule, or mode selection is invalid",
+		})
+		return
+	var mode_metadata := ModeCatalogScript.get_mode_metadata(mode_id)
+	var mode_rule_set_id := String(mode_metadata.get("rule_set_id", ""))
+	if not mode_rule_set_id.is_empty() and mode_rule_set_id != rule_set_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_SELECTION_INVALID",
+			"user_message": "Mode does not match the selected rule set",
 		})
 		return
 	room_state.set_selection(
-		String(message.get("map_id", "")),
-		String(message.get("rule_set_id", ""))
+		map_id,
+		rule_set_id,
+		mode_id
 	)
 	_broadcast_snapshot()
 

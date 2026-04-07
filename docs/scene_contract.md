@@ -4,6 +4,9 @@
 
 ## 正式场景路径
 
+- `res://scenes/front/boot_scene.tscn`
+- `res://scenes/front/login_scene.tscn`
+- `res://scenes/front/lobby_scene.tscn`
 - `res://scenes/front/room_scene.tscn`
 - `res://scenes/front/loading_scene.tscn`
 - `res://scenes/battle/battle_main.tscn`
@@ -24,12 +27,43 @@
 - `RoomHudController`
 - `RoomRoot`
 - `RoomRoot/MainLayout`
-- `RoomRoot/MainLayout/TitleLabel`
-- `RoomRoot/MainLayout/MemberList`
+- `RoomRoot/MainLayout/TopBar`
+- `RoomRoot/MainLayout/TopBar/BackToLobbyButton`
+- `RoomRoot/MainLayout/TopBar/TitleLabel`
+- `RoomRoot/MainLayout/TopBar/RoomMetaLabel`
+- `RoomRoot/MainLayout/SummaryCard`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdValueLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel`
+- `RoomRoot/MainLayout/LocalLoadoutCard`
+- `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput`
+- `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector`
+- `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector`
+- `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector`
+- `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow/BubbleSkinSelector`
+- `RoomRoot/MainLayout/RoomSelectionCard`
+- `RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector`
+- `RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleSelector`
+- `RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector`
+- `RoomRoot/MainLayout/MemberCard`
+- `RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList`
+- `RoomRoot/MainLayout/PreviewCard`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/RulePreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/ModePreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterSkinPreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterSkinIcon`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubblePreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubbleSkinPreviewLabel`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubbleSkinIcon`
+- `RoomRoot/MainLayout/ActionRow/LeaveRoomButton`
 - `RoomRoot/MainLayout/ActionRow/ReadyButton`
 - `RoomRoot/MainLayout/ActionRow/StartButton`
-- `RoomRoot/MainLayout/SelectorRow/MapSelector`
-- `RoomRoot/MainLayout/SelectorRow/RuleSelector`
 - `RoomRoot/MainLayout/RoomDebugPanel/DebugLabel`
 
 ## Loading Scene

@@ -71,7 +71,9 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 		return
 
 	var tick_id := int(world.state.match_state.tick)
-	if tick_id == _last_consumed_tick:
+	var runtime_flags := world.state.runtime_flags
+	var force_client_refresh := runtime_flags != null and bool(runtime_flags.client_prediction_mode)
+	if tick_id == _last_consumed_tick and not force_client_refresh:
 		return
 
 	_grid_cache = state_to_view_mapper.build_grid_cache(world)

@@ -8,7 +8,7 @@ var outgoing_messages: Array[Dictionary] = []
 
 func create_room(room_id: String, map_id: String = "", mode_id: String = "") -> void:
 	room_session = RoomSession.new(room_id)
-	room_session.set_selection(map_id, mode_id)
+	room_session.set_selection(map_id, "", mode_id)
 
 
 func add_peer(peer_id: int) -> void:

@@ -3,6 +3,9 @@ extends Node
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
 func _ready() -> void:
@@ -124,7 +127,11 @@ func _run_match_sequence(match_count: int) -> Dictionary:
 
 	room_controller.create_room(1)
 	room_controller.join_room(_make_member(2, true))
-	room_controller.set_room_selection("basic_map", "classic")
+	room_controller.set_room_selection(
+		MapCatalogScript.get_default_map_id(),
+		RuleSetCatalogScript.get_default_rule_id(),
+		ModeCatalogScript.get_default_mode_id()
+	)
 	coordinator.match_id_prefix = "multi_match_chain"
 	coordinator.forced_seed = 20260328
 

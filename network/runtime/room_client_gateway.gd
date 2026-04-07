@@ -1,5 +1,5 @@
 class_name RoomClientGateway
-extends Node
+extends RefCounted
 
 signal transport_connected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
@@ -11,11 +11,18 @@ var client_room_runtime: Node = null
 
 
 func bind_runtime(bound_app_runtime: Node, bound_client_room_runtime: Node) -> void:
-	app_runtime = bound_app_runtime
 	if client_room_runtime != null:
 		_disconnect_runtime_signals()
+	app_runtime = bound_app_runtime
 	client_room_runtime = bound_client_room_runtime
 	_connect_runtime_signals()
+
+
+func unbind_runtime() -> void:
+	if client_room_runtime != null:
+		_disconnect_runtime_signals()
+	client_room_runtime = null
+	app_runtime = null
 
 
 func connect_to_server(connection_config: ClientConnectionConfig) -> void:
@@ -31,13 +38,29 @@ func connect_to_server(connection_config: ClientConnectionConfig) -> void:
 func request_join_room(connection_config: ClientConnectionConfig) -> void:
 	if client_room_runtime == null or connection_config == null:
 		return
-	client_room_runtime.request_create_or_join_room(
+	client_room_runtime.request_join_room(
 		connection_config.room_id_hint,
 		connection_config.player_name,
 		connection_config.selected_character_id,
 		connection_config.selected_character_skin_id,
 		connection_config.selected_bubble_style_id,
 		connection_config.selected_bubble_skin_id
+	)
+
+
+func request_create_room(connection_config: ClientConnectionConfig) -> void:
+	if client_room_runtime == null or connection_config == null:
+		return
+	client_room_runtime.request_create_room(
+		connection_config.room_id_hint,
+		connection_config.player_name,
+		connection_config.selected_character_id,
+		connection_config.selected_character_skin_id,
+		connection_config.selected_bubble_style_id,
+		connection_config.selected_bubble_skin_id,
+		"",
+		"",
+		connection_config.selected_mode_id
 	)
 
 
@@ -53,10 +76,10 @@ func request_update_profile(
 	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id)
 
 
-func request_update_selection(map_id: String, rule_id: String) -> void:
+func request_update_selection(map_id: String, rule_id: String, mode_id: String) -> void:
 	if client_room_runtime == null:
 		return
-	client_room_runtime.request_update_selection(map_id, rule_id)
+	client_room_runtime.request_update_selection(map_id, rule_id, mode_id)
 
 
 func request_toggle_ready() -> void:

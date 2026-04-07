@@ -185,9 +185,9 @@ func validate(options: Dictionary = {}) -> Dictionary:
 		errors.append("session_mode is required")
 	if topology.is_empty():
 		errors.append("topology is required")
-	if session_mode != "singleplayer_local" and session_mode != "network_client" and session_mode != "network_dedicated_server":
+	if session_mode != "singleplayer_local" and session_mode != "network_client" and session_mode != "network_dedicated_server" and session_mode != "online_room":
 		errors.append("session_mode is invalid: %s" % session_mode)
-	if topology != "listen" and topology != "dedicated_server":
+	if topology != "listen" and topology != "local" and topology != "dedicated_server":
 		errors.append("topology is invalid: %s" % topology)
 
 	var peer_ids: Dictionary = {}
@@ -241,15 +241,15 @@ func validate(options: Dictionary = {}) -> Dictionary:
 				errors.append("network_dedicated_server config must not control a local peer")
 			if controlled_peer_id != 0:
 				errors.append("network_dedicated_server config must not control a player peer")
-	if topology == "listen":
+	if topology == "listen" or topology == "local":
 		if session_mode != "singleplayer_local":
-			errors.append("listen topology requires session_mode=singleplayer_local")
+			errors.append("local topology requires session_mode=singleplayer_local")
 		if local_peer_id <= 0:
-			errors.append("listen topology requires a valid local_peer_id")
+			errors.append("local topology requires a valid local_peer_id")
 		if session_mode == "singleplayer_local" and controlled_peer_id <= 0:
 			errors.append("singleplayer_local config requires controlled_peer_id")
 		if controlled_peer_id != local_peer_id:
-			errors.append("listen topology requires controlled_peer_id to match local_peer_id")
+			errors.append("local topology requires controlled_peer_id to match local_peer_id")
 	if owner_peer_id <= 0:
 		errors.append("owner_peer_id is required")
 	elif not peer_ids.has(owner_peer_id):

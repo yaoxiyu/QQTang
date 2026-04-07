@@ -58,6 +58,9 @@
 当前正式玩法入口应理解为：
 
 - Front 场景链路负责：
+  - Boot
+  - Login
+  - Lobby
   - Loading
   - Room
   - Battle 进入前准备
@@ -68,9 +71,15 @@
 
 当前正式入口进一步明确为：
 
+- `res://scenes/front/boot_scene.tscn`
+  - 当前正式客户端主入口
+- `res://scenes/front/login_scene.tscn`
+  - 正式登录前台场景
+- `res://scenes/front/lobby_scene.tscn`
+  - 正式大厅前台场景
 - `res://scenes/front/room_scene.tscn`
-  - 正式客户端入口
-  - 承载本地单机模式与 Dedicated Server 客户端接入
+  - 正式房间前台场景
+  - 承载 Practice Room 与 Dedicated Server 客户端房间接入
 - `res://scenes/network/dedicated_server_scene.tscn`
   - 正式 Dedicated Server 进程入口
 - `res://scenes/battle/battle_main.tscn`
@@ -86,6 +95,7 @@
 当前应以现有源码中的正式目录为准，典型包括：
 
 - `res://app/flow/...`
+- `res://app/front/...`
 - `res://app/debug/...`
 - `res://network/...`
 - `res://gameplay/battle/...`
@@ -133,7 +143,31 @@
 - 不要把 battle 规则、网络 transport、地图解析等重逻辑继续塞进这里
 - `app_runtime_config.gd` 只负责配置真相，不负责偷做业务逻辑
 
-## 3.1.1 `res://app/debug/`
+## 3.1.1 `res://app/front/`
+
+**定位：正式前台壳领域层**
+
+职责包括：
+
+- `auth/`
+  - 登录占位网关、登录请求/结果、会话状态
+- `profile/`
+  - 本地玩家档案、前台设置与 repository
+- `lobby/`
+  - Lobby 视图状态、Practice / Online 房间入口 use case
+- `room/`
+  - Room 视图模型、presenter、Room 前台 use case
+- `navigation/`
+  - 前台入口类型、房间类型、返回目标、拓扑常量
+
+约束：
+
+- 只负责前台状态、交互语义与数据编排
+- 不直接承载 battle 规则真相与 transport 协议细节
+- Lobby 负责产出 `RoomEntryContext`
+- Room 前台层负责消费房间权威状态，不能自行伪造 `mode_id`
+
+## 3.1.2 `res://app/debug/`
 
 **定位：运行期调试工具目录**
 
@@ -311,6 +345,9 @@
 
 职责包括：
 
+- boot_scene_controller
+- login_scene_controller
+- lobby_scene_controller
 - loading_scene_controller
 - room_scene_controller
 - 其它前台场景控制脚本
@@ -320,7 +357,9 @@
 - 前台场景负责“流程入口”和“UI 交互”
 - 不负责伪造 battle 规则真相
 - debug 自举只能是显式可控能力，不能作为默认正式行为
-- `room_scene.tscn` 是当前唯一正式客户端房间入口
+- `boot_scene.tscn` 是当前正式客户端主入口
+- `login_scene.tscn` 与 `lobby_scene.tscn` 是正式前台态
+- `room_scene.tscn` 不再承担登录入口
 
 ## 3.6.1 `res://presentation/front/preview/`
 
@@ -517,6 +556,12 @@
 
 这三个配置的默认值，应以“**默认关闭**”为目标。
 
+Practice 路径进一步约束为：
+
+- Practice Room 必须通过正式前台 `Lobby -> Practice Room` 进入
+- Practice Room 不再依赖 `RuntimeDebugTools` 自动补远端成员
+- Practice Room 的最小开战人数由房间权威状态控制，当前正式值为 `1`
+
 ## 5.2 地图与规则必须走数据驱动
 
 当前正式规范要求：
@@ -531,6 +576,12 @@
 
 - 不应长期由 UI 脚本写死
 - 应逐步收口到 catalog / config / 常量注册表
+
+模式同理：
+
+- `mode_id` 已进入 Room 权威状态
+- Battle 启动时优先读取 `RoomSnapshot.mode_id`
+- 不允许继续优先信任客户端本地偏好去覆盖房间权威 `mode_id`
 
 ## 5.3 Battle 启动链路要求
 

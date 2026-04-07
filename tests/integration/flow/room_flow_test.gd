@@ -8,6 +8,9 @@ const MatchStartCoordinatorScript = preload("res://network/session/match_start_c
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
 const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_state.gd")
 const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
 func _ready() -> void:
@@ -65,13 +68,16 @@ func _test_room_session_debug_dump() -> void:
 
 	controller.create_room(101)
 	controller.join_room(_make_member(202, "Player202", true))
-	controller.set_room_selection("map_alpha", "classic")
+	var map_id := MapCatalogScript.get_default_map_id()
+	var rule_id := RuleSetCatalogScript.get_default_rule_id()
+	var mode_id := ModeCatalogScript.get_default_mode_id()
+	controller.set_room_selection(map_id, rule_id, mode_id)
 
 	var dump := controller.debug_dump_room()
 	var snapshot_dump: Dictionary = dump.get("snapshot", {})
 	_assert_true(String(snapshot_dump.get("room_id", "")).contains("101"), "room debug dump exposes room id")
 	_assert_true(int(snapshot_dump.get("owner_peer_id", 0)) == 101, "room debug dump exposes owner")
-	_assert_true(String(snapshot_dump.get("selected_map_id", "")) == "map_alpha", "room debug dump exposes map selection")
+	_assert_true(String(snapshot_dump.get("selected_map_id", "")) == map_id, "room debug dump exposes map selection")
 
 	controller.queue_free()
 
@@ -84,8 +90,9 @@ func _test_match_start_config_debug_dump_is_read_only() -> void:
 
 	var snapshot = RoomSnapshotScript.new()
 	snapshot.room_id = "room_debug"
-	snapshot.selected_map_id = "default_map"
-	snapshot.rule_set_id = "classic"
+	snapshot.selected_map_id = MapCatalogScript.get_default_map_id()
+	snapshot.rule_set_id = RuleSetCatalogScript.get_default_rule_id()
+	snapshot.mode_id = ModeCatalogScript.get_default_mode_id()
 	snapshot.all_ready = true
 	var members: Array = [
 		_make_member(1, "A", true, 0),

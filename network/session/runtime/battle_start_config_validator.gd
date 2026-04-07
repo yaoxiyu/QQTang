@@ -74,7 +74,7 @@ func _validate_ds_contract(config: BattleStartConfig, errors: Array) -> void:
 		return
 	if String(config.topology) != "dedicated_server":
 		if String(config.session_mode) != "singleplayer_local":
-			errors.append("listen topology requires singleplayer_local session_mode")
+			errors.append("local topology requires singleplayer_local session_mode")
 		return
 	if String(config.authority_host).strip_edges().is_empty():
 		errors.append("dedicated_server topology requires authority_host")
@@ -85,18 +85,18 @@ func _validate_ds_contract(config: BattleStartConfig, errors: Array) -> void:
 		if peer_id == dedicated_server_peer_id:
 			errors.append("dedicated_server topology must not include server peer in player_slots: %d" % dedicated_server_peer_id)
 			break
-	if String(config.session_mode) == "network_client":
-		if String(config.build_mode) != BattleStartConfigScript.BUILD_MODE_CANDIDATE:
-			errors.append("network_client dedicated_server config must use candidate build_mode")
+	if String(config.build_mode) == BattleStartConfigScript.BUILD_MODE_CANDIDATE:
+		if String(config.session_mode) != "network_client" and String(config.session_mode) != "online_room":
+			errors.append("dedicated_server candidate config requires session_mode=network_client or online_room")
 		if config.local_peer_id <= 0:
 			errors.append("network_client dedicated_server config requires local_peer_id")
 		if config.controlled_peer_id <= 0:
 			errors.append("network_client dedicated_server config requires controlled_peer_id")
 		if config.local_peer_id != config.controlled_peer_id:
 			errors.append("network_client dedicated_server config requires local_peer_id == controlled_peer_id")
-	if String(config.session_mode) == "network_dedicated_server":
-		if String(config.build_mode) != BattleStartConfigScript.BUILD_MODE_CANONICAL:
-			errors.append("network_dedicated_server config must use canonical build_mode")
+	if String(config.build_mode) == BattleStartConfigScript.BUILD_MODE_CANONICAL:
+		if String(config.session_mode) != "network_dedicated_server" and String(config.session_mode) != "online_room":
+			errors.append("dedicated_server canonical config requires session_mode=network_dedicated_server or online_room")
 		if config.local_peer_id != 0:
 			errors.append("network_dedicated_server config must not declare local_peer_id")
 		if config.controlled_peer_id != 0:
@@ -126,5 +126,5 @@ func _validate_content_contract(config: BattleStartConfig, errors: Array) -> voi
 func _validate_build_mode_contract(config: BattleStartConfig, errors: Array) -> void:
 	if config == null:
 		return
-	if String(config.topology) == "listen" and String(config.build_mode) != BattleStartConfigScript.BUILD_MODE_CANDIDATE:
-		errors.append("listen topology config must use candidate build_mode")
+	if (String(config.topology) == "listen" or String(config.topology) == "local") and String(config.build_mode) != BattleStartConfigScript.BUILD_MODE_CANDIDATE:
+		errors.append("local topology config must use candidate build_mode")

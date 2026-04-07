@@ -16,6 +16,9 @@ func recover(
 		room_controller.begin_return_to_room()
 	var launch_mode := int(app_runtime.runtime_config.launch_mode) if app_runtime != null and app_runtime.runtime_config != null else ClientLaunchModeScript.Value.LOCAL_SINGLEPLAYER
 	var is_network_client := launch_mode == ClientLaunchModeScript.Value.NETWORK_CLIENT
+	var is_practice_room := false
+	if room_controller != null and room_controller.get("room_session") != null and room_controller.room_session != null:
+		is_practice_room = String(room_controller.room_session.room_kind) == "practice"
 	if room_controller != null and not is_network_client:
 		room_controller.reset_ready_state()
 		if app_runtime.debug_tools != null and app_runtime.debug_tools.has_method("reset_local_loop_room_ready"):
@@ -25,6 +28,8 @@ func recover(
 				app_runtime.local_peer_id,
 				app_runtime.remote_peer_id
 			)
+		if is_practice_room and room_controller.has_method("set_member_ready"):
+			room_controller.set_member_ready(app_runtime.local_peer_id, true)
 
 	if app_runtime.front_flow != null:
 		match post_action:

@@ -6,6 +6,7 @@ class_name RuntimeDebugTools
 extends Node
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
@@ -38,10 +39,11 @@ func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config:
 	if room_controller.room_session.peers.size() == 2 and room_controller.room_session.peers.has(local_peer_id) and room_controller.room_session.peers.has(remote_peer_id):
 		room_controller.set_member_ready(local_peer_id, false)
 		room_controller.set_member_ready(remote_peer_id, true)
-		if room_controller.room_session.selected_map.is_empty() or room_controller.room_session.selected_mode.is_empty():
+		if room_controller.room_session.selected_map_id.is_empty() or room_controller.room_session.selected_mode_id.is_empty():
 			room_controller.set_room_selection(
 				MapCatalogScript.get_default_map_id(),
-				RuleSetCatalogScript.get_default_rule_id()
+				RuleSetCatalogScript.get_default_rule_id(),
+				ModeCatalogScript.get_default_mode_id()
 			)
 
 
@@ -51,6 +53,9 @@ func ensure_manual_local_loop_room(room_controller: Node, local_peer_id: int, re
 
 	if room_controller.room_session == null or not room_controller.room_session.peers.has(local_peer_id):
 		room_controller.create_room(local_peer_id)
+
+	if room_controller.get("max_players") != null and int(room_controller.max_players) < 2:
+		room_controller.max_players = 2
 
 	if not room_controller.room_session.peers.has(remote_peer_id):
 		var remote_member := RoomMemberState.new()
@@ -66,10 +71,11 @@ func ensure_manual_local_loop_room(room_controller: Node, local_peer_id: int, re
 	else:
 		room_controller.set_member_ready(remote_peer_id, true)
 
-	if room_controller.room_session.selected_map.is_empty() or room_controller.room_session.selected_mode.is_empty():
+	if room_controller.room_session.selected_map_id.is_empty() or room_controller.room_session.selected_mode_id.is_empty():
 		room_controller.set_room_selection(
 			selected_map_id if not selected_map_id.is_empty() else MapCatalogScript.get_default_map_id(),
-			selected_rule_set_id if not selected_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
+			selected_rule_set_id if not selected_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id(),
+			ModeCatalogScript.get_default_mode_id()
 		)
 
 

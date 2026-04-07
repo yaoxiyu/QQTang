@@ -9,6 +9,9 @@ var character_id: String = ""
 var character_skin_id: String = ""
 var bubble_style_id: String = ""
 var bubble_skin_id: String = ""
+var is_owner: bool = false
+var is_local_player: bool = false
+var connection_state: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -21,6 +24,9 @@ func to_dict() -> Dictionary:
 		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
 		"bubble_skin_id": bubble_skin_id,
+		"is_owner": is_owner,
+		"is_local_player": is_local_player,
+		"connection_state": connection_state,
 	}
 
 
@@ -34,6 +40,9 @@ static func from_dict(data: Dictionary) -> RoomMemberState:
 	state.character_skin_id = String(data.get("character_skin_id", ""))
 	state.bubble_style_id = String(data.get("bubble_style_id", ""))
 	state.bubble_skin_id = String(data.get("bubble_skin_id", ""))
+	state.is_owner = bool(data.get("is_owner", false))
+	state.is_local_player = bool(data.get("is_local_player", false))
+	state.connection_state = String(data.get("connection_state", ""))
 	return state
 
 

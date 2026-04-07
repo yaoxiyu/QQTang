@@ -5,6 +5,19 @@ const LEGACY_ROOT_NODE_NAME: String = "AppRuntimeRoot"
 const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
+const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
+const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
+const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
+const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
+const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
+const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
+const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
+const LocalFrontSettingsRepositoryScript = preload("res://app/front/profile/local_front_settings_repository.gd")
+const LocalProfileRepositoryScript = preload("res://app/front/profile/local_profile_repository.gd")
+const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
+const ProfileRepositoryScript = preload("res://app/front/profile/profile_repository.gd")
+const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const RoomUseCaseScript = preload("res://app/front/room/room_use_case.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
@@ -34,6 +47,17 @@ var runtime_config: RefCounted = null
 var error_router: RefCounted = NetworkErrorRouterScript.new()
 var session_diagnostics: RefCounted = SessionDiagnosticsScript.new()
 var last_runtime_error: Dictionary = {}
+var auth_session_state: AuthSessionState = null
+var player_profile_state: PlayerProfileState = null
+var front_settings_state: FrontSettingsState = null
+var auth_gateway: RefCounted = null
+var profile_repository: RefCounted = null
+var front_settings_repository: RefCounted = null
+var login_use_case: RefCounted = null
+var lobby_use_case: RefCounted = null
+var room_use_case: RefCounted = null
+var practice_room_factory: RefCounted = null
+var current_room_entry_context: RoomEntryContext = null
 
 var current_room_snapshot = null
 var current_start_config = null
@@ -60,8 +84,8 @@ static func ensure_in_tree(tree: SceneTree):
 			return legacy_root
 	var runtime = load("res://app/flow/app_runtime_root.gd").new()
 	runtime.name = ROOT_NODE_NAME
-	tree.root.add_child(runtime)
-	runtime.initialize_runtime()
+	tree.root.add_child.call_deferred(runtime)
+	runtime.initialize_runtime.call_deferred()
 	return runtime
 
 
@@ -73,6 +97,10 @@ func initialize_runtime() -> void:
 	name = ROOT_NODE_NAME
 	_ensure_root_nodes()
 	_ensure_runtime_config()
+	_ensure_front_repositories()
+	_ensure_front_local_state()
+	_ensure_front_services()
+	_ensure_front_use_cases()
 
 	if front_flow == null or not is_instance_valid(front_flow):
 		front_flow = FrontFlowControllerScript.new()
@@ -94,6 +122,8 @@ func initialize_runtime() -> void:
 		_reparent_to(room_session_controller, session_root)
 	if room_session_controller != null and room_session_controller.has_method("set_local_player_id"):
 		room_session_controller.set_local_player_id(local_peer_id)
+	if practice_room_factory != null and practice_room_factory.has_method("configure"):
+		practice_room_factory.configure(room_session_controller)
 
 	if match_start_coordinator == null or not is_instance_valid(match_start_coordinator):
 		match_start_coordinator = MatchStartCoordinatorScript.new()
@@ -125,9 +155,9 @@ func initialize_runtime() -> void:
 		client_room_runtime.room_error.connect(_on_client_runtime_room_error)
 
 	if scene_flow.current_scene_path.is_empty():
-		scene_flow.current_scene_path = ROOM_SCENE_PATH
-	if int(front_flow.current_state) == int(FrontFlowControllerScript.FlowState.BOOT):
-		front_flow.current_state = FrontFlowControllerScript.FlowState.ROOM
+		scene_flow.current_scene_path = SceneFlowControllerScript.BOOT_SCENE_PATH
+	if int(front_flow.current_state) != int(FrontFlowControllerScript.FlowState.BOOT):
+		front_flow.current_state = FrontFlowControllerScript.FlowState.BOOT
 
 
 func build_and_store_start_config(snapshot):
@@ -309,6 +339,75 @@ func _ensure_runtime_config() -> void:
 		runtime_config = AppRuntimeConfigScript.new()
 
 
+func _ensure_front_local_state() -> void:
+	if auth_session_state == null:
+		auth_session_state = AuthSessionStateScript.new()
+	if player_profile_state == null:
+		player_profile_state = PlayerProfileStateScript.new()
+	if front_settings_state == null:
+		front_settings_state = FrontSettingsStateScript.new()
+
+	if profile_repository != null and profile_repository.has_method("load_profile"):
+		player_profile_state = profile_repository.load_profile()
+		if player_profile_state == null:
+			player_profile_state = PlayerProfileStateScript.new()
+	if front_settings_repository != null and front_settings_repository.has_method("load_settings"):
+		front_settings_state = front_settings_repository.load_settings()
+		if front_settings_state == null:
+			front_settings_state = FrontSettingsStateScript.new()
+
+
+func _ensure_front_repositories() -> void:
+	if profile_repository == null:
+		profile_repository = LocalProfileRepositoryScript.new()
+	elif not (profile_repository is ProfileRepositoryScript):
+		profile_repository = LocalProfileRepositoryScript.new()
+
+	if front_settings_repository == null:
+		front_settings_repository = LocalFrontSettingsRepositoryScript.new()
+	elif not (front_settings_repository is FrontSettingsRepositoryScript):
+		front_settings_repository = LocalFrontSettingsRepositoryScript.new()
+
+
+func _ensure_front_services() -> void:
+	if auth_gateway == null:
+		auth_gateway = PassThroughAuthGatewayScript.new()
+	if practice_room_factory == null:
+		practice_room_factory = PracticeRoomFactoryScript.new()
+
+
+func _ensure_front_use_cases() -> void:
+	if login_use_case == null:
+		login_use_case = LoginUseCaseScript.new()
+	if login_use_case != null and login_use_case.has_method("configure"):
+		login_use_case.configure(
+			auth_gateway,
+			auth_session_state,
+			profile_repository,
+			front_settings_repository,
+			player_profile_state,
+			front_settings_state
+		)
+
+	if lobby_use_case == null:
+		lobby_use_case = LobbyUseCaseScript.new()
+	if lobby_use_case != null and lobby_use_case.has_method("configure"):
+		lobby_use_case.configure(
+			auth_session_state,
+			player_profile_state,
+			front_settings_state,
+			practice_room_factory
+		)
+
+	if room_use_case == null:
+		room_use_case = RoomUseCaseScript.new()
+	if room_use_case != null and room_use_case.has_method("configure"):
+		room_use_case.configure(self)
+
+	if current_room_entry_context == null:
+		current_room_entry_context = RoomEntryContextScript.new()
+
+
 func _get_battle_root_child_names() -> Array:
 	if battle_root == null:
 		return []
@@ -334,3 +433,8 @@ func _update_current_battle_content_manifest() -> void:
 		current_battle_content_manifest = {}
 		return
 	current_battle_content_manifest = _content_manifest_builder.build_for_start_config(current_start_config)
+
+
+func _exit_tree() -> void:
+	if room_use_case != null and room_use_case.has_method("dispose"):
+		room_use_case.dispose()

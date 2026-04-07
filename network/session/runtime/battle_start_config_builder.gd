@@ -25,7 +25,7 @@ var local_player_bubble_style_id: String = ""
 func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 	if snapshot == null:
 		return false
-	if snapshot.member_count() < 2:
+	if snapshot.member_count() < snapshot.min_start_players:
 		return false
 	if not snapshot.all_ready:
 		return false
@@ -36,6 +36,9 @@ func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 	if not MapCatalogScript.has_map(snapshot.selected_map_id):
 		return false
 	if not RuleSetCatalogScript.has_rule(snapshot.rule_set_id):
+		return false
+	var resolved_mode_id := _resolve_mode_id(snapshot, null, snapshot.rule_set_id)
+	if not ModeCatalogScript.has_mode(resolved_mode_id):
 		return false
 	return true
 
@@ -153,7 +156,8 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	var map_metadata := _load_map_metadata(resolved_map_id)
 	var rule_metadata := _load_rule_metadata(resolved_rule_set_id)
 	var player_slots := assign_spawn_slots(snapshot)
-	var resolved_mode_id := _resolve_mode_id(resolved_rule_set_id)
+	var resolved_mode_id := _resolve_mode_id(snapshot, room_runtime_context, resolved_rule_set_id)
+	var resolved_topology := _resolve_topology(snapshot, room_runtime_context)
 	var config := BattleStartConfig.new()
 	config.protocol_version = DEFAULT_PROTOCOL_VERSION
 	config.gameplay_rule_version = int(rule_metadata.get("version", DEFAULT_GAMEPLAY_RULE_VERSION))
@@ -172,8 +176,8 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.start_tick = DEFAULT_START_TICK
 	config.match_duration_ticks = _resolve_match_duration_ticks(resolved_rule_set_id)
 	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
-	config.session_mode = "singleplayer_local"
-	config.topology = "listen"
+	config.session_mode = _resolve_session_mode(resolved_topology)
+	config.topology = resolved_topology
 	config.local_peer_id = int(player_slots[0].get("peer_id", 0)) if not player_slots.is_empty() else 0
 	config.controlled_peer_id = config.local_peer_id
 	config.owner_peer_id = snapshot.owner_peer_id
@@ -257,13 +261,33 @@ func _resolve_character_id(character_id: String) -> String:
 	return CharacterCatalogScript.get_default_character_id()
 
 
-func _resolve_mode_id(rule_set_id: String) -> String:
-	if ModeCatalogScript.has_mode(selected_mode_id):
-		return selected_mode_id
+func _resolve_mode_id(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null, rule_set_id: String = "") -> String:
+	if snapshot != null and ModeCatalogScript.has_mode(snapshot.mode_id):
+		return snapshot.mode_id
+	if room_runtime_context != null and ModeCatalogScript.has_mode(room_runtime_context.mode_id):
+		return room_runtime_context.mode_id
 	for entry in ModeCatalogScript.get_mode_entries():
 		if String(entry.get("rule_set_id", "")) == rule_set_id:
 			return String(entry.get("mode_id", entry.get("id", "")))
 	return ModeCatalogScript.get_default_mode_id()
+
+
+func _resolve_topology(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null) -> String:
+	if snapshot != null:
+		var snapshot_topology := String(snapshot.topology)
+		if snapshot_topology == "local" or snapshot_topology == "dedicated_server":
+			return snapshot_topology
+	if room_runtime_context != null:
+		var context_topology := String(room_runtime_context.topology)
+		if context_topology == "local" or context_topology == "dedicated_server":
+			return context_topology
+	return "local"
+
+
+func _resolve_session_mode(topology: String) -> String:
+	if topology == "dedicated_server":
+		return "online_room"
+	return "singleplayer_local"
 
 
 func _resolve_bubble_style_id(character_id: String, peer_id: int, local_peer_id: int) -> String:

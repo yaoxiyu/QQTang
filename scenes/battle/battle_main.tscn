@@ -11,10 +11,10 @@
 [ext_resource type="Script" uid="uid://cdmn5fxorgqai" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
 [ext_resource type="Script" uid="uid://c7vpwopxwju7n" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
 [ext_resource type="Script" uid="uid://dq081f5vel7m7" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
-[ext_resource type="PackedScene" uid="uid://bd4vkx6o4px6e" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
+[ext_resource type="PackedScene" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
 [ext_resource type="Script" uid="uid://mamfws2873ns" path="res://presentation/battle/hud/battle_meta_panel.gd" id="12_meta"]
 [ext_resource type="Script" uid="uid://d23hcfdjqmwg5" path="res://presentation/battle/hud/local_player_ability_panel.gd" id="13_ability"]
-[ext_resource type="Script" uid="uid://b8hlpavjx4lw6" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
+[ext_resource type="Script" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")

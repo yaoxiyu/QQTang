@@ -310,9 +310,9 @@ func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
 		return
 	var rollback := prediction_controller.rollback_controller
 	var reasons: Array[String] = []
-	if not rollback._dictionary_array_equal(local_snapshot.players, authoritative_snapshot.players):
-		reasons.append("players")
-		var player_reason := _describe_dictionary_array_mismatch(local_snapshot.players, authoritative_snapshot.players)
+	if not rollback._local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players):
+		reasons.append("local_player")
+		var player_reason := _describe_local_player_mismatch(local_snapshot.players, authoritative_snapshot.players)
 		if not player_reason.is_empty():
 			reasons.append(player_reason)
 	if not rollback._dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles):
@@ -352,6 +352,23 @@ func _describe_dictionary_array_mismatch(local_values: Array[Dictionary], author
 			return "idx %d local_only_keys=%s local=%s auth=%s" % [index, str(local_only_keys), str(local_entry), str(authoritative_entry)]
 		return "idx %d entry differs local=%s auth=%s" % [index, str(local_entry), str(authoritative_entry)]
 	return "content differs"
+
+
+func _describe_local_player_mismatch(local_values: Array[Dictionary], authoritative_values: Array[Dictionary]) -> String:
+	var rollback := prediction_controller.rollback_controller if prediction_controller != null else null
+	if rollback == null:
+		return ""
+	var local_entry := rollback._find_local_player_entry(local_values)
+	var authoritative_entry := rollback._find_local_player_entry(authoritative_values)
+	if local_entry.is_empty() or authoritative_entry.is_empty():
+		return "missing local controlled player entry"
+	if rollback._dictionary_equal(local_entry, authoritative_entry):
+		return ""
+	for key in authoritative_entry.keys():
+		if rollback._variant_equal(local_entry.get(key), authoritative_entry.get(key)):
+			continue
+		return "key %s local=%s auth=%s" % [str(key), str(local_entry.get(key)), str(authoritative_entry.get(key))]
+	return "entry differs"
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
 	prediction_event.emit({

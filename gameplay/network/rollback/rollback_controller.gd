@@ -170,7 +170,7 @@ func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot:
 		return true
 	if authoritative_snapshot.rng_state != 0 and local_snapshot.rng_state != 0 and authoritative_snapshot.rng_state != local_snapshot.rng_state:
 		return true
-	if authoritative_snapshot.players.size() != local_snapshot.players.size():
+	if not _has_matching_local_player_entry(authoritative_snapshot.players, local_snapshot.players):
 		return true
 	if authoritative_snapshot.bubbles.size() != local_snapshot.bubbles.size():
 		return true
@@ -184,10 +184,35 @@ func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: W
 		return false
 
 	return (
-		_dictionary_array_equal(local_snapshot.players, authoritative_snapshot.players)
+		_local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players)
 		and _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles)
 		and _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items)
 	)
+
+
+func _has_matching_local_player_entry(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
+	if local_peer_id < 0:
+		return left_values.size() == right_values.size()
+	var left_entry := _find_local_player_entry(left_values)
+	var right_entry := _find_local_player_entry(right_values)
+	return not left_entry.is_empty() and not right_entry.is_empty()
+
+
+func _local_player_entries_equal(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
+	if local_peer_id < 0:
+		return _dictionary_array_equal(left_values, right_values)
+	var left_entry := _find_local_player_entry(left_values)
+	var right_entry := _find_local_player_entry(right_values)
+	if left_entry.is_empty() or right_entry.is_empty():
+		return false
+	return _dictionary_equal(left_entry, right_entry)
+
+
+func _find_local_player_entry(values: Array[Dictionary]) -> Dictionary:
+	for entry in values:
+		if int(entry.get("player_slot", -1)) == local_peer_id:
+			return entry
+	return {}
 
 
 func _dictionary_array_equal(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:

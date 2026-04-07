@@ -540,9 +540,13 @@ func _resolve_runtime_mode(config: BattleStartConfig) -> int:
 		return BattleNetworkMode.LOCAL_LOOPBACK
 	if String(config.session_mode) == "network_client" and String(config.topology) == "dedicated_server":
 		return BattleNetworkMode.CLIENT
+	if String(config.session_mode) == "online_room" and String(config.topology) == "dedicated_server":
+		if int(config.local_peer_id) > 0 and int(config.controlled_peer_id) > 0:
+			return BattleNetworkMode.CLIENT
+		return -1
 	if String(config.session_mode) == "network_dedicated_server":
 		return -1
-	if String(config.session_mode) == "singleplayer_local" and String(config.topology) == "listen":
+	if String(config.session_mode) == "singleplayer_local" and (String(config.topology) == "listen" or String(config.topology) == "local"):
 		return BattleNetworkMode.LOCAL_LOOPBACK
 	return BattleNetworkMode.LOCAL_LOOPBACK
 

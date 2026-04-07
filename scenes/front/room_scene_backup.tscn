@@ -1,0 +1,227 @@
+[gd_scene format=3 uid="uid://bw1ynjgl622c3"]
+
+[ext_resource type="Script" uid="uid://d3fu7by27bgxk" path="res://scenes/front/room_scene_controller.gd" id="1_1ssp5"]
+[ext_resource type="Script" uid="uid://b5kv8wffwjnso" path="res://presentation/battle/hud/room_hud_controller.gd" id="2_8rdji"]
+[ext_resource type="PackedScene" uid="uid://duw51tworhklw" path="res://scenes/front/components/room_character_preview.tscn" id="3_jx5bb"]
+
+[node name="RoomScene" type="Node" unique_id=1131888153]
+script = ExtResource("1_1ssp5")
+
+[node name="RoomHudController" type="Node" parent="." unique_id=1888156011]
+script = ExtResource("2_8rdji")
+
+[node name="RoomRoot" type="Control" parent="." unique_id=1796033168]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MainLayout" type="VBoxContainer" parent="RoomRoot" unique_id=1871591409]
+layout_mode = 0
+offset_left = 48.0
+offset_top = 36.0
+offset_right = 976.0
+offset_bottom = 684.0
+
+[node name="TitleLabel" type="Label" parent="RoomRoot/MainLayout" unique_id=948189458]
+layout_mode = 2
+text = "QQTang Room"
+
+[node name="NetworkConfigPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=594818945]
+layout_mode = 2
+
+[node name="ModeRow" type="HBoxContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1059481894]
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=405948189]
+layout_mode = 2
+text = "Mode"
+
+[node name="ModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=605948189]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="ConnectButton" type="Button" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=705948189]
+layout_mode = 2
+text = "Connect"
+
+[node name="CreateRoomButton" type="Button" parent="RoomRoot/MainLayout/NetworkConfigPanel/ModeRow" unique_id=805948189]
+layout_mode = 2
+text = "Create/Join Room"
+
+[node name="ServerRow" type="HFlowContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=905948189]
+layout_mode = 2
+
+[node name="HostLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1005948189]
+layout_mode = 2
+text = "Host"
+
+[node name="HostInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1105948189]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+
+[node name="PortLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1205948189]
+layout_mode = 2
+text = "Port"
+
+[node name="PortInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1305948189]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+placeholder_text = "9000"
+
+[node name="RoomIdLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=333079547]
+layout_mode = 2
+text = "Room"
+
+[node name="RoomIdInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/ServerRow" unique_id=1636090354]
+layout_mode = 2
+placeholder_text = "room_id(optional)"
+
+[node name="PlayerRow" type="HFlowContainer" parent="RoomRoot/MainLayout/NetworkConfigPanel" unique_id=1605948189]
+layout_mode = 2
+
+[node name="PlayerNameLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1705948189]
+layout_mode = 2
+text = "Player"
+
+[node name="PlayerNameInput" type="LineEdit" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1805948189]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+placeholder_text = "Player1"
+
+[node name="CharacterLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1905948189]
+layout_mode = 2
+text = "Character"
+
+[node name="CharacterSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=2005948189]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1623222871]
+layout_mode = 2
+text = "Skin"
+
+[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=498317205]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="BubbleLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1485132415]
+layout_mode = 2
+text = "Bubble"
+
+[node name="BubbleSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1004238987]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1432516287]
+layout_mode = 2
+text = "Bubble Skin"
+
+[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/NetworkConfigPanel/PlayerRow" unique_id=1507518752]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+
+[node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1617999413]
+layout_mode = 2
+
+[node name="ActionRow" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=307536689]
+layout_mode = 2
+
+[node name="ReadyButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=412245125]
+layout_mode = 2
+text = "Ready"
+
+[node name="StartButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=2110020796]
+layout_mode = 2
+text = "Start Match"
+
+[node name="SelectorRow" type="HFlowContainer" parent="RoomRoot/MainLayout" unique_id=875901536]
+layout_mode = 2
+
+[node name="MapLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1179058878]
+layout_mode = 2
+text = "Map"
+
+[node name="MapSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1724911565]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="RuleLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=1790361389]
+layout_mode = 2
+text = "Rule"
+
+[node name="RuleSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=782230836]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="GameModeLabel" type="Label" parent="RoomRoot/MainLayout/SelectorRow" unique_id=533009439]
+layout_mode = 2
+text = "Game Mode"
+
+[node name="GameModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/SelectorRow" unique_id=152762671]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+
+[node name="SelectionPreviewPanel" type="VBoxContainer" parent="RoomRoot/MainLayout" unique_id=1792024101]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="MapPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2011024101]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Map Preview"
+autowrap_mode = 3
+
+[node name="RulePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=2111024101]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rule Preview"
+autowrap_mode = 3
+
+[node name="CharacterPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=916113492]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CharacterPreviewViewport" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=1078934354 instance=ExtResource("3_jx5bb")]
+layout_mode = 2
+
+[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=1449032046]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=973833100]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BubblePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=87503918]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=286596181]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=294171914]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/SelectionPreviewPanel" unique_id=64871967]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DebugLabel" type="Label" parent="RoomRoot/MainLayout/RoomDebugPanel" unique_id=1217322492]
+layout_mode = 2
+text = "Room debug info"
+autowrap_mode = 3

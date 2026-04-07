@@ -5,8 +5,8 @@ var match_id: String = ""
 var match_seed: int = 0
 var start_tick: int = 0
 var peer_ids: Array[int] = []
-var selected_map: String = ""
-var selected_mode: String = ""
+var selected_map_id: String = ""
+var selected_mode_id: String = ""
 
 var sim_world: SimWorld = null
 var input_buffer: InputBuffer = null
@@ -23,8 +23,8 @@ func configure_from_room(room_session: RoomSession, p_match_id: String, p_seed: 
 	match_seed = p_seed
 	start_tick = p_start_tick
 	peer_ids = room_session.peers.duplicate()
-	selected_map = room_session.selected_map
-	selected_mode = room_session.selected_mode
+	selected_map_id = room_session.selected_map_id
+	selected_mode_id = room_session.selected_mode_id
 	peer_slot_by_peer_id = room_session.build_peer_slots()
 
 
