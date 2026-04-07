@@ -24,6 +24,18 @@ var exploded_bubble_ids: Array[int] = []
 # 待摧毁的格子列表
 var cells_to_destroy: Array[Vector2i] = []
 
+# 本 Tick 的爆炸命中记录
+var explosion_hit_entries: Array = []
+
+# 爆炸命中去重键
+var explosion_hit_keys: Dictionary = {}
+
+# 已入链爆队列的泡泡ID
+var queued_chain_bubble_ids: Dictionary = {}
+
+# 已处理爆炸传播的泡泡ID
+var processed_explosion_bubble_ids: Dictionary = {}
+
 # ====================
 # 玩家相关
 # ====================
@@ -47,5 +59,9 @@ func clear() -> void:
 	bubbles_to_explode.clear()
 	exploded_bubble_ids.clear()
 	cells_to_destroy.clear()
+	explosion_hit_entries.clear()
+	explosion_hit_keys.clear()
+	queued_chain_bubble_ids.clear()
+	processed_explosion_bubble_ids.clear()
 	players_to_kill.clear()
 	items_to_spawn.clear()

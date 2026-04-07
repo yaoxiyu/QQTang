@@ -3,10 +3,10 @@ extends RefCounted
 
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 
-const MOVE_STEP_UNITS := WorldMetrics.TENTH_CELL_UNITS
-const TURN_SNAP_WINDOW_UNITS := WorldMetrics.QUARTER_CELL_UNITS
-const PASS_ABSORB_WINDOW_UNITS := WorldMetrics.QUARTER_CELL_UNITS
-const BUBBLE_FORWARD_PLACE_WINDOW_UNITS := WorldMetrics.QUARTER_CELL_UNITS
+const MOVE_STEP_UNITS : int = WorldMetrics.SIXTH_CELL_UNITS
+const TURN_SNAP_WINDOW_UNITS : int = WorldMetrics.QUARTER_CELL_UNITS
+const PASS_ABSORB_WINDOW_UNITS : int = WorldMetrics.QUARTER_CELL_UNITS
+const BUBBLE_FORWARD_PLACE_WINDOW_UNITS : int = WorldMetrics.EIGHTH_CELL_UNITS
 
 const TICKS_PER_STEP_LV1 := 3
 const TICKS_PER_STEP_LV2 := 2

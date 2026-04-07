@@ -1,10 +1,12 @@
 class_name WorldMetrics
 extends RefCounted
 
-const CELL_UNITS := 1000
-const HALF_CELL_UNITS := CELL_UNITS / 2
-const QUARTER_CELL_UNITS := CELL_UNITS / 4
-const TENTH_CELL_UNITS := CELL_UNITS / 10
+const CELL_UNITS : int = 1000
+const HALF_CELL_UNITS : int = CELL_UNITS / 2
+const QUARTER_CELL_UNITS : int = CELL_UNITS / 4
+const SIXTH_CELL_UNITS : int = CELL_UNITS / 6
+const EIGHTH_CELL_UNITS : int = CELL_UNITS / 8
+const TENTH_CELL_UNITS : int = CELL_UNITS / 10
 
 const DEFAULT_CELL_PIXELS := 48.0
 

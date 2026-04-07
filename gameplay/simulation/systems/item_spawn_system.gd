@@ -19,23 +19,7 @@ func get_name() -> StringName:
 
 
 func execute(ctx: SimContext) -> void:
-	_clear_items_hit_by_explosions(ctx)
 	_spawn_items_from_destroyed_cells(ctx)
-
-
-func _clear_items_hit_by_explosions(ctx: SimContext) -> void:
-	for event in ctx.events.get_events():
-		if event == null or int(event.event_type) != SimEvent.EventType.BUBBLE_EXPLODED:
-			continue
-
-		for cell in event.payload.get("covered_cells", []):
-			var item_id: int = _find_item_id_at_cell(ctx, int(cell.x), int(cell.y))
-			if item_id == -1:
-				continue
-			var item: ItemState = ctx.state.items.get_item(item_id)
-			if item == null or not item.alive:
-				continue
-			ctx.state.items.despawn_item(item_id)
 
 
 func _spawn_items_from_destroyed_cells(ctx: SimContext) -> void:

@@ -2,6 +2,7 @@ class_name BattleSimConfigBuilder
 extends RefCounted
 
 const BattleItemConfigBuilderScript = preload("res://gameplay/battle/config/battle_item_config_builder.gd")
+const BattleExplosionConfigBuilderScript = preload("res://gameplay/battle/config/battle_explosion_config_builder.gd")
 
 
 func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
@@ -9,7 +10,9 @@ func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
 	if start_config == null:
 		return sim_config
 	var item_builder = BattleItemConfigBuilderScript.new()
+	var explosion_builder = BattleExplosionConfigBuilderScript.new()
 	var item_config: Dictionary = item_builder.build_for_start_config(start_config)
+	var explosion_config: Dictionary = explosion_builder.build_for_start_config(start_config)
 	sim_config.item_defs = item_config.get("items_by_type", {}).duplicate(true)
 	sim_config.system_flags["item_drop_profile"] = {
 		"profile_id": String(item_config.get("profile_id", "")),
@@ -19,4 +22,5 @@ func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
 		"empty_weight": int(item_config.get("empty_weight", 0)),
 		"drop_pool": item_config.get("drop_pool", []).duplicate(true),
 	}
+	sim_config.system_flags["explosion_reaction"] = explosion_config.duplicate(true)
 	return sim_config

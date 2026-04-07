@@ -3,7 +3,7 @@
 #
 # 读写边界：
 # - 读：泡泡位置、范围、Grid 查询
-# - 写：SimScratch（cells_to_destroy, players_to_kill）
+# - 写：SimScratch（cells_to_destroy, explosion_hit_entries）
 #
 # 禁止事项：
 # - 先计算全部覆盖结果，再统一提交
@@ -11,6 +11,17 @@
 
 class_name ExplosionResolveSystem
 extends ISimSystem
+
+const ExplosionHitTypes = preload("res://gameplay/simulation/explosion/explosion_hit_types.gd")
+const ExplosionHitEntry = preload("res://gameplay/simulation/explosion/explosion_hit_entry.gd")
+const ExplosionReactionResolver = preload("res://gameplay/simulation/explosion/explosion_reaction_resolver.gd")
+
+const PROPAGATION_DIRS := [
+	Vector2i(0, -1),
+	Vector2i(0, 1),
+	Vector2i(-1, 0),
+	Vector2i(1, 0)
+]
 
 # ====================
 # 系统接口
@@ -20,67 +31,62 @@ func get_name() -> StringName:
 	return "ExplosionResolveSystem"
 
 func execute(ctx: SimContext) -> void:
-	# 遍历待爆炸泡泡
+	var pending_bubble_queue: Array[int] = []
 	for bubble_id in ctx.scratch.bubbles_to_explode:
-		var bubble = ctx.state.bubbles.get_bubble(bubble_id)
-		if bubble == null or not bubble.alive:
+		if ctx.scratch.queued_chain_bubble_ids.has(bubble_id):
+			continue
+		ctx.scratch.queued_chain_bubble_ids[bubble_id] = true
+		pending_bubble_queue.append(bubble_id)
+
+	while not pending_bubble_queue.is_empty():
+		var bubble_id: int = pending_bubble_queue.pop_front()
+		if ctx.scratch.processed_explosion_bubble_ids.has(bubble_id):
 			continue
 
-		var center_x = bubble.cell_x
-		var center_y = bubble.cell_y
-		var bubble_range = bubble.bubble_range
+		var bubble: BubbleState = ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble == null or not bubble.alive:
+			continue
+		ctx.scratch.processed_explosion_bubble_ids[bubble_id] = true
 
-		# 记录覆盖格子
+		var center_x: int = bubble.cell_x
+		var center_y: int = bubble.cell_y
+		var bubble_range: int = bubble.bubble_range
+
 		var covered_cells: Array[Vector2i] = []
-
-		# 中心格始终覆盖
 		covered_cells.append(Vector2i(center_x, center_y))
-		_collect_players_to_kill(ctx, center_x, center_y)
+		_collect_hits_at_cell(ctx, bubble, center_x, center_y, pending_bubble_queue)
 
-		# 十字方向
-		var dirs = [
-			Vector2i(0, -1),  # 上
-			Vector2i(0, 1),   # 下
-			Vector2i(-1, 0),  # 左
-			Vector2i(1, 0)    # 右
-		]
-
-		# 向各个方向传播
-		for dir in dirs:
+		for dir in PROPAGATION_DIRS:
 			for i in range(1, bubble_range + 1):
-				var check_x = center_x + dir.x * i
-				var check_y = center_y + dir.y * i
+				var check_x: int = center_x + dir.x * i
+				var check_y: int = center_y + dir.y * i
 
-				# 检查边界
 				if not ctx.queries.is_in_bounds(check_x, check_y):
 					break
 
-				# 获取格子类型
 				var static_cell = ctx.state.grid.get_static_cell(check_x, check_y)
-				# 如果是硬墙，停止传播
 				if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
 					break
 
-				# 记录覆盖格子
 				covered_cells.append(Vector2i(check_x, check_y))
-
-				# 如果是可破坏砖，记录摧毁（但不停止传播）
 				if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
-					ctx.scratch.cells_to_destroy.append(Vector2i(check_x, check_y))
-					break
+					var block_reaction: Dictionary = ExplosionReactionResolver.resolve_breakable_block_reaction(
+						ctx,
+						check_x,
+						check_y
+					)
+					if bool(block_reaction.get("should_register_hit", false)):
+						_register_block_hit(ctx, bubble, check_x, check_y, block_reaction)
+					if int(block_reaction.get("reaction", ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP)) == ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP:
+						var block_cell := Vector2i(check_x, check_y)
+						if not ctx.scratch.cells_to_destroy.has(block_cell):
+							ctx.scratch.cells_to_destroy.append(block_cell)
+					if bool(block_reaction.get("should_stop_propagation", true)):
+						break
+					continue
 
-				# 检查是否命中玩家
-				_collect_players_to_kill(ctx, check_x, check_y)
+				_collect_hits_at_cell(ctx, bubble, check_x, check_y, pending_bubble_queue)
 
-				# 检查是否命中其他泡泡
-				var bubble_at = ctx.queries.get_bubble_at(check_x, check_y)
-				if bubble_at != -1 and bubble_at != bubble_id:
-					var other_bubble = ctx.queries.get_bubble(bubble_at)
-					if other_bubble != null and other_bubble.alive:
-						# 第一版不做链爆，后续可改为提前引爆 other_bubble。
-						pass
-
-		# 标记泡泡已爆炸
 		bubble.alive = false
 		ctx.state.bubbles.active_ids.erase(bubble_id)
 		ctx.state.indexes.active_bubble_ids.erase(bubble_id)
@@ -90,10 +96,8 @@ func execute(ctx: SimContext) -> void:
 				if ctx.state.indexes.bubbles_by_cell[exploded_idx] == bubble_id:
 					ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
 
-		# 记录已爆炸的泡泡（用于后续返还）
 		ctx.scratch.exploded_bubble_ids.append(bubble_id)
 
-		# 推送 BubbleExplodedEvent（第一版使用通用事件结构）
 		var exploded_event := SimEvent.new(ctx.tick, SimEvent.EventType.BUBBLE_EXPLODED)
 		exploded_event.payload = {
 			"bubble_id": bubble_id,
@@ -104,9 +108,151 @@ func execute(ctx: SimContext) -> void:
 		}
 		ctx.events.push(exploded_event)
 
-func _collect_players_to_kill(ctx: SimContext, cell_x: int, cell_y: int) -> void:
-	var players_at = ctx.queries.get_players_at(cell_x, cell_y)
+
+func _collect_hits_at_cell(
+	ctx: SimContext,
+	source_bubble: BubbleState,
+	cell_x: int,
+	cell_y: int,
+	pending_bubble_queue: Array[int]
+) -> void:
+	_collect_bubble_hits(ctx, source_bubble, cell_x, cell_y, pending_bubble_queue)
+	_collect_player_hits(ctx, source_bubble, cell_x, cell_y)
+	_collect_item_hits(ctx, source_bubble, cell_x, cell_y)
+
+
+func _collect_bubble_hits(
+	ctx: SimContext,
+	source_bubble: BubbleState,
+	cell_x: int,
+	cell_y: int,
+	pending_bubble_queue: Array[int]
+) -> void:
+	var target_bubble_id: int = ctx.queries.get_bubble_at(cell_x, cell_y)
+	if target_bubble_id == -1 or target_bubble_id == source_bubble.entity_id:
+		return
+
+	var target_bubble: BubbleState = ctx.queries.get_bubble(target_bubble_id)
+	if target_bubble == null or not target_bubble.alive:
+		return
+
+	var bubble_reaction: Dictionary = ExplosionReactionResolver.resolve_bubble_reaction(ctx, target_bubble)
+	if not bool(bubble_reaction.get("should_register_hit", false)):
+		return
+
+	_register_entity_hit(
+		ctx,
+		source_bubble,
+		ExplosionHitTypes.TargetType.BUBBLE,
+		target_bubble.entity_id,
+		cell_x,
+		cell_y
+	)
+
+	if not bool(bubble_reaction.get("should_enqueue_chain", false)):
+		return
+	if ctx.scratch.queued_chain_bubble_ids.has(target_bubble_id):
+		return
+	if ctx.scratch.processed_explosion_bubble_ids.has(target_bubble_id):
+		return
+
+	ctx.scratch.queued_chain_bubble_ids[target_bubble_id] = true
+	pending_bubble_queue.append(target_bubble_id)
+
+
+func _collect_player_hits(ctx: SimContext, source_bubble: BubbleState, cell_x: int, cell_y: int) -> void:
+	var players_at: Array = ctx.queries.get_players_at(cell_x, cell_y)
 	for pid in players_at:
-		var player = ctx.queries.get_player(pid)
-		if player != null and player.alive and not ctx.scratch.players_to_kill.has(pid):
-			ctx.scratch.players_to_kill.append(pid)
+		var player: PlayerState = ctx.queries.get_player(int(pid))
+		if player == null:
+			continue
+		var player_reaction: Dictionary = ExplosionReactionResolver.resolve_player_reaction(ctx, player)
+		if not bool(player_reaction.get("should_register_hit", false)):
+			continue
+		_register_entity_hit(
+			ctx,
+			source_bubble,
+			ExplosionHitTypes.TargetType.PLAYER,
+			player.entity_id,
+			cell_x,
+			cell_y
+		)
+
+
+func _collect_item_hits(ctx: SimContext, source_bubble: BubbleState, cell_x: int, cell_y: int) -> void:
+	var item_id: int = ctx.queries.get_item_at(cell_x, cell_y)
+	if item_id == -1:
+		return
+
+	var item: ItemState = ctx.queries.get_item(item_id)
+	if item == null:
+		return
+
+	var item_reaction: Dictionary = ExplosionReactionResolver.resolve_item_reaction(ctx, item)
+	if not bool(item_reaction.get("should_register_hit", false)):
+		return
+
+	var aux_data: Dictionary = {}
+	var transform_item_type: int = int(item_reaction.get("transform_item_type", -1))
+	if transform_item_type >= 0:
+		aux_data["transform_item_type"] = transform_item_type
+
+	_register_entity_hit(
+		ctx,
+		source_bubble,
+		ExplosionHitTypes.TargetType.ITEM,
+		item.entity_id,
+		cell_x,
+		cell_y,
+		aux_data
+	)
+
+
+func _register_block_hit(
+	ctx: SimContext,
+	source_bubble: BubbleState,
+	cell_x: int,
+	cell_y: int,
+	reaction_result: Dictionary
+) -> void:
+	_register_entity_hit(
+		ctx,
+		source_bubble,
+		ExplosionHitTypes.TargetType.BREAKABLE_BLOCK,
+		-1,
+		cell_x,
+		cell_y,
+		{
+			"profile_id": String(reaction_result.get("profile_id", "")),
+			"reaction": int(reaction_result.get("reaction", ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP)),
+		}
+	)
+
+
+func _register_entity_hit(
+	ctx: SimContext,
+	source_bubble: BubbleState,
+	target_type: int,
+	target_entity_id: int,
+	target_cell_x: int,
+	target_cell_y: int,
+	target_aux_data: Dictionary = {}
+) -> void:
+	var hit_entry := ExplosionHitEntry.new()
+	hit_entry.tick = ctx.tick
+	hit_entry.source_bubble_id = source_bubble.entity_id
+	hit_entry.source_player_id = source_bubble.owner_player_id
+	hit_entry.source_cell_x = source_bubble.cell_x
+	hit_entry.source_cell_y = source_bubble.cell_y
+	hit_entry.target_type = target_type
+	hit_entry.target_entity_id = target_entity_id
+	hit_entry.target_cell_x = target_cell_x
+	hit_entry.target_cell_y = target_cell_y
+	hit_entry.target_aux_data = target_aux_data.duplicate(true)
+
+	var dedupe_key: String = hit_entry.build_dedupe_key()
+	if ctx.scratch.explosion_hit_keys.has(dedupe_key):
+		return
+
+	ctx.scratch.explosion_hit_keys[dedupe_key] = true
+	ctx.scratch.explosion_hit_entries.append(hit_entry)
