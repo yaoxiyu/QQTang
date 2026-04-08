@@ -1,5 +1,6 @@
 class_name RoomClientGateway
 extends RefCounted
+const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 
 signal transport_connected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
@@ -27,6 +28,10 @@ func unbind_runtime() -> void:
 
 func connect_to_server(connection_config: ClientConnectionConfig) -> void:
 	if client_room_runtime == null or connection_config == null:
+		_log_room_anomaly("connect_to_server_missing_dependency", {
+			"has_client_room_runtime": client_room_runtime != null,
+			"has_connection_config": connection_config != null,
+		})
 		return
 	client_room_runtime.connect_to_server(
 		connection_config.server_host,
@@ -37,6 +42,10 @@ func connect_to_server(connection_config: ClientConnectionConfig) -> void:
 
 func request_join_room(connection_config: ClientConnectionConfig) -> void:
 	if client_room_runtime == null or connection_config == null:
+		_log_room_anomaly("request_join_room_missing_dependency", {
+			"has_client_room_runtime": client_room_runtime != null,
+			"has_connection_config": connection_config != null,
+		})
 		return
 	client_room_runtime.request_join_room(
 		connection_config.room_id_hint,
@@ -50,6 +59,10 @@ func request_join_room(connection_config: ClientConnectionConfig) -> void:
 
 func request_create_room(connection_config: ClientConnectionConfig) -> void:
 	if client_room_runtime == null or connection_config == null:
+		_log_room_anomaly("request_create_room_missing_dependency", {
+			"has_client_room_runtime": client_room_runtime != null,
+			"has_connection_config": connection_config != null,
+		})
 		return
 	client_room_runtime.request_create_room(
 		connection_config.room_id_hint,
@@ -146,3 +159,7 @@ func _on_room_error(error_code: String, user_message: String) -> void:
 
 func _on_canonical_start_config_received(config: BattleStartConfig) -> void:
 	canonical_start_config_received.emit(config)
+
+
+func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
+	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])

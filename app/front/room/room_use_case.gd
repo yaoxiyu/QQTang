@@ -9,6 +9,7 @@ const ClientConnectionConfigScript = preload("res://network/runtime/client_conne
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 
 var app_runtime: Node = null
 var room_client_gateway: RoomClientGateway = null
@@ -46,6 +47,7 @@ func dispose() -> void:
 
 func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 	if app_runtime == null:
+		_log_room_anomaly("enter_room_without_runtime", {})
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
 
@@ -56,10 +58,10 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 		if room_client_gateway != null:
 			_pending_online_entry_context = entry_context.duplicate_deep()
 			_pending_connection_config = connection_config.duplicate_deep()
-			_await_room_before_enter = String(entry_context.entry_kind) == FrontEntryKindScript.ONLINE_JOIN
+			_await_room_before_enter = true
 			room_client_gateway.connect_to_server(connection_config)
-		if not _await_room_before_enter and app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_room"):
-			app_runtime.front_flow.enter_room()
+		else:
+			_log_room_anomaly("enter_room_missing_gateway", _build_entry_context_context(entry_context))
 		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_room"):
@@ -170,6 +172,15 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 		config.selected_bubble_skin_id = app_runtime.player_profile_state.default_bubble_skin_id
 		config.selected_mode_id = app_runtime.player_profile_state.preferred_mode_id
 	_sanitize_connection_profile(config)
+	if config.server_host.strip_edges().is_empty() or config.server_port <= 0:
+		_log_room_anomaly("invalid_connection_config", {
+			"entry_kind": String(entry_context.entry_kind),
+			"room_kind": String(entry_context.room_kind),
+			"topology": String(entry_context.topology),
+			"server_host": config.server_host,
+			"server_port": config.server_port,
+			"room_id_hint": config.room_id_hint,
+		})
 	return config
 
 
@@ -217,7 +228,14 @@ func _disconnect_gateway_signals() -> void:
 
 
 func _on_gateway_transport_connected() -> void:
-	if room_client_gateway == null or _pending_online_entry_context == null or _pending_connection_config == null:
+	if room_client_gateway == null:
+		_log_room_anomaly("transport_connected_without_gateway", {})
+		return
+	if _pending_online_entry_context == null or _pending_connection_config == null:
+		_log_room_anomaly("transport_connected_without_pending_entry", {
+			"has_pending_entry": _pending_online_entry_context != null,
+			"has_pending_config": _pending_connection_config != null,
+		})
 		return
 	match String(_pending_online_entry_context.entry_kind):
 		FrontEntryKindScript.ONLINE_CREATE:
@@ -225,13 +243,27 @@ func _on_gateway_transport_connected() -> void:
 		FrontEntryKindScript.ONLINE_JOIN:
 			room_client_gateway.request_join_room(_pending_connection_config)
 		_:
-			pass
+			_log_room_anomaly("transport_connected_with_unknown_entry_kind", {
+				"entry_kind": String(_pending_online_entry_context.entry_kind),
+				"topology": String(_pending_online_entry_context.topology),
+				"room_id_hint": String(_pending_connection_config.room_id_hint),
+			})
 
 
 func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
+	if snapshot == null:
+		_log_room_anomaly("received_null_room_snapshot", _build_pending_connection_context())
+		return
+	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.room_id.is_empty():
+		_log_room_anomaly("received_snapshot_without_room_id", _build_snapshot_context(snapshot))
+	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.members.is_empty():
+		_log_room_anomaly("received_snapshot_without_members", _build_snapshot_context(snapshot))
 	on_authoritative_snapshot(snapshot)
-	if _await_room_before_enter and app_runtime != null and app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_room"):
-		app_runtime.front_flow.enter_room()
+	if _await_room_before_enter:
+		if app_runtime == null or app_runtime.front_flow == null or not app_runtime.front_flow.has_method("enter_room"):
+			_log_room_anomaly("awaiting_room_but_front_flow_missing", _build_snapshot_context(snapshot))
+		else:
+			app_runtime.front_flow.enter_room()
 	_pending_online_entry_context = null
 	_pending_connection_config = null
 	_await_room_before_enter = false
@@ -260,6 +292,16 @@ func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
 
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
+	_log_room_anomaly("gateway_room_error", {
+		"error_code": error_code,
+		"user_message": user_message,
+		"await_room_before_enter": _await_room_before_enter,
+		"pending_entry_kind": String(_pending_online_entry_context.entry_kind) if _pending_online_entry_context != null else "",
+		"pending_topology": String(_pending_online_entry_context.topology) if _pending_online_entry_context != null else "",
+		"pending_server_host": String(_pending_connection_config.server_host) if _pending_connection_config != null else "",
+		"pending_server_port": int(_pending_connection_config.server_port) if _pending_connection_config != null else 0,
+		"pending_room_id_hint": String(_pending_connection_config.room_id_hint) if _pending_connection_config != null else "",
+	})
 	_pending_online_entry_context = null
 	_pending_connection_config = null
 	_await_room_before_enter = false
@@ -282,3 +324,39 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 		"error_code": error_code,
 		"user_message": user_message,
 	}
+
+
+func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
+	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+
+
+func _build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:
+	if entry_context == null:
+		return {}
+	return {
+		"entry_kind": String(entry_context.entry_kind),
+		"room_kind": String(entry_context.room_kind),
+		"topology": String(entry_context.topology),
+		"server_host": String(entry_context.server_host),
+		"server_port": int(entry_context.server_port),
+		"target_room_id": String(entry_context.target_room_id),
+	}
+
+
+func _build_pending_connection_context() -> Dictionary:
+	return {
+		"await_room_before_enter": _await_room_before_enter,
+		"pending_entry_kind": String(_pending_online_entry_context.entry_kind) if _pending_online_entry_context != null else "",
+		"pending_topology": String(_pending_online_entry_context.topology) if _pending_online_entry_context != null else "",
+		"pending_server_host": String(_pending_connection_config.server_host) if _pending_connection_config != null else "",
+		"pending_server_port": int(_pending_connection_config.server_port) if _pending_connection_config != null else 0,
+		"pending_room_id_hint": String(_pending_connection_config.room_id_hint) if _pending_connection_config != null else "",
+	}
+
+
+func _build_snapshot_context(snapshot: RoomSnapshot) -> Dictionary:
+	var context := _build_pending_connection_context()
+	context["snapshot_room_id"] = String(snapshot.room_id) if snapshot != null else ""
+	context["snapshot_topology"] = String(snapshot.topology) if snapshot != null else ""
+	context["snapshot_member_count"] = snapshot.members.size() if snapshot != null else -1
+	return context

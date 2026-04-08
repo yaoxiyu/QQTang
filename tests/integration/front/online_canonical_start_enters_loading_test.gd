@@ -31,13 +31,28 @@ func _test_online_canonical_start_drives_loading_flow() -> void:
 	entry_context.server_port = 9000
 	var enter_result: Dictionary = runtime.room_use_case.enter_room(entry_context)
 	_assert_true(bool(enter_result.get("ok", false)), "online room entry starts successfully")
-	_assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "online create enters room page before canonical start")
+	_assert_true(bool(enter_result.get("pending", false)), "online create stays pending before authoritative room snapshot")
+	_assert_true(not runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "online create does not enter room page before authoritative room snapshot")
 
-	var practice_result: Dictionary = runtime.lobby_use_case.start_practice("", "", "")
-	var practice_entry = practice_result.get("entry_context", null)
-	runtime.room_use_case.enter_room(practice_entry)
+	runtime.room_session_controller.configure_practice_room(
+		runtime.player_profile_state,
+		"",
+		"",
+		"",
+		int(runtime.local_peer_id)
+	)
 	var snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
-	var config: BattleStartConfig = runtime.match_start_coordinator.build_start_config(snapshot)
+	snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
+	snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	snapshot.room_id = "ROOM-CANONICAL"
+	runtime.room_use_case.room_client_gateway.room_snapshot_received.emit(snapshot)
+	_assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "authoritative room snapshot enters room page")
+
+	var config := BattleStartConfig.new()
+	config.room_id = snapshot.room_id
+	config.map_id = snapshot.selected_map_id
+	config.rule_set_id = snapshot.rule_set_id
+	config.mode_id = snapshot.mode_id
 	config.topology = "dedicated_server"
 	config.session_mode = "online_room"
 	config.local_peer_id = int(runtime.local_peer_id)

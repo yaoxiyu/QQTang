@@ -155,7 +155,6 @@ func request_initialize(reason: String = "manual") -> void:
 	_ensure_front_repositories()
 	_ensure_front_local_state()
 	_ensure_front_services()
-	_ensure_front_use_cases()
 
 	if front_flow == null or not is_instance_valid(front_flow):
 		front_flow = FrontFlowControllerScript.new()
@@ -208,6 +207,8 @@ func request_initialize(reason: String = "manual") -> void:
 		client_room_runtime.transport_disconnected.connect(_on_client_runtime_transport_disconnected)
 	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.room_error.is_connected(_on_client_runtime_room_error):
 		client_room_runtime.room_error.connect(_on_client_runtime_room_error)
+
+	_ensure_front_use_cases()
 
 	if scene_flow.current_scene_path.is_empty():
 		scene_flow.current_scene_path = SceneFlowControllerScript.BOOT_SCENE_PATH

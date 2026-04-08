@@ -4,6 +4,7 @@ extends Node
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 
 signal transport_connected()
 signal transport_disconnected()
@@ -175,11 +176,21 @@ func _route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_CREATE_ACCEPTED:
 			if _last_snapshot != null:
 				room_joined.emit(_last_snapshot)
+			else:
+				_log_room_anomaly("create_accepted_without_snapshot", {
+					"connected": _connected,
+					"connecting": _connecting,
+				})
 		TransportMessageTypesScript.ROOM_CREATE_REJECTED:
 			room_error.emit("ROOM_CREATE_FAILED", String(message.get("user_message", "Room create failed")))
 		TransportMessageTypesScript.ROOM_JOIN_ACCEPTED:
 			if _last_snapshot != null:
 				room_joined.emit(_last_snapshot)
+			else:
+				_log_room_anomaly("join_accepted_without_snapshot", {
+					"connected": _connected,
+					"connecting": _connecting,
+				})
 		TransportMessageTypesScript.ROOM_JOIN_REJECTED:
 			room_error.emit("ROOM_JOIN_FAILED", String(message.get("user_message", "Room join failed")))
 		TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED:
@@ -187,6 +198,18 @@ func _route_message(message: Dictionary) -> void:
 				_shutdown_transport()
 		TransportMessageTypesScript.ROOM_SNAPSHOT:
 			var snapshot := RoomSnapshot.from_dict(message.get("snapshot", {}))
+			if snapshot.room_id.is_empty():
+				_log_room_anomaly("runtime_snapshot_without_room_id", {
+					"message_type": message_type,
+					"member_count": snapshot.members.size(),
+					"topology": String(snapshot.topology),
+				})
+			if String(snapshot.topology) == "dedicated_server" and snapshot.members.is_empty():
+				_log_room_anomaly("runtime_snapshot_without_members", {
+					"message_type": message_type,
+					"room_id": String(snapshot.room_id),
+					"topology": String(snapshot.topology),
+				})
 			_last_snapshot = snapshot
 			room_snapshot_received.emit(snapshot)
 			room_joined.emit(snapshot)
@@ -207,6 +230,12 @@ func _route_message(message: Dictionary) -> void:
 
 func _send_to_server(message: Dictionary) -> void:
 	if _transport == null or not _transport.is_transport_connected():
+		_log_room_anomaly("send_to_server_while_not_connected", {
+			"message_type": String(message.get("message_type", message.get("msg_type", ""))),
+			"has_transport": _transport != null,
+			"connected": _connected,
+			"connecting": _connecting,
+		})
 		room_error.emit("ROOM_CONNECT_FAILED", "Not connected to dedicated server")
 		return
 	_transport.send_to_peer(1, message)
@@ -236,6 +265,11 @@ func _on_transport_disconnected() -> void:
 
 func _on_transport_error(_code: int, message: String) -> void:
 	_connecting = false
+	_log_room_anomaly("transport_error", {
+		"message": message,
+		"connected": _connected,
+		"has_transport": _transport != null,
+	})
 	room_error.emit("ROOM_CONNECT_FAILED", message)
 
 
@@ -251,3 +285,7 @@ func _shutdown_transport() -> void:
 			remove_child(_transport)
 		_transport.queue_free()
 	_transport = null
+
+
+func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
+	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])

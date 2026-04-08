@@ -14,6 +14,7 @@ func _ready() -> void:
 func run_all() -> void:
 	await _test_ensure_in_tree_reaches_ready_and_emits_once()
 	await _test_request_initialize_is_idempotent()
+	await _test_room_use_case_binds_client_room_runtime_after_initialization()
 	test_finished.emit()
 
 
@@ -56,6 +57,20 @@ func _test_request_initialize_is_idempotent() -> void:
 	_assert_true(runtime.front_flow == front_flow_before, "request_initialize does not recreate front_flow")
 	_assert_true(runtime.room_session_controller == room_session_before, "request_initialize does not recreate room session controller")
 	_assert_true(runtime.get_child_count() == child_count_before, "request_initialize does not add duplicate runtime children")
+
+	runtime.queue_free()
+	await get_tree().process_frame
+
+
+func _test_room_use_case_binds_client_room_runtime_after_initialization() -> void:
+	var runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	_assert_true(runtime.client_room_runtime != null, "runtime creates client_room_runtime during initialization")
+	_assert_true(runtime.room_use_case != null, "runtime creates room_use_case during initialization")
+	_assert_true(runtime.room_use_case.room_client_gateway != null, "room_use_case configures room_client_gateway")
+	_assert_true(runtime.room_use_case.room_client_gateway.client_room_runtime == runtime.client_room_runtime, "room_use_case binds created client_room_runtime")
 
 	runtime.queue_free()
 	await get_tree().process_frame
