@@ -214,7 +214,7 @@ func _change_state(next_state: FlowState) -> void:
 
 func _route_flow_error(error_code: String, user_message: String, trigger_stage: String, log_payload: Dictionary = {}) -> void:
 	enter_error(error_code, user_message)
-	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	if app_runtime != null and app_runtime.error_router != null:
 		app_runtime.error_router.route_error(
 			app_runtime,

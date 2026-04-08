@@ -2,7 +2,9 @@ extends Node
 
 const ROOT_NODE_NAME: String = "AppRoot"
 const LEGACY_ROOT_NODE_NAME: String = "AppRuntimeRoot"
+const PENDING_RUNTIME_META_KEY: String = "_app_runtime_pending_instance"
 const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
+const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_state.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
@@ -31,8 +33,20 @@ const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.g
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 
+signal runtime_state_changed(previous_state: int, next_state: int, reason: String)
+signal runtime_ready()
+signal runtime_disposing()
+signal runtime_disposed()
+signal runtime_error(error_code: String, message: String)
+
 var local_peer_id: int = 1
 var remote_peer_id: int = 2
+var runtime_lifecycle_state: int = RuntimeLifecycleStateScript.Value.NONE
+var _initialization_requested: bool = false
+var _initialization_in_progress: bool = false
+var _ready_emitted: bool = false
+var _last_runtime_error_code: String = ""
+var _last_runtime_error_message: String = ""
 
 var front_flow: Node = null
 var scene_flow: Node = null
@@ -71,30 +85,71 @@ var current_settlement_controller: Node = null
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 
-static func ensure_in_tree(tree: SceneTree):
-	if tree == null:
+static func get_existing(tree: SceneTree):
+	if tree == null or tree.root == null:
 		return null
 	if tree.root.has_node(ROOT_NODE_NAME):
 		return tree.root.get_node(ROOT_NODE_NAME)
 	if tree.root.has_node(LEGACY_ROOT_NODE_NAME):
+		return tree.root.get_node(LEGACY_ROOT_NODE_NAME)
+	if tree.root.has_meta(PENDING_RUNTIME_META_KEY):
+		var pending = tree.root.get_meta(PENDING_RUNTIME_META_KEY)
+		if is_instance_valid(pending):
+			return pending
+		tree.root.remove_meta(PENDING_RUNTIME_META_KEY)
+	return null
+
+
+static func ensure_in_tree(tree: SceneTree):
+	if tree == null:
+		return null
+	var existing = get_existing(tree)
+	if existing != null:
+		if existing.name == LEGACY_ROOT_NODE_NAME:
+			existing.name = ROOT_NODE_NAME
+		if existing.has_method("request_initialize"):
+			existing.request_initialize("ensure_in_tree_existing")
+		elif existing.has_method("initialize_runtime"):
+			existing.initialize_runtime()
+		return existing
+	if tree.root != null and tree.root.has_node(LEGACY_ROOT_NODE_NAME):
 		var legacy_root := tree.root.get_node(LEGACY_ROOT_NODE_NAME)
 		if legacy_root != null:
 			legacy_root.name = ROOT_NODE_NAME
-			legacy_root.initialize_runtime()
+			if legacy_root.has_method("request_initialize"):
+				legacy_root.request_initialize("ensure_in_tree_legacy")
+			else:
+				legacy_root.initialize_runtime()
 			return legacy_root
 	var runtime = load("res://app/flow/app_runtime_root.gd").new()
 	runtime.name = ROOT_NODE_NAME
+	runtime._set_runtime_state(RuntimeLifecycleStateScript.Value.ATTACH_PENDING, "ensure_in_tree_created")
+	tree.root.set_meta(PENDING_RUNTIME_META_KEY, runtime)
 	tree.root.add_child.call_deferred(runtime)
-	runtime.initialize_runtime.call_deferred()
+	runtime.request_initialize("ensure_in_tree")
 	return runtime
 
 
 func _ready() -> void:
-	initialize_runtime()
+	_clear_pending_runtime_meta()
+	request_initialize("_ready")
 
 
 func initialize_runtime() -> void:
+	request_initialize("initialize_runtime")
+
+
+func request_initialize(reason: String = "manual") -> void:
+	_initialization_requested = true
+	if is_runtime_ready() or runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.DISPOSING or runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.DISPOSED:
+		return
+	if _initialization_in_progress or runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.INITIALIZING:
+		return
+	if not is_inside_tree():
+		return
 	name = ROOT_NODE_NAME
+	_initialization_in_progress = true
+	_set_runtime_state(RuntimeLifecycleStateScript.Value.INITIALIZING, reason)
 	_ensure_root_nodes()
 	_ensure_runtime_config()
 	_ensure_front_repositories()
@@ -158,6 +213,31 @@ func initialize_runtime() -> void:
 		scene_flow.current_scene_path = SceneFlowControllerScript.BOOT_SCENE_PATH
 	if int(front_flow.current_state) != int(FrontFlowControllerScript.FlowState.BOOT):
 		front_flow.current_state = FrontFlowControllerScript.FlowState.BOOT
+	_initialization_in_progress = false
+	_set_runtime_state(RuntimeLifecycleStateScript.Value.READY, reason)
+	if not _ready_emitted:
+		_ready_emitted = true
+		runtime_ready.emit()
+
+
+func is_runtime_ready() -> bool:
+	return runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.READY
+
+
+func is_runtime_initializing() -> bool:
+	return _initialization_in_progress or runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.INITIALIZING
+
+
+func get_runtime_state_name() -> String:
+	return RuntimeLifecycleStateScript.state_to_string(runtime_lifecycle_state)
+
+
+func _set_runtime_state(next_state: int, reason: String) -> void:
+	if runtime_lifecycle_state == next_state:
+		return
+	var previous_state := runtime_lifecycle_state
+	runtime_lifecycle_state = next_state
+	runtime_state_changed.emit(previous_state, next_state, reason)
 
 
 func build_and_store_start_config(snapshot):
@@ -258,6 +338,11 @@ func debug_dump_runtime_structure() -> Dictionary:
 	var diagnostics_dump: Dictionary = session_diagnostics.build_runtime_dump(self) if session_diagnostics != null else {}
 	return {
 		"root_name": name,
+		"runtime_state": runtime_lifecycle_state,
+		"runtime_state_name": get_runtime_state_name(),
+		"runtime_ready": is_runtime_ready(),
+		"runtime_initialization_requested": _initialization_requested,
+		"runtime_initialization_in_progress": _initialization_in_progress,
 		"has_session_root": session_root != null,
 		"has_battle_root": battle_root != null,
 		"has_debug_tools": debug_tools != null,
@@ -286,6 +371,10 @@ func debug_dump_runtime_structure() -> Dictionary:
 
 func _on_network_error_routed(payload: Dictionary) -> void:
 	last_runtime_error = payload.duplicate(true)
+	_last_runtime_error_code = String(last_runtime_error.get("error_code", ""))
+	_last_runtime_error_message = String(last_runtime_error.get("user_message", last_runtime_error.get("message", "")))
+	if not _last_runtime_error_code.is_empty() or not _last_runtime_error_message.is_empty():
+		runtime_error.emit(_last_runtime_error_code, _last_runtime_error_message)
 
 
 func _on_client_runtime_battle_message_received(message: Dictionary) -> void:
@@ -436,5 +525,22 @@ func _update_current_battle_content_manifest() -> void:
 
 
 func _exit_tree() -> void:
+	_clear_pending_runtime_meta()
+	_initialization_in_progress = false
+	_set_runtime_state(RuntimeLifecycleStateScript.Value.DISPOSING, "_exit_tree")
+	runtime_disposing.emit()
 	if room_use_case != null and room_use_case.has_method("dispose"):
 		room_use_case.dispose()
+	_set_runtime_state(RuntimeLifecycleStateScript.Value.DISPOSED, "_exit_tree")
+	runtime_disposed.emit()
+
+
+func _clear_pending_runtime_meta() -> void:
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return
+	if not tree.root.has_meta(PENDING_RUNTIME_META_KEY):
+		return
+	var pending = tree.root.get_meta(PENDING_RUNTIME_META_KEY)
+	if pending == self:
+		tree.root.remove_meta(PENDING_RUNTIME_META_KEY)

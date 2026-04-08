@@ -11,6 +11,18 @@
 - `res://scenes/front/loading_scene.tscn`
 - `res://scenes/battle/battle_main.tscn`
 
+## Front Runtime Contract
+
+- 本阶段未新增或删除 Boot / Login / Lobby / Room / Loading 的场景节点
+- 本阶段只统一了前台控制器初始化顺序
+- `boot_scene.tscn` 对应控制器负责 runtime bootstrap
+- `login_scene.tscn`
+- `lobby_scene.tscn`
+- `room_scene.tscn`
+- `loading_scene.tscn`
+  上述消费型前台场景控制器统一等待 `AppRuntimeRoot.runtime_ready`
+- 若直接打开消费型前台场景且 runtime 缺失, 正式行为是回 `boot_scene.tscn`
+
 ## 退役说明
 
 - 历史 sandbox 场景已退役
@@ -66,6 +78,11 @@
 - `RoomRoot/MainLayout/ActionRow/StartButton`
 - `RoomRoot/MainLayout/RoomDebugPanel/DebugLabel`
 
+脚本挂载约定：
+- `RoomScene` -> `res://scenes/front/room_scene_controller.gd`
+- `RoomHudController` -> `res://presentation/battle/hud/room_hud_controller.gd`
+- `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport` -> `res://presentation/front/preview/room_character_preview.gd`
+
 ## Loading Scene
 
 路径：`res://scenes/front/loading_scene.tscn`
@@ -77,6 +94,9 @@
 - `LoadingRoot/MainLayout/LoadingLabel`
 - `LoadingRoot/MainLayout/PlayerLoadingList`
 - `LoadingRoot/MainLayout/TimeoutHint`
+
+脚本挂载约定：
+- `LoadingScene` -> `res://scenes/front/loading_scene_controller.gd`
 
 ## BattleMain
 

@@ -87,6 +87,7 @@
 
 - `res://scenes/front/boot_scene.tscn`
   - 当前正式客户端主入口
+  - 当前唯一正式 `AppRuntimeRoot` bootstrap owner
 - `res://scenes/front/login_scene.tscn`
   - 正式登录前台场景
   - 当前只负责认证信息与服务器连接端点输入
@@ -106,6 +107,14 @@
   - **不是正式玩法入口**
 
 任何旧测试沙盒路径、历史 sandbox 场景，都不应再被理解为正式入口。
+
+补充生命周期真相：
+
+- `AppRuntimeRoot` 当前仍是普通节点, 不是 Autoload
+- `BootSceneController` 是唯一正式 runtime 创建者, 使用 `ensure_in_tree()`
+- `Login / Lobby / Room / Loading` 只消费现有 runtime, 统一使用 `get_existing()`
+- 前台初始化顺序当前统一由 `runtime_ready` 驱动, 不再依赖 deferred + retry
+- 错误路由与 transport 回调等非启动路径不得隐式创建 runtime
 
 ## 2.3 当前工程已经采用 canonical path 思路
 
@@ -159,6 +168,16 @@
 
 - 不要把 battle 规则、网络 transport、地图解析等重逻辑继续塞进这里
 - `app_runtime_config.gd` 只负责配置真相，不负责偷做业务逻辑
+- `app_runtime_root.gd` 当前已具备显式生命周期状态:
+  - `NONE`
+  - `ATTACH_PENDING`
+  - `INITIALIZING`
+  - `READY`
+  - `DISPOSING`
+  - `DISPOSED`
+  - `ERROR`
+- `AppRuntimeRoot.ensure_in_tree()` 只允许 bootstrap owner 使用
+- `AppRuntimeRoot.get_existing()` 是纯消费者的正式 runtime 查询入口
 
 ## 3.1.1 `res://app/front/`
 
@@ -379,6 +398,9 @@
 - `boot_scene.tscn` 是当前正式客户端主入口
 - `login_scene.tscn` 与 `lobby_scene.tscn` 是正式前台态
 - `room_scene.tscn` 不再承担登录入口
+- Boot 是当前唯一正式 runtime bootstrap owner
+- Login / Lobby / Room / Loading 统一只消费 runtime ready
+- 若消费型前台场景被直接打开且 runtime 缺失, 正式语义是显式回 Boot, 不是隐式补建 runtime
 
 ## 3.6.1 `res://presentation/front/preview/`
 
@@ -701,6 +723,10 @@ Battle 的正式启动应理解为：
    - `pivot_origin` 表示角色资产默认脚底中心点
    - `pivot_adjust` 表示该资产相对默认脚底中心点的固定校准值
    - Battle 运行时不允许再额外写角色显示偏移来修站位, 新角色资产必须按该规范填写
+14. **`AppRuntimeRoot` 生命周期当前已显式化, 前台主链路必须以 `runtime_ready` 为统一初始化语义**
+15. **只有 Boot 和测试 harness 可以调用 `ensure_in_tree()` 创建 runtime**
+16. **Login / Lobby / Room / Loading / FrontFlow 错误路由 / ClientRoomRuntime transport 回调等纯消费者必须使用 `get_existing()`**
+17. **非启动路径不得隐式创建 runtime**
 
 ---
 

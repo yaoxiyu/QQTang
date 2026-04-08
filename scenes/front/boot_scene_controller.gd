@@ -13,19 +13,24 @@ func _ready() -> void:
 		status_label.text = "Initializing Front Runtime..."
 	if hint_label != null:
 		hint_label.text = "Boot scene only decides login or lobby."
-	call_deferred("_initialize_runtime")
+	_bind_runtime()
 
 
-func _initialize_runtime() -> void:
+func _bind_runtime() -> void:
 	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
-	call_deferred("_decide_next_flow")
-
-
-func _decide_next_flow() -> void:
 	if _app_runtime == null:
-		_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
-	if _app_runtime == null or not _app_runtime.is_inside_tree() or _app_runtime.front_flow == null:
-		call_deferred("_decide_next_flow")
+		if status_label != null:
+			status_label.text = "Failed to create front runtime."
+		return
+	if _app_runtime.has_method("is_runtime_ready") and _app_runtime.is_runtime_ready():
+		_on_runtime_ready()
+		return
+	if _app_runtime.has_signal("runtime_ready") and not _app_runtime.runtime_ready.is_connected(_on_runtime_ready):
+		_app_runtime.runtime_ready.connect(_on_runtime_ready, CONNECT_ONE_SHOT)
+
+
+func _on_runtime_ready() -> void:
+	if _app_runtime == null:
 		return
 	var settings = _app_runtime.front_settings_state
 	var profile = _app_runtime.player_profile_state

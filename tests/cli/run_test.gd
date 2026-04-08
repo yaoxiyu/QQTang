@@ -2,6 +2,7 @@ extends SceneTree
 
 var _failed := false
 var _test_node: Node = null
+var _finished := false
 
 
 func _initialize() -> void:
@@ -30,10 +31,20 @@ func _initialize() -> void:
 
 	_test_node = node
 	root.add_child(_test_node)
-	call_deferred("_finish")
+	if _test_node.has_signal("test_finished"):
+		_test_node.test_finished.connect(_finish, CONNECT_ONE_SHOT)
+	else:
+		call_deferred("_finish")
 
 
 func _finish() -> void:
+	if _finished:
+		return
+	_finished = true
+	call_deferred("_cleanup_and_quit")
+
+
+func _cleanup_and_quit() -> void:
 	if _test_node != null and is_instance_valid(_test_node):
 		if _test_node.get_parent() != null:
 			_test_node.get_parent().remove_child(_test_node)

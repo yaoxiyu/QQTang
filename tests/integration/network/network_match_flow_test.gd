@@ -1,9 +1,14 @@
 extends Node
 
 const TestAssert = preload("res://tests/helpers/test_assert.gd")
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
+const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
 const ClientRuntimeScript = preload("res://network/session/runtime/client_runtime.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 var _host_result: BattleResult = null
@@ -93,9 +98,13 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 func _make_room_snapshot() -> RoomSnapshot:
 	var snapshot := RoomSnapshot.new()
 	snapshot.room_id = "network_match_flow_room"
+	snapshot.room_kind = FrontRoomKindScript.PRACTICE
+	snapshot.topology = FrontTopologyScript.LOCAL
 	snapshot.owner_peer_id = 1
-	snapshot.selected_map_id = "default_map"
-	snapshot.rule_set_id = "classic"
+	snapshot.selected_map_id = MapCatalogScript.get_default_map_id()
+	snapshot.rule_set_id = RuleSetCatalogScript.get_default_rule_id()
+	snapshot.mode_id = ModeCatalogScript.get_default_mode_id()
+	snapshot.min_start_players = 1
 	snapshot.all_ready = true
 	snapshot.max_players = 2
 

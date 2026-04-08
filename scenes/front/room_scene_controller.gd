@@ -61,13 +61,22 @@ func _ready() -> void:
 	_ensure_scroll_layout()
 	_populate_selectors()
 	_connect_ui_signals()
-	call_deferred("_initialize_runtime")
+	_bind_runtime()
 
 
-func _initialize_runtime() -> void:
-	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+func _bind_runtime() -> void:
+	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	if _app_runtime == null:
+		_redirect_to_boot_if_missing()
 		return
+	if _app_runtime.has_method("is_runtime_ready") and _app_runtime.is_runtime_ready():
+		_on_runtime_ready()
+		return
+	if _app_runtime.has_signal("runtime_ready") and not _app_runtime.runtime_ready.is_connected(_on_runtime_ready):
+		_app_runtime.runtime_ready.connect(_on_runtime_ready, CONNECT_ONE_SHOT)
+
+
+func _on_runtime_ready() -> void:
 	_room_controller = _app_runtime.room_session_controller
 	_front_flow = _app_runtime.front_flow
 	_room_use_case = _app_runtime.room_use_case
@@ -75,6 +84,14 @@ func _initialize_runtime() -> void:
 	_apply_local_profile_defaults()
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
 		_refresh_room(_room_controller.build_room_snapshot())
+
+
+func _redirect_to_boot_if_missing() -> void:
+	_set_room_feedback("Runtime missing, returning to boot...")
+	if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_boot"):
+		_app_runtime.front_flow.enter_boot()
+		return
+	get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
 
 
 func _ensure_scroll_layout() -> void:

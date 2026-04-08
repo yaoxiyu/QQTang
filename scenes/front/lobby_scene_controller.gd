@@ -28,17 +28,33 @@ var _app_runtime: Node = null
 
 
 func _ready() -> void:
-	call_deferred("_initialize_runtime")
+	_bind_runtime()
 
 
-func _initialize_runtime() -> void:
-	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
-	if _app_runtime == null or not _app_runtime.is_inside_tree():
-		call_deferred("_initialize_runtime")
+func _bind_runtime() -> void:
+	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
+	if _app_runtime == null:
+		_set_message("Runtime missing, returning to boot...")
+		_redirect_to_boot_if_missing()
 		return
+	if _app_runtime.has_method("is_runtime_ready") and _app_runtime.is_runtime_ready():
+		_on_runtime_ready()
+		return
+	if _app_runtime.has_signal("runtime_ready") and not _app_runtime.runtime_ready.is_connected(_on_runtime_ready):
+		_app_runtime.runtime_ready.connect(_on_runtime_ready, CONNECT_ONE_SHOT)
+
+
+func _on_runtime_ready() -> void:
 	_populate_practice_selectors()
 	_refresh_view()
 	_connect_signals()
+
+
+func _redirect_to_boot_if_missing() -> void:
+	if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_boot"):
+		_app_runtime.front_flow.enter_boot()
+		return
+	get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
 
 
 func _populate_practice_selectors() -> void:

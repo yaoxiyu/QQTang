@@ -217,7 +217,7 @@ func _on_transport_connected() -> void:
 	_connecting = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
-	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(_transport.get_local_peer_id())
 	transport_connected.emit()
@@ -228,7 +228,7 @@ func _on_transport_disconnected() -> void:
 	_connecting = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
-	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(1)
 	transport_disconnected.emit()

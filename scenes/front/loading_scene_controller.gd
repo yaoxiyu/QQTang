@@ -28,15 +28,31 @@ var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 func _ready() -> void:
 	_configure_layout()
-	call_deferred("_initialize_runtime")
+	_bind_runtime()
 
 
-func _initialize_runtime() -> void:
-	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+func _bind_runtime() -> void:
+	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
+	if _app_runtime == null:
+		loading_label.text = "Runtime missing. Returning to boot..."
+		_redirect_to_boot_if_missing()
+		return
+	if _app_runtime.has_method("is_runtime_ready") and _app_runtime.is_runtime_ready():
+		_on_runtime_ready()
+		return
+	if _app_runtime.has_signal("runtime_ready") and not _app_runtime.runtime_ready.is_connected(_on_runtime_ready):
+		_app_runtime.runtime_ready.connect(_on_runtime_ready, CONNECT_ONE_SHOT)
+
+
+func _on_runtime_ready() -> void:
 	_front_flow = _app_runtime.front_flow
 	_restore_missing_start_config_from_adapter()
 	_refresh_loading_view()
-	call_deferred("_begin_loading")
+	_begin_loading()
+
+
+func _redirect_to_boot_if_missing() -> void:
+	get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
 
 
 func _configure_layout() -> void:
