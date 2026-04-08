@@ -4,6 +4,10 @@ extends Node
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const BubblePlaceResolverScript = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
+const TRACE_PREFIX := "[qq_battle_trace]"
+const PLACE_CONFIRM_TIMEOUT_TICKS := 12
 
 signal config_accepted(config: BattleStartConfig)
 signal prediction_event(event: Dictionary)
@@ -20,6 +24,13 @@ var _correction_count: int = 0
 var _last_resync_tick: int = -1
 var _active: bool = false
 var _finished: bool = false
+var latest_authoritative_events: Array = []
+var _latest_authoritative_event_tick: int = -1
+var _last_consumed_authoritative_event_tick: int = -1
+var _pending_place_request_tick: int = -1
+var _pending_place_baseline_bubble_count: int = -1
+var _pending_place_baseline_bomb_available: int = -1
+var _pending_place_timeout_logged: bool = false
 
 
 func configure(peer_id: int) -> void:
@@ -61,7 +72,9 @@ func start_match(config: BattleStartConfig) -> bool:
 		predicted_world,
 		snapshot_service,
 		client_session.local_input_buffer,
-		controlled_slot
+		controlled_slot,
+		not _should_suppress_authority_only_entity_prediction(),
+		not _should_suppress_authority_only_entity_prediction()
 	)
 	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
@@ -79,13 +92,18 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 	if not _active or _finished or client_session == null:
 		return {}
 	var next_tick := prediction_controller.predicted_until_tick + 1 if prediction_controller != null else client_session.last_confirmed_tick + 1
+	var requested_place := bool(local_input.get("action_place", false))
+	var effective_place := _resolve_local_place_action(requested_place, next_tick)
 	var frame := client_session.sample_input_for_tick(
 		next_tick,
 		clamp(int(local_input.get("move_x", 0)), -1, 1),
 		clamp(int(local_input.get("move_y", 0)), -1, 1),
-		bool(local_input.get("action_place", false))
+		effective_place
 	)
-	client_session.send_input(frame)
+	var prediction_frame: PlayerInputFrame = _build_prediction_frame(frame)
+	client_session.send_input(frame, prediction_frame)
+	if frame.action_place:
+		_track_local_place_request(frame.tick_id)
 	if prediction_controller != null:
 		prediction_controller.predict_to_tick(next_tick)
 	return {
@@ -99,6 +117,27 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 	}
 
 
+func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
+	if frame == null:
+		return null
+	var prediction_frame: PlayerInputFrame = frame.duplicate_for_tick(frame.tick_id)
+	if _should_suppress_action_place_prediction():
+		prediction_frame.action_place = false
+	return prediction_frame
+
+
+func _should_suppress_action_place_prediction() -> bool:
+	if start_config == null:
+		return false
+	return String(start_config.topology) == "dedicated_server"
+
+
+func _should_suppress_authority_only_entity_prediction() -> bool:
+	if start_config == null:
+		return false
+	return String(start_config.topology) == "dedicated_server"
+
+
 func ingest_network_message(message: Dictionary) -> void:
 	if client_session == null:
 		return
@@ -110,13 +149,18 @@ func ingest_network_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.STATE_SUMMARY:
 			client_session.on_state_summary(message)
 			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
+			_apply_authority_sideband_from_message(message, false)
+			_store_authoritative_events(message)
+			_inspect_pending_place_request(int(message.get("tick", 0)), "summary")
 		TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 			client_session.on_snapshot(message)
 			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
+			_apply_authority_sideband_from_message(message, true)
 			if prediction_controller != null:
 				var authoritative_snapshot := _snapshot_from_message(message)
 				_log_snapshot_mismatch(authoritative_snapshot)
 				prediction_controller.on_authoritative_snapshot(authoritative_snapshot)
+			_inspect_pending_place_request(int(message.get("tick", 0)), "checkpoint")
 		TransportMessageTypesScript.MATCH_FINISHED:
 			_finished = true
 			battle_finished.emit(BattleResult.from_dict(message.get("result", {})))
@@ -157,6 +201,10 @@ func shutdown_runtime() -> void:
 	controlled_peer_id = 0
 	_correction_count = 0
 	_last_resync_tick = -1
+	latest_authoritative_events.clear()
+	_latest_authoritative_event_tick = -1
+	_last_consumed_authoritative_event_tick = -1
+	_clear_pending_place_request()
 
 
 func _resolve_controlled_slot(config: BattleStartConfig) -> int:
@@ -228,6 +276,247 @@ func _mark_predicted_players_as_network(predicted_world: SimWorld) -> void:
 		predicted_world.state.players.update_player(player)
 
 
+func consume_pending_authoritative_events() -> Array:
+	if _latest_authoritative_event_tick < 0:
+		return []
+	if _last_consumed_authoritative_event_tick == _latest_authoritative_event_tick:
+		return []
+	_last_consumed_authoritative_event_tick = _latest_authoritative_event_tick
+	return latest_authoritative_events.duplicate()
+
+
+func _store_authoritative_events(message: Dictionary) -> void:
+	var tick_id := int(message.get("tick", 0))
+	var decoded_events := _decode_events(message.get("events", []))
+	latest_authoritative_events = decoded_events
+	_latest_authoritative_event_tick = tick_id if not decoded_events.is_empty() else -1
+	if decoded_events.is_empty():
+		return
+	print("%s[client_runtime] authoritative_events tick=%d types=%s" % [
+		TRACE_PREFIX,
+		tick_id,
+		str(_extract_event_types(decoded_events)),
+	])
+	_log_missing_bubble_state_after_place(tick_id, decoded_events)
+
+
+func _extract_event_types(events: Array) -> Array[int]:
+	var event_types: Array[int] = []
+	for event in events:
+		if event == null:
+			continue
+		event_types.append(int(event.event_type))
+	return event_types
+
+
+func _log_missing_bubble_state_after_place(tick_id: int, events: Array) -> void:
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return
+	var world := prediction_controller.predicted_sim_world
+	for event in events:
+		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_PLACED:
+			continue
+		var bubble_id := int(event.payload.get("bubble_id", -1))
+		if bubble_id < 0:
+			print("%s[client_runtime] anomaly=placed_event_missing_bubble_id tick=%d payload=%s" % [
+				TRACE_PREFIX,
+				tick_id,
+				str(event.payload),
+			])
+			continue
+		var bubble = world.state.bubbles.get_bubble(bubble_id)
+		if bubble == null:
+			print("%s[client_runtime] anomaly=placed_event_without_world_bubble tick=%d bubble_id=%d payload=%s" % [
+				TRACE_PREFIX,
+				tick_id,
+				bubble_id,
+				str(event.payload),
+			])
+
+
+func _decode_events(raw_events: Variant) -> Array:
+	var decoded: Array = []
+	if not (raw_events is Array):
+		return decoded
+	for raw_event in raw_events:
+		if not (raw_event is Dictionary):
+			continue
+		var event := SimEvent.new(
+			int(raw_event.get("tick", 0)),
+			int(raw_event.get("event_type", 0))
+		)
+		event.payload = _denormalize_variant(raw_event.get("payload", {}))
+		decoded.append(event)
+	return decoded
+
+
+func _apply_authority_sideband_from_message(message: Dictionary, include_walls_and_mode: bool) -> void:
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return
+	var world := prediction_controller.predicted_sim_world
+	var bubbles: Array[Dictionary] = _coerce_dictionary_array(message.get("bubbles", []))
+	var items: Array[Dictionary] = _coerce_dictionary_array(message.get("items", []))
+	var walls: Array[Dictionary] = []
+	var mode_state: Dictionary = {}
+	if include_walls_and_mode:
+		walls = _coerce_dictionary_array(message.get("walls", []))
+		mode_state = _coerce_dictionary(message.get("mode_state", {}))
+	if bubbles.is_empty() and items.is_empty() and walls.is_empty() and mode_state.is_empty():
+		return
+	_restore_bubbles(world, bubbles)
+	_restore_items(world, items)
+	if include_walls_and_mode:
+		_restore_walls(world, walls)
+		_restore_mode_state(world, mode_state)
+	world.rebuild_runtime_indexes()
+
+
+func _track_local_place_request(tick_id: int) -> void:
+	_pending_place_request_tick = tick_id
+	_pending_place_timeout_logged = false
+	var world := prediction_controller.predicted_sim_world if prediction_controller != null else null
+	_pending_place_baseline_bubble_count = world.state.bubbles.active_ids.size() if world != null else -1
+	_pending_place_baseline_bomb_available = _get_controlled_player_bomb_available(world)
+
+
+func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool:
+	if not requested_place:
+		return false
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return true
+	var world := prediction_controller.predicted_sim_world
+	var player := _get_controlled_player_state(world)
+	if player == null:
+		return true
+	var target_cell := BubblePlaceResolverScript.resolve_place_cell(player)
+	if world.state.grid == null or not world.state.grid.is_in_bounds(target_cell.x, target_cell.y):
+		print("%s[client_runtime] place_blocked reason=out_of_bounds cell=(%d,%d)" % [
+			TRACE_PREFIX,
+			target_cell.x,
+			target_cell.y,
+		])
+		return false
+	return true
+
+
+func _inspect_pending_place_request(authoritative_tick: int, source: String) -> void:
+	if _pending_place_request_tick < 0:
+		return
+	var world := prediction_controller.predicted_sim_world if prediction_controller != null else null
+	var bubble_count := world.state.bubbles.active_ids.size() if world != null else -1
+	var bomb_available := _get_controlled_player_bomb_available(world)
+	var confirmed := false
+	if _pending_place_baseline_bubble_count >= 0 and bubble_count > _pending_place_baseline_bubble_count:
+		confirmed = true
+	if not confirmed and _pending_place_baseline_bomb_available >= 0 and bomb_available >= 0 and bomb_available < _pending_place_baseline_bomb_available:
+		confirmed = true
+	if confirmed:
+		_clear_pending_place_request()
+		return
+	if authoritative_tick - _pending_place_request_tick < PLACE_CONFIRM_TIMEOUT_TICKS:
+		return
+	if _pending_place_timeout_logged:
+		return
+	_pending_place_timeout_logged = true
+	print("%s[client_runtime] anomaly=place_unconfirmed source=%s send_tick=%d auth_tick=%d baseline_bubbles=%d current_bubbles=%d baseline_bomb=%d current_bomb=%d" % [
+		TRACE_PREFIX,
+		source,
+		_pending_place_request_tick,
+		authoritative_tick,
+		_pending_place_baseline_bubble_count,
+		bubble_count,
+		_pending_place_baseline_bomb_available,
+		bomb_available,
+	])
+
+
+func _clear_pending_place_request() -> void:
+	_pending_place_request_tick = -1
+	_pending_place_baseline_bubble_count = -1
+	_pending_place_baseline_bomb_available = -1
+	_pending_place_timeout_logged = false
+
+
+func _get_controlled_player_bomb_available(world: SimWorld) -> int:
+	if world == null:
+		return -1
+	var player := _get_controlled_player_state(world)
+	if player == null:
+		return -1
+	return int(player.bomb_available)
+
+
+func _get_controlled_player_state(world: SimWorld) -> PlayerState:
+	if world == null:
+		return null
+	var controlled_slot := int(world.state.runtime_flags.client_controlled_player_slot)
+	for player_id in world.state.players.active_ids:
+		var player := world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		if player.player_slot == controlled_slot:
+			return player
+	return null
+
+
+func _restore_bubbles(world: SimWorld, bubbles: Array[Dictionary]) -> void:
+	world.state.bubbles.clear()
+	for data in bubbles:
+		world.state.bubbles.restore_bubble_from_snapshot(data)
+
+
+func _restore_items(world: SimWorld, items: Array[Dictionary]) -> void:
+	world.state.items.clear()
+	for data in items:
+		world.state.items.restore_item_from_snapshot(data)
+
+
+func _restore_walls(world: SimWorld, walls: Array[Dictionary]) -> void:
+	for wall in walls:
+		var cell_x := int(wall.get("cell_x", 0))
+		var cell_y := int(wall.get("cell_y", 0))
+		var cell = world.state.grid.get_static_cell(cell_x, cell_y)
+		cell.tile_type = int(wall.get("tile_type", cell.tile_type))
+		cell.tile_flags = int(wall.get("tile_flags", cell.tile_flags))
+		cell.theme_variant = int(wall.get("theme_variant", cell.theme_variant))
+		world.state.grid.set_static_cell(cell_x, cell_y, cell)
+
+
+func _restore_mode_state(world: SimWorld, mode_state: Dictionary) -> void:
+	if mode_state.is_empty():
+		return
+	world.state.mode.mode_runtime_type = StringName(mode_state.get("mode_runtime_type", "default"))
+	world.state.mode.team_alive_counts = mode_state.get("team_alive_counts", {}).duplicate(true)
+	world.state.mode.mode_timer_ticks = int(mode_state.get("mode_timer_ticks", 0))
+	world.state.mode.payload_owner_id = int(mode_state.get("payload_owner_id", -1))
+	world.state.mode.payload_cell_x = int(mode_state.get("payload_cell_x", -1))
+	world.state.mode.payload_cell_y = int(mode_state.get("payload_cell_y", -1))
+	world.state.mode.sudden_death_active = bool(mode_state.get("sudden_death_active", false))
+	world.state.mode.custom_ints = mode_state.get("custom_ints", {}).duplicate(true)
+	world.state.mode.custom_flags = mode_state.get("custom_flags", {}).duplicate(true)
+
+
+func _denormalize_variant(value: Variant) -> Variant:
+	if value is Dictionary:
+		var tagged_type := String(value.get("__type", ""))
+		if tagged_type == "Vector2i":
+			return Vector2i(int(value.get("x", 0)), int(value.get("y", 0)))
+		if tagged_type == "Vector2":
+			return Vector2(float(value.get("x", 0.0)), float(value.get("y", 0.0)))
+		var denormalized: Dictionary = {}
+		for key in value.keys():
+			if String(key) == "__type":
+				continue
+			denormalized[key] = _denormalize_variant(value[key])
+		return denormalized
+	if value is Array:
+		var denormalized_array: Array = []
+		for entry in value:
+			denormalized_array.append(_denormalize_variant(entry))
+		return denormalized_array
+	return value
+
+
 func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dictionary]) -> void:
 	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
 		return
@@ -244,30 +533,34 @@ func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dicti
 		if player.player_slot == controlled_slot:
 			continue
 
-		var grid_pos: Variant = entry.get("grid_pos", Vector2i(player.cell_x, player.cell_y))
-		var move_progress: Variant = entry.get("move_progress", Vector2i(player.offset_x, player.offset_y))
-		var move_dir: Variant = entry.get("move_dir", Vector2i(player.last_non_zero_move_x, player.last_non_zero_move_y))
+		var resolved_grid := _resolve_summary_vector2i(
+			entry,
+			"grid_pos",
+			"grid_cell_x",
+			"grid_cell_y",
+			Vector2i(player.cell_x, player.cell_y)
+		)
+		var resolved_move_progress := _resolve_summary_vector2i(
+			entry,
+			"move_progress",
+			"move_progress_x",
+			"move_progress_y",
+			Vector2i(player.offset_x, player.offset_y)
+		)
+		var resolved_move_dir := _resolve_summary_vector2i(
+			entry,
+			"move_dir",
+			"move_dir_x",
+			"move_dir_y",
+			Vector2i(player.last_non_zero_move_x, player.last_non_zero_move_y)
+		)
 
-		if grid_pos is Vector2i:
-			player.cell_x = grid_pos.x
-			player.cell_y = grid_pos.y
-		elif grid_pos is Vector2:
-			player.cell_x = int(grid_pos.x)
-			player.cell_y = int(grid_pos.y)
-
-		if move_progress is Vector2i:
-			player.offset_x = move_progress.x
-			player.offset_y = move_progress.y
-		elif move_progress is Vector2:
-			player.offset_x = int(move_progress.x)
-			player.offset_y = int(move_progress.y)
-
-		if move_dir is Vector2i:
-			player.last_non_zero_move_x = move_dir.x
-			player.last_non_zero_move_y = move_dir.y
-		elif move_dir is Vector2:
-			player.last_non_zero_move_x = int(move_dir.x)
-			player.last_non_zero_move_y = int(move_dir.y)
+		player.cell_x = resolved_grid.x
+		player.cell_y = resolved_grid.y
+		player.offset_x = resolved_move_progress.x
+		player.offset_y = resolved_move_progress.y
+		player.last_non_zero_move_x = resolved_move_dir.x
+		player.last_non_zero_move_y = resolved_move_dir.y
 
 		player.alive = bool(entry.get("alive", player.alive))
 		player.life_state = int(entry.get("life_state", player.life_state))
@@ -278,6 +571,34 @@ func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dicti
 
 	if any_updated:
 		predicted_world.rebuild_runtime_indexes()
+
+
+func _resolve_summary_vector2i(
+	entry: Dictionary,
+	legacy_vector_key: String,
+	x_key: String,
+	y_key: String,
+	default_value: Vector2i
+) -> Vector2i:
+	if entry.has(x_key) or entry.has(y_key):
+		return Vector2i(
+			int(entry.get(x_key, default_value.x)),
+			int(entry.get(y_key, default_value.y))
+		)
+
+	var raw_value: Variant = entry.get(legacy_vector_key, default_value)
+	if raw_value is Vector2i:
+		return raw_value
+	if raw_value is Vector2:
+		return Vector2i(int(raw_value.x), int(raw_value.y))
+	if raw_value is Dictionary:
+		return Vector2i(
+			int(raw_value.get("x", default_value.x)),
+			int(raw_value.get("y", default_value.y))
+		)
+	if raw_value is Array and raw_value.size() >= 2:
+		return Vector2i(int(raw_value[0]), int(raw_value[1]))
+	return default_value
 
 
 func _find_predicted_player_for_summary(predicted_world: SimWorld, entry: Dictionary) -> PlayerState:

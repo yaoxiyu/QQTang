@@ -80,10 +80,18 @@ func _apply_profile_from_request(request: LoginRequest) -> void:
 		return
 	player_profile_state.profile_id = request.profile_id.strip_edges()
 	player_profile_state.nickname = request.nickname.strip_edges()
-	player_profile_state.default_character_id = request.default_character_id.strip_edges()
-	player_profile_state.default_character_skin_id = request.default_character_skin_id.strip_edges()
-	player_profile_state.default_bubble_style_id = request.default_bubble_style_id.strip_edges()
-	player_profile_state.default_bubble_skin_id = request.default_bubble_skin_id.strip_edges()
+	var default_character_id := request.default_character_id.strip_edges()
+	var default_character_skin_id := request.default_character_skin_id.strip_edges()
+	var default_bubble_style_id := request.default_bubble_style_id.strip_edges()
+	var default_bubble_skin_id := request.default_bubble_skin_id.strip_edges()
+	if not default_character_id.is_empty():
+		player_profile_state.default_character_id = default_character_id
+	if not default_character_skin_id.is_empty():
+		player_profile_state.default_character_skin_id = default_character_skin_id
+	if not default_bubble_style_id.is_empty():
+		player_profile_state.default_bubble_style_id = default_bubble_style_id
+	if not default_bubble_skin_id.is_empty():
+		player_profile_state.default_bubble_skin_id = default_bubble_skin_id
 
 
 func _apply_settings_from_request(request: LoginRequest) -> void:

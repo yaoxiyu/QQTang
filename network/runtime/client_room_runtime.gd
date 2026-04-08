@@ -17,6 +17,8 @@ var _transport: ENetBattleTransport = null
 var _last_snapshot: RoomSnapshot = null
 var _connected: bool = false
 var _connecting: bool = false
+var _pending_leave_disconnect: bool = false
+var _leave_disconnect_deadline_msec: int = 0
 
 
 func _process(_delta: float) -> void:
@@ -25,6 +27,8 @@ func _process(_delta: float) -> void:
 	_transport.poll()
 	for message in _transport.consume_incoming():
 		_route_message(message)
+	if _pending_leave_disconnect and Time.get_ticks_msec() >= _leave_disconnect_deadline_msec:
+		_shutdown_transport()
 
 
 func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> void:
@@ -44,6 +48,8 @@ func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> voi
 
 
 func disconnect_from_server() -> void:
+	_pending_leave_disconnect = false
+	_leave_disconnect_deadline_msec = 0
 	_shutdown_transport()
 
 
@@ -133,6 +139,21 @@ func request_start_match() -> void:
 	})
 
 
+func request_leave_room() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_LEAVE,
+	})
+
+
+func request_leave_room_and_disconnect() -> void:
+	request_leave_room()
+	if _transport == null or not _transport.is_transport_connected():
+		_shutdown_transport()
+		return
+	_pending_leave_disconnect = true
+	_leave_disconnect_deadline_msec = Time.get_ticks_msec() + 1500
+
+
 func send_battle_input(message: Dictionary) -> void:
 	_send_to_server(message)
 
@@ -161,6 +182,9 @@ func _route_message(message: Dictionary) -> void:
 				room_joined.emit(_last_snapshot)
 		TransportMessageTypesScript.ROOM_JOIN_REJECTED:
 			room_error.emit("ROOM_JOIN_FAILED", String(message.get("user_message", "Room join failed")))
+		TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED:
+			if _pending_leave_disconnect:
+				_shutdown_transport()
 		TransportMessageTypesScript.ROOM_SNAPSHOT:
 			var snapshot := RoomSnapshot.from_dict(message.get("snapshot", {}))
 			_last_snapshot = snapshot
@@ -191,6 +215,8 @@ func _send_to_server(message: Dictionary) -> void:
 func _on_transport_connected() -> void:
 	_connected = true
 	_connecting = false
+	_pending_leave_disconnect = false
+	_leave_disconnect_deadline_msec = 0
 	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(_transport.get_local_peer_id())
@@ -200,6 +226,8 @@ func _on_transport_connected() -> void:
 func _on_transport_disconnected() -> void:
 	_connected = false
 	_connecting = false
+	_pending_leave_disconnect = false
+	_leave_disconnect_deadline_msec = 0
 	var app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
 		app_runtime.set_local_peer_id(1)
@@ -214,6 +242,8 @@ func _on_transport_error(_code: int, message: String) -> void:
 func _shutdown_transport() -> void:
 	_connected = false
 	_connecting = false
+	_pending_leave_disconnect = false
+	_leave_disconnect_deadline_msec = 0
 	_last_snapshot = null
 	if _transport != null:
 		_transport.shutdown()

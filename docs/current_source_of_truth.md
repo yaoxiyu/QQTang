@@ -51,7 +51,21 @@
 - 玩家位置真相当前采用 `cell_x/cell_y + offset_x/offset_y` 组合表达
 - `cell_x/cell_y` 表示当前站位归属格, `offset_x/offset_y` 表示格内平滑位移
 - 移动阻挡判定仍以目标格查询为准, 角色不能进入被阻挡格与可走格之间的非法中间态
-- 泡泡放置仍严格对齐格中心, 放置归属格以玩家当前 `cell_x/cell_y` 为准
+- 泡泡、道具、玩家逻辑锚点仍以格心为准
+- 泡泡放置归属格**不是**简单取玩家当前 `cell_x/cell_y`
+- 当前正式规则由 `res://gameplay/simulation/movement/bubble_place_resolver.gd` 统一定义:
+  - 基于 `cell_x/cell_y + offset_x/offset_y + facing`
+  - 允许前向放置窗口 `MovementTuning.bubble_forward_place_window_units()`
+  - 侧向 tie-break 随朝向决定吸附到相邻格
+- `BubblePlacementSystem` 与 dedicated server 客户端本地放泡前置门控必须复用同一套 resolver, 不允许各自维护独立判定逻辑
+- dedicated server 模式下, 客户端 `action_place` 只允许做输入门控, 不允许本地预测生成 authority-only 泡泡/道具结果
+- dedicated server 权威消息当前必须携带:
+  - `players` 位置摘要
+  - `bubbles`
+  - `items`
+  - `events`
+  - `CHECKPOINT` 额外携带 `walls` 与 `mode_state`
+- 客户端预测世界在 dedicated server 模式下要把上述 authority sideband 恢复进本地 world, 表现层只消费该权威恢复后的结果
 
 ## 2.2 正式玩法入口已经不是早期测试场景
 
@@ -75,6 +89,9 @@
   - 当前正式客户端主入口
 - `res://scenes/front/login_scene.tscn`
   - 正式登录前台场景
+  - 当前只负责认证信息与服务器连接端点输入
+  - 不负责角色 / 角色皮肤 / 泡泡 / 泡泡皮肤选择
+  - 角色 / 泡泡及其皮肤属于玩家档案与房间内 loadout 语义, 不属于登录校验语义
 - `res://scenes/front/lobby_scene.tscn`
   - 正式大厅前台场景
 - `res://scenes/front/room_scene.tscn`
@@ -200,6 +217,8 @@
 - 新增联机控制逻辑优先进入这里
 - 不再新增新的正式联机逻辑到早期 legacy 路径
 - UI 控制、网络状态、连接状态展示逻辑应逐步从胖 bootstrap 中拆开
+- `res://network/session/runtime/client_runtime.gd` 是 dedicated server 客户端权威 sideband 恢复、放泡输入门控与 authority event 缓存的当前正式落点
+- `res://network/session/runtime/server_session.gd` 是 dedicated server 权威 `STATE_SUMMARY / CHECKPOINT / events` 打包出口
 
 ## 3.3 `res://gameplay/battle/`
 
@@ -562,6 +581,18 @@ Practice 路径进一步约束为：
 - Practice Room 不再依赖 `RuntimeDebugTools` 自动补远端成员
 - Practice Room 的最小开战人数由房间权威状态控制，当前正式值为 `1`
 
+离开房间生命周期进一步约束为：
+
+- 离开 online private room 时，客户端必须：
+  - 显式发送 `ROOM_LEAVE`
+  - 等待 dedicated server 返回 `ROOM_LEAVE_ACCEPTED` 后再断开 dedicated server room transport
+  - 若短时间内未收到 `ROOM_LEAVE_ACCEPTED`，客户端才允许走超时断连兜底
+  - 清空本地 `RoomSessionController` 状态
+  - 清空 `current_room_snapshot` 与 `current_room_entry_context`
+- 客户端离房后到真正断开 transport 之前，迟到的 room snapshot 不允许重新污染本地 Room 状态
+- dedicated server 房间在最后一个成员离开后，必须重置整间 `room_state`
+- 不允许保留旧 room id、旧成员 profile、旧 ready 状态进入下一次建房 / 加房流程
+
 ## 5.2 地图与规则必须走数据驱动
 
 当前正式规范要求：
@@ -605,6 +636,21 @@ Battle 的正式启动应理解为：
 - `battle_player_visual_profile_builder.gd` 当前会对角色动画视觉装配失败输出明确错误日志
 - `player_actor_view.gd` 正式消费 body scene + animation set + skin overlay
 - `character_sprite_body_view.gd` 当前动画切换优先按输入状态驱动，再回退到 `move_state`
+
+## 5.4 Dedicated Server 联机同步约束
+
+当前 dedicated server 正式同步约束为：
+
+1. 服务端仿真仍是唯一玩法权威
+2. 客户端预测世界只保留本地移动预测，不在 dedicated server 模式下预测 authority-only 泡泡/道具生成结果
+3. 服务端 `STATE_SUMMARY` 当前必须提供 `bubbles/items/events`
+4. 服务端 `CHECKPOINT` 当前必须提供 `players/bubbles/items/walls/mode_state/events`
+5. 客户端 `ClientRuntime` 负责把这些权威 sideband 恢复进本地预测世界，再交给 presentation bridge 消费
+6. 泡泡与道具这类 authority-only 实体的恢复必须按服务端 `entity_id` 直接恢复, 不允许先本地分配 id 再覆写
+7. breakable block 视图必须和权威 grid 双向同步:
+   - 不仅删除已消失 block
+   - 也要在 rollback / resync 后补回重新出现的 block
+8. 调试日志可以存在，但 anomaly / trace 日志默认不应成为正式业务真相的一部分
 
 ---
 

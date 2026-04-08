@@ -14,6 +14,8 @@ var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
 var local_peer_id: int = 0
 var last_authoritative_tick: int = 0
 var max_rollback_window: int = 16
+var compare_bubbles: bool = true
+var compare_items: bool = true
 var rollback_count: int = 0
 var last_rollback_from_tick: int = -1
 var avg_replay_ticks: float = 0.0
@@ -27,7 +29,9 @@ func configure(
 	p_snapshot_buffer: SnapshotBuffer,
 	p_local_input_buffer: InputRingBuffer,
 	p_local_peer_id: int,
-	p_max_rollback_window: int = 16
+	p_max_rollback_window: int = 16,
+	p_compare_bubbles: bool = true,
+	p_compare_items: bool = true
 ) -> void:
 	predicted_sim_world = p_predicted_sim_world
 	snapshot_service = p_snapshot_service
@@ -35,6 +39,8 @@ func configure(
 	local_input_buffer = p_local_input_buffer
 	local_peer_id = p_local_peer_id
 	max_rollback_window = max(1, p_max_rollback_window)
+	compare_bubbles = p_compare_bubbles
+	compare_items = p_compare_items
 	predicted_until_tick = 0
 
 
@@ -49,6 +55,8 @@ func dispose() -> void:
 	local_input_buffer = null
 	local_peer_id = 0
 	last_authoritative_tick = 0
+	compare_bubbles = true
+	compare_items = true
 	rollback_count = 0
 	last_rollback_from_tick = -1
 	avg_replay_ticks = 0.0
@@ -172,9 +180,9 @@ func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot:
 		return true
 	if not _has_matching_local_player_entry(authoritative_snapshot.players, local_snapshot.players):
 		return true
-	if authoritative_snapshot.bubbles.size() != local_snapshot.bubbles.size():
+	if compare_bubbles and authoritative_snapshot.bubbles.size() != local_snapshot.bubbles.size():
 		return true
-	if authoritative_snapshot.items.size() != local_snapshot.items.size():
+	if compare_items and authoritative_snapshot.items.size() != local_snapshot.items.size():
 		return true
 	return false
 
@@ -185,8 +193,8 @@ func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: W
 
 	return (
 		_local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players)
-		and _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles)
-		and _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items)
+		and (not compare_bubbles or _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles))
+		and (not compare_items or _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items))
 	)
 
 

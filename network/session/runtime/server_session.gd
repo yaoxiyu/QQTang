@@ -1,6 +1,8 @@
 class_name ServerSession
 extends Node
 
+const TRACE_PREFIX := "[qq_battle_trace]"
+
 var room_session: RoomSession = RoomSession.new()
 var active_match: BattleMatch = null
 var outgoing_messages: Array[Dictionary] = []
@@ -78,10 +80,22 @@ func _tick_world(_tick_id: int) -> void:
 		return
 
 	var tick_id := int(result.get("tick", 0))
+	var snapshot: WorldSnapshot = active_match.get_snapshot(tick_id)
+	var events: Array = _serialize_events(result.get("events", []))
+	if not events.is_empty():
+		print("%s[server_session] events tick=%d count=%d types=%s" % [
+			TRACE_PREFIX,
+			tick_id,
+			events.size(),
+			str(_extract_event_types(events)),
+		])
 	_queue_message({
 		"msg_type": "STATE_SUMMARY",
 		"tick": tick_id,
 		"player_summary": active_match.build_player_position_summary(),
+		"bubbles": snapshot.bubbles if snapshot != null else [],
+		"items": snapshot.items if snapshot != null else [],
+		"events": events,
 		"checksum": active_match.compute_checksum(tick_id)
 	})
 
@@ -126,6 +140,44 @@ func _queue_message(message: Dictionary) -> void:
 
 func _make_match_id() -> String:
 	return "%s_%d" % [room_session.room_id, Time.get_ticks_msec()]
+
+
+func _serialize_events(raw_events: Array) -> Array[Dictionary]:
+	var serialized: Array[Dictionary] = []
+	for raw_event in raw_events:
+		if raw_event == null:
+			continue
+		serialized.append({
+			"tick": int(raw_event.tick),
+			"event_type": int(raw_event.event_type),
+			"payload": _normalize_variant(raw_event.payload),
+		})
+	return serialized
+
+
+func _extract_event_types(events: Array[Dictionary]) -> Array[int]:
+	var event_types: Array[int] = []
+	for event in events:
+		event_types.append(int(event.get("event_type", -1)))
+	return event_types
+
+
+func _normalize_variant(value: Variant) -> Variant:
+	if value is Vector2i:
+		return {"x": value.x, "y": value.y, "__type": "Vector2i"}
+	if value is Vector2:
+		return {"x": value.x, "y": value.y, "__type": "Vector2"}
+	if value is Dictionary:
+		var normalized: Dictionary = {}
+		for key in value.keys():
+			normalized[key] = _normalize_variant(value[key])
+		return normalized
+	if value is Array:
+		var normalized_array: Array = []
+		for entry in value:
+			normalized_array.append(_normalize_variant(entry))
+		return normalized_array
+	return value
 
 
 func _exit_tree() -> void:

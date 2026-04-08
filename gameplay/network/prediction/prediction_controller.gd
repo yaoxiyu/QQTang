@@ -19,7 +19,9 @@ func configure(
 	p_predicted_sim_world: SimWorld,
 	p_snapshot_service: SnapshotService,
 	p_local_input_buffer: InputRingBuffer,
-	p_local_peer_id: int
+	p_local_peer_id: int,
+	p_compare_bubbles: bool = true,
+	p_compare_items: bool = true
 ) -> void:
 	predicted_sim_world = p_predicted_sim_world
 	snapshot_service = p_snapshot_service
@@ -28,7 +30,16 @@ func configure(
 	predicted_until_tick = 0
 	authoritative_tick = 0
 	_ensure_rollback_controller()
-	rollback_controller.configure(predicted_sim_world, snapshot_service, snapshot_buffer, local_input_buffer, local_peer_id)
+	rollback_controller.configure(
+		predicted_sim_world,
+		snapshot_service,
+		snapshot_buffer,
+		local_input_buffer,
+		local_peer_id,
+		16,
+		p_compare_bubbles,
+		p_compare_items
+	)
 
 
 func predict_to_tick(target_tick: int) -> void:

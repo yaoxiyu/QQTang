@@ -67,9 +67,19 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
+	if room_client_gateway != null and _is_online_room():
+		if room_client_gateway.has_method("request_leave_room_and_disconnect"):
+			room_client_gateway.request_leave_room_and_disconnect()
+		else:
+			room_client_gateway.request_leave_room()
 	var room_controller: Node = app_runtime.room_session_controller
-	if room_controller != null and room_controller.has_method("leave_room"):
-		room_controller.leave_room(int(app_runtime.local_peer_id))
+	if room_controller != null and room_controller.has_method("reset_room_state"):
+		room_controller.reset_room_state()
+	app_runtime.current_room_snapshot = null
+	app_runtime.current_room_entry_context = null
+	_pending_online_entry_context = null
+	_pending_connection_config = null
+	_await_room_before_enter = false
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_lobby"):
 		app_runtime.front_flow.enter_lobby()
 	return {"ok": true, "error_code": "", "user_message": ""}
@@ -137,8 +147,11 @@ func start_match() -> Dictionary:
 func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return
+	if app_runtime.current_room_entry_context == null and _pending_online_entry_context == null:
+		return
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = snapshot.duplicate_deep() if snapshot != null else null
+	_update_reconnect_state(snapshot)
 
 
 func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
@@ -207,6 +220,28 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	_pending_online_entry_context = null
 	_pending_connection_config = null
 	_await_room_before_enter = false
+
+
+func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
+	if app_runtime == null or app_runtime.front_settings_state == null or snapshot == null:
+		return
+	if String(snapshot.topology) != FrontTopologyScript.DEDICATED_SERVER:
+		return
+	if snapshot.room_id.is_empty():
+		return
+	app_runtime.front_settings_state.last_room_id = snapshot.room_id
+	app_runtime.front_settings_state.reconnect_room_id = snapshot.room_id
+	var server_host := ""
+	var server_port := 0
+	if app_runtime.current_room_entry_context != null:
+		server_host = String(app_runtime.current_room_entry_context.server_host)
+		server_port = int(app_runtime.current_room_entry_context.server_port)
+	if server_host.strip_edges().is_empty():
+		server_host = String(app_runtime.front_settings_state.last_server_host)
+	if server_port <= 0:
+		server_port = int(app_runtime.front_settings_state.last_server_port)
+	app_runtime.front_settings_state.reconnect_host = server_host
+	app_runtime.front_settings_state.reconnect_port = server_port
 
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:

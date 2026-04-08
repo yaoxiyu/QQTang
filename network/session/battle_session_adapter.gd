@@ -495,9 +495,10 @@ func _emit_client_runtime_tick() -> void:
 	current_context.sim_world = prediction_controller.predicted_sim_world
 	current_context.tick_runner = prediction_controller.predicted_sim_world.tick_runner if prediction_controller.predicted_sim_world != null else null
 	var world: SimWorld = current_context.sim_world
+	var authoritative_events: Array = _bootstrap_client_runtime.consume_pending_authoritative_events() if _bootstrap_client_runtime != null and _bootstrap_client_runtime.has_method("consume_pending_authoritative_events") else []
 	var tick_result := {
 		"tick": world.state.match_state.tick if world != null else 0,
-		"events": world.events.get_events() if world != null and world.events != null else [],
+		"events": authoritative_events if not authoritative_events.is_empty() else (world.events.get_events() if world != null and world.events != null else []),
 		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
 	}
 	authoritative_tick_completed.emit(current_context, tick_result, _build_runtime_metrics())

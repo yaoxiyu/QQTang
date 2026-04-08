@@ -23,6 +23,20 @@ var members: Dictionary = {}
 var ready_map: Dictionary = {}
 
 
+func reset() -> void:
+	room_id = ""
+	room_kind = "private_room"
+	topology = "dedicated_server"
+	owner_peer_id = 0
+	max_players = 8
+	selected_map_id = MapCatalogScript.get_default_map_id()
+	selected_rule_id = RuleSetCatalogScript.get_default_rule_id()
+	selected_mode_id = ModeCatalogScript.get_default_mode_id()
+	min_start_players = 2
+	members.clear()
+	ready_map.clear()
+
+
 func ensure_room(next_room_id: String, peer_id: int) -> void:
 	if room_id.is_empty():
 		room_id = next_room_id if not next_room_id.is_empty() else "room_%d" % peer_id

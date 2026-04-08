@@ -61,7 +61,7 @@ func apply_grid_cache(grid_cache: Dictionary, p_cell_size: float) -> void:
 	_grid_cache = grid_cache.duplicate(true)
 	cell_size = p_cell_size
 	_sync_ground_tiles_from_grid_cache()
-	_prune_missing_breakable_views_from_grid_cache()
+	_sync_breakable_views_from_grid_cache()
 
 
 func clear_map() -> void:
@@ -285,15 +285,37 @@ func _sync_ground_tiles_from_grid_cache() -> void:
 			spawn_view.queue_free()
 
 
-func _prune_missing_breakable_views_from_grid_cache() -> void:
-	if _breakable_views_by_cell.is_empty():
+func _sync_breakable_views_from_grid_cache() -> void:
+	if breakable_block_layer == null or _map_theme == null:
 		return
 	var alive_breakable_cells := {}
+	var presentation_id := String(_map_theme.breakable_presentation_id)
+	var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
+	if presentation == null or presentation.tile_scene == null:
+		return
+	var breakable_texture := _theme_materials.get("breakable_block", null) as Texture2D
 	for cell_data in _grid_cache.get("cells", []):
 		if int(cell_data.get("tile_type", TileConstants.TileType.EMPTY)) != TileConstants.TileType.BREAKABLE_BLOCK:
 			continue
 		var cell := Vector2i(int(cell_data.get("x", 0)), int(cell_data.get("y", 0)))
 		alive_breakable_cells[cell] = true
+		if _breakable_views_by_cell.has(cell):
+			continue
+		var view := presentation.tile_scene.instantiate()
+		if view == null or not view is Node2D:
+			continue
+		var node := view as Node2D
+		node.position = Vector2(cell.x, cell.y) * cell_size
+		if node.has_method("configure"):
+			node.configure(
+				cell_size,
+				_resolve_palette_color("breakable", Color(0.70, 0.50, 0.28, 1.0)),
+				float(presentation.height_px)
+			)
+		if breakable_texture != null and node.has_method("set_texture"):
+			node.set_texture(breakable_texture)
+		breakable_block_layer.add_child(node)
+		_breakable_views_by_cell[cell] = node
 
 	var stale_cells: Array[Vector2i] = []
 	for cell_variant in _breakable_views_by_cell.keys():

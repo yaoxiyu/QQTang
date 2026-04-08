@@ -27,6 +27,7 @@ const FORMAL_FRONT_SCENES := {
 	"res://scenes/front/room_scene.tscn": [
 		"RoomRoot",
 		"RoomRoot/MainLayout/TopBar/BackToLobbyButton",
+		"RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel",
 		"RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector",
 		"RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList",
 		"RoomRoot/MainLayout/ActionRow/ReadyButton",

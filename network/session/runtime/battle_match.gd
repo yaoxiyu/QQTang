@@ -93,9 +93,12 @@ func build_player_position_summary() -> Array[Dictionary]:
 			"player_slot": player.player_slot,
 			"alive": player.alive,
 			"life_state": player.life_state,
-			"grid_pos": Vector2i(player.cell_x, player.cell_y),
-			"move_dir": Vector2i(player.last_non_zero_move_x, player.last_non_zero_move_y),
-			"move_progress": Vector2i(player.offset_x, player.offset_y),
+			"grid_cell_x": player.cell_x,
+			"grid_cell_y": player.cell_y,
+			"move_dir_x": player.last_non_zero_move_x,
+			"move_dir_y": player.last_non_zero_move_y,
+			"move_progress_x": player.offset_x,
+			"move_progress_y": player.offset_y,
 			"facing": player.facing,
 			"move_state": player.move_state
 		})

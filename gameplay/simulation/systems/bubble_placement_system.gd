@@ -11,8 +11,8 @@
 class_name BubblePlacementSystem
 extends ISimSystem
 
-const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
-const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
+const BubblePlaceResolver = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
+const TRACE_PREFIX := "[qq_battle_trace]"
 
 # ====================
 # 系统接口
@@ -42,17 +42,31 @@ func execute(ctx: SimContext) -> void:
 
 		# 检查泡泡容量
 		if player.bomb_available <= 0:
+			print("%s[bubble_placement] tick=%d player=%d rejected=no_capacity available=%d" % [
+				TRACE_PREFIX,
+				ctx.tick,
+				player_id,
+				player.bomb_available,
+			])
 			ctx.state.players.update_player(player)
 			continue
 
 		# 检查脚下格
-		var place_cell := _resolve_bubble_place_cell(player)
+		var place_cell := BubblePlaceResolver.resolve_place_cell(player)
 		var cell_x := place_cell.x
 		var cell_y := place_cell.y
 
 		# 检查当前格是否有泡泡
 		var bubble_at_cell = ctx.queries.get_bubble_at(cell_x, cell_y)
 		if bubble_at_cell != -1:
+			print("%s[bubble_placement] tick=%d player=%d rejected=occupied cell=(%d,%d) bubble=%d" % [
+				TRACE_PREFIX,
+				ctx.tick,
+				player_id,
+				cell_x,
+				cell_y,
+				bubble_at_cell,
+			])
 			ctx.state.players.update_player(player)
 			continue
 
@@ -97,71 +111,3 @@ func execute(ctx: SimContext) -> void:
 			"explode_tick": explode_tick
 		}
 		ctx.events.push(placed_event)
-
-
-func _resolve_bubble_place_cell(player: PlayerState) -> Vector2i:
-	var abs_pos := GridMotionMath.get_player_abs_pos(player)
-	var forward_window_units := _bubble_forward_window_units()
-	match player.facing:
-		PlayerState.FacingDir.RIGHT:
-			return Vector2i(
-				_resolve_forward_axis_cell(abs_pos.x, true, forward_window_units),
-				_resolve_lateral_axis_cell(abs_pos.y, true)
-			)
-		PlayerState.FacingDir.LEFT:
-			return Vector2i(
-				_resolve_forward_axis_cell(abs_pos.x, false, forward_window_units),
-				_resolve_lateral_axis_cell(abs_pos.y, false)
-			)
-		PlayerState.FacingDir.UP:
-			return Vector2i(
-				_resolve_lateral_axis_cell(abs_pos.x, true),
-				_resolve_forward_axis_cell(abs_pos.y, false, forward_window_units)
-			)
-		_:
-			return Vector2i(
-				_resolve_lateral_axis_cell(abs_pos.x, false),
-				_resolve_forward_axis_cell(abs_pos.y, true, forward_window_units)
-			)
-
-
-func _bubble_forward_window_units() -> int:
-	return MovementTuning.bubble_forward_place_window_units()
-
-
-func _resolve_forward_axis_cell(abs_value: int, positive_forward: bool, forward_window_units: int) -> int:
-	var axis := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
-	var cell := int(axis["cell_x"])
-	var offset := int(axis["offset_x"])
-	var front_cell := cell
-	var back_cell := cell
-
-	if positive_forward:
-		if offset <= 0:
-			front_cell = cell
-			back_cell = cell - 1
-		else:
-			front_cell = cell + 1
-			back_cell = cell
-	else:
-		if offset >= 0:
-			front_cell = cell
-			back_cell = cell + 1
-		else:
-			front_cell = cell - 1
-			back_cell = cell
-
-	var front_center := GridMotionMath.get_cell_center_abs_x(front_cell)
-	var front_distance : int = abs(abs_value - front_center)
-	if front_distance <= forward_window_units:
-		return front_cell
-	return back_cell
-
-
-func _resolve_lateral_axis_cell(abs_value: int, prefer_positive_on_tie: bool) -> int:
-	var axis := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
-	var cell := int(axis["cell_x"])
-	var offset := int(axis["offset_x"])
-	if offset == -GridMotionMath.HALF_CELL_UNITS:
-		return cell if prefer_positive_on_tie else cell - 1
-	return cell

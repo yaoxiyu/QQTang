@@ -11,6 +11,9 @@ const ItemSpawnFxPlayerScript = preload("res://presentation/battle/fx/item_spawn
 const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
+const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const TRACE_PREFIX := "[qq_battle_trace]"
+const LOG_FX_ANOMALIES := false
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
 @export var actor_layer_path: NodePath = ^"../../WorldRoot/ActorLayer"
@@ -82,6 +85,7 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_players(actor_layer, state_to_view_mapper.build_player_views(world))
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
+	_log_actor_sync_anomalies(world, tick_id, events)
 	battle_event_router.route_events(events)
 	_last_consumed_tick = tick_id
 
@@ -165,6 +169,74 @@ func set_local_player_entity_id(entity_id: int) -> void:
 	if state_to_view_mapper == null:
 		return
 	state_to_view_mapper.set_local_player_entity_id(entity_id)
+
+
+func _log_actor_sync_anomalies(world: SimWorld, tick_id: int, events: Array) -> void:
+	if actor_registry == null or world == null:
+		return
+	var actor_summary := actor_registry.debug_dump_actor_summary()
+	var world_bubbles := world.state.bubbles.active_ids.size()
+	var world_items := world.state.items.active_ids.size()
+	var actor_bubbles := int(actor_summary.get("bubbles", 0))
+	var actor_items := int(actor_summary.get("items", 0))
+	if world_bubbles != actor_bubbles:
+		print("%s[presentation_bridge] anomaly=bubble_view_count_mismatch tick=%d world_bubbles=%d actor_bubbles=%d" % [
+			TRACE_PREFIX,
+			tick_id,
+			world_bubbles,
+			actor_bubbles,
+		])
+	if world_items != actor_items:
+		print("%s[presentation_bridge] anomaly=item_view_count_mismatch tick=%d world_items=%d actor_items=%d" % [
+			TRACE_PREFIX,
+			tick_id,
+			world_items,
+			actor_items,
+		])
+	if _contains_bubble_placed_without_actor(world, events):
+		print("%s[presentation_bridge] anomaly=bubble_placed_without_actor tick=%d world_bubbles=%d actor_bubbles=%d" % [
+			TRACE_PREFIX,
+			tick_id,
+			world_bubbles,
+			actor_bubbles,
+		])
+	if LOG_FX_ANOMALIES and _contains_fx_worthy_event(events) and fx_layer != null and fx_layer.get_child_count() <= 0:
+		print("%s[presentation_bridge] anomaly=events_without_fx tick=%d event_count=%d" % [
+			TRACE_PREFIX,
+			tick_id,
+			events.size(),
+		])
+
+
+func _contains_fx_worthy_event(events: Array) -> bool:
+	for event in events:
+		if event == null:
+			continue
+		match int(event.event_type):
+			SimEventScript.EventType.BUBBLE_EXPLODED, \
+			SimEventScript.EventType.CELL_DESTROYED, \
+			SimEventScript.EventType.ITEM_SPAWNED, \
+			SimEventScript.EventType.ITEM_PICKED:
+				return true
+			_:
+				pass
+	return false
+
+
+func _contains_bubble_placed_without_actor(world: SimWorld, events: Array) -> bool:
+	if actor_registry == null or world == null:
+		return false
+	for event in events:
+		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_PLACED:
+			continue
+		var bubble_id := int(event.payload.get("bubble_id", -1))
+		if bubble_id < 0:
+			continue
+		if world.state.bubbles.get_bubble(bubble_id) == null:
+			return true
+		if actor_registry.get_actor_view(bubble_id) == null:
+			return true
+	return false
 
 
 func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:

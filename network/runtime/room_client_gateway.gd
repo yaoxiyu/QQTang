@@ -94,6 +94,18 @@ func request_start_match() -> void:
 	client_room_runtime.request_start_match()
 
 
+func request_leave_room() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_leave_room()
+
+
+func request_leave_room_and_disconnect() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_leave_room_and_disconnect()
+
+
 func _connect_runtime_signals() -> void:
 	if client_room_runtime == null:
 		return

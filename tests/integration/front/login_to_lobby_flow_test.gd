@@ -2,8 +2,6 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
-const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
 
 
@@ -44,8 +42,6 @@ func _test_pass_through_login_updates_runtime_state() -> void:
 	var request := LoginRequestScript.new()
 	request.profile_id = "guest_profile"
 	request.nickname = "FrontTester"
-	request.default_character_id = CharacterCatalogScript.get_default_character_id()
-	request.default_bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
 	request.server_host = "127.0.0.1"
 	request.server_port = 9000
 

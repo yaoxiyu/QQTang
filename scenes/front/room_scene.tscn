@@ -59,8 +59,14 @@ theme_override_constants/separation = 6
 [node name="RoomKindLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=560789466]
 layout_mode = 2
 
-[node name="RoomIdValueLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1163507156]
+[node name="RoomIdRow" type="HBoxContainer" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=352480011]
 layout_mode = 2
+
+[node name="RoomIdValueLabel" type="LineEdit" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow" unique_id=1163507156]
+layout_mode = 2
+size_flags_horizontal = 3
+editable = false
+select_all_on_focus = true
 
 [node name="ConnectionStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=140237068]
 layout_mode = 2

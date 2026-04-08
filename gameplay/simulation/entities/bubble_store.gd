@@ -95,6 +95,45 @@ func spawn_bubble(
 
 	return bubble.entity_id
 
+
+func restore_bubble_from_snapshot(data: Dictionary) -> int:
+	var entity_id := int(data.get("entity_id", -1))
+	if entity_id < 0:
+		return -1
+	var bubble := BubbleState.new()
+	bubble.entity_id = entity_id
+	bubble.generation = int(data.get("generation", 1))
+	bubble.alive = bool(data.get("alive", true))
+	bubble.owner_player_id = int(data.get("owner_player_id", -1))
+	bubble.bubble_type = int(data.get("bubble_type", bubble.bubble_type))
+	bubble.cell_x = int(data.get("cell_x", 0))
+	bubble.cell_y = int(data.get("cell_y", 0))
+	bubble.spawn_tick = int(data.get("spawn_tick", 0))
+	bubble.explode_tick = int(data.get("explode_tick", 0))
+	bubble.bubble_range = int(data.get("bubble_range", 1))
+	bubble.moving_state = int(data.get("moving_state", BubbleState.MovingState.STATIC))
+	bubble.move_dir_x = int(data.get("move_dir_x", 0))
+	bubble.move_dir_y = int(data.get("move_dir_y", 0))
+	bubble.pierce = bool(data.get("pierce", false))
+	bubble.chain_triggered = bool(data.get("chain_triggered", false))
+	bubble.remote_group_id = int(data.get("remote_group_id", 0))
+	bubble.ignore_player_ids.clear()
+	for ignored_player_id in data.get("ignore_player_ids", []):
+		bubble.ignore_player_ids.append(int(ignored_player_id))
+
+	while _states.size() <= entity_id:
+		_states.append(null)
+		_generations.append(0)
+
+	_states[entity_id] = bubble
+	_generations[entity_id] = bubble.generation
+	if bubble.alive and not active_ids.has(entity_id):
+		active_ids.append(entity_id)
+	active_ids.sort()
+	next_entity_id = max(next_entity_id, entity_id + 1)
+	free_ids.erase(entity_id)
+	return entity_id
+
 # 标记泡泡销毁
 func despawn_bubble(bubble_id: int) -> void:
 	if not has(bubble_id):

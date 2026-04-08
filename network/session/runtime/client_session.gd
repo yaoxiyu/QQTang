@@ -20,10 +20,15 @@ func configure(peer_id: int, ring_capacity: int = 64) -> void:
 	outgoing_input_frames.clear()
 
 
-func send_input(frame: PlayerInputFrame) -> void:
+func send_input(frame: PlayerInputFrame, prediction_frame: PlayerInputFrame = null) -> void:
 	frame.peer_id = local_peer_id
 	frame.sanitize()
-	local_input_buffer.put(frame)
+	if prediction_frame != null:
+		prediction_frame.peer_id = local_peer_id
+		prediction_frame.sanitize()
+		local_input_buffer.put(prediction_frame)
+	else:
+		local_input_buffer.put(frame)
 	outgoing_input_frames.append(frame)
 
 

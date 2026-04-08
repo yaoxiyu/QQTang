@@ -46,42 +46,6 @@ text = "Player1"
 [node name="PlayerNameInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=722437112]
 layout_mode = 2
 
-[node name="CharacterRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=821291347]
-layout_mode = 2
-
-[node name="CharacterLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterRow" unique_id=619264373]
-layout_mode = 2
-
-[node name="CharacterSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterRow" unique_id=946220885]
-layout_mode = 2
-
-[node name="CharacterSkinRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=234668356]
-layout_mode = 2
-
-[node name="CharacterSkinLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterSkinRow" unique_id=2059133043]
-layout_mode = 2
-
-[node name="CharacterSkinSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/CharacterSkinRow" unique_id=793074779]
-layout_mode = 2
-
-[node name="BubbleRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=1825632978]
-layout_mode = 2
-
-[node name="BubbleLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleRow" unique_id=727159326]
-layout_mode = 2
-
-[node name="BubbleSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleRow" unique_id=1443250003]
-layout_mode = 2
-
-[node name="BubbleSkinRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=80466986]
-layout_mode = 2
-
-[node name="BubbleSkinLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleSkinRow" unique_id=1292166828]
-layout_mode = 2
-
-[node name="BubbleSkinSelector" type="OptionButton" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/BubbleSkinRow" unique_id=649575435]
-layout_mode = 2
-
 [node name="EndpointCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1112918397]
 layout_mode = 2
 

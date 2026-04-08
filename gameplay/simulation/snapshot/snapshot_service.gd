@@ -184,92 +184,19 @@ func _capture_mode_state(sim_world: SimWorld) -> Dictionary:
 func _restore_players(sim_world: SimWorld, players: Array[Dictionary]) -> void:
 	sim_world.state.players.clear()
 	for data in players:
-		var player_id := sim_world.state.players.add_player(
-			int(data.get("player_slot", 0)),
-			int(data.get("team_id", 0)),
-			int(data.get("cell_x", 0)),
-			int(data.get("cell_y", 0))
-		)
-		var player := sim_world.state.players.get_player(player_id)
-		player.entity_id = int(data.get("entity_id", player.entity_id))
-		player.generation = int(data.get("generation", player.generation))
-		player.alive = bool(data.get("alive", true))
-		player.life_state = int(data.get("life_state", player.life_state))
-		player.offset_x = int(data.get("offset_x", 0))
-		player.offset_y = int(data.get("offset_y", 0))
-		player.last_place_bubble_pressed = bool(data.get("last_place_bubble_pressed", false))
-		player.move_phase_ticks = int(data.get("move_phase_ticks", 0))
-		player.facing = int(data.get("facing", player.facing))
-		player.move_state = int(data.get("move_state", player.move_state))
-		player.last_non_zero_move_x = int(data.get("last_non_zero_move_x", 0))
-		player.last_non_zero_move_y = int(data.get("last_non_zero_move_y", 0))
-		player.speed_level = int(data.get("speed_level", player.speed_level))
-		player.bomb_capacity = int(data.get("bomb_capacity", player.bomb_capacity))
-		player.bomb_available = int(data.get("bomb_available", player.bomb_available))
-		player.bomb_range = int(data.get("bomb_range", player.bomb_range))
-		player.bomb_fuse_ticks = int(data.get("bomb_fuse_ticks", player.bomb_fuse_ticks))
-		player.has_kick = bool(data.get("has_kick", false))
-		player.has_push = bool(data.get("has_push", false))
-		player.has_remote = bool(data.get("has_remote", false))
-		player.has_pierce = bool(data.get("has_pierce", false))
-		player.can_cross_own_bubble = bool(data.get("can_cross_own_bubble", false))
-		player.shield_ticks = int(data.get("shield_ticks", 0))
-		player.invincible_ticks = int(data.get("invincible_ticks", 0))
-		player.stun_ticks = int(data.get("stun_ticks", 0))
-		player.respawn_ticks = int(data.get("respawn_ticks", 0))
-		player.trap_bubble_id = int(data.get("trap_bubble_id", -1))
-		player.last_damage_from_player_id = int(data.get("last_damage_from_player_id", -1))
-		player.kills = int(data.get("kills", 0))
-		player.deaths = int(data.get("deaths", 0))
-		player.score = int(data.get("score", 0))
-		player.controller_type = int(data.get("controller_type", player.controller_type))
-		sim_world.state.players.update_player(player)
+		sim_world.state.players.restore_player_from_snapshot(data)
 
 
 func _restore_bubbles(sim_world: SimWorld, bubbles: Array[Dictionary]) -> void:
 	sim_world.state.bubbles.clear()
 	for data in bubbles:
-		var bubble_id := sim_world.state.bubbles.spawn_bubble(
-			int(data.get("owner_player_id", -1)),
-			int(data.get("cell_x", 0)),
-			int(data.get("cell_y", 0)),
-			int(data.get("bubble_range", 1)),
-			int(data.get("explode_tick", 0))
-		)
-		var bubble := sim_world.state.bubbles.get_bubble(bubble_id)
-		bubble.entity_id = int(data.get("entity_id", bubble.entity_id))
-		bubble.generation = int(data.get("generation", bubble.generation))
-		bubble.alive = bool(data.get("alive", true))
-		bubble.bubble_type = int(data.get("bubble_type", bubble.bubble_type))
-		bubble.spawn_tick = int(data.get("spawn_tick", bubble.spawn_tick))
-		bubble.moving_state = int(data.get("moving_state", bubble.moving_state))
-		bubble.move_dir_x = int(data.get("move_dir_x", 0))
-		bubble.move_dir_y = int(data.get("move_dir_y", 0))
-		bubble.pierce = bool(data.get("pierce", false))
-		bubble.chain_triggered = bool(data.get("chain_triggered", false))
-		bubble.remote_group_id = int(data.get("remote_group_id", 0))
-		bubble.ignore_player_ids.clear()
-		for ignored_player_id in data.get("ignore_player_ids", []):
-			bubble.ignore_player_ids.append(int(ignored_player_id))
-		sim_world.state.bubbles.update_bubble(bubble)
+		sim_world.state.bubbles.restore_bubble_from_snapshot(data)
 
 
 func _restore_items(sim_world: SimWorld, items: Array[Dictionary]) -> void:
 	sim_world.state.items.clear()
 	for data in items:
-		var item_id := sim_world.state.items.spawn_item(
-			int(data.get("item_type", 0)),
-			int(data.get("cell_x", 0)),
-			int(data.get("cell_y", 0)),
-			int(data.get("pickup_delay_ticks", 0))
-		)
-		var item := sim_world.state.items.get_item(item_id)
-		item.entity_id = int(data.get("entity_id", item.entity_id))
-		item.generation = int(data.get("generation", item.generation))
-		item.alive = bool(data.get("alive", true))
-		item.spawn_tick = int(data.get("spawn_tick", item.spawn_tick))
-		item.visible = bool(data.get("visible", true))
-		sim_world.state.items.update_item(item)
+		sim_world.state.items.restore_item_from_snapshot(data)
 
 
 func _restore_walls(sim_world: SimWorld, walls: Array[Dictionary]) -> void:

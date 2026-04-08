@@ -83,7 +83,7 @@ func _refresh_view() -> void:
 	if room_id_input != null:
 		room_id_input.text = String(view_state.last_room_id)
 	if recent_room_label != null:
-		recent_room_label.text = "Recent Room: %s" % String(view_state.last_room_id)
+		recent_room_label.text = "Recent Room: %s" % String(view_state.reconnect_room_id if not String(view_state.reconnect_room_id).is_empty() else view_state.last_room_id)
 	_select_metadata(practice_map_selector, String(view_state.preferred_map_id))
 	_select_metadata(practice_rule_selector, String(view_state.preferred_rule_id))
 	_select_metadata(practice_mode_selector, String(view_state.preferred_mode_id))
@@ -141,7 +141,22 @@ func _on_join_room_pressed() -> void:
 
 
 func _on_reconnect_pressed() -> void:
-	_on_join_room_pressed()
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_message("Lobby room flow is not available.")
+		return
+	var view_state = _app_runtime.lobby_use_case.enter_lobby().get("view_state", null)
+	var reconnect_room_id := String(view_state.reconnect_room_id if view_state != null else "").strip_edges()
+	var reconnect_host := String(view_state.reconnect_host if view_state != null else "").strip_edges()
+	var reconnect_port := int(view_state.reconnect_port if view_state != null else 0)
+	if reconnect_room_id.is_empty():
+		_set_message("No reconnect room is available.")
+		return
+	var result: Dictionary = _app_runtime.lobby_use_case.join_private_room(
+		reconnect_host,
+		reconnect_port,
+		reconnect_room_id
+	)
+	_handle_room_entry_result(result)
 
 
 func _on_logout_pressed() -> void:

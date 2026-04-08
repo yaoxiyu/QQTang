@@ -23,6 +23,8 @@ func handle_peer_disconnected(peer_id: int) -> void:
 	if room_state == null or not room_state.members.has(peer_id):
 		return
 	room_state.remove_member(peer_id)
+	if room_state.members.is_empty():
+		room_state.reset()
 	_broadcast_snapshot()
 
 
@@ -49,7 +51,7 @@ func handle_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_START_REQUEST:
 			_handle_start_request(message)
 		TransportMessageTypesScript.ROOM_LEAVE:
-			handle_peer_disconnected(int(message.get("sender_peer_id", 0)))
+			_handle_leave_request(message)
 		_:
 			pass
 
@@ -200,6 +202,19 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	start_match_requested.emit(room_state.build_snapshot())
+
+
+func _handle_leave_request(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if peer_id <= 0:
+		return
+	var had_member := room_state != null and room_state.members.has(peer_id)
+	handle_peer_disconnected(peer_id)
+	send_to_peer.emit(peer_id, {
+		"message_type": TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED,
+		"room_id": room_state.room_id,
+		"had_member": had_member,
+	})
 
 
 func _broadcast_snapshot() -> void:

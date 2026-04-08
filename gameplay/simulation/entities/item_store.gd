@@ -88,6 +88,33 @@ func spawn_item(
 
 	return item.entity_id
 
+
+func restore_item_from_snapshot(data: Dictionary) -> int:
+	var entity_id := int(data.get("entity_id", -1))
+	if entity_id < 0:
+		return -1
+	var item := ItemState.new()
+	item.entity_id = entity_id
+	item.generation = int(data.get("generation", 1))
+	item.alive = bool(data.get("alive", true))
+	item.item_type = int(data.get("item_type", 0))
+	item.cell_x = int(data.get("cell_x", 0))
+	item.cell_y = int(data.get("cell_y", 0))
+	item.spawn_tick = int(data.get("spawn_tick", 0))
+	item.pickup_delay_ticks = int(data.get("pickup_delay_ticks", 0))
+	item.visible = bool(data.get("visible", true))
+
+	while _states.size() <= entity_id:
+		_states.append(null)
+
+	_states[entity_id] = item
+	if item.alive and not active_ids.has(entity_id):
+		active_ids.append(entity_id)
+	active_ids.sort()
+	next_entity_id = max(next_entity_id, entity_id + 1)
+	free_ids.erase(entity_id)
+	return entity_id
+
 # 标记道具销毁
 func despawn_item(item_id: int) -> void:
 	if not has(item_id):

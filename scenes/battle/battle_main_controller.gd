@@ -14,6 +14,7 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const TRACE_PREFIX := "[qq_battle_trace]"
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
@@ -49,6 +50,7 @@ var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
 var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
 var _pressed_direction_stack: Array[String] = []
 var _last_place_pressed: bool = false
+var _place_action_latched: bool = false
 
 
 func _ready() -> void:
@@ -127,6 +129,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_remove_direction("down")
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
 		match event.keycode:
+			KEY_SPACE:
+				_place_action_latched = true
 			KEY_J:
 				_session_adapter.cycle_latency_profile()
 				battle_hud.match_message_panel.apply_message("Latency Profile %s" % _session_adapter.get_network_profile_summary())
@@ -305,9 +309,9 @@ func _collect_local_input() -> Dictionary:
 				move_y = -1
 			"down":
 				move_y = 1
-	var place_pressed := Input.is_key_pressed(KEY_SPACE)
-	var place_just_pressed := place_pressed and not _last_place_pressed
-	_last_place_pressed = place_pressed
+	var place_just_pressed := _place_action_latched
+	_place_action_latched = false
+	_last_place_pressed = Input.is_key_pressed(KEY_SPACE)
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
