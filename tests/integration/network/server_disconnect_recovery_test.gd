@@ -1,5 +1,8 @@
 extends Node
 
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
@@ -82,7 +85,11 @@ func _seed_room_state(room_service: ServerRoomService) -> void:
 	room_service.room_state.ensure_room("disconnect_recovery_room", 2)
 	room_service.room_state.upsert_member(2, "Host", "hero_default")
 	room_service.room_state.upsert_member(3, "Client", "hero_default")
-	room_service.room_state.set_selection("default_map", "classic")
+	room_service.room_state.set_selection(
+		MapCatalogScript.get_default_map_id(),
+		RuleSetCatalogScript.get_default_rule_id(),
+		ModeCatalogScript.get_default_mode_id()
+	)
 	room_service.room_state.set_ready(2, true)
 	room_service.room_state.set_ready(3, true)
 
