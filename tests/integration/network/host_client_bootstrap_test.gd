@@ -90,6 +90,8 @@ func _test_invalid_config_is_rejected_before_client_runtime_starts() -> bool:
 	return ok
 
 
+
+
 func _make_room_snapshot() -> RoomSnapshot:
 	var snapshot := RoomSnapshot.new()
 	snapshot.room_id = "bootstrap_test_room"
@@ -125,5 +127,3 @@ func _cleanup_nodes(nodes: Array) -> void:
 			node.shutdown_runtime()
 		if is_instance_valid(node):
 			node.queue_free()
-
-

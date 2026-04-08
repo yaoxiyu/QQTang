@@ -179,7 +179,10 @@ func ingest_network_message(message: Dictionary) -> void:
 			_inspect_pending_place_request(int(message.get("tick", 0)), "checkpoint")
 		TransportMessageTypesScript.MATCH_FINISHED:
 			_finished = true
-			battle_finished.emit(BattleResult.from_dict(message.get("result", {})))
+			var result := BattleResult.from_dict(message.get("result", {}))
+			var resolved_local_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
+			result.bind_local_peer_context(resolved_local_peer_id)
+			battle_finished.emit(result)
 		_:
 			pass
 

@@ -19,6 +19,7 @@ func _ready() -> void:
 	ok = _test_dedicated_server_skips_non_aligned_sideband_restore() and ok
 	ok = _test_dedicated_server_accepts_monotonic_sideband_restore() and ok
 	ok = _test_dedicated_server_applies_authoritative_walls_sideband_to_current_world() and ok
+	ok = _test_match_finished_rebinds_local_peer_context_for_client() and ok
 	if ok:
 		print("client_runtime_summary_snapshot_sync_test: PASS")
 
@@ -379,6 +380,47 @@ func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_worl
 		"dedicated server should apply authoritative wall sideband to the current world",
 		prefix
 	) and ok
+
+	_cleanup_nodes([client])
+	return ok
+
+
+func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
+	var client := ClientRuntimeScript.new()
+	add_child(client)
+
+	var config := _make_config()
+	config.session_mode = "network_client"
+	config.topology = "dedicated_server"
+	client.configure(2)
+	client.configure_controlled_peer(2)
+	var prefix := "client_runtime_summary_snapshot_sync_test"
+	var ok := true
+	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for match finished local context test", prefix) and ok
+	if not ok:
+		_cleanup_nodes([client])
+		return false
+
+	var finished_box := {"result": null}
+	client.battle_finished.connect(func(result: BattleResult) -> void:
+		finished_box["result"] = result
+	)
+	client.ingest_network_message({
+		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"result": {
+			"winner_peer_ids": [2],
+			"eliminated_order": [1],
+			"finish_reason": "last_survivor",
+			"finish_tick": 123,
+			"local_peer_id": 1,
+		},
+	})
+
+	var finished_result: BattleResult = finished_box["result"]
+	ok = TestAssertScript.is_true(finished_result != null, "client should emit battle_finished when MATCH_FINISHED arrives", prefix) and ok
+	ok = TestAssertScript.is_true(finished_result != null and finished_result.local_peer_id == 2, "client should rebind result local_peer_id to controlled peer", prefix) and ok
+	ok = TestAssertScript.is_true(finished_result != null and finished_result.is_local_victory(), "client local victory should remain true after result rebinding", prefix) and ok
 
 	_cleanup_nodes([client])
 	return ok

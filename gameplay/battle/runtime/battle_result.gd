@@ -77,6 +77,11 @@ func duplicate_deep() -> BattleResult:
 	return BattleResult.from_dict(to_dict())
 
 
+func bind_local_peer_context(peer_id: int) -> BattleResult:
+	local_peer_id = peer_id
+	return self
+
+
 func is_local_victory() -> bool:
 	if local_peer_id < 0:
 		return false
