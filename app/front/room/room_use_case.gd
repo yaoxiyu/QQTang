@@ -6,6 +6,9 @@ const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
 const ClientConnectionConfigScript = preload("res://network/runtime/client_connection_config.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 
 var app_runtime: Node = null
 var room_client_gateway: RoomClientGateway = null
@@ -166,7 +169,19 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 		config.selected_bubble_style_id = app_runtime.player_profile_state.default_bubble_style_id
 		config.selected_bubble_skin_id = app_runtime.player_profile_state.default_bubble_skin_id
 		config.selected_mode_id = app_runtime.player_profile_state.preferred_mode_id
+	_sanitize_connection_profile(config)
 	return config
+
+
+func _sanitize_connection_profile(config: ClientConnectionConfig) -> void:
+	if config == null:
+		return
+	if not CharacterCatalogScript.has_character(config.selected_character_id):
+		config.selected_character_id = CharacterCatalogScript.get_default_character_id()
+	if not BubbleCatalogScript.has_bubble(config.selected_bubble_style_id):
+		config.selected_bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
+	if not ModeCatalogScript.has_mode(config.selected_mode_id):
+		config.selected_mode_id = ModeCatalogScript.get_default_mode_id()
 
 
 func _is_online_room() -> bool:
