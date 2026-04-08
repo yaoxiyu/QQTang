@@ -212,11 +212,42 @@ func set_local_player_entity_id(entity_id: int) -> void:
 func _build_local_player_status(world: SimWorld) -> Dictionary:
 	if world == null:
 		return {}
+	var controlled_slot := -1
+	if world.state != null and world.state.runtime_flags != null:
+		controlled_slot = int(world.state.runtime_flags.client_controlled_player_slot)
+	if _local_player_entity_id >= 0:
+		for player_id in world.state.players.active_ids:
+			var player := world.state.players.get_player(player_id)
+			if player == null:
+				continue
+			if player.entity_id != _local_player_entity_id:
+				continue
+			return {
+				"entity_id": player.entity_id,
+				"bomb_available": player.bomb_available,
+				"bomb_capacity": player.bomb_capacity,
+				"bomb_range": player.bomb_range,
+				"speed_level": player.speed_level,
+				"has_kick": player.has_kick,
+			}
+	if controlled_slot >= 0:
+		for player_id in world.state.players.active_ids:
+			var player := world.state.players.get_player(player_id)
+			if player == null:
+				continue
+			if int(player.player_slot) != controlled_slot:
+				continue
+			return {
+				"entity_id": player.entity_id,
+				"bomb_available": player.bomb_available,
+				"bomb_capacity": player.bomb_capacity,
+				"bomb_range": player.bomb_range,
+				"speed_level": player.speed_level,
+				"has_kick": player.has_kick,
+			}
 	for player_id in world.state.players.active_ids:
 		var player := world.state.players.get_player(player_id)
 		if player == null:
-			continue
-		if _local_player_entity_id >= 0 and player.entity_id != _local_player_entity_id:
 			continue
 		return {
 			"entity_id": player.entity_id,

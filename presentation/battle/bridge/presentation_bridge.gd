@@ -294,8 +294,6 @@ func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 		int(event.payload.get("cell_x", 0)),
 		int(event.payload.get("cell_y", 0))
 	)
-	if map_view != null and map_view.has_method("handle_cell_destroyed"):
-		map_view.handle_cell_destroyed(destroyed_cell)
 	var fx = BrickBreakFxPlayerScript.new()
 	fx.configure(
 		_to_world_center(destroyed_cell),

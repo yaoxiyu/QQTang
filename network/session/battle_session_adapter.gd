@@ -498,7 +498,10 @@ func _emit_client_runtime_tick() -> void:
 	var authoritative_events: Array = _bootstrap_client_runtime.consume_pending_authoritative_events() if _bootstrap_client_runtime != null and _bootstrap_client_runtime.has_method("consume_pending_authoritative_events") else []
 	var tick_result := {
 		"tick": world.state.match_state.tick if world != null else 0,
-		"events": authoritative_events if not authoritative_events.is_empty() else (world.events.get_events() if world != null and world.events != null else []),
+		# Dedicated server client presentation should only consume authoritative events.
+		# Falling back to predicted-world events can produce visually wrong FX such as
+		# explosion coverage that diverges from server-resolved covered_cells.
+		"events": authoritative_events,
 		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
 	}
 	authoritative_tick_completed.emit(current_context, tick_result, _build_runtime_metrics())

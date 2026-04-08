@@ -15,6 +15,7 @@ extends ISimSystem
 const ExplosionHitTypes = preload("res://gameplay/simulation/explosion/explosion_hit_types.gd")
 const ExplosionHitEntry = preload("res://gameplay/simulation/explosion/explosion_hit_entry.gd")
 const ExplosionReactionResolver = preload("res://gameplay/simulation/explosion/explosion_reaction_resolver.gd")
+const TRACE_PREFIX := "[qq_battle_trace]"
 
 const PROPAGATION_DIRS := [
 	Vector2i(0, -1),
@@ -106,7 +107,71 @@ func execute(ctx: SimContext) -> void:
 			"cell_y": center_y,
 			"covered_cells": covered_cells
 		}
+		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, center_x, center_y, covered_cells)
 		ctx.events.push(exploded_event)
+
+
+func _log_invalid_explosion_coverage_if_needed(
+	ctx: SimContext,
+	bubble_id: int,
+	center_x: int,
+	center_y: int,
+	covered_cells: Array[Vector2i]
+) -> void:
+	var covered_lookup: Dictionary = {}
+	for cell in covered_cells:
+		covered_lookup[cell] = true
+		var static_cell = ctx.state.grid.get_static_cell(cell.x, cell.y)
+		if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
+			print("%s[explosion_resolve] anomaly=covered_solid_wall tick=%d bubble_id=%d center=(%d,%d) cell=(%d,%d)" % [
+				TRACE_PREFIX,
+				ctx.tick,
+				bubble_id,
+				center_x,
+				center_y,
+				cell.x,
+				cell.y,
+			])
+	for dir in PROPAGATION_DIRS:
+		var reached_gap := false
+		for i in range(1, 32):
+			var check_x : int = center_x + dir.x * i
+			var check_y : int = center_y + dir.y * i
+			if not ctx.queries.is_in_bounds(check_x, check_y):
+				break
+			var check_cell := Vector2i(check_x, check_y)
+			var static_cell = ctx.state.grid.get_static_cell(check_x, check_y)
+			var is_covered := covered_lookup.has(check_cell)
+			if reached_gap and is_covered:
+				print("%s[explosion_resolve] anomaly=non_contiguous_coverage tick=%d bubble_id=%d center=(%d,%d) resumed_cell=(%d,%d)" % [
+					TRACE_PREFIX,
+					ctx.tick,
+					bubble_id,
+					center_x,
+					center_y,
+					check_x,
+					check_y,
+				])
+				break
+			if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
+				if is_covered:
+					print("%s[explosion_resolve] anomaly=covered_through_solid tick=%d bubble_id=%d center=(%d,%d) wall_cell=(%d,%d)" % [
+						TRACE_PREFIX,
+						ctx.tick,
+						bubble_id,
+						center_x,
+						center_y,
+						check_x,
+						check_y,
+					])
+				break
+			if not is_covered:
+				reached_gap = true
+			if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
+				if reached_gap:
+					break
+				# breakable block can be covered once and should stop afterwards.
+				reached_gap = true
 
 
 func _collect_hits_at_cell(

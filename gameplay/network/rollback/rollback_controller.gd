@@ -21,6 +21,7 @@ var last_rollback_from_tick: int = -1
 var avg_replay_ticks: float = 0.0
 var force_resync_count: int = 0
 var predicted_until_tick: int = 0
+var ignored_local_player_keys: Array[String] = []
 
 
 func configure(
@@ -31,7 +32,8 @@ func configure(
 	p_local_peer_id: int,
 	p_max_rollback_window: int = 16,
 	p_compare_bubbles: bool = true,
-	p_compare_items: bool = true
+	p_compare_items: bool = true,
+	p_ignored_local_player_keys: Array[String] = []
 ) -> void:
 	predicted_sim_world = p_predicted_sim_world
 	snapshot_service = p_snapshot_service
@@ -41,6 +43,7 @@ func configure(
 	max_rollback_window = max(1, p_max_rollback_window)
 	compare_bubbles = p_compare_bubbles
 	compare_items = p_compare_items
+	ignored_local_player_keys = p_ignored_local_player_keys.duplicate()
 	predicted_until_tick = 0
 
 
@@ -62,6 +65,7 @@ func dispose() -> void:
 	avg_replay_ticks = 0.0
 	force_resync_count = 0
 	predicted_until_tick = 0
+	ignored_local_player_keys.clear()
 
 
 func set_predicted_until_tick(tick_id: int) -> void:
@@ -213,7 +217,7 @@ func _local_player_entries_equal(left_values: Array[Dictionary], right_values: A
 	var right_entry := _find_local_player_entry(right_values)
 	if left_entry.is_empty() or right_entry.is_empty():
 		return false
-	return _dictionary_equal(left_entry, right_entry)
+	return _dictionary_equal_ignoring_keys(left_entry, right_entry, ignored_local_player_keys)
 
 
 func _find_local_player_entry(values: Array[Dictionary]) -> Dictionary:
@@ -239,6 +243,24 @@ func _dictionary_equal(left_value: Dictionary, right_value: Dictionary) -> bool:
 		if not right_value.has(key):
 			return false
 		if not _variant_equal(left_value[key], right_value[key]):
+			return false
+	return true
+
+
+func _dictionary_equal_ignoring_keys(left_value: Dictionary, right_value: Dictionary, ignored_keys: Array[String]) -> bool:
+	for key in left_value.keys():
+		var key_name := str(key)
+		if ignored_keys.has(key_name):
+			continue
+		if not right_value.has(key):
+			return false
+		if not _variant_equal(left_value[key], right_value[key]):
+			return false
+	for key in right_value.keys():
+		var key_name := str(key)
+		if ignored_keys.has(key_name):
+			continue
+		if not left_value.has(key):
 			return false
 	return true
 

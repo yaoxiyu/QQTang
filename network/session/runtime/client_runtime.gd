@@ -31,6 +31,7 @@ var _pending_place_request_tick: int = -1
 var _pending_place_baseline_bubble_count: int = -1
 var _pending_place_baseline_bomb_available: int = -1
 var _pending_place_timeout_logged: bool = false
+var _last_applied_authority_sideband_tick: int = -1
 
 
 func configure(peer_id: int) -> void:
@@ -73,8 +74,9 @@ func start_match(config: BattleStartConfig) -> bool:
 		snapshot_service,
 		client_session.local_input_buffer,
 		controlled_slot,
-		not _should_suppress_authority_only_entity_prediction(),
-		not _should_suppress_authority_only_entity_prediction()
+		_should_compare_authority_only_entities_in_rollback(),
+		_should_compare_authority_only_entities_in_rollback(),
+		_resolve_ignored_local_player_keys_for_rollback()
 	)
 	if not prediction_controller.prediction_corrected.is_connected(_on_prediction_corrected):
 		prediction_controller.prediction_corrected.connect(_on_prediction_corrected)
@@ -138,6 +140,18 @@ func _should_suppress_authority_only_entity_prediction() -> bool:
 	return String(start_config.topology) == "dedicated_server"
 
 
+func _should_compare_authority_only_entities_in_rollback() -> bool:
+	return not _should_suppress_authority_only_entity_prediction()
+
+
+func _should_apply_authority_sideband_to_current_world(message_tick: int) -> bool:
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return false
+	if not _should_suppress_authority_only_entity_prediction():
+		return true
+	return message_tick > _last_applied_authority_sideband_tick
+
+
 func ingest_network_message(message: Dictionary) -> void:
 	if client_session == null:
 		return
@@ -149,13 +163,15 @@ func ingest_network_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.STATE_SUMMARY:
 			client_session.on_state_summary(message)
 			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
-			_apply_authority_sideband_from_message(message, false)
+			if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
+				_apply_authority_sideband_from_message(message, true, false)
 			_store_authoritative_events(message)
 			_inspect_pending_place_request(int(message.get("tick", 0)), "summary")
 		TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 			client_session.on_snapshot(message)
 			_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
-			_apply_authority_sideband_from_message(message, true)
+			if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
+				_apply_authority_sideband_from_message(message, true, true)
 			if prediction_controller != null:
 				var authoritative_snapshot := _snapshot_from_message(message)
 				_log_snapshot_mismatch(authoritative_snapshot)
@@ -204,6 +220,7 @@ func shutdown_runtime() -> void:
 	latest_authoritative_events.clear()
 	_latest_authoritative_event_tick = -1
 	_last_consumed_authoritative_event_tick = -1
+	_last_applied_authority_sideband_tick = -1
 	_clear_pending_place_request()
 
 
@@ -292,11 +309,6 @@ func _store_authoritative_events(message: Dictionary) -> void:
 	_latest_authoritative_event_tick = tick_id if not decoded_events.is_empty() else -1
 	if decoded_events.is_empty():
 		return
-	print("%s[client_runtime] authoritative_events tick=%d types=%s" % [
-		TRACE_PREFIX,
-		tick_id,
-		str(_extract_event_types(decoded_events)),
-	])
 	_log_missing_bubble_state_after_place(tick_id, decoded_events)
 
 
@@ -350,25 +362,29 @@ func _decode_events(raw_events: Variant) -> Array:
 	return decoded
 
 
-func _apply_authority_sideband_from_message(message: Dictionary, include_walls_and_mode: bool) -> void:
+func _apply_authority_sideband_from_message(message: Dictionary, include_walls: bool, include_mode_state: bool) -> void:
 	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
 		return
 	var world := prediction_controller.predicted_sim_world
+	var message_tick := int(message.get("tick", 0))
 	var bubbles: Array[Dictionary] = _coerce_dictionary_array(message.get("bubbles", []))
 	var items: Array[Dictionary] = _coerce_dictionary_array(message.get("items", []))
 	var walls: Array[Dictionary] = []
 	var mode_state: Dictionary = {}
-	if include_walls_and_mode:
+	if include_walls:
 		walls = _coerce_dictionary_array(message.get("walls", []))
+	if include_mode_state:
 		mode_state = _coerce_dictionary(message.get("mode_state", {}))
 	if bubbles.is_empty() and items.is_empty() and walls.is_empty() and mode_state.is_empty():
 		return
 	_restore_bubbles(world, bubbles)
 	_restore_items(world, items)
-	if include_walls_and_mode:
+	if include_walls:
 		_restore_walls(world, walls)
+	if include_mode_state:
 		_restore_mode_state(world, mode_state)
 	world.rebuild_runtime_indexes()
+	_last_applied_authority_sideband_tick = max(_last_applied_authority_sideband_tick, message_tick)
 
 
 func _track_local_place_request(tick_id: int) -> void:
@@ -531,6 +547,9 @@ func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dicti
 		if player == null:
 			continue
 		if player.player_slot == controlled_slot:
+			_apply_local_authoritative_player_resource_summary(player, entry)
+			predicted_world.state.players.update_player(player)
+			any_updated = true
 			continue
 
 		var resolved_grid := _resolve_summary_vector2i(
@@ -571,6 +590,30 @@ func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dicti
 
 	if any_updated:
 		predicted_world.rebuild_runtime_indexes()
+
+
+func _apply_local_authoritative_player_resource_summary(player: PlayerState, entry: Dictionary) -> void:
+	if player == null or entry.is_empty():
+		return
+	if entry.has("speed_level"):
+		player.speed_level = int(entry.get("speed_level", player.speed_level))
+	if entry.has("bomb_capacity"):
+		player.bomb_capacity = int(entry.get("bomb_capacity", player.bomb_capacity))
+	if entry.has("bomb_available"):
+		player.bomb_available = int(entry.get("bomb_available", player.bomb_available))
+	if entry.has("bomb_range"):
+		player.bomb_range = int(entry.get("bomb_range", player.bomb_range))
+
+
+func _resolve_ignored_local_player_keys_for_rollback() -> Array[String]:
+	if start_config == null:
+		return []
+	if String(start_config.topology) != "dedicated_server":
+		return []
+	return [
+		"last_place_bubble_pressed",
+		"bomb_available",
+	]
 
 
 func _resolve_summary_vector2i(
@@ -636,19 +679,47 @@ func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
 		var player_reason := _describe_local_player_mismatch(local_snapshot.players, authoritative_snapshot.players)
 		if not player_reason.is_empty():
 			reasons.append(player_reason)
-	if not rollback._dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles):
+	if rollback.compare_bubbles and not rollback._dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles):
 		reasons.append("bubbles")
 		var bubble_reason := _describe_dictionary_array_mismatch(local_snapshot.bubbles, authoritative_snapshot.bubbles)
 		if not bubble_reason.is_empty():
 			reasons.append(bubble_reason)
-	if not rollback._dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items):
+	if rollback.compare_items and not rollback._dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items):
 		reasons.append("items")
 		var item_reason := _describe_dictionary_array_mismatch(local_snapshot.items, authoritative_snapshot.items)
 		if not item_reason.is_empty():
 			reasons.append(item_reason)
 	if reasons.is_empty():
 		return
+	if _should_suppress_rollback_probe_log(reasons):
+		return
+	print("%s[client_runtime] rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
+		TRACE_PREFIX,
+		authoritative_snapshot.tick_id,
+		", ".join(reasons),
+		prediction_controller.predicted_until_tick if prediction_controller != null else -1,
+		client_session.last_confirmed_tick if client_session != null else -1,
+		_describe_local_player_entry(local_snapshot.players),
+		_describe_local_player_entry(authoritative_snapshot.players),
+		local_snapshot.bubbles.size(),
+		authoritative_snapshot.bubbles.size(),
+		local_snapshot.items.size(),
+		authoritative_snapshot.items.size(),
+	])
 	log_event.emit("Checkpoint mismatch tick %d: %s" % [authoritative_snapshot.tick_id, ", ".join(reasons)])
+
+
+func _should_suppress_rollback_probe_log(reasons: Array[String]) -> bool:
+	if reasons.is_empty():
+		return true
+	if reasons.has("bubbles") or reasons.has("items"):
+		return false
+	for reason in reasons:
+		if not reason.begins_with("key "):
+			continue
+		if reason.begins_with("key move_phase_ticks "):
+			return true
+	return false
 
 
 func _describe_dictionary_array_mismatch(local_values: Array[Dictionary], authoritative_values: Array[Dictionary]) -> String:
@@ -686,12 +757,32 @@ func _describe_local_player_mismatch(local_values: Array[Dictionary], authoritat
 	if rollback._dictionary_equal(local_entry, authoritative_entry):
 		return ""
 	for key in authoritative_entry.keys():
+		if rollback.ignored_local_player_keys.has(str(key)):
+			continue
 		if rollback._variant_equal(local_entry.get(key), authoritative_entry.get(key)):
 			continue
 		return "key %s local=%s auth=%s" % [str(key), str(local_entry.get(key)), str(authoritative_entry.get(key))]
 	return "entry differs"
+
+
+func _describe_local_player_entry(values: Array[Dictionary]) -> String:
+	var rollback := prediction_controller.rollback_controller if prediction_controller != null else null
+	if rollback == null:
+		return "{}"
+	var entry := rollback._find_local_player_entry(values)
+	return str(entry)
+
+
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
+	print("%s[client_runtime] rollback_corrected entity=%d from=%s to=%s correction_count=%d last_resync_tick=%d" % [
+		TRACE_PREFIX,
+		entity_id,
+		str(from_pos),
+		str(to_pos),
+		_correction_count,
+		_last_resync_tick,
+	])
 	prediction_event.emit({
 		"type": "prediction_corrected",
 		"entity_id": entity_id,
@@ -703,6 +794,12 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 
 func _on_full_visual_resync(snapshot: WorldSnapshot) -> void:
 	_last_resync_tick = snapshot.tick_id if snapshot != null else -1
+	print("%s[client_runtime] rollback_resync tick=%d rollback_count=%d resync_count=%d" % [
+		TRACE_PREFIX,
+		_last_resync_tick,
+		prediction_controller.rollback_controller.rollback_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
+		prediction_controller.rollback_controller.force_resync_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
+	])
 	prediction_event.emit({
 		"type": "full_resync",
 		"tick": _last_resync_tick,

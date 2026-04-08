@@ -12,7 +12,6 @@ class_name BubblePlacementSystem
 extends ISimSystem
 
 const BubblePlaceResolver = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
-const TRACE_PREFIX := "[qq_battle_trace]"
 
 # ====================
 # 系统接口
@@ -42,12 +41,6 @@ func execute(ctx: SimContext) -> void:
 
 		# 检查泡泡容量
 		if player.bomb_available <= 0:
-			print("%s[bubble_placement] tick=%d player=%d rejected=no_capacity available=%d" % [
-				TRACE_PREFIX,
-				ctx.tick,
-				player_id,
-				player.bomb_available,
-			])
 			ctx.state.players.update_player(player)
 			continue
 
@@ -59,14 +52,6 @@ func execute(ctx: SimContext) -> void:
 		# 检查当前格是否有泡泡
 		var bubble_at_cell = ctx.queries.get_bubble_at(cell_x, cell_y)
 		if bubble_at_cell != -1:
-			print("%s[bubble_placement] tick=%d player=%d rejected=occupied cell=(%d,%d) bubble=%d" % [
-				TRACE_PREFIX,
-				ctx.tick,
-				player_id,
-				cell_x,
-				cell_y,
-				bubble_at_cell,
-			])
 			ctx.state.players.update_player(player)
 			continue
 

@@ -208,6 +208,9 @@ func _on_battle_context_created(context: BattleContext) -> void:
 func _on_authoritative_tick_completed(context: BattleContext, tick_result: Dictionary, metrics: Dictionary) -> void:
 	if context == null or context.sim_world == null:
 		return
+	var local_player_entity_id := _resolve_local_player_entity_id()
+	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
+	battle_hud.set_local_player_entity_id(local_player_entity_id)
 	presentation_bridge.consume_tick_result(tick_result, context.sim_world, tick_result.get("events", []))
 	_consume_battle_events(tick_result.get("events", []))
 	battle_hud.consume_battle_state(context.sim_world)

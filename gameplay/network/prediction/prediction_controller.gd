@@ -21,7 +21,8 @@ func configure(
 	p_local_input_buffer: InputRingBuffer,
 	p_local_peer_id: int,
 	p_compare_bubbles: bool = true,
-	p_compare_items: bool = true
+	p_compare_items: bool = true,
+	p_ignored_local_player_keys: Array[String] = []
 ) -> void:
 	predicted_sim_world = p_predicted_sim_world
 	snapshot_service = p_snapshot_service
@@ -38,7 +39,8 @@ func configure(
 		local_peer_id,
 		16,
 		p_compare_bubbles,
-		p_compare_items
+		p_compare_items,
+		p_ignored_local_player_keys
 	)
 
 
