@@ -4,11 +4,14 @@ extends Node
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
+const PHASE15_LOG_PREFIX := "[QQT_P15]"
 const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 
 signal transport_connected()
 signal transport_disconnected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
+signal room_directory_snapshot_received(snapshot: RoomDirectorySnapshot)
 signal room_joined(snapshot: RoomSnapshot)
 signal room_error(error_code: String, user_message: String)
 signal canonical_start_config_received(config: BattleStartConfig)
@@ -18,6 +21,9 @@ var _transport: ENetBattleTransport = null
 var _last_snapshot: RoomSnapshot = null
 var _connected: bool = false
 var _connecting: bool = false
+var _connected_host: String = ""
+var _connected_port: int = 0
+var _directory_subscribed: bool = false
 var _pending_leave_disconnect: bool = false
 var _leave_disconnect_deadline_msec: int = 0
 
@@ -35,8 +41,23 @@ func _process(_delta: float) -> void:
 func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> void:
 	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
 	var normalized_port := port if port > 0 else 9000
+	if is_connected_to(normalized_host, normalized_port) and (_connected or _connecting):
+		_log_phase15("connect_reused_existing_transport", {
+			"host": normalized_host,
+			"port": normalized_port,
+			"connected": _connected,
+			"connecting": _connecting,
+		})
+		return
+	_log_phase15("connect_to_server", {
+		"host": normalized_host,
+		"port": normalized_port,
+		"timeout_sec": timeout_sec,
+	})
 	_shutdown_transport()
 	_connecting = true
+	_connected_host = normalized_host
+	_connected_port = normalized_port
 	_transport = ENetBattleTransportScript.new()
 	add_child(_transport)
 	_connect_transport_signals()
@@ -58,6 +79,12 @@ func is_transport_connected() -> bool:
 	return _connected and _transport != null and _transport.is_transport_connected()
 
 
+func is_connected_to(host: String, port: int) -> bool:
+	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
+	var normalized_port := port if port > 0 else 9000
+	return _connected_host == normalized_host and _connected_port == normalized_port
+
+
 func request_create_room(
 	room_id_hint: String,
 	player_name: String,
@@ -67,8 +94,16 @@ func request_create_room(
 	bubble_skin_id: String = "",
 	map_id: String = "",
 	rule_set_id: String = "",
-	mode_id: String = ""
+	mode_id: String = "",
+	room_kind: String = "private_room",
+	room_display_name: String = ""
 ) -> void:
+	_log_phase15("request_create_room", {
+		"room_id_hint": room_id_hint,
+		"room_kind": room_kind,
+		"room_display_name": room_display_name,
+		"mode_id": mode_id,
+	})
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_REQUEST,
 		"room_id_hint": room_id_hint,
@@ -80,6 +115,8 @@ func request_create_room(
 		"map_id": map_id,
 		"rule_set_id": rule_set_id,
 		"mode_id": mode_id,
+		"room_kind": room_kind,
+		"room_display_name": room_display_name,
 	})
 
 
@@ -91,6 +128,10 @@ func request_join_room(
 	bubble_style_id: String = "",
 	bubble_skin_id: String = ""
 ) -> void:
+	_log_phase15("request_join_room", {
+		"room_id_hint": room_id_hint,
+		"player_name": player_name,
+	})
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_REQUEST,
 		"room_id_hint": room_id_hint,
@@ -159,6 +200,26 @@ func send_battle_input(message: Dictionary) -> void:
 	_send_to_server(message)
 
 
+func request_room_directory_snapshot() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_DIRECTORY_REQUEST,
+	})
+
+
+func subscribe_room_directory() -> void:
+	_directory_subscribed = true
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_DIRECTORY_SUBSCRIBE,
+	})
+
+
+func unsubscribe_room_directory() -> void:
+	_directory_subscribed = false
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_DIRECTORY_UNSUBSCRIBE,
+	})
+
+
 func _connect_transport_signals() -> void:
 	if _transport == null:
 		return
@@ -196,6 +257,15 @@ func _route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED:
 			if _pending_leave_disconnect:
 				_shutdown_transport()
+		TransportMessageTypesScript.ROOM_DIRECTORY_SNAPSHOT:
+			var directory_snapshot := RoomDirectorySnapshotScript.from_dict(message.get("snapshot", {}))
+			_log_phase15("directory_snapshot_received", {
+				"revision": int(directory_snapshot.revision),
+				"entry_count": directory_snapshot.entries.size(),
+				"server_host": String(directory_snapshot.server_host),
+				"server_port": int(directory_snapshot.server_port),
+			})
+			room_directory_snapshot_received.emit(directory_snapshot)
 		TransportMessageTypesScript.ROOM_SNAPSHOT:
 			var snapshot := RoomSnapshot.from_dict(message.get("snapshot", {}))
 			if snapshot.room_id.is_empty():
@@ -255,6 +325,7 @@ func _on_transport_connected() -> void:
 func _on_transport_disconnected() -> void:
 	_connected = false
 	_connecting = false
+	_directory_subscribed = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
 	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
@@ -276,6 +347,7 @@ func _on_transport_error(_code: int, message: String) -> void:
 func _shutdown_transport() -> void:
 	_connected = false
 	_connecting = false
+	_directory_subscribed = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
 	_last_snapshot = null
@@ -285,7 +357,13 @@ func _shutdown_transport() -> void:
 			remove_child(_transport)
 		_transport.queue_free()
 	_transport = null
+	_connected_host = ""
+	_connected_port = 0
 
 
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
 	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+
+
+func _log_phase15(event_name: String, details: Dictionary) -> void:
+	print("%s[client_room_runtime] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(details)])

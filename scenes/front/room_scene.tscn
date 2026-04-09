@@ -59,6 +59,10 @@ theme_override_constants/separation = 6
 [node name="RoomKindLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=560789466]
 layout_mode = 2
 
+[node name="RoomDisplayNameLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=481305152]
+layout_mode = 2
+autowrap_mode = 2
+
 [node name="RoomIdRow" type="HBoxContainer" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=352480011]
 layout_mode = 2
 

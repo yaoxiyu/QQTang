@@ -14,6 +14,7 @@ func build_view_model(
 	var safe_entry_context := room_entry_context if room_entry_context != null else RoomEntryContext.new()
 	var resolved_room_kind := _resolve_room_kind(safe_snapshot, safe_context, safe_entry_context)
 	var resolved_topology := _resolve_topology(safe_snapshot, safe_context, safe_entry_context)
+	var resolved_room_display_name := _resolve_room_display_name(safe_snapshot, safe_entry_context)
 
 	var local_peer_id := int(safe_context.local_player_id)
 	var is_host := local_peer_id != 0 and local_peer_id == int(safe_snapshot.owner_peer_id)
@@ -31,9 +32,11 @@ func build_view_model(
 	var local_member_ready := _is_local_member_ready(members)
 	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state
 	var can_start := blocker_text.is_empty() and is_host
+	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
 
 	return {
-		"title_text": "Practice Room" if is_practice else "Private Room",
+		"title_text": title_text,
+		"room_display_name": resolved_room_display_name,
 		"room_id_text": _resolve_room_id_text(safe_snapshot, safe_entry_context, is_practice),
 		"room_kind_text": _format_room_kind(resolved_room_kind),
 		"topology_text": _format_topology(resolved_topology),
@@ -79,6 +82,28 @@ func _resolve_topology(snapshot: RoomSnapshot, room_runtime_context: RoomRuntime
 	if room_entry_context != null and not room_entry_context.topology.is_empty():
 		return String(room_entry_context.topology)
 	return ""
+
+
+func _resolve_room_display_name(snapshot: RoomSnapshot, room_entry_context: RoomEntryContext = null) -> String:
+	if snapshot != null and not snapshot.room_display_name.is_empty():
+		return String(snapshot.room_display_name)
+	if room_entry_context != null and not room_entry_context.room_display_name.is_empty():
+		return String(room_entry_context.room_display_name)
+	return ""
+
+
+func _build_title_text(room_kind: String, room_display_name: String) -> String:
+	match room_kind:
+		"practice":
+			return "Practice Room"
+		"public_room":
+			if not room_display_name.is_empty():
+				return "Public Room - %s" % room_display_name
+			return "Public Room"
+		"private_room":
+			return "Private Room"
+		_:
+			return room_display_name if not room_display_name.is_empty() else room_kind
 
 
 func _resolve_room_id_text(snapshot: RoomSnapshot, room_entry_context: RoomEntryContext, is_practice: bool) -> String:
@@ -180,6 +205,8 @@ func _format_room_kind(room_kind: String) -> String:
 			return "Practice"
 		"private_room":
 			return "Private Room"
+		"public_room":
+			return "Public Room"
 		_:
 			return room_kind
 

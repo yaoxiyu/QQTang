@@ -1,9 +1,11 @@
 extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const LobbyRoomDirectoryBuilderScript = preload("res://app/front/lobby/lobby_room_directory_builder.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const PHASE15_LOG_PREFIX := "[QQT_P15]"
 
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
 @onready var logout_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/LogoutButton")
@@ -20,11 +22,21 @@ const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_ca
 @onready var create_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreateRoomRow/CreateRoomButton")
 @onready var room_id_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/JoinRoomRow/RoomIdInput")
 @onready var join_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/JoinRoomRow/JoinRoomButton")
+@onready var connect_directory_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/DirectoryConnectionRow/ConnectDirectoryButton")
+@onready var refresh_room_list_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/DirectoryConnectionRow/RefreshRoomListButton")
+@onready var public_room_name_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreatePublicRoomRow/PublicRoomNameInput")
+@onready var create_public_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreatePublicRoomRow/CreatePublicRoomButton")
+@onready var public_room_list: ItemList = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/PublicRoomList")
+@onready var join_selected_public_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/JoinSelectedPublicRoomButton")
+@onready var directory_status_label: Label = get_node_or_null("LobbyRoot/MainLayout/OnlineCard/OnlineVBox/DirectoryStatusLabel")
 @onready var recent_room_label: Label = get_node_or_null("LobbyRoot/MainLayout/RecentCard/RecentVBox/RecentRoomLabel")
 @onready var reconnect_button: Button = get_node_or_null("LobbyRoot/MainLayout/RecentCard/RecentVBox/ReconnectButton")
 @onready var message_label: Label = get_node_or_null("LobbyRoot/MainLayout/MessageLabel")
 
 var _app_runtime: Node = null
+var _room_directory_builder = LobbyRoomDirectoryBuilderScript.new()
+var _last_room_directory_snapshot = null
+var _directory_connect_requested: bool = false
 
 
 func _ready() -> void:
@@ -117,8 +129,20 @@ func _connect_signals() -> void:
 		reconnect_button.pressed.connect(_on_reconnect_pressed)
 	if logout_button != null and not logout_button.pressed.is_connected(_on_logout_pressed):
 		logout_button.pressed.connect(_on_logout_pressed)
+	if connect_directory_button != null and not connect_directory_button.pressed.is_connected(_on_connect_directory_pressed):
+		connect_directory_button.pressed.connect(_on_connect_directory_pressed)
+	if refresh_room_list_button != null and not refresh_room_list_button.pressed.is_connected(_on_refresh_room_list_pressed):
+		refresh_room_list_button.pressed.connect(_on_refresh_room_list_pressed)
+	if create_public_room_button != null and not create_public_room_button.pressed.is_connected(_on_create_public_room_pressed):
+		create_public_room_button.pressed.connect(_on_create_public_room_pressed)
+	if join_selected_public_room_button != null and not join_selected_public_room_button.pressed.is_connected(_on_join_selected_public_room_pressed):
+		join_selected_public_room_button.pressed.connect(_on_join_selected_public_room_pressed)
 	if _app_runtime != null and _app_runtime.client_room_runtime != null and not _app_runtime.client_room_runtime.room_error.is_connected(_on_room_error):
 		_app_runtime.client_room_runtime.room_error.connect(_on_room_error)
+	if _app_runtime != null and _app_runtime.client_room_runtime != null and not _app_runtime.client_room_runtime.transport_connected.is_connected(_on_transport_connected):
+		_app_runtime.client_room_runtime.transport_connected.connect(_on_transport_connected)
+	if _app_runtime != null and _app_runtime.client_room_runtime != null and _app_runtime.client_room_runtime.has_signal("room_directory_snapshot_received") and not _app_runtime.client_room_runtime.room_directory_snapshot_received.is_connected(_on_room_directory_snapshot_received):
+		_app_runtime.client_room_runtime.room_directory_snapshot_received.connect(_on_room_directory_snapshot_received)
 
 
 func _on_start_practice_pressed() -> void:
@@ -156,6 +180,76 @@ func _on_join_room_pressed() -> void:
 	_handle_room_entry_result(result)
 
 
+func _on_connect_directory_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_directory_use_case == null:
+		_set_directory_status("Directory flow is not available.")
+		return
+	_directory_connect_requested = true
+	_log_phase15("ui_connect_directory_pressed", {
+		"host": host_input.text.strip_edges() if host_input != null else "",
+		"port": int(port_input.text.to_int()) if port_input != null else 0,
+	})
+	var result: Dictionary = _app_runtime.lobby_directory_use_case.connect_directory(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0
+	)
+	_apply_directory_result(result)
+
+
+func _on_refresh_room_list_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_directory_use_case == null:
+		_set_directory_status("Directory flow is not available.")
+		return
+	_directory_connect_requested = true
+	_log_phase15("ui_refresh_room_list_pressed", {
+		"host": host_input.text.strip_edges() if host_input != null else "",
+		"port": int(port_input.text.to_int()) if port_input != null else 0,
+	})
+	var result: Dictionary = _app_runtime.lobby_directory_use_case.refresh_directory(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0
+	)
+	_apply_directory_result(result)
+
+
+func _on_create_public_room_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_directory_status("Lobby room flow is not available.")
+		return
+	_log_phase15("ui_create_public_room_pressed", {
+		"host": host_input.text.strip_edges() if host_input != null else "",
+		"port": int(port_input.text.to_int()) if port_input != null else 0,
+		"room_display_name": public_room_name_input.text.strip_edges() if public_room_name_input != null else "",
+	})
+	var result: Dictionary = _app_runtime.lobby_use_case.create_public_room(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0,
+		public_room_name_input.text.strip_edges() if public_room_name_input != null else ""
+	)
+	_handle_room_entry_result(result)
+
+
+func _on_join_selected_public_room_pressed() -> void:
+	if public_room_list == null or public_room_list.get_selected_items().is_empty():
+		_set_directory_status("Select a public room first.")
+		return
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_directory_status("Lobby room flow is not available.")
+		return
+	var selected_index := int(public_room_list.get_selected_items()[0])
+	var room_id := String(public_room_list.get_item_metadata(selected_index))
+	_log_phase15("ui_join_selected_public_room_pressed", {
+		"room_id": room_id,
+		"selected_index": selected_index,
+	})
+	var result: Dictionary = _app_runtime.lobby_use_case.join_public_room(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0,
+		room_id
+	)
+	_handle_room_entry_result(result)
+
+
 func _on_reconnect_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
@@ -186,19 +280,33 @@ func _on_logout_pressed() -> void:
 func _handle_room_entry_result(result: Dictionary) -> void:
 	if not bool(result.get("ok", false)):
 		_set_message(String(result.get("user_message", "Room entry failed")))
+		_set_directory_status(String(result.get("user_message", "")))
 		return
 	var entry_context: Variant = result.get("entry_context", null)
 	if entry_context == null:
 		_set_message("Room entry context is missing.")
+		_set_directory_status("Room entry context is missing.")
 		return
+	_log_phase15("room_entry_context_ready", {
+		"entry_kind": String(entry_context.entry_kind),
+		"room_kind": String(entry_context.room_kind),
+		"target_room_id": String(entry_context.target_room_id),
+		"room_display_name": String(entry_context.room_display_name),
+	})
+	_directory_connect_requested = false
+	if _app_runtime != null and _app_runtime.client_room_runtime != null and _app_runtime.client_room_runtime.has_method("unsubscribe_room_directory"):
+		_app_runtime.client_room_runtime.unsubscribe_room_directory()
 	var room_result: Dictionary = _app_runtime.room_use_case.enter_room(entry_context)
 	if not bool(room_result.get("ok", false)):
 		_set_message(String(room_result.get("user_message", "Failed to enter room")))
+		_set_directory_status(String(room_result.get("user_message", "")))
 		return
 	if bool(room_result.get("pending", false)):
 		_set_message("Connecting...")
+		_set_directory_status("")
 		return
 	_set_message("")
+	_set_directory_status("")
 
 
 func _selected_metadata(selector: OptionButton) -> String:
@@ -223,9 +331,60 @@ func _set_message(text: String) -> void:
 		message_label.text = text
 
 
+func _set_directory_status(text: String) -> void:
+	if directory_status_label != null:
+		directory_status_label.text = text
+
+
 func _on_room_error(_error_code: String, user_message: String) -> void:
 	if _app_runtime == null or _app_runtime.front_flow == null:
 		return
 	if _app_runtime.front_flow.get_state_name() != &"LOBBY":
 		return
 	_set_message(user_message)
+	_set_directory_status(user_message)
+
+
+func _on_transport_connected() -> void:
+	if not _directory_connect_requested:
+		return
+	if _app_runtime == null or _app_runtime.front_flow == null or _app_runtime.lobby_directory_use_case == null:
+		return
+	if _app_runtime.front_flow.get_state_name() != &"LOBBY":
+		return
+	var result: Dictionary = _app_runtime.lobby_directory_use_case.refresh_directory(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0
+	)
+	_apply_directory_result(result)
+
+
+func _apply_directory_result(result: Dictionary) -> void:
+	if not bool(result.get("ok", false)):
+		_set_directory_status(String(result.get("user_message", "Directory request failed")))
+		return
+	_set_directory_status(String(result.get("user_message", "")))
+
+
+func _on_room_directory_snapshot_received(snapshot) -> void:
+	_last_room_directory_snapshot = snapshot.duplicate_deep() if snapshot != null and snapshot.has_method("duplicate_deep") else snapshot
+	if public_room_list == null:
+		return
+	public_room_list.clear()
+	if snapshot == null:
+		_set_directory_status("No public rooms available.")
+		return
+	var view_models := _room_directory_builder.build_view_models(snapshot)
+	_log_phase15("ui_room_directory_snapshot_render", {
+		"entry_count": view_models.size(),
+		"revision": int(snapshot.revision) if snapshot != null else -1,
+	})
+	for view_model in view_models:
+		var label_text := String(view_model.get("summary_text", view_model.get("room_display_name", "")))
+		public_room_list.add_item(label_text)
+		public_room_list.set_item_metadata(public_room_list.item_count - 1, String(view_model.get("room_id", "")))
+	_set_directory_status("Loaded %d public room(s)." % public_room_list.item_count)
+
+
+func _log_phase15(event_name: String, payload: Dictionary) -> void:
+	print("%s[lobby_scene] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)])

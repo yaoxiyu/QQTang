@@ -177,6 +177,48 @@ text = "Join Room"
 [node name="ConnectionHintLabel" type="Label" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=1754738796]
 layout_mode = 2
 
+[node name="DirectoryConnectionRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=282504819]
+layout_mode = 2
+
+[node name="ConnectDirectoryButton" type="Button" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox/DirectoryConnectionRow" unique_id=479628673]
+layout_mode = 2
+text = "Connect Server"
+
+[node name="RefreshRoomListButton" type="Button" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox/DirectoryConnectionRow" unique_id=95518567]
+layout_mode = 2
+text = "Refresh Rooms"
+
+[node name="CreatePublicRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=969818193]
+layout_mode = 2
+
+[node name="PublicRoomNameLabel" type="Label" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=1127369367]
+layout_mode = 2
+text = "Public Room Name"
+
+[node name="PublicRoomNameInput" type="LineEdit" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=567518521]
+layout_mode = 2
+placeholder_text = "room name"
+
+[node name="CreatePublicRoomButton" type="Button" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=1093508964]
+layout_mode = 2
+text = "Create Public Room"
+
+[node name="PublicRoomListTitleLabel" type="Label" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=1913070309]
+layout_mode = 2
+text = "Public Rooms"
+
+[node name="PublicRoomList" type="ItemList" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=2074634657]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+
+[node name="JoinSelectedPublicRoomButton" type="Button" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=1180817432]
+layout_mode = 2
+text = "Join Selected Room"
+
+[node name="DirectoryStatusLabel" type="Label" parent="LobbyRoot/MainLayout/OnlineCard/OnlineVBox" unique_id=322910582]
+layout_mode = 2
+autowrap_mode = 2
+
 [node name="RecentCard" type="PanelContainer" parent="LobbyRoot/MainLayout" unique_id=723798529]
 layout_mode = 2
 

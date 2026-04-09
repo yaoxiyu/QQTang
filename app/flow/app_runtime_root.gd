@@ -11,6 +11,7 @@ const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.
 const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
 const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
+const LobbyDirectoryUseCaseScript = preload("res://app/front/lobby/lobby_directory_use_case.gd")
 const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
@@ -69,6 +70,7 @@ var profile_repository: RefCounted = null
 var front_settings_repository: RefCounted = null
 var login_use_case: RefCounted = null
 var lobby_use_case: RefCounted = null
+var lobby_directory_use_case: RefCounted = null
 var room_use_case: RefCounted = null
 var practice_room_factory: RefCounted = null
 var current_room_entry_context: RoomEntryContext = null
@@ -487,6 +489,14 @@ func _ensure_front_use_cases() -> void:
 			player_profile_state,
 			front_settings_state,
 			practice_room_factory
+		)
+
+	if lobby_directory_use_case == null:
+		lobby_directory_use_case = LobbyDirectoryUseCaseScript.new()
+	if lobby_directory_use_case != null and lobby_directory_use_case.has_method("configure"):
+		lobby_directory_use_case.configure(
+			client_room_runtime,
+			front_settings_state
 		)
 
 	if room_use_case == null:

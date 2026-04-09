@@ -11,6 +11,8 @@ var server_host: String = "127.0.0.1"
 var server_port: int = 9000
 var connect_timeout_sec: float = 5.0
 var room_id_hint: String = ""
+var room_kind: String = "private_room"
+var room_display_name: String = ""
 var player_name: String = "Player1"
 var selected_character_id: String = CharacterCatalogScript.get_default_character_id()
 var selected_character_skin_id: String = ""
@@ -25,6 +27,8 @@ func to_dict() -> Dictionary:
 		"server_port": server_port,
 		"connect_timeout_sec": connect_timeout_sec,
 		"room_id_hint": room_id_hint,
+		"room_kind": room_kind,
+		"room_display_name": room_display_name,
 		"player_name": player_name,
 		"selected_character_id": selected_character_id,
 		"selected_character_skin_id": selected_character_skin_id,
@@ -40,6 +44,8 @@ func duplicate_deep() -> ClientConnectionConfig:
 	duplicated.server_port = server_port
 	duplicated.connect_timeout_sec = connect_timeout_sec
 	duplicated.room_id_hint = room_id_hint
+	duplicated.room_kind = room_kind
+	duplicated.room_display_name = room_display_name
 	duplicated.player_name = player_name
 	duplicated.selected_character_id = selected_character_id
 	duplicated.selected_character_skin_id = selected_character_skin_id

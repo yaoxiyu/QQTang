@@ -1,6 +1,8 @@
 class_name LobbyUseCase
 extends RefCounted
 
+const PHASE15_LOG_PREFIX := "[QQT_P15]"
+
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
@@ -67,12 +69,17 @@ func create_private_room(host: String, port: int) -> Dictionary:
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
+	_log_phase15("create_private_room", {
+		"host": normalized_host,
+		"port": normalized_port,
+	})
 	return {
 		"ok": true,
 		"error_code": "",
 		"user_message": "",
 		"entry_context": _build_online_entry_context(
 			FrontEntryKindScript.ONLINE_CREATE,
+			FrontRoomKindScript.PRIVATE_ROOM,
 			normalized_host,
 			normalized_port,
 			"",
@@ -85,10 +92,18 @@ func create_private_room(host: String, port: int) -> Dictionary:
 func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 	var normalized_room_id := room_id.strip_edges()
 	if normalized_room_id.is_empty():
+		_log_phase15("join_private_room_failed", {
+			"reason": "ROOM_ID_REQUIRED",
+		})
 		return _fail("ROOM_ID_REQUIRED", "Room id is required")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
+	_log_phase15("join_private_room", {
+		"host": normalized_host,
+		"port": normalized_port,
+		"room_id": normalized_room_id,
+	})
 	if front_settings_state != null:
 		front_settings_state.last_room_id = normalized_room_id
 	return {
@@ -97,6 +112,72 @@ func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 		"user_message": "",
 		"entry_context": _build_online_entry_context(
 			FrontEntryKindScript.ONLINE_JOIN,
+			FrontRoomKindScript.PRIVATE_ROOM,
+			normalized_host,
+			normalized_port,
+			normalized_room_id,
+			true,
+			true
+		),
+	}
+
+
+func create_public_room(host: String, port: int, room_display_name: String) -> Dictionary:
+	var normalized_room_display_name := room_display_name.strip_edges()
+	if normalized_room_display_name.is_empty():
+		_log_phase15("create_public_room_failed", {
+			"reason": "ROOM_DISPLAY_NAME_REQUIRED",
+		})
+		return _fail("ROOM_DISPLAY_NAME_REQUIRED", "Public room name is required")
+	var normalized_host := _normalize_host(host)
+	var normalized_port := _normalize_port(port)
+	_update_last_server(normalized_host, normalized_port)
+	_log_phase15("create_public_room", {
+		"host": normalized_host,
+		"port": normalized_port,
+		"room_display_name": normalized_room_display_name,
+	})
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": _build_online_entry_context(
+			FrontEntryKindScript.ONLINE_CREATE,
+			FrontRoomKindScript.PUBLIC_ROOM,
+			normalized_host,
+			normalized_port,
+			"",
+			true,
+			false,
+			normalized_room_display_name
+		),
+	}
+
+
+func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
+	var normalized_room_id := room_id.strip_edges()
+	if normalized_room_id.is_empty():
+		_log_phase15("join_public_room_failed", {
+			"reason": "ROOM_ID_REQUIRED",
+		})
+		return _fail("ROOM_ID_REQUIRED", "Room id is required")
+	var normalized_host := _normalize_host(host)
+	var normalized_port := _normalize_port(port)
+	_update_last_server(normalized_host, normalized_port)
+	_log_phase15("join_public_room", {
+		"host": normalized_host,
+		"port": normalized_port,
+		"room_id": normalized_room_id,
+	})
+	if front_settings_state != null:
+		front_settings_state.last_room_id = normalized_room_id
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": _build_online_entry_context(
+			FrontEntryKindScript.ONLINE_JOIN,
+			FrontRoomKindScript.PUBLIC_ROOM,
 			normalized_host,
 			normalized_port,
 			normalized_room_id,
@@ -119,19 +200,22 @@ func logout() -> Dictionary:
 
 func _build_online_entry_context(
 	entry_kind: String,
+	room_kind: String,
 	host: String,
 	port: int,
 	room_id: String,
 	should_auto_connect: bool,
-	should_auto_join: bool
+	should_auto_join: bool,
+	room_display_name: String = ""
 ) -> RoomEntryContext:
 	var entry_context := RoomEntryContextScript.new()
 	entry_context.entry_kind = entry_kind
-	entry_context.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	entry_context.room_kind = room_kind
 	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
 	entry_context.server_host = host
 	entry_context.server_port = port
 	entry_context.target_room_id = room_id
+	entry_context.room_display_name = room_display_name
 	entry_context.return_target = FrontReturnTargetScript.LOBBY
 	entry_context.should_auto_connect = should_auto_connect
 	entry_context.should_auto_join = should_auto_join
@@ -169,3 +253,7 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 		"user_message": user_message,
 		"entry_context": null,
 	}
+
+
+func _log_phase15(event_name: String, payload: Dictionary) -> void:
+	print("%s[lobby_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)])

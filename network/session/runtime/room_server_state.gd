@@ -15,12 +15,15 @@ var room_kind: String = "private_room"
 var topology: String = "dedicated_server"
 var owner_peer_id: int = 0
 var max_players: int = 8
+var room_display_name: String = ""
+var is_public_room: bool = false
 var selected_map_id: String = MapCatalogScript.get_default_map_id()
 var selected_rule_id: String = RuleSetCatalogScript.get_default_rule_id()
 var selected_mode_id: String = ModeCatalogScript.get_default_mode_id()
 var min_start_players: int = 2
 var members: Dictionary = {}
 var ready_map: Dictionary = {}
+var match_active: bool = false
 
 
 func reset() -> void:
@@ -29,22 +32,35 @@ func reset() -> void:
 	topology = "dedicated_server"
 	owner_peer_id = 0
 	max_players = 8
+	room_display_name = ""
+	is_public_room = false
 	selected_map_id = MapCatalogScript.get_default_map_id()
 	selected_rule_id = RuleSetCatalogScript.get_default_rule_id()
 	selected_mode_id = ModeCatalogScript.get_default_mode_id()
 	min_start_players = 2
+	match_active = false
 	members.clear()
 	ready_map.clear()
 
 
-func ensure_room(next_room_id: String, peer_id: int) -> void:
+func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "private_room", next_room_display_name: String = "") -> void:
 	if room_id.is_empty():
 		room_id = next_room_id if not next_room_id.is_empty() else "room_%d" % peer_id
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
-	room_kind = "private_room"
+	var resolved_room_kind := String(next_room_kind).strip_edges().to_lower()
+	if resolved_room_kind != "public_room" and resolved_room_kind != "private_room":
+		resolved_room_kind = "private_room"
+	room_kind = resolved_room_kind
+	is_public_room = room_kind == "public_room"
+	var normalized_display_name := next_room_display_name.strip_edges()
+	if is_public_room:
+		room_display_name = normalized_display_name if not normalized_display_name.is_empty() else room_id
+	else:
+		room_display_name = normalized_display_name
 	topology = "dedicated_server"
 	min_start_players = 2
+	match_active = false
 
 
 func upsert_member(
@@ -137,11 +153,13 @@ func build_snapshot() -> RoomSnapshot:
 	snapshot.topology = topology
 	snapshot.owner_peer_id = owner_peer_id
 	snapshot.max_players = max_players
+	snapshot.room_display_name = room_display_name
 	snapshot.selected_map_id = selected_map_id
 	snapshot.rule_set_id = selected_rule_id
 	snapshot.mode_id = selected_mode_id
 	snapshot.min_start_players = min_start_players
 	snapshot.all_ready = can_start()
+	snapshot.match_active = match_active
 
 	var slot_index := 0
 	for peer_id in get_sorted_peer_ids():

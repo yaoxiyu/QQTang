@@ -51,10 +51,11 @@ var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScri
 var _pressed_direction_stack: Array[String] = []
 var _last_place_pressed: bool = false
 var _place_action_latched: bool = false
+var _runtime_bound: bool = false
 
 
 func _ready() -> void:
-	call_deferred("_initialize_runtime")
+	call_deferred("_bind_runtime")
 
 
 func _process(delta: float) -> void:
@@ -76,8 +77,22 @@ func _process(delta: float) -> void:
 		_session_adapter.advance_authoritative_tick(_collect_local_input())
 
 
+func _bind_runtime() -> void:
+	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
+	if _app_runtime == null:
+		get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
+		return
+	if _app_runtime.has_method("is_runtime_ready") and _app_runtime.is_runtime_ready():
+		_initialize_runtime()
+		return
+	if _app_runtime.has_signal("runtime_ready") and not _app_runtime.runtime_ready.is_connected(_initialize_runtime):
+		_app_runtime.runtime_ready.connect(_initialize_runtime, CONNECT_ONE_SHOT)
+
+
 func _initialize_runtime() -> void:
-	_app_runtime = AppRuntimeRootScript.ensure_in_tree(get_tree())
+	if _runtime_bound:
+		return
+	_runtime_bound = true
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
 	if _app_runtime != null and _app_runtime.current_start_config == null and _session_adapter != null:
 		var adapter_config: BattleStartConfig = _session_adapter.get("start_config")

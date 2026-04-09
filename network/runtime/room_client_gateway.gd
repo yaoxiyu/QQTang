@@ -73,7 +73,9 @@ func request_create_room(connection_config: ClientConnectionConfig) -> void:
 		connection_config.selected_bubble_skin_id,
 		"",
 		"",
-		connection_config.selected_mode_id
+		connection_config.selected_mode_id,
+		connection_config.room_kind,
+		connection_config.room_display_name
 	)
 
 
@@ -117,6 +119,24 @@ func request_leave_room_and_disconnect() -> void:
 	if client_room_runtime == null:
 		return
 	client_room_runtime.request_leave_room_and_disconnect()
+
+
+func request_room_directory_snapshot() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_room_directory_snapshot()
+
+
+func subscribe_room_directory() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.subscribe_room_directory()
+
+
+func unsubscribe_room_directory() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.unsubscribe_room_directory()
 
 
 func _connect_runtime_signals() -> void:

@@ -10,6 +10,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH: int = 24
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
@@ -31,6 +32,7 @@ func handle_peer_disconnected(peer_id: int) -> void:
 func handle_match_finished() -> void:
 	if room_state == null:
 		return
+	room_state.match_active = false
 	room_state.reset_ready_state()
 	_broadcast_snapshot()
 
@@ -69,7 +71,27 @@ func _handle_create_request(message: Dictionary) -> void:
 		})
 		return
 	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
-	room_state.ensure_room(requested_room_id, peer_id)
+	var requested_room_kind := String(message.get("room_kind", "private_room")).strip_edges().to_lower()
+	var requested_room_display_name := String(message.get("room_display_name", "")).strip_edges()
+	if requested_room_kind != "private_room" and requested_room_kind != "public_room":
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "ROOM_KIND_INVALID",
+			"user_message": "Room kind is invalid",
+		})
+		return
+	if requested_room_kind == "public_room":
+		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
+		if requested_room_display_name.is_empty():
+			send_to_peer.emit(peer_id, {
+				"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+				"error": "ROOM_DISPLAY_NAME_REQUIRED",
+				"user_message": "Public room name is required",
+			})
+			return
+	else:
+		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
+	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
 	room_state.set_selection(
 		String(message.get("map_id", "")),
 		String(message.get("rule_set_id", "")),
@@ -88,6 +110,8 @@ func _handle_create_request(message: Dictionary) -> void:
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_ACCEPTED,
 		"room_id": room_state.room_id,
 		"owner_peer_id": room_state.owner_peer_id,
+		"room_kind": room_state.room_kind,
+		"room_display_name": room_state.room_display_name,
 	})
 	_broadcast_snapshot()
 
@@ -201,6 +225,8 @@ func _handle_start_request(message: Dictionary) -> void:
 			"user_message": "Room is not ready to start",
 		})
 		return
+	room_state.match_active = true
+	_broadcast_snapshot()
 	start_match_requested.emit(room_state.build_snapshot())
 
 

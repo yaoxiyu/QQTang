@@ -9,6 +9,7 @@ const ClientConnectionConfigScript = preload("res://network/runtime/client_conne
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const PHASE15_LOG_PREFIX := "[QQT_P15]"
 const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 
 var app_runtime: Node = null
@@ -51,10 +52,18 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
 
-	if entry_context != null and entry_context.room_kind == FrontRoomKindScript.PRIVATE_ROOM:
+	if entry_context != null and String(entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER and String(entry_context.room_kind) != FrontRoomKindScript.PRACTICE:
 		if app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("reset_room_state"):
 			app_runtime.room_session_controller.reset_room_state()
 		var connection_config := _build_connection_config(entry_context)
+		_log_phase15("enter_dedicated_room_requested", {
+			"entry_kind": String(entry_context.entry_kind),
+			"room_kind": String(entry_context.room_kind),
+			"server_host": String(connection_config.server_host),
+			"server_port": int(connection_config.server_port),
+			"room_id_hint": String(connection_config.room_id_hint),
+			"room_display_name": String(connection_config.room_display_name),
+		})
 		if room_client_gateway != null:
 			_pending_online_entry_context = entry_context.duplicate_deep()
 			_pending_connection_config = connection_config.duplicate_deep()
@@ -164,6 +173,8 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 	config.server_host = entry_context.server_host
 	config.server_port = entry_context.server_port
 	config.room_id_hint = entry_context.target_room_id
+	config.room_kind = entry_context.room_kind
+	config.room_display_name = entry_context.room_display_name
 	if app_runtime != null and app_runtime.player_profile_state != null:
 		config.player_name = app_runtime.player_profile_state.nickname
 		config.selected_character_id = app_runtime.player_profile_state.default_character_id
@@ -239,8 +250,16 @@ func _on_gateway_transport_connected() -> void:
 		return
 	match String(_pending_online_entry_context.entry_kind):
 		FrontEntryKindScript.ONLINE_CREATE:
+			_log_phase15("transport_connected_dispatch_create", {
+				"room_kind": String(_pending_connection_config.room_kind),
+				"room_display_name": String(_pending_connection_config.room_display_name),
+			})
 			room_client_gateway.request_create_room(_pending_connection_config)
 		FrontEntryKindScript.ONLINE_JOIN:
+			_log_phase15("transport_connected_dispatch_join", {
+				"room_kind": String(_pending_connection_config.room_kind),
+				"room_id_hint": String(_pending_connection_config.room_id_hint),
+			})
 			room_client_gateway.request_join_room(_pending_connection_config)
 		_:
 			_log_room_anomaly("transport_connected_with_unknown_entry_kind", {
@@ -259,6 +278,13 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.members.is_empty():
 		_log_room_anomaly("received_snapshot_without_members", _build_snapshot_context(snapshot))
 	on_authoritative_snapshot(snapshot)
+	_log_phase15("authoritative_room_snapshot_received", {
+		"room_id": String(snapshot.room_id),
+		"room_kind": String(snapshot.room_kind),
+		"room_display_name": String(snapshot.room_display_name),
+		"member_count": snapshot.members.size(),
+		"match_active": bool(snapshot.match_active),
+	})
 	if _await_room_before_enter:
 		if app_runtime == null or app_runtime.front_flow == null or not app_runtime.front_flow.has_method("enter_room"):
 			_log_room_anomaly("awaiting_room_but_front_flow_missing", _build_snapshot_context(snapshot))
@@ -328,6 +354,10 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
 	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+
+
+func _log_phase15(event_name: String, details: Dictionary) -> void:
+	print("%s[room_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(details)])
 
 
 func _build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:

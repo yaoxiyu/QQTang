@@ -8,11 +8,13 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_text(scene_controller, "title_label", String(view_model.get("title_text", "")))
 	_set_text(scene_controller, "room_meta_label", _build_room_meta_text(view_model))
 	_set_text(scene_controller, "room_kind_label", "Room Kind: %s" % String(view_model.get("room_kind_text", "")))
+	_set_text(scene_controller, "room_display_name_label", String(view_model.get("room_display_name", "")))
 	_set_text(scene_controller, "room_id_value_label", "Room ID: %s" % String(view_model.get("room_id_text", "")))
 	_set_text(scene_controller, "connection_status_label", "Connection: %s" % String(view_model.get("connection_status_text", "")))
 	_set_text(scene_controller, "owner_label", "Owner: %s" % String(view_model.get("owner_text", "")))
 	_set_text(scene_controller, "blocker_label", String(view_model.get("blocker_text", "")))
 
+	_set_visible(scene_controller, "room_display_name_label", not String(view_model.get("room_display_name", "")).is_empty())
 	_set_visible(scene_controller, "room_id_value_label", bool(view_model.get("show_room_id", true)))
 	_set_visible(scene_controller, "connection_status_label", bool(view_model.get("show_connection_status", true)))
 	_set_visible(scene_controller, "add_opponent_button", bool(view_model.get("show_add_opponent", false)))
