@@ -202,6 +202,8 @@
 - 不直接承载 battle 规则真相与 transport 协议细节
 - Lobby 负责产出 `RoomEntryContext`
 - Room 前台层负责消费房间权威状态，不能自行伪造 `mode_id`
+- Lobby Directory 与 Online Create/Join 当前允许复用同一条 Dedicated Server transport
+- 若 `RoomUseCase` 进入房间时目标 DS transport 已连接，必须直接 dispatch create/join 请求，不能再等待新的 `transport_connected`
 
 ## 3.1.2 `res://app/debug/`
 
@@ -463,6 +465,7 @@
 - `dedicated_server_scene.tscn` 是当前唯一正式 Dedicated Server 入口
 - `network_bootstrap_scene.tscn` 仅限 debug-only / QA 回归使用
 - 不允许把 `network_bootstrap_scene.tscn` 继续扩展成正式产品入口
+- 仅在“运行场景/运行进程”语义下，`dedicated_server_scene.tscn` 才代表 DS 已启动；仅在编辑器中打开该 scene 不构成 DS 运行真相
 
 ## 3.7 `res://tests/`
 
@@ -673,6 +676,9 @@ Battle 的正式启动应理解为：
    - 不仅删除已消失 block
    - 也要在 rollback / resync 后补回重新出现的 block
 8. 调试日志可以存在，但 anomaly / trace 日志默认不应成为正式业务真相的一部分
+9. Lobby Public Room / Private Room 的 online enter 以 DS transport ready 为前提:
+   - 若 transport 尚未连接，先等待 `transport_connected` 再 dispatch create/join
+   - 若 transport 已由 room directory 流程建立并保持可用，必须直接复用并立刻 dispatch create/join
 
 ---
 

@@ -22,9 +22,13 @@
 | `network/runtime/client_room_runtime.gd` | 2 | LogNet | WARN/DEBUG |
 | `network/session/runtime/client_runtime.gd` | 7 | LogSync | WARN/INFO |
 | `network/session/runtime/server_room_registry.gd` | 1 | LogSession | DEBUG |
+| `scenes/front/lobby_scene_controller.gd` | 1 | LogFront | DEBUG |
+| `app/front/lobby/lobby_use_case.gd` | 1 | LogFront | DEBUG |
+| `app/front/lobby/lobby_directory_use_case.gd` | 1 | LogFront | DEBUG |
+| `app/front/room/room_use_case.gd` | 2 | LogFront / LogNet | DEBUG / WARN |
 | `tools/content_pipeline/content_pipeline_runner.gd` | 1 | LogContent | INFO |
 
-**总计：25 处 print 已迁移（非全量）**
+**总计：30 处 print 已迁移（非全量）**
 
 ## 日志级别分配原则
 
@@ -76,5 +80,5 @@
 
 1. **监控日志输出**：运行游戏检查日志格式、文件路径和级别是否合理
 2. **调整日志级别**：根据 debug/release 场景校准客户端与 DS 的默认级别
-3. **继续迁移剩余 runtime 直出日志**：优先处理前台流程、表现层和其他网络路径
+3. **继续迁移剩余 runtime 直出日志**：优先处理表现层和其他网络路径
 4. **性能优化**：继续观察高频日志场景下的批量 flush 和轮转策略
