@@ -81,6 +81,8 @@ func upsert_member(
 	members[peer_id] = profile
 	if not ready_map.has(peer_id):
 		ready_map[peer_id] = false
+	profile["ready"] = bool(ready_map.get(peer_id, false))
+	members[peer_id] = profile
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
 
@@ -110,6 +112,9 @@ func set_ready(peer_id: int, ready: bool) -> void:
 	if not members.has(peer_id):
 		return
 	ready_map[peer_id] = ready
+	var profile: Dictionary = members.get(peer_id, {})
+	profile["ready"] = ready
+	members[peer_id] = profile
 
 
 func toggle_ready(peer_id: int) -> bool:

@@ -240,6 +240,16 @@ layout_mode = 2
 [node name="RecentRoomLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=943682691]
 layout_mode = 2
 
+[node name="RecentRoomKindLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=1360584648]
+layout_mode = 2
+text = "Room Kind: -"
+autowrap_mode = 3
+
+[node name="RecentRoomDisplayNameLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=458602973]
+layout_mode = 2
+text = "Room Name: -"
+autowrap_mode = 3
+
 [node name="ReconnectButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=997504135]
 layout_mode = 2
 text = "Reconnect"

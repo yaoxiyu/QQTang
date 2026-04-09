@@ -1,4 +1,4 @@
-extends Node2D
+﻿extends Node2D
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
@@ -285,6 +285,13 @@ func _on_settlement_rematch_requested() -> void:
 func _request_post_shutdown_action(action: String) -> void:
 	if _post_shutdown_action != "":
 		return
+	# Phase16: For DS rooms, set pending_room_action for rematch
+	if action == "rematch" and _app_runtime != null:
+		var entry_context = _app_runtime.current_room_entry_context
+		if entry_context != null and String(entry_context.topology) == "dedicated_server":
+			_app_runtime.pending_room_action = "rematch"
+			if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
+				_app_runtime.room_session_controller.set_pending_room_action("rematch")
 	_post_shutdown_action = action
 	_shutdown_active_battle()
 	_complete_post_shutdown_action()

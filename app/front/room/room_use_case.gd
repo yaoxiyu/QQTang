@@ -1,4 +1,4 @@
-class_name RoomUseCase
+﻿class_name RoomUseCase
 extends RefCounted
 
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
@@ -166,6 +166,15 @@ func start_match() -> Dictionary:
 	return result
 
 
+func request_rematch() -> Dictionary:
+	if app_runtime == null or room_client_gateway == null:
+		return _fail("ROOM_USE_CASE_MISSING", "App runtime or gateway is not configured")
+	if not _is_online_room():
+		return _fail("NOT_ONLINE_ROOM", "Rematch is only supported in online rooms")
+	room_client_gateway.request_rematch()
+	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
+
+
 func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return
@@ -241,6 +250,8 @@ func _connect_gateway_signals() -> void:
 		room_client_gateway.room_error.connect(_on_gateway_room_error)
 	if not room_client_gateway.canonical_start_config_received.is_connected(_on_gateway_canonical_start_config_received):
 		room_client_gateway.canonical_start_config_received.connect(_on_gateway_canonical_start_config_received)
+	if not room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
+		room_client_gateway.match_loading_snapshot_received.connect(_on_gateway_match_loading_snapshot_received)
 
 
 func _disconnect_gateway_signals() -> void:
@@ -254,6 +265,8 @@ func _disconnect_gateway_signals() -> void:
 		room_client_gateway.room_error.disconnect(_on_gateway_room_error)
 	if room_client_gateway.canonical_start_config_received.is_connected(_on_gateway_canonical_start_config_received):
 		room_client_gateway.canonical_start_config_received.disconnect(_on_gateway_canonical_start_config_received)
+	if room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
+		room_client_gateway.match_loading_snapshot_received.disconnect(_on_gateway_match_loading_snapshot_received)
 
 
 func _on_gateway_transport_connected() -> void:
@@ -320,6 +333,10 @@ func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
 		return
 	app_runtime.front_settings_state.last_room_id = snapshot.room_id
 	app_runtime.front_settings_state.reconnect_room_id = snapshot.room_id
+	# Phase16: Reconnect ticket extension
+	app_runtime.front_settings_state.reconnect_room_kind = snapshot.room_kind
+	app_runtime.front_settings_state.reconnect_room_display_name = snapshot.room_display_name
+	app_runtime.front_settings_state.reconnect_topology = snapshot.topology
 	var server_host := ""
 	var server_port := 0
 	if app_runtime.current_room_entry_context != null:
@@ -331,6 +348,42 @@ func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
 		server_port = int(app_runtime.front_settings_state.last_server_port)
 	app_runtime.front_settings_state.reconnect_host = server_host
 	app_runtime.front_settings_state.reconnect_port = server_port
+
+
+func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> void:
+	if app_runtime == null:
+		return
+	if app_runtime.has_method("apply_canonical_start_config"):
+		app_runtime.apply_canonical_start_config(config)
+	# Phase16: Write match_id to reconnect ticket
+	if app_runtime.front_settings_state != null and config != null and not config.match_id.is_empty():
+		app_runtime.front_settings_state.reconnect_match_id = config.match_id
+	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
+		app_runtime.front_flow.request_start_match()
+
+
+func _on_gateway_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
+	if app_runtime == null:
+		return
+	if app_runtime.loading_use_case != null and app_runtime.loading_use_case.has_method("consume_loading_snapshot"):
+		app_runtime.loading_use_case.consume_loading_snapshot(snapshot)
+	if app_runtime.room_session_controller == null:
+		return
+	if snapshot == null:
+		if app_runtime.room_session_controller.has_method("clear_loading_state"):
+			app_runtime.room_session_controller.clear_loading_state()
+		return
+	if app_runtime.room_session_controller.has_method("set_loading_state"):
+		app_runtime.room_session_controller.set_loading_state(
+			String(snapshot.phase),
+			snapshot.ready_peer_ids,
+			snapshot.expected_peer_ids,
+			"gateway_match_loading_snapshot"
+		)
+	if snapshot.is_committed() and app_runtime.room_session_controller.has_method("clear_loading_state"):
+		app_runtime.room_session_controller.clear_loading_state()
+	elif snapshot.is_aborted() and app_runtime.room_session_controller.has_method("set_last_error"):
+		app_runtime.room_session_controller.set_last_error(snapshot.error_code, snapshot.user_message, {})
 
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
@@ -347,15 +400,6 @@ func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 	_clear_pending_online_entry_state()
 	if app_runtime != null and app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("set_last_error"):
 		app_runtime.room_session_controller.set_last_error(error_code, user_message, {})
-
-
-func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> void:
-	if app_runtime == null:
-		return
-	if app_runtime.has_method("apply_canonical_start_config"):
-		app_runtime.apply_canonical_start_config(config)
-	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
-		app_runtime.front_flow.request_start_match()
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:

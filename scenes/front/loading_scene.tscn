@@ -24,6 +24,11 @@ offset_bottom = 640.0
 layout_mode = 2
 text = "Loading Match..."
 
+[node name="LoadingPhaseLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1098169232]
+layout_mode = 2
+text = "Phase: waiting"
+autowrap_mode = 3
+
 [node name="ManifestSummaryPanel" type="PanelContainer" parent="LoadingRoot/MainLayout" unique_id=2068405271]
 layout_mode = 2
 
@@ -61,6 +66,11 @@ text = "Players"
 
 [node name="PlayerLoadingList" type="VBoxContainer" parent="LoadingRoot/MainLayout" unique_id=1561636689]
 layout_mode = 2
+
+[node name="LoadingStatusLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=963894008]
+layout_mode = 2
+text = "Waiting for players..."
+autowrap_mode = 3
 
 [node name="TimeoutHint" type="Label" parent="LoadingRoot/MainLayout" unique_id=810322753]
 layout_mode = 2

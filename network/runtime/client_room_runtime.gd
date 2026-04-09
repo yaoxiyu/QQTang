@@ -5,6 +5,7 @@ const ENetBattleTransportScript = preload("res://network/transport/enet_battle_t
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
+const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
 const ROOM_RUNTIME_DIRECTORY_TAG := "net.room_runtime.directory"
 const ROOM_RUNTIME_ANOMALY_TAG := "net.room_runtime.anomaly"
 
@@ -16,6 +17,7 @@ signal room_joined(snapshot: RoomSnapshot)
 signal room_error(error_code: String, user_message: String)
 signal canonical_start_config_received(config: BattleStartConfig)
 signal battle_message_received(message: Dictionary)
+signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 
 var _transport: ENetBattleTransport = null
 var _last_snapshot: RoomSnapshot = null
@@ -196,6 +198,23 @@ func request_leave_room_and_disconnect() -> void:
 	_leave_disconnect_deadline_msec = Time.get_ticks_msec() + 1500
 
 
+func request_match_loading_ready(match_id: String, revision: int) -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+		"match_id": match_id,
+		"revision": revision,
+		"sender_peer_id": _transport.get_local_peer_id() if _transport != null else 0,
+	})
+
+
+func request_rematch() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_REMATCH_REQUEST,
+		"sender_peer_id": _transport.get_local_peer_id() if _transport != null else 0,
+		"room_id_hint": _get_current_room_id_hint(),
+	})
+
+
 func send_battle_input(message: Dictionary) -> void:
 	_send_to_server(message)
 
@@ -288,6 +307,11 @@ func _route_message(message: Dictionary) -> void:
 			canonical_start_config_received.emit(config)
 		TransportMessageTypesScript.JOIN_BATTLE_REJECTED:
 			room_error.emit(String(message.get("error", "MATCH_START_REJECTED")), String(message.get("user_message", "Match start rejected")))
+		TransportMessageTypesScript.MATCH_LOADING_SNAPSHOT:
+			var snapshot := MatchLoadingSnapshotScript.from_dict(message.get("snapshot", {}))
+			match_loading_snapshot_received.emit(snapshot)
+		TransportMessageTypesScript.ROOM_REMATCH_REJECTED:
+			room_error.emit(String(message.get("error", "REMATCH_REJECTED")), String(message.get("user_message", "Rematch rejected")))
 		TransportMessageTypesScript.INPUT_ACK, \
 		TransportMessageTypesScript.STATE_SUMMARY, \
 		TransportMessageTypesScript.CHECKPOINT, \
@@ -369,3 +393,9 @@ func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
 
 func _log_directory_event(event_name: String, details: Dictionary) -> void:
 	LogNetScript.debug("%s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_RUNTIME_DIRECTORY_TAG)
+
+
+func _get_current_room_id_hint() -> String:
+	if _last_snapshot != null:
+		return String(_last_snapshot.room_id)
+	return ""

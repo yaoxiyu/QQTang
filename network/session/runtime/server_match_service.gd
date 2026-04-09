@@ -38,6 +38,13 @@ func _process(delta: float) -> void:
 
 
 func start_match(snapshot: RoomSnapshot) -> Dictionary:
+	var prepare_result := prepare_match(snapshot)
+	if not bool(prepare_result.get("ok", false)):
+		return prepare_result
+	return commit_prepared_match(prepare_result.get("config"))
+
+
+func prepare_match(snapshot: RoomSnapshot) -> Dictionary:
 	_ensure_runtime()
 	if _coordinator == null or not _coordinator.has_method("can_build_from_room") or not _coordinator.can_build_from_room(snapshot):
 		return {
@@ -59,6 +66,21 @@ func start_match(snapshot: RoomSnapshot) -> Dictionary:
 			"ok": false,
 			"validation": validation,
 		}
+	return {
+		"ok": true,
+		"config": config,
+		"validation": validation,
+	}
+
+
+func commit_prepared_match(config: BattleStartConfig) -> Dictionary:
+	if config == null:
+		return {
+			"ok": false,
+			"validation": {
+				"error_message": "Config is null, cannot commit",
+			},
+		}
 	if not _authority_runtime.start_match(config):
 		return {
 			"ok": false,
@@ -70,25 +92,20 @@ func start_match(snapshot: RoomSnapshot) -> Dictionary:
 	_active = true
 	_tick_accumulator = 0.0
 	canonical_config_ready.emit(_current_config)
-	for player_entry in _current_config.player_slots:
-		var peer_id := int(player_entry.get("peer_id", -1))
-		if peer_id <= 0:
-			continue
-		var peer_config := _current_config.duplicate_deep()
-		peer_config.build_mode = BattleStartConfig.BUILD_MODE_CANDIDATE
-		peer_config.session_mode = "network_client"
-		peer_config.topology = "dedicated_server"
-		peer_config.local_peer_id = peer_id
-		peer_config.controlled_peer_id = peer_id
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
-			"start_config": peer_config.to_dict(),
-		})
 	return {
 		"ok": true,
 		"config": _current_config,
-		"validation": validation,
 	}
+
+
+func build_peer_candidate_config(config: BattleStartConfig, peer_id: int) -> BattleStartConfig:
+	var peer_config := config.duplicate_deep()
+	peer_config.build_mode = BattleStartConfig.BUILD_MODE_CANDIDATE
+	peer_config.session_mode = "network_client"
+	peer_config.topology = "dedicated_server"
+	peer_config.local_peer_id = peer_id
+	peer_config.controlled_peer_id = peer_id
+	return peer_config
 
 
 func ingest_runtime_message(message: Dictionary) -> void:

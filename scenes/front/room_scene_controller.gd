@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
@@ -23,6 +23,8 @@ const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model
 @onready var connection_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel")
 @onready var owner_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel")
 @onready var blocker_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel")
+@onready var lifecycle_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/LifecycleStatusLabel")
+@onready var pending_action_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/PendingActionStatusLabel")
 @onready var player_name_input: LineEdit = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput")
 @onready var character_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector")
 @onready var character_skin_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector")
@@ -85,6 +87,7 @@ func _on_runtime_ready() -> void:
 	_apply_local_profile_defaults()
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
 		_refresh_room(_room_controller.build_room_snapshot())
+	_try_consume_pending_room_action()
 
 
 func _redirect_to_boot_if_missing() -> void:
@@ -464,3 +467,35 @@ func _select_metadata(selector: OptionButton, value: String) -> void:
 		if String(selector.get_item_metadata(index)) == value:
 			selector.select(index)
 			return
+
+func _try_consume_pending_room_action() -> void:
+	if _app_runtime == null:
+		return
+	var pending_action := String(_app_runtime.pending_room_action)
+	if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
+		_app_runtime.room_session_controller.set_pending_room_action(pending_action)
+	if pending_action != "rematch":
+		return
+	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
+	if snapshot == null:
+		_app_runtime.pending_room_action = ""
+		if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
+			_app_runtime.room_session_controller.set_pending_room_action("")
+		return
+	var entry_context = _app_runtime.current_room_entry_context
+	if entry_context == null or String(entry_context.topology) != "dedicated_server":
+		_app_runtime.pending_room_action = ""
+		if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
+			_app_runtime.room_session_controller.set_pending_room_action("")
+		return
+	if _app_runtime.local_peer_id == snapshot.owner_peer_id:
+		var result := _room_use_case.request_rematch()
+		if bool(result.get("ok", false)):
+			_set_room_feedback("Rematch requested...")
+		else:
+			_set_room_feedback(String(result.get("user_message", "Rematch failed")))
+	else:
+		_set_room_feedback("Waiting host to rematch...")
+	_app_runtime.pending_room_action = ""
+	if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
+		_app_runtime.room_session_controller.set_pending_room_action("")

@@ -1,4 +1,4 @@
-class_name ServerRoomService
+﻿class_name ServerRoomService
 extends Node
 
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -37,6 +37,27 @@ func handle_match_finished() -> void:
 	_broadcast_snapshot()
 
 
+func handle_loading_started() -> void:
+	if room_state == null:
+		return
+	room_state.match_active = true
+	_broadcast_snapshot()
+
+
+func handle_loading_aborted() -> void:
+	if room_state == null:
+		return
+	room_state.match_active = false
+	_broadcast_snapshot()
+
+
+func handle_match_committed() -> void:
+	if room_state == null:
+		return
+	room_state.match_active = true
+	_broadcast_snapshot()
+
+
 func handle_message(message: Dictionary) -> void:
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	match message_type:
@@ -54,6 +75,8 @@ func handle_message(message: Dictionary) -> void:
 			_handle_start_request(message)
 		TransportMessageTypesScript.ROOM_LEAVE:
 			_handle_leave_request(message)
+		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
+			_handle_rematch_request(message)
 		_:
 			pass
 
@@ -218,6 +241,13 @@ func _handle_toggle_ready(message: Dictionary) -> void:
 
 func _handle_start_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.match_active:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "MATCH_ALREADY_ACTIVE",
+			"user_message": "A match is already active",
+		})
+		return
 	if peer_id != room_state.owner_peer_id or not room_state.can_start():
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
@@ -225,8 +255,6 @@ func _handle_start_request(message: Dictionary) -> void:
 			"user_message": "Room is not ready to start",
 		})
 		return
-	room_state.match_active = true
-	_broadcast_snapshot()
 	start_match_requested.emit(room_state.build_snapshot())
 
 
@@ -241,6 +269,44 @@ func _handle_leave_request(message: Dictionary) -> void:
 		"room_id": room_state.room_id,
 		"had_member": had_member,
 	})
+
+
+func _handle_rematch_request(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if peer_id != room_state.owner_peer_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "REMATCH_FORBIDDEN",
+			"user_message": "Only the host can request a rematch",
+		})
+		return
+	if room_state.room_id.is_empty():
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "ROOM_NOT_FOUND",
+			"user_message": "Room does not exist",
+		})
+		return
+	if room_state.match_active:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "MATCH_ALREADY_ACTIVE",
+			"user_message": "A match is already active",
+		})
+		return
+	if room_state.members.size() < room_state.min_start_players:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "ROOM_NOT_READY",
+			"user_message": "Room is not ready for rematch (member count too low)",
+		})
+		return
+	# Rematch follows the same formal start pipeline and only pre-fills readiness.
+	for member_peer_id in room_state.members.keys():
+		room_state.set_ready(member_peer_id, true)
+	room_state.match_active = true
+	_broadcast_snapshot()
+	start_match_requested.emit(room_state.build_snapshot())
 
 
 func _broadcast_snapshot() -> void:

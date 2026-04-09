@@ -20,6 +20,12 @@ var is_host: bool = false
 var local_player_id: int = 0
 var host_player_id: int = 0
 
+# Phase16: Loading barrier context
+var loading_phase: String = ""
+var loading_ready_peers: Array[int] = []
+var loading_expected_peers: Array[int] = []
+var pending_room_action: String = ""
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -41,4 +47,8 @@ func to_dict() -> Dictionary:
 		"is_host": is_host,
 		"local_player_id": local_player_id,
 		"host_player_id": host_player_id,
+		"loading_phase": loading_phase,
+		"loading_ready_peers": loading_ready_peers.duplicate(),
+		"loading_expected_peers": loading_expected_peers.duplicate(),
+		"pending_room_action": pending_room_action,
 	}

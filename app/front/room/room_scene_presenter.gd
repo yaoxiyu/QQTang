@@ -13,6 +13,8 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_text(scene_controller, "connection_status_label", "Connection: %s" % String(view_model.get("connection_status_text", "")))
 	_set_text(scene_controller, "owner_label", "Owner: %s" % String(view_model.get("owner_text", "")))
 	_set_text(scene_controller, "blocker_label", String(view_model.get("blocker_text", "")))
+	_set_text(scene_controller, "lifecycle_status_label", String(view_model.get("lifecycle_status_text", "")))
+	_set_text(scene_controller, "pending_action_status_label", String(view_model.get("pending_action_status_text", "")))
 
 	_set_visible(scene_controller, "room_display_name_label", not String(view_model.get("room_display_name", "")).is_empty())
 	_set_visible(scene_controller, "room_id_value_label", bool(view_model.get("show_room_id", true)))

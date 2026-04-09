@@ -6,6 +6,7 @@ enum Value {
 	CREATING_ROOM,
 	ROOM_ACTIVE,
 	MATCH_NEGOTIATING,
+	MATCH_LOADING,
 	MATCH_ACTIVE,
 	MATCH_ENDING,
 	RECOVERING_ROOM,
@@ -25,6 +26,8 @@ static func state_to_string(state: int) -> String:
 			return "ROOM_ACTIVE"
 		Value.MATCH_NEGOTIATING:
 			return "MATCH_NEGOTIATING"
+		Value.MATCH_LOADING:
+			return "MATCH_LOADING"
 		Value.MATCH_ACTIVE:
 			return "MATCH_ACTIVE"
 		Value.MATCH_ENDING:

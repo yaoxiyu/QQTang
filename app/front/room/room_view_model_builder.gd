@@ -33,6 +33,8 @@ func build_view_model(
 	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state
 	var can_start := blocker_text.is_empty() and is_host
 	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
+	var lifecycle_status_text := _build_lifecycle_status_text(safe_context)
+	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
 
 	return {
 		"title_text": title_text,
@@ -43,6 +45,8 @@ func build_view_model(
 		"connection_status_text": connection_status_text,
 		"owner_text": owner_name,
 		"blocker_text": blocker_text,
+		"lifecycle_status_text": lifecycle_status_text,
+		"pending_action_status_text": pending_action_status_text,
 		"can_edit_selection": is_host,
 		"can_ready": can_ready,
 		"can_start": can_start,
@@ -219,3 +223,27 @@ func _format_topology(topology: String) -> String:
 			return "Dedicated Server"
 		_:
 			return topology
+
+
+func _build_lifecycle_status_text(room_runtime_context: RoomRuntimeContext) -> String:
+	if room_runtime_context == null:
+		return "Lifecycle: Unknown"
+	var room_flow_name := RoomFlowState.state_to_string(int(room_runtime_context.room_flow_state))
+	var session_name := SessionLifecycleState.state_to_string(int(room_runtime_context.session_lifecycle_state))
+	var loading_suffix := ""
+	if not String(room_runtime_context.loading_phase).is_empty():
+		loading_suffix = " | loading=%s" % String(room_runtime_context.loading_phase)
+	return "Lifecycle: %s / %s%s" % [room_flow_name, session_name, loading_suffix]
+
+
+func _build_pending_action_status_text(room_runtime_context: RoomRuntimeContext, is_host: bool) -> String:
+	if room_runtime_context == null:
+		return "Pending: None"
+	var pending_action := String(room_runtime_context.pending_room_action)
+	if pending_action == "rematch":
+		return "Pending: requesting rematch" if is_host else "Pending: waiting host rematch"
+	if String(room_runtime_context.loading_phase) == "waiting":
+		var ready_count := room_runtime_context.loading_ready_peers.size()
+		var expected_count := room_runtime_context.loading_expected_peers.size()
+		return "Pending: loading %d / %d ready" % [ready_count, expected_count]
+	return "Pending: None"

@@ -75,11 +75,21 @@ select_all_on_focus = true
 [node name="ConnectionStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=140237068]
 layout_mode = 2
 
+[node name="LifecycleStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=634236997]
+layout_mode = 2
+text = "Lifecycle: IN_ROOM"
+autowrap_mode = 3
+
 [node name="OwnerLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1526305193]
 layout_mode = 2
 
 [node name="BlockerLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=780472982]
 layout_mode = 2
+autowrap_mode = 3
+
+[node name="PendingActionStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=2093751148]
+layout_mode = 2
+text = "Pending Action: -"
 autowrap_mode = 3
 
 [node name="LocalLoadoutCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=355255835]

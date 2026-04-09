@@ -6,6 +6,7 @@ signal transport_connected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
 signal room_error(error_code: String, user_message: String)
 signal canonical_start_config_received(config: BattleStartConfig)
+signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 
 var app_runtime: Node = null
 var client_room_runtime: Node = null
@@ -139,6 +140,18 @@ func unsubscribe_room_directory() -> void:
 	client_room_runtime.unsubscribe_room_directory()
 
 
+func request_match_loading_ready(match_id: String, revision: int) -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_match_loading_ready(match_id, revision)
+
+
+func request_rematch() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_rematch()
+
+
 func _connect_runtime_signals() -> void:
 	if client_room_runtime == null:
 		return
@@ -150,6 +163,8 @@ func _connect_runtime_signals() -> void:
 		client_room_runtime.room_error.connect(_on_room_error)
 	if not client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.connect(_on_canonical_start_config_received)
+	if not client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+		client_room_runtime.match_loading_snapshot_received.connect(_on_match_loading_snapshot_received)
 
 
 func _disconnect_runtime_signals() -> void:
@@ -163,6 +178,8 @@ func _disconnect_runtime_signals() -> void:
 		client_room_runtime.room_error.disconnect(_on_room_error)
 	if client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.disconnect(_on_canonical_start_config_received)
+	if client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+		client_room_runtime.match_loading_snapshot_received.disconnect(_on_match_loading_snapshot_received)
 
 
 func _on_transport_connected() -> void:
@@ -179,6 +196,10 @@ func _on_room_error(error_code: String, user_message: String) -> void:
 
 func _on_canonical_start_config_received(config: BattleStartConfig) -> void:
 	canonical_start_config_received.emit(config)
+
+
+func _on_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
+	match_loading_snapshot_received.emit(snapshot)
 
 
 const LogNetScript = preload("res://app/logging/log_net.gd")

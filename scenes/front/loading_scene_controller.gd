@@ -2,9 +2,6 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
-const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
-const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
-const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 
 @onready var loading_root: Control = $LoadingRoot
 @onready var main_layout: VBoxContainer = $LoadingRoot/MainLayout
@@ -19,11 +16,14 @@ const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.
 @onready var player_loadout_title_label: Label = $LoadingRoot/MainLayout/PlayerLoadoutTitleLabel
 @onready var player_loading_list: VBoxContainer = $LoadingRoot/MainLayout/PlayerLoadingList
 @onready var timeout_hint: Label = $LoadingRoot/MainLayout/TimeoutHint
+@onready var loading_phase_label: Label = $LoadingRoot/MainLayout/LoadingPhaseLabel
+@onready var loading_status_label: Label = $LoadingRoot/MainLayout/LoadingStatusLabel
 
 var _app_runtime: Node = null
 var _front_flow: Node = null
-var _loading_started: bool = false
-var _content_manifest_builder = BattleContentManifestBuilderScript.new()
+var _room_client_gateway: RefCounted = null
+var _local_prepare_completed: bool = false
+var _transition_handled: bool = false
 
 
 func _ready() -> void:
@@ -46,9 +46,13 @@ func _bind_runtime() -> void:
 
 func _on_runtime_ready() -> void:
 	_front_flow = _app_runtime.front_flow
+	_room_client_gateway = _app_runtime.room_use_case.get("room_client_gateway") if _app_runtime.room_use_case != null else null
+	_connect_gateway_signals()
+	if _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("begin_loading"):
+		_app_runtime.loading_use_case.begin_loading()
 	_restore_missing_start_config_from_adapter()
 	_refresh_loading_view()
-	_begin_loading()
+	call_deferred("_complete_local_prepare")
 
 
 func _redirect_to_boot_if_missing() -> void:
@@ -69,43 +73,34 @@ func _configure_layout() -> void:
 	player_loadout_title_label.text = "Players"
 	timeout_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	timeout_hint.text = "Preparing runtime..."
+	if loading_phase_label != null:
+		loading_phase_label.text = "Phase: initializing"
+	if loading_status_label != null:
+		loading_status_label.text = "Preparing..."
 
 
 func _refresh_loading_view() -> void:
 	for child in player_loading_list.get_children():
 		child.queue_free()
-
-	var snapshot: RoomSnapshot = _app_runtime.current_room_snapshot if _app_runtime != null else null
-	var config: BattleStartConfig = _app_runtime.current_start_config if _app_runtime != null else null
-	var manifest := _resolve_loading_manifest(config)
-	_apply_manifest_summary(manifest)
-	if snapshot != null:
-		for member in snapshot.sorted_members():
-			var label := Label.new()
-			label.text = _build_player_loading_text(member)
-			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			player_loading_list.add_child(label)
-
-	if config == null:
-		timeout_hint.text = "Missing BattleStartConfig. Return to room and start again."
+	if _app_runtime == null or _app_runtime.loading_use_case == null:
+		timeout_hint.text = "Loading runtime is not available."
 		return
-
-	var ui_summary: Dictionary = manifest.get("ui_summary", {})
-	var map_display_name := String(ui_summary.get("map_display_name", config.map_id))
-	loading_label.text = "Loading %s" % map_display_name
-	timeout_hint.text = "Seed: %d\nPreparing battle scene..." % config.battle_seed
-
-
-func _begin_loading() -> void:
-	if _loading_started:
-		return
-	_loading_started = true
-	_restore_missing_start_config_from_adapter()
-	if _app_runtime == null or _app_runtime.current_start_config == null:
-		return
-	await get_tree().create_timer(0.75).timeout
-	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
-		_front_flow.on_match_loading_ready(_app_runtime.current_start_config)
+	var view_state = _app_runtime.loading_use_case.build_view_state()
+	loading_label.text = "Loading %s" % String(view_state.map_display_name)
+	map_summary_label.text = "地图: %s" % String(view_state.map_display_name)
+	rule_summary_label.text = "规则: %s" % String(view_state.rule_display_name)
+	mode_summary_label.text = "模式: %s" % String(view_state.mode_display_name)
+	item_summary_label.text = String(view_state.item_brief)
+	character_summary_label.text = "角色: %s" % String(view_state.character_brief)
+	bubble_summary_label.text = "泡泡: %s" % String(view_state.bubble_brief)
+	loading_phase_label.text = "Phase: %s" % String(view_state.loading_phase_text)
+	loading_status_label.text = String(view_state.waiting_summary_text)
+	timeout_hint.text = String(view_state.status_message)
+	for line in view_state.player_lines:
+		var label := Label.new()
+		label.text = line
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		player_loading_list.add_child(label)
 
 
 func _restore_missing_start_config_from_adapter() -> void:
@@ -117,75 +112,61 @@ func _restore_missing_start_config_from_adapter() -> void:
 	_app_runtime.apply_canonical_start_config(adapter_config)
 
 
-func _resolve_loading_manifest(config: BattleStartConfig) -> Dictionary:
-	if _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
-		return _app_runtime.current_battle_content_manifest.duplicate(true)
-	if config == null:
-		return {}
-	return _content_manifest_builder.build_for_start_config(config)
+func _complete_local_prepare() -> void:
+	if _app_runtime == null or _app_runtime.loading_use_case == null:
+		return
+	await get_tree().process_frame
+	_local_prepare_completed = true
+	_maybe_submit_local_ready()
 
 
-func _apply_manifest_summary(manifest: Dictionary) -> void:
-	var ui_summary: Dictionary = manifest.get("ui_summary", {})
-	var map_manifest: Dictionary = manifest.get("map", {})
-	var rule_manifest: Dictionary = manifest.get("rule", {})
-	var mode_manifest: Dictionary = manifest.get("mode", {})
-	var characters: Array = manifest.get("characters", [])
-	var bubbles: Array = manifest.get("bubbles", [])
-
-	manifest_summary_panel.visible = not manifest.is_empty()
-	map_summary_label.text = "地图: %s" % String(ui_summary.get("map_display_name", map_manifest.get("display_name", map_manifest.get("map_id", ""))))
-	rule_summary_label.text = "规则: %s" % String(ui_summary.get("rule_display_name", rule_manifest.get("display_name", rule_manifest.get("rule_set_id", ""))))
-	mode_summary_label.text = "模式: %s" % String(ui_summary.get("mode_display_name", mode_manifest.get("display_name", mode_manifest.get("mode_id", ""))))
-	item_summary_label.text = String(ui_summary.get("item_brief", ""))
-	character_summary_label.text = "角色: %s" % _build_manifest_character_summary(characters)
-	bubble_summary_label.text = "泡泡: %s" % _build_manifest_bubble_summary(ui_summary, bubbles)
+func _connect_gateway_signals() -> void:
+	if _room_client_gateway == null:
+		return
+	if not _room_client_gateway.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+		_room_client_gateway.match_loading_snapshot_received.connect(_on_match_loading_snapshot_received)
 
 
-func _build_manifest_character_summary(characters: Array) -> String:
-	var names: PackedStringArray = PackedStringArray()
-	for entry in characters:
-		var display_name := String(entry.get("display_name", entry.get("character_id", "")))
-		if display_name.is_empty() or names.has(display_name):
-			continue
-		names.append(display_name)
-	return " / ".join(names) if not names.is_empty() else "-"
+func _exit_tree() -> void:
+	if _room_client_gateway != null and _room_client_gateway.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+		_room_client_gateway.match_loading_snapshot_received.disconnect(_on_match_loading_snapshot_received)
 
 
-func _build_manifest_bubble_summary(ui_summary: Dictionary, bubbles: Array) -> String:
-	var bubble_brief := String(ui_summary.get("bubble_brief", ""))
-	if bubble_brief.begins_with("泡泡:"):
-		return bubble_brief.trim_prefix("泡泡:")
-	if not bubble_brief.is_empty():
-		return bubble_brief
-	var names: PackedStringArray = PackedStringArray()
-	for entry in bubbles:
-		var display_name := String(entry.get("display_name", entry.get("bubble_style_id", "")))
-		if display_name.is_empty() or names.has(display_name):
-			continue
-		names.append(display_name)
-	return " / ".join(names) if not names.is_empty() else "-"
+func _on_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
+	if _app_runtime == null or _app_runtime.loading_use_case == null:
+		return
+	var result: Dictionary = _app_runtime.loading_use_case.consume_loading_snapshot(snapshot)
+	_refresh_loading_view()
+	if bool(result.get("aborted", false)):
+		_handle_loading_aborted(snapshot)
+		return
+	if bool(result.get("committed", false)):
+		_handle_loading_committed()
+		return
+	_maybe_submit_local_ready()
 
 
-func _build_player_loading_text(member: RoomMemberState) -> String:
-	return "%s | slot:%d | ready:%s | char:%s | bubble:%s" % [
-		member.player_name,
-		member.slot_index,
-		str(member.ready),
-		_resolve_character_display_name(member.character_id),
-		_resolve_bubble_display_name(member.bubble_style_id),
-	]
+func _maybe_submit_local_ready() -> void:
+	if not _local_prepare_completed or _transition_handled:
+		return
+	if _app_runtime == null or _app_runtime.loading_use_case == null:
+		return
+	_app_runtime.loading_use_case.submit_local_ready()
 
 
-func _resolve_character_display_name(character_id: String) -> String:
-	if character_id.is_empty():
-		return "-"
-	var metadata := CharacterLoaderScript.load_character_metadata(character_id)
-	return String(metadata.get("display_name", character_id))
+func _handle_loading_committed() -> void:
+	if _transition_handled:
+		return
+	_transition_handled = true
+	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
+		_front_flow.on_match_loading_ready(_app_runtime.current_start_config)
 
 
-func _resolve_bubble_display_name(bubble_style_id: String) -> String:
-	if bubble_style_id.is_empty():
-		return "-"
-	var metadata := BubbleLoaderScript.load_metadata(bubble_style_id)
-	return String(metadata.get("display_name", bubble_style_id))
+func _handle_loading_aborted(snapshot: MatchLoadingSnapshot) -> void:
+	if _transition_handled:
+		return
+	_transition_handled = true
+	if _app_runtime != null and _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_last_error"):
+		_app_runtime.room_session_controller.set_last_error(snapshot.error_code, snapshot.user_message, {})
+	if _front_flow != null and _front_flow.has_method("enter_room"):
+		_front_flow.enter_room()

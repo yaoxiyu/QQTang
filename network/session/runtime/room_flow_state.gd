@@ -10,6 +10,7 @@ enum Value {
 	IN_ROOM,
 	PREPARING_MATCH,
 	STARTING_MATCH,
+	MATCH_LOADING,
 	IN_BATTLE,
 	RETURNING_FROM_BATTLE,
 	ERROR,
@@ -34,6 +35,8 @@ static func state_to_string(state: int) -> String:
 			return "PREPARING_MATCH"
 		Value.STARTING_MATCH:
 			return "STARTING_MATCH"
+		Value.MATCH_LOADING:
+			return "MATCH_LOADING"
 		Value.IN_BATTLE:
 			return "IN_BATTLE"
 		Value.RETURNING_FROM_BATTLE:

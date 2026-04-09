@@ -435,6 +435,9 @@ func set_pending_match_id(match_id: String) -> void:
 func mark_match_started(match_id: String = "") -> void:
 	if not match_id.is_empty():
 		room_runtime_context.pending_match_id = match_id
+	room_runtime_context.loading_phase = "committed"
+	room_runtime_context.loading_ready_peers = room_session.peers.duplicate()
+	room_runtime_context.loading_expected_peers = room_session.peers.duplicate()
 	set_room_flow_state(RoomFlowStateScript.Value.IN_BATTLE, "match_started")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.MATCH_ACTIVE, "match_started")
 	_sync_runtime_context()
@@ -443,6 +446,9 @@ func mark_match_started(match_id: String = "") -> void:
 func mark_match_finished(match_id: String = "") -> void:
 	completed_match_count += 1
 	last_completed_match_id = match_id
+	room_runtime_context.loading_phase = ""
+	room_runtime_context.loading_ready_peers = []
+	room_runtime_context.loading_expected_peers = []
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.MATCH_ENDING, "match_finished")
 	_sync_runtime_context()
 
@@ -456,8 +462,36 @@ func begin_return_to_room() -> void:
 func complete_return_to_room() -> void:
 	room_runtime_context.pending_match_id = ""
 	clear_last_error()
+	room_runtime_context.loading_phase = ""
+	room_runtime_context.loading_ready_peers = []
+	room_runtime_context.loading_expected_peers = []
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "return_to_room_completed")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "return_to_room_completed")
+	_sync_runtime_context()
+
+
+func set_loading_state(phase: String, ready_peer_ids: Array[int], expected_peer_ids: Array[int], reason: String = "") -> void:
+	room_runtime_context.loading_phase = phase
+	room_runtime_context.loading_ready_peers = ready_peer_ids.duplicate()
+	room_runtime_context.loading_expected_peers = expected_peer_ids.duplicate()
+	if phase == "waiting":
+		set_room_flow_state(RoomFlowStateScript.Value.MATCH_LOADING, reason if not reason.is_empty() else "loading_waiting")
+		set_session_lifecycle_state(SessionLifecycleStateScript.Value.MATCH_LOADING, reason if not reason.is_empty() else "loading_waiting")
+	elif phase == "aborted":
+		set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, reason if not reason.is_empty() else "loading_aborted")
+		set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, reason if not reason.is_empty() else "loading_aborted")
+	_sync_runtime_context()
+
+
+func clear_loading_state() -> void:
+	room_runtime_context.loading_phase = ""
+	room_runtime_context.loading_ready_peers = []
+	room_runtime_context.loading_expected_peers = []
+	_sync_runtime_context()
+
+
+func set_pending_room_action(action: String) -> void:
+	room_runtime_context.pending_room_action = action
 	_sync_runtime_context()
 
 

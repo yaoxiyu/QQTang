@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LobbyRoomDirectoryBuilderScript = preload("res://app/front/lobby/lobby_room_directory_builder.gd")
@@ -31,6 +31,8 @@ const PHASE15_LOG_PREFIX := "[QQT_P15]"
 @onready var join_selected_public_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinSelectedPublicRoomButton")
 @onready var directory_status_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/DirectoryStatusLabel")
 @onready var recent_room_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox/RecentRoomLabel")
+@onready var recent_room_kind_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox/RecentRoomKindLabel")
+@onready var recent_room_display_name_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox/RecentRoomDisplayNameLabel")
 @onready var reconnect_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox/ReconnectButton")
 @onready var message_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MessageLabel")
 
@@ -112,7 +114,13 @@ func _refresh_view() -> void:
 	if room_id_input != null:
 		room_id_input.text = String(view_state.last_room_id)
 	if recent_room_label != null:
-		recent_room_label.text = "Recent Room: %s" % String(view_state.reconnect_room_id if not String(view_state.reconnect_room_id).is_empty() else view_state.last_room_id)
+		var room_id_text := String(view_state.reconnect_room_id if not String(view_state.reconnect_room_id).is_empty() else view_state.last_room_id)
+		var room_kind_text := String(view_state.reconnect_room_kind)
+		var room_display_name_text := String(view_state.reconnect_room_display_name)
+		if not room_kind_text.is_empty():
+			recent_room_label.text = "Recent Room [%s]: %s (%s)" % [room_kind_text, room_display_name_text if not room_display_name_text.is_empty() else room_id_text, room_id_text]
+		else:
+			recent_room_label.text = "Recent Room: %s" % room_id_text
 	_select_metadata(practice_map_selector, String(view_state.preferred_map_id))
 	_select_metadata(practice_rule_selector, String(view_state.preferred_rule_id))
 	_select_metadata(practice_mode_selector, String(view_state.preferred_mode_id))
@@ -256,17 +264,35 @@ func _on_reconnect_pressed() -> void:
 		_set_message("Lobby room flow is not available.")
 		return
 	var view_state = _app_runtime.lobby_use_case.enter_lobby().get("view_state", null)
-	var reconnect_room_id := String(view_state.reconnect_room_id if view_state != null else "").strip_edges()
-	var reconnect_host := String(view_state.reconnect_host if view_state != null else "").strip_edges()
-	var reconnect_port := int(view_state.reconnect_port if view_state != null else 0)
+	if view_state == null:
+		_set_message("Lobby view state is not available.")
+		return
+	var reconnect_room_id := String(view_state.reconnect_room_id).strip_edges()
+	var reconnect_host := String(view_state.reconnect_host).strip_edges()
+	var reconnect_port := int(view_state.reconnect_port)
+	var reconnect_room_kind := String(view_state.reconnect_room_kind)
 	if reconnect_room_id.is_empty():
 		_set_message("No reconnect room is available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.join_private_room(
-		reconnect_host,
-		reconnect_port,
-		reconnect_room_id
-	)
+	if reconnect_host.is_empty() or reconnect_port <= 0:
+		_set_message("Reconnect server info is incomplete.")
+		return
+	var result: Dictionary
+	if reconnect_room_kind == "public_room":
+		result = _app_runtime.lobby_use_case.join_public_room(
+			reconnect_host,
+			reconnect_port,
+			reconnect_room_id
+		)
+	elif reconnect_room_kind == "private_room":
+		result = _app_runtime.lobby_use_case.join_private_room(
+			reconnect_host,
+			reconnect_port,
+			reconnect_room_id
+		)
+	else:
+		_set_message("Reconnect room kind is invalid: %s" % reconnect_room_kind)
+		return
 	_handle_room_entry_result(result)
 
 

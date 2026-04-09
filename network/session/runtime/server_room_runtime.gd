@@ -4,6 +4,7 @@ extends Node
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
+const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 
 signal send_to_peer(peer_id: int, message: Dictionary)
@@ -14,6 +15,7 @@ var authority_port: int = 9000
 
 var _room_service: ServerRoomService = null
 var _match_service: ServerMatchService = null
+var _loading_coordinator: ServerMatchLoadingCoordinator = null
 
 
 func _ready() -> void:
@@ -47,6 +49,15 @@ func handle_room_message(message: Dictionary) -> void:
 	_ensure_services()
 	if _room_service == null:
 		return
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	if message_type == TransportMessageTypesScript.ROOM_REMATCH_REQUEST and _loading_coordinator != null and _loading_coordinator.is_loading_active():
+		var peer_id := int(message.get("sender_peer_id", 0))
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "ROOM_LOADING_ACTIVE",
+			"user_message": "Room is already in loading",
+		})
+		return
 	_room_service.handle_message(message)
 
 
@@ -57,8 +68,22 @@ func handle_battle_message(message: Dictionary) -> void:
 	_match_service.ingest_runtime_message(message)
 
 
+func handle_loading_message(message: Dictionary) -> void:
+	_ensure_services()
+	if _loading_coordinator == null:
+		return
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	if message_type == TransportMessageTypesScript.MATCH_LOADING_READY:
+		var peer_id := int(message.get("sender_peer_id", 0))
+		var match_id := String(message.get("match_id", ""))
+		var revision := int(message.get("revision", 0))
+		_loading_coordinator.mark_peer_ready(peer_id, match_id, revision)
+
+
 func handle_peer_disconnected(peer_id: int) -> void:
 	_ensure_services()
+	if _loading_coordinator != null and _loading_coordinator.is_loading_active():
+		_loading_coordinator.handle_peer_disconnected(peer_id)
 	if _match_service != null and _match_service.is_match_active():
 		_match_service.abort_match_due_to_disconnect(peer_id)
 	if _room_service != null:
@@ -84,7 +109,8 @@ func build_directory_entry() -> RoomDirectoryEntry:
 	entry.member_count = room_state.members.size()
 	entry.max_players = room_state.max_players
 	entry.match_active = room_state.match_active
-	entry.joinable = not room_state.match_active and entry.member_count < entry.max_players and not entry.room_id.is_empty()
+	var loading_active := _loading_coordinator != null and _loading_coordinator.is_loading_active()
+	entry.joinable = not room_state.match_active and not loading_active and entry.member_count < entry.max_players and not entry.room_id.is_empty()
 	return entry
 
 
@@ -123,6 +149,17 @@ func _ensure_services() -> void:
 		_match_service.name = "ServerMatchService"
 		add_child(_match_service)
 		_connect_match_service_signals()
+	if _loading_coordinator == null:
+		_loading_coordinator = ServerMatchLoadingCoordinatorScript.new()
+		_loading_coordinator.configure(
+			_prepare_match_callable(),
+			_commit_match_callable(),
+			_send_to_peer_callable(),
+			_broadcast_message_callable(),
+			_loading_started_callable(),
+			_loading_aborted_callable(),
+			_loading_committed_callable()
+		)
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
@@ -151,14 +188,14 @@ func _connect_match_service_signals() -> void:
 
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
-	if _match_service == null:
-		return
-	var result: Dictionary = _match_service.start_match(snapshot)
+	if _loading_coordinator == null:
+		_ensure_services()
+	var result: Dictionary = _loading_coordinator.begin_loading(snapshot)
 	if bool(result.get("ok", false)):
 		return
 	_emit_broadcast_message({
 		"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-		"user_message": String(result.get("validation", {}).get("error_message", "Server failed to start match")),
+		"user_message": String(result.get("user_message", "Server failed to start match")),
 	})
 
 
@@ -180,3 +217,66 @@ func _resolve_owner_name(owner_peer_id: int) -> String:
 		return ""
 	var profile: Dictionary = _room_service.room_state.members.get(owner_peer_id, {})
 	return String(profile.get("player_name", ""))
+
+
+func _prepare_match_callable() -> Callable:
+	return Callable(self, "_do_prepare_match")
+
+
+func _commit_match_callable() -> Callable:
+	return Callable(self, "_do_commit_match")
+
+
+func _send_to_peer_callable() -> Callable:
+	return Callable(self, "_do_send_to_peer")
+
+
+func _broadcast_message_callable() -> Callable:
+	return Callable(self, "_do_broadcast_message")
+
+
+func _loading_started_callable() -> Callable:
+	return Callable(self, "_on_loading_started")
+
+
+func _loading_aborted_callable() -> Callable:
+	return Callable(self, "_on_loading_aborted")
+
+
+func _loading_committed_callable() -> Callable:
+	return Callable(self, "_on_loading_committed")
+
+
+func _do_prepare_match(snapshot: RoomSnapshot) -> Dictionary:
+	if _match_service == null:
+		_ensure_services()
+	return _match_service.prepare_match(snapshot)
+
+
+func _do_commit_match(config: BattleStartConfig) -> Dictionary:
+	if _match_service == null:
+		_ensure_services()
+	return _match_service.commit_prepared_match(config)
+
+
+func _do_send_to_peer(peer_id: int, message: Dictionary) -> void:
+	send_to_peer.emit(peer_id, message)
+
+
+func _do_broadcast_message(message: Dictionary) -> void:
+	broadcast_message.emit(message)
+
+
+func _on_loading_started(_snapshot: MatchLoadingSnapshot) -> void:
+	if _room_service != null and _room_service.has_method("handle_loading_started"):
+		_room_service.handle_loading_started()
+
+
+func _on_loading_aborted(_error_code: String, _user_message: String, _snapshot: MatchLoadingSnapshot) -> void:
+	if _room_service != null and _room_service.has_method("handle_loading_aborted"):
+		_room_service.handle_loading_aborted()
+
+
+func _on_loading_committed(_config: BattleStartConfig, _snapshot: MatchLoadingSnapshot) -> void:
+	if _room_service != null and _room_service.has_method("handle_match_committed"):
+		_room_service.handle_match_committed()

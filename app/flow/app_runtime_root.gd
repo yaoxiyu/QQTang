@@ -33,6 +33,7 @@ const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnost
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
+const LoadingUseCaseScript = preload("res://app/front/loading/loading_use_case.gd")
 
 signal runtime_state_changed(previous_state: int, next_state: int, reason: String)
 signal runtime_ready()
@@ -74,6 +75,8 @@ var lobby_directory_use_case: RefCounted = null
 var room_use_case: RefCounted = null
 var practice_room_factory: RefCounted = null
 var current_room_entry_context: RoomEntryContext = null
+var loading_use_case: RefCounted = null
+var pending_room_action: String = ""
 
 var current_room_snapshot = null
 var current_start_config = null
@@ -506,6 +509,14 @@ func _ensure_front_use_cases() -> void:
 
 	if current_room_entry_context == null:
 		current_room_entry_context = RoomEntryContextScript.new()
+
+	if loading_use_case == null:
+		loading_use_case = LoadingUseCaseScript.new()
+	if loading_use_case != null and loading_use_case.has_method("configure"):
+		var gateway = null
+		if room_use_case != null:
+			gateway = room_use_case.get("room_client_gateway")
+		loading_use_case.configure(self, gateway)
 
 
 func _get_battle_root_child_names() -> Array:

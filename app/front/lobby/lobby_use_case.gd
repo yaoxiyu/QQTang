@@ -47,6 +47,10 @@ func enter_lobby() -> Dictionary:
 		view_state.reconnect_room_id = front_settings_state.reconnect_room_id
 		view_state.reconnect_host = front_settings_state.reconnect_host
 		view_state.reconnect_port = front_settings_state.reconnect_port
+		view_state.reconnect_room_kind = front_settings_state.reconnect_room_kind
+		view_state.reconnect_room_display_name = front_settings_state.reconnect_room_display_name
+		view_state.reconnect_topology = front_settings_state.reconnect_topology
+		view_state.reconnect_match_id = front_settings_state.reconnect_match_id
 	return {
 		"ok": true,
 		"error_code": "",

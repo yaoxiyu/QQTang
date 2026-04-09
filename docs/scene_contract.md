@@ -1,4 +1,4 @@
-# Scene Contract
+﻿# Scene Contract
 
 本文件记录当前正式前台与战斗入口使用的场景路径、关键节点名与脚本挂载约定。
 
@@ -13,7 +13,9 @@
 
 ## Front Runtime Contract
 
-- 本阶段未新增或删除 Boot / Login / Lobby / Room / Loading 的场景节点
+- Phase16 新增 Lobby RecentCard 节点: RecentRoomKindLabel, RecentRoomDisplayNameLabel
+- Phase16 新增 Room SummaryCard 节点: LifecycleStatusLabel, PendingActionStatusLabel
+- Phase16 新增 Loading MainLayout 节点: LoadingPhaseLabel, LoadingStatusLabel
 - 本阶段只统一了前台控制器初始化顺序
 - `boot_scene.tscn` 对应控制器负责 runtime bootstrap
 - `login_scene.tscn`
@@ -48,8 +50,10 @@
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdValueLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/LifecycleStatusLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/PendingActionStatusLabel`
 - `RoomRoot/MainLayout/LocalLoadoutCard`
 - `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput`
 - `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector`
@@ -94,6 +98,8 @@
 - `LoadingRoot/MainLayout/LoadingLabel`
 - `LoadingRoot/MainLayout/PlayerLoadingList`
 - `LoadingRoot/MainLayout/TimeoutHint`
+- `LoadingRoot/MainLayout/LoadingPhaseLabel`
+- `LoadingRoot/MainLayout/LoadingStatusLabel`
 
 脚本挂载约定：
 - `LoadingScene` -> `res://scenes/front/loading_scene_controller.gd`

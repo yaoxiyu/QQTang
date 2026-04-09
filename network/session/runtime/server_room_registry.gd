@@ -55,10 +55,13 @@ func route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_UPDATE_SELECTION, \
 		TransportMessageTypesScript.ROOM_TOGGLE_READY, \
 		TransportMessageTypesScript.ROOM_START_REQUEST, \
-		TransportMessageTypesScript.ROOM_LEAVE:
+		TransportMessageTypesScript.ROOM_LEAVE, \
+		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
 			_route_bound_room_message(message)
 		TransportMessageTypesScript.INPUT_FRAME:
 			_route_battle_message(message)
+		TransportMessageTypesScript.MATCH_LOADING_READY:
+			_route_loading_message(message)
 		_:
 			pass
 
@@ -195,6 +198,18 @@ func _route_battle_message(message: Dictionary) -> void:
 		peer_room_bindings.erase(peer_id)
 		return
 	runtime.handle_battle_message(message)
+
+
+func _route_loading_message(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	var room_id := String(peer_room_bindings.get(peer_id, ""))
+	if room_id.is_empty():
+		return
+	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	if runtime == null:
+		peer_room_bindings.erase(peer_id)
+		return
+	runtime.handle_loading_message(message)
 
 
 func _create_room_runtime() -> ServerRoomRuntime:

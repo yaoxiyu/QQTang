@@ -12,6 +12,13 @@ var last_room_id: String = ""
 var reconnect_room_id: String = ""
 var reconnect_host: String = ""
 var reconnect_port: int = 0
+
+# Phase16: Reconnect ticket extension
+var reconnect_room_kind: String = ""
+var reconnect_room_display_name: String = ""
+var reconnect_topology: String = ""
+var reconnect_match_id: String = ""
+
 var preferred_map_id: String = ""
 var preferred_rule_id: String = ""
 var preferred_mode_id: String = ""
@@ -30,6 +37,10 @@ func to_dict() -> Dictionary:
 		"reconnect_room_id": reconnect_room_id,
 		"reconnect_host": reconnect_host,
 		"reconnect_port": reconnect_port,
+		"reconnect_room_kind": reconnect_room_kind,
+		"reconnect_room_display_name": reconnect_room_display_name,
+		"reconnect_topology": reconnect_topology,
+		"reconnect_match_id": reconnect_match_id,
 		"preferred_map_id": preferred_map_id,
 		"preferred_rule_id": preferred_rule_id,
 		"preferred_mode_id": preferred_mode_id,

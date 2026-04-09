@@ -10,6 +10,12 @@ var reconnect_room_id: String = ""
 var reconnect_host: String = ""
 var reconnect_port: int = 0
 
+# Phase16: Reconnect ticket extension
+var reconnect_room_kind: String = ""
+var reconnect_room_display_name: String = ""
+var reconnect_topology: String = ""
+var reconnect_match_id: String = ""
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -21,6 +27,10 @@ func to_dict() -> Dictionary:
 		"reconnect_room_id": reconnect_room_id,
 		"reconnect_host": reconnect_host,
 		"reconnect_port": reconnect_port,
+		"reconnect_room_kind": reconnect_room_kind,
+		"reconnect_room_display_name": reconnect_room_display_name,
+		"reconnect_topology": reconnect_topology,
+		"reconnect_match_id": reconnect_match_id,
 	}
 
 
@@ -34,6 +44,10 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	state.reconnect_room_id = String(data.get("reconnect_room_id", ""))
 	state.reconnect_host = String(data.get("reconnect_host", ""))
 	state.reconnect_port = int(data.get("reconnect_port", 0))
+	state.reconnect_room_kind = String(data.get("reconnect_room_kind", ""))
+	state.reconnect_room_display_name = String(data.get("reconnect_room_display_name", ""))
+	state.reconnect_topology = String(data.get("reconnect_topology", ""))
+	state.reconnect_match_id = String(data.get("reconnect_match_id", ""))
 	return state
 
 

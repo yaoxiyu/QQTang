@@ -733,6 +733,11 @@ Battle 的正式启动应理解为：
 15. **只有 Boot 和测试 harness 可以调用 `ensure_in_tree()` 创建 runtime**
 16. **Login / Lobby / Room / Loading / FrontFlow 错误路由 / ClientRoomRuntime transport 回调等纯消费者必须使用 `get_existing()`**
 17. **非启动路径不得隐式创建 runtime**
+18. **Dedicated Server 房间开局已切换为 loading barrier commit 模式，不再依赖固定 timer**
+19. **``JOIN_BATTLE_ACCEPTED`` 现在表示 canonical config 已下发、进入 loading 准备阶段，而不是立刻进入 battle**
+20. **``MATCH_LOADING_SNAPSHOT`` / ``MATCH_LOADING_READY`` 已成为正式协议，loading barrier 由服务端协调**
+21. **Lobby Reconnect 已支持 public_room / private_room 正确分支，不再默认私房恢复**
+22. **Settlement Rematch 已变成正式重赛链路，通过 ``pending_room_action`` 延迟到 Room 场景恢复后执行**
 
 ---
 
