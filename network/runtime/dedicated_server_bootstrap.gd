@@ -2,6 +2,8 @@ extends Node
 
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
+const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
@@ -12,6 +14,9 @@ var _room_registry: ServerRoomRegistry = null
 
 
 func _ready() -> void:
+	## 初始化 Dedicated Server 日志系统
+	LogSystemInitializerScript.initialize_dedicated_server()
+	
 	_room_registry = ServerRoomRegistryScript.new()
 	_room_registry.name = "ServerRoomRegistry"
 	_room_registry.authority_host = authority_host
@@ -26,7 +31,7 @@ func _ready() -> void:
 		"max_clients": max_clients,
 	})
 	_connect_transport_signals()
-	print("[DedicatedServerBootstrap] started on %s:%d" % [authority_host, listen_port])
+	LogNetScript.info("started on %s:%d" % [authority_host, listen_port], "", 0, "net.server_bootstrap")
 
 
 func _process(_delta: float) -> void:
@@ -81,18 +86,18 @@ func _broadcast_message(message: Dictionary) -> void:
 
 
 func _on_transport_peer_connected(peer_id: int) -> void:
-	print("[DedicatedServerBootstrap] peer connected: %d" % peer_id)
+	LogNetScript.info("peer connected: %d" % peer_id, "", 0, "net.server_bootstrap")
 
 
 func _on_transport_peer_disconnected(peer_id: int) -> void:
-	print("[DedicatedServerBootstrap] peer disconnected: %d" % peer_id)
+	LogNetScript.info("peer disconnected: %d" % peer_id, "", 0, "net.server_bootstrap")
 	if _room_registry != null:
 		_room_registry.handle_peer_disconnected(peer_id)
 
 
 func _on_transport_error(code: int, message: String) -> void:
-	push_warning("[DedicatedServerBootstrap] transport error %d: %s | peers=%s" % [
+	LogNetScript.warn("transport error %d: %s | peers=%s" % [
 		code,
 		message,
 		str(_transport.get_remote_peer_ids() if _transport != null else []),
-	])
+	], "", 0, "net.server_bootstrap")

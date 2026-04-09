@@ -17,6 +17,7 @@ const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_m
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 
 const DEBUG_MOVEMENT_SNAP := true
 const DEBUG_REMOTE_ANIM_LOG := false
@@ -96,15 +97,18 @@ func _should_preserve_authoritative_remote_state(ctx: SimContext, player: Player
 		return false
 	var preserve : bool = player.player_slot != runtime_flags.client_controlled_player_slot
 	if preserve and DEBUG_REMOTE_ANIM_LOG:
-		print(
-			"[qq_remote_anim][movement_preserve] slot=%d controlled_slot=%d move_state=%d facing=%d last=(%d,%d)" % [
+		LogSimulationScript.debug(
+			"slot=%d controlled_slot=%d move_state=%d facing=%d last=(%d,%d)" % [
 				player.player_slot,
 				runtime_flags.client_controlled_player_slot,
 				player.move_state,
 				player.facing,
 				player.last_non_zero_move_x,
 				player.last_non_zero_move_y,
-			]
+			],
+			"",
+			0,
+			"simulation.movement.remote_anim"
 		)
 	return preserve
 
@@ -371,8 +375,8 @@ func _debug_snap(
 ) -> void:
 	if not DEBUG_MOVEMENT_SNAP:
 		return
-	print(
-		"[qq_move_snap] stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d window_units=%d snapped=%s" % [
+	LogSimulationScript.debug(
+		"stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d window_units=%d snapped=%s" % [
 			stage,
 			player_id,
 			str(foot_cell),
@@ -383,7 +387,10 @@ func _debug_snap(
 			lateral_distance_units,
 			window_units,
 			str(did_snap)
-		]
+		],
+		"",
+		0,
+		"simulation.movement.snap"
 	)
 
 

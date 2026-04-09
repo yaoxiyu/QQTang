@@ -1,6 +1,7 @@
 class_name RuntimeMessageRouter
 extends Node
 
+const LogSessionScript = preload("res://app/logging/log_session.gd")
 const DEBUG_ROUTER_LOGS: bool = true
 
 var _handlers: Dictionary = {}
@@ -21,7 +22,7 @@ func route_messages(messages: Array) -> void:
 	for message in messages:
 		var message_type := str(message.get("message_type", message.get("msg_type", "")))
 		if DEBUG_ROUTER_LOGS:
-			print("[RuntimeMessageRouter] route %s" % message_type)
+			LogSessionScript.debug("route %s" % message_type, "", 0, "session.message_router")
 		if _handlers.has(message_type):
 			var handler: Callable = _handlers[message_type]
 			if handler.is_valid():

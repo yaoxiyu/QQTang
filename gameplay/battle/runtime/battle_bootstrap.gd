@@ -76,17 +76,22 @@ func _on_prediction_corrected(_entity_id: int, _from_pos: Vector2i, _to_pos: Vec
 	pass
 
 
+const LogBattleScript = preload("res://app/logging/log_battle.gd")
+
 func set_battle_flow_state(new_state: int, reason: String = "") -> void:
 	if battle_flow_state == new_state:
 		return
 	var previous_state := battle_flow_state
 	battle_flow_state = new_state
-	print(
-		"[BattleFlowState] %s -> %s (%s)" % [
+	LogBattleScript.info(
+		"%s -> %s (%s)" % [
 			BattleFlowStateScript.state_to_string(previous_state),
 			BattleFlowStateScript.state_to_string(new_state),
 			reason
-		]
+		],
+		"",
+		0,
+		"battle.flow_state"
 	)
 	battle_flow_state_changed.emit(previous_state, new_state, reason)
 

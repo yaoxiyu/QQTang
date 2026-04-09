@@ -375,18 +375,23 @@ func reset_ready_state() -> void:
 	_emit_snapshot_changed()
 
 
+const LogSessionScript = preload("res://app/logging/log_session.gd")
+
 func set_room_flow_state(new_state: int, reason: String = "") -> void:
 	if room_flow_state == new_state:
 		return
 	var previous_state := room_flow_state
 	room_flow_state = new_state
 	room_runtime_context.room_flow_state = new_state
-	print(
-		"[RoomFlowState] %s -> %s (%s)" % [
+	LogSessionScript.info(
+		"%s -> %s (%s)" % [
 			RoomFlowStateScript.state_to_string(previous_state),
 			RoomFlowStateScript.state_to_string(new_state),
 			reason
-		]
+		],
+		"",
+		0,
+		"session.room_flow_state"
 	)
 	room_flow_state_changed.emit(previous_state, new_state, reason)
 
@@ -397,12 +402,15 @@ func set_session_lifecycle_state(new_state: int, reason: String = "") -> void:
 	var previous_state := session_lifecycle_state
 	session_lifecycle_state = new_state
 	room_runtime_context.session_lifecycle_state = new_state
-	print(
-		"[SessionLifecycleState] %s -> %s (%s)" % [
+	LogSessionScript.info(
+		"%s -> %s (%s)" % [
 			SessionLifecycleStateScript.state_to_string(previous_state),
 			SessionLifecycleStateScript.state_to_string(new_state),
 			reason
-		]
+		],
+		"",
+		0,
+		"session.lifecycle_state"
 	)
 	session_lifecycle_state_changed.emit(previous_state, new_state, reason)
 

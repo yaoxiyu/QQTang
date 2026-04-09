@@ -2,6 +2,7 @@ class_name ENetBattleTransport
 extends IBattleTransport
 
 const TransportMessageCodecScript = preload("res://network/transport/transport_message_codec.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = true
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 
@@ -230,4 +231,4 @@ func _cleanup_failed_connection() -> void:
 func _debug_log(message: String) -> void:
 	if not DEBUG_TRANSPORT_LOGS:
 		return
-	print("[ENetBattleTransport] %s" % message)
+	LogNetScript.debug(message, "", 0, "net.transport")

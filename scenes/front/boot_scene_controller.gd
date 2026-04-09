@@ -1,6 +1,7 @@
 extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 
 @onready var status_label: Label = get_node_or_null("BootRoot/CenterPanel/MarginContainer/MainLayout/StatusLabel")
 @onready var hint_label: Label = get_node_or_null("BootRoot/CenterPanel/MarginContainer/MainLayout/HintLabel")
@@ -9,6 +10,9 @@ var _app_runtime: Node = null
 
 
 func _ready() -> void:
+	## 初始化客户端日志系统
+	LogSystemInitializerScript.initialize_client()
+	
 	if status_label != null:
 		status_label.text = "Initializing Front Runtime..."
 	if hint_label != null:

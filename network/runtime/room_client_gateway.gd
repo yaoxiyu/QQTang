@@ -1,6 +1,6 @@
 class_name RoomClientGateway
 extends RefCounted
-const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
+const ROOM_GATEWAY_ANOMALY_TAG := "net.room_gateway.anomaly"
 
 signal transport_connected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
@@ -181,5 +181,7 @@ func _on_canonical_start_config_received(config: BattleStartConfig) -> void:
 	canonical_start_config_received.emit(config)
 
 
+const LogNetScript = preload("res://app/logging/log_net.gd")
+
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
-	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+	LogNetScript.warn("%s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_GATEWAY_ANOMALY_TAG)

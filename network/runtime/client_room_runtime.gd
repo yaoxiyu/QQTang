@@ -5,8 +5,8 @@ const ENetBattleTransportScript = preload("res://network/transport/enet_battle_t
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
-const PHASE15_LOG_PREFIX := "[QQT_P15]"
-const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
+const ROOM_RUNTIME_DIRECTORY_TAG := "net.room_runtime.directory"
+const ROOM_RUNTIME_ANOMALY_TAG := "net.room_runtime.anomaly"
 
 signal transport_connected()
 signal transport_disconnected()
@@ -42,14 +42,14 @@ func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> voi
 	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
 	var normalized_port := port if port > 0 else 9000
 	if is_connected_to(normalized_host, normalized_port) and (_connected or _connecting):
-		_log_phase15("connect_reused_existing_transport", {
+		_log_directory_event("connect_reused_existing_transport", {
 			"host": normalized_host,
 			"port": normalized_port,
 			"connected": _connected,
 			"connecting": _connecting,
 		})
 		return
-	_log_phase15("connect_to_server", {
+	_log_directory_event("connect_to_server", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"timeout_sec": timeout_sec,
@@ -98,7 +98,7 @@ func request_create_room(
 	room_kind: String = "private_room",
 	room_display_name: String = ""
 ) -> void:
-	_log_phase15("request_create_room", {
+	_log_directory_event("request_create_room", {
 		"room_id_hint": room_id_hint,
 		"room_kind": room_kind,
 		"room_display_name": room_display_name,
@@ -128,7 +128,7 @@ func request_join_room(
 	bubble_style_id: String = "",
 	bubble_skin_id: String = ""
 ) -> void:
-	_log_phase15("request_join_room", {
+	_log_directory_event("request_join_room", {
 		"room_id_hint": room_id_hint,
 		"player_name": player_name,
 	})
@@ -259,7 +259,7 @@ func _route_message(message: Dictionary) -> void:
 				_shutdown_transport()
 		TransportMessageTypesScript.ROOM_DIRECTORY_SNAPSHOT:
 			var directory_snapshot := RoomDirectorySnapshotScript.from_dict(message.get("snapshot", {}))
-			_log_phase15("directory_snapshot_received", {
+			_log_directory_event("directory_snapshot_received", {
 				"revision": int(directory_snapshot.revision),
 				"entry_count": directory_snapshot.entries.size(),
 				"server_host": String(directory_snapshot.server_host),
@@ -361,9 +361,11 @@ func _shutdown_transport() -> void:
 	_connected_port = 0
 
 
+const LogNetScript = preload("res://app/logging/log_net.gd")
+
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
-	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+	LogNetScript.warn("%s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_RUNTIME_ANOMALY_TAG)
 
 
-func _log_phase15(event_name: String, details: Dictionary) -> void:
-	print("%s[client_room_runtime] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(details)])
+func _log_directory_event(event_name: String, details: Dictionary) -> void:
+	LogNetScript.debug("%s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_RUNTIME_DIRECTORY_TAG)

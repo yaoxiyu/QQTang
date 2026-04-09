@@ -15,7 +15,8 @@ extends ISimSystem
 const ExplosionHitTypes = preload("res://gameplay/simulation/explosion/explosion_hit_types.gd")
 const ExplosionHitEntry = preload("res://gameplay/simulation/explosion/explosion_hit_entry.gd")
 const ExplosionReactionResolver = preload("res://gameplay/simulation/explosion/explosion_reaction_resolver.gd")
-const TRACE_PREFIX := "[qq_battle_trace]"
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+const TRACE_TAG := "sync.trace"
 
 const PROPAGATION_DIRS := [
 	Vector2i(0, -1),
@@ -123,15 +124,19 @@ func _log_invalid_explosion_coverage_if_needed(
 		covered_lookup[cell] = true
 		var static_cell = ctx.state.grid.get_static_cell(cell.x, cell.y)
 		if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
-			print("%s[explosion_resolve] anomaly=covered_solid_wall tick=%d bubble_id=%d center=(%d,%d) cell=(%d,%d)" % [
-				TRACE_PREFIX,
-				ctx.tick,
-				bubble_id,
-				center_x,
-				center_y,
-				cell.x,
-				cell.y,
-			])
+			LogSimulationScript.warn(
+				"anomaly=covered_solid_wall tick=%d bubble_id=%d center=(%d,%d) cell=(%d,%d)" % [
+					ctx.tick,
+					bubble_id,
+					center_x,
+					center_y,
+					cell.x,
+					cell.y,
+				],
+				"",
+				0,
+				"%s simulation.explosion_coverage" % TRACE_TAG
+			)
 	for dir in PROPAGATION_DIRS:
 		var reached_gap := false
 		for i in range(1, 32):
@@ -143,27 +148,36 @@ func _log_invalid_explosion_coverage_if_needed(
 			var static_cell = ctx.state.grid.get_static_cell(check_x, check_y)
 			var is_covered := covered_lookup.has(check_cell)
 			if reached_gap and is_covered:
-				print("%s[explosion_resolve] anomaly=non_contiguous_coverage tick=%d bubble_id=%d center=(%d,%d) resumed_cell=(%d,%d)" % [
-					TRACE_PREFIX,
-					ctx.tick,
-					bubble_id,
-					center_x,
-					center_y,
-					check_x,
-					check_y,
-				])
-				break
-			if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
-				if is_covered:
-					print("%s[explosion_resolve] anomaly=covered_through_solid tick=%d bubble_id=%d center=(%d,%d) wall_cell=(%d,%d)" % [
-						TRACE_PREFIX,
+				LogSimulationScript.warn(
+					"anomaly=non_contiguous_coverage tick=%d bubble_id=%d center=(%d,%d) resumed_cell=(%d,%d)" % [
 						ctx.tick,
 						bubble_id,
 						center_x,
 						center_y,
 						check_x,
 						check_y,
-					])
+					],
+					"",
+					0,
+					"%s simulation.explosion_coverage" % TRACE_TAG
+				)
+				break
+			if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
+				if is_covered:
+					LogSimulationScript.warn(
+						"anomaly=covered_through_solid tick=%d bubble_id=%d center=(%d,%d) wall_cell=(%d,%d)" % [
+							ctx.tick,
+							bubble_id,
+							center_x,
+							center_y,
+							check_x,
+							check_y,
+						],
+						"",
+						0,
+						"%s simulation.explosion_coverage" % TRACE_TAG
+					)
+					break
 				break
 			if not is_covered:
 				reached_gap = true

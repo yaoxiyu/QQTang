@@ -4,7 +4,7 @@ extends Node
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
-const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const ROOM_REGISTRY_DIRECTORY_TAG := "session.room_registry.directory"
 
 const ROOM_DIRECTORY_REQUEST := "ROOM_DIRECTORY_REQUEST"
 const ROOM_DIRECTORY_SUBSCRIBE := "ROOM_DIRECTORY_SUBSCRIBE"
@@ -28,14 +28,14 @@ func route_message(message: Dictionary) -> void:
 	match message_type:
 		ROOM_DIRECTORY_REQUEST:
 			if sender_peer_id > 0:
-				_log_phase15("directory_request", {
+				_log_directory_event("directory_request", {
 					"peer_id": sender_peer_id,
 				})
 				send_directory_snapshot_to(sender_peer_id)
 		ROOM_DIRECTORY_SUBSCRIBE:
 			if sender_peer_id > 0:
 				directory_subscribers[sender_peer_id] = true
-				_log_phase15("directory_subscribe", {
+				_log_directory_event("directory_subscribe", {
 					"peer_id": sender_peer_id,
 					"subscriber_count": directory_subscribers.size(),
 				})
@@ -43,7 +43,7 @@ func route_message(message: Dictionary) -> void:
 		ROOM_DIRECTORY_UNSUBSCRIBE:
 			if sender_peer_id > 0:
 				directory_subscribers.erase(sender_peer_id)
-				_log_phase15("directory_unsubscribe", {
+				_log_directory_event("directory_unsubscribe", {
 					"peer_id": sender_peer_id,
 					"subscriber_count": directory_subscribers.size(),
 				})
@@ -66,7 +66,7 @@ func route_message(message: Dictionary) -> void:
 func handle_peer_disconnected(peer_id: int) -> void:
 	if peer_id <= 0:
 		return
-	_log_phase15("peer_disconnected", {
+	_log_directory_event("peer_disconnected", {
 		"peer_id": peer_id,
 		"bound_room_id": String(peer_room_bindings.get(peer_id, "")),
 	})
@@ -103,7 +103,7 @@ func build_directory_snapshot() -> RoomDirectorySnapshot:
 func broadcast_directory_snapshot() -> void:
 	directory_revision += 1
 	var snapshot := build_directory_snapshot()
-	_log_phase15("broadcast_directory_snapshot", {
+	_log_directory_event("broadcast_directory_snapshot", {
 		"revision": directory_revision,
 		"entry_count": snapshot.entries.size(),
 		"subscriber_count": directory_subscribers.size(),
@@ -138,7 +138,7 @@ func _route_create_room_message(message: Dictionary) -> void:
 		return
 	room_runtimes[room_id] = runtime
 	peer_room_bindings[owner_peer_id] = room_id
-	_log_phase15("room_created", {
+	_log_directory_event("room_created", {
 		"room_id": room_id,
 		"owner_peer_id": owner_peer_id,
 		"room_kind": String(create_result.get("room_kind", "")),
@@ -163,7 +163,7 @@ func _route_join_room_message(message: Dictionary) -> void:
 	runtime.handle_room_message(message)
 	if peer_id > 0 and runtime.has_peer(peer_id):
 		peer_room_bindings[peer_id] = room_id_hint
-		_log_phase15("room_joined", {
+		_log_directory_event("room_joined", {
 			"room_id": room_id_hint,
 			"peer_id": peer_id,
 		})
@@ -256,7 +256,7 @@ func _destroy_runtime(runtime: ServerRoomRuntime, room_id: String = "") -> void:
 	if runtime == null:
 		return
 	var resolved_room_id := room_id if not room_id.is_empty() else runtime.get_room_id()
-	_log_phase15("room_runtime_destroyed", {
+	_log_directory_event("room_runtime_destroyed", {
 		"room_id": resolved_room_id,
 		"runtime_count_before": room_runtimes.size(),
 	})
@@ -267,5 +267,7 @@ func _destroy_runtime(runtime: ServerRoomRuntime, room_id: String = "") -> void:
 	runtime.queue_free()
 
 
-func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	print("%s[server_room_registry] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)])
+const LogSessionScript = preload("res://app/logging/log_session.gd")
+
+func _log_directory_event(event_name: String, payload: Dictionary) -> void:
+	LogSessionScript.debug("%s %s" % [event_name, JSON.stringify(payload)], "", 0, ROOM_REGISTRY_DIRECTORY_TAG)

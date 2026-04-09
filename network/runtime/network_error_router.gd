@@ -4,6 +4,7 @@ extends RefCounted
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 var _last_error: Dictionary = {}
 
@@ -45,7 +46,7 @@ func route_error(
 			if room_controller.has_method("set_session_lifecycle_state"):
 				room_controller.set_session_lifecycle_state(SessionLifecycleStateScript.Value.ERROR, error_code)
 
-	print("[NetworkError] %s %s %s %s" % [error_code, error_category, trigger_stage, JSON.stringify(log_payload)])
+	LogNetScript.error("%s %s %s %s" % [error_code, error_category, trigger_stage, JSON.stringify(log_payload)], "", 0, "net.error_router")
 	return payload
 
 

@@ -6,7 +6,8 @@ const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battl
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const BubblePlaceResolverScript = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
-const TRACE_PREFIX := "[qq_battle_trace]"
+const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const TRACE_TAG := "sync.trace"
 const PLACE_CONFIRM_TIMEOUT_TICKS := 12
 
 signal config_accepted(config: BattleStartConfig)
@@ -333,20 +334,28 @@ func _log_missing_bubble_state_after_place(tick_id: int, events: Array) -> void:
 			continue
 		var bubble_id := int(event.payload.get("bubble_id", -1))
 		if bubble_id < 0:
-			print("%s[client_runtime] anomaly=placed_event_missing_bubble_id tick=%d payload=%s" % [
-				TRACE_PREFIX,
-				tick_id,
-				str(event.payload),
-			])
+			LogSyncScript.warn(
+				"anomaly=placed_event_missing_bubble_id tick=%d payload=%s" % [
+					tick_id,
+					str(event.payload),
+				],
+				"",
+				0,
+				"%s sync.client_runtime" % TRACE_TAG
+			)
 			continue
 		var bubble = world.state.bubbles.get_bubble(bubble_id)
 		if bubble == null:
-			print("%s[client_runtime] anomaly=placed_event_without_world_bubble tick=%d bubble_id=%d payload=%s" % [
-				TRACE_PREFIX,
-				tick_id,
-				bubble_id,
-				str(event.payload),
-			])
+			LogSyncScript.warn(
+				"anomaly=placed_event_without_world_bubble tick=%d bubble_id=%d payload=%s" % [
+					tick_id,
+					bubble_id,
+					str(event.payload),
+				],
+				"",
+				0,
+				"%s sync.client_runtime" % TRACE_TAG
+			)
 
 
 func _decode_events(raw_events: Variant) -> Array:
@@ -409,11 +418,15 @@ func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool
 		return true
 	var target_cell := BubblePlaceResolverScript.resolve_place_cell(player)
 	if world.state.grid == null or not world.state.grid.is_in_bounds(target_cell.x, target_cell.y):
-		print("%s[client_runtime] place_blocked reason=out_of_bounds cell=(%d,%d)" % [
-			TRACE_PREFIX,
-			target_cell.x,
-			target_cell.y,
-		])
+		LogSyncScript.warn(
+			"place_blocked reason=out_of_bounds cell=(%d,%d)" % [
+				target_cell.x,
+				target_cell.y,
+			],
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
 		return false
 	return true
 
@@ -437,16 +450,20 @@ func _inspect_pending_place_request(authoritative_tick: int, source: String) -> 
 	if _pending_place_timeout_logged:
 		return
 	_pending_place_timeout_logged = true
-	print("%s[client_runtime] anomaly=place_unconfirmed source=%s send_tick=%d auth_tick=%d baseline_bubbles=%d current_bubbles=%d baseline_bomb=%d current_bomb=%d" % [
-		TRACE_PREFIX,
-		source,
-		_pending_place_request_tick,
-		authoritative_tick,
-		_pending_place_baseline_bubble_count,
-		bubble_count,
-		_pending_place_baseline_bomb_available,
-		bomb_available,
-	])
+	LogSyncScript.warn(
+		"anomaly=place_unconfirmed source=%s send_tick=%d auth_tick=%d baseline_bubbles=%d current_bubbles=%d baseline_bomb=%d current_bomb=%d" % [
+			source,
+			_pending_place_request_tick,
+			authoritative_tick,
+			_pending_place_baseline_bubble_count,
+			bubble_count,
+			_pending_place_baseline_bomb_available,
+			bomb_available,
+		],
+		"",
+		0,
+		"%s sync.client_runtime" % TRACE_TAG
+	)
 
 
 func _clear_pending_place_request() -> void:
@@ -696,19 +713,23 @@ func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
 		return
 	if _should_suppress_rollback_probe_log(reasons):
 		return
-	print("%s[client_runtime] rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
-		TRACE_PREFIX,
-		authoritative_snapshot.tick_id,
-		", ".join(reasons),
-		prediction_controller.predicted_until_tick if prediction_controller != null else -1,
-		client_session.last_confirmed_tick if client_session != null else -1,
-		_describe_local_player_entry(local_snapshot.players),
-		_describe_local_player_entry(authoritative_snapshot.players),
-		local_snapshot.bubbles.size(),
-		authoritative_snapshot.bubbles.size(),
-		local_snapshot.items.size(),
-		authoritative_snapshot.items.size(),
-	])
+	LogSyncScript.warn(
+		"rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
+			authoritative_snapshot.tick_id,
+			", ".join(reasons),
+			prediction_controller.predicted_until_tick if prediction_controller != null else -1,
+			client_session.last_confirmed_tick if client_session != null else -1,
+			_describe_local_player_entry(local_snapshot.players),
+			_describe_local_player_entry(authoritative_snapshot.players),
+			local_snapshot.bubbles.size(),
+			authoritative_snapshot.bubbles.size(),
+			local_snapshot.items.size(),
+			authoritative_snapshot.items.size(),
+		],
+		"",
+		0,
+		"%s sync.client_runtime.rollback" % TRACE_TAG
+	)
 	log_event.emit("Checkpoint mismatch tick %d: %s" % [authoritative_snapshot.tick_id, ", ".join(reasons)])
 
 
@@ -778,14 +799,18 @@ func _describe_local_player_entry(values: Array[Dictionary]) -> String:
 
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
-	print("%s[client_runtime] rollback_corrected entity=%d from=%s to=%s correction_count=%d last_resync_tick=%d" % [
-		TRACE_PREFIX,
-		entity_id,
-		str(from_pos),
-		str(to_pos),
-		_correction_count,
-		_last_resync_tick,
-	])
+	LogSyncScript.info(
+		"rollback_corrected entity=%d from=%s to=%s correction_count=%d last_resync_tick=%d" % [
+			entity_id,
+			str(from_pos),
+			str(to_pos),
+			_correction_count,
+			_last_resync_tick,
+		],
+		"",
+		0,
+		"%s sync.client_runtime.rollback" % TRACE_TAG
+	)
 	prediction_event.emit({
 		"type": "prediction_corrected",
 		"entity_id": entity_id,
@@ -797,12 +822,16 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 
 func _on_full_visual_resync(snapshot: WorldSnapshot) -> void:
 	_last_resync_tick = snapshot.tick_id if snapshot != null else -1
-	print("%s[client_runtime] rollback_resync tick=%d rollback_count=%d resync_count=%d" % [
-		TRACE_PREFIX,
-		_last_resync_tick,
-		prediction_controller.rollback_controller.rollback_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
-		prediction_controller.rollback_controller.force_resync_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
-	])
+	LogSyncScript.warn(
+		"rollback_resync tick=%d rollback_count=%d resync_count=%d" % [
+			_last_resync_tick,
+			prediction_controller.rollback_controller.rollback_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
+			prediction_controller.rollback_controller.force_resync_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
+		],
+		"",
+		0,
+		"%s sync.client_runtime.rollback" % TRACE_TAG
+	)
 	prediction_event.emit({
 		"type": "full_resync",
 		"tick": _last_resync_tick,
