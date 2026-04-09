@@ -69,7 +69,7 @@ class RedirectProbe:
 				var login_message: Label = scene_instance.get_node_or_null("LoginRoot/MainLayout/MessageLabel")
 				return login_message != null and login_message.text.contains("Runtime missing")
 			"LobbyScene":
-				var lobby_message: Label = scene_instance.get_node_or_null("LobbyRoot/MainLayout/MessageLabel")
+				var lobby_message: Label = scene_instance.get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MessageLabel")
 				return lobby_message != null and lobby_message.text.contains("Runtime missing")
 			"RoomScene":
 				return true

@@ -2,6 +2,7 @@ class_name LobbyDirectoryUseCase
 extends RefCounted
 
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 var client_room_runtime: Node = null
 var front_settings_state: FrontSettingsState = null
@@ -115,4 +116,4 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 
 func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	print("%s[lobby_directory] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)])
+	LogFrontScript.debug("%s[lobby_directory] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.directory")

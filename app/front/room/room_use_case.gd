@@ -9,14 +9,18 @@ const ClientConnectionConfigScript = preload("res://network/runtime/client_conne
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
 const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
+const PENDING_CONNECTION_WATCHDOG_GRACE_SEC := 1.0
 
 var app_runtime: Node = null
 var room_client_gateway: RoomClientGateway = null
 var _pending_online_entry_context: RoomEntryContext = null
 var _pending_connection_config: ClientConnectionConfig = null
 var _await_room_before_enter: bool = false
+var _pending_connection_watchdog_token: int = 0
 
 
 func configure(p_app_runtime: Node) -> void:
@@ -25,9 +29,7 @@ func configure(p_app_runtime: Node) -> void:
 		_disconnect_gateway_signals()
 		if room_client_gateway != null and room_client_gateway.has_method("unbind_runtime"):
 			room_client_gateway.unbind_runtime()
-		_pending_online_entry_context = null
-		_pending_connection_config = null
-		_await_room_before_enter = false
+		_clear_pending_online_entry_state()
 		return
 	if room_client_gateway == null:
 		room_client_gateway = RoomClientGatewayScript.new()
@@ -41,9 +43,7 @@ func dispose() -> void:
 		room_client_gateway.unbind_runtime()
 	room_client_gateway = null
 	app_runtime = null
-	_pending_online_entry_context = null
-	_pending_connection_config = null
-	_await_room_before_enter = false
+	_clear_pending_online_entry_state()
 
 
 func enter_room(entry_context: RoomEntryContext) -> Dictionary:
@@ -68,7 +68,17 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 			_pending_online_entry_context = entry_context.duplicate_deep()
 			_pending_connection_config = connection_config.duplicate_deep()
 			_await_room_before_enter = true
-			room_client_gateway.connect_to_server(connection_config)
+			_schedule_pending_connection_watchdog(_pending_connection_config)
+			if _has_ready_transport_for(connection_config):
+				_log_phase15("enter_room_reusing_connected_transport", {
+					"server_host": String(connection_config.server_host),
+					"server_port": int(connection_config.server_port),
+					"entry_kind": String(entry_context.entry_kind),
+					"room_kind": String(entry_context.room_kind),
+				})
+				_on_gateway_transport_connected()
+			else:
+				room_client_gateway.connect_to_server(connection_config)
 		else:
 			_log_room_anomaly("enter_room_missing_gateway", _build_entry_context_context(entry_context))
 		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
@@ -91,9 +101,7 @@ func leave_room() -> Dictionary:
 		room_controller.reset_room_state()
 	app_runtime.current_room_snapshot = null
 	app_runtime.current_room_entry_context = null
-	_pending_online_entry_context = null
-	_pending_connection_config = null
-	_await_room_before_enter = false
+	_clear_pending_online_entry_state()
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_lobby"):
 		app_runtime.front_flow.enter_lobby()
 	return {"ok": true, "error_code": "", "user_message": ""}
@@ -206,6 +214,16 @@ func _sanitize_connection_profile(config: ClientConnectionConfig) -> void:
 		config.selected_mode_id = ModeCatalogScript.get_default_mode_id()
 
 
+func _has_ready_transport_for(connection_config: ClientConnectionConfig) -> bool:
+	if connection_config == null or app_runtime == null or app_runtime.client_room_runtime == null:
+		return false
+	var client_room_runtime = app_runtime.client_room_runtime
+	return client_room_runtime.has_method("is_connected_to") \
+		and client_room_runtime.is_connected_to(String(connection_config.server_host), int(connection_config.server_port)) \
+		and client_room_runtime.has_method("is_transport_connected") \
+		and client_room_runtime.is_transport_connected()
+
+
 func _is_online_room() -> bool:
 	if app_runtime == null or app_runtime.current_room_entry_context == null:
 		return false
@@ -290,9 +308,7 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 			_log_room_anomaly("awaiting_room_but_front_flow_missing", _build_snapshot_context(snapshot))
 		else:
 			app_runtime.front_flow.enter_room()
-	_pending_online_entry_context = null
-	_pending_connection_config = null
-	_await_room_before_enter = false
+	_clear_pending_online_entry_state()
 
 
 func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
@@ -328,9 +344,7 @@ func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 		"pending_server_port": int(_pending_connection_config.server_port) if _pending_connection_config != null else 0,
 		"pending_room_id_hint": String(_pending_connection_config.room_id_hint) if _pending_connection_config != null else "",
 	})
-	_pending_online_entry_context = null
-	_pending_connection_config = null
-	_await_room_before_enter = false
+	_clear_pending_online_entry_state()
 	if app_runtime != null and app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("set_last_error"):
 		app_runtime.room_session_controller.set_last_error(error_code, user_message, {})
 
@@ -352,12 +366,51 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 	}
 
 
+func _schedule_pending_connection_watchdog(connection_config: ClientConnectionConfig) -> void:
+	_pending_connection_watchdog_token += 1
+	var token := _pending_connection_watchdog_token
+	if connection_config == null or app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
+		return
+	var timeout_sec: float = max(float(connection_config.connect_timeout_sec), 0.5) + PENDING_CONNECTION_WATCHDOG_GRACE_SEC
+	_await_pending_connection_watchdog(token, timeout_sec)
+
+
+func _await_pending_connection_watchdog(token: int, timeout_sec: float) -> void:
+	if app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
+		return
+	await app_runtime.get_tree().create_timer(timeout_sec).timeout
+	if token != _pending_connection_watchdog_token:
+		return
+	if not _await_room_before_enter or _pending_online_entry_context == null or _pending_connection_config == null:
+		return
+	var user_message := "Connection timed out while entering room"
+	var timeout_details := _build_pending_connection_context()
+	timeout_details["timeout_sec"] = timeout_sec
+	timeout_details["room_kind"] = String(_pending_connection_config.room_kind)
+	timeout_details["room_display_name"] = String(_pending_connection_config.room_display_name)
+	_log_room_anomaly("gateway_room_connect_timeout", timeout_details)
+	if app_runtime != null and app_runtime.client_room_runtime != null and app_runtime.client_room_runtime.has_method("disconnect_from_server"):
+		app_runtime.client_room_runtime.disconnect_from_server()
+	_clear_pending_online_entry_state()
+	if app_runtime != null and app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("set_last_error"):
+		app_runtime.room_session_controller.set_last_error("ROOM_CONNECT_TIMEOUT", user_message, timeout_details)
+	if app_runtime != null and app_runtime.client_room_runtime != null and app_runtime.client_room_runtime.has_signal("room_error"):
+		app_runtime.client_room_runtime.room_error.emit("ROOM_CONNECT_TIMEOUT", user_message)
+
+
+func _clear_pending_online_entry_state() -> void:
+	_pending_connection_watchdog_token += 1
+	_pending_online_entry_context = null
+	_pending_connection_config = null
+	_await_room_before_enter = false
+
+
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
-	print("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)])
+	LogNetScript.warn("%s %s %s" % [ROOM_ANOMALY_LOG_PREFIX, event_name, JSON.stringify(details)], "", 0, "front.room.anomaly")
 
 
 func _log_phase15(event_name: String, details: Dictionary) -> void:
-	print("%s[room_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(details)])
+	LogFrontScript.debug("%s[room_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(details)], "", 0, "front.room.flow")
 
 
 func _build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:

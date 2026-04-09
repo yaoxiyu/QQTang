@@ -19,10 +19,10 @@ const FORMAL_FRONT_SCENES := {
 	"res://scenes/front/lobby_scene.tscn": [
 		"LobbyRoot",
 		"LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel",
-		"LobbyRoot/MainLayout/PracticeCard/PracticeVBox/StartPracticeButton",
-		"LobbyRoot/MainLayout/OnlineCard/OnlineVBox/CreateRoomRow/CreateRoomButton",
-		"LobbyRoot/MainLayout/OnlineCard/OnlineVBox/JoinRoomRow/JoinRoomButton",
-		"LobbyRoot/MainLayout/MessageLabel",
+		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/StartPracticeButton",
+		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreateRoomRow/CreateRoomButton",
+		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinRoomRow/JoinRoomButton",
+		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/MessageLabel",
 	],
 	"res://scenes/front/room_scene.tscn": [
 		"RoomRoot",

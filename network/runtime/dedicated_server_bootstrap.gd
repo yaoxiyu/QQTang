@@ -86,11 +86,17 @@ func _broadcast_message(message: Dictionary) -> void:
 
 
 func _on_transport_peer_connected(peer_id: int) -> void:
-	LogNetScript.info("peer connected: %d" % peer_id, "", 0, "net.server_bootstrap")
+	LogNetScript.info("peer connected: %d peers=%s" % [
+		peer_id,
+		str(_transport.get_remote_peer_ids() if _transport != null else []),
+	], "", 0, "net.server_bootstrap")
 
 
 func _on_transport_peer_disconnected(peer_id: int) -> void:
-	LogNetScript.info("peer disconnected: %d" % peer_id, "", 0, "net.server_bootstrap")
+	LogNetScript.info("peer disconnected: %d peers=%s" % [
+		peer_id,
+		str(_transport.get_remote_peer_ids() if _transport != null else []),
+	], "", 0, "net.server_bootstrap")
 	if _room_registry != null:
 		_room_registry.handle_peer_disconnected(peer_id)
 

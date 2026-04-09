@@ -9,6 +9,7 @@ const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
@@ -256,4 +257,4 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 
 func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	print("%s[lobby_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)])
+	LogFrontScript.debug("%s[lobby_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.use_case")

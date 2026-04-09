@@ -15,6 +15,8 @@ var _remote_peer_ids: Array[int] = []
 var _connect_timeout_seconds: float = DEFAULT_CONNECT_TIMEOUT_SECONDS
 var _connect_started_msec: int = 0
 var _connection_failure_reported: bool = false
+var _last_logged_connection_status: int = -1
+var _last_logged_connect_progress_sec: int = -1
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -23,6 +25,8 @@ func initialize(config: Dictionary = {}) -> void:
 	_connect_timeout_seconds = max(float(config.get("connect_timeout_seconds", DEFAULT_CONNECT_TIMEOUT_SECONDS)), 0.5)
 	_connection_failure_reported = false
 	_connect_started_msec = 0
+	_last_logged_connection_status = -1
+	_last_logged_connect_progress_sec = -1
 	_peer = ENetMultiplayerPeer.new()
 	var result := OK
 	if _server_mode:
@@ -59,6 +63,8 @@ func shutdown() -> void:
 	_local_peer_id = 0
 	_connect_started_msec = 0
 	_connection_failure_reported = false
+	_last_logged_connection_status = -1
+	_last_logged_connect_progress_sec = -1
 
 
 func poll() -> void:
@@ -66,12 +72,14 @@ func poll() -> void:
 		return
 	if not _server_mode:
 		var connection_status := _peer.get_connection_status()
+		_log_client_connection_status_if_needed(connection_status)
 		if not _connected and connection_status == MultiplayerPeer.CONNECTION_DISCONNECTED:
 			_report_connection_failure(ERR_CANT_CONNECT, "Failed to connect to server")
 			_cleanup_failed_connection()
 			return
 		if not _connected and connection_status == MultiplayerPeer.CONNECTION_CONNECTING:
 			var elapsed_seconds := float(Time.get_ticks_msec() - _connect_started_msec) / 1000.0
+			_log_client_connect_progress_if_needed(elapsed_seconds)
 			if elapsed_seconds >= _connect_timeout_seconds:
 				_report_connection_failure(ERR_TIMEOUT, "Connection timed out")
 				_cleanup_failed_connection()
@@ -215,7 +223,12 @@ func _report_connection_failure(code: int, message: String) -> void:
 		return
 	_connection_failure_reported = true
 	transport_error.emit(code, message)
-	_debug_log("connection_failure code=%d message=%s" % [code, message])
+	_debug_log("connection_failure code=%d message=%s status=%s elapsed=%.2f" % [
+		code,
+		message,
+		_connection_status_name(_peer.get_connection_status() if _peer != null else -1),
+		float(Time.get_ticks_msec() - _connect_started_msec) / 1000.0 if _connect_started_msec > 0 else -1.0,
+	])
 
 
 func _cleanup_failed_connection() -> void:
@@ -226,6 +239,47 @@ func _cleanup_failed_connection() -> void:
 	_incoming_queue.clear()
 	_connected = false
 	_local_peer_id = 0
+	_last_logged_connection_status = -1
+	_last_logged_connect_progress_sec = -1
+
+
+func _log_client_connection_status_if_needed(connection_status: int) -> void:
+	if _server_mode:
+		return
+	if connection_status == _last_logged_connection_status:
+		return
+	_last_logged_connection_status = connection_status
+	_debug_log("client_connection_status=%s elapsed=%.2f target_peers=%s" % [
+		_connection_status_name(connection_status),
+		float(Time.get_ticks_msec() - _connect_started_msec) / 1000.0 if _connect_started_msec > 0 else -1.0,
+		str(_remote_peer_ids),
+	])
+
+
+func _log_client_connect_progress_if_needed(elapsed_seconds: float) -> void:
+	if _server_mode:
+		return
+	var elapsed_bucket: int = int(floor(elapsed_seconds))
+	if elapsed_bucket == _last_logged_connect_progress_sec:
+		return
+	_last_logged_connect_progress_sec = elapsed_bucket
+	_debug_log("client_connecting_progress elapsed=%.2f timeout=%.2f peers=%s" % [
+		elapsed_seconds,
+		_connect_timeout_seconds,
+		str(_remote_peer_ids),
+	])
+
+
+func _connection_status_name(connection_status: int) -> String:
+	match connection_status:
+		MultiplayerPeer.CONNECTION_DISCONNECTED:
+			return "DISCONNECTED"
+		MultiplayerPeer.CONNECTION_CONNECTING:
+			return "CONNECTING"
+		MultiplayerPeer.CONNECTION_CONNECTED:
+			return "CONNECTED"
+		_:
+			return "UNKNOWN_%d" % connection_status
 
 
 func _debug_log(message: String) -> void:
