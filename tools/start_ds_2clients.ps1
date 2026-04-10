@@ -115,7 +115,9 @@ if (-not $serverReady) {
 for ($i = 1; $i -le $ClientCount; $i++) {
     $clientArgs = @(
         '--log-file', (Join-Path $runRoot "client$i.godot.log"),
-        '--path', $script:ResolvedProjectPath
+        '--path', $script:ResolvedProjectPath,
+        '--',
+        '--qqt-user-slot', "client$i"
     )
 
     $processes += Start-GodotRole `
@@ -140,6 +142,10 @@ $summaryLines += "RunRoot: $runRoot"
 $summaryLines += ''
 foreach ($process in $processes) {
     $summaryLines += "PID $($process.Id): $($process.ProcessName)"
+}
+$summaryLines += ''
+for ($i = 1; $i -le $ClientCount; $i++) {
+    $summaryLines += "Restart Client$i args: --log-file `"$($runRoot)\client$i.reconnect.godot.log`" --path `"$script:ResolvedProjectPath`" -- --qqt-user-slot client$i"
 }
 $summaryLines | Set-Content -LiteralPath $summaryPath -Encoding UTF8
 

@@ -23,6 +23,7 @@ class MockRuntime:
 func _ready() -> void:
 	var ok := true
 	ok = _test_loading_use_case_submits_ready_once() and ok
+	ok = _test_begin_loading_preserves_preconsumed_gateway_snapshot() and ok
 	ok = _test_consume_snapshot_committed() and ok
 	ok = _test_consume_snapshot_aborted() and ok
 	if ok:
@@ -66,6 +67,41 @@ func _test_loading_use_case_submits_ready_once() -> bool:
 		return false
 	if gateway.ready_calls.size() != 1:
 		print("FAIL: gateway should still have only 1 ready call after duplicate, got ", gateway.ready_calls.size())
+		runtime.free()
+		return false
+	runtime.free()
+	return true
+
+
+func _test_begin_loading_preserves_preconsumed_gateway_snapshot() -> bool:
+	var use_case := LoadingUseCaseScript.new()
+	var gateway := MockGateway.new()
+	var runtime := MockRuntime.new()
+
+	use_case.configure(runtime, gateway)
+
+	var snapshot := MatchLoadingSnapshotScript.new()
+	snapshot.match_id = "match_preconsumed"
+	snapshot.revision = 9
+	snapshot.phase = "waiting"
+	snapshot.expected_peer_ids = [11, 22]
+	snapshot.ready_peer_ids = []
+
+	use_case.consume_loading_snapshot(snapshot)
+	use_case.begin_loading()
+
+	var result := use_case.submit_local_ready()
+	if not bool(result.get("ok", false)):
+		print("FAIL: submit_local_ready should use preconsumed gateway snapshot")
+		runtime.free()
+		return false
+	if gateway.ready_calls.size() != 1:
+		print("FAIL: gateway should receive ready from preserved snapshot, got ", gateway.ready_calls.size())
+		runtime.free()
+		return false
+	var call: Dictionary = gateway.ready_calls[0]
+	if String(call.get("match_id", "")) != "match_preconsumed" or int(call.get("revision", 0)) != 9:
+		print("FAIL: preserved snapshot match/revision mismatch")
 		runtime.free()
 		return false
 	runtime.free()

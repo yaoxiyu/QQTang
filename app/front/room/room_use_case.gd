@@ -497,6 +497,8 @@ func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 		"pending_server_port": int(_pending_connection_config.server_port) if _pending_connection_config != null else 0,
 		"pending_room_id_hint": String(_pending_connection_config.room_id_hint) if _pending_connection_config != null else "",
 	})
+	if _should_clear_pending_reconnect_ticket(error_code):
+		_clear_reconnect_ticket_after_rejected_resume(error_code)
 	_clear_pending_online_entry_state()
 	if app_runtime != null and app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("set_last_error"):
 		app_runtime.room_session_controller.set_last_error(error_code, user_message, {})
@@ -517,6 +519,34 @@ func _save_front_settings() -> void:
 		return
 	if app_runtime.front_settings_repository.has_method("save_settings"):
 		app_runtime.front_settings_repository.save_settings(app_runtime.front_settings_state)
+
+
+func _should_clear_pending_reconnect_ticket(error_code: String) -> bool:
+	if _pending_online_entry_context == null or not _pending_online_entry_context.use_resume_flow:
+		return false
+	return [
+		"ROOM_NOT_FOUND",
+		"MEMBER_NOT_FOUND",
+		"RECONNECT_TOKEN_INVALID",
+		"RESUME_WINDOW_EXPIRED",
+		"MATCH_NOT_ACTIVE",
+		"MATCH_ID_MISMATCH",
+	].has(error_code)
+
+
+func _clear_reconnect_ticket_after_rejected_resume(error_code: String) -> void:
+	if app_runtime == null or app_runtime.front_settings_state == null:
+		return
+	if not app_runtime.front_settings_state.has_method("clear_reconnect_ticket"):
+		return
+	_log_phase15("clear_reconnect_ticket_after_rejected_resume", {
+		"error_code": error_code,
+		"room_id": String(app_runtime.front_settings_state.reconnect_room_id),
+		"member_id": String(app_runtime.front_settings_state.reconnect_member_id),
+		"match_id": String(app_runtime.front_settings_state.reconnect_match_id),
+	})
+	app_runtime.front_settings_state.clear_reconnect_ticket()
+	_save_front_settings()
 
 
 func _schedule_pending_connection_watchdog(connection_config: ClientConnectionConfig) -> void:

@@ -189,6 +189,18 @@ func has_peer(peer_id: int) -> bool:
 	return _room_service.room_state.get_member_binding_by_transport_peer(peer_id) != null
 
 
+func can_route_resume_request(member_id: String, reconnect_token: String) -> bool:
+	_ensure_services()
+	if _room_service == null or _room_service.room_state == null:
+		return false
+	var normalized_member_id := member_id.strip_edges()
+	var normalized_token := reconnect_token.strip_edges()
+	if normalized_member_id.is_empty() or normalized_token.is_empty():
+		return false
+	var binding := _room_service.room_state.get_member_binding_by_member_id(normalized_member_id)
+	return binding != null and binding.reconnect_token == normalized_token
+
+
 func _ensure_services() -> void:
 	if _room_service == null:
 		_room_service = ServerRoomServiceScript.new()
@@ -243,8 +255,8 @@ func _connect_match_service_signals() -> void:
 		return
 	if not _match_service.send_to_peer.is_connected(_emit_send_to_peer):
 		_match_service.send_to_peer.connect(_emit_send_to_peer)
-	if not _match_service.broadcast_message.is_connected(_emit_broadcast_message):
-		_match_service.broadcast_message.connect(_emit_broadcast_message)
+	if not _match_service.broadcast_message.is_connected(_emit_match_broadcast_message):
+		_match_service.broadcast_message.connect(_emit_match_broadcast_message)
 	if not _match_service.match_finished.is_connected(_on_match_finished):
 		_match_service.match_finished.connect(_on_match_finished)
 
@@ -315,6 +327,44 @@ func _emit_send_to_peer(peer_id: int, message: Dictionary) -> void:
 
 func _emit_broadcast_message(message: Dictionary) -> void:
 	broadcast_message.emit(message)
+
+
+func _emit_match_broadcast_message(message: Dictionary) -> void:
+	if _room_service == null or _room_service.room_state == null:
+		broadcast_message.emit(message)
+		return
+	var target_peer_ids := _resolve_connected_match_transport_peer_ids()
+	if target_peer_ids.is_empty():
+		LogNetScript.warn(
+			"match_broadcast_no_connected_targets type=%s" % String(message.get("message_type", message.get("msg_type", ""))),
+			"",
+			0,
+			"net.room_runtime.match_broadcast"
+		)
+		return
+	for peer_id in target_peer_ids:
+		send_to_peer.emit(peer_id, message)
+
+
+func _resolve_connected_match_transport_peer_ids() -> Array[int]:
+	var target_peer_ids: Array[int] = []
+	if _room_service == null or _room_service.room_state == null:
+		return target_peer_ids
+	for member_id_variant in _room_service.room_state.member_bindings_by_member_id.keys():
+		var member_id := String(member_id_variant)
+		var binding := _room_service.room_state.get_member_binding_by_member_id(member_id)
+		if binding == null:
+			continue
+		if String(binding.connection_state) != "connected":
+			continue
+		var transport_peer_id := int(binding.transport_peer_id)
+		if transport_peer_id <= 0:
+			continue
+		if target_peer_ids.has(transport_peer_id):
+			continue
+		target_peer_ids.append(transport_peer_id)
+	target_peer_ids.sort()
+	return target_peer_ids
 
 
 func _resolve_owner_name(owner_peer_id: int) -> String:

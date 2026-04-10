@@ -24,6 +24,7 @@ func _ready() -> void:
 	ok = _test_rejects_unknown_transport_peer() and ok
 	ok = _test_rejects_mismatched_control_peer() and ok
 	ok = _test_accepts_bound_control_peer() and ok
+	ok = _test_match_broadcast_targets_connected_bound_transports_only() and ok
 	if ok:
 		print("server_room_runtime_battle_input_guard_test: PASS")
 
@@ -70,6 +71,42 @@ func _test_accepts_bound_control_peer() -> bool:
 	var ok := TestAssert.is_true(
 		match_service.ingested_messages.size() == 1,
 		"bound transport should control its original match peer",
+		"server_room_runtime_battle_input_guard_test"
+	)
+	runtime.free()
+	return ok
+
+
+func _test_match_broadcast_targets_connected_bound_transports_only() -> bool:
+	var runtime := ServerRoomRuntimeScript.new()
+	add_child(runtime)
+	runtime.configure("127.0.0.1", 9000)
+
+	var state: RoomServerState = runtime._room_service.room_state
+	state.ensure_room("broadcast_room", 2, "private_room", "")
+	state.upsert_member(2, "Host", "hero_default")
+	state.upsert_member(3, "Client", "hero_default")
+	state.freeze_match_peer_bindings("broadcast_match")
+
+	var client_binding := state.get_member_binding_by_transport_peer(3)
+	state.mark_member_disconnected_by_transport_peer(3, Time.get_ticks_msec() + 20000, "broadcast_match")
+	state.bind_transport_to_member(client_binding.member_id, 9)
+	client_binding.match_peer_id = 3
+	client_binding.connection_state = "connected"
+	state.match_active = true
+
+	var sent_peer_ids: Array[int] = []
+	runtime.send_to_peer.connect(func(peer_id: int, _message: Dictionary) -> void:
+		sent_peer_ids.append(peer_id)
+	)
+
+	runtime._emit_match_broadcast_message({
+		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
+	})
+
+	var ok := TestAssert.is_true(
+		sent_peer_ids == [2, 9],
+		"match authority broadcast should target connected room bindings, not raw transport peers",
 		"server_room_runtime_battle_input_guard_test"
 	)
 	runtime.free()

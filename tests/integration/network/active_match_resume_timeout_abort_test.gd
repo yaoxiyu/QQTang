@@ -76,6 +76,9 @@ func _start_active_match() -> Dictionary:
 	runtime.broadcast_message.connect(func(message: Dictionary) -> void:
 		broadcasts.append(message.duplicate(true))
 	)
+	runtime.send_to_peer.connect(func(_peer_id: int, message: Dictionary) -> void:
+		broadcasts.append(message.duplicate(true))
+	)
 
 	runtime.create_room_from_request(_create_message(2))
 	runtime.handle_room_message(_join_message(3))

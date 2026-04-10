@@ -128,14 +128,13 @@ func send_to_peer(peer_id: int, message: Dictionary) -> void:
 	_debug_log("send %s -> %d result=%d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), peer_id, result])
 	if result != OK:
 		if result == ERR_INVALID_PARAMETER and _remote_peer_ids.has(peer_id):
-			_remote_peer_ids.erase(peer_id)
-			_debug_log("removed invalid remote peer %d after send failure, peers=%s" % [peer_id, str(_remote_peer_ids)])
+			_remove_remote_peer(peer_id, "send_invalid_peer")
 		transport_error.emit(result, "ENet transport failed to send packet")
 
 
 func broadcast(message: Dictionary) -> void:
 	_debug_log("broadcast %s -> %s" % [str(message.get("message_type", message.get("msg_type", "unknown"))), str(_remote_peer_ids)])
-	for peer_id in _remote_peer_ids:
+	for peer_id in _remote_peer_ids.duplicate():
 		send_to_peer(peer_id, message)
 
 
@@ -177,9 +176,7 @@ func _sync_remote_peer_ids() -> void:
 			continue
 		removed_peer_ids.append(peer_id)
 	for peer_id in removed_peer_ids:
-		_remote_peer_ids.erase(peer_id)
-		_debug_log("peer_disconnected local=%d remote=%d peers=%s" % [_local_peer_id, peer_id, str(_remote_peer_ids)])
-		peer_disconnected.emit(peer_id)
+		_remove_remote_peer(peer_id, "peer_list_sync")
 
 
 func _read_peer_ids() -> Array[int]:
@@ -216,6 +213,19 @@ func _ensure_remote_peer_known(peer_id: int) -> void:
 	_remote_peer_ids.sort()
 	_debug_log("peer_connected local=%d remote=%d peers=%s" % [_local_peer_id, peer_id, str(_remote_peer_ids)])
 	peer_connected.emit(peer_id)
+
+
+func _remove_remote_peer(peer_id: int, reason: String) -> void:
+	if not _remote_peer_ids.has(peer_id):
+		return
+	_remote_peer_ids.erase(peer_id)
+	_debug_log("peer_disconnected local=%d remote=%d reason=%s peers=%s" % [
+		_local_peer_id,
+		peer_id,
+		reason,
+		str(_remote_peer_ids),
+	])
+	peer_disconnected.emit(peer_id)
 
 
 func _report_connection_failure(code: int, message: String) -> void:

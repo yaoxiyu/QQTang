@@ -176,27 +176,54 @@ func _route_join_room_message(message: Dictionary) -> void:
 
 
 func _route_resume_room_message(message: Dictionary) -> void:
-	var room_id := String(message.get("room_id", "")).strip_edges()
+	var requested_room_id := String(message.get("room_id", "")).strip_edges()
 	var peer_id := int(message.get("sender_peer_id", 0))
-	if room_id.is_empty():
-		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	var member_id := String(message.get("member_id", "")).strip_edges()
+	var reconnect_token := String(message.get("reconnect_token", "")).strip_edges()
+	_log_directory_event("resume_request", {
+		"requested_room_id": requested_room_id,
+		"peer_id": peer_id,
+		"member_id": member_id,
+		"match_id": String(message.get("match_id", "")),
+		"runtime_count": room_runtimes.size(),
+	})
+	var runtime: ServerRoomRuntime = room_runtimes.get(requested_room_id, null)
+	var resolved_room_id := requested_room_id
 	if runtime == null:
+		runtime = _find_resume_runtime(member_id, reconnect_token)
+		if runtime != null:
+			resolved_room_id = runtime.get_room_id()
+			_log_directory_event("resume_room_id_repaired", {
+				"requested_room_id": requested_room_id,
+				"resolved_room_id": resolved_room_id,
+				"peer_id": peer_id,
+				"member_id": member_id,
+			})
+	if runtime == null:
+		_log_directory_event("resume_rejected_room_not_found", {
+			"requested_room_id": requested_room_id,
+			"peer_id": peer_id,
+			"member_id": member_id,
+			"known_room_ids": _sorted_room_ids(),
+		})
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
 			"error": "ROOM_NOT_FOUND",
 			"user_message": "Target room does not exist",
 		})
 		return
-	runtime.handle_room_message(message)
+	var routed_message := message.duplicate(true)
+	routed_message["room_id"] = resolved_room_id
+	runtime.handle_room_message(routed_message)
 	if peer_id > 0 and runtime.has_peer(peer_id):
-		peer_room_bindings[peer_id] = room_id
+		peer_room_bindings[peer_id] = resolved_room_id
 		_log_directory_event("room_resumed", {
-			"room_id": room_id,
+			"room_id": resolved_room_id,
+			"requested_room_id": requested_room_id,
 			"peer_id": peer_id,
-			"member_id": String(message.get("member_id", "")),
+			"member_id": member_id,
 		})
-	_reconcile_runtime_bindings(room_id, runtime)
+	_reconcile_runtime_bindings(resolved_room_id, runtime)
 
 
 func _route_bound_room_message(message: Dictionary) -> void:
@@ -291,6 +318,26 @@ func _remove_bindings_for_room(room_id: String) -> void:
 			bound_peer_ids.append(peer_id)
 	for peer_id in bound_peer_ids:
 		peer_room_bindings.erase(peer_id)
+
+
+func _find_resume_runtime(member_id: String, reconnect_token: String) -> ServerRoomRuntime:
+	var normalized_member_id := member_id.strip_edges()
+	var normalized_token := reconnect_token.strip_edges()
+	if normalized_member_id.is_empty() or normalized_token.is_empty():
+		return null
+	for room_id in _sorted_room_ids():
+		var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+		if runtime != null and runtime.can_route_resume_request(normalized_member_id, normalized_token):
+			return runtime
+	return null
+
+
+func _sorted_room_ids() -> Array[String]:
+	var room_ids: Array[String] = []
+	for room_id_variant in room_runtimes.keys():
+		room_ids.append(String(room_id_variant))
+	room_ids.sort()
+	return room_ids
 
 
 func _destroy_runtime(runtime: ServerRoomRuntime, room_id: String = "") -> void:

@@ -36,7 +36,6 @@ func begin_loading() -> Dictionary:
 			"resume_mode": true,
 		}
 	
-	_current_snapshot = null
 	return {
 		"ok": true,
 	}
