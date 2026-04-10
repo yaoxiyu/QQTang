@@ -5,7 +5,7 @@ const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 var current_snapshot: MatchLoadingSnapshot = null
-var prepared_config: BattleStartConfig = null
+var prepared_config = null
 var loading_active: bool = false
 var expected_peer_ids: Array[int] = []
 var ready_peer_ids: Array[int] = []
@@ -98,7 +98,7 @@ func begin_loading(room_snapshot) -> Dictionary:
 	for peer_id in expected_peer_ids:
 		var start_config_payload: Variant = {}
 		if prepared_config is BattleStartConfig:
-			var peer_config := prepared_config.duplicate_deep()
+			var peer_config: Variant = prepared_config.duplicate_deep()
 			peer_config.build_mode = BattleStartConfig.BUILD_MODE_CANDIDATE
 			peer_config.session_mode = "network_client"
 			peer_config.topology = "dedicated_server"
@@ -164,13 +164,13 @@ func mark_peer_ready(peer_id: int, match_id: String, revision: int) -> Dictionar
 	current_snapshot.ready_peer_ids = ready_peer_ids.duplicate()
 	current_snapshot._recalculate_waiting_peers()
 
+	if ready_peer_ids.size() == expected_peer_ids.size():
+		return _try_commit_match()
+
 	_broadcast_message_callable.call({
 		"message_type": TransportMessageTypesScript.MATCH_LOADING_SNAPSHOT,
 		"snapshot": current_snapshot.to_dict(),
 	})
-
-	if ready_peer_ids.size() == expected_peer_ids.size():
-		return _try_commit_match()
 
 	return {
 		"ok": true,

@@ -37,7 +37,8 @@ static func initialize_with_config(config: LogConfig) -> Error:
 ## 内部初始化逻辑
 static func _initialize(config: LogConfig) -> Error:
 	if _initialized:
-		push_warning("[LogManager] Already initialized, reinitializing...")
+		if not _is_silent_test_config():
+			push_warning("[LogManager] Already initialized, reinitializing...")
 		_shutdown()
 	
 	_config = config
@@ -236,6 +237,10 @@ static func set_min_level(level: int) -> void:
 static func get_current_log_path() -> String:
 	return _current_log_path
 
+
+static func is_initialized() -> bool:
+	return _initialized
+
 ## 刷新日志（确保所有日志已写入文件）
 static func flush() -> void:
 	if _writer != null:
@@ -253,6 +258,10 @@ static func _shutdown() -> void:
 		_writer.close()
 		_writer = null
 	_initialized = false
+
+
+static func _is_silent_test_config() -> bool:
+	return _config != null and not _config.console_enabled and not _config.file_enabled
 
 ## 自动关闭（进程退出时调用）
 static func on_exit() -> void:

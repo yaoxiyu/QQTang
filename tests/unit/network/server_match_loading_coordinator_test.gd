@@ -29,7 +29,7 @@ class MockConfig:
 	func duplicate_deep():
 		var copy := MockConfig.new()
 		copy.match_id = match_id
-		copy.server_match_revision = revision
+		copy.server_match_revision = server_match_revision
 		copy.battle_seed = battle_seed
 		copy.player_slots = player_slots.duplicate()
 		return copy
@@ -111,7 +111,7 @@ func _test_ready_not_committed_before_all_ready() -> bool:
 
 func _test_ready_committed_when_all_ready() -> bool:
 	var coord := ServerMatchLoadingCoordinatorScript.new()
-	var committed := false
+	var committed := [false]
 	var broadcasted := []
 	var mock_snapshot := MockRoomSnapshot.new()
 	var mock_config := MockConfig.new()
@@ -119,7 +119,7 @@ func _test_ready_committed_when_all_ready() -> bool:
 
 	coord.configure(
 		Callable(self, "_mock_prepare_match").bind(mock_config),
-		func(_cfg): committed = true; return {"ok": true},
+		func(_cfg): committed[0] = true; return {"ok": true},
 		func(_peer_id, _msg): pass,
 		func(msg): broadcasted.append(msg)
 	)
@@ -134,7 +134,7 @@ func _test_ready_committed_when_all_ready() -> bool:
 	if not result.get("committed", false):
 		print("FAIL: should be committed when all peers ready")
 		return false
-	if not committed:
+	if not committed[0]:
 		print("FAIL: commit callable should have been called")
 		return false
 	if broadcasted.size() != 3:
@@ -199,7 +199,7 @@ func _test_revision_mismatch_rejected() -> bool:
 	return true
 
 
-func _mock_prepare_match(config, _snapshot) -> Dictionary:
+func _mock_prepare_match(_snapshot, config) -> Dictionary:
 	return {
 		"ok": true,
 		"config": config,

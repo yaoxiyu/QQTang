@@ -54,6 +54,7 @@ func _test_loading_use_case_submits_ready_once() -> bool:
 		return false
 	if gateway.ready_calls.size() != 1:
 		print("FAIL: gateway should receive 1 ready call, got ", gateway.ready_calls.size())
+		runtime.free()
 		return false
 
 	var result2 := use_case.submit_local_ready()
@@ -65,13 +66,16 @@ func _test_loading_use_case_submits_ready_once() -> bool:
 		return false
 	if gateway.ready_calls.size() != 1:
 		print("FAIL: gateway should still have only 1 ready call after duplicate, got ", gateway.ready_calls.size())
+		runtime.free()
 		return false
+	runtime.free()
 	return true
 
 
 func _test_consume_snapshot_committed() -> bool:
 	var use_case := LoadingUseCaseScript.new()
-	use_case.configure(MockRuntime.new(), MockGateway.new())
+	var runtime := MockRuntime.new()
+	use_case.configure(runtime, MockGateway.new())
 	use_case.begin_loading()
 
 	var snapshot := MatchLoadingSnapshotScript.new()
@@ -80,16 +84,20 @@ func _test_consume_snapshot_committed() -> bool:
 	var result := use_case.consume_loading_snapshot(snapshot)
 	if not bool(result.get("ok", false)):
 		print("FAIL: consume committed should succeed")
+		runtime.free()
 		return false
 	if not result.get("committed", false):
 		print("FAIL: consume committed should return committed=true")
+		runtime.free()
 		return false
+	runtime.free()
 	return true
 
 
 func _test_consume_snapshot_aborted() -> bool:
 	var use_case := LoadingUseCaseScript.new()
-	use_case.configure(MockRuntime.new(), MockGateway.new())
+	var runtime := MockRuntime.new()
+	use_case.configure(runtime, MockGateway.new())
 	use_case.begin_loading()
 
 	var snapshot := MatchLoadingSnapshotScript.new()
@@ -100,14 +108,19 @@ func _test_consume_snapshot_aborted() -> bool:
 	var result := use_case.consume_loading_snapshot(snapshot)
 	if not bool(result.get("ok", false)):
 		print("FAIL: consume aborted should succeed")
+		runtime.free()
 		return false
 	if not result.get("aborted", false):
 		print("FAIL: consume aborted should return aborted=true")
+		runtime.free()
 		return false
 	if result.get("error_code") != "peer_disconnected":
 		print("FAIL: consume aborted error_code mismatch")
+		runtime.free()
 		return false
 	if result.get("user_message") != "Player left during loading":
 		print("FAIL: consume aborted user_message mismatch")
+		runtime.free()
 		return false
+	runtime.free()
 	return true

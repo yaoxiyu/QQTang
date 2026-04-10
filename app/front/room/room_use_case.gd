@@ -428,7 +428,13 @@ func _schedule_pending_connection_watchdog(connection_config: ClientConnectionCo
 func _await_pending_connection_watchdog(token: int, timeout_sec: float) -> void:
 	if app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
 		return
-	await app_runtime.get_tree().create_timer(timeout_sec).timeout
+	var deadline_msec := Time.get_ticks_msec() + int(timeout_sec * 1000.0)
+	while Time.get_ticks_msec() < deadline_msec:
+		await app_runtime.get_tree().process_frame
+		if token != _pending_connection_watchdog_token:
+			return
+		if app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
+			return
 	if token != _pending_connection_watchdog_token:
 		return
 	if not _await_room_before_enter or _pending_online_entry_context == null or _pending_connection_config == null:

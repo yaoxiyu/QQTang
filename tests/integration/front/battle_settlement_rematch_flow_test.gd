@@ -37,7 +37,9 @@ func _test_rematch_request_from_non_owner_rejected() -> bool:
 		return false
 	if sent_messages[0]["msg"]["error"] != "REMATCH_FORBIDDEN":
 		print("FAIL: non-owner rematch error should be REMATCH_FORBIDDEN")
+		service.free()
 		return false
+	service.free()
 	return true
 
 
@@ -45,11 +47,11 @@ func _test_rematch_request_from_owner_succeeds() -> bool:
 	var service := ServerRoomServiceScript.new()
 	var sent_messages := []
 	var broadcasted := []
-	var start_match_called := false
+	var start_match_called := [false]
 
 	service.send_to_peer.connect(func(peer_id, msg): sent_messages.append({"peer_id": peer_id, "msg": msg}))
 	service.broadcast_message.connect(func(msg): broadcasted.append(msg))
-	service.start_match_requested.connect(func(_snapshot): start_match_called = true)
+	service.start_match_requested.connect(func(_snapshot): start_match_called[0] = true)
 
 	service.room_state.ensure_room("test_room", 1, "private_room", "Test Room")
 	service.room_state.upsert_member(1, "Host", "char_001", "", "bubble_001", "")
@@ -70,7 +72,7 @@ func _test_rematch_request_from_owner_succeeds() -> bool:
 	if broadcasted[0]["message_type"] != TransportMessageTypesScript.ROOM_SNAPSHOT:
 		print("FAIL: owner rematch broadcast should be ROOM_SNAPSHOT")
 		return false
-	if not start_match_called:
+	if not start_match_called[0]:
 		print("FAIL: owner rematch should emit start_match_requested")
 		return false
 	if not service.room_state.match_active:
@@ -81,7 +83,9 @@ func _test_rematch_request_from_owner_succeeds() -> bool:
 		return false
 	if not service.room_state.members[2].ready:
 		print("FAIL: owner rematch should set member 2 ready to true")
+		service.free()
 		return false
+	service.free()
 	return true
 
 
@@ -110,5 +114,7 @@ func _test_rematch_rejected_when_match_active() -> bool:
 		return false
 	if sent_messages[0]["msg"]["error"] != "MATCH_ALREADY_ACTIVE":
 		print("FAIL: rematch during active match error should be MATCH_ALREADY_ACTIVE")
+		service.free()
 		return false
+	service.free()
 	return true

@@ -163,7 +163,7 @@ func _connect_runtime_signals() -> void:
 		client_room_runtime.room_error.connect(_on_room_error)
 	if not client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.connect(_on_canonical_start_config_received)
-	if not client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+	if client_room_runtime.has_signal("match_loading_snapshot_received") and not client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		client_room_runtime.match_loading_snapshot_received.connect(_on_match_loading_snapshot_received)
 
 
@@ -178,7 +178,7 @@ func _disconnect_runtime_signals() -> void:
 		client_room_runtime.room_error.disconnect(_on_room_error)
 	if client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.disconnect(_on_canonical_start_config_received)
-	if client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
+	if client_room_runtime.has_signal("match_loading_snapshot_received") and client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		client_room_runtime.match_loading_snapshot_received.disconnect(_on_match_loading_snapshot_received)
 
 

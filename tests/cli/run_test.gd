@@ -1,8 +1,13 @@
 extends SceneTree
 
+const LogConfigScript = preload("res://app/logging/log_config.gd")
+const LogManagerScript = preload("res://app/logging/log_manager.gd")
+const LogLevelConstantsScript = preload("res://app/logging/log_types.gd")
+
 var _failed := false
 var _test_node: Node = null
 var _finished := false
+var _log_initialized_by_runner := false
 
 
 func _initialize() -> void:
@@ -13,6 +18,7 @@ func _initialize() -> void:
 		return
 
 	var script_path := String(args[0])
+	_initialize_test_logging(script_path)
 	var script := load(script_path)
 	if script == null:
 		push_error("test_runner: failed to load %s" % script_path)
@@ -51,4 +57,17 @@ func _cleanup_and_quit() -> void:
 		_test_node.free()
 	await process_frame
 	await process_frame
+	if _log_initialized_by_runner:
+		LogManagerScript.on_exit()
 	quit(0 if not _failed else 1)
+
+
+func _initialize_test_logging(script_path: String) -> void:
+	if script_path.begins_with("res://tests/unit/logging/"):
+		return
+	var config := LogConfigScript.new()
+	config.console_enabled = false
+	config.file_enabled = false
+	config.min_level = LogLevelConstantsScript.Level.FATAL
+	var err := LogManagerScript.initialize_with_config(config)
+	_log_initialized_by_runner = err == OK
