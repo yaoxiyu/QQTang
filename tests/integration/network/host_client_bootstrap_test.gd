@@ -7,6 +7,10 @@ const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_
 const ClientRuntimeScript = preload("res://network/session/runtime/client_runtime.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 
 func _ready() -> void:
@@ -96,17 +100,19 @@ func _make_room_snapshot() -> RoomSnapshot:
 	var snapshot := RoomSnapshot.new()
 	snapshot.room_id = "bootstrap_test_room"
 	snapshot.owner_peer_id = 1
-	snapshot.selected_map_id = "default_map"
-	snapshot.rule_set_id = "classic"
+	snapshot.selected_map_id = MapCatalogScript.get_default_map_id()
+	snapshot.rule_set_id = RuleSetCatalogScript.get_default_rule_id()
+	snapshot.mode_id = ModeCatalogScript.get_default_mode_id()
 	snapshot.all_ready = true
 	snapshot.max_players = 2
 
+	var character_id := CharacterCatalogScript.get_default_character_id()
 	var host := RoomMemberState.new()
 	host.peer_id = 1
 	host.player_name = "Host"
 	host.ready = true
 	host.slot_index = 0
-	host.character_id = "hero_1"
+	host.character_id = character_id
 	snapshot.members.append(host)
 
 	var client := RoomMemberState.new()
@@ -114,7 +120,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.player_name = "Client"
 	client.ready = true
 	client.slot_index = 1
-	client.character_id = "hero_2"
+	client.character_id = character_id
 	snapshot.members.append(client)
 	return snapshot
 

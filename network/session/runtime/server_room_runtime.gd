@@ -5,7 +5,9 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
+const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
@@ -16,10 +18,19 @@ var authority_port: int = 9000
 var _room_service: ServerRoomService = null
 var _match_service: ServerMatchService = null
 var _loading_coordinator: ServerMatchLoadingCoordinator = null
+var _resume_coordinator: ServerMatchResumeCoordinator = null  # Phase17
 
 
 func _ready() -> void:
 	_ensure_services()
+
+
+func _process(_delta: float) -> void:
+	# Phase17: Poll resume window expiration
+	if _resume_coordinator != null:
+		_resume_coordinator.poll_expired()
+	if _room_service != null and _room_service.has_method("poll_idle_resume_expired"):
+		_room_service.poll_idle_resume_expired()
 
 
 func configure(next_authority_host: String, next_authority_port: int) -> void:
@@ -65,6 +76,27 @@ func handle_battle_message(message: Dictionary) -> void:
 	_ensure_services()
 	if _match_service == null:
 		return
+	
+	# Phase17: Validate battle input sender
+	if _room_service != null and _room_service.room_state != null and _room_service.room_state.match_active:
+		var sender_transport_peer_id := int(message.get("sender_peer_id", 0))
+		var frame: Dictionary = Dictionary(message.get("frame", {}))
+		var frame_peer_id := int(frame.get("peer_id", message.get("peer_id", 0)))
+		
+		# Get member binding for this transport
+		var binding := _room_service.room_state.get_member_binding_by_transport_peer(sender_transport_peer_id)
+		if binding == null:
+			# Unknown sender - reject
+			LogNetScript.warn("battle_input_rejected unknown_transport sender=%d" % sender_transport_peer_id, "", 0, "net.room_runtime.input_guard")
+			return
+		
+		# Validate frame.peer_id matches allowed match_peer_id
+		var allowed_match_peer_id := binding.match_peer_id
+		if frame_peer_id != allowed_match_peer_id:
+			# Frame peer_id mismatch - reject
+			LogNetScript.warn("battle_input_rejected frame_peer_mismatch sender=%d frame=%d allowed=%d" % [sender_transport_peer_id, frame_peer_id, allowed_match_peer_id], "", 0, "net.room_runtime.input_guard")
+			return
+	
 	_match_service.ingest_runtime_message(message)
 
 
@@ -82,10 +114,27 @@ func handle_loading_message(message: Dictionary) -> void:
 
 func handle_peer_disconnected(peer_id: int) -> void:
 	_ensure_services()
+	
+	# Loading phase disconnect - still abort immediately
 	if _loading_coordinator != null and _loading_coordinator.is_loading_active():
 		_loading_coordinator.handle_peer_disconnected(peer_id)
+		if _room_service != null:
+			_room_service.handle_peer_disconnected(peer_id)
+		return
+	
+	# Phase17: Active match disconnect - enter resume window instead of immediate abort
 	if _match_service != null and _match_service.is_match_active():
-		_match_service.abort_match_due_to_disconnect(peer_id)
+		var binding := _room_service.room_state.get_member_binding_by_transport_peer(peer_id)
+		if binding != null:
+			# Mark member as disconnected and create resume window
+			_resume_coordinator.on_member_disconnected(binding.member_id)
+			# Broadcast updated snapshot with disconnected state
+			if _room_service != null and _room_service.has_method("_broadcast_snapshot"):
+				_room_service.call("_broadcast_snapshot")
+			return
+		# If no binding found, fall through to remove member
+	
+	# Room idle phase - remove member normally
 	if _room_service != null:
 		_room_service.handle_peer_disconnected(peer_id)
 
@@ -135,7 +184,9 @@ func has_peer(peer_id: int) -> bool:
 	_ensure_services()
 	if _room_service == null or _room_service.room_state == null:
 		return false
-	return _room_service.room_state.members.has(peer_id)
+	if _room_service.room_state.members.has(peer_id):
+		return true
+	return _room_service.room_state.get_member_binding_by_transport_peer(peer_id) != null
 
 
 func _ensure_services() -> void:
@@ -160,6 +211,14 @@ func _ensure_services() -> void:
 			_loading_aborted_callable(),
 			_loading_committed_callable()
 		)
+	# Phase17: Initialize resume coordinator
+	if _resume_coordinator == null:
+		_resume_coordinator = ServerMatchResumeCoordinatorScript.new()
+		_resume_coordinator.name = "ServerMatchResumeCoordinator"
+		add_child(_resume_coordinator)
+		_connect_resume_coordinator_signals()
+		if _room_service != null and _match_service != null:
+			_resume_coordinator.configure(_room_service.room_state, _match_service)
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
@@ -174,6 +233,9 @@ func _connect_room_service_signals() -> void:
 		_room_service.broadcast_message.connect(_emit_broadcast_message)
 	if not _room_service.start_match_requested.is_connected(_on_start_match_requested):
 		_room_service.start_match_requested.connect(_on_start_match_requested)
+	# Phase17: Connect resume request signal
+	if _room_service.has_signal("resume_request_received") and not _room_service.resume_request_received.is_connected(_on_resume_request_received):
+		_room_service.resume_request_received.connect(_on_resume_request_received)
 
 
 func _connect_match_service_signals() -> void:
@@ -185,6 +247,16 @@ func _connect_match_service_signals() -> void:
 		_match_service.broadcast_message.connect(_emit_broadcast_message)
 	if not _match_service.match_finished.is_connected(_on_match_finished):
 		_match_service.match_finished.connect(_on_match_finished)
+
+
+# Phase17: Connect resume coordinator signals
+func _connect_resume_coordinator_signals() -> void:
+	if _resume_coordinator == null:
+		return
+	if not _resume_coordinator.send_to_peer.is_connected(_emit_send_to_peer):
+		_resume_coordinator.send_to_peer.connect(_emit_send_to_peer)
+	if not _resume_coordinator.match_abort_requested.is_connected(_on_match_resume_timeout_abort_requested):
+		_resume_coordinator.match_abort_requested.connect(_on_match_resume_timeout_abort_requested)
 
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
@@ -202,6 +274,39 @@ func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
 func _on_match_finished(_result: BattleResult) -> void:
 	if _room_service != null and _room_service.has_method("handle_match_finished"):
 		_room_service.handle_match_finished()
+	# Phase17: Clear resume state on match finish
+	if _resume_coordinator != null:
+		_resume_coordinator.clear_match_state()
+
+
+# Phase17: Handle resume timeout abort request
+func _on_match_resume_timeout_abort_requested(reason: String, member_id: String) -> void:
+	if _match_service != null and _match_service.is_match_active():
+		_match_service.abort_match_due_to_resume_timeout(member_id)
+
+
+# Phase17: Handle resume request from ServerRoomService
+func _on_resume_request_received(message: Dictionary) -> void:
+	if _resume_coordinator == null:
+		return
+	
+	var peer_id := int(message.get("sender_peer_id", 0))
+	var member_id := String(message.get("member_id", ""))
+	var reconnect_token := String(message.get("reconnect_token", ""))
+	var match_id := String(message.get("match_id", ""))
+	
+	var result := _resume_coordinator.try_resume(member_id, reconnect_token, peer_id, match_id)
+	
+	if not result.get("ok", false):
+		if _room_service != null and _room_service.room_state != null:
+			var binding := _room_service.room_state.get_member_binding_by_member_id(member_id)
+			if binding != null and binding.connection_state == "resuming":
+				binding.connection_state = "disconnected"
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.MATCH_RESUME_REJECTED,
+			"error": result.get("error", "RESUME_FAILED"),
+			"user_message": "Match resume failed: " + str(result.get("error", "unknown")),
+		})
 
 
 func _emit_send_to_peer(peer_id: int, message: Dictionary) -> void:
@@ -280,3 +385,5 @@ func _on_loading_aborted(_error_code: String, _user_message: String, _snapshot: 
 func _on_loading_committed(_config: BattleStartConfig, _snapshot: MatchLoadingSnapshot) -> void:
 	if _room_service != null and _room_service.has_method("handle_match_committed"):
 		_room_service.handle_match_committed()
+	if _resume_coordinator != null:
+		_resume_coordinator.on_match_committed(_config)

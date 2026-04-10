@@ -51,6 +51,8 @@ func route_message(message: Dictionary) -> void:
 			_route_create_room_message(message)
 		TransportMessageTypesScript.ROOM_JOIN_REQUEST:
 			_route_join_room_message(message)
+		TransportMessageTypesScript.ROOM_RESUME_REQUEST:
+			_route_resume_room_message(message)
 		TransportMessageTypesScript.ROOM_UPDATE_PROFILE, \
 		TransportMessageTypesScript.ROOM_UPDATE_SELECTION, \
 		TransportMessageTypesScript.ROOM_TOGGLE_READY, \
@@ -171,6 +173,30 @@ func _route_join_room_message(message: Dictionary) -> void:
 			"peer_id": peer_id,
 		})
 	_reconcile_runtime_bindings(room_id_hint, runtime)
+
+
+func _route_resume_room_message(message: Dictionary) -> void:
+	var room_id := String(message.get("room_id", "")).strip_edges()
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_id.is_empty():
+		return
+	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	if runtime == null:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "ROOM_NOT_FOUND",
+			"user_message": "Target room does not exist",
+		})
+		return
+	runtime.handle_room_message(message)
+	if peer_id > 0 and runtime.has_peer(peer_id):
+		peer_room_bindings[peer_id] = room_id
+		_log_directory_event("room_resumed", {
+			"room_id": room_id,
+			"peer_id": peer_id,
+			"member_id": String(message.get("member_id", "")),
+		})
+	_reconcile_runtime_bindings(room_id, runtime)
 
 
 func _route_bound_room_message(message: Dictionary) -> void:

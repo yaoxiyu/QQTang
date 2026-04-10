@@ -99,6 +99,10 @@ func leave_room() -> Dictionary:
 	var room_controller: Node = app_runtime.room_session_controller
 	if room_controller != null and room_controller.has_method("reset_room_state"):
 		room_controller.reset_room_state()
+	if app_runtime.front_settings_state != null and app_runtime.front_settings_state.has_method("clear_reconnect_ticket"):
+		app_runtime.front_settings_state.clear_reconnect_ticket()
+		if app_runtime.front_settings_repository != null and app_runtime.front_settings_repository.has_method("save_settings"):
+			app_runtime.front_settings_repository.save_settings(app_runtime.front_settings_state)
 	app_runtime.current_room_snapshot = null
 	app_runtime.current_room_entry_context = null
 	_clear_pending_online_entry_state()
@@ -258,6 +262,11 @@ func _connect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.connect(_on_gateway_canonical_start_config_received)
 	if not room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.connect(_on_gateway_match_loading_snapshot_received)
+	# Phase17: Connect resume signals
+	if room_client_gateway.has_signal("room_member_session_received") and not room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
+		room_client_gateway.room_member_session_received.connect(_on_gateway_room_member_session_received)
+	if room_client_gateway.has_signal("match_resume_accepted") and not room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
+		room_client_gateway.match_resume_accepted.connect(_on_gateway_match_resume_accepted)
 
 
 func _disconnect_gateway_signals() -> void:
@@ -273,6 +282,11 @@ func _disconnect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.disconnect(_on_gateway_canonical_start_config_received)
 	if room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.disconnect(_on_gateway_match_loading_snapshot_received)
+	# Phase17: Disconnect resume signals
+	if room_client_gateway.has_signal("room_member_session_received") and room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
+		room_client_gateway.room_member_session_received.disconnect(_on_gateway_room_member_session_received)
+	if room_client_gateway.has_signal("match_resume_accepted") and room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
+		room_client_gateway.match_resume_accepted.disconnect(_on_gateway_match_resume_accepted)
 
 
 func _on_gateway_transport_connected() -> void:
@@ -285,6 +299,22 @@ func _on_gateway_transport_connected() -> void:
 			"has_pending_config": _pending_connection_config != null,
 		})
 		return
+	
+	# Phase17: Check for resume flow
+	if _pending_online_entry_context.use_resume_flow:
+		_log_phase15("transport_connected_dispatch_resume", {
+			"room_id": String(_pending_online_entry_context.target_room_id),
+			"member_id": String(_pending_online_entry_context.reconnect_member_id),
+			"match_id": String(_pending_online_entry_context.reconnect_match_id),
+		})
+		room_client_gateway.request_resume_room(
+			_pending_online_entry_context.target_room_id,
+			_pending_online_entry_context.reconnect_member_id,
+			_pending_online_entry_context.reconnect_token,
+			_pending_online_entry_context.reconnect_match_id
+		)
+		return
+	
 	match String(_pending_online_entry_context.entry_kind):
 		FrontEntryKindScript.ONLINE_CREATE:
 			_log_phase15("transport_connected_dispatch_create", {
@@ -354,6 +384,8 @@ func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
 		server_port = int(app_runtime.front_settings_state.last_server_port)
 	app_runtime.front_settings_state.reconnect_host = server_host
 	app_runtime.front_settings_state.reconnect_port = server_port
+	app_runtime.front_settings_state.reconnect_state = "active_match" if bool(snapshot.match_active) else "room_only"
+	_save_front_settings()
 
 
 func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> void:
@@ -364,6 +396,8 @@ func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> v
 	# Phase16: Write match_id to reconnect ticket
 	if app_runtime.front_settings_state != null and config != null and not config.match_id.is_empty():
 		app_runtime.front_settings_state.reconnect_match_id = config.match_id
+		app_runtime.front_settings_state.reconnect_state = "active_match"
+		_save_front_settings()
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
 		app_runtime.front_flow.request_start_match()
 
@@ -392,6 +426,66 @@ func _on_gateway_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 		app_runtime.room_session_controller.set_last_error(snapshot.error_code, snapshot.user_message, {})
 
 
+# Phase17: Handle room member session received
+func _on_gateway_room_member_session_received(payload: Dictionary) -> void:
+	if app_runtime == null or app_runtime.front_settings_state == null:
+		return
+	
+	var room_id := String(payload.get("room_id", ""))
+	var room_kind := String(payload.get("room_kind", ""))
+	var room_display_name := String(payload.get("room_display_name", ""))
+	var member_id := String(payload.get("member_id", ""))
+	var reconnect_token := String(payload.get("reconnect_token", ""))
+	
+	_log_phase15("room_member_session_received", {
+		"room_id": room_id,
+		"room_kind": room_kind,
+		"member_id": member_id,
+	})
+	
+	# Write to front_settings_state for reconnect capability
+	app_runtime.front_settings_state.reconnect_room_id = room_id
+	app_runtime.front_settings_state.reconnect_room_kind = room_kind
+	app_runtime.front_settings_state.reconnect_room_display_name = room_display_name
+	app_runtime.front_settings_state.reconnect_member_id = member_id
+	app_runtime.front_settings_state.reconnect_token = reconnect_token
+	app_runtime.front_settings_state.reconnect_state = "room_only"
+	
+	# Preserve host/port from current entry context
+	if app_runtime.current_room_entry_context != null:
+		app_runtime.front_settings_state.reconnect_host = app_runtime.current_room_entry_context.server_host
+		app_runtime.front_settings_state.reconnect_port = app_runtime.current_room_entry_context.server_port
+		app_runtime.front_settings_state.reconnect_topology = app_runtime.current_room_entry_context.topology
+	_save_front_settings()
+
+
+# Phase17: Handle match resume accepted
+func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot) -> void:
+	if app_runtime == null:
+		return
+	
+	_log_phase15("match_resume_accepted", {
+		"match_id": config.match_id if config != null else "",
+		"controlled_peer_id": snapshot.controlled_peer_id if snapshot != null else 0,
+	})
+	
+	# Apply resume payload to app_runtime
+	if app_runtime.has_method("apply_match_resume_payload"):
+		app_runtime.apply_match_resume_payload(config, snapshot)
+	
+	# Update reconnect state
+	if app_runtime.front_settings_state != null:
+		app_runtime.front_settings_state.reconnect_state = "active_match"
+		_save_front_settings()
+	
+	# Trigger loading scene in resume mode
+	if app_runtime.front_flow != null:
+		if app_runtime.front_flow.has_method("request_resume_match"):
+			app_runtime.front_flow.request_resume_match()
+		elif app_runtime.front_flow.has_method("request_start_match"):
+			app_runtime.front_flow.request_start_match()
+
+
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 	_log_room_anomaly("gateway_room_error", {
 		"error_code": error_code,
@@ -414,6 +508,15 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 		"error_code": error_code,
 		"user_message": user_message,
 	}
+
+
+func _save_front_settings() -> void:
+	if app_runtime == null or not ("front_settings_repository" in app_runtime) or not ("front_settings_state" in app_runtime):
+		return
+	if app_runtime.front_settings_repository == null or app_runtime.front_settings_state == null:
+		return
+	if app_runtime.front_settings_repository.has_method("save_settings"):
+		app_runtime.front_settings_repository.save_settings(app_runtime.front_settings_state)
 
 
 func _schedule_pending_connection_watchdog(connection_config: ClientConnectionConfig) -> void:

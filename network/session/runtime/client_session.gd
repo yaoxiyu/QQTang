@@ -2,6 +2,7 @@ class_name ClientSession
 extends Node
 
 var local_peer_id: int = 0
+var controlled_peer_id: int = 0  # Phase17: Battle control identity
 var last_confirmed_tick: int = 0
 var latest_snapshot_tick: int = 0
 var latest_checksum: int = 0
@@ -10,8 +11,9 @@ var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
 var latest_player_summary: Array[Dictionary] = []
 
 
-func configure(peer_id: int, ring_capacity: int = 64) -> void:
+func configure(peer_id: int, p_controlled_peer_id: int = 0, ring_capacity: int = 64) -> void:
 	local_peer_id = peer_id
+	controlled_peer_id = p_controlled_peer_id if p_controlled_peer_id > 0 else peer_id
 	local_input_buffer = InputRingBuffer.new(ring_capacity)
 	last_confirmed_tick = 0
 	latest_snapshot_tick = 0
@@ -21,10 +23,11 @@ func configure(peer_id: int, ring_capacity: int = 64) -> void:
 
 
 func send_input(frame: PlayerInputFrame, prediction_frame: PlayerInputFrame = null) -> void:
-	frame.peer_id = local_peer_id
+	# Phase17: Use controlled_peer_id for battle control identity
+	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.sanitize()
 	if prediction_frame != null:
-		prediction_frame.peer_id = local_peer_id
+		prediction_frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 		prediction_frame.sanitize()
 		local_input_buffer.put(prediction_frame)
 	else:
@@ -54,7 +57,8 @@ func on_snapshot(snapshot: Dictionary) -> void:
 
 func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place: bool = false) -> PlayerInputFrame:
 	var frame := PlayerInputFrame.new()
-	frame.peer_id = local_peer_id
+	# Phase17: Use controlled_peer_id for battle control identity
+	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.tick_id = tick_id
 	frame.seq = tick_id
 	frame.move_x = move_x

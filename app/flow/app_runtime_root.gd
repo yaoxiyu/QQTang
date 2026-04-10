@@ -89,6 +89,10 @@ var current_battle_camera_controller: Node = null
 var current_settlement_controller: Node = null
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
+# Phase17: Resume payload storage
+var current_resume_snapshot = null
+var current_loading_mode: String = "normal_start"
+
 
 static func get_existing(tree: SceneTree):
 	if tree == null or tree.root == null:
@@ -292,6 +296,9 @@ func clear_battle_payload() -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+	# Phase17: Clear resume payload
+	current_resume_snapshot = null
+	current_loading_mode = "normal_start"
 	if battle_session_adapter != null:
 		battle_session_adapter.setup_from_start_config(null)
 
@@ -301,6 +308,19 @@ func apply_canonical_start_config(config) -> void:
 	_update_current_battle_content_manifest()
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
+
+
+# Phase17: Apply match resume payload
+func apply_match_resume_payload(config, resume_snapshot) -> void:
+	apply_canonical_start_config(config)
+	current_resume_snapshot = resume_snapshot
+	current_loading_mode = "resume_match"
+
+
+# Phase17: Clear resume payload
+func clear_resume_payload() -> void:
+	current_resume_snapshot = null
+	current_loading_mode = "normal_start"
 
 
 func set_local_peer_id(peer_id: int) -> void:

@@ -51,7 +51,7 @@ func start_match(config: BattleStartConfig) -> bool:
 	start_config = config.duplicate_deep()
 	controlled_peer_id = int(start_config.controlled_peer_id) if start_config != null and int(start_config.controlled_peer_id) > 0 else local_peer_id
 	client_session = ClientSession.new()
-	client_session.configure(local_peer_id)
+	client_session.configure(local_peer_id, controlled_peer_id)
 	add_child(client_session)
 	snapshot_service = SnapshotService.new()
 	prediction_controller = PredictionController.new()
@@ -159,7 +159,9 @@ func ingest_network_message(message: Dictionary) -> void:
 	var message_type := str(message.get("message_type", message.get("msg_type", "")))
 	match message_type:
 		TransportMessageTypesScript.INPUT_ACK:
-			if int(message.get("peer_id", -1)) == local_peer_id:
+			var ack_peer_id := int(message.get("peer_id", -1))
+			var expected_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
+			if ack_peer_id == expected_peer_id or ack_peer_id == local_peer_id:
 				client_session.on_input_ack(int(message.get("ack_tick", 0)))
 		TransportMessageTypesScript.STATE_SUMMARY:
 			client_session.on_state_summary(message)
@@ -226,6 +228,13 @@ func shutdown_runtime() -> void:
 	_last_consumed_authoritative_event_tick = -1
 	_last_applied_authority_sideband_tick = -1
 	_clear_pending_place_request()
+
+
+# Phase17: Inject resume checkpoint for battle recovery
+func inject_resume_checkpoint_message(message: Dictionary) -> void:
+	if message.is_empty():
+		return
+	ingest_network_message(message)
 
 
 func _resolve_controlled_slot(config: BattleStartConfig) -> int:

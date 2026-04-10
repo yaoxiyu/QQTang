@@ -9,6 +9,7 @@ const CharacterLoaderScript = preload("res://content/characters/runtime/characte
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const RoomMemberBindingStateScript = preload("res://network/session/runtime/room_member_binding_state.gd")
 
 var room_id: String = ""
 var room_kind: String = "private_room"
@@ -24,6 +25,11 @@ var min_start_players: int = 2
 var members: Dictionary = {}
 var ready_map: Dictionary = {}
 var match_active: bool = false
+
+# Phase17: Stable member identity model
+var member_bindings_by_member_id: Dictionary = {}
+var member_id_by_transport_peer_id: Dictionary = {}
+var next_member_sequence: int = 1
 
 
 func reset() -> void:
@@ -41,6 +47,9 @@ func reset() -> void:
 	match_active = false
 	members.clear()
 	ready_map.clear()
+	member_bindings_by_member_id.clear()
+	member_id_by_transport_peer_id.clear()
+	next_member_sequence = 1
 
 
 func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "private_room", next_room_display_name: String = "") -> void:
@@ -85,11 +94,37 @@ func upsert_member(
 	members[peer_id] = profile
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
+	
+	# Phase17: Also create/update member binding
+	var binding := get_member_binding_by_transport_peer(peer_id)
+	if binding == null:
+		create_member_binding(
+			peer_id,
+			String(profile["player_name"]),
+			String(profile["character_id"]),
+			String(profile["character_skin_id"]),
+			String(profile["bubble_style_id"]),
+			String(profile["bubble_skin_id"])
+		)
+	else:
+		binding.player_name = String(profile["player_name"])
+		binding.character_id = String(profile["character_id"])
+		binding.character_skin_id = String(profile["character_skin_id"])
+		binding.bubble_style_id = String(profile["bubble_style_id"])
+		binding.bubble_skin_id = String(profile["bubble_skin_id"])
 
 
 func remove_member(peer_id: int) -> void:
 	members.erase(peer_id)
 	ready_map.erase(peer_id)
+	
+	# Phase17: Also remove member binding
+	var binding := get_member_binding_by_transport_peer(peer_id)
+	if binding == null:
+		binding = get_member_binding_by_match_peer(peer_id)
+	if binding != null:
+		remove_member_binding(binding.member_id)
+	
 	if owner_peer_id == peer_id:
 		var peer_ids := get_sorted_peer_ids()
 		owner_peer_id = peer_ids[0] if not peer_ids.is_empty() else 0
@@ -115,6 +150,9 @@ func set_ready(peer_id: int, ready: bool) -> void:
 	var profile: Dictionary = members.get(peer_id, {})
 	profile["ready"] = ready
 	members[peer_id] = profile
+	var binding := get_member_binding_by_transport_peer(peer_id)
+	if binding != null:
+		binding.ready = ready
 
 
 func toggle_ready(peer_id: int) -> bool:
@@ -149,6 +187,9 @@ func can_start() -> bool:
 func reset_ready_state() -> void:
 	for peer_id in members.keys():
 		ready_map[peer_id] = false
+	for member_id in member_bindings_by_member_id.keys():
+		var binding: RoomMemberBindingState = member_bindings_by_member_id[member_id]
+		binding.ready = false
 
 
 func build_snapshot() -> RoomSnapshot:
@@ -166,6 +207,24 @@ func build_snapshot() -> RoomSnapshot:
 	snapshot.all_ready = can_start()
 	snapshot.match_active = match_active
 
+	if not member_bindings_by_member_id.is_empty():
+		for binding in _get_sorted_member_bindings():
+			var member := RoomMemberState.new()
+			var display_peer_id := binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id
+			member.peer_id = display_peer_id
+			member.player_name = binding.player_name
+			member.character_id = binding.character_id
+			member.character_skin_id = binding.character_skin_id
+			member.bubble_style_id = binding.bubble_style_id
+			member.bubble_skin_id = binding.bubble_skin_id
+			member.ready = binding.ready
+			member.slot_index = binding.slot_index
+			member.is_owner = binding.is_owner or display_peer_id == owner_peer_id
+			member.is_local_player = false
+			member.connection_state = binding.connection_state
+			snapshot.members.append(member)
+		return snapshot
+
 	var slot_index := 0
 	for peer_id in get_sorted_peer_ids():
 		var member := RoomMemberState.new()
@@ -180,7 +239,14 @@ func build_snapshot() -> RoomSnapshot:
 		member.slot_index = slot_index
 		member.is_owner = peer_id == owner_peer_id
 		member.is_local_player = false
-		member.connection_state = "connected"
+		
+		# Phase17: Get connection_state from member binding
+		var binding := get_member_binding_by_transport_peer(peer_id)
+		if binding != null:
+			member.connection_state = binding.connection_state
+		else:
+			member.connection_state = "connected"
+		
 		snapshot.members.append(member)
 		slot_index += 1
 	return snapshot
@@ -192,6 +258,20 @@ func get_sorted_peer_ids() -> Array[int]:
 		peer_ids.append(int(peer_id))
 	peer_ids.sort()
 	return peer_ids
+
+
+func _get_sorted_member_bindings() -> Array[RoomMemberBindingState]:
+	var bindings: Array[RoomMemberBindingState] = []
+	for member_id in member_bindings_by_member_id.keys():
+		var binding: RoomMemberBindingState = member_bindings_by_member_id[member_id]
+		if binding != null:
+			bindings.append(binding)
+	bindings.sort_custom(func(a: RoomMemberBindingState, b: RoomMemberBindingState) -> bool:
+		if a.slot_index == b.slot_index:
+			return a.match_peer_id < b.match_peer_id
+		return a.slot_index < b.slot_index
+	)
+	return bindings
 
 
 func _resolve_character_id(character_id: String) -> String:
@@ -228,3 +308,129 @@ func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
 	if BubbleSkinCatalogScript.has_id(trimmed):
 		return trimmed
 	return ""
+
+
+# Phase17: Stable member identity methods
+
+func allocate_member_id() -> String:
+	var member_id := "member_%d" % next_member_sequence
+	next_member_sequence += 1
+	return member_id
+
+
+func allocate_reconnect_token() -> String:
+	var timestamp := Time.get_ticks_msec()
+	var random_part := randi() % 100000
+	return "token_%d_%d" % [timestamp, random_part]
+
+
+func create_member_binding(
+	transport_peer_id: int,
+	player_name: String,
+	character_id: String,
+	character_skin_id: String = "",
+	bubble_style_id: String = "",
+	bubble_skin_id: String = ""
+) -> RoomMemberBindingState:
+	var binding := RoomMemberBindingStateScript.new()
+	binding.member_id = allocate_member_id()
+	binding.reconnect_token = allocate_reconnect_token()
+	binding.transport_peer_id = transport_peer_id
+	binding.match_peer_id = transport_peer_id
+	binding.player_name = player_name if not player_name.strip_edges().is_empty() else "Player%d" % transport_peer_id
+	binding.character_id = character_id
+	binding.character_skin_id = character_skin_id
+	binding.bubble_style_id = bubble_style_id
+	binding.bubble_skin_id = bubble_skin_id
+	binding.ready = false
+	binding.slot_index = member_bindings_by_member_id.size()
+	binding.is_owner = owner_peer_id <= 0 or owner_peer_id == transport_peer_id
+	binding.connection_state = "connected"
+	binding.last_room_id = room_id
+	
+	member_bindings_by_member_id[binding.member_id] = binding
+	member_id_by_transport_peer_id[transport_peer_id] = binding.member_id
+	
+	if owner_peer_id <= 0:
+		owner_peer_id = transport_peer_id
+	
+	return binding
+
+
+func get_member_binding_by_transport_peer(peer_id: int) -> RoomMemberBindingState:
+	var member_id: String = member_id_by_transport_peer_id.get(peer_id, "")
+	if member_id.is_empty():
+		return null
+	return member_bindings_by_member_id.get(member_id)
+
+
+func get_member_binding_by_member_id(member_id: String) -> RoomMemberBindingState:
+	return member_bindings_by_member_id.get(member_id)
+
+
+func get_member_binding_by_match_peer(peer_id: int) -> RoomMemberBindingState:
+	for member_id in member_bindings_by_member_id.keys():
+		var binding: RoomMemberBindingState = member_bindings_by_member_id[member_id]
+		if binding != null and binding.match_peer_id == peer_id:
+			return binding
+	return null
+
+
+func bind_transport_to_member(member_id: String, peer_id: int) -> void:
+	var binding := get_member_binding_by_member_id(member_id)
+	if binding == null:
+		return
+	# Remove old transport mapping if exists
+	if binding.transport_peer_id > 0:
+		member_id_by_transport_peer_id.erase(binding.transport_peer_id)
+	binding.transport_peer_id = peer_id
+	binding.connection_state = "connected"
+	member_id_by_transport_peer_id[peer_id] = member_id
+
+
+func mark_member_disconnected_by_transport_peer(peer_id: int, deadline_msec: int, current_match_id: String) -> RoomMemberBindingState:
+	var binding := get_member_binding_by_transport_peer(peer_id)
+	if binding == null:
+		return null
+	binding.connection_state = "disconnected"
+	binding.disconnect_deadline_msec = deadline_msec
+	binding.last_match_id = current_match_id
+	# Keep match_peer_id intact for resume
+	member_id_by_transport_peer_id.erase(peer_id)
+	binding.transport_peer_id = 0
+	return binding
+
+
+func remove_member_binding(member_id: String) -> void:
+	var binding := get_member_binding_by_member_id(member_id)
+	if binding == null:
+		return
+	if binding.transport_peer_id > 0:
+		member_id_by_transport_peer_id.erase(binding.transport_peer_id)
+	member_bindings_by_member_id.erase(member_id)
+	# Update owner if needed
+	if binding.is_owner:
+		var remaining_ids := member_bindings_by_member_id.keys()
+		if not remaining_ids.is_empty():
+			var new_owner_binding: RoomMemberBindingState = member_bindings_by_member_id[remaining_ids[0]]
+			new_owner_binding.is_owner = true
+			owner_peer_id = new_owner_binding.transport_peer_id
+		else:
+			owner_peer_id = 0
+
+
+func clear_resume_state() -> void:
+	for member_id in member_bindings_by_member_id.keys():
+		var binding: RoomMemberBindingState = member_bindings_by_member_id[member_id]
+		binding.disconnect_deadline_msec = 0
+		binding.last_match_id = ""
+		if binding.connection_state == "disconnected":
+			binding.connection_state = "connected"
+
+
+func freeze_match_peer_bindings(match_id: String) -> void:
+	for member_id in member_bindings_by_member_id.keys():
+		var binding: RoomMemberBindingState = member_bindings_by_member_id[member_id]
+		if binding.connection_state == "connected" and binding.transport_peer_id > 0:
+			binding.match_peer_id = binding.transport_peer_id
+			binding.last_match_id = match_id

@@ -43,7 +43,9 @@ func _ready() -> void:
 	_assert_true(runtime.current_room_snapshot == null, "leave_room clears current room snapshot")
 	_assert_true(runtime.room_session_controller.room_session.peers.is_empty(), "leave_room clears local room members")
 	_assert_true(runtime.room_session_controller.member_profiles.is_empty(), "leave_room clears local member profiles")
-	_assert_true(String(runtime.front_settings_state.reconnect_room_id) == "ROOM-RESET", "leave_room preserves reconnect room id")
+	_assert_true(String(runtime.front_settings_state.reconnect_room_id) == "", "leave_room clears reconnect room id")
+	_assert_true(String(runtime.front_settings_state.reconnect_member_id) == "", "leave_room clears reconnect member id")
+	_assert_true(String(runtime.front_settings_state.reconnect_token) == "", "leave_room clears reconnect token")
 
 	runtime.queue_free()
 	print("room_leave_resets_runtime_state_test: PASS")

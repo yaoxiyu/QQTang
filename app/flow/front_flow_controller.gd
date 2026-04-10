@@ -73,6 +73,17 @@ func request_start_match() -> void:
 	if current_state != FlowState.ROOM:
 		return
 
+	_enter_match_loading("request_start_match")
+
+
+func request_resume_match() -> void:
+	if current_state != FlowState.ROOM and current_state != FlowState.LOBBY:
+		return
+
+	_enter_match_loading("request_resume_match")
+
+
+func _enter_match_loading(trigger_stage: String) -> void:
 	last_loading_payload = null
 	_change_state(FlowState.MATCH_LOADING)
 	if scene_flow_controller != null:
@@ -81,7 +92,7 @@ func request_start_match() -> void:
 			_route_flow_error(
 				NetworkErrorCodesScript.MATCH_START_SCENE_LOAD_FAILED,
 				"Failed to load loading scene",
-				"request_start_match",
+				trigger_stage,
 				{"result": result}
 			)
 			_change_state(FlowState.ROOM)

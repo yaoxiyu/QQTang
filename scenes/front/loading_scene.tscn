@@ -24,9 +24,19 @@ offset_bottom = 640.0
 layout_mode = 2
 text = "Loading Match..."
 
+[node name="LoadingModeLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=779373923]
+layout_mode = 2
+text = "Mode: normal_start"
+autowrap_mode = 3
+
 [node name="LoadingPhaseLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1098169232]
 layout_mode = 2
 text = "Phase: waiting"
+autowrap_mode = 3
+
+[node name="ResumeHintLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1462798502]
+layout_mode = 2
+text = "Resume Hint: -"
 autowrap_mode = 3
 
 [node name="ManifestSummaryPanel" type="PanelContainer" parent="LoadingRoot/MainLayout" unique_id=2068405271]

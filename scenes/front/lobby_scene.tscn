@@ -250,6 +250,16 @@ layout_mode = 2
 text = "Room Name: -"
 autowrap_mode = 3
 
+[node name="ReconnectMatchLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=1566319575]
+layout_mode = 2
+text = "Match: -"
+autowrap_mode = 3
+
+[node name="ReconnectStateLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=2106329144]
+layout_mode = 2
+text = "Reconnect State: -"
+autowrap_mode = 3
+
 [node name="ReconnectButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard/RecentVBox" unique_id=997504135]
 layout_mode = 2
 text = "Reconnect"

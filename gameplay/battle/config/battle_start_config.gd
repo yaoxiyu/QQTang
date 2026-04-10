@@ -227,8 +227,8 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			errors.append("local_peer_id must not be negative")
 		if controlled_peer_id < 0:
 			errors.append("controlled_peer_id must not be negative")
-		if local_peer_id > 0 and not peer_ids.has(local_peer_id):
-			errors.append("local_peer_id must belong to player_slots in dedicated_server topology")
+		if local_peer_id > 0 and not peer_ids.has(local_peer_id) and controlled_peer_id <= 0:
+			errors.append("local_peer_id must belong to player_slots in dedicated_server topology when controlled_peer_id is not set")
 		if controlled_peer_id > 0 and not peer_ids.has(controlled_peer_id):
 			errors.append("controlled_peer_id must belong to player_slots in dedicated_server topology")
 		if session_mode == "network_client":

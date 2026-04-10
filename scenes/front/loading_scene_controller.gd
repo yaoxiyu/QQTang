@@ -18,6 +18,8 @@ const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.
 @onready var timeout_hint: Label = $LoadingRoot/MainLayout/TimeoutHint
 @onready var loading_phase_label: Label = $LoadingRoot/MainLayout/LoadingPhaseLabel
 @onready var loading_status_label: Label = $LoadingRoot/MainLayout/LoadingStatusLabel
+@onready var loading_mode_label: Label = get_node_or_null("LoadingRoot/MainLayout/LoadingModeLabel")
+@onready var resume_hint_label: Label = get_node_or_null("LoadingRoot/MainLayout/ResumeHintLabel")
 
 var _app_runtime: Node = null
 var _front_flow: Node = null
@@ -96,6 +98,10 @@ func _refresh_loading_view() -> void:
 	loading_phase_label.text = "Phase: %s" % String(view_state.loading_phase_text)
 	loading_status_label.text = String(view_state.waiting_summary_text)
 	timeout_hint.text = String(view_state.status_message)
+	if loading_mode_label != null:
+		loading_mode_label.text = "Mode: %s" % String(view_state.loading_mode)
+	if resume_hint_label != null:
+		resume_hint_label.text = String(view_state.resume_hint_text)
 	for line in view_state.player_lines:
 		var label := Label.new()
 		label.text = line
@@ -151,6 +157,12 @@ func _maybe_submit_local_ready() -> void:
 		return
 	if _app_runtime == null or _app_runtime.loading_use_case == null:
 		return
+	
+	# Phase17: In resume mode, directly handle loading committed
+	if "current_loading_mode" in _app_runtime and String(_app_runtime.current_loading_mode) == "resume_match":
+		_handle_loading_committed()
+		return
+	
 	_app_runtime.loading_use_case.submit_local_ready()
 
 

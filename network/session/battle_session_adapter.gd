@@ -77,10 +77,25 @@ var _bootstrap_coordinator = null
 var _bootstrap_local_peer_id: int = 0
 var _runtime_message_router: RuntimeMessageRouter = null
 
+# Phase17: Resume snapshot storage
+var pending_resume_snapshot = null
+
 
 func setup_from_start_config(config: BattleStartConfig) -> void:
 	start_config = config.duplicate_deep() if config != null else null
 	_lifecycle_state = BattleLifecycleState.IDLE if start_config != null else BattleLifecycleState.STOPPED
+
+
+# Phase17: Apply resume snapshot for battle recovery
+func apply_resume_snapshot(snapshot) -> void:
+	pending_resume_snapshot = snapshot
+	if pending_resume_snapshot == null:
+		return
+	if _bootstrap_client_runtime == null:
+		return
+	if not _bootstrap_client_runtime.is_active():
+		return
+	_inject_pending_resume_snapshot()
 
 
 func start_battle() -> void:
@@ -409,7 +424,21 @@ func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) 
 	current_context.rollback_controller = prediction_controller.rollback_controller
 	current_context.visual_sync_controller = visual_sync_controller
 	adapter_configured.emit()
+	
+	# Phase17: Inject resume checkpoint if pending
+	_inject_pending_resume_snapshot()
+	
 	return true
+
+
+func _inject_pending_resume_snapshot() -> void:
+	if pending_resume_snapshot == null or _bootstrap_client_runtime == null:
+		return
+	if pending_resume_snapshot.checkpoint_message.is_empty():
+		pending_resume_snapshot = null
+		return
+	_bootstrap_client_runtime.inject_resume_checkpoint_message(pending_resume_snapshot.checkpoint_message)
+	pending_resume_snapshot = null
 
 
 func _advance_client_runtime_tick(local_input: Dictionary = {}) -> void:

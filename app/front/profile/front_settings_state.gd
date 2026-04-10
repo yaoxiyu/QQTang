@@ -16,6 +16,12 @@ var reconnect_room_display_name: String = ""
 var reconnect_topology: String = ""
 var reconnect_match_id: String = ""
 
+# Phase17: Member session resume ticket
+var reconnect_member_id: String = ""
+var reconnect_token: String = ""
+var reconnect_state: String = ""
+var reconnect_resume_deadline_msec: int = 0
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -31,6 +37,10 @@ func to_dict() -> Dictionary:
 		"reconnect_room_display_name": reconnect_room_display_name,
 		"reconnect_topology": reconnect_topology,
 		"reconnect_match_id": reconnect_match_id,
+		"reconnect_member_id": reconnect_member_id,
+		"reconnect_token": reconnect_token,
+		"reconnect_state": reconnect_state,
+		"reconnect_resume_deadline_msec": reconnect_resume_deadline_msec,
 	}
 
 
@@ -48,8 +58,27 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	state.reconnect_room_display_name = String(data.get("reconnect_room_display_name", ""))
 	state.reconnect_topology = String(data.get("reconnect_topology", ""))
 	state.reconnect_match_id = String(data.get("reconnect_match_id", ""))
+	# Phase17: Member session fields
+	state.reconnect_member_id = String(data.get("reconnect_member_id", ""))
+	state.reconnect_token = String(data.get("reconnect_token", ""))
+	state.reconnect_state = String(data.get("reconnect_state", ""))
+	state.reconnect_resume_deadline_msec = int(data.get("reconnect_resume_deadline_msec", 0))
 	return state
 
 
 func duplicate_deep() -> FrontSettingsState:
 	return FrontSettingsState.from_dict(to_dict())
+
+
+func clear_reconnect_ticket() -> void:
+	reconnect_room_id = ""
+	reconnect_host = ""
+	reconnect_port = 0
+	reconnect_room_kind = ""
+	reconnect_room_display_name = ""
+	reconnect_topology = ""
+	reconnect_match_id = ""
+	reconnect_member_id = ""
+	reconnect_token = ""
+	reconnect_state = ""
+	reconnect_resume_deadline_msec = 0

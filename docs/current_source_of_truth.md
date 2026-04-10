@@ -738,6 +738,20 @@ Battle 的正式启动应理解为：
 20. **``MATCH_LOADING_SNAPSHOT`` / ``MATCH_LOADING_READY`` 已成为正式协议，loading barrier 由服务端协调**
 21. **Lobby Reconnect 已支持 public_room / private_room 正确分支，不再默认私房恢复**
 22. **Settlement Rematch 已变成正式重赛链路，通过 ``pending_room_action`` 延迟到 Room 场景恢复后执行**
+23. **Phase17: Active match 断线默认进入恢复窗口，不再立即 abort**
+24. **Phase17: Reconnect 已从 room-only 入口升级为 room/battle 统一恢复入口**
+25. **Phase17: Dedicated server client input 使用 `controlled_peer_id` 作为 battle 控制身份**
+26. **Phase17: Transport peer 仅表示当前连接，不再等同于 active match 控制身份**
+27. **Phase17: 房间成员身份通过 `RoomMemberBindingState` 管理，与 transport peer 解耦**
+28. **Phase17: 服务端为断线成员保留恢复窗口（默认 20 秒），超时后 abort match**
+29. **Phase17: 客户端恢复时通过 `ROOM_RESUME_REQUEST` + `MATCH_RESUME_ACCEPTED` 协议恢复到 active match**
+30. **Phase17: Active match resume 使用 `FrontFlowController.request_resume_match()` 进入 `MATCH_LOADING`，不复用普通开局的 `ROOM -> request_start_match()` 前置条件**
+31. **Phase17: Resume battle 启动前将 `MatchResumeSnapshot` 交给 `BattleSessionAdapter`；若 client runtime 已启动，`apply_resume_snapshot()` 必须立即注入 checkpoint**
+32. **Phase17: Idle room 普通断线保留 member session 短窗口用于 room-only resume；窗口过期、手动 leave、room reset 必须移除 member binding 并使 token 失效**
+33. **Phase17: 服务端 battle input 必须校验 `sender_transport_peer_id -> member_id -> match_peer_id`，只接受匹配 `frame.peer_id` 的输入**
+34. **Phase17: `ServerRoomRegistry` 必须显式路由 `ROOM_RESUME_REQUEST`，并在 resume 成功后把新 transport peer 绑定回原 room runtime**
+35. **Phase17: Room 恢复状态 UI 以 `RoomViewModelBuilder -> RoomScenePresenter` 为单一来源，场景 controller 不再自行拼接恢复窗口文本**
+36. **Phase17: 客户端手动离房必须清理本地 reconnect ticket，并持久化到 `FrontSettingsRepository`**
 
 ---
 

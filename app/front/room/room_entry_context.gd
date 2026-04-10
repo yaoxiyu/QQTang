@@ -12,6 +12,12 @@ var return_target: String = ""
 var should_auto_connect: bool = false
 var should_auto_join: bool = false
 
+# Phase17: Resume flow fields
+var use_resume_flow: bool = false
+var reconnect_member_id: String = ""
+var reconnect_token: String = ""
+var reconnect_match_id: String = ""
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -25,6 +31,10 @@ func to_dict() -> Dictionary:
 		"return_target": return_target,
 		"should_auto_connect": should_auto_connect,
 		"should_auto_join": should_auto_join,
+		"use_resume_flow": use_resume_flow,
+		"reconnect_member_id": reconnect_member_id,
+		"reconnect_token": reconnect_token,
+		"reconnect_match_id": reconnect_match_id,
 	}
 
 
@@ -40,4 +50,9 @@ func duplicate_deep() -> RoomEntryContext:
 	copy.return_target = return_target
 	copy.should_auto_connect = should_auto_connect
 	copy.should_auto_join = should_auto_join
+	# Phase17: Resume flow fields
+	copy.use_resume_flow = use_resume_flow
+	copy.reconnect_member_id = reconnect_member_id
+	copy.reconnect_token = reconnect_token
+	copy.reconnect_match_id = reconnect_match_id
 	return copy

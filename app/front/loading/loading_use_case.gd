@@ -11,6 +11,7 @@ var _app_runtime: Node = null
 var _room_client_gateway: RefCounted = null
 var _current_snapshot: MatchLoadingSnapshot = null
 var _local_ready_submitted: bool = false
+var _loading_mode: String = "normal_start"  # Phase17
 
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
@@ -22,6 +23,19 @@ func configure(app_runtime: Node, room_client_gateway: RefCounted) -> void:
 
 func begin_loading() -> Dictionary:
 	_local_ready_submitted = false
+	# Phase17: Determine loading mode from app_runtime
+	_loading_mode = "normal_start"
+	if _app_runtime != null and "current_loading_mode" in _app_runtime:
+		_loading_mode = String(_app_runtime.current_loading_mode)
+	
+	# Phase17: In resume mode, don't require snapshot
+	if _loading_mode == "resume_match":
+		_current_snapshot = null
+		return {
+			"ok": true,
+			"resume_mode": true,
+		}
+	
 	_current_snapshot = null
 	return {
 		"ok": true,
@@ -60,6 +74,23 @@ func build_view_state() -> LoadingViewState:
 	state.item_brief = String(ui_summary.get("item_brief", ""))
 	state.character_brief = String(ui_summary.get("character_brief", ""))
 	state.bubble_brief = String(ui_summary.get("bubble_brief", ""))
+	
+	# Phase17: Set loading mode
+	state.loading_mode = _loading_mode
+
+	# Phase17: Resume mode specific view state
+	if _loading_mode == "resume_match":
+		state.loading_phase_text = "resume_prepare"
+		state.status_message = "Preparing resume payload..."
+		state.resume_hint_text = "Rebinding to active dedicated-server match"
+		if _app_runtime != null and "current_resume_snapshot" in _app_runtime and _app_runtime.current_resume_snapshot != null:
+			state.resume_match_id = String(_app_runtime.current_resume_snapshot.match_id)
+		var snapshot: RoomSnapshot = _app_runtime.current_room_snapshot if _app_runtime != null else null
+		if snapshot != null:
+			for member in snapshot.sorted_members():
+				var line := _build_player_line(member)
+				state.player_lines.append(line)
+		return state
 
 	var snapshot: RoomSnapshot = _app_runtime.current_room_snapshot if _app_runtime != null else null
 	if snapshot != null:
@@ -92,6 +123,13 @@ func submit_local_ready() -> Dictionary:
 		return {
 			"ok": true,
 			"duplicate": true,
+		}
+	
+	# Phase17: In resume mode, skip loading ready submission
+	if _loading_mode == "resume_match":
+		return {
+			"ok": true,
+			"skipped": true,
 		}
 
 	if _current_snapshot == null:

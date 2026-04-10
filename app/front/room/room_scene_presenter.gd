@@ -15,6 +15,8 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_text(scene_controller, "blocker_label", String(view_model.get("blocker_text", "")))
 	_set_text(scene_controller, "lifecycle_status_label", String(view_model.get("lifecycle_status_text", "")))
 	_set_text(scene_controller, "pending_action_status_label", String(view_model.get("pending_action_status_text", "")))
+	_set_text(scene_controller, "reconnect_window_label", String(view_model.get("reconnect_window_text", "")))
+	_set_text(scene_controller, "active_match_resume_label", String(view_model.get("active_match_resume_text", "")))
 
 	_set_visible(scene_controller, "room_display_name_label", not String(view_model.get("room_display_name", "")).is_empty())
 	_set_visible(scene_controller, "room_id_value_label", bool(view_model.get("show_room_id", true)))
@@ -58,11 +60,14 @@ func _render_member_list(scene_controller: Node, members_data) -> void:
 		var owner_suffix := " [Host]" if bool(entry.get("is_owner", false)) else ""
 		var local_suffix := " [You]" if bool(entry.get("is_local_player", false)) else ""
 		var ready_suffix := " Ready" if bool(entry.get("ready", false)) else " Not Ready"
-		label.text = "%s%s%s%s" % [
+		var connection_state := String(entry.get("connection_state", "connected"))
+		var connection_suffix := "" if connection_state.is_empty() or connection_state == "connected" else " [%s]" % connection_state
+		label.text = "%s%s%s%s%s" % [
 			String(entry.get("player_name", "")),
 			owner_suffix,
 			local_suffix,
 			ready_suffix,
+			connection_suffix,
 		]
 		member_list.add_child(label)
 

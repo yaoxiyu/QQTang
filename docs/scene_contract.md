@@ -16,6 +16,9 @@
 - Phase16 新增 Lobby RecentCard 节点: RecentRoomKindLabel, RecentRoomDisplayNameLabel
 - Phase16 新增 Room SummaryCard 节点: LifecycleStatusLabel, PendingActionStatusLabel
 - Phase16 新增 Loading MainLayout 节点: LoadingPhaseLabel, LoadingStatusLabel
+- Phase17 新增 Lobby RecentCard 节点: ReconnectMatchLabel, ReconnectStateLabel
+- Phase17 新增 Room SummaryCard 节点: ReconnectWindowLabel, ActiveMatchResumeLabel
+- Phase17 新增 Loading MainLayout 节点: LoadingModeLabel, ResumeHintLabel
 - 本阶段只统一了前台控制器初始化顺序
 - `boot_scene.tscn` 对应控制器负责 runtime bootstrap
 - `login_scene.tscn`
@@ -54,6 +57,8 @@
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel`
 - `RoomRoot/MainLayout/SummaryCard/SummaryVBox/PendingActionStatusLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/ReconnectWindowLabel`
+- `RoomRoot/MainLayout/SummaryCard/SummaryVBox/ActiveMatchResumeLabel`
 - `RoomRoot/MainLayout/LocalLoadoutCard`
 - `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput`
 - `RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector`
@@ -91,14 +96,29 @@
 
 路径：`res://scenes/front/loading_scene.tscn`
 
+Phase17 约定：
+- 普通开局通过 `FrontFlowController.request_start_match()` 从 Room 进入 Loading，并继续提交 `MATCH_LOADING_READY`。
+- 战中恢复通过 `FrontFlowController.request_resume_match()` 从 Lobby 或 Room 进入 Loading，`LoadingUseCase.loading_mode` 必须为 `resume_match`。
+- `resume_match` 模式不提交 `MATCH_LOADING_READY`，只做本地 payload 准备，随后进入 Battle。
+- Battle 启动前必须把 `AppRuntimeRoot.current_resume_snapshot` 交给 `BattleSessionAdapter`，由 adapter 注入 checkpoint。
+
+## Phase17 Room Resume UI Contract
+
+- `ReconnectWindowLabel` 与 `ActiveMatchResumeLabel` 只由 `RoomViewModelBuilder -> RoomScenePresenter` 写入。
+- `RoomSceneController` 不得再绕过 presenter 自行拼接恢复窗口文本。
+- `RoomMemberState.connection_state` 是成员连接状态的 UI 真相，支持 `connected / disconnected / resuming`。
+- manual leave 会清理本地 reconnect ticket；普通断线只在服务端恢复窗口内保留 member session。
+
 关键节点：
 - `LoadingScene`
 - `LoadingRoot`
 - `LoadingRoot/MainLayout`
 - `LoadingRoot/MainLayout/LoadingLabel`
+- `LoadingRoot/MainLayout/LoadingModeLabel`
+- `LoadingRoot/MainLayout/LoadingPhaseLabel`
+- `LoadingRoot/MainLayout/ResumeHintLabel`
 - `LoadingRoot/MainLayout/PlayerLoadingList`
 - `LoadingRoot/MainLayout/TimeoutHint`
-- `LoadingRoot/MainLayout/LoadingPhaseLabel`
 - `LoadingRoot/MainLayout/LoadingStatusLabel`
 
 脚本挂载约定：

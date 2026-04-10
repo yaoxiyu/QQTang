@@ -51,6 +51,11 @@ func enter_lobby() -> Dictionary:
 		view_state.reconnect_room_display_name = front_settings_state.reconnect_room_display_name
 		view_state.reconnect_topology = front_settings_state.reconnect_topology
 		view_state.reconnect_match_id = front_settings_state.reconnect_match_id
+		# Phase17: Member session fields
+		view_state.reconnect_member_id = front_settings_state.reconnect_member_id
+		view_state.reconnect_token = front_settings_state.reconnect_token
+		view_state.reconnect_state = front_settings_state.reconnect_state
+		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
 	return {
 		"ok": true,
 		"error_code": "",
@@ -200,6 +205,48 @@ func logout() -> Dictionary:
 		"error_code": "",
 		"user_message": "",
 		"entry_context": null,
+	}
+
+
+# Phase17: Resume recent room with member session
+func resume_recent_room() -> Dictionary:
+	if front_settings_state == null:
+		return _fail("RECONNECT_STATE_MISSING", "Reconnect state is not available")
+	if front_settings_state.reconnect_room_id.strip_edges().is_empty():
+		return _fail("RECONNECT_ROOM_MISSING", "No reconnect room is available")
+	if front_settings_state.reconnect_member_id.strip_edges().is_empty():
+		return _fail("RECONNECT_MEMBER_MISSING", "Reconnect member session is missing")
+	if front_settings_state.reconnect_token.strip_edges().is_empty():
+		return _fail("RECONNECT_TOKEN_MISSING", "Reconnect token is missing")
+	
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_JOIN,
+		front_settings_state.reconnect_room_kind,
+		front_settings_state.reconnect_host,
+		front_settings_state.reconnect_port,
+		front_settings_state.reconnect_room_id,
+		true,
+		false,
+		front_settings_state.reconnect_room_display_name
+	)
+	# Phase17: Enable resume flow
+	entry_context.use_resume_flow = true
+	entry_context.reconnect_member_id = front_settings_state.reconnect_member_id
+	entry_context.reconnect_token = front_settings_state.reconnect_token
+	entry_context.reconnect_match_id = front_settings_state.reconnect_match_id
+	
+	_log_phase15("resume_recent_room", {
+		"room_id": front_settings_state.reconnect_room_id,
+		"room_kind": front_settings_state.reconnect_room_kind,
+		"member_id": front_settings_state.reconnect_member_id,
+		"match_id": front_settings_state.reconnect_match_id,
+	})
+	
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": entry_context,
 	}
 
 

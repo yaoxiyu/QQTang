@@ -92,8 +92,6 @@ func _validate_ds_contract(config: BattleStartConfig, errors: Array) -> void:
 			errors.append("network_client dedicated_server config requires local_peer_id")
 		if config.controlled_peer_id <= 0:
 			errors.append("network_client dedicated_server config requires controlled_peer_id")
-		if config.local_peer_id != config.controlled_peer_id:
-			errors.append("network_client dedicated_server config requires local_peer_id == controlled_peer_id")
 	if String(config.build_mode) == BattleStartConfigScript.BUILD_MODE_CANONICAL:
 		if String(config.session_mode) != "network_dedicated_server" and String(config.session_mode) != "online_room":
 			errors.append("dedicated_server canonical config requires session_mode=network_dedicated_server or online_room")

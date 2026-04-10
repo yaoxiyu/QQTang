@@ -118,6 +118,39 @@ func is_match_active() -> bool:
 	return _active and _authority_runtime != null and _authority_runtime.is_match_running()
 
 
+# Phase17: Get current config for resume
+func get_current_config() -> BattleStartConfig:
+	return _current_config.duplicate_deep() if _current_config != null else null
+
+
+# Phase17: Build resume checkpoint message
+func build_resume_checkpoint_message() -> Dictionary:
+	if not is_match_active() or _authority_runtime == null or _authority_runtime.server_session == null or _authority_runtime.server_session.active_match == null:
+		return {}
+	
+	var active_match: BattleMatch = _authority_runtime.server_session.active_match
+	var tick_id: int = int(active_match.sim_world.state.match_state.tick)
+	var snapshot: WorldSnapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
+	snapshot.checksum = active_match.compute_checksum(tick_id)
+	
+	return {
+		"message_type": TransportMessageTypesScript.CHECKPOINT,
+		"msg_type": TransportMessageTypesScript.CHECKPOINT,
+		"protocol_version": int(_current_config.protocol_version) if _current_config != null else 1,
+		"match_id": String(_current_config.match_id) if _current_config != null else "",
+		"sender_peer_id": 1,
+		"tick": snapshot.tick_id,
+		"players": snapshot.players.duplicate(true),
+		"player_summary": active_match.build_player_position_summary(),
+		"bubbles": snapshot.bubbles.duplicate(true),
+		"items": snapshot.items.duplicate(true),
+		"walls": snapshot.walls.duplicate(true),
+		"mode_state": snapshot.mode_state.duplicate(true),
+		"rng_state": snapshot.rng_state,
+		"checksum": snapshot.checksum,
+	}
+
+
 func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
 	if not is_match_active():
 		return null
@@ -137,6 +170,31 @@ func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
 		"tick": result.finish_tick,
 		"result": result.to_dict(),
 		"disconnect_peer_id": peer_id,
+	})
+	match_finished.emit(result)
+	return result
+
+
+# Phase17: Abort match due to resume timeout
+func abort_match_due_to_resume_timeout(member_id: String) -> BattleResult:
+	if not is_match_active():
+		return null
+	var result := BattleResultScript.new()
+	var aborted_config := _current_config.duplicate_deep() if _current_config != null else null
+	result.finish_reason = "peer_resume_timeout"
+	result.finish_tick = 0
+	if _authority_runtime != null and _authority_runtime.server_session != null and _authority_runtime.server_session.active_match != null:
+		result.finish_tick = _authority_runtime.server_session.active_match.sim_world.state.match_state.tick
+	shutdown_match()
+	broadcast_message.emit({
+		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"protocol_version": int(aborted_config.protocol_version) if aborted_config != null else 1,
+		"match_id": String(aborted_config.match_id) if aborted_config != null else "",
+		"sender_peer_id": 1,
+		"tick": result.finish_tick,
+		"result": result.to_dict(),
+		"resume_timeout_member_id": member_id,
 	})
 	match_finished.emit(result)
 	return result

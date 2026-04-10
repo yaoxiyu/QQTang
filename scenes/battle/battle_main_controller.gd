@@ -107,6 +107,8 @@ func _initialize_runtime() -> void:
 		settlement_controller.rematch_requested.connect(_on_settlement_rematch_requested)
 
 	if _session_adapter != null:
+		if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
+			_session_adapter.apply_resume_snapshot(_app_runtime.current_resume_snapshot)
 		_session_adapter.start_battle()
 
 
@@ -218,6 +220,10 @@ func _on_battle_context_created(context: BattleContext) -> void:
 			"On" if _session_adapter.use_remote_debug_inputs else "Off"
 		]
 	)
+	
+	# Phase17: Consume resume payload if present
+	if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
+		battle_hud.match_message_panel.apply_message("Resumed active match")
 
 
 func _on_authoritative_tick_completed(context: BattleContext, tick_result: Dictionary, metrics: Dictionary) -> void:

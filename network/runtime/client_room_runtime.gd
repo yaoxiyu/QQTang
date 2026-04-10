@@ -6,6 +6,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
+const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 const ROOM_RUNTIME_DIRECTORY_TAG := "net.room_runtime.directory"
 const ROOM_RUNTIME_ANOMALY_TAG := "net.room_runtime.anomaly"
 
@@ -18,6 +19,10 @@ signal room_error(error_code: String, user_message: String)
 signal canonical_start_config_received(config: BattleStartConfig)
 signal battle_message_received(message: Dictionary)
 signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
+
+# Phase17: Resume signals
+signal room_member_session_received(payload: Dictionary)
+signal match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot)
 
 var _transport: ENetBattleTransport = null
 var _last_snapshot: RoomSnapshot = null
@@ -215,6 +220,23 @@ func request_rematch() -> void:
 	})
 
 
+# Phase17: Resume request
+func request_resume_room(room_id: String, member_id: String, reconnect_token: String, match_id: String) -> void:
+	_log_directory_event("request_resume_room", {
+		"room_id": room_id,
+		"member_id": member_id,
+		"match_id": match_id,
+	})
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_RESUME_REQUEST,
+		"room_id": room_id,
+		"member_id": member_id,
+		"reconnect_token": reconnect_token,
+		"match_id": match_id,
+		"sender_peer_id": _transport.get_local_peer_id() if _transport != null else 0,
+	})
+
+
 func send_battle_input(message: Dictionary) -> void:
 	_send_to_server(message)
 
@@ -312,6 +334,17 @@ func _route_message(message: Dictionary) -> void:
 			match_loading_snapshot_received.emit(snapshot)
 		TransportMessageTypesScript.ROOM_REMATCH_REJECTED:
 			room_error.emit(String(message.get("error", "REMATCH_REJECTED")), String(message.get("user_message", "Rematch rejected")))
+		# Phase17: Resume protocol messages
+		TransportMessageTypesScript.ROOM_MEMBER_SESSION:
+			room_member_session_received.emit(Dictionary(message).duplicate(true))
+		TransportMessageTypesScript.ROOM_RESUME_REJECTED:
+			room_error.emit(String(message.get("error", "ROOM_RESUME_REJECTED")), String(message.get("user_message", "Resume rejected")))
+		TransportMessageTypesScript.MATCH_RESUME_ACCEPTED:
+			var config := BattleStartConfig.from_dict(message.get("start_config", {}))
+			var snapshot := MatchResumeSnapshotScript.from_dict(message.get("resume_snapshot", {}))
+			match_resume_accepted.emit(config, snapshot)
+		TransportMessageTypesScript.MATCH_RESUME_REJECTED:
+			room_error.emit(String(message.get("error", "MATCH_RESUME_REJECTED")), String(message.get("user_message", "Match resume rejected")))
 		TransportMessageTypesScript.INPUT_ACK, \
 		TransportMessageTypesScript.STATE_SUMMARY, \
 		TransportMessageTypesScript.CHECKPOINT, \

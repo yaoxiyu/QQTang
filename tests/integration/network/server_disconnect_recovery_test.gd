@@ -10,12 +10,12 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 
 
 func _ready() -> void:
-	var ok := _test_disconnect_aborts_match_and_recovers_room()
+	var ok := _test_disconnect_abort_resets_room_and_marks_member_recoverable()
 	if ok:
 		print("server_disconnect_recovery_test: PASS")
 
 
-func _test_disconnect_aborts_match_and_recovers_room() -> bool:
+func _test_disconnect_abort_resets_room_and_marks_member_recoverable() -> bool:
 	var room_service := ServerRoomServiceScript.new()
 	var match_service := ServerMatchServiceScript.new()
 	add_child(room_service)
@@ -62,16 +62,19 @@ func _test_disconnect_aborts_match_and_recovers_room() -> bool:
 		ok = TestAssert.is_true(String(disconnect_message.get("message_type", "")) == TransportMessageTypesScript.MATCH_FINISHED, "broadcast message type should be MATCH_FINISHED", prefix) and ok
 		ok = TestAssert.is_true(int(disconnect_message.get("disconnect_peer_id", 0)) == 3, "broadcast should identify disconnected peer", prefix) and ok
 
-	ok = TestAssert.is_true(room_snapshots.size() >= 2, "room recovery should emit snapshots for ready reset and member removal", prefix) and ok
+	ok = TestAssert.is_true(room_snapshots.size() >= 2, "room recovery should emit snapshots for ready reset and recoverable disconnect", prefix) and ok
 	if room_snapshots.size() >= 2:
 		var recovery_snapshot := room_snapshots[room_snapshots.size() - 2]
 		var final_snapshot := room_snapshots[room_snapshots.size() - 1]
 		ok = TestAssert.is_true(recovery_snapshot.members.size() == 2, "ready reset snapshot should keep both room members before removal", prefix) and ok
 		ok = TestAssert.is_true(not recovery_snapshot.all_ready, "ready reset snapshot should no longer be startable", prefix) and ok
 		ok = TestAssert.is_true(_member_ready(recovery_snapshot, 2) == false and _member_ready(recovery_snapshot, 3) == false, "ready reset snapshot should clear ready state for all members", prefix) and ok
-		ok = TestAssert.is_true(final_snapshot.members.size() == 1, "final snapshot should remove disconnected peer", prefix) and ok
+		ok = TestAssert.is_true(final_snapshot.members.size() == 2, "final snapshot should keep recoverable disconnected peer", prefix) and ok
 		ok = TestAssert.is_true(final_snapshot.owner_peer_id == 2, "final snapshot should keep remaining peer as owner", prefix) and ok
-		ok = TestAssert.is_true(_find_member(final_snapshot, 3) == null, "final snapshot should not include disconnected peer", prefix) and ok
+		var disconnected_member := _find_member(final_snapshot, 3)
+		ok = TestAssert.is_true(disconnected_member != null, "final snapshot should include disconnected peer during resume window", prefix) and ok
+		if disconnected_member != null:
+			ok = TestAssert.is_true(disconnected_member.connection_state == "disconnected", "final snapshot should mark peer disconnected", prefix) and ok
 		ok = TestAssert.is_true(_member_ready(final_snapshot, 2) == false, "remaining peer should stay unready after recovery", prefix) and ok
 
 	if is_instance_valid(match_service):

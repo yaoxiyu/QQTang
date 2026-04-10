@@ -16,12 +16,24 @@ signal room_snapshot_updated(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
+signal resume_request_received(message: Dictionary)  # Phase17: For ServerRoomRuntime to handle match resume
 
 var room_state: RoomServerState = RoomServerStateScript.new()
 
 
 func handle_peer_disconnected(peer_id: int) -> void:
-	if room_state == null or not room_state.members.has(peer_id):
+	if room_state == null:
+		return
+	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
+	if binding != null and not room_state.match_active:
+		room_state.mark_member_disconnected_by_transport_peer(
+			peer_id,
+			Time.get_ticks_msec() + 20000,
+			""
+		)
+		_broadcast_snapshot()
+		return
+	if not room_state.members.has(peer_id):
 		return
 	room_state.remove_member(peer_id)
 	if room_state.members.is_empty():
@@ -58,6 +70,31 @@ func handle_match_committed() -> void:
 	_broadcast_snapshot()
 
 
+func poll_idle_resume_expired() -> void:
+	if room_state == null or room_state.match_active:
+		return
+	var current_time := Time.get_ticks_msec()
+	var expired_peer_ids: Array[int] = []
+	for member_id in room_state.member_bindings_by_member_id.keys():
+		var binding = room_state.member_bindings_by_member_id[member_id]
+		if binding == null:
+			continue
+		if String(binding.connection_state) != "disconnected":
+			continue
+		if int(binding.disconnect_deadline_msec) <= 0 or current_time <= int(binding.disconnect_deadline_msec):
+			continue
+		var peer_id := int(binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id)
+		if peer_id > 0:
+			expired_peer_ids.append(peer_id)
+	if expired_peer_ids.is_empty():
+		return
+	for peer_id in expired_peer_ids:
+		room_state.remove_member(peer_id)
+	if room_state.members.is_empty():
+		room_state.reset()
+	_broadcast_snapshot()
+
+
 func handle_message(message: Dictionary) -> void:
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	match message_type:
@@ -77,6 +114,8 @@ func handle_message(message: Dictionary) -> void:
 			_handle_leave_request(message)
 		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
 			_handle_rematch_request(message)
+		TransportMessageTypesScript.ROOM_RESUME_REQUEST:
+			_handle_resume_request(message)
 		_:
 			pass
 
@@ -136,6 +175,19 @@ func _handle_create_request(message: Dictionary) -> void:
 		"room_kind": room_state.room_kind,
 		"room_display_name": room_state.room_display_name,
 	})
+	
+	# Phase17: Send ROOM_MEMBER_SESSION for reconnect capability
+	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
+	if binding != null:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_MEMBER_SESSION,
+			"room_id": room_state.room_id,
+			"room_kind": room_state.room_kind,
+			"room_display_name": room_state.room_display_name,
+			"member_id": binding.member_id,
+			"reconnect_token": binding.reconnect_token,
+		})
+	
 	_broadcast_snapshot()
 
 
@@ -159,6 +211,16 @@ func _handle_join_request(message: Dictionary) -> void:
 			"user_message": "Target room does not exist",
 		})
 		return
+	
+	# Phase17: Reject normal join during active match
+	if room_state.match_active:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "MATCH_ACTIVE_PLAYER_JOIN_FORBIDDEN",
+			"user_message": "Active match is not joinable as a player",
+		})
+		return
+	
 	room_state.upsert_member(
 		peer_id,
 		String(message.get("player_name", "Player%d" % peer_id)),
@@ -173,6 +235,19 @@ func _handle_join_request(message: Dictionary) -> void:
 		"room_id": room_state.room_id,
 		"owner_peer_id": room_state.owner_peer_id,
 	})
+	
+	# Phase17: Send ROOM_MEMBER_SESSION for reconnect capability
+	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
+	if binding != null:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_MEMBER_SESSION,
+			"room_id": room_state.room_id,
+			"room_kind": room_state.room_kind,
+			"room_display_name": room_state.room_display_name,
+			"member_id": binding.member_id,
+			"reconnect_token": binding.reconnect_token,
+		})
+	
 	_broadcast_snapshot()
 
 
@@ -263,7 +338,11 @@ func _handle_leave_request(message: Dictionary) -> void:
 	if peer_id <= 0:
 		return
 	var had_member := room_state != null and room_state.members.has(peer_id)
-	handle_peer_disconnected(peer_id)
+	if had_member:
+		room_state.remove_member(peer_id)
+		if room_state.members.is_empty():
+			room_state.reset()
+		_broadcast_snapshot()
 	send_to_peer.emit(peer_id, {
 		"message_type": TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED,
 		"room_id": room_state.room_id,
@@ -341,3 +420,98 @@ func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
 	if BubbleSkinCatalogScript.has_id(trimmed):
 		return trimmed
 	return ""
+
+
+# Phase17: Resume request handling
+
+func _handle_resume_request(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if peer_id <= 0:
+		return
+	
+	var requested_room_id := String(message.get("room_id", "")).strip_edges()
+	var member_id := String(message.get("member_id", "")).strip_edges()
+	var reconnect_token := String(message.get("reconnect_token", "")).strip_edges()
+	var requested_match_id := String(message.get("match_id", "")).strip_edges()
+	
+	# Validate room
+	if room_state.room_id.is_empty() or requested_room_id.is_empty() or room_state.room_id != requested_room_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "ROOM_NOT_FOUND",
+			"user_message": "Target room does not exist",
+		})
+		return
+	
+	# Validate member exists
+	var binding := room_state.get_member_binding_by_member_id(member_id)
+	if binding == null:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "MEMBER_NOT_FOUND",
+			"user_message": "Member session not found",
+		})
+		return
+	
+	# Validate token
+	if binding.reconnect_token != reconnect_token:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "RECONNECT_TOKEN_INVALID",
+			"user_message": "Reconnect token is invalid",
+		})
+		return
+	
+	# Check if resume window expired
+	if binding.connection_state == "disconnected" and binding.disconnect_deadline_msec > 0:
+		var current_time := Time.get_ticks_msec()
+		if current_time > binding.disconnect_deadline_msec:
+			send_to_peer.emit(peer_id, {
+				"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+				"error": "RESUME_WINDOW_EXPIRED",
+				"user_message": "Resume window has expired",
+			})
+			return
+	
+	# Mark as resuming
+	binding.connection_state = "resuming"
+	
+	# If no active match, return to room
+	if not room_state.match_active:
+		var previous_peer_id := binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id
+		room_state.bind_transport_to_member(member_id, peer_id)
+		binding.connection_state = "connected"
+		binding.match_peer_id = peer_id
+		binding.disconnect_deadline_msec = 0
+		if previous_peer_id > 0 and previous_peer_id != peer_id:
+			room_state.members.erase(previous_peer_id)
+			room_state.ready_map.erase(previous_peer_id)
+			if room_state.owner_peer_id == previous_peer_id:
+				room_state.owner_peer_id = peer_id
+		var profile: Dictionary = room_state.members.get(peer_id, {})
+		profile["peer_id"] = peer_id
+		profile["player_name"] = binding.player_name
+		profile["character_id"] = binding.character_id
+		profile["character_skin_id"] = binding.character_skin_id
+		profile["bubble_style_id"] = binding.bubble_style_id
+		profile["bubble_skin_id"] = binding.bubble_skin_id
+		profile["ready"] = binding.ready
+		room_state.members[peer_id] = profile
+		room_state.ready_map[peer_id] = binding.ready
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_ACCEPTED,
+			"room_id": room_state.room_id,
+			"owner_peer_id": room_state.owner_peer_id,
+		})
+		_broadcast_snapshot()
+		return
+	
+	# Active match exists - emit signal for ServerRoomRuntime to handle match resume
+	# Transport rebinding is finalized by ServerMatchResumeCoordinator only after
+	# it can build a valid battle resume payload.
+	resume_request_received.emit({
+		"sender_peer_id": peer_id,
+		"member_id": member_id,
+		"reconnect_token": reconnect_token,
+		"match_id": requested_match_id,
+	})

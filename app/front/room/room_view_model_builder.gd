@@ -35,6 +35,8 @@ func build_view_model(
 	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
 	var lifecycle_status_text := _build_lifecycle_status_text(safe_context)
 	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
+	var reconnect_window_text := _build_reconnect_window_text(safe_snapshot)
+	var active_match_resume_text := _build_active_match_resume_text(safe_snapshot)
 
 	return {
 		"title_text": title_text,
@@ -47,6 +49,8 @@ func build_view_model(
 		"blocker_text": blocker_text,
 		"lifecycle_status_text": lifecycle_status_text,
 		"pending_action_status_text": pending_action_status_text,
+		"reconnect_window_text": reconnect_window_text,
+		"active_match_resume_text": active_match_resume_text,
 		"can_edit_selection": is_host,
 		"can_ready": can_ready,
 		"can_start": can_start,
@@ -247,3 +251,36 @@ func _build_pending_action_status_text(room_runtime_context: RoomRuntimeContext,
 		var expected_count := room_runtime_context.loading_expected_peers.size()
 		return "Pending: loading %d / %d ready" % [ready_count, expected_count]
 	return "Pending: None"
+
+
+func _build_reconnect_window_text(snapshot: RoomSnapshot) -> String:
+	if snapshot == null or not bool(snapshot.match_active):
+		return "Reconnect Window: -"
+	var disconnected := PackedStringArray()
+	for member in snapshot.members:
+		if member == null:
+			continue
+		if String(member.connection_state) == "disconnected" or String(member.connection_state) == "resuming":
+			disconnected.append(member.player_name)
+	if disconnected.is_empty():
+		return "Reconnect Window: none"
+	return "Reconnect Window: %s" % ", ".join(disconnected)
+
+
+func _build_active_match_resume_text(snapshot: RoomSnapshot) -> String:
+	if snapshot == null or not bool(snapshot.match_active):
+		return "Active Match Resume: inactive"
+	var resuming_count := 0
+	var disconnected_count := 0
+	for member in snapshot.members:
+		if member == null:
+			continue
+		if String(member.connection_state) == "resuming":
+			resuming_count += 1
+		elif String(member.connection_state) == "disconnected":
+			disconnected_count += 1
+	if resuming_count > 0:
+		return "Active Match Resume: %d resuming" % resuming_count
+	if disconnected_count > 0:
+		return "Active Match Resume: %d disconnected" % disconnected_count
+	return "Active Match Resume: all connected"

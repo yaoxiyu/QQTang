@@ -8,6 +8,10 @@ signal room_error(error_code: String, user_message: String)
 signal canonical_start_config_received(config: BattleStartConfig)
 signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 
+# Phase17: Resume signals
+signal room_member_session_received(payload: Dictionary)
+signal match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot)
+
 var app_runtime: Node = null
 var client_room_runtime: Node = null
 
@@ -152,6 +156,13 @@ func request_rematch() -> void:
 	client_room_runtime.request_rematch()
 
 
+# Phase17: Resume request
+func request_resume_room(room_id: String, member_id: String, reconnect_token: String, match_id: String) -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_resume_room(room_id, member_id, reconnect_token, match_id)
+
+
 func _connect_runtime_signals() -> void:
 	if client_room_runtime == null:
 		return
@@ -165,6 +176,11 @@ func _connect_runtime_signals() -> void:
 		client_room_runtime.canonical_start_config_received.connect(_on_canonical_start_config_received)
 	if client_room_runtime.has_signal("match_loading_snapshot_received") and not client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		client_room_runtime.match_loading_snapshot_received.connect(_on_match_loading_snapshot_received)
+	# Phase17: Connect resume signals
+	if client_room_runtime.has_signal("room_member_session_received") and not client_room_runtime.room_member_session_received.is_connected(_on_room_member_session_received):
+		client_room_runtime.room_member_session_received.connect(_on_room_member_session_received)
+	if client_room_runtime.has_signal("match_resume_accepted") and not client_room_runtime.match_resume_accepted.is_connected(_on_match_resume_accepted):
+		client_room_runtime.match_resume_accepted.connect(_on_match_resume_accepted)
 
 
 func _disconnect_runtime_signals() -> void:
@@ -180,6 +196,11 @@ func _disconnect_runtime_signals() -> void:
 		client_room_runtime.canonical_start_config_received.disconnect(_on_canonical_start_config_received)
 	if client_room_runtime.has_signal("match_loading_snapshot_received") and client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		client_room_runtime.match_loading_snapshot_received.disconnect(_on_match_loading_snapshot_received)
+	# Phase17: Disconnect resume signals
+	if client_room_runtime.has_signal("room_member_session_received") and client_room_runtime.room_member_session_received.is_connected(_on_room_member_session_received):
+		client_room_runtime.room_member_session_received.disconnect(_on_room_member_session_received)
+	if client_room_runtime.has_signal("match_resume_accepted") and client_room_runtime.match_resume_accepted.is_connected(_on_match_resume_accepted):
+		client_room_runtime.match_resume_accepted.disconnect(_on_match_resume_accepted)
 
 
 func _on_transport_connected() -> void:
@@ -200,6 +221,15 @@ func _on_canonical_start_config_received(config: BattleStartConfig) -> void:
 
 func _on_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
 	match_loading_snapshot_received.emit(snapshot)
+
+
+# Phase17: Resume signal callbacks
+func _on_room_member_session_received(payload: Dictionary) -> void:
+	room_member_session_received.emit(payload)
+
+
+func _on_match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot) -> void:
+	match_resume_accepted.emit(config, snapshot)
 
 
 const LogNetScript = preload("res://app/logging/log_net.gd")

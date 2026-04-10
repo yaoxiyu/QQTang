@@ -13,6 +13,11 @@ var waiting_summary_text: String = ""
 var status_message: String = ""
 var is_commit_ready: bool = false
 
+# Phase17: Resume mode fields
+var loading_mode: String = "normal_start"
+var resume_hint_text: String = ""
+var resume_match_id: String = ""
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -27,4 +32,7 @@ func to_dict() -> Dictionary:
 		"waiting_summary_text": waiting_summary_text,
 		"status_message": status_message,
 		"is_commit_ready": is_commit_ready,
+		"loading_mode": loading_mode,
+		"resume_hint_text": resume_hint_text,
+		"resume_match_id": resume_match_id,
 	}
