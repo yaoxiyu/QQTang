@@ -59,13 +59,15 @@ func _render_member_list(scene_controller: Node, members_data) -> void:
 		var label := Label.new()
 		var owner_suffix := " [Host]" if bool(entry.get("is_owner", false)) else ""
 		var local_suffix := " [You]" if bool(entry.get("is_local_player", false)) else ""
+		var team_suffix := " | Team %d" % int(entry.get("team_id", 1))
 		var ready_suffix := " Ready" if bool(entry.get("ready", false)) else " Not Ready"
 		var connection_state := String(entry.get("connection_state", "connected"))
 		var connection_suffix := "" if connection_state.is_empty() or connection_state == "connected" else " [%s]" % connection_state
-		label.text = "%s%s%s%s%s" % [
+		label.text = "%s%s%s%s%s%s" % [
 			String(entry.get("player_name", "")),
 			owner_suffix,
 			local_suffix,
+			team_suffix,
 			ready_suffix,
 			connection_suffix,
 		]

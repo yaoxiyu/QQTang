@@ -1,6 +1,6 @@
 param(
-    [string]$GodotExe = 'D:\Godot\Godot_v4.6.1-stable_win64_console.exe',
-    [string]$ProjectPath = 'D:\code\Personal\QQTang'
+    [string]$GodotExe = 'Godot_console.exe',
+    [string]$ProjectPath = 'D:\code\QQTang'
 )
 
 if ($PSVersionTable.PSVersion.Major -ge 7) {

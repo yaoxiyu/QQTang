@@ -254,11 +254,26 @@ func _handle_join_request(message: Dictionary) -> void:
 func _handle_update_profile(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	var character_id := String(message.get("character_id", "")).strip_edges()
+	var team_id := int(message.get("team_id", 1))
+	if room_state.match_active:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_MEMBER_PROFILE_FORBIDDEN",
+			"user_message": "Profile cannot be changed during an active match",
+		})
+		return
 	if character_id.is_empty() or not CharacterCatalogScript.has_character(character_id):
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_MEMBER_PROFILE_INVALID",
 			"user_message": "Character selection is invalid",
+		})
+		return
+	if team_id < 1 or team_id > room_state.max_players:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_MEMBER_PROFILE_INVALID",
+			"user_message": "Team selection is invalid",
 		})
 		return
 	room_state.update_profile(
@@ -267,7 +282,8 @@ func _handle_update_profile(message: Dictionary) -> void:
 		character_id,
 		_resolve_character_skin_id(String(message.get("character_skin_id", ""))),
 		_resolve_bubble_style_id(String(message.get("bubble_style_id", ""))),
-		_resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+		_resolve_bubble_skin_id(String(message.get("bubble_skin_id", ""))),
+		team_id
 	)
 	_broadcast_snapshot()
 
@@ -495,6 +511,7 @@ func _handle_resume_request(message: Dictionary) -> void:
 		profile["character_skin_id"] = binding.character_skin_id
 		profile["bubble_style_id"] = binding.bubble_style_id
 		profile["bubble_skin_id"] = binding.bubble_skin_id
+		profile["team_id"] = binding.team_id
 		profile["ready"] = binding.ready
 		room_state.members[peer_id] = profile
 		room_state.ready_map[peer_id] = binding.ready

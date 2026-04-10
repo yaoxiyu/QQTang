@@ -24,6 +24,15 @@ func generate() -> void:
         def.sudden_death_enabled = get_cell(row, header_index, "sudden_death_enabled") == "true"
         def.item_drop_profile_id = get_cell(row, header_index, "item_drop_profile_id")
         def.score_policy = get_cell(row, header_index, "score_policy")
+        def.player_explosion_profile_id = get_cell(row, header_index, "player_explosion_profile_id")
+        def.player_down_policy = get_cell(row, header_index, "player_down_policy")
+        def.rescue_touch_enabled = get_cell(row, header_index, "rescue_touch_enabled") == "true"
+        def.enemy_touch_execute_enabled = get_cell(row, header_index, "enemy_touch_execute_enabled") == "true"
+        def.respawn_delay_sec = int(get_cell(row, header_index, "respawn_delay_sec"))
+        def.respawn_invincible_sec = int(get_cell(row, header_index, "respawn_invincible_sec"))
+        def.score_per_enemy_finish = int(get_cell(row, header_index, "score_per_enemy_finish"))
+        def.score_tiebreak_policy = get_cell(row, header_index, "score_tiebreak_policy")
+        def.respawn_spawn_policy = get_cell(row, header_index, "respawn_spawn_policy")
 
         var output_path := OUTPUT_DIR + def.rule_set_id + ".tres"
         save_resource(def, output_path)

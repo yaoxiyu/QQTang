@@ -606,6 +606,24 @@ Practice 路径进一步约束为：
 - Practice Room 不再依赖 `RuntimeDebugTools` 自动补远端成员
 - Practice Room 的最小开战人数由房间权威状态控制，当前正式值为 `1`
 
+Phase18 房间正式真相进一步约束为：
+
+- Room 成员 `team_id` 已成为正式房间状态字段
+- `team_id` 当前通过：
+  - `RoomMemberState`
+  - `RoomSnapshot.members[]`
+  - `RoomMemberBindingState`
+  - `RoomSessionController.member_profiles`
+  统一贯通
+- 新进房间成员默认 `team_id = slot_index + 1`
+- 房间内组队当前只允许每个客户端修改自己的 `team_id`
+- 房间 active match 期间禁止修改 `team_id`
+- authoritative room snapshot 下发后，本地 `team_id` 缓存必须被权威状态覆盖
+- Room 前台当前正式提供：
+  - TeamSelector
+  - 成员列表 Team 文案
+  - 本地 Team 预览文案
+
 离开房间生命周期进一步约束为：
 
 - 离开 online private room 时，客户端必须：
@@ -656,11 +674,56 @@ Battle 的正式启动应理解为：
 5. presentation bridge 消费 battle tick / result
 6. HUD 与 network status panel 仅表现状态，不定义玩法真相
 
+Phase18 Battle 启动链路进一步约束为：
+
+- `BattleStartConfig.player_slots[].team_id` 当前已成为正式字段
+- `BattleSimConfigBuilder` 当前会把以下真相写入 `SimConfig.system_flags`：
+  - `rule_set`
+  - `spawn_assignments`
+  - `player_slots`
+- `SimWorld` 当前必须按 `player_slots[].team_id` 初始化玩家，不允许再使用 `slot_index % 2` 之类的隐式 team 推导
+- 当前正式生命规则栈顺序为：
+  - `ExplosionHitSystem`
+  - `PlayerLifeTransitionSystem`
+  - `JellyInteractionSystem`
+  - `RespawnSystem`
+  - `ScoreSystem`
+  - `StatusEffectSystem`
+- `StatusEffectSystem` 当前仅应保留炸砖和爆炸泡泡返还等残余职责，不再作为玩家生命规则真相主入口
+- 果冻救援 / 敌触处决必须由仿真层决定，不允许依赖表现层碰撞
+- 当前正式接触判定基于玩家脚底中心绝对坐标的固定阈值距离，不允许引入非确定性物理 overlap 作为真相
+
 补充说明：
 
 - `battle_player_visual_profile_builder.gd` 当前会对角色动画视觉装配失败输出明确错误日志
 - `player_actor_view.gd` 正式消费 body scene + animation set + skin overlay
 - `character_sprite_body_view.gd` 当前动画切换优先按输入状态驱动，再回退到 `move_state`
+- `BattleStateToViewMapper` 当前已正式输出：
+  - `team_id`
+  - `life_state`
+  - `pose_state`
+- `CharacterSpriteBodyView` 当前已正式支持：
+  - `trapped_*`
+  - `victory_*`
+  - `defeat_*`
+  的动画查找与安全回退
+- 当前 pose / 动画回退规则为：
+  - `trapped_* -> dead_*`
+  - `victory_* -> idle_*`
+  - `defeat_* -> dead_*`
+- `BattleHUD` 当前正式支持：
+  - TeamScorePanel
+  - LocalLifeStatePanel
+- `SettlementController` 当前正式支持：
+  - TeamOutcomeLabel
+  - ScoreSummaryLabel
+- `BattleResult` 当前已扩展队伍结果语义，至少包括：
+  - `winner_team_ids`
+  - `local_team_id`
+  - `team_scores`
+  - `player_scores`
+  - `local_outcome`
+  - `score_policy`
 
 ## 5.4 Dedicated Server 联机同步约束
 
@@ -752,6 +815,12 @@ Battle 的正式启动应理解为：
 34. **Phase17: `ServerRoomRegistry` 必须显式路由 `ROOM_RESUME_REQUEST`，并在 resume 成功后把新 transport peer 绑定回原 room runtime**
 35. **Phase17: Room 恢复状态 UI 以 `RoomViewModelBuilder -> RoomScenePresenter` 为单一来源，场景 controller 不再自行拼接恢复窗口文本**
 36. **Phase17: 客户端手动离房必须清理本地 reconnect ticket，并持久化到 `FrontSettingsRepository`**
+37. **Phase18: `team_id` 已成为 Room -> Battle 的正式配置字段，任何链路都不得再通过 slot 奇偶或其它隐式规则推导 team**
+38. **Phase18: `TRAPPED` 与 `REVIVING` 都属于“队伍仍然活跃”的状态，不能在淘汰判定中当作已淘汰**
+39. **Phase18: 当前玩家生命处理必须走 `PlayerLifeTransitionSystem / JellyInteractionSystem / RespawnSystem / ScoreSystem` 正式规则栈，不得再把新增生命规则继续堆入旧 `StatusEffectSystem`**
+40. **Phase18: 积分模式 `score_policy=team_score` 下，不得走 last survivor 提前结束，`TIME_UP` 必须按 `mode_state.team_scores` 结算**
+41. **Phase18: 计分必须发生在最终死亡确认时，不得在进入果冻 `TRAPPED` 时提前记分**
+42. **Phase18: Battle 表现层必须通过 `pose_state` 消费胜负姿态与果冻姿态，缺失动画资源时必须按既定回退策略继续运行**
 
 ---
 

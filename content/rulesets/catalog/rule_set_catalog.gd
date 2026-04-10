@@ -96,6 +96,14 @@ static func get_rule_metadata(rule_set_id: String) -> Dictionary:
 		"item_explosion_profile_id": def.item_explosion_profile_id,
 		"breakable_block_explosion_profile_id": def.breakable_block_explosion_profile_id,
 		"score_policy": def.score_policy,
+		"player_down_policy": def.player_down_policy,
+		"rescue_touch_enabled": def.rescue_touch_enabled,
+		"enemy_touch_execute_enabled": def.enemy_touch_execute_enabled,
+		"respawn_delay_sec": def.respawn_delay_sec,
+		"respawn_invincible_sec": def.respawn_invincible_sec,
+		"score_per_enemy_finish": def.score_per_enemy_finish,
+		"score_tiebreak_policy": def.score_tiebreak_policy,
+		"respawn_spawn_policy": def.respawn_spawn_policy,
 		"starting_bomb_count": 1,
 		"starting_firepower": 1,
 		"starting_speed": 1,
@@ -115,5 +123,7 @@ static func _display_name_from_rule_set_id(rule_set_id: String) -> String:
 			return "经典模式"
 		"ruleset_quick_match":
 			return "快速对局"
+		"ruleset_score_team":
+			return "积分模式"
 		_:
 			return rule_set_id.replace("_", " ").capitalize()

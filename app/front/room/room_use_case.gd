@@ -116,7 +116,8 @@ func update_local_profile(
 	character_id: String,
 	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String
+	bubble_skin_id: String,
+	team_id: int = 1
 ) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
@@ -126,10 +127,11 @@ func update_local_profile(
 		character_id,
 		character_skin_id,
 		bubble_style_id,
-		bubble_skin_id
+		bubble_skin_id,
+		team_id
 	)
 	if room_client_gateway != null and _is_online_room():
-		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id)
+		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
 	return result
 
 

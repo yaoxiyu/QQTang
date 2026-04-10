@@ -118,6 +118,7 @@ func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 			player_slots.append({
 				"peer_id": int(assignment.get("peer_id", -1)),
 				"slot_index": int(assignment.get("slot_index", player_slots.size())),
+				"team_id": int(assignment.get("team_id", int(assignment.get("slot_index", player_slots.size())) + 1)),
 			})
 
 	if player_slots.is_empty():
@@ -125,6 +126,7 @@ func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 			player_slots.append({
 				"peer_id": i + 1,
 				"slot_index": i,
+				"team_id": i + 1,
 			})
 
 	player_slots.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -138,8 +140,9 @@ func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 	for i in range(player_slots.size()):
 		var player_entry: Dictionary = player_slots[i]
 		var slot_index := int(player_entry.get("slot_index", i))
+		var team_id := int(player_entry.get("team_id", slot_index + 1))
 		var spawn_point := _resolve_spawn_point(slot_index, i, spawn_assignments, spawn_points)
-		var player_id = state.players.add_player(slot_index, slot_index % 2, spawn_point.x, spawn_point.y)
+		var player_id = state.players.add_player(slot_index, team_id, spawn_point.x, spawn_point.y)
 		var player = state.players.get_player(player_id)
 		if player != null:
 			player.alive = true

@@ -24,6 +24,8 @@ var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
 var _local_player_entity_id: int = -1
 var _last_player_positions: Dictionary = {}
+var _match_phase: int = MatchState.Phase.BOOTSTRAP
+var _winner_team_id: int = -1
 
 
 func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
@@ -59,6 +61,9 @@ func build_player_views(world: SimWorld) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if world == null:
 		return result
+
+	_match_phase = int(world.state.match_state.phase)
+	_winner_team_id = int(world.state.match_state.winner_team_id)
 
 	var player_ids := world.state.players.active_ids.duplicate()
 	player_ids.sort()
@@ -146,10 +151,12 @@ func map_player_state(player: PlayerState) -> Dictionary:
 	return {
 		"entity_id": player.entity_id,
 		"player_slot": player.player_slot,
+		"team_id": player.team_id,
 		"cell_size": cell_size,
 		"is_local_player": is_local_player,
 		"alive": player.alive,
 		"life_state": player.life_state,
+		"pose_state": _resolve_pose_state(player),
 		"facing": player.facing,
 		"move_state": player.move_state,
 		"last_non_zero_move_x": player.last_non_zero_move_x,
@@ -163,6 +170,35 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"offset": Vector2(player.offset_x, player.offset_y),
 		"color": configured_color,
 	}
+
+
+func _resolve_pose_state(player: PlayerState) -> String:
+	if player == null:
+		return "normal"
+
+	if _is_match_ended():
+		var winner_team_id := _get_match_winner_team_id()
+		if winner_team_id >= 1:
+			return "victory" if player.team_id == winner_team_id else "defeat"
+		return "normal"
+
+	match int(player.life_state):
+		PlayerState.LifeState.TRAPPED:
+			return "trapped"
+		PlayerState.LifeState.REVIVING:
+			return "dead"
+		PlayerState.LifeState.DEAD:
+			return "dead"
+		_:
+			return "normal"
+
+
+func _is_match_ended() -> bool:
+	return _match_phase == MatchState.Phase.ENDED
+
+
+func _get_match_winner_team_id() -> int:
+	return _winner_team_id
 
 
 func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:

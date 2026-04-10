@@ -155,7 +155,8 @@ func request_update_profile(
 	character_id: String,
 	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String
+	bubble_skin_id: String,
+	team_id: int
 ) -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_UPDATE_PROFILE,
@@ -164,6 +165,7 @@ func request_update_profile(
 		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
 		"bubble_skin_id": bubble_skin_id,
+		"team_id": team_id,
 	})
 
 

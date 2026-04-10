@@ -12,6 +12,7 @@ var character_id: String = ""
 var character_skin_id: String = ""
 var bubble_style_id: String = ""
 var bubble_skin_id: String = ""
+var team_id: int = 1
 
 var ready: bool = false
 var slot_index: int = -1
@@ -33,6 +34,7 @@ func to_dict() -> Dictionary:
 		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
 		"bubble_skin_id": bubble_skin_id,
+		"team_id": team_id,
 		"ready": ready,
 		"slot_index": slot_index,
 		"is_owner": is_owner,
@@ -53,6 +55,7 @@ static func from_dict(data: Dictionary) -> RoomMemberBindingState:
 	state.character_skin_id = String(data.get("character_skin_id", ""))
 	state.bubble_style_id = String(data.get("bubble_style_id", ""))
 	state.bubble_skin_id = String(data.get("bubble_skin_id", ""))
+	state.team_id = int(data.get("team_id", 1))
 	state.ready = bool(data.get("ready", false))
 	state.slot_index = int(data.get("slot_index", -1))
 	state.is_owner = bool(data.get("is_owner", false))

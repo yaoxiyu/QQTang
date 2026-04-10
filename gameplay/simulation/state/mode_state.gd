@@ -17,6 +17,9 @@ var mode_runtime_type: StringName = "default"
 # 团队存活计数
 var team_alive_counts: Dictionary = {}
 
+# 团队分数
+var team_scores: Dictionary = {}
+
 # 模式计时器（Tick 为单位）
 var mode_timer_ticks: int = 0
 
@@ -46,6 +49,14 @@ func set_team_alive_count(team_id: int, count: int) -> void:
 func get_team_alive_count(team_id: int) -> int:
 	return team_alive_counts.get(team_id, 0)
 
+# 设置团队分数
+func set_team_score(team_id: int, score: int) -> void:
+	team_scores[team_id] = score
+
+# 获取团队分数
+func get_team_score(team_id: int) -> int:
+	return team_scores.get(team_id, 0)
+
 # 重置模式状态
 func reset() -> void:
 	mode_timer_ticks = 0
@@ -56,3 +67,4 @@ func reset() -> void:
 	custom_ints.clear()
 	custom_flags.clear()
 	team_alive_counts.clear()
+	team_scores.clear()

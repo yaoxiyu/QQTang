@@ -32,6 +32,8 @@ func generate() -> void:
 			def.default_map_id = "map_classic_square"
 		elif def.mode_id == "mode_quick_match":
 			def.default_map_id = "map_classic_square"
+		elif def.mode_id == "mode_score_team":
+			def.default_map_id = "map_classic_square"
 
 		var output_path := OUTPUT_DIR + def.mode_id + ".tres"
 		save_resource(def, output_path)

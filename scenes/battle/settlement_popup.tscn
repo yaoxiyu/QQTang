@@ -76,6 +76,21 @@ offset_top = 420.0
 offset_right = 560.0
 offset_bottom = 452.0
 
+[node name="ScoreSummaryLabel" type="Label" parent="." unique_id=1603967823]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 420.0
+offset_right = 64.0
+offset_bottom = 443.0
+autowrap_mode = 3
+
+[node name="TeamOutcomeLabel" type="Label" parent="." unique_id=840457758]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 420.0
+offset_right = 64.0
+offset_bottom = 443.0
+
 [node name="ActionRow" type="HBoxContainer" parent="." unique_id=621369778]
 layout_mode = 0
 offset_left = 24.0

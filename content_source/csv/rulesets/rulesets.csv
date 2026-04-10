@@ -1,3 +1,4 @@
-rule_set_id,time_limit_sec,round_count,respawn_enabled,friendly_fire,sudden_death_enabled,item_drop_profile_id,score_policy
-ruleset_classic,180,1,false,false,true,,last_survivor
-ruleset_quick_match,120,1,false,false,true,,last_survivor
+rule_set_id,time_limit_sec,round_count,respawn_enabled,friendly_fire,sudden_death_enabled,item_drop_profile_id,score_policy,player_explosion_profile_id,player_down_policy,rescue_touch_enabled,enemy_touch_execute_enabled,respawn_delay_sec,respawn_invincible_sec,score_per_enemy_finish,score_tiebreak_policy,respawn_spawn_policy
+ruleset_classic,180,1,false,false,true,,last_survivor,player_trap_default,jelly,true,true,0,0,1,draw,original_spawn
+ruleset_quick_match,120,1,false,false,true,,last_survivor,player_kill_default,jelly,true,true,0,0,1,draw,original_spawn
+ruleset_score_team,180,1,true,false,false,,team_score,player_trap_default,jelly,true,true,3,2,1,alive_then_draw,original_spawn

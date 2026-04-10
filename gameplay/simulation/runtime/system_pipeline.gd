@@ -13,6 +13,10 @@ extends RefCounted
 
 const TimeLimitSystemScript = preload("res://gameplay/simulation/systems/time_limit_system.gd")
 const ExplosionHitSystemScript = preload("res://gameplay/simulation/systems/explosion_hit_system.gd")
+const PlayerLifeTransitionSystemScript = preload("res://gameplay/simulation/systems/player_life_transition_system.gd")
+const JellyInteractionSystemScript = preload("res://gameplay/simulation/systems/jelly_interaction_system.gd")
+const RespawnSystemScript = preload("res://gameplay/simulation/systems/respawn_system.gd")
+const ScoreSystemScript = preload("res://gameplay/simulation/systems/score_system.gd")
 
 # 系统列表
 var _systems: Array[ISimSystem] = []
@@ -33,6 +37,10 @@ func initialize_default_pipeline() -> void:
 	add_system(BombFuseSystem.new())
 	add_system(ExplosionResolveSystem.new())
 	add_system(ExplosionHitSystemScript.new())
+	add_system(PlayerLifeTransitionSystemScript.new())
+	add_system(JellyInteractionSystemScript.new())
+	add_system(RespawnSystemScript.new())
+	add_system(ScoreSystemScript.new())
 	add_system(StatusEffectSystem.new())
 	add_system(ItemSpawnSystem.new())
 	add_system(ItemPickupSystem.new())

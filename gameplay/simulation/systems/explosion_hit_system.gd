@@ -40,6 +40,11 @@ func _process_player_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
 			ctx.state.players.update_player(player)
 			if not ctx.scratch.players_to_kill.has(player.entity_id):
 				ctx.scratch.players_to_kill.append(player.entity_id)
+		ExplosionHitTypes.PlayerReaction.TRAP_JELLY:
+			player.last_damage_from_player_id = hit_entry.source_player_id
+			ctx.state.players.update_player(player)
+			if not ctx.scratch.players_to_trap.has(player.entity_id):
+				ctx.scratch.players_to_trap.append(player.entity_id)
 		ExplosionHitTypes.PlayerReaction.IGNORE:
 			return
 

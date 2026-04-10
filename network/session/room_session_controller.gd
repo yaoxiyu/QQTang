@@ -63,6 +63,7 @@ func build_room_snapshot() -> RoomSnapshot:
 		member.character_skin_id = String(profile.get("character_skin_id", ""))
 		member.bubble_style_id = String(profile.get("bubble_style_id", ""))
 		member.bubble_skin_id = String(profile.get("bubble_skin_id", ""))
+		member.team_id = int(profile.get("team_id", member.slot_index + 1))
 		member.is_owner = peer_id == owner_peer_id
 		member.is_local_player = peer_id == room_runtime_context.local_player_id
 		member.connection_state = "local" if member.is_local_player and room_session.topology == "local" else "connected"
@@ -104,6 +105,7 @@ func join_room(member_state: RoomMemberState) -> void:
 		"character_skin_id": member_state.character_skin_id,
 		"bubble_style_id": member_state.bubble_style_id,
 		"bubble_skin_id": member_state.bubble_skin_id,
+		"team_id": member_state.team_id,
 	}
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "join_room_completed")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "join_room_completed")
@@ -243,7 +245,8 @@ func request_update_member_profile(
 	character_id: String,
 	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = ""
+	bubble_skin_id: String = "",
+	team_id: int = 1
 ) -> Dictionary:
 	if not _can_interact_in_room() or peer_id == 0 or not room_session.peers.has(peer_id):
 		return {
@@ -264,6 +267,7 @@ func request_update_member_profile(
 	profile["character_skin_id"] = character_skin_id.strip_edges()
 	profile["bubble_style_id"] = bubble_style_id
 	profile["bubble_skin_id"] = bubble_skin_id.strip_edges()
+	profile["team_id"] = team_id
 	member_profiles[peer_id] = profile
 	_emit_snapshot_changed()
 	return {"ok": true}
@@ -288,6 +292,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"character_skin_id": member.character_skin_id,
 			"bubble_style_id": member.bubble_style_id,
 			"bubble_skin_id": member.bubble_skin_id,
+			"team_id": member.team_id,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")
@@ -350,6 +355,7 @@ func configure_practice_room(
 		"character_skin_id": String(local_profile_state.default_character_skin_id if local_profile_state != null else ""),
 		"bubble_style_id": String(local_profile_state.default_bubble_style_id if local_profile_state != null else ""),
 		"bubble_skin_id": String(local_profile_state.default_bubble_skin_id if local_profile_state != null else ""),
+		"team_id": 1,
 	}
 	set_room_selection(map_id, rule_id, mode_id)
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "practice_room_configured")

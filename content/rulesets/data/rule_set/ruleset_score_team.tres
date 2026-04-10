@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RuleSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/rulesets/defs/rule_set_def.gd" id="1_cv7hc"]
+
+[resource]
+script = ExtResource("1_cv7hc")
+rule_set_id = "ruleset_score_team"
+respawn_enabled = true
+sudden_death_enabled = false
+player_explosion_profile_id = "player_trap_default"
+score_policy = "team_score"
+player_down_policy = "jelly"
+rescue_touch_enabled = true
+enemy_touch_execute_enabled = true
+respawn_delay_sec = 3
+respawn_invincible_sec = 2
+score_tiebreak_policy = "alive_then_draw"

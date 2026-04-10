@@ -124,6 +124,18 @@ layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Player1"
 
+[node name="TeamRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1242409935]
+layout_mode = 2
+
+[node name="TeamLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1175612843]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Team"
+
+[node name="TeamSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1943633966]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="CharacterRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1078189335]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -264,6 +276,10 @@ text = "Rule:"
 [node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=715664864]
 layout_mode = 2
 text = "Mode:"
+
+[node name="TeamPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=420797555]
+layout_mode = 2
+text = "Team: -"
 
 [node name="CharacterPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1736853671]
 layout_mode = 2

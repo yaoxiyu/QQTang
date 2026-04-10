@@ -43,6 +43,18 @@ var processed_explosion_bubble_ids: Dictionary = {}
 # 待杀死的玩家列表
 var players_to_kill: Array[int] = []
 
+# 待进入果冻状态的玩家列表
+var players_to_trap: Array[int] = []
+
+# 待处决的玩家列表
+var players_to_execute: Array[int] = []
+
+# 待复活的玩家列表
+var players_to_revive: Array[int] = []
+
+# 计分事件列表
+var score_events: Array[Dictionary] = []
+
 # ====================
 # 道具相关
 # ====================
@@ -64,4 +76,8 @@ func clear() -> void:
 	queued_chain_bubble_ids.clear()
 	processed_explosion_bubble_ids.clear()
 	players_to_kill.clear()
+	players_to_trap.clear()
+	players_to_execute.clear()
+	players_to_revive.clear()
+	score_events.clear()
 	items_to_spawn.clear()

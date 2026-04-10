@@ -43,12 +43,14 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	var anim_move_x := int(view_state.get("anim_move_x", 0))
 	var anim_move_y := int(view_state.get("anim_move_y", 0))
 	var alive := bool(view_state.get("alive", true))
+	var pose_state := String(view_state.get("pose_state", "normal"))
 	var animation_name := _resolve_animation_name(
 		facing,
 		anim_is_moving,
 		anim_move_x,
 		anim_move_y,
-		alive
+		alive,
+		pose_state
 	)
 	if animation_name == _current_animation_name:
 		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
@@ -64,7 +66,7 @@ func apply_actor_state(view_state: Dictionary) -> void:
 				]
 			)
 		return
-	if not _body_sprite.sprite_frames.has_animation(animation_name):
+	if animation_name.is_empty():
 		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
 			print(
 				"[qq_remote_anim][body] entity=%d missing_animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
@@ -100,14 +102,26 @@ func _resolve_animation_name(
 	anim_is_moving: bool,
 	anim_move_x: int,
 	anim_move_y: int,
-	alive: bool
+	alive: bool,
+	pose_state: String
 ) -> String:
 	var direction_suffix := _resolve_direction_suffix(facing)
+	match pose_state:
+		"trapped":
+			return _resolve_animation_with_fallback("trapped_%s" % direction_suffix, "dead_%s" % direction_suffix)
+		"victory":
+			return _resolve_animation_with_fallback("victory_%s" % direction_suffix, "idle_%s" % direction_suffix)
+		"defeat":
+			return _resolve_animation_with_fallback("defeat_%s" % direction_suffix, "dead_%s" % direction_suffix)
+		"dead":
+			return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
+		_:
+			pass
 	if not alive:
-		return "dead_%s" % direction_suffix
+		return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
 	if anim_is_moving:
-		return "run_%s" % direction_suffix
-	return "idle_%s" % direction_suffix
+		return _resolve_animation_with_fallback("run_%s" % direction_suffix, "idle_%s" % direction_suffix)
+	return _resolve_animation_with_fallback("idle_%s" % direction_suffix, "")
 
 
 func _resolve_direction_suffix(facing: int) -> String:
@@ -126,6 +140,16 @@ func _resolve_direction_suffix(facing: int) -> String:
 
 func _is_moving_state(move_state: int) -> bool:
 	return move_state == 1 or move_state == 3
+
+
+func _resolve_animation_with_fallback(primary: String, fallback: String) -> String:
+	if _body_sprite == null or _body_sprite.sprite_frames == null:
+		return ""
+	if not primary.is_empty() and _body_sprite.sprite_frames.has_animation(primary):
+		return primary
+	if not fallback.is_empty() and _body_sprite.sprite_frames.has_animation(fallback):
+		return fallback
+	return ""
 
 
 func _resolve_sprite_pivot(animation_set: CharacterAnimationSetDef) -> Vector2:

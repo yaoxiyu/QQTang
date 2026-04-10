@@ -18,13 +18,15 @@ func _ready() -> void:
 func _test_rule_builders_resolve_profiles() -> bool:
 	var builder := BattleExplosionConfigBuilder.new()
 	var classic := builder.build_for_rule("ruleset_classic")
+	var score_team := builder.build_for_rule("ruleset_score_team")
 	var quick_match := builder.build_for_rule("ruleset_quick_match")
 	var prefix := "explosion_reaction_resolver_test"
 	var ok := true
-	ok = TestAssert.is_true(String(classic.get("player_profile_id", "")) == "player_kill_default", "classic should resolve player kill profile", prefix) and ok
+	ok = TestAssert.is_true(String(classic.get("player_profile_id", "")) == "player_trap_default", "classic should resolve player trap profile", prefix) and ok
+	ok = TestAssert.is_true(String(score_team.get("player_profile_id", "")) == "player_trap_default", "score_team should resolve player trap profile", prefix) and ok
 	ok = TestAssert.is_true(String(classic.get("bubble_profile_id", "")) == "bubble_chain_immediate", "classic should resolve bubble chain profile", prefix) and ok
 	ok = TestAssert.is_true(String(quick_match.get("item_profile_id", "")) == "item_destroy_default", "quick_match should resolve item destroy profile", prefix) and ok
-	ok = TestAssert.is_true(int(classic.get("player_profile", {}).get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.KILL, "classic player profile should decode to kill reaction", prefix) and ok
+	ok = TestAssert.is_true(int(classic.get("player_profile", {}).get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.TRAP_JELLY, "classic player profile should decode to trap reaction", prefix) and ok
 	return ok
 
 

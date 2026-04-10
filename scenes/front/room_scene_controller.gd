@@ -28,6 +28,7 @@ const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model
 @onready var reconnect_window_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ReconnectWindowLabel")
 @onready var active_match_resume_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ActiveMatchResumeLabel")
 @onready var player_name_input: LineEdit = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput")
+@onready var team_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow/TeamSelector")
 @onready var character_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector")
 @onready var character_skin_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector")
 @onready var bubble_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector")
@@ -39,6 +40,7 @@ const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model
 @onready var map_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel")
 @onready var rule_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/RulePreviewLabel")
 @onready var mode_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/ModePreviewLabel")
+@onready var team_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/TeamPreviewLabel")
 @onready var character_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewLabel")
 @onready var character_preview_viewport = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport")
 @onready var character_skin_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterSkinPreviewLabel")
@@ -144,6 +146,7 @@ func _exit_tree() -> void:
 func _populate_selectors() -> void:
 	_suppress_selection_callbacks = true
 	_populate_character_selector()
+	_populate_team_selector()
 	_populate_character_skin_selector()
 	_populate_bubble_selector()
 	_populate_bubble_skin_selector()
@@ -160,6 +163,16 @@ func _populate_character_selector() -> void:
 	for entry in CharacterCatalogScript.get_character_entries():
 		character_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
 		character_selector.set_item_metadata(character_selector.item_count - 1, String(entry.get("id", "")))
+
+
+func _populate_team_selector(team_option_max: int = 2) -> void:
+	if team_selector == null:
+		return
+	team_selector.clear()
+	var max_team_id: int = max(2, team_option_max)
+	for team_id in range(1, max_team_id + 1):
+		team_selector.add_item("Team %d" % team_id)
+		team_selector.set_item_metadata(team_selector.item_count - 1, team_id)
 
 
 func _populate_character_skin_selector() -> void:
@@ -237,6 +250,8 @@ func _connect_ui_signals() -> void:
 		add_opponent_button.pressed.connect(_on_add_opponent_pressed)
 	if player_name_input != null and not player_name_input.text_submitted.is_connected(_on_profile_changed):
 		player_name_input.text_submitted.connect(func(_text: String) -> void: _on_profile_changed())
+	if team_selector != null and not team_selector.item_selected.is_connected(_on_profile_selector_changed):
+		team_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
 	if character_selector != null and not character_selector.item_selected.is_connected(_on_profile_selector_changed):
 		character_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
 	if character_skin_selector != null and not character_skin_selector.item_selected.is_connected(_on_profile_selector_changed):
@@ -269,6 +284,7 @@ func _apply_local_profile_defaults() -> void:
 	if player_name_input != null:
 		player_name_input.text = profile.nickname
 	_select_metadata(character_selector, profile.default_character_id)
+	_select_team_id(1)
 	_select_metadata(character_skin_selector, profile.default_character_skin_id)
 	_select_metadata(bubble_selector, profile.default_bubble_style_id)
 	_select_metadata(bubble_skin_selector, profile.default_bubble_skin_id)
@@ -284,6 +300,10 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 		_app_runtime.current_room_entry_context
 	)
 	_room_scene_presenter.present(view_model, self)
+	_suppress_selection_callbacks = true
+	_populate_team_selector(int(view_model.get("team_option_max", 2)))
+	_select_team_id(int(view_model.get("local_team_id", 1)))
+	_suppress_selection_callbacks = false
 	_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
 	_select_metadata(rule_selector, String(view_model.get("selected_rule_set_id", "")))
 	_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
@@ -302,6 +322,8 @@ func _update_preview(snapshot: RoomSnapshot) -> void:
 		mode_preview_label.text = "Mode: %s" % snapshot.mode_id
 	var local_member := _resolve_local_member(snapshot)
 	if local_member != null:
+		if team_preview_label != null:
+			team_preview_label.text = "Team: %d" % local_member.team_id
 		if character_preview_label != null:
 			character_preview_label.text = "Character: %s" % local_member.character_id
 		if character_skin_preview_label != null:
@@ -317,6 +339,8 @@ func _update_preview(snapshot: RoomSnapshot) -> void:
 			)
 	elif _app_runtime != null and _app_runtime.player_profile_state != null:
 		var profile = _app_runtime.player_profile_state
+		if team_preview_label != null:
+			team_preview_label.text = "Team: %d" % _selected_team_id()
 		if character_preview_label != null:
 			character_preview_label.text = "Character: %s" % String(profile.default_character_id)
 		if character_skin_preview_label != null:
@@ -427,7 +451,8 @@ func _on_profile_changed() -> void:
 		_selected_metadata(character_selector),
 		_selected_metadata(character_skin_selector),
 		_selected_metadata(bubble_selector),
-		_selected_metadata(bubble_skin_selector)
+		_selected_metadata(bubble_skin_selector),
+		_selected_team_id()
 	)
 
 
@@ -468,6 +493,21 @@ func _select_metadata(selector: OptionButton, value: String) -> void:
 	for index in range(selector.item_count):
 		if String(selector.get_item_metadata(index)) == value:
 			selector.select(index)
+			return
+
+
+func _selected_team_id() -> int:
+	if team_selector == null or team_selector.selected < 0:
+		return 1
+	return int(team_selector.get_item_metadata(team_selector.selected))
+
+
+func _select_team_id(team_id: int) -> void:
+	if team_selector == null:
+		return
+	for index in range(team_selector.item_count):
+		if int(team_selector.get_item_metadata(index)) == team_id:
+			team_selector.select(index)
 			return
 
 func _try_consume_pending_room_action() -> void:

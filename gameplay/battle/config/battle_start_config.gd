@@ -195,6 +195,7 @@ func validate(options: Dictionary = {}) -> Dictionary:
 	for player_entry in player_slots:
 		var peer_id := int(player_entry.get("peer_id", -1))
 		var slot_index := int(player_entry.get("slot_index", -1))
+		var team_id := int(player_entry.get("team_id", 0))
 		if peer_id <= 0:
 			errors.append("player_slots contains invalid peer_id")
 		elif peer_ids.has(peer_id):
@@ -207,6 +208,10 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			errors.append("duplicate slot_index in player_slots: %d" % slot_index)
 		else:
 			slot_indices[slot_index] = true
+		if not player_entry.has("team_id"):
+			errors.append("player_slots contains missing team_id for peer %d" % peer_id)
+		elif team_id < 1:
+			errors.append("player_slots contains invalid team_id for peer %d" % peer_id)
 
 	var spawn_peer_ids: Dictionary = {}
 	for assignment in spawn_assignments:

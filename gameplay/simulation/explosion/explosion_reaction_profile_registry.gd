@@ -21,6 +21,11 @@ static func get_player_profile(profile_id: String) -> Dictionary:
 				"profile_id": "player_kill_default",
 				"reaction": ExplosionHitTypes.PlayerReaction.KILL,
 			}
+		"player_trap_default":
+			return {
+				"profile_id": "player_trap_default",
+				"reaction": ExplosionHitTypes.PlayerReaction.TRAP_JELLY,
+			}
 		_:
 			return get_player_profile(DEFAULT_PLAYER_PROFILE_ID)
 

@@ -12,6 +12,7 @@ enum TargetType {
 
 enum PlayerReaction {
 	KILL,
+	TRAP_JELLY,
 	IGNORE
 }
 
@@ -53,6 +54,8 @@ static func player_reaction_to_string(reaction: int) -> String:
 	match reaction:
 		PlayerReaction.KILL:
 			return "kill"
+		PlayerReaction.TRAP_JELLY:
+			return "trap_jelly"
 		PlayerReaction.IGNORE:
 			return "ignore"
 		_:

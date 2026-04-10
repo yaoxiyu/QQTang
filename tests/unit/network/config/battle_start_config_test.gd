@@ -15,6 +15,7 @@ func _ready() -> void:
 	ok = _test_protocol_mismatch_fails_validation() and ok
 	ok = _test_map_hash_mismatch_fails_validation() and ok
 	ok = _test_duplicate_slot_fails_validation() and ok
+	ok = _test_invalid_team_id_fails_validation() and ok
 	ok = _test_invalid_spawn_assignment_fails_validation() and ok
 	if ok:
 		print("battle_start_config_test: PASS")
@@ -88,6 +89,20 @@ func _test_duplicate_slot_fails_validation() -> bool:
 	return ok
 
 
+func _test_invalid_team_id_fails_validation() -> bool:
+	var coordinator := MatchStartCoordinatorScript.new()
+	var config := _make_valid_config()
+	config.player_slots[0]["team_id"] = 0
+	config.players = config.player_slots.duplicate(true)
+	var validation := coordinator.validate_start_config(config)
+	var prefix := "battle_start_config_test"
+	var ok := true
+	ok = TestAssert.is_true(not bool(validation.get("ok", true)), "invalid team_id should fail validation", prefix) and ok
+	ok = TestAssert.is_true(_errors_contain(validation, "invalid team_id"), "invalid team_id should be reported", prefix) and ok
+	coordinator.free()
+	return ok
+
+
 func _test_invalid_spawn_assignment_fails_validation() -> bool:
 	var coordinator := MatchStartCoordinatorScript.new()
 	var config := _make_valid_config()
@@ -138,6 +153,7 @@ func _make_valid_config() -> BattleStartConfig:
 			"slot_index": 0,
 			"spawn_slot": 0,
 			"character_id": "hero_default",
+			"team_id": 1,
 		},
 		{
 			"peer_id": 2,
@@ -145,6 +161,7 @@ func _make_valid_config() -> BattleStartConfig:
 			"slot_index": 1,
 			"spawn_slot": 1,
 			"character_id": "hero_default",
+			"team_id": 2,
 		},
 	]
 	config.players = config.player_slots.duplicate(true)

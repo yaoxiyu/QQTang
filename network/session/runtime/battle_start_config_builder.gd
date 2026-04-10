@@ -112,6 +112,7 @@ func assign_spawn_slots(snapshot: RoomSnapshot) -> Array[Dictionary]:
 			"slot_index": member.slot_index,
 			"spawn_slot": member.slot_index,
 			"character_id": _resolve_character_id(member.character_id),
+			"team_id": member.team_id,
 		})
 	return players
 

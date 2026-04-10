@@ -15,6 +15,8 @@ const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
 @export var match_message_panel_path: NodePath = ^"../MatchMessagePanel"
 @export var battle_meta_panel_path: NodePath = ^"../BattleMetaPanel"
 @export var local_player_ability_panel_path: NodePath = ^"../LocalPlayerAbilityPanel"
+@export var team_score_panel_path: NodePath = ^"../TeamScorePanel/TeamScoreLabel"
+@export var local_life_state_panel_path: NodePath = ^"../LocalLifeStatePanel"
 @export var tick_rate: int = WorldTiming.TICK_RATE
 
 var countdown_panel: CountdownPanel = null
@@ -23,6 +25,8 @@ var network_status_panel: NetworkStatusPanel = null
 var match_message_panel: MatchMessagePanel = null
 var battle_meta_panel: Node = null
 var local_player_ability_panel: Node = null
+var team_score_panel: Label = null
+var local_life_state_panel: Label = null
 
 var _last_message: String = ""
 var _local_player_entity_id: int = -1
@@ -40,6 +44,8 @@ func _ready() -> void:
 	match_message_panel = _resolve_panel(match_message_panel_path, MatchMessagePanelScript)
 	battle_meta_panel = _resolve_panel(battle_meta_panel_path, BattleMetaPanelScript)
 	local_player_ability_panel = _resolve_panel(local_player_ability_panel_path, LocalPlayerAbilityPanelScript)
+	team_score_panel = get_node_or_null(team_score_panel_path)
+	local_life_state_panel = get_node_or_null(local_life_state_panel_path)
 	_apply_pending_battle_metadata()
 
 
@@ -58,6 +64,9 @@ func consume_battle_state(world: SimWorld) -> void:
 
 	if match_message_panel != null:
 		match_message_panel.apply_message(_build_phase_message(world))
+
+	_apply_team_scores(world)
+	_apply_local_life_state(world)
 
 
 func consume_network_metrics(metrics: Dictionary) -> void:
@@ -123,6 +132,8 @@ func debug_dump_hud_state() -> Dictionary:
 		"player_status_text": player_status_panel.text if player_status_panel != null else "",
 		"network_status_text": network_status_panel.text if network_status_panel != null else "",
 		"match_message_text": match_message_panel.text if match_message_panel != null else "",
+		"team_score_text": team_score_panel.text if team_score_panel != null else "",
+		"local_life_state_text": local_life_state_panel.text if local_life_state_panel != null else "",
 		"battle_meta_map_text": String(meta_dump.get("map_text", "")),
 		"battle_meta_rule_text": String(meta_dump.get("rule_text", "")),
 		"battle_meta_match_text": String(meta_dump.get("match_text", "")),
@@ -146,6 +157,10 @@ func reset_hud() -> void:
 			battle_meta_panel.apply_metadata("", "", "")
 	if local_player_ability_panel != null:
 		local_player_ability_panel.apply_player_ability({})
+	if team_score_panel != null:
+		team_score_panel.text = ""
+	if local_life_state_panel != null:
+		local_life_state_panel.text = ""
 
 
 func _resolve_panel(path: NodePath, fallback_script: Script) -> Node:
@@ -274,6 +289,86 @@ func _build_phase_message(world: SimWorld) -> String:
 			return "Match Ended"
 		_:
 			return ""
+
+
+func _apply_team_scores(world: SimWorld) -> void:
+	if team_score_panel == null or world == null:
+		return
+
+	var participating_team_ids := _collect_participating_team_ids(world)
+	if participating_team_ids.is_empty():
+		team_score_panel.text = ""
+		return
+
+	var lines: Array[String] = []
+	for team_id in participating_team_ids:
+		var score := int(world.state.mode.team_scores.get(team_id, 0))
+		lines.append("Team %d: %d" % [team_id, score])
+	team_score_panel.text = "\n".join(lines)
+
+
+func _apply_local_life_state(world: SimWorld) -> void:
+	if local_life_state_panel == null or world == null:
+		return
+
+	var player := _resolve_local_player_for_life_state(world)
+	if player == null:
+		local_life_state_panel.text = ""
+		return
+
+	match int(player.life_state):
+		PlayerState.LifeState.NORMAL:
+			local_life_state_panel.text = ""
+		PlayerState.LifeState.TRAPPED:
+			local_life_state_panel.text = "Jelly"
+		PlayerState.LifeState.REVIVING:
+			var seconds_left := int(ceil(float(max(player.respawn_ticks, 0)) / float(max(tick_rate, 1))))
+			local_life_state_panel.text = "Respawn in %d" % seconds_left
+		PlayerState.LifeState.DEAD:
+			local_life_state_panel.text = "Out"
+		_:
+			local_life_state_panel.text = ""
+
+
+func _collect_participating_team_ids(world: SimWorld) -> Array[int]:
+	var teams: Dictionary = {}
+	for player_id in range(world.state.players.size()):
+		var player := world.state.players.get_player(player_id)
+		if player == null or player.team_id < 1:
+			continue
+		teams[player.team_id] = true
+	var team_ids: Array[int] = []
+	for team_id in teams.keys():
+		team_ids.append(int(team_id))
+	team_ids.sort()
+	return team_ids
+
+
+func _resolve_local_player_for_life_state(world: SimWorld) -> PlayerState:
+	if world == null:
+		return null
+
+	if _local_player_entity_id >= 0:
+		var player_by_entity := world.state.players.get_player(_local_player_entity_id)
+		if player_by_entity != null:
+			return player_by_entity
+
+	var controlled_slot := -1
+	if world.state != null and world.state.runtime_flags != null:
+		controlled_slot = int(world.state.runtime_flags.client_controlled_player_slot)
+	if controlled_slot >= 0:
+		for player_id in range(world.state.players.size()):
+			var player := world.state.players.get_player(player_id)
+			if player == null:
+				continue
+			if int(player.player_slot) == controlled_slot:
+				return player
+
+	for player_id in range(world.state.players.size()):
+		var player := world.state.players.get_player(player_id)
+		if player != null:
+			return player
+	return null
 
 
 func _life_state_to_text(life_state: int) -> String:

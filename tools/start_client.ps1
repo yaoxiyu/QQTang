@@ -1,5 +1,5 @@
 param(
-    [string]$GodotDir = 'F:\Godot',
+    [string]$GodotDir = '',
     [string]$ProjectPath = '',
     [int]$ClientIndex = 1,
     [string]$UserSlot = '',
@@ -26,6 +26,13 @@ function Resolve-GodotExecutable {
         [string]$Directory,
         [bool]$PreferConsole
     )
+
+    if ([string]::IsNullOrWhiteSpace($Directory)) {
+        if ($PreferConsole) {
+            return 'Godot_console.exe'
+        }
+        return 'Godot.exe'
+    }
 
     $consolePath = Join-Path $Directory 'Godot_console.exe'
     $guiPath = Join-Path $Directory 'Godot.exe'

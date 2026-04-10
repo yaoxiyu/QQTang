@@ -16,6 +16,8 @@ signal input_frozen(frozen: bool)
 @export var mode_summary_label_path: NodePath = ^"ModeSummaryLabel"
 @export var character_summary_label_path: NodePath = ^"CharacterSummaryLabel"
 @export var bubble_summary_label_path: NodePath = ^"BubbleSummaryLabel"
+@export var score_summary_label_path: NodePath = ^"ScoreSummaryLabel"
+@export var team_outcome_label_path: NodePath = ^"TeamOutcomeLabel"
 @export var return_button_path: NodePath = ^"ActionRow/ReturnToRoomButton"
 @export var rematch_button_path: NodePath = ^"ActionRow/RematchButton"
 
@@ -27,6 +29,8 @@ var finish_reason_label: Label = null
 var mode_summary_label: Label = null
 var character_summary_label: Label = null
 var bubble_summary_label: Label = null
+var score_summary_label: Label = null
+var team_outcome_label: Label = null
 var return_button: Button = null
 var rematch_button: Button = null
 var current_result: BattleResult = null
@@ -50,6 +54,10 @@ func _ready() -> void:
 		character_summary_label = get_node(character_summary_label_path)
 	if has_node(bubble_summary_label_path):
 		bubble_summary_label = get_node(bubble_summary_label_path)
+	if has_node(score_summary_label_path):
+		score_summary_label = get_node(score_summary_label_path)
+	if has_node(team_outcome_label_path):
+		team_outcome_label = get_node(team_outcome_label_path)
 	if has_node(return_button_path):
 		return_button = get_node(return_button_path)
 	if has_node(rematch_button_path):
@@ -107,6 +115,8 @@ func debug_dump_settlement_state() -> Dictionary:
 		"mode_summary_text": mode_summary_label.text if mode_summary_label != null else "",
 		"character_summary_text": character_summary_label.text if character_summary_label != null else "",
 		"bubble_summary_text": bubble_summary_label.text if bubble_summary_label != null else "",
+		"score_summary_text": score_summary_label.text if score_summary_label != null else "",
+		"team_outcome_text": team_outcome_label.text if team_outcome_label != null else "",
 	}
 
 
@@ -132,14 +142,20 @@ func _refresh_text() -> void:
 		character_summary_label.text = _build_character_summary_text()
 	if bubble_summary_label != null:
 		bubble_summary_label.text = _build_bubble_summary_text()
+	if score_summary_label != null:
+		score_summary_label.text = _build_score_summary_text()
+	if team_outcome_label != null:
+		team_outcome_label.text = _build_team_outcome_text()
 
 
 func _build_title_text() -> String:
 	if current_result == null:
 		return ""
-	if current_result.is_local_victory():
+	if current_result.local_outcome == "victory" or current_result.is_local_victory():
 		return "Victory"
-	if not current_result.winner_peer_ids.is_empty():
+	if current_result.local_outcome == "defeat":
+		return "Defeat"
+	if not current_result.winner_team_ids.is_empty() or not current_result.winner_peer_ids.is_empty():
 		return "Defeat"
 	if _is_draw_result(current_result):
 		return "Draw"
@@ -155,10 +171,16 @@ func _build_detail_text() -> String:
 		"FinishTick: %d" % current_result.finish_tick,
 	]
 
+	if current_result.local_team_id >= 1:
+		lines.append("LocalTeam: Team %d" % current_result.local_team_id)
+	if not current_result.winner_team_ids.is_empty():
+		lines.append("WinnerTeams: %s" % str(current_result.winner_team_ids))
 	if not current_result.winner_peer_ids.is_empty():
 		lines.append("Winners: %s" % str(current_result.winner_peer_ids))
 	if not current_result.eliminated_order.is_empty():
 		lines.append("Eliminated: %s" % str(current_result.eliminated_order))
+	if not current_result.score_policy.is_empty():
+		lines.append("ScorePolicy: %s" % current_result.score_policy)
 
 	return "\n".join(lines)
 
@@ -231,6 +253,35 @@ func _build_bubble_summary_text() -> String:
 	return ""
 
 
+func _build_score_summary_text() -> String:
+	if current_result == null:
+		return ""
+	if current_result.team_scores.is_empty():
+		return ""
+
+	var team_ids: Array[int] = []
+	for team_id_variant in current_result.team_scores.keys():
+		team_ids.append(int(team_id_variant))
+	team_ids.sort()
+
+	var lines: Array[String] = ["队伍积分:"]
+	for team_id in team_ids:
+		lines.append("Team %d : %d" % [team_id, int(current_result.team_scores.get(str(team_id), current_result.team_scores.get(team_id, 0)))])
+	return "\n".join(lines)
+
+
+func _build_team_outcome_text() -> String:
+	if current_result == null:
+		return ""
+
+	var lines: Array[String] = []
+	if current_result.local_team_id >= 1:
+		lines.append("你所在队伍: Team %d" % current_result.local_team_id)
+	if not current_result.local_outcome.is_empty():
+		lines.append("结果: %s" % _map_outcome_text(current_result.local_outcome))
+	return "\n".join(lines)
+
+
 func _resolve_current_start_config():
 	var tree := get_tree()
 	if tree == null:
@@ -269,6 +320,8 @@ func _map_finish_reason_text(finish_reason: String) -> String:
 	match finish_reason:
 		"last_survivor", "last_alive":
 			return "最后生存者获胜"
+		"team_eliminated":
+			return "队伍淘汰"
 		"time_up":
 			return "时间结束"
 		"peer_disconnected":
@@ -282,6 +335,20 @@ func _map_finish_reason_text(finish_reason: String) -> String:
 func _is_draw_result(result: BattleResult) -> bool:
 	if result == null:
 		return false
-	if result.finish_reason == "time_up":
+	if result.local_outcome == "draw":
 		return true
-	return result.finish_reason == "last_survivor" and result.winner_peer_ids.is_empty()
+	if result.finish_reason == "time_up":
+		return result.winner_team_ids.is_empty() and result.winner_peer_ids.is_empty()
+	return (result.finish_reason == "last_survivor" or result.finish_reason == "team_eliminated") and result.winner_peer_ids.is_empty() and result.winner_team_ids.is_empty()
+
+
+func _map_outcome_text(local_outcome: String) -> String:
+	match local_outcome:
+		"victory":
+			return "Victory"
+		"defeat":
+			return "Defeat"
+		"draw":
+			return "Draw"
+		_:
+			return local_outcome

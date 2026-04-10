@@ -6,3 +6,6 @@
 script = ExtResource("1_arrsm")
 rule_set_id = "ruleset_quick_match"
 time_limit_sec = 120
+player_down_policy = "jelly"
+rescue_touch_enabled = true
+enemy_touch_execute_enabled = true

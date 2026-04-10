@@ -37,6 +37,10 @@ func build_view_model(
 	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
 	var reconnect_window_text := _build_reconnect_window_text(safe_snapshot)
 	var active_match_resume_text := _build_active_match_resume_text(safe_snapshot)
+	var local_team_id := _resolve_local_team_id(members)
+	var team_option_max := int(safe_snapshot.max_players)
+	if team_option_max <= 0:
+		team_option_max = 1
 
 	return {
 		"title_text": title_text,
@@ -67,6 +71,8 @@ func build_view_model(
 		"local_character_skin_id": String(safe_profile.default_character_skin_id),
 		"local_bubble_style_id": String(safe_profile.default_bubble_style_id),
 		"local_bubble_skin_id": String(safe_profile.default_bubble_skin_id),
+		"local_team_id": local_team_id,
+		"team_option_max": team_option_max,
 		"entry_kind": String(safe_entry_context.entry_kind),
 		"return_target": String(safe_entry_context.return_target),
 	}
@@ -140,6 +146,7 @@ func _build_member_view_models(members: Array[RoomMemberState]) -> Array[Diction
 			"character_skin_id": member.character_skin_id,
 			"bubble_style_id": member.bubble_style_id,
 			"bubble_skin_id": member.bubble_skin_id,
+			"team_id": member.team_id,
 			"is_owner": member.is_owner,
 			"is_local_player": member.is_local_player,
 			"connection_state": member.connection_state,
@@ -153,6 +160,13 @@ func _is_local_member_ready(members: Array[Dictionary]) -> bool:
 			continue
 		return bool(entry.get("ready", false))
 	return false
+
+
+func _resolve_local_team_id(members: Array[Dictionary]) -> int:
+	for entry in members:
+		if bool(entry.get("is_local_player", false)):
+			return int(entry.get("team_id", 1))
+	return 1
 
 
 func _build_blocker_text(

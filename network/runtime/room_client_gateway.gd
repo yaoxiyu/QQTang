@@ -89,11 +89,12 @@ func request_update_profile(
 	character_id: String,
 	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String
+	bubble_skin_id: String,
+	team_id: int
 ) -> void:
 	if client_room_runtime == null:
 		return
-	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id)
+	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
 
 
 func request_update_selection(map_id: String, rule_id: String, mode_id: String) -> void:
