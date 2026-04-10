@@ -155,11 +155,11 @@ func toggle_ready() -> Dictionary:
 func start_match() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
-	var result: Dictionary = app_runtime.room_session_controller.request_begin_match(int(app_runtime.local_peer_id))
-	if not bool(result.get("ok", false)):
-		return result
 	if room_client_gateway != null and _is_online_room():
 		room_client_gateway.request_start_match()
+		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
+	var result: Dictionary = app_runtime.room_session_controller.request_begin_match(int(app_runtime.local_peer_id))
+	if not bool(result.get("ok", false)):
 		return result
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
 		app_runtime.front_flow.request_start_match()
@@ -234,9 +234,15 @@ func _has_ready_transport_for(connection_config: ClientConnectionConfig) -> bool
 
 
 func _is_online_room() -> bool:
-	if app_runtime == null or app_runtime.current_room_entry_context == null:
+	if app_runtime == null:
 		return false
-	return String(app_runtime.current_room_entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER
+	if app_runtime.current_room_entry_context != null and String(app_runtime.current_room_entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER:
+		return true
+	if app_runtime.current_room_snapshot != null and String(app_runtime.current_room_snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER:
+		return true
+	if app_runtime.room_session_controller != null and app_runtime.room_session_controller.room_runtime_context != null:
+		return String(app_runtime.room_session_controller.room_runtime_context.topology) == FrontTopologyScript.DEDICATED_SERVER
+	return false
 
 
 func _connect_gateway_signals() -> void:
