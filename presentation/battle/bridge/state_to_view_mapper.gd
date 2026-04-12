@@ -65,7 +65,7 @@ func build_player_views(world: SimWorld) -> Array[Dictionary]:
 	_match_phase = int(world.state.match_state.phase)
 	_winner_team_id = int(world.state.match_state.winner_team_id)
 
-	var player_ids := world.state.players.active_ids.duplicate()
+	var player_ids := _collect_visible_player_ids(world)
 	player_ids.sort()
 
 	for player_id in player_ids:
@@ -186,11 +186,31 @@ func _resolve_pose_state(player: PlayerState) -> String:
 		PlayerState.LifeState.TRAPPED:
 			return "trapped"
 		PlayerState.LifeState.REVIVING:
-			return "dead"
+			return "defeat"
 		PlayerState.LifeState.DEAD:
-			return "dead"
+			return "defeat"
 		_:
 			return "normal"
+
+
+func _collect_visible_player_ids(world: SimWorld) -> Array[int]:
+	var player_ids: Array[int] = []
+	for player_id in range(world.state.players.size()):
+		var player := world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		if player.alive:
+			player_ids.append(player_id)
+			continue
+		if _is_match_ended():
+			player_ids.append(player_id)
+			continue
+		if player.life_state == PlayerState.LifeState.REVIVING:
+			player_ids.append(player_id)
+			continue
+		if player.life_state == PlayerState.LifeState.DEAD and player.death_display_ticks > 0:
+			player_ids.append(player_id)
+	return player_ids
 
 
 func _is_match_ended() -> bool:

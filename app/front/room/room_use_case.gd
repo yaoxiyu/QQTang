@@ -130,7 +130,7 @@ func update_local_profile(
 		bubble_skin_id,
 		team_id
 	)
-	if room_client_gateway != null and _is_online_room():
+	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
 		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
 	return result
 
@@ -162,6 +162,10 @@ func start_match() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
 	if room_client_gateway != null and _is_online_room():
+		var blocker: Dictionary = app_runtime.room_session_controller.get_start_match_blocker(int(app_runtime.local_peer_id))
+		if not blocker.is_empty():
+			blocker["ok"] = false
+			return blocker
 		room_client_gateway.request_start_match()
 		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 	var result: Dictionary = app_runtime.room_session_controller.request_begin_match(int(app_runtime.local_peer_id))

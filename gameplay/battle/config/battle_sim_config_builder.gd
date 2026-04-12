@@ -42,6 +42,7 @@ func _build_rule_set_flags(rule_set_def: RuleSetDef) -> Dictionary:
 		"enemy_touch_execute_enabled": bool(rule_set_def.enemy_touch_execute_enabled),
 		"respawn_delay_sec": int(rule_set_def.respawn_delay_sec),
 		"respawn_invincible_sec": int(rule_set_def.respawn_invincible_sec),
+		"death_display_sec": int(rule_set_def.death_display_sec),
 		"score_per_enemy_finish": int(rule_set_def.score_per_enemy_finish),
 		"score_tiebreak_policy": String(rule_set_def.score_tiebreak_policy),
 		"respawn_spawn_policy": String(rule_set_def.respawn_spawn_policy),

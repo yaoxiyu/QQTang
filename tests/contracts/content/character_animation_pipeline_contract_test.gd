@@ -25,6 +25,9 @@ const REQUIRED_ANIMATIONS := [
 	"dead_left",
 	"dead_right",
 	"dead_up",
+	"trapped_down",
+	"victory_down",
+	"defeat_down",
 ]
 
 

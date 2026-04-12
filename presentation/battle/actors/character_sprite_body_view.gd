@@ -108,16 +108,21 @@ func _resolve_animation_name(
 	var direction_suffix := _resolve_direction_suffix(facing)
 	match pose_state:
 		"trapped":
+			direction_suffix = "down"
 			return _resolve_animation_with_fallback("trapped_%s" % direction_suffix, "dead_%s" % direction_suffix)
 		"victory":
+			direction_suffix = "down"
 			return _resolve_animation_with_fallback("victory_%s" % direction_suffix, "idle_%s" % direction_suffix)
 		"defeat":
+			direction_suffix = "down"
 			return _resolve_animation_with_fallback("defeat_%s" % direction_suffix, "dead_%s" % direction_suffix)
 		"dead":
+			direction_suffix = "down"
 			return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
 		_:
 			pass
 	if not alive:
+		direction_suffix = "down"
 		return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
 	if anim_is_moving:
 		return _resolve_animation_with_fallback("run_%s" % direction_suffix, "idle_%s" % direction_suffix)

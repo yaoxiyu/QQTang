@@ -1,2 +1,2 @@
 animation_set_id,display_name,source_layout_type,source_image_path,frame_width,frame_height,frame_count,source_columns,source_rows,idle_fps,idle_frame_index,loop_idle,content_hash
-bubble_anim_normal,普通泡泡,grid,res://assets/animation/bubbles/normal/bubble_normal_grid.png,64,64,16,4,4,10,0,true,bubble_anim_normal_csv_v1
+bubble_anim_normal,普通泡泡,grid,res://assets/animation/bubbles/normal/bubble_normal_grid.png,64,64,16,4,4,10,0,true,bubble_anim_normal_csv_v2

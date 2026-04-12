@@ -18,6 +18,7 @@ class_name RuleSetDef
 @export var enemy_touch_execute_enabled: bool = false
 @export var respawn_delay_sec: int = 0
 @export var respawn_invincible_sec: int = 0
+@export var death_display_sec: int = 2
 @export var score_per_enemy_finish: int = 1
 @export var score_tiebreak_policy: String = "draw"
 @export var respawn_spawn_policy: String = "original_spawn"

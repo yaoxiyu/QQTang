@@ -145,6 +145,7 @@ func build_resume_checkpoint_message() -> Dictionary:
 		"bubbles": snapshot.bubbles.duplicate(true),
 		"items": snapshot.items.duplicate(true),
 		"walls": snapshot.walls.duplicate(true),
+		"match_state": snapshot.match_state.duplicate(true),
 		"mode_state": snapshot.mode_state.duplicate(true),
 		"rng_state": snapshot.rng_state,
 		"checksum": snapshot.checksum,

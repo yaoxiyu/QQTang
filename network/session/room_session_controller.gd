@@ -147,6 +147,8 @@ func set_member_ready(peer_id: int, ready: bool) -> void:
 func can_start_match() -> bool:
 	if room_session.peers.size() < room_session.min_start_players:
 		return false
+	if _collect_distinct_team_ids().size() < 2:
+		return false
 	if not MapCatalogScript.has_map(_resolve_map_id()):
 		return false
 	if not RuleSetCatalogScript.has_rule(_resolve_rule_set_id()):
@@ -177,6 +179,11 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 		return {
 			"error_code": "ROOM_MEMBER_NOT_READY",
 			"user_message": "At least %d player(s) are required to start" % room_session.min_start_players,
+		}
+	if _collect_distinct_team_ids().size() < 2:
+		return {
+			"error_code": "ROOM_TEAM_INVALID",
+			"user_message": "At least two teams are required to start",
 		}
 	if not MapCatalogScript.has_map(_resolve_map_id()) or not RuleSetCatalogScript.has_rule(_resolve_rule_set_id()):
 		return {
@@ -260,6 +267,14 @@ func request_update_member_profile(
 			"ok": false,
 			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
 			"user_message": "Character selection is invalid",
+		}
+	var current_profile: Dictionary = member_profiles.get(peer_id, {})
+	var current_team_id := int(current_profile.get("team_id", _resolve_member_slot_index(peer_id) + 1))
+	if bool(room_session.ready_state.get(peer_id, false)) and team_id != current_team_id:
+		return {
+			"ok": false,
+			"error_code": "ROOM_MEMBER_PROFILE_FORBIDDEN",
+			"user_message": "Team cannot be changed after ready",
 		}
 	var profile: Dictionary = member_profiles.get(peer_id, {})
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
@@ -558,6 +573,25 @@ func _are_all_members_ready() -> bool:
 		if not bool(room_session.ready_state.get(peer_id, false)):
 			return false
 	return true
+
+
+func _collect_distinct_team_ids() -> Array[int]:
+	var team_ids: Array[int] = []
+	var slot_map := room_session.build_peer_slots()
+	for peer_id in room_session.peers:
+		var profile: Dictionary = member_profiles.get(peer_id, {})
+		var team_id := int(profile.get("team_id", int(slot_map.get(peer_id, 0)) + 1))
+		if team_id < 1:
+			continue
+		if not team_ids.has(team_id):
+			team_ids.append(team_id)
+	team_ids.sort()
+	return team_ids
+
+
+func _resolve_member_slot_index(peer_id: int) -> int:
+	var slot_map := room_session.build_peer_slots()
+	return int(slot_map.get(peer_id, 0))
 
 
 func _can_interact_in_room() -> bool:

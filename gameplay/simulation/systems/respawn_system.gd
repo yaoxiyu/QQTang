@@ -100,7 +100,7 @@ func _get_respawn_invincible_ticks(ctx: SimContext) -> int:
 
 
 func _get_spawn_assignments(ctx: SimContext) -> Array[Dictionary]:
-	var assignments := ctx.config.system_flags.get("spawn_assignments", [])
+	var assignments : Array = ctx.config.system_flags.get("spawn_assignments", [])
 	var result: Array[Dictionary] = []
 	if assignments is Array:
 		for entry in assignments:
@@ -110,7 +110,7 @@ func _get_spawn_assignments(ctx: SimContext) -> Array[Dictionary]:
 
 
 func _get_rule_flags(ctx: SimContext) -> Dictionary:
-	var rule_flags := ctx.config.system_flags.get("rule_set", {})
+	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}

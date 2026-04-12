@@ -146,6 +146,11 @@ func update_profile(
 ) -> void:
 	if not members.has(peer_id):
 		return
+	if bool(ready_map.get(peer_id, false)):
+		var profile: Dictionary = members.get(peer_id, {})
+		var current_team_id := int(profile.get("team_id", _resolve_team_id(peer_id, 0)))
+		if team_id != current_team_id:
+			return
 	upsert_member(peer_id, player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
 
 
@@ -176,6 +181,8 @@ func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
 func can_start() -> bool:
 	if members.size() < min_start_players:
 		return false
+	if get_distinct_team_ids().size() < 2:
+		return false
 	if selected_map_id.is_empty() or selected_rule_id.is_empty() or selected_mode_id.is_empty():
 		return false
 	if not MapCatalogScript.has_map(selected_map_id):
@@ -188,6 +195,28 @@ func can_start() -> bool:
 		if not bool(ready_map.get(peer_id, false)):
 			return false
 	return true
+
+
+func get_distinct_team_ids() -> Array[int]:
+	var team_ids: Array[int] = []
+	if not member_bindings_by_member_id.is_empty():
+		for binding in _get_sorted_member_bindings():
+			if binding == null or binding.team_id < 1:
+				continue
+			if not team_ids.has(binding.team_id):
+				team_ids.append(binding.team_id)
+		team_ids.sort()
+		return team_ids
+
+	for peer_id in members.keys():
+		var profile: Dictionary = members.get(peer_id, {})
+		var team_id := int(profile.get("team_id", 0))
+		if team_id < 1:
+			continue
+		if not team_ids.has(team_id):
+			team_ids.append(team_id)
+	team_ids.sort()
+	return team_ids
 
 
 func reset_ready_state() -> void:

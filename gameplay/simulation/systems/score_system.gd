@@ -41,7 +41,7 @@ func _apply_score_event(ctx: SimContext, score_event: Dictionary, score_delta: i
 
 
 func _get_score_per_enemy_finish(ctx: SimContext) -> int:
-	var rule_flags := ctx.config.system_flags.get("rule_set", {})
+	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if not (rule_flags is Dictionary):
 		return 1
 	return max(int(rule_flags.get("score_per_enemy_finish", 1)), 0)

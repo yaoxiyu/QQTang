@@ -10,6 +10,7 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const BattleStateToViewMapperScript = preload("res://presentation/battle/bridge/state_to_view_mapper.gd")
 
 
 func _ready() -> void:
@@ -410,6 +411,7 @@ func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
 		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
 		"result": {
 			"winner_peer_ids": [2],
+			"winner_team_ids": [2],
 			"eliminated_order": [1],
 			"finish_reason": "last_survivor",
 			"finish_tick": 123,
@@ -421,6 +423,9 @@ func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
 	ok = TestAssertScript.is_true(finished_result != null, "client should emit battle_finished when MATCH_FINISHED arrives", prefix) and ok
 	ok = TestAssertScript.is_true(finished_result != null and finished_result.local_peer_id == 2, "client should rebind result local_peer_id to controlled peer", prefix) and ok
 	ok = TestAssertScript.is_true(finished_result != null and finished_result.is_local_victory(), "client local victory should remain true after result rebinding", prefix) and ok
+	var predicted_world := client.prediction_controller.predicted_sim_world if client.prediction_controller != null else null
+	var player_views := BattleStateToViewMapperScript.new().build_player_views(predicted_world)
+	ok = TestAssertScript.is_true(_has_peer_pose(config, player_views, 2, "victory"), "winner remote actor should receive victory pose after MATCH_FINISHED", prefix) and ok
 
 	_cleanup_nodes([client])
 	return ok
@@ -456,8 +461,8 @@ func _make_config() -> BattleStartConfig:
 	config.controlled_peer_id = 2
 	config.owner_peer_id = 1
 	config.player_slots = [
-		{"peer_id": 1, "player_name": "Host", "slot_index": 0, "spawn_slot": 0, "character_id": host_character_id},
-		{"peer_id": 2, "player_name": "Client", "slot_index": 1, "spawn_slot": 1, "character_id": client_character_id},
+		{"peer_id": 1, "player_name": "Host", "slot_index": 0, "spawn_slot": 0, "character_id": host_character_id, "team_id": 1},
+		{"peer_id": 2, "player_name": "Client", "slot_index": 1, "spawn_slot": 1, "character_id": client_character_id, "team_id": 2},
 	]
 	config.players = config.player_slots.duplicate(true)
 	config.character_loadouts = [
@@ -470,6 +475,18 @@ func _make_config() -> BattleStartConfig:
 	]
 	config.sort_players()
 	return config
+
+
+func _has_peer_pose(config: BattleStartConfig, player_views: Array[Dictionary], peer_id: int, pose_state: String) -> bool:
+	var slot_index := -1
+	for player_entry in config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == peer_id:
+			slot_index = int(player_entry.get("slot_index", -1))
+			break
+	for view in player_views:
+		if int(view.get("player_slot", -2)) == slot_index:
+			return String(view.get("pose_state", "")) == pose_state
+	return false
 
 
 func _cleanup_nodes(nodes: Array) -> void:

@@ -32,6 +32,11 @@ func execute(ctx: SimContext) -> void:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
 			continue
+		if player.life_state != PlayerState.LifeState.NORMAL:
+			player.move_state = PlayerState.MoveState.IDLE
+			player.move_phase_ticks = 0
+			ctx.state.players.update_player(player)
+			continue
 		if _should_preserve_authoritative_remote_state(ctx, player):
 			continue
 

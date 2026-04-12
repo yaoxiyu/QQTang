@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="BubbleAnimationSetDef" format=3 uid="uid://b7xawhs5nwhl4"]
+[gd_resource type="Resource" script_class="BubbleAnimationSetDef" format=3]
 
-[ext_resource type="Script" uid="uid://c41ny0rdvkx1k" path="res://content/bubble_animation_sets/defs/bubble_animation_set_def.gd" id="1_81qfd"]
-[ext_resource type="SpriteFrames" uid="uid://drahapbnpog17" path="res://content/bubble_animation_sets/generated/sprite_frames/bubble_anim_normal_frames.tres" id="2_1hvdv"]
+[ext_resource type="Script" path="res://content/bubble_animation_sets/defs/bubble_animation_set_def.gd" id="1_81qfd"]
+[ext_resource type="SpriteFrames" path="res://content/bubble_animation_sets/generated/sprite_frames/bubble_anim_normal_frames.tres" id="2_1hvdv"]
 
 [resource]
 script = ExtResource("1_81qfd")
@@ -11,4 +11,4 @@ sprite_frames = ExtResource("2_1hvdv")
 frame_width = 64
 frame_height = 64
 frame_count = 16
-content_hash = "bubble_anim_normal_csv_v1"
+content_hash = "bubble_anim_normal_csv_v2"

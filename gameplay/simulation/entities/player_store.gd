@@ -123,6 +123,7 @@ func restore_player_from_snapshot(data: Dictionary) -> int:
 	player.invincible_ticks = int(data.get("invincible_ticks", 0))
 	player.stun_ticks = int(data.get("stun_ticks", 0))
 	player.respawn_ticks = int(data.get("respawn_ticks", 0))
+	player.death_display_ticks = int(data.get("death_display_ticks", 0))
 	player.trap_bubble_id = int(data.get("trap_bubble_id", -1))
 	player.last_damage_from_player_id = int(data.get("last_damage_from_player_id", -1))
 	player.kills = int(data.get("kills", 0))

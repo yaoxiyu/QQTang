@@ -3,8 +3,7 @@ extends ISimSystem
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 
-const TOUCH_DISTANCE_UNITS := 48
-const TOUCH_DISTANCE_SQ := TOUCH_DISTANCE_UNITS * TOUCH_DISTANCE_UNITS
+const CELL_UNITS := 1000
 
 
 func get_name() -> StringName:
@@ -72,9 +71,9 @@ func _collect_normal_players(ctx: SimContext) -> Array[PlayerState]:
 func _is_touching(trapped_player: PlayerState, actor_player: PlayerState) -> bool:
 	var trapped_abs := PlayerLocator.get_abs_pos(trapped_player)
 	var actor_abs := PlayerLocator.get_abs_pos(actor_player)
-	var dx := trapped_abs.x - actor_abs.x
-	var dy := trapped_abs.y - actor_abs.y
-	return dx * dx + dy * dy <= TOUCH_DISTANCE_SQ
+	var dx := absi(trapped_abs.x - actor_abs.x)
+	var dy := absi(trapped_abs.y - actor_abs.y)
+	return (dx <= CELL_UNITS and dy < CELL_UNITS) or (dy <= CELL_UNITS and dx < CELL_UNITS)
 
 
 func _rescue_player(ctx: SimContext, trapped_player: PlayerState, rescuer_player: PlayerState) -> void:
@@ -121,7 +120,7 @@ func _get_rescue_invincible_ticks(ctx: SimContext) -> int:
 
 
 func _get_rule_flags(ctx: SimContext) -> Dictionary:
-	var rule_flags := ctx.config.system_flags.get("rule_set", {})
+	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}

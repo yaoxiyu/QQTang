@@ -25,6 +25,7 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_disabled(scene_controller, "map_selector", not bool(view_model.get("can_edit_selection", false)))
 	_set_disabled(scene_controller, "rule_selector", not bool(view_model.get("can_edit_selection", false)))
 	_set_disabled(scene_controller, "game_mode_selector", not bool(view_model.get("can_edit_selection", false)))
+	_set_disabled(scene_controller, "team_selector", not bool(view_model.get("can_edit_team", true)))
 	_set_disabled(scene_controller, "ready_button", not bool(view_model.get("can_ready", false)))
 	_set_disabled(scene_controller, "start_button", not bool(view_model.get("can_start", false)))
 	_set_visible(scene_controller, "ready_button", true)

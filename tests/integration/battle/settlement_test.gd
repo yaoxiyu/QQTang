@@ -8,6 +8,7 @@ func _ready() -> void:
 func run_all() -> void:
 	_test_settlement_show_and_reset()
 	_test_settlement_draw_result_uses_draw_title()
+	_test_settlement_team_victory_uses_victory_title()
 	_test_battle_hud_debug_dump_reports_text_state()
 	_test_battle_hud_reports_item_pickup_message()
 
@@ -82,6 +83,40 @@ func _test_settlement_draw_result_uses_draw_title() -> void:
 
 	var shown_dump := settlement.debug_dump_settlement_state()
 	_assert_true(String(shown_dump.get("result_text", "")) == "Draw", "settlement shows draw title when no winner survives")
+
+	settlement.queue_free()
+
+
+func _test_settlement_team_victory_uses_victory_title() -> void:
+	var settlement := SettlementController.new()
+	var result_label := Label.new()
+	result_label.name = "ResultLabel"
+	var detail_label := Label.new()
+	detail_label.name = "DetailLabel"
+	var map_summary_label := Label.new()
+	map_summary_label.name = "MapSummaryLabel"
+	var rule_summary_label := Label.new()
+	rule_summary_label.name = "RuleSummaryLabel"
+	var finish_reason_label := Label.new()
+	finish_reason_label.name = "FinishReasonLabel"
+	settlement.add_child(result_label)
+	settlement.add_child(detail_label)
+	settlement.add_child(map_summary_label)
+	settlement.add_child(rule_summary_label)
+	settlement.add_child(finish_reason_label)
+	add_child(settlement)
+	settlement._ready()
+
+	var result := BattleResult.new()
+	result.local_peer_id = 7
+	result.local_team_id = 1
+	result.local_outcome = "victory"
+	result.winner_team_ids = [1]
+	result.finish_reason = "team_eliminated"
+	settlement.show_result(result)
+
+	var shown_dump := settlement.debug_dump_settlement_state()
+	_assert_true(String(shown_dump.get("result_text", "")) == "Victory", "settlement shows team victory title")
 
 	settlement.queue_free()
 

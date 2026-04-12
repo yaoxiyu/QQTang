@@ -30,6 +30,7 @@ func generate() -> void:
         def.enemy_touch_execute_enabled = get_cell(row, header_index, "enemy_touch_execute_enabled") == "true"
         def.respawn_delay_sec = int(get_cell(row, header_index, "respawn_delay_sec"))
         def.respawn_invincible_sec = int(get_cell(row, header_index, "respawn_invincible_sec"))
+        def.death_display_sec = int(get_cell(row, header_index, "death_display_sec"))
         def.score_per_enemy_finish = int(get_cell(row, header_index, "score_per_enemy_finish"))
         def.score_tiebreak_policy = get_cell(row, header_index, "score_tiebreak_policy")
         def.respawn_spawn_policy = get_cell(row, header_index, "respawn_spawn_policy")

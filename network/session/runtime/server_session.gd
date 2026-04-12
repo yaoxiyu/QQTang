@@ -84,6 +84,7 @@ func _tick_world(_tick_id: int) -> void:
 		"bubbles": snapshot.bubbles if snapshot != null else [],
 		"items": snapshot.items if snapshot != null else [],
 		"walls": snapshot.walls if snapshot != null else [],
+		"match_state": snapshot.match_state.duplicate(true) if snapshot != null else {},
 		"events": events,
 		"checksum": active_match.compute_checksum(tick_id)
 	})
@@ -104,6 +105,7 @@ func _tick_snapshot(tick_id: int) -> void:
 		"bubbles": snapshot.bubbles,
 		"items": snapshot.items,
 		"walls": snapshot.walls,
+		"match_state": snapshot.match_state.duplicate(true),
 		"mode_state": snapshot.mode_state.duplicate(true),
 		"rng_state": snapshot.rng_state,
 		"checksum": snapshot.checksum

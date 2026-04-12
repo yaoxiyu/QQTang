@@ -27,3 +27,24 @@ func execute(ctx: SimContext) -> void:
 
 	# 开始新 Tick 的事件
 	ctx.events.begin_tick(ctx.tick)
+
+	_tick_player_timers(ctx)
+
+
+func _tick_player_timers(ctx: SimContext) -> void:
+	for player_id in range(ctx.state.players.size()):
+		var player := ctx.state.players.get_player(player_id)
+		if player == null:
+			continue
+		var changed := false
+		if player.invincible_ticks > 0:
+			player.invincible_ticks -= 1
+			changed = true
+		if player.shield_ticks > 0:
+			player.shield_ticks -= 1
+			changed = true
+		if player.stun_ticks > 0:
+			player.stun_ticks -= 1
+			changed = true
+		if changed:
+			ctx.state.players.update_player(player)

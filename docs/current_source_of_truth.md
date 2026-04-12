@@ -686,9 +686,16 @@ Phase18 Battle 启动链路进一步约束为：
   - `ExplosionHitSystem`
   - `PlayerLifeTransitionSystem`
   - `JellyInteractionSystem`
+  - `PlayerLifeTransitionSystem`
   - `RespawnSystem`
   - `ScoreSystem`
   - `StatusEffectSystem`
+- 敌触处决需要在 `JellyInteractionSystem` 后同 tick 再走一次生命结算，不允许把 `players_to_execute` 延迟到下一 tick 才真正死亡
+- 复活无敌当前是正式规则字段：
+  - `rule_set.respawn_invincible_sec`
+  - `RespawnSystem` 在复活瞬间写入 `invincible_ticks`
+  - `PreTickSystem` 逐 tick 扣减
+  - 无敌窗口内不会被爆炸再次炸死，这是当前明确设计
 - `StatusEffectSystem` 当前仅应保留炸砖和爆炸泡泡返还等残余职责，不再作为玩家生命规则真相主入口
 - 果冻救援 / 敌触处决必须由仿真层决定，不允许依赖表现层碰撞
 - 当前正式接触判定基于玩家脚底中心绝对坐标的固定阈值距离，不允许引入非确定性物理 overlap 作为真相

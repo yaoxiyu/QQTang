@@ -23,6 +23,9 @@ func execute(ctx: SimContext) -> void:
 	if ctx.state.match_state.phase != MatchState.Phase.PLAYING:
 		return
 
+	if _try_end_single_participating_team_match(ctx):
+		return
+
 	if _get_score_policy(ctx) == "team_score":
 		return
 
@@ -30,17 +33,18 @@ func execute(ctx: SimContext) -> void:
 	if active_team_ids.size() > 1:
 		return
 
-	ctx.state.match_state.phase = MatchState.Phase.ENDED
 	if active_team_ids.size() == 1:
 		var winner_team_id := int(active_team_ids[0])
-		ctx.state.match_state.winner_team_id = winner_team_id
-		ctx.state.match_state.winner_player_id = _resolve_single_active_player_id_for_team(ctx, winner_team_id)
+		_end_match(ctx, winner_team_id, _resolve_single_active_player_id_for_team(ctx, winner_team_id), MatchState.EndReason.TEAM_ELIMINATED)
 	else:
-		ctx.state.match_state.winner_player_id = -1
-		ctx.state.match_state.winner_team_id = -1
+		_end_match(ctx, -1, -1, MatchState.EndReason.TEAM_ELIMINATED)
 
-	ctx.state.match_state.ended_reason = MatchState.EndReason.TEAM_ELIMINATED
 
+func _end_match(ctx: SimContext, winner_team_id: int, winner_player_id: int, reason: int) -> void:
+	ctx.state.match_state.phase = MatchState.Phase.ENDED
+	ctx.state.match_state.winner_team_id = winner_team_id
+	ctx.state.match_state.winner_player_id = winner_player_id
+	ctx.state.match_state.ended_reason = reason
 	var match_end_event := SimEvent.new(ctx.tick, SimEvent.EventType.MATCH_ENDED)
 	match_end_event.payload = {
 		"winner_player_id": ctx.state.match_state.winner_player_id,
@@ -48,6 +52,29 @@ func execute(ctx: SimContext) -> void:
 		"reason": ctx.state.match_state.ended_reason
 	}
 	ctx.events.push(match_end_event)
+
+
+func _try_end_single_participating_team_match(ctx: SimContext) -> bool:
+	var participating_team_ids := _collect_participating_team_ids(ctx)
+	if participating_team_ids.size() != 1:
+		return false
+	var winner_team_id := int(participating_team_ids[0])
+	_end_match(ctx, winner_team_id, _resolve_single_active_player_id_for_team(ctx, winner_team_id), MatchState.EndReason.LAST_SURVIVOR)
+	return true
+
+
+func _collect_participating_team_ids(ctx: SimContext) -> Array[int]:
+	var teams: Dictionary = {}
+	for player_id in range(ctx.state.players.size()):
+		var player := ctx.state.players.get_player(player_id)
+		if player == null or player.team_id < 1:
+			continue
+		teams[player.team_id] = true
+	var team_ids: Array[int] = []
+	for team_id in teams.keys():
+		team_ids.append(int(team_id))
+	team_ids.sort()
+	return team_ids
 
 
 func _collect_active_team_ids(ctx: SimContext) -> Array[int]:
@@ -91,7 +118,7 @@ func _is_player_active_for_team_survival(player: PlayerState) -> bool:
 
 
 func _get_score_policy(ctx: SimContext) -> String:
-	var rule_flags := ctx.config.system_flags.get("rule_set", {})
+	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
 		return String(rule_flags.get("score_policy", "last_survivor"))
 	return "last_survivor"

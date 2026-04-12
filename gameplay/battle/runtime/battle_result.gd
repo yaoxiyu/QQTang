@@ -163,7 +163,7 @@ static func _resolve_score_policy(world: SimWorld, start_config: BattleStartConf
 		if rule_set != null:
 			return String(rule_set.score_policy)
 	if world != null and world.config != null:
-		var rule_flags := world.config.system_flags.get("rule_set", {})
+		var rule_flags : Dictionary = world.config.system_flags.get("rule_set", {})
 		if rule_flags is Dictionary:
 			return String(rule_flags.get("score_policy", ""))
 	return ""

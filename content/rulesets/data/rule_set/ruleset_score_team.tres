@@ -14,4 +14,5 @@ rescue_touch_enabled = true
 enemy_touch_execute_enabled = true
 respawn_delay_sec = 3
 respawn_invincible_sec = 2
+death_display_sec = 0
 score_tiebreak_policy = "alive_then_draw"

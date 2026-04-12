@@ -22,8 +22,6 @@ func _process_players_to_trap(ctx: SimContext) -> void:
 
 		player.life_state = PlayerState.LifeState.TRAPPED
 		player.move_state = PlayerState.MoveState.IDLE
-		player.offset_x = 0
-		player.offset_y = 0
 		player.move_phase_ticks = 0
 		if player.trap_bubble_id == 0:
 			player.trap_bubble_id = -1
@@ -74,21 +72,22 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 	var killer_player_id := int(player.last_damage_from_player_id)
 	var respawn_enabled := _is_respawn_enabled(ctx)
 	var respawn_ticks := _get_respawn_delay_ticks(ctx)
+	var death_display_ticks := _get_death_display_ticks(ctx)
 
 	player.alive = false
 	player.deaths += 1
 	player.move_state = PlayerState.MoveState.IDLE
-	player.offset_x = 0
-	player.offset_y = 0
 	player.move_phase_ticks = 0
 	player.trap_bubble_id = -1
 
 	if respawn_enabled and respawn_ticks > 0:
 		player.life_state = PlayerState.LifeState.REVIVING
 		player.respawn_ticks = respawn_ticks
+		player.death_display_ticks = 0
 	else:
 		player.life_state = PlayerState.LifeState.DEAD
 		player.respawn_ticks = 0
+		player.death_display_ticks = death_display_ticks
 
 	ctx.state.players.update_player(player)
 	_remove_player_from_live_indexes(ctx, player_id, foot_cell)
@@ -151,8 +150,16 @@ func _get_respawn_delay_ticks(ctx: SimContext) -> int:
 	return respawn_delay_sec * max(ctx.config.tick_rate, 1)
 
 
+func _get_death_display_ticks(ctx: SimContext) -> int:
+	var rule_flags: Dictionary = _get_rule_flags(ctx)
+	var death_display_sec := int(rule_flags.get("death_display_sec", 2))
+	if death_display_sec <= 0:
+		return 0
+	return death_display_sec * max(ctx.config.tick_rate, 1)
+
+
 func _get_rule_flags(ctx: SimContext) -> Dictionary:
-	var rule_flags := ctx.config.system_flags.get("rule_set", {})
+	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}

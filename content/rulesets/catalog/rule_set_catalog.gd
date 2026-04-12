@@ -101,6 +101,7 @@ static func get_rule_metadata(rule_set_id: String) -> Dictionary:
 		"enemy_touch_execute_enabled": def.enemy_touch_execute_enabled,
 		"respawn_delay_sec": def.respawn_delay_sec,
 		"respawn_invincible_sec": def.respawn_invincible_sec,
+		"death_display_sec": def.death_display_sec,
 		"score_per_enemy_finish": def.score_per_enemy_finish,
 		"score_tiebreak_policy": def.score_tiebreak_policy,
 		"respawn_spawn_policy": def.respawn_spawn_policy,

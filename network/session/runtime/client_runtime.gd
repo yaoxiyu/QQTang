@@ -185,6 +185,7 @@ func ingest_network_message(message: Dictionary) -> void:
 			var result := BattleResult.from_dict(message.get("result", {}))
 			var resolved_local_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 			result.bind_local_peer_context(resolved_local_peer_id)
+			_apply_match_finished_to_predicted_world(result)
 			battle_finished.emit(result)
 		_:
 			pass
@@ -254,6 +255,7 @@ func _snapshot_from_message(message: Dictionary) -> WorldSnapshot:
 	snapshot.bubbles = _coerce_dictionary_array(message.get("bubbles", []))
 	snapshot.items = _coerce_dictionary_array(message.get("items", []))
 	snapshot.walls = _coerce_dictionary_array(message.get("walls", []))
+	snapshot.match_state = _coerce_dictionary(message.get("match_state", {}))
 	snapshot.mode_state = _coerce_dictionary(message.get("mode_state", {}))
 	snapshot.rng_state = int(message.get("rng_state", 0))
 	snapshot.checksum = int(message.get("checksum", 0))
@@ -391,17 +393,19 @@ func _apply_authority_sideband_from_message(message: Dictionary, include_walls: 
 	var bubbles: Array[Dictionary] = _coerce_dictionary_array(message.get("bubbles", []))
 	var items: Array[Dictionary] = _coerce_dictionary_array(message.get("items", []))
 	var walls: Array[Dictionary] = []
+	var match_state: Dictionary = _coerce_dictionary(message.get("match_state", {}))
 	var mode_state: Dictionary = {}
 	if include_walls:
 		walls = _coerce_dictionary_array(message.get("walls", []))
 	if include_mode_state:
 		mode_state = _coerce_dictionary(message.get("mode_state", {}))
-	if bubbles.is_empty() and items.is_empty() and walls.is_empty() and mode_state.is_empty():
+	if bubbles.is_empty() and items.is_empty() and walls.is_empty() and match_state.is_empty() and mode_state.is_empty():
 		return
 	_restore_bubbles(world, bubbles)
 	_restore_items(world, items)
 	if include_walls:
 		_restore_walls(world, walls)
+	_restore_match_state(world, match_state, message_tick)
 	if include_mode_state:
 		_restore_mode_state(world, mode_state)
 	world.rebuild_runtime_indexes()
@@ -539,6 +543,63 @@ func _restore_mode_state(world: SimWorld, mode_state: Dictionary) -> void:
 	world.state.mode.sudden_death_active = bool(mode_state.get("sudden_death_active", false))
 	world.state.mode.custom_ints = mode_state.get("custom_ints", {}).duplicate(true)
 	world.state.mode.custom_flags = mode_state.get("custom_flags", {}).duplicate(true)
+
+
+func _restore_match_state(world: SimWorld, match_state: Dictionary, tick_id: int) -> void:
+	if world == null or match_state.is_empty():
+		return
+	world.state.match_state.tick = tick_id
+	world.state.match_state.phase = int(match_state.get("phase", world.state.match_state.phase))
+	world.state.match_state.winner_team_id = int(match_state.get("winner_team_id", world.state.match_state.winner_team_id))
+	world.state.match_state.winner_player_id = int(match_state.get("winner_player_id", world.state.match_state.winner_player_id))
+	world.state.match_state.ended_reason = int(match_state.get("ended_reason", world.state.match_state.ended_reason))
+	world.state.match_state.remaining_ticks = int(match_state.get("remaining_ticks", world.state.match_state.remaining_ticks))
+
+
+func _apply_match_finished_to_predicted_world(result: BattleResult) -> void:
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null or result == null:
+		return
+	var world := prediction_controller.predicted_sim_world
+	world.state.match_state.phase = MatchState.Phase.ENDED
+	world.state.match_state.winner_team_id = int(result.winner_team_ids[0]) if not result.winner_team_ids.is_empty() else -1
+	world.state.match_state.winner_player_id = _resolve_winner_player_id_from_result(world, result)
+	world.state.match_state.ended_reason = _finish_reason_to_match_end_reason(result.finish_reason)
+	if result.finish_tick > 0:
+		world.state.match_state.tick = result.finish_tick
+
+
+func _resolve_winner_player_id_from_result(world: SimWorld, result: BattleResult) -> int:
+	if world == null or result == null or result.winner_peer_ids.is_empty() or start_config == null:
+		return -1
+	var winner_peer_id := int(result.winner_peer_ids[0])
+	var winner_slot := -1
+	for player_entry in start_config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == winner_peer_id:
+			winner_slot = int(player_entry.get("slot_index", -1))
+			break
+	if winner_slot < 0:
+		return -1
+	for player_id in range(world.state.players.size()):
+		var player := world.state.players.get_player(player_id)
+		if player != null and player.player_slot == winner_slot:
+			return player.entity_id
+	return -1
+
+
+func _finish_reason_to_match_end_reason(finish_reason: String) -> int:
+	match finish_reason:
+		"last_survivor":
+			return MatchState.EndReason.LAST_SURVIVOR
+		"team_eliminated":
+			return MatchState.EndReason.TEAM_ELIMINATED
+		"time_up":
+			return MatchState.EndReason.TIME_UP
+		"mode_objective":
+			return MatchState.EndReason.MODE_OBJECTIVE
+		"force_end":
+			return MatchState.EndReason.FORCE_END
+		_:
+			return MatchState.EndReason.FORCE_END
 
 
 func _denormalize_variant(value: Variant) -> Variant:

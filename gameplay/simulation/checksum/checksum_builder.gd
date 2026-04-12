@@ -7,6 +7,11 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 
 	parts.append(tick_id)
 	parts.append(sim_world.rng.get_state())
+	parts.append(sim_world.state.match_state.phase)
+	parts.append(sim_world.state.match_state.winner_team_id)
+	parts.append(sim_world.state.match_state.winner_player_id)
+	parts.append(sim_world.state.match_state.ended_reason)
+	parts.append(sim_world.state.match_state.remaining_ticks)
 
 	for player in _get_sorted_players(sim_world):
 		parts.append(player.entity_id)
@@ -20,6 +25,7 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(player.move_phase_ticks)
 		parts.append(int(player.alive))
 		parts.append(player.life_state)
+		parts.append(player.death_display_ticks)
 		parts.append(player.bomb_available)
 		parts.append(player.bomb_range)
 
@@ -66,7 +72,7 @@ func _hash_parts(parts: PackedInt64Array) -> int:
 
 func _get_sorted_players(sim_world: SimWorld) -> Array[PlayerState]:
 	var players: Array[PlayerState] = []
-	for player_id in sim_world.state.players.active_ids:
+	for player_id in range(sim_world.state.players.size()):
 		var player := sim_world.state.players.get_player(player_id)
 		if player != null:
 			players.append(player)

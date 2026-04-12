@@ -151,14 +151,18 @@ func _refresh_text() -> void:
 func _build_title_text() -> String:
 	if current_result == null:
 		return ""
-	if current_result.local_outcome == "victory" or current_result.is_local_victory():
+	if current_result.local_outcome == "victory":
 		return "Victory"
 	if current_result.local_outcome == "defeat":
 		return "Defeat"
-	if not current_result.winner_team_ids.is_empty() or not current_result.winner_peer_ids.is_empty():
-		return "Defeat"
+	if current_result.local_outcome == "draw":
+		return "Draw"
+	if current_result.is_local_victory():
+		return "Victory"
 	if _is_draw_result(current_result):
 		return "Draw"
+	if not current_result.winner_team_ids.is_empty() or not current_result.winner_peer_ids.is_empty():
+		return "Defeat"
 	return "Match Ended"
 
 

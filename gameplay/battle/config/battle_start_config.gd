@@ -192,6 +192,7 @@ func validate(options: Dictionary = {}) -> Dictionary:
 
 	var peer_ids: Dictionary = {}
 	var slot_indices: Dictionary = {}
+	var team_ids: Dictionary = {}
 	for player_entry in player_slots:
 		var peer_id := int(player_entry.get("peer_id", -1))
 		var slot_index := int(player_entry.get("slot_index", -1))
@@ -212,6 +213,10 @@ func validate(options: Dictionary = {}) -> Dictionary:
 			errors.append("player_slots contains missing team_id for peer %d" % peer_id)
 		elif team_id < 1:
 			errors.append("player_slots contains invalid team_id for peer %d" % peer_id)
+		else:
+			team_ids[team_id] = true
+	if team_ids.size() < 2:
+		errors.append("player_slots must contain at least two team_id values")
 
 	var spawn_peer_ids: Dictionary = {}
 	for assignment in spawn_assignments:

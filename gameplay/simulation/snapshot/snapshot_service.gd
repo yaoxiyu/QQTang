@@ -7,6 +7,7 @@ var checksum_builder: ChecksumBuilder = ChecksumBuilder.new()
 func build_light_snapshot(sim_world: SimWorld, tick_id: int) -> WorldSnapshot:
 	var snapshot := WorldSnapshot.new()
 	snapshot.tick_id = tick_id
+	snapshot.match_state = _capture_match_state(sim_world)
 	snapshot.players = _capture_players(sim_world)
 	snapshot.bubbles = _capture_bubbles(sim_world)
 	snapshot.items = _capture_items(sim_world)
@@ -30,6 +31,7 @@ func restore_snapshot(sim_world: SimWorld, snapshot: WorldSnapshot) -> void:
 	sim_world.reset_runtime_only()
 	sim_world.rng.set_state(snapshot.rng_state)
 	sim_world.state.match_state.tick = snapshot.tick_id
+	_restore_match_state(sim_world, snapshot.match_state, snapshot.tick_id)
 	_restore_players(sim_world, snapshot.players)
 	_restore_bubbles(sim_world, snapshot.bubbles)
 	_restore_items(sim_world, snapshot.items)
@@ -50,13 +52,39 @@ func build_diff(a: WorldSnapshot, b: WorldSnapshot) -> Dictionary:
 		"bubbles_equal": a != null and b != null and a.bubbles == b.bubbles,
 		"items_equal": a != null and b != null and a.items == b.items,
 		"walls_equal": a != null and b != null and a.walls == b.walls,
-		"mode_equal": a != null and b != null and a.mode_state == b.mode_state
+		"mode_equal": a != null and b != null and a.mode_state == b.mode_state,
+		"match_equal": a != null and b != null and a.match_state == b.match_state
 	}
+
+
+func _capture_match_state(sim_world: SimWorld) -> Dictionary:
+	if sim_world == null:
+		return {}
+	var match_state := sim_world.state.match_state
+	return {
+		"phase": match_state.phase,
+		"winner_team_id": match_state.winner_team_id,
+		"winner_player_id": match_state.winner_player_id,
+		"ended_reason": match_state.ended_reason,
+		"remaining_ticks": match_state.remaining_ticks,
+	}
+
+
+func _restore_match_state(sim_world: SimWorld, match_data: Dictionary, fallback_tick: int) -> void:
+	if sim_world == null or match_data.is_empty():
+		return
+	var match_state := sim_world.state.match_state
+	match_state.tick = fallback_tick
+	match_state.phase = int(match_data.get("phase", match_state.phase))
+	match_state.winner_team_id = int(match_data.get("winner_team_id", match_state.winner_team_id))
+	match_state.winner_player_id = int(match_data.get("winner_player_id", match_state.winner_player_id))
+	match_state.ended_reason = int(match_data.get("ended_reason", match_state.ended_reason))
+	match_state.remaining_ticks = int(match_data.get("remaining_ticks", match_state.remaining_ticks))
 
 
 func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 	var players: Array[Dictionary] = []
-	for player_id in sim_world.state.players.active_ids:
+	for player_id in range(sim_world.state.players.size()):
 		var player := sim_world.state.players.get_player(player_id)
 		if player == null:
 			continue
@@ -91,6 +119,7 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"invincible_ticks": player.invincible_ticks,
 			"stun_ticks": player.stun_ticks,
 			"respawn_ticks": player.respawn_ticks,
+			"death_display_ticks": player.death_display_ticks,
 			"trap_bubble_id": player.trap_bubble_id,
 			"last_damage_from_player_id": player.last_damage_from_player_id,
 			"kills": player.kills,

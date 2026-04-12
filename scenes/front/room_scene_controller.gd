@@ -446,6 +446,12 @@ func _on_add_opponent_pressed() -> void:
 func _on_profile_changed() -> void:
 	if _suppress_selection_callbacks or _room_use_case == null:
 		return
+	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
+	var local_member := _resolve_local_member(snapshot)
+	if local_member != null and local_member.ready and _selected_team_id() != local_member.team_id:
+		_select_team_id(local_member.team_id)
+		_set_room_feedback("Team cannot be changed after ready")
+		return
 	_room_use_case.update_local_profile(
 		player_name_input.text.strip_edges() if player_name_input != null else "",
 		_selected_metadata(character_selector),

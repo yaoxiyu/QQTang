@@ -276,6 +276,16 @@ func _handle_update_profile(message: Dictionary) -> void:
 			"user_message": "Team selection is invalid",
 		})
 		return
+	if bool(room_state.ready_map.get(peer_id, false)):
+		var profile: Dictionary = room_state.members.get(peer_id, {})
+		var current_team_id := int(profile.get("team_id", team_id))
+		if team_id != current_team_id:
+			send_to_peer.emit(peer_id, {
+				"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+				"error": "ROOM_MEMBER_PROFILE_FORBIDDEN",
+				"user_message": "Team cannot be changed after ready",
+			})
+			return
 	room_state.update_profile(
 		peer_id,
 		String(message.get("player_name", "Player%d" % peer_id)),
@@ -337,6 +347,13 @@ func _handle_start_request(message: Dictionary) -> void:
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "MATCH_ALREADY_ACTIVE",
 			"user_message": "A match is already active",
+		})
+		return
+	if room_state.get_distinct_team_ids().size() < 2:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_TEAM_INVALID",
+			"user_message": "At least two teams are required to start",
 		})
 		return
 	if peer_id != room_state.owner_peer_id or not room_state.can_start():

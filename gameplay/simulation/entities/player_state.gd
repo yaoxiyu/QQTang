@@ -108,6 +108,7 @@ var shield_ticks: int = 0
 var invincible_ticks: int = 0
 var stun_ticks: int = 0
 var respawn_ticks: int = 0
+var death_display_ticks: int = 0
 
 # ====================
 # 战斗相关

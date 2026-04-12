@@ -27,6 +27,8 @@ func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 		return false
 	if snapshot.member_count() < snapshot.min_start_players:
 		return false
+	if _collect_distinct_team_ids(snapshot).size() < 2:
+		return false
 	if not snapshot.all_ready:
 		return false
 	if snapshot.selected_map_id.is_empty():
@@ -41,6 +43,19 @@ func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 	if not ModeCatalogScript.has_mode(resolved_mode_id):
 		return false
 	return true
+
+
+func _collect_distinct_team_ids(snapshot: RoomSnapshot) -> Array[int]:
+	var team_ids: Array[int] = []
+	if snapshot == null:
+		return team_ids
+	for member in snapshot.members:
+		if member == null or member.team_id < 1:
+			continue
+		if not team_ids.has(member.team_id):
+			team_ids.append(member.team_id)
+	team_ids.sort()
+	return team_ids
 
 
 func build_start_config(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null) -> BattleStartConfig:

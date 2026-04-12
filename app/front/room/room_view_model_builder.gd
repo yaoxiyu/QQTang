@@ -56,6 +56,7 @@ func build_view_model(
 		"reconnect_window_text": reconnect_window_text,
 		"active_match_resume_text": active_match_resume_text,
 		"can_edit_selection": is_host,
+		"can_edit_team": not local_member_ready,
 		"can_ready": can_ready,
 		"can_start": can_start,
 		"show_network_summary": not is_practice,
@@ -191,9 +192,23 @@ func _build_blocker_text(
 		return "Selection is incomplete"
 	if member_count < min_start_players:
 		return "Need at least %d player(s)" % min_start_players
+	if _count_distinct_team_ids(snapshot) < 2:
+		return "At least two teams are required"
 	if not snapshot.all_ready:
 		return "All players must be ready"
 	return ""
+
+
+func _count_distinct_team_ids(snapshot: RoomSnapshot) -> int:
+	var team_ids: Array[int] = []
+	if snapshot == null:
+		return 0
+	for member in snapshot.members:
+		if member == null or member.team_id < 1:
+			continue
+		if not team_ids.has(member.team_id):
+			team_ids.append(member.team_id)
+	return team_ids.size()
 
 
 func _resolve_owner_name(snapshot: RoomSnapshot, player_profile_state: PlayerProfileState) -> String:

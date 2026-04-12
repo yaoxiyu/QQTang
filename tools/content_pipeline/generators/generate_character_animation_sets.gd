@@ -7,6 +7,13 @@ const INPUT_CSV_PATH := "res://content_source/csv/character_animation_sets/chara
 const OUTPUT_DEF_DIR := "res://content/character_animation_sets/data/sets/"
 const OUTPUT_FRAMES_DIR := "res://content/character_animation_sets/generated/sprite_frames/"
 const DIRECTION_KEYS := ["down", "left", "right", "up"]
+const EXTRA_POSE_KEYS := ["trapped", "victory", "defeat"]
+const EXTRA_POSE_DIRECTION := "down"
+const EXTRA_POSE_LOOP := {
+	"trapped": true,
+	"victory": true,
+	"defeat": true,
+}
 
 
 func generate() -> void:
@@ -59,6 +66,15 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 			return
 		frames_by_direction[direction] = _slice_strip(image, frame_width, frame_height, frames_per_direction)
 
+	var extra_frames_by_animation := _load_extra_pose_frames(
+		animation_set_id,
+		row,
+		header_index,
+		frame_width,
+		frame_height,
+		frames_per_direction
+	)
+
 	var sprite_frames := SpriteFrames.new()
 	var run_fps := get_cell(row, header_index, "run_fps").to_float()
 	if run_fps <= 0.0:
@@ -75,6 +91,11 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 		_add_animation(sprite_frames, "idle_%s" % direction, idle_frame, run_fps, loop_idle)
 		_add_animation(sprite_frames, "dead_%s" % direction, idle_frame, run_fps, false)
 
+	for animation_name in extra_frames_by_animation.keys():
+		var pose_name := String(animation_name).split("_")[0]
+		var loop_extra := bool(EXTRA_POSE_LOOP.get(pose_name, false))
+		_add_animation(sprite_frames, String(animation_name), extra_frames_by_animation[animation_name], run_fps, loop_extra)
+
 	var frames_output_path := OUTPUT_FRAMES_DIR + animation_set_id + "_frames.tres"
 	if not save_resource(sprite_frames, frames_output_path):
 		return
@@ -88,10 +109,15 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 	def.frames_per_direction = frames_per_direction
 	def.run_fps = run_fps
 	def.idle_frame_index = idle_frame_index
-	def.pivot = Vector2(
+	def.pivot_origin = Vector2(
 		get_cell(row, header_index, "pivot_x").to_float(),
 		get_cell(row, header_index, "pivot_y").to_float()
 	)
+	def.pivot_adjust = Vector2(
+		get_cell(row, header_index, "pivot_adjust_x").to_float(),
+		get_cell(row, header_index, "pivot_adjust_y").to_float()
+	)
+	def.pivot = Vector2.ZERO
 	def.loop_run = loop_run
 	def.loop_idle = loop_idle
 	def.content_hash = get_cell(row, header_index, "content_hash")
@@ -107,7 +133,7 @@ func _load_direction_images(animation_set_id: String, row: PackedStringArray, he
 		if strip_path.is_empty():
 			push_error("CharacterAnimationSet %s missing %s strip path" % [animation_set_id, direction])
 			return {}
-		if not ResourceLoader.exists(strip_path):
+		if not _source_image_exists(strip_path):
 			push_error("CharacterAnimationSet %s missing strip resource: %s" % [animation_set_id, strip_path])
 			return {}
 		var image := Image.load_from_file(ProjectSettings.globalize_path(strip_path))
@@ -115,6 +141,34 @@ func _load_direction_images(animation_set_id: String, row: PackedStringArray, he
 			push_error("CharacterAnimationSet %s failed to load strip image: %s" % [animation_set_id, strip_path])
 			return {}
 		result[direction] = image
+	return result
+
+
+func _load_extra_pose_frames(
+	animation_set_id: String,
+	row: PackedStringArray,
+	header_index: Dictionary,
+	frame_width: int,
+	frame_height: int,
+	frames_per_direction: int
+) -> Dictionary:
+	var result: Dictionary = {}
+	for pose in EXTRA_POSE_KEYS:
+		var column_name := "%s_%s_strip_path" % [pose, EXTRA_POSE_DIRECTION]
+		var strip_path := get_cell(row, header_index, column_name)
+		if strip_path.is_empty():
+			continue
+		if not _source_image_exists(strip_path):
+			push_error("CharacterAnimationSet %s missing extra strip resource: %s" % [animation_set_id, strip_path])
+			return {}
+		var image := Image.load_from_file(ProjectSettings.globalize_path(strip_path))
+		if image == null or image.is_empty():
+			push_error("CharacterAnimationSet %s failed to load extra strip image: %s" % [animation_set_id, strip_path])
+			return {}
+		var animation_name := "%s_%s" % [pose, EXTRA_POSE_DIRECTION]
+		if not _validate_strip(animation_set_id, animation_name, image, frame_width, frame_height, frames_per_direction):
+			return {}
+		result[animation_name] = _slice_strip(image, frame_width, frame_height, frames_per_direction)
 	return result
 
 
@@ -154,6 +208,10 @@ func _slice_strip(image: Image, frame_width: int, frame_height: int, frames_per_
 		var frame_image := image.get_region(Rect2i(frame_index * frame_width, 0, frame_width, frame_height))
 		frames.append(ImageTexture.create_from_image(frame_image))
 	return frames
+
+
+func _source_image_exists(resource_path: String) -> bool:
+	return FileAccess.file_exists(ProjectSettings.globalize_path(resource_path))
 
 
 func _add_animation(
