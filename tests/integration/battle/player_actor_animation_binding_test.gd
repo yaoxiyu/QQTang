@@ -15,6 +15,7 @@ func run_all() -> void:
 	_test_player_actor_binds_character_animation_set()
 	_test_remote_player_actor_uses_move_state_for_run_animation()
 	_test_remote_player_actor_uses_authoritative_anim_direction()
+	_test_actor_snaps_large_respawn_teleport()
 
 
 func _test_player_actor_binds_character_animation_set() -> void:
@@ -126,6 +127,45 @@ func _test_remote_player_actor_uses_authoritative_anim_direction() -> void:
 	if body_sprite != null:
 		_assert_true(String(body_sprite.animation) == "run_left", "Remote BodySprite uses authoritative anim direction")
 
+	actor_view.free()
+
+
+func _test_actor_snaps_large_respawn_teleport() -> void:
+	var actor_view = BattlePlayerActorViewScript.new()
+	add_child(actor_view)
+
+	var profile = BattlePlayerVisualProfileScript.new()
+	profile.player_slot = 0
+	profile.character_id = "char_huoying"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_huoying")
+	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_huoying")
+	actor_view.configure_visual_profile(profile)
+
+	actor_view.apply_view_state({
+		"entity_id": 4,
+		"player_slot": 0,
+		"is_local_player": false,
+		"alive": false,
+		"pose_state": "defeat",
+		"facing": 1,
+		"cell_size": 48.0,
+		"position": Vector2(48.0, 48.0),
+	})
+	actor_view.position = Vector2(48.0, 48.0)
+
+	actor_view.apply_view_state({
+		"entity_id": 4,
+		"player_slot": 0,
+		"is_local_player": false,
+		"alive": true,
+		"pose_state": "normal",
+		"facing": 1,
+		"cell_size": 48.0,
+		"position": Vector2(240.0, 48.0),
+	})
+
+	_assert_true(actor_view.position == Vector2(240.0, 48.0), "Actor view snaps to respawn target instead of lerping across map")
 	actor_view.free()
 
 

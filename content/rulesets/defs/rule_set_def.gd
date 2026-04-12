@@ -16,6 +16,7 @@ class_name RuleSetDef
 @export var player_down_policy: String = "kill"
 @export var rescue_touch_enabled: bool = false
 @export var enemy_touch_execute_enabled: bool = false
+@export var trapped_timeout_sec: int = 8
 @export var respawn_delay_sec: int = 0
 @export var respawn_invincible_sec: int = 0
 @export var death_display_sec: int = 2

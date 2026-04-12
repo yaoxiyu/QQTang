@@ -3,10 +3,12 @@ extends Node2D
 
 const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
+const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 
 const PLAYER_Z_INDEX := 20
 const LOCAL_VISUAL_LERP_SPEED := 16.0
 const REMOTE_VISUAL_LERP_SPEED := 22.0
+const TELEPORT_SNAP_DISTANCE_CELLS := 1.5
 
 var player_id: int = -1
 var player_slot: int = 0
@@ -39,8 +41,24 @@ func apply_view_state(view_state: Dictionary) -> void:
 	alive = bool(view_state.get("alive", true))
 	facing = int(view_state.get("facing", 0))
 	_target_position = view_state.get("position", Vector2.ZERO)
-	if not _has_visual_target:
+	var cell_size := float(view_state.get("cell_size", 48.0))
+	var snap_distance := cell_size * TELEPORT_SNAP_DISTANCE_CELLS
+	var should_snap := not _has_visual_target or position.distance_to(_target_position) >= snap_distance
+	if should_snap:
 		position = _target_position
+	LogPresentationScript.debug(
+		"apply_view_state entity_id=%d pose_state=%s alive=%s position=%s target=%s should_snap=%s" % [
+			player_id,
+			String(view_state.get("pose_state", "normal")),
+			str(alive),
+			str(position),
+			str(_target_position),
+			str(should_snap),
+		],
+		"",
+		0,
+		"presentation.actor.player"
+	)
 	_has_visual_target = true
 	z_as_relative = false
 	z_index = PLAYER_Z_INDEX

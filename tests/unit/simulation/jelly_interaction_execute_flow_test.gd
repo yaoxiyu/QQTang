@@ -11,6 +11,7 @@ func _ready() -> void:
 	ok = _test_enemy_touch_executes_adjacent_blocked_jelly_in_same_tick() and ok
 	ok = _test_score_mode_enemy_touch_scores_and_starts_respawn() and ok
 	ok = _test_trapped_player_explosion_starts_defeat_respawn() and ok
+	ok = _test_trapped_player_auto_executes_after_timeout() and ok
 	ok = _test_trap_and_death_preserve_subcell_offset() and ok
 	ok = _test_respawn_invincibility_expires_before_next_explosion() and ok
 	ok = _test_dead_player_stays_visible_for_death_display_window() and ok
@@ -104,6 +105,42 @@ func _test_trapped_player_explosion_starts_defeat_respawn() -> bool:
 	ok = TestAssert.is_true(victim_after != null and victim_after.offset_x == 250 and victim_after.offset_y == -125, "exploded trapped victim should keep subcell offset", prefix) and ok
 	ok = TestAssert.is_true(_has_event(result["events"], SimEvent.EventType.PLAYER_KILLED), "exploded trapped victim should emit PLAYER_KILLED", prefix) and ok
 	ok = TestAssert.is_true(_has_player_pose(world, victim.entity_id, "defeat"), "exploded trapped victim should show defeat pose before respawn", prefix) and ok
+	world.dispose()
+	return ok
+
+
+func _test_trapped_player_auto_executes_after_timeout() -> bool:
+	var world := _make_world(true)
+	world.config.system_flags["rule_set"]["trapped_timeout_sec"] = 1
+	var attacker := world.state.players.get_player(world.state.players.active_ids[0])
+	var victim := world.state.players.get_player(world.state.players.active_ids[1])
+	attacker.cell_x = 3
+	attacker.cell_y = 1
+	attacker.offset_x = 0
+	attacker.offset_y = 0
+	attacker.life_state = PlayerState.LifeState.NORMAL
+	attacker.alive = true
+	victim.cell_x = 1
+	victim.cell_y = 1
+	victim.offset_x = 0
+	victim.offset_y = 0
+	victim.life_state = PlayerState.LifeState.TRAPPED
+	victim.alive = true
+	victim.trapped_timeout_ticks = world.config.tick_rate
+	world.state.players.update_player(attacker)
+	world.state.players.update_player(victim)
+	world.state.indexes.rebuild_from_state(world.state)
+
+	var result: Dictionary = {}
+	for _i in range(world.config.tick_rate):
+		result = world.step()
+
+	var victim_after := world.state.players.get_player(victim.entity_id)
+	var prefix := "jelly_interaction_execute_flow_test.trapped_timeout"
+	var ok := true
+	ok = TestAssert.is_true(victim_after != null and victim_after.life_state == PlayerState.LifeState.REVIVING, "timed-out jelly should enter REVIVING in score mode", prefix) and ok
+	ok = TestAssert.is_true(victim_after != null and victim_after.trapped_timeout_ticks == 0, "timed-out jelly should consume trapped timeout", prefix) and ok
+	ok = TestAssert.is_true(_has_event(result["events"], SimEvent.EventType.PLAYER_KILLED), "timed-out jelly should emit PLAYER_KILLED", prefix) and ok
 	world.dispose()
 	return ok
 
@@ -232,6 +269,7 @@ func _make_world(respawn_enabled: bool, score_policy: String = "", death_display
 	var config := SimConfig.new()
 	config.system_flags["rule_set"] = {
 		"respawn_enabled": respawn_enabled,
+		"trapped_timeout_sec": 8,
 		"respawn_delay_sec": 3 if respawn_enabled else 0,
 		"respawn_invincible_sec": 0,
 		"death_display_sec": death_display_sec,

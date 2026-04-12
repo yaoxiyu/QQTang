@@ -691,6 +691,11 @@ Phase18 Battle 启动链路进一步约束为：
   - `ScoreSystem`
   - `StatusEffectSystem`
 - 敌触处决需要在 `JellyInteractionSystem` 后同 tick 再走一次生命结算，不允许把 `players_to_execute` 延迟到下一 tick 才真正死亡
+- 果冻当前已有正式超时字段：
+  - `rule_set.trapped_timeout_sec`
+  - 玩家进入 `TRAPPED` 时写入 `trapped_timeout_ticks`
+  - `JellyInteractionSystem` 在无人接触时逐 tick 扣减
+  - 倒计时归零后同 tick 进入最终死亡流程
 - 复活无敌当前是正式规则字段：
   - `rule_set.respawn_invincible_sec`
   - `RespawnSystem` 在复活瞬间写入 `invincible_ticks`
@@ -704,6 +709,7 @@ Phase18 Battle 启动链路进一步约束为：
 
 - `battle_player_visual_profile_builder.gd` 当前会对角色动画视觉装配失败输出明确错误日志
 - `player_actor_view.gd` 正式消费 body scene + animation set + skin overlay
+- `player_actor_view.gd` 对大位移变更必须直接 snap, 不允许把复活回出生点表现成平滑漂移
 - `character_sprite_body_view.gd` 当前动画切换优先按输入状态驱动，再回退到 `move_state`
 - `BattleStateToViewMapper` 当前已正式输出：
   - `team_id`
@@ -828,6 +834,8 @@ Phase18 Battle 启动链路进一步约束为：
 40. **Phase18: 积分模式 `score_policy=team_score` 下，不得走 last survivor 提前结束，`TIME_UP` 必须按 `mode_state.team_scores` 结算**
 41. **Phase18: 计分必须发生在最终死亡确认时，不得在进入果冻 `TRAPPED` 时提前记分**
 42. **Phase18: Battle 表现层必须通过 `pose_state` 消费胜负姿态与果冻姿态，缺失动画资源时必须按既定回退策略继续运行**
+43. **Phase18: 果冻不能无限持续, `TRAPPED` 必须受 `trapped_timeout_sec` 驱动并在超时后自动进入最终死亡流程**
+44. **Phase18: 复活回出生点属于位置重置, Battle Actor 必须直接 snap 到权威出生位置, 不允许出现跨格平滑过渡**
 
 ---
 

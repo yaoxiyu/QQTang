@@ -120,6 +120,7 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"stun_ticks": player.stun_ticks,
 			"respawn_ticks": player.respawn_ticks,
 			"death_display_ticks": player.death_display_ticks,
+			"trapped_timeout_ticks": player.trapped_timeout_ticks,
 			"trap_bubble_id": player.trap_bubble_id,
 			"last_damage_from_player_id": player.last_damage_from_player_id,
 			"kills": player.kills,

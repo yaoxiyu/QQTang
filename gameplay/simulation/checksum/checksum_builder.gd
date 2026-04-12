@@ -26,6 +26,7 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(int(player.alive))
 		parts.append(player.life_state)
 		parts.append(player.death_display_ticks)
+		parts.append(player.trapped_timeout_ticks)
 		parts.append(player.bomb_available)
 		parts.append(player.bomb_range)
 

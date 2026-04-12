@@ -3,12 +3,14 @@ extends Node2D
 
 const CharacterAnimationSetDefScript = preload("res://content/character_animation_sets/defs/character_animation_set_def.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
 
 @onready var _body_sprite: AnimatedSprite2D = $BodySprite
 
 var _animation_set: CharacterAnimationSetDef = null
 var _current_animation_name: String = ""
+var _current_pose_state: String = "normal"
 
 
 func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
@@ -27,6 +29,7 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 		float(_animation_set.frame_height)
 	)
 	_current_animation_name = ""
+	_current_pose_state = "normal"
 
 
 func apply_actor_state(view_state: Dictionary) -> void:
@@ -52,7 +55,7 @@ func apply_actor_state(view_state: Dictionary) -> void:
 		alive,
 		pose_state
 	)
-	if animation_name == _current_animation_name:
+	if animation_name == _current_animation_name and pose_state == _current_pose_state:
 		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
 			print(
 				"[qq_remote_anim][body] entity=%d animation=%s unchanged anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
@@ -82,7 +85,23 @@ func apply_actor_state(view_state: Dictionary) -> void:
 		return
 
 	_current_animation_name = animation_name
+	_current_pose_state = pose_state
+	_body_sprite.stop()
+	_body_sprite.frame = 0
+	_body_sprite.frame_progress = 0.0
 	_body_sprite.play(animation_name)
+	LogPresentationScript.debug(
+		"apply_actor_state entity_id=%d pose_state=%s animation=%s alive=%s moving=%s" % [
+			int(view_state.get("entity_id", -1)),
+			pose_state,
+			animation_name,
+			str(alive),
+			str(anim_is_moving),
+		],
+		"",
+		0,
+		"presentation.pose.body"
+	)
 	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
 		print(
 			"[qq_remote_anim][body] entity=%d animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
@@ -109,24 +128,46 @@ func _resolve_animation_name(
 	match pose_state:
 		"trapped":
 			direction_suffix = "down"
-			return _resolve_animation_with_fallback("trapped_%s" % direction_suffix, "dead_%s" % direction_suffix)
+			return _resolve_animation_with_fallbacks([
+				"trapped_%s" % direction_suffix,
+				"dead_%s" % direction_suffix,
+				"idle_%s" % direction_suffix,
+			])
 		"victory":
 			direction_suffix = "down"
-			return _resolve_animation_with_fallback("victory_%s" % direction_suffix, "idle_%s" % direction_suffix)
+			return _resolve_animation_with_fallbacks([
+				"victory_%s" % direction_suffix,
+				"idle_%s" % direction_suffix,
+			])
 		"defeat":
 			direction_suffix = "down"
-			return _resolve_animation_with_fallback("defeat_%s" % direction_suffix, "dead_%s" % direction_suffix)
+			return _resolve_animation_with_fallbacks([
+				"defeat_%s" % direction_suffix,
+				"dead_%s" % direction_suffix,
+				"idle_%s" % direction_suffix,
+			])
 		"dead":
 			direction_suffix = "down"
-			return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
+			return _resolve_animation_with_fallbacks([
+				"dead_%s" % direction_suffix,
+				"idle_%s" % direction_suffix,
+			])
 		_:
 			pass
 	if not alive:
 		direction_suffix = "down"
-		return _resolve_animation_with_fallback("dead_%s" % direction_suffix, "idle_%s" % direction_suffix)
+		return _resolve_animation_with_fallbacks([
+			"dead_%s" % direction_suffix,
+			"idle_%s" % direction_suffix,
+		])
 	if anim_is_moving:
-		return _resolve_animation_with_fallback("run_%s" % direction_suffix, "idle_%s" % direction_suffix)
-	return _resolve_animation_with_fallback("idle_%s" % direction_suffix, "")
+		return _resolve_animation_with_fallbacks([
+			"run_%s" % direction_suffix,
+			"idle_%s" % direction_suffix,
+		])
+	return _resolve_animation_with_fallbacks([
+		"idle_%s" % direction_suffix,
+	])
 
 
 func _resolve_direction_suffix(facing: int) -> String:
@@ -154,6 +195,14 @@ func _resolve_animation_with_fallback(primary: String, fallback: String) -> Stri
 		return primary
 	if not fallback.is_empty() and _body_sprite.sprite_frames.has_animation(fallback):
 		return fallback
+	return ""
+
+
+func _resolve_animation_with_fallbacks(candidates: Array[String]) -> String:
+	for candidate in candidates:
+		var resolved := _resolve_animation_with_fallback(candidate, "")
+		if not resolved.is_empty():
+			return resolved
 	return ""
 
 

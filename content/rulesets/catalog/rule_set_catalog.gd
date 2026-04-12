@@ -99,6 +99,7 @@ static func get_rule_metadata(rule_set_id: String) -> Dictionary:
 		"player_down_policy": def.player_down_policy,
 		"rescue_touch_enabled": def.rescue_touch_enabled,
 		"enemy_touch_execute_enabled": def.enemy_touch_execute_enabled,
+		"trapped_timeout_sec": def.trapped_timeout_sec,
 		"respawn_delay_sec": def.respawn_delay_sec,
 		"respawn_invincible_sec": def.respawn_invincible_sec,
 		"death_display_sec": def.death_display_sec,

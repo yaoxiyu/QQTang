@@ -2,6 +2,7 @@ class_name PlayerLifeTransitionSystem
 extends ISimSystem
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 
 
 func get_name() -> StringName:
@@ -21,11 +22,26 @@ func _process_players_to_trap(ctx: SimContext) -> void:
 			continue
 
 		player.life_state = PlayerState.LifeState.TRAPPED
+		player.trapped_timeout_ticks = _get_trapped_timeout_ticks(ctx)
 		player.move_state = PlayerState.MoveState.IDLE
 		player.move_phase_ticks = 0
 		if player.trap_bubble_id == 0:
 			player.trap_bubble_id = -1
 		ctx.state.players.update_player(player)
+		LogSimulationScript.debug(
+			"player_trapped tick=%d player_id=%d source_player_id=%d team_id=%d trap_timeout_ticks=%d cell=(%d,%d)" % [
+				ctx.tick,
+				player_id,
+				player.last_damage_from_player_id,
+				player.team_id,
+				player.trapped_timeout_ticks,
+				player.cell_x,
+				player.cell_y,
+			],
+			"",
+			0,
+			"sim.life.trapped"
+		)
 
 		var foot_cell := PlayerLocator.get_foot_cell(player)
 		var trapped_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_TRAPPED)
@@ -79,6 +95,7 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 	player.move_state = PlayerState.MoveState.IDLE
 	player.move_phase_ticks = 0
 	player.trap_bubble_id = -1
+	player.trapped_timeout_ticks = 0
 
 	if respawn_enabled and respawn_ticks > 0:
 		player.life_state = PlayerState.LifeState.REVIVING
@@ -90,6 +107,20 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 		player.death_display_ticks = death_display_ticks
 
 	ctx.state.players.update_player(player)
+	LogSimulationScript.debug(
+		"player_finalized_death tick=%d player_id=%d killer_player_id=%d team_id=%d next_life_state=%d respawn_ticks=%d death_display_ticks=%d" % [
+			ctx.tick,
+			player_id,
+			killer_player_id,
+			player.team_id,
+			player.life_state,
+			player.respawn_ticks,
+			player.death_display_ticks,
+		],
+		"",
+		0,
+		"sim.life.death"
+	)
 	_remove_player_from_live_indexes(ctx, player_id, foot_cell)
 	_remove_player_from_active_ids(ctx, player_id)
 
@@ -148,6 +179,14 @@ func _get_respawn_delay_ticks(ctx: SimContext) -> int:
 	if respawn_delay_sec <= 0:
 		return 0
 	return respawn_delay_sec * max(ctx.config.tick_rate, 1)
+
+
+func _get_trapped_timeout_ticks(ctx: SimContext) -> int:
+	var rule_flags: Dictionary = _get_rule_flags(ctx)
+	var trapped_timeout_sec := int(rule_flags.get("trapped_timeout_sec", 0))
+	if trapped_timeout_sec <= 0:
+		return 0
+	return trapped_timeout_sec * max(ctx.config.tick_rate, 1)
 
 
 func _get_death_display_ticks(ctx: SimContext) -> int:

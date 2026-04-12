@@ -3,6 +3,7 @@ extends RefCounted
 
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
@@ -131,6 +132,20 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		input_move_x,
 		input_move_y
 	)
+	var pose_state := _resolve_pose_state(player)
+	LogPresentationScript.debug(
+		"map_player_state entity_id=%d life_state=%d alive=%s pose_state=%s position=%s team_id=%d" % [
+			player.entity_id,
+			player.life_state,
+			str(player.alive),
+			pose_state,
+			str(position),
+			player.team_id,
+		],
+		"",
+		0,
+		"presentation.pose.mapper"
+	)
 	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
 		print(
 			"[qq_remote_anim][mapper] entity=%d slot=%d move_state=%d facing=%d last=(%d,%d) input=(%d,%d) anim_moving=%s anim_dir=(%d,%d) pos=%s" % [
@@ -156,7 +171,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"is_local_player": is_local_player,
 		"alive": player.alive,
 		"life_state": player.life_state,
-		"pose_state": _resolve_pose_state(player),
+		"pose_state": pose_state,
 		"facing": player.facing,
 		"move_state": player.move_state,
 		"last_non_zero_move_x": player.last_non_zero_move_x,

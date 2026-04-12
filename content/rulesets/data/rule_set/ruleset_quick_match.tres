@@ -9,3 +9,4 @@ time_limit_sec = 120
 player_down_policy = "jelly"
 rescue_touch_enabled = true
 enemy_touch_execute_enabled = true
+trapped_timeout_sec = 8

@@ -40,6 +40,7 @@ func _build_rule_set_flags(rule_set_def: RuleSetDef) -> Dictionary:
 		"score_policy": String(rule_set_def.score_policy),
 		"rescue_touch_enabled": bool(rule_set_def.rescue_touch_enabled),
 		"enemy_touch_execute_enabled": bool(rule_set_def.enemy_touch_execute_enabled),
+		"trapped_timeout_sec": int(rule_set_def.trapped_timeout_sec),
 		"respawn_delay_sec": int(rule_set_def.respawn_delay_sec),
 		"respawn_invincible_sec": int(rule_set_def.respawn_invincible_sec),
 		"death_display_sec": int(rule_set_def.death_display_sec),
