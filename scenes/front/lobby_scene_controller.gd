@@ -10,6 +10,12 @@ const PHASE15_LOG_PREFIX := "[QQT_P15]"
 
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
 @onready var logout_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/LogoutButton")
+@onready var account_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AccountIdRow/AccountIdValue")
+@onready var profile_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileIdRow/ProfileIdValue")
+@onready var auth_mode_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AuthModeRow/AuthModeValue")
+@onready var session_state_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/SessionStateRow/SessionStateValue")
+@onready var profile_sync_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileSyncRow/ProfileSyncValue")
+@onready var refresh_profile_button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/RefreshProfileButton")
 @onready var default_character_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterRow/DefaultCharacterValue")
 @onready var default_character_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterSkinRow/DefaultCharacterSkinValue")
 @onready var default_bubble_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleRow/DefaultBubbleValue")
@@ -101,6 +107,19 @@ func _refresh_view() -> void:
 		return
 	if current_profile_label != null:
 		current_profile_label.text = String(view_state.profile_name)
+	if account_id_value != null:
+		account_id_value.text = String(view_state.account_id if not String(view_state.account_id).is_empty() else "-")
+	if profile_id_value != null:
+		profile_id_value.text = String(view_state.profile_id if not String(view_state.profile_id).is_empty() else "-")
+	if auth_mode_value != null:
+		auth_mode_value.text = String(view_state.auth_mode if not String(view_state.auth_mode).is_empty() else "-")
+	if session_state_value != null:
+		session_state_value.text = String(view_state.session_state if not String(view_state.session_state).is_empty() else "-")
+	if profile_sync_value != null:
+		var sync_text := "-"
+		if int(view_state.last_sync_msec) > 0:
+			sync_text = "%s @ %d" % [String(view_state.profile_source if not String(view_state.profile_source).is_empty() else "cache"), int(view_state.last_sync_msec)]
+		profile_sync_value.text = sync_text
 	if default_character_value != null:
 		default_character_value.text = String(view_state.default_character_id)
 	if default_character_skin_value != null:
@@ -156,6 +175,8 @@ func _connect_signals() -> void:
 		reconnect_button.pressed.connect(_on_reconnect_pressed)
 	if logout_button != null and not logout_button.pressed.is_connected(_on_logout_pressed):
 		logout_button.pressed.connect(_on_logout_pressed)
+	if refresh_profile_button != null and not refresh_profile_button.pressed.is_connected(_on_refresh_profile_pressed):
+		refresh_profile_button.pressed.connect(_on_refresh_profile_pressed)
 	if connect_directory_button != null and not connect_directory_button.pressed.is_connected(_on_connect_directory_pressed):
 		connect_directory_button.pressed.connect(_on_connect_directory_pressed)
 	if refresh_room_list_button != null and not refresh_room_list_button.pressed.is_connected(_on_refresh_room_list_pressed):
@@ -291,6 +312,17 @@ func _on_logout_pressed() -> void:
 	_app_runtime.lobby_use_case.logout()
 	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_login"):
 		_app_runtime.front_flow.enter_login()
+
+
+func _on_refresh_profile_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_use_case == null:
+		_set_message("Profile refresh is not available.")
+		return
+	var result: Dictionary = _app_runtime.lobby_use_case.refresh_profile()
+	if not bool(result.get("ok", false)):
+		_set_message(String(result.get("user_message", "Profile refresh failed")))
+		return
+	_refresh_view()
 
 
 func _handle_room_entry_result(result: Dictionary) -> void:

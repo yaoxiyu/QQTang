@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "ticket": "encoded_payload.signature",
+  "ticket_id": "ticket_demo_resume_001",
+  "account_id": "account_demo_001",
+  "profile_id": "profile_demo_001",
+  "device_session_id": "dsess_demo_001",
+  "purpose": "resume",
+  "room_id": "room_demo_001",
+  "room_kind": "private_room",
+  "requested_match_id": "match_demo_001",
+  "display_name": "PlayerDemo",
+  "allowed_character_ids": ["character_default"],
+  "allowed_character_skin_ids": [""],
+  "allowed_bubble_style_ids": ["bubble_style_default"],
+  "allowed_bubble_skin_ids": [""],
+  "issued_at_unix_sec": 1770000000,
+  "expire_at_unix_sec": 1770000045
+}

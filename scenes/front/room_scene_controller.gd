@@ -21,6 +21,7 @@ const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model
 @onready var room_display_name_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomDisplayNameLabel")
 @onready var room_id_value_label: LineEdit = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel")
 @onready var connection_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel")
+@onready var auth_binding_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/AuthBindingLabel")
 @onready var owner_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel")
 @onready var blocker_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel")
 @onready var lifecycle_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/LifecycleStatusLabel")
@@ -160,9 +161,19 @@ func _populate_character_selector() -> void:
 	if character_selector == null:
 		return
 	character_selector.clear()
+	var owned_ids := _get_owned_ids("character")
+	var added_count := 0
 	for entry in CharacterCatalogScript.get_character_entries():
-		character_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-		character_selector.set_item_metadata(character_selector.item_count - 1, String(entry.get("id", "")))
+		var entry_id := String(entry.get("id", ""))
+		if not _should_include_owned_entry(owned_ids, entry_id):
+			continue
+		character_selector.add_item(String(entry.get("display_name", entry_id)))
+		character_selector.set_item_metadata(character_selector.item_count - 1, entry_id)
+		added_count += 1
+	if added_count == 0:
+		var fallback_id := _get_fallback_character_id()
+		character_selector.add_item(fallback_id)
+		character_selector.set_item_metadata(character_selector.item_count - 1, fallback_id)
 
 
 func _populate_team_selector(team_option_max: int = 2) -> void:
@@ -181,8 +192,11 @@ func _populate_character_skin_selector() -> void:
 	character_skin_selector.clear()
 	character_skin_selector.add_item("None")
 	character_skin_selector.set_item_metadata(0, "")
+	var owned_ids := _get_owned_ids("character_skin")
 	for skin_def in CharacterSkinCatalogScript.get_all():
 		if skin_def == null:
+			continue
+		if not _should_include_owned_entry(owned_ids, String(skin_def.skin_id)):
 			continue
 		character_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.skin_id))
 		character_skin_selector.set_item_metadata(character_skin_selector.item_count - 1, skin_def.skin_id)
@@ -192,9 +206,19 @@ func _populate_bubble_selector() -> void:
 	if bubble_selector == null:
 		return
 	bubble_selector.clear()
+	var owned_ids := _get_owned_ids("bubble")
+	var added_count := 0
 	for entry in BubbleCatalogScript.get_bubble_entries():
-		bubble_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-		bubble_selector.set_item_metadata(bubble_selector.item_count - 1, String(entry.get("id", "")))
+		var entry_id := String(entry.get("id", ""))
+		if not _should_include_owned_entry(owned_ids, entry_id):
+			continue
+		bubble_selector.add_item(String(entry.get("display_name", entry_id)))
+		bubble_selector.set_item_metadata(bubble_selector.item_count - 1, entry_id)
+		added_count += 1
+	if added_count == 0:
+		var fallback_id := _get_fallback_bubble_id()
+		bubble_selector.add_item(fallback_id)
+		bubble_selector.set_item_metadata(bubble_selector.item_count - 1, fallback_id)
 
 
 func _populate_bubble_skin_selector() -> void:
@@ -203,8 +227,11 @@ func _populate_bubble_skin_selector() -> void:
 	bubble_skin_selector.clear()
 	bubble_skin_selector.add_item("None")
 	bubble_skin_selector.set_item_metadata(0, "")
+	var owned_ids := _get_owned_ids("bubble_skin")
 	for skin_def in BubbleSkinCatalogScript.get_all():
 		if skin_def == null:
+			continue
+		if not _should_include_owned_entry(owned_ids, String(skin_def.bubble_skin_id)):
 			continue
 		bubble_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.bubble_skin_id))
 		bubble_skin_selector.set_item_metadata(bubble_skin_selector.item_count - 1, skin_def.bubble_skin_id)
@@ -307,6 +334,7 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 	_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
 	_select_metadata(rule_selector, String(view_model.get("selected_rule_set_id", "")))
 	_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
+	_update_auth_binding_summary(snapshot)
 	_update_preview(snapshot)
 	_update_debug_text(snapshot, view_model)
 
@@ -354,6 +382,36 @@ func _update_preview(snapshot: RoomSnapshot) -> void:
 				String(profile.default_character_id),
 				String(profile.default_character_skin_id)
 			)
+
+
+func _update_auth_binding_summary(snapshot: RoomSnapshot) -> void:
+	if auth_binding_label == null:
+		return
+	var account_id := ""
+	var profile_id := ""
+	var member_id := ""
+	var device_session_id := ""
+	if _app_runtime != null and _app_runtime.current_room_entry_context != null:
+		account_id = String(_app_runtime.current_room_entry_context.account_id)
+		profile_id = String(_app_runtime.current_room_entry_context.profile_id)
+		member_id = String(_app_runtime.current_room_entry_context.reconnect_member_id)
+	if _app_runtime != null and _app_runtime.auth_session_state != null:
+		if account_id.is_empty():
+			account_id = String(_app_runtime.auth_session_state.account_id)
+		if profile_id.is_empty():
+			profile_id = String(_app_runtime.auth_session_state.profile_id)
+		device_session_id = String(_app_runtime.auth_session_state.device_session_id)
+	if member_id.is_empty() and _app_runtime != null and _app_runtime.front_settings_state != null:
+		member_id = String(_app_runtime.front_settings_state.reconnect_member_id)
+	var local_member := _resolve_local_member(snapshot)
+	if member_id.is_empty() and local_member != null:
+		member_id = "peer_%d" % int(local_member.peer_id)
+	auth_binding_label.text = "Identity Binding:\naccount=%s\nprofile=%s\nmember=%s\nsession=%s" % [
+		account_id if not account_id.is_empty() else "-",
+		profile_id if not profile_id.is_empty() else "-",
+		member_id if not member_id.is_empty() else "-",
+		device_session_id if not device_session_id.is_empty() else "-",
+	]
 
 
 func _update_debug_text(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
@@ -515,6 +573,53 @@ func _select_team_id(team_id: int) -> void:
 		if int(team_selector.get_item_metadata(index)) == team_id:
 			team_selector.select(index)
 			return
+
+
+func _get_owned_ids(asset_type: String) -> Array[String]:
+	if _app_runtime == null or _app_runtime.player_profile_state == null:
+		return []
+	var profile = _app_runtime.player_profile_state
+	match asset_type:
+		"character":
+			return profile.owned_character_ids
+		"character_skin":
+			return profile.owned_character_skin_ids
+		"bubble":
+			return profile.owned_bubble_style_ids
+		"bubble_skin":
+			return profile.owned_bubble_skin_ids
+		_:
+			return []
+
+
+func _should_include_owned_entry(owned_ids: Array[String], entry_id: String) -> bool:
+	if owned_ids.is_empty():
+		return false
+	return owned_ids.has(entry_id)
+
+
+func _get_fallback_character_id() -> String:
+	if _app_runtime != null and _app_runtime.player_profile_state != null:
+		var preferred_id := String(_app_runtime.player_profile_state.default_character_id)
+		if not preferred_id.is_empty():
+			return preferred_id
+	for entry in CharacterCatalogScript.get_character_entries():
+		var entry_id := String(entry.get("id", ""))
+		if not entry_id.is_empty():
+			return entry_id
+	return "character_default"
+
+
+func _get_fallback_bubble_id() -> String:
+	if _app_runtime != null and _app_runtime.player_profile_state != null:
+		var preferred_id := String(_app_runtime.player_profile_state.default_bubble_style_id)
+		if not preferred_id.is_empty():
+			return preferred_id
+	for entry in BubbleCatalogScript.get_bubble_entries():
+		var entry_id := String(entry.get("id", ""))
+		if not entry_id.is_empty():
+			return entry_id
+	return "bubble_style_default"
 
 func _try_consume_pending_room_action() -> void:
 	if _app_runtime == null:

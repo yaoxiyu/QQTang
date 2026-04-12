@@ -36,15 +36,29 @@ func _bind_runtime() -> void:
 func _on_runtime_ready() -> void:
 	if _app_runtime == null:
 		return
-	var settings = _app_runtime.front_settings_state
-	var profile = _app_runtime.player_profile_state
-	var should_enter_lobby := false
-	if settings != null and profile != null:
-		should_enter_lobby = bool(settings.remember_profile) \
-			and bool(settings.auto_enter_lobby) \
-			and not String(profile.profile_id).strip_edges().is_empty() \
-			and not String(profile.nickname).strip_edges().is_empty()
-	if should_enter_lobby:
+	if _app_runtime.auth_session_restore_use_case == null or not _app_runtime.auth_session_restore_use_case.has_method("restore_on_boot"):
+		if status_label != null:
+			status_label.text = "Auth session restore is unavailable."
+		if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_login"):
+			_app_runtime.front_flow.enter_login()
+		return
+	if status_label != null:
+		status_label.text = "Restoring session..."
+	var result: Dictionary = _app_runtime.auth_session_restore_use_case.restore_on_boot()
+	var next_route := String(result.get("next_route", "login"))
+	if next_route == "lobby":
+		if status_label != null:
+			status_label.text = "Session restored."
 		_app_runtime.front_flow.enter_lobby()
 		return
+	if next_route == "error":
+		if status_label != null:
+			status_label.text = String(result.get("user_message", "Boot failed"))
+		if hint_label != null:
+			hint_label.text = String(result.get("error_code", "BOOT_ERROR"))
+		if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_login"):
+			_app_runtime.front_flow.enter_login()
+		return
+	if status_label != null:
+		status_label.text = "No valid session."
 	_app_runtime.front_flow.enter_login()

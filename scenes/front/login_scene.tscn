@@ -41,10 +41,46 @@ layout_mode = 2
 
 [node name="PlayerNameLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=1150442701]
 layout_mode = 2
-text = "Player1"
+text = "Nickname"
 
 [node name="PlayerNameInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=722437112]
 layout_mode = 2
+
+[node name="AccountRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=785755137]
+layout_mode = 2
+
+[node name="AccountLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/AccountRow" unique_id=1748394268]
+layout_mode = 2
+text = "Account"
+
+[node name="AccountInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/AccountRow" unique_id=1514838528]
+layout_mode = 2
+placeholder_text = "Enter account name"
+
+[node name="PasswordRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=372297455]
+layout_mode = 2
+
+[node name="PasswordLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PasswordRow" unique_id=1670553475]
+layout_mode = 2
+text = "Password"
+
+[node name="PasswordInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PasswordRow" unique_id=1689703680]
+layout_mode = 2
+placeholder_text = "Enter password"
+secret = true
+
+[node name="ConfirmPasswordRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=313798149]
+visible = false
+layout_mode = 2
+
+[node name="ConfirmPasswordLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/ConfirmPasswordRow" unique_id=757245058]
+layout_mode = 2
+text = "Confirm Password"
+
+[node name="ConfirmPasswordInput" type="LineEdit" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/ConfirmPasswordRow" unique_id=724121065]
+layout_mode = 2
+placeholder_text = "Confirm password"
+secret = true
 
 [node name="EndpointCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1112918397]
 layout_mode = 2
@@ -86,16 +122,33 @@ text = "Auth Mode: pass_through"
 layout_mode = 2
 text = "Validation is bypassed in Phase13."
 
+[node name="SessionStatusLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=1954629570]
+layout_mode = 2
+text = "Session: logged_out"
+
+[node name="LastAccountLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=850431024]
+layout_mode = 2
+text = "Last Account: -"
+
 [node name="ActionRow" type="HBoxContainer" parent="LoginRoot/MainLayout" unique_id=1238031278]
 layout_mode = 2
 
 [node name="EnterLobbyButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=573103895]
 layout_mode = 2
-text = "Enter Lobby"
+text = "Login"
 
 [node name="ExitButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=2024060268]
 layout_mode = 2
 text = "Exit"
+
+[node name="RegisterButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=876162740]
+layout_mode = 2
+text = "Register"
+
+[node name="GuestLoginButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=1056569032]
+visible = false
+layout_mode = 2
+text = "Guest"
 
 [node name="MessageLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=2011124465]
 layout_mode = 2

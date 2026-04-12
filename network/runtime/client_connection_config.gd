@@ -13,6 +13,11 @@ var connect_timeout_sec: float = 5.0
 var room_id_hint: String = ""
 var room_kind: String = "private_room"
 var room_display_name: String = ""
+var room_ticket: String = ""
+var room_ticket_id: String = ""
+var account_id: String = ""
+var profile_id: String = ""
+var device_session_id: String = ""
 var player_name: String = "Player1"
 var selected_character_id: String = CharacterCatalogScript.get_default_character_id()
 var selected_character_skin_id: String = ""
@@ -29,6 +34,11 @@ func to_dict() -> Dictionary:
 		"room_id_hint": room_id_hint,
 		"room_kind": room_kind,
 		"room_display_name": room_display_name,
+		"room_ticket": room_ticket,
+		"room_ticket_id": room_ticket_id,
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"device_session_id": device_session_id,
 		"player_name": player_name,
 		"selected_character_id": selected_character_id,
 		"selected_character_skin_id": selected_character_skin_id,
@@ -46,6 +56,11 @@ func duplicate_deep() -> ClientConnectionConfig:
 	duplicated.room_id_hint = room_id_hint
 	duplicated.room_kind = room_kind
 	duplicated.room_display_name = room_display_name
+	duplicated.room_ticket = room_ticket
+	duplicated.room_ticket_id = room_ticket_id
+	duplicated.account_id = account_id
+	duplicated.profile_id = profile_id
+	duplicated.device_session_id = device_session_id
 	duplicated.player_name = player_name
 	duplicated.selected_character_id = selected_character_id
 	duplicated.selected_character_skin_id = selected_character_skin_id

@@ -2,6 +2,7 @@ extends Node
 
 const RoomUseCaseScript = preload("res://app/front/room/room_use_case.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
+const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -48,7 +49,12 @@ class FakeClientRoomRuntime:
 		rule_set_id: String = "",
 		mode_id: String = "",
 		room_kind: String = "private_room",
-		room_display_name: String = ""
+		room_display_name: String = "",
+		room_ticket: String = "",
+		room_ticket_id: String = "",
+		account_id: String = "",
+		profile_id: String = "",
+		device_session_id: String = ""
 	) -> void:
 		create_requests.append({
 			"room_id_hint": room_id_hint,
@@ -62,6 +68,11 @@ class FakeClientRoomRuntime:
 			"mode_id": mode_id,
 			"room_kind": room_kind,
 			"room_display_name": room_display_name,
+			"room_ticket": room_ticket,
+			"room_ticket_id": room_ticket_id,
+			"account_id": account_id,
+			"profile_id": profile_id,
+			"device_session_id": device_session_id,
 		})
 
 
@@ -75,6 +86,7 @@ class FakeAppRuntime:
 	var player_profile_state = null
 	var front_settings_state = null
 	var front_flow = null
+	var auth_session_state = null
 	var local_peer_id: int = 1
 
 
@@ -97,6 +109,23 @@ class FakeFrontFlow:
 		enter_room_called = true
 
 
+class FakeRoomTicketGateway:
+	extends RefCounted
+
+	func configure_base_url(_base_url: String) -> void:
+		pass
+
+	func issue_room_ticket(_access_token: String, _request):
+		var result = preload("res://app/front/auth/room_ticket_result.gd").new()
+		result.ok = true
+		result.ticket = "ticket_alpha"
+		result.ticket_id = "ticket_id_alpha"
+		result.account_id = "account_alpha"
+		result.profile_id = "profile_alpha"
+		result.device_session_id = "device_session_alpha"
+		return result
+
+
 func _ready() -> void:
 	call_deferred("run_all")
 
@@ -113,8 +142,15 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	var client_runtime := FakeClientRoomRuntime.new()
 	var room_controller := FakeRoomSessionController.new()
 	var front_flow := FakeFrontFlow.new()
+	var auth_session := AuthSessionStateScript.new()
+	auth_session.access_token = "access_token_alpha"
+	auth_session.device_session_id = "device_session_alpha"
+	auth_session.account_id = "account_alpha"
+	auth_session.profile_id = "profile_alpha"
 	var player_profile := PlayerProfileStateScript.new()
 	player_profile.nickname = "RuntimeTester"
+	player_profile.account_id = "account_alpha"
+	player_profile.profile_id = "profile_alpha"
 	var front_settings := FrontSettingsStateScript.new()
 	front_settings.last_server_host = "127.0.0.1"
 	front_settings.last_server_port = 9000
@@ -124,14 +160,17 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	app_runtime.player_profile_state = player_profile
 	app_runtime.front_settings_state = front_settings
 	app_runtime.front_flow = front_flow
+	app_runtime.auth_session_state = auth_session
 
 	add_child(app_runtime)
 	app_runtime.add_child(client_runtime)
 	app_runtime.add_child(room_controller)
 	app_runtime.add_child(front_flow)
 
+	var fake_room_ticket_gateway := FakeRoomTicketGateway.new()
+
 	var lobby_use_case = LobbyUseCaseScript.new()
-	lobby_use_case.configure(null, player_profile, front_settings, null)
+	lobby_use_case.configure(app_runtime, auth_session, player_profile, front_settings, null, null, null, null, fake_room_ticket_gateway)
 	var room_use_case = RoomUseCaseScript.new()
 	room_use_case.configure(app_runtime)
 
@@ -145,6 +184,10 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	ok = TestAssert.is_true(client_runtime.create_requests.size() == 1, "reused transport path should dispatch create request immediately", prefix) and ok
 	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_kind", "")) == "public_room", "create request should preserve public room kind", prefix) and ok
 	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_display_name", "")) == "Alpha Room", "create request should preserve room display name", prefix) and ok
+	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_ticket", "")) == "ticket_alpha", "create request should include room ticket", prefix) and ok
+	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("account_id", "")) == "account_alpha", "create request should include account id", prefix) and ok
+	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("profile_id", "")) == "profile_alpha", "create request should include profile id", prefix) and ok
+	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("device_session_id", "")) == "device_session_alpha", "create request should include device session id", prefix) and ok
 
 	app_runtime.queue_free()
 	return ok

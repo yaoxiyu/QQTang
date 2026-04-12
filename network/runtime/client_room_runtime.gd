@@ -103,7 +103,12 @@ func request_create_room(
 	rule_set_id: String = "",
 	mode_id: String = "",
 	room_kind: String = "private_room",
-	room_display_name: String = ""
+	room_display_name: String = "",
+	room_ticket: String = "",
+	room_ticket_id: String = "",
+	account_id: String = "",
+	profile_id: String = "",
+	device_session_id: String = ""
 ) -> void:
 	_log_directory_event("request_create_room", {
 		"room_id_hint": room_id_hint,
@@ -124,6 +129,11 @@ func request_create_room(
 		"mode_id": mode_id,
 		"room_kind": room_kind,
 		"room_display_name": room_display_name,
+		"room_ticket": room_ticket,
+		"room_ticket_id": room_ticket_id,
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"device_session_id": device_session_id,
 	})
 
 
@@ -133,7 +143,12 @@ func request_join_room(
 	character_id: String,
 	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = ""
+	bubble_skin_id: String = "",
+	room_ticket: String = "",
+	room_ticket_id: String = "",
+	account_id: String = "",
+	profile_id: String = "",
+	device_session_id: String = ""
 ) -> void:
 	_log_directory_event("request_join_room", {
 		"room_id_hint": room_id_hint,
@@ -147,6 +162,11 @@ func request_join_room(
 		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
 		"bubble_skin_id": bubble_skin_id,
+		"room_ticket": room_ticket,
+		"room_ticket_id": room_ticket_id,
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"device_session_id": device_session_id,
 	})
 
 
@@ -223,7 +243,17 @@ func request_rematch() -> void:
 
 
 # Phase17: Resume request
-func request_resume_room(room_id: String, member_id: String, reconnect_token: String, match_id: String) -> void:
+func request_resume_room(
+	room_id: String,
+	member_id: String,
+	reconnect_token: String,
+	match_id: String,
+	room_ticket: String = "",
+	room_ticket_id: String = "",
+	account_id: String = "",
+	profile_id: String = "",
+	device_session_id: String = ""
+) -> void:
 	_log_directory_event("request_resume_room", {
 		"room_id": room_id,
 		"member_id": member_id,
@@ -235,6 +265,11 @@ func request_resume_room(room_id: String, member_id: String, reconnect_token: St
 		"member_id": member_id,
 		"reconnect_token": reconnect_token,
 		"match_id": match_id,
+		"room_ticket": room_ticket,
+		"room_ticket_id": room_ticket_id,
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"device_session_id": device_session_id,
 		"sender_peer_id": _transport.get_local_peer_id() if _transport != null else 0,
 	})
 
@@ -286,7 +321,7 @@ func _route_message(message: Dictionary) -> void:
 					"connecting": _connecting,
 				})
 		TransportMessageTypesScript.ROOM_CREATE_REJECTED:
-			room_error.emit("ROOM_CREATE_FAILED", String(message.get("user_message", "Room create failed")))
+			room_error.emit(String(message.get("error", "ROOM_CREATE_FAILED")), String(message.get("user_message", "Room create failed")))
 		TransportMessageTypesScript.ROOM_JOIN_ACCEPTED:
 			if _last_snapshot != null:
 				room_joined.emit(_last_snapshot)
@@ -296,7 +331,7 @@ func _route_message(message: Dictionary) -> void:
 					"connecting": _connecting,
 				})
 		TransportMessageTypesScript.ROOM_JOIN_REJECTED:
-			room_error.emit("ROOM_JOIN_FAILED", String(message.get("user_message", "Room join failed")))
+			room_error.emit(String(message.get("error", "ROOM_JOIN_FAILED")), String(message.get("user_message", "Room join failed")))
 		TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED:
 			if _pending_leave_disconnect:
 				_shutdown_transport()

@@ -8,6 +8,7 @@ const FrontReturnTargetScript = preload("res://app/front/navigation/front_return
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
+const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
@@ -15,23 +16,46 @@ var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
 var front_settings_state: FrontSettingsState = null
 var practice_room_factory: PracticeRoomFactory = null
+var auth_session_repository: RefCounted = null
+var logout_use_case: RefCounted = null
+var profile_gateway: RefCounted = null
+var room_ticket_gateway: RefCounted = null
+var app_runtime: Node = null
 
 
 func configure(
+	p_app_runtime: Node,
 	p_auth_session_state: AuthSessionState,
 	p_player_profile_state: PlayerProfileState,
 	p_front_settings_state: FrontSettingsState,
-	p_practice_room_factory: PracticeRoomFactory
+	p_practice_room_factory: PracticeRoomFactory,
+	p_auth_session_repository: RefCounted = null,
+	p_logout_use_case: RefCounted = null,
+	p_profile_gateway: RefCounted = null,
+	p_room_ticket_gateway: RefCounted = null
 ) -> void:
+	app_runtime = p_app_runtime
 	auth_session_state = p_auth_session_state
 	player_profile_state = p_player_profile_state
 	front_settings_state = p_front_settings_state
 	practice_room_factory = p_practice_room_factory
+	auth_session_repository = p_auth_session_repository
+	logout_use_case = p_logout_use_case
+	profile_gateway = p_profile_gateway
+	room_ticket_gateway = p_room_ticket_gateway
 
 
 func enter_lobby() -> Dictionary:
 	var view_state := LobbyViewStateScript.new()
+	if auth_session_state != null:
+		view_state.account_id = auth_session_state.account_id
+		view_state.profile_id = auth_session_state.profile_id
+		view_state.auth_mode = auth_session_state.auth_mode
+		view_state.session_state = auth_session_state.session_state
 	if player_profile_state != null:
+		view_state.account_id = player_profile_state.account_id if not player_profile_state.account_id.is_empty() else view_state.account_id
+		view_state.profile_source = String(player_profile_state.get("profile_source")) if _has_object_property(player_profile_state, "profile_source") else ""
+		view_state.last_sync_msec = int(player_profile_state.get("last_sync_msec")) if _has_object_property(player_profile_state, "last_sync_msec") else 0
 		view_state.profile_name = player_profile_state.nickname
 		view_state.default_character_id = player_profile_state.default_character_id
 		view_state.default_character_skin_id = player_profile_state.default_character_skin_id
@@ -83,20 +107,16 @@ func create_private_room(host: String, port: int) -> Dictionary:
 		"host": normalized_host,
 		"port": normalized_port,
 	})
-	return {
-		"ok": true,
-		"error_code": "",
-		"user_message": "",
-		"entry_context": _build_online_entry_context(
-			FrontEntryKindScript.ONLINE_CREATE,
-			FrontRoomKindScript.PRIVATE_ROOM,
-			normalized_host,
-			normalized_port,
-			"",
-			true,
-			false
-		),
-	}
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_CREATE,
+		FrontRoomKindScript.PRIVATE_ROOM,
+		normalized_host,
+		normalized_port,
+		"",
+		true,
+		false
+	)
+	return _attach_room_ticket(entry_context, "create")
 
 
 func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
@@ -116,20 +136,16 @@ func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 	})
 	if front_settings_state != null:
 		front_settings_state.last_room_id = normalized_room_id
-	return {
-		"ok": true,
-		"error_code": "",
-		"user_message": "",
-		"entry_context": _build_online_entry_context(
-			FrontEntryKindScript.ONLINE_JOIN,
-			FrontRoomKindScript.PRIVATE_ROOM,
-			normalized_host,
-			normalized_port,
-			normalized_room_id,
-			true,
-			true
-		),
-	}
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_JOIN,
+		FrontRoomKindScript.PRIVATE_ROOM,
+		normalized_host,
+		normalized_port,
+		normalized_room_id,
+		true,
+		true
+	)
+	return _attach_room_ticket(entry_context, "join")
 
 
 func create_public_room(host: String, port: int, room_display_name: String) -> Dictionary:
@@ -147,21 +163,17 @@ func create_public_room(host: String, port: int, room_display_name: String) -> D
 		"port": normalized_port,
 		"room_display_name": normalized_room_display_name,
 	})
-	return {
-		"ok": true,
-		"error_code": "",
-		"user_message": "",
-		"entry_context": _build_online_entry_context(
-			FrontEntryKindScript.ONLINE_CREATE,
-			FrontRoomKindScript.PUBLIC_ROOM,
-			normalized_host,
-			normalized_port,
-			"",
-			true,
-			false,
-			normalized_room_display_name
-		),
-	}
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_CREATE,
+		FrontRoomKindScript.PUBLIC_ROOM,
+		normalized_host,
+		normalized_port,
+		"",
+		true,
+		false,
+		normalized_room_display_name
+	)
+	return _attach_room_ticket(entry_context, "create")
 
 
 func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
@@ -181,30 +193,88 @@ func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
 	})
 	if front_settings_state != null:
 		front_settings_state.last_room_id = normalized_room_id
-	return {
-		"ok": true,
-		"error_code": "",
-		"user_message": "",
-		"entry_context": _build_online_entry_context(
-			FrontEntryKindScript.ONLINE_JOIN,
-			FrontRoomKindScript.PUBLIC_ROOM,
-			normalized_host,
-			normalized_port,
-			normalized_room_id,
-			true,
-			true
-		),
-	}
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_JOIN,
+		FrontRoomKindScript.PUBLIC_ROOM,
+		normalized_host,
+		normalized_port,
+		normalized_room_id,
+		true,
+		true
+	)
+	return _attach_room_ticket(entry_context, "join")
 
 
 func logout() -> Dictionary:
+	var logout_result := {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+	}
+	if logout_use_case != null and logout_use_case.has_method("logout"):
+		logout_result = logout_use_case.logout()
 	if auth_session_state != null:
 		auth_session_state.clear()
+	if auth_session_repository != null and auth_session_repository.has_method("clear_session"):
+		auth_session_repository.clear_session()
+	if front_settings_state != null:
+		front_settings_state.clear_reconnect_ticket()
+		if app_runtime != null and app_runtime.front_settings_repository != null and app_runtime.front_settings_repository.has_method("save_settings"):
+			app_runtime.front_settings_repository.save_settings(front_settings_state)
+	if app_runtime != null:
+		app_runtime.current_room_entry_context = null
+	return {
+		"ok": bool(logout_result.get("ok", true)),
+		"error_code": String(logout_result.get("error_code", "")),
+		"user_message": String(logout_result.get("user_message", "")),
+		"entry_context": null,
+	}
+
+
+func refresh_profile() -> Dictionary:
+	if profile_gateway == null or not profile_gateway.has_method("fetch_my_profile"):
+		return _fail("PROFILE_GATEWAY_MISSING", "Profile gateway is not available")
+	if auth_session_state == null or auth_session_state.access_token.strip_edges().is_empty():
+		return _fail("AUTH_SESSION_INVALID", "Access session is not available")
+	var result = profile_gateway.fetch_my_profile(auth_session_state.access_token)
+	if result == null:
+		return _fail("PROFILE_FETCH_RESULT_MISSING", "Profile fetch result is missing")
+	if not bool(result.get("ok", false)):
+		return _fail(String(result.get("error_code", "PROFILE_FETCH_FAILED")), String(result.get("user_message", "Failed to fetch profile")))
+	if player_profile_state != null:
+		player_profile_state.profile_id = String(result.get("profile_id", player_profile_state.profile_id))
+		player_profile_state.account_id = String(result.get("account_id", player_profile_state.account_id))
+		player_profile_state.nickname = String(result.get("nickname", player_profile_state.nickname))
+		player_profile_state.default_character_id = String(result.get("default_character_id", player_profile_state.default_character_id))
+		player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", player_profile_state.default_character_skin_id))
+		player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", player_profile_state.default_bubble_style_id))
+		player_profile_state.default_bubble_skin_id = String(result.get("default_bubble_skin_id", player_profile_state.default_bubble_skin_id))
+		player_profile_state.preferred_map_id = String(result.get("preferred_map_id", player_profile_state.preferred_map_id))
+		player_profile_state.preferred_rule_set_id = String(result.get("preferred_rule_set_id", player_profile_state.preferred_rule_set_id))
+		player_profile_state.preferred_mode_id = String(result.get("preferred_mode_id", player_profile_state.preferred_mode_id))
+		if _has_object_property(player_profile_state, "owned_character_ids"):
+			player_profile_state.owned_character_ids = PlayerProfileState._to_string_array(result.get("owned_character_ids", []))
+		if _has_object_property(player_profile_state, "owned_character_skin_ids"):
+			player_profile_state.owned_character_skin_ids = PlayerProfileState._to_string_array(result.get("owned_character_skin_ids", []))
+		if _has_object_property(player_profile_state, "owned_bubble_style_ids"):
+			player_profile_state.owned_bubble_style_ids = PlayerProfileState._to_string_array(result.get("owned_bubble_style_ids", []))
+		if _has_object_property(player_profile_state, "owned_bubble_skin_ids"):
+			player_profile_state.owned_bubble_skin_ids = PlayerProfileState._to_string_array(result.get("owned_bubble_skin_ids", []))
+		if _has_object_property(player_profile_state, "profile_version"):
+			player_profile_state.profile_version = int(result.get("profile_version", player_profile_state.profile_version))
+		if _has_object_property(player_profile_state, "owned_asset_revision"):
+			player_profile_state.owned_asset_revision = int(result.get("owned_asset_revision", player_profile_state.owned_asset_revision))
+		if _has_object_property(player_profile_state, "profile_source"):
+			player_profile_state.profile_source = "cloud_cache"
+		if _has_object_property(player_profile_state, "last_sync_msec"):
+			player_profile_state.last_sync_msec = Time.get_ticks_msec()
+	if app_runtime != null and app_runtime.profile_repository != null and app_runtime.profile_repository.has_method("save_profile"):
+		app_runtime.profile_repository.save_profile(player_profile_state)
 	return {
 		"ok": true,
 		"error_code": "",
 		"user_message": "",
-		"entry_context": null,
+		"view_state": enter_lobby().get("view_state", null),
 	}
 
 
@@ -242,12 +312,7 @@ func resume_recent_room() -> Dictionary:
 		"match_id": front_settings_state.reconnect_match_id,
 	})
 	
-	return {
-		"ok": true,
-		"error_code": "",
-		"user_message": "",
-		"entry_context": entry_context,
-	}
+	return _attach_room_ticket(entry_context, "resume")
 
 
 func _build_online_entry_context(
@@ -272,6 +337,52 @@ func _build_online_entry_context(
 	entry_context.should_auto_connect = should_auto_connect
 	entry_context.should_auto_join = should_auto_join
 	return entry_context
+
+
+func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Dictionary:
+	if entry_context == null:
+		return _fail("ROOM_ENTRY_CONTEXT_MISSING", "Room entry context is missing")
+	if room_ticket_gateway == null or not room_ticket_gateway.has_method("issue_room_ticket"):
+		return _fail("ROOM_TICKET_GATEWAY_MISSING", "Room ticket gateway is not available")
+	if auth_session_state == null or auth_session_state.access_token.strip_edges().is_empty():
+		return _fail("AUTH_SESSION_INVALID", "Access session is not available")
+	_configure_remote_gateways(entry_context.server_host, entry_context.server_port)
+	var request := RoomTicketRequestScript.new()
+	request.purpose = purpose
+	request.room_id = entry_context.target_room_id
+	request.room_kind = entry_context.room_kind
+	request.requested_match_id = entry_context.reconnect_match_id if purpose == "resume" else ""
+	if player_profile_state != null:
+		request.selected_character_id = player_profile_state.default_character_id
+		request.selected_character_skin_id = player_profile_state.default_character_skin_id
+		request.selected_bubble_style_id = player_profile_state.default_bubble_style_id
+		request.selected_bubble_skin_id = player_profile_state.default_bubble_skin_id
+	var result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
+	if result == null or not result.ok:
+		return _fail(
+			String(result.error_code if result != null else "ROOM_TICKET_RESULT_MISSING"),
+			String(result.user_message if result != null else "Room ticket result is missing")
+		)
+	entry_context.room_ticket = result.ticket
+	entry_context.room_ticket_id = result.ticket_id
+	entry_context.account_id = result.account_id
+	entry_context.profile_id = result.profile_id
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"entry_context": entry_context,
+	}
+
+
+func _configure_remote_gateways(host: String, port: int) -> void:
+	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
+	var normalized_port := port if port > 0 else 8080
+	var base_url := "http://%s:%d" % [normalized_host, normalized_port]
+	if profile_gateway != null and profile_gateway.has_method("configure_base_url"):
+		profile_gateway.configure_base_url(base_url)
+	if room_ticket_gateway != null and room_ticket_gateway.has_method("configure_base_url"):
+		room_ticket_gateway.configure_base_url(base_url)
 
 
 func _normalize_host(host: String) -> String:
@@ -309,3 +420,12 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 func _log_phase15(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[lobby_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.use_case")
+
+
+func _has_object_property(target: Object, property_name: String) -> bool:
+	if target == null:
+		return false
+	for entry in target.get_property_list():
+		if String(entry.get("name", "")) == property_name:
+			return true
+	return false

@@ -8,6 +8,10 @@ var server_host: String = ""
 var server_port: int = 0
 var target_room_id: String = ""
 var room_display_name: String = ""
+var room_ticket: String = ""
+var room_ticket_id: String = ""
+var account_id: String = ""
+var profile_id: String = ""
 var return_target: String = ""
 var should_auto_connect: bool = false
 var should_auto_join: bool = false
@@ -28,6 +32,10 @@ func to_dict() -> Dictionary:
 		"server_port": server_port,
 		"target_room_id": target_room_id,
 		"room_display_name": room_display_name,
+		"room_ticket": room_ticket,
+		"room_ticket_id": room_ticket_id,
+		"account_id": account_id,
+		"profile_id": profile_id,
 		"return_target": return_target,
 		"should_auto_connect": should_auto_connect,
 		"should_auto_join": should_auto_join,
@@ -47,6 +55,10 @@ func duplicate_deep() -> RoomEntryContext:
 	copy.server_port = server_port
 	copy.target_room_id = target_room_id
 	copy.room_display_name = room_display_name
+	copy.room_ticket = room_ticket
+	copy.room_ticket_id = room_ticket_id
+	copy.account_id = account_id
+	copy.profile_id = profile_id
 	copy.return_target = return_target
 	copy.should_auto_connect = should_auto_connect
 	copy.should_auto_join = should_auto_join

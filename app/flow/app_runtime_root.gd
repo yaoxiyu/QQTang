@@ -8,6 +8,10 @@ const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_st
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
+const AuthSessionRepositoryScript = preload("res://app/front/auth/auth_session_repository.gd")
+const LocalAuthSessionRepositoryScript = preload("res://app/front/auth/local_auth_session_repository.gd")
+const HttpAuthGatewayScript = preload("res://app/front/auth/http_auth_gateway.gd")
+const HttpRoomTicketGatewayScript = preload("res://app/front/auth/http_room_ticket_gateway.gd")
 const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
 const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
@@ -15,6 +19,7 @@ const LobbyDirectoryUseCaseScript = preload("res://app/front/lobby/lobby_directo
 const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
+const HttpProfileGatewayScript = preload("res://app/front/profile/http_profile_gateway.gd")
 const LocalFrontSettingsRepositoryScript = preload("res://app/front/profile/local_front_settings_repository.gd")
 const LocalProfileRepositoryScript = preload("res://app/front/profile/local_profile_repository.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
@@ -66,9 +71,16 @@ var last_runtime_error: Dictionary = {}
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
 var front_settings_state: FrontSettingsState = null
+var auth_session_repository: RefCounted = null
 var auth_gateway: RefCounted = null
+var profile_gateway: RefCounted = null
+var room_ticket_gateway: RefCounted = null
 var profile_repository: RefCounted = null
 var front_settings_repository: RefCounted = null
+var auth_session_restore_use_case: RefCounted = null
+var register_use_case: RefCounted = null
+var refresh_session_use_case: RefCounted = null
+var logout_use_case: RefCounted = null
 var login_use_case: RefCounted = null
 var lobby_use_case: RefCounted = null
 var lobby_directory_use_case: RefCounted = null
@@ -462,6 +474,10 @@ func _ensure_front_local_state() -> void:
 	if front_settings_state == null:
 		front_settings_state = FrontSettingsStateScript.new()
 
+	if auth_session_repository != null and auth_session_repository.has_method("load_session"):
+		auth_session_state = auth_session_repository.load_session()
+		if auth_session_state == null:
+			auth_session_state = AuthSessionStateScript.new()
 	if profile_repository != null and profile_repository.has_method("load_profile"):
 		player_profile_state = profile_repository.load_profile()
 		if player_profile_state == null:
@@ -473,6 +489,11 @@ func _ensure_front_local_state() -> void:
 
 
 func _ensure_front_repositories() -> void:
+	if auth_session_repository == null:
+		auth_session_repository = LocalAuthSessionRepositoryScript.new()
+	elif not (auth_session_repository is AuthSessionRepositoryScript):
+		auth_session_repository = LocalAuthSessionRepositoryScript.new()
+
 	if profile_repository == null:
 		profile_repository = LocalProfileRepositoryScript.new()
 	elif not (profile_repository is ProfileRepositoryScript):
@@ -486,7 +507,13 @@ func _ensure_front_repositories() -> void:
 
 func _ensure_front_services() -> void:
 	if auth_gateway == null:
+		auth_gateway = HttpAuthGatewayScript.new()
+	if runtime_config != null and bool(runtime_config.enable_pass_through_auth_fallback):
 		auth_gateway = PassThroughAuthGatewayScript.new()
+	if profile_gateway == null:
+		profile_gateway = HttpProfileGatewayScript.new()
+	if room_ticket_gateway == null:
+		room_ticket_gateway = HttpRoomTicketGatewayScript.new()
 	if practice_room_factory == null:
 		practice_room_factory = PracticeRoomFactoryScript.new()
 
@@ -498,6 +525,8 @@ func _ensure_front_use_cases() -> void:
 		login_use_case.configure(
 			auth_gateway,
 			auth_session_state,
+			auth_session_repository,
+			profile_gateway,
 			profile_repository,
 			front_settings_repository,
 			player_profile_state,
@@ -508,10 +537,15 @@ func _ensure_front_use_cases() -> void:
 		lobby_use_case = LobbyUseCaseScript.new()
 	if lobby_use_case != null and lobby_use_case.has_method("configure"):
 		lobby_use_case.configure(
+			self,
 			auth_session_state,
 			player_profile_state,
 			front_settings_state,
-			practice_room_factory
+			practice_room_factory,
+			auth_session_repository,
+			logout_use_case,
+			profile_gateway,
+			room_ticket_gateway
 		)
 
 	if lobby_directory_use_case == null:
@@ -537,6 +571,34 @@ func _ensure_front_use_cases() -> void:
 		if room_use_case != null:
 			gateway = room_use_case.get("room_client_gateway")
 		loading_use_case.configure(self, gateway)
+
+	if auth_session_restore_use_case == null:
+		var restore_script = _try_load_script("res://app/front/auth/auth_session_restore_use_case.gd")
+		if restore_script != null:
+			auth_session_restore_use_case = restore_script.new()
+	if auth_session_restore_use_case != null and auth_session_restore_use_case.has_method("configure"):
+		auth_session_restore_use_case.configure(self)
+
+	if register_use_case == null:
+		var register_script = _try_load_script("res://app/front/auth/register_use_case.gd")
+		if register_script != null:
+			register_use_case = register_script.new()
+	if register_use_case != null and register_use_case.has_method("configure"):
+		register_use_case.configure(self)
+
+	if refresh_session_use_case == null:
+		var refresh_script = _try_load_script("res://app/front/auth/refresh_session_use_case.gd")
+		if refresh_script != null:
+			refresh_session_use_case = refresh_script.new()
+	if refresh_session_use_case != null and refresh_session_use_case.has_method("configure"):
+		refresh_session_use_case.configure(self)
+
+	if logout_use_case == null:
+		var logout_script = _try_load_script("res://app/front/auth/logout_use_case.gd")
+		if logout_script != null:
+			logout_use_case = logout_script.new()
+	if logout_use_case != null and logout_use_case.has_method("configure"):
+		logout_use_case.configure(self)
 
 
 func _get_battle_root_child_names() -> Array:
@@ -586,3 +648,10 @@ func _clear_pending_runtime_meta() -> void:
 	var pending = tree.root.get_meta(PENDING_RUNTIME_META_KEY)
 	if pending == self:
 		tree.root.remove_meta(PENDING_RUNTIME_META_KEY)
+
+
+func _try_load_script(path: String):
+	if not ResourceLoader.exists(path):
+		return null
+	var script = load(path)
+	return script

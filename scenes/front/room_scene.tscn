@@ -80,6 +80,11 @@ layout_mode = 2
 text = "Lifecycle: IN_ROOM"
 autowrap_mode = 3
 
+[node name="AuthBindingLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=901602496]
+layout_mode = 2
+text = "Identity Binding: -"
+autowrap_mode = 2
+
 [node name="OwnerLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1526305193]
 layout_mode = 2
 

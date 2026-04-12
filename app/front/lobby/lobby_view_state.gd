@@ -1,6 +1,12 @@
 class_name LobbyViewState
 extends RefCounted
 
+var account_id: String = ""
+var profile_id: String = ""
+var auth_mode: String = ""
+var session_state: String = ""
+var profile_source: String = ""
+var last_sync_msec: int = 0
 var profile_name: String = ""
 var default_character_id: String = ""
 var default_character_skin_id: String = ""
@@ -32,6 +38,12 @@ var preferred_mode_id: String = ""
 
 func to_dict() -> Dictionary:
 	return {
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"auth_mode": auth_mode,
+		"session_state": session_state,
+		"profile_source": profile_source,
+		"last_sync_msec": last_sync_msec,
 		"profile_name": profile_name,
 		"default_character_id": default_character_id,
 		"default_character_skin_id": default_character_skin_id,

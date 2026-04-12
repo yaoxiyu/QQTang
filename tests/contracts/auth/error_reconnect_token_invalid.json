@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "error_code": "RECONNECT_TOKEN_INVALID",
+  "user_message": "Reconnect token is invalid"
+}

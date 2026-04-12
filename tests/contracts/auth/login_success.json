@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "account_id": "account_demo_001",
+  "profile_id": "profile_demo_001",
+  "display_name": "PlayerDemo",
+  "auth_mode": "account",
+  "access_token": "access_demo_token",
+  "refresh_token": "refresh_demo_token",
+  "device_session_id": "dsess_demo_001",
+  "access_expire_at_unix_sec": 1770000900,
+  "refresh_expire_at_unix_sec": 1772592000,
+  "session_state": "active",
+  "validation_bypassed": false,
+  "user_message": ""
+}

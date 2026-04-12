@@ -202,6 +202,12 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 	config.room_id_hint = entry_context.target_room_id
 	config.room_kind = entry_context.room_kind
 	config.room_display_name = entry_context.room_display_name
+	config.room_ticket = entry_context.room_ticket
+	config.room_ticket_id = entry_context.room_ticket_id
+	config.account_id = entry_context.account_id
+	config.profile_id = entry_context.profile_id
+	if app_runtime != null and app_runtime.auth_session_state != null:
+		config.device_session_id = app_runtime.auth_session_state.device_session_id
 	if app_runtime != null and app_runtime.player_profile_state != null:
 		config.player_name = app_runtime.player_profile_state.nickname
 		config.selected_character_id = app_runtime.player_profile_state.default_character_id
@@ -314,7 +320,7 @@ func _on_gateway_transport_connected() -> void:
 			"match_id": String(_pending_online_entry_context.reconnect_match_id),
 		})
 		room_client_gateway.request_resume_room(
-			_pending_online_entry_context.target_room_id,
+			_pending_connection_config,
 			_pending_online_entry_context.reconnect_member_id,
 			_pending_online_entry_context.reconnect_token,
 			_pending_online_entry_context.reconnect_match_id
@@ -537,6 +543,11 @@ func _should_clear_pending_reconnect_ticket(error_code: String) -> bool:
 		"RESUME_WINDOW_EXPIRED",
 		"MATCH_NOT_ACTIVE",
 		"MATCH_ID_MISMATCH",
+		"ROOM_TICKET_ACCOUNT_MISMATCH",
+		"ROOM_TICKET_PROFILE_MISMATCH",
+		"ROOM_TICKET_EXPIRED",
+		"ROOM_TICKET_ID_MISMATCH",
+		"ROOM_TICKET_TARGET_INVALID",
 	].has(error_code)
 
 

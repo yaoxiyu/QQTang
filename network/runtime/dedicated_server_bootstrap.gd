@@ -8,6 +8,7 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
 @export var authority_host: String = "127.0.0.1"
+@export var room_ticket_secret: String = "dev_room_ticket_secret"
 
 var _transport: ENetBattleTransport = null
 var _room_registry: ServerRoomRegistry = null
@@ -21,6 +22,7 @@ func _ready() -> void:
 	_room_registry.name = "ServerRoomRegistry"
 	_room_registry.authority_host = authority_host
 	_room_registry.authority_port = listen_port
+	_room_registry.room_ticket_secret = room_ticket_secret
 	add_child(_room_registry)
 	_connect_registry()
 	_transport = ENetBattleTransportScript.new()

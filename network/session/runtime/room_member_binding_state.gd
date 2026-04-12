@@ -3,6 +3,12 @@ extends RefCounted
 
 var member_id: String = ""
 var reconnect_token: String = ""
+var account_id: String = ""
+var profile_id: String = ""
+var device_session_id: String = ""
+var ticket_id: String = ""
+var auth_claim_version: int = 0
+var display_name_source: String = ""
 
 var transport_peer_id: int = 0
 var match_peer_id: int = 0
@@ -27,6 +33,12 @@ func to_dict() -> Dictionary:
 	return {
 		"member_id": member_id,
 		"reconnect_token": reconnect_token,
+		"account_id": account_id,
+		"profile_id": profile_id,
+		"device_session_id": device_session_id,
+		"ticket_id": ticket_id,
+		"auth_claim_version": auth_claim_version,
+		"display_name_source": display_name_source,
 		"transport_peer_id": transport_peer_id,
 		"match_peer_id": match_peer_id,
 		"player_name": player_name,
@@ -48,6 +60,12 @@ static func from_dict(data: Dictionary) -> RoomMemberBindingState:
 	var state := RoomMemberBindingState.new()
 	state.member_id = String(data.get("member_id", ""))
 	state.reconnect_token = String(data.get("reconnect_token", ""))
+	state.account_id = String(data.get("account_id", ""))
+	state.profile_id = String(data.get("profile_id", ""))
+	state.device_session_id = String(data.get("device_session_id", ""))
+	state.ticket_id = String(data.get("ticket_id", ""))
+	state.auth_claim_version = int(data.get("auth_claim_version", 0))
+	state.display_name_source = String(data.get("display_name_source", ""))
 	state.transport_peer_id = int(data.get("transport_peer_id", 0))
 	state.match_peer_id = int(data.get("match_peer_id", 0))
 	state.player_name = String(data.get("player_name", ""))

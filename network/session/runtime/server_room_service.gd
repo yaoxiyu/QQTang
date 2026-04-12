@@ -10,6 +10,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const RoomTicketVerifierScript = preload("res://network/session/auth/room_ticket_verifier.gd")
 const MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH: int = 24
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
@@ -19,6 +20,14 @@ signal broadcast_message(message: Dictionary)
 signal resume_request_received(message: Dictionary)  # Phase17: For ServerRoomRuntime to handle match resume
 
 var room_state: RoomServerState = RoomServerStateScript.new()
+var room_ticket_verifier: RefCounted = RoomTicketVerifierScript.new()
+
+
+func configure_room_ticket_verifier(secret: String, allow_unsigned_dev_ticket: bool = false) -> void:
+	if room_ticket_verifier == null:
+		room_ticket_verifier = RoomTicketVerifierScript.new()
+	if room_ticket_verifier.has_method("configure"):
+		room_ticket_verifier.configure(secret, allow_unsigned_dev_ticket)
 
 
 func handle_peer_disconnected(peer_id: int) -> void:
@@ -124,6 +133,11 @@ func _handle_create_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
+	var ticket_validation = room_ticket_verifier.verify_create_ticket(message) if room_ticket_verifier != null else null
+	if ticket_validation == null or not bool(ticket_validation.ok):
+		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_CREATE_REJECTED, ticket_validation)
+		return
+	var ticket_claim = ticket_validation.claim
 	var requested_character_id := String(message.get("character_id", "")).strip_edges()
 	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
 		send_to_peer.emit(peer_id, {
@@ -153,6 +167,16 @@ func _handle_create_request(message: Dictionary) -> void:
 			return
 	else:
 		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
+	var resolved_character_skin_id := _resolve_character_skin_id(String(message.get("character_skin_id", "")))
+	var resolved_bubble_style_id := _resolve_bubble_style_id(String(message.get("bubble_style_id", "")))
+	var resolved_bubble_skin_id := _resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+	if not room_ticket_verifier.is_loadout_allowed(ticket_claim, requested_character_id, resolved_character_skin_id, resolved_bubble_style_id, resolved_bubble_skin_id):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "ROOM_TICKET_LOADOUT_FORBIDDEN",
+			"user_message": "Requested loadout is not allowed by room ticket",
+		})
+		return
 	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
 	room_state.set_selection(
 		String(message.get("map_id", "")),
@@ -161,11 +185,17 @@ func _handle_create_request(message: Dictionary) -> void:
 	)
 	room_state.upsert_member(
 		peer_id,
-		String(message.get("player_name", "Player%d" % peer_id)),
+		ticket_claim.display_name if not ticket_claim.display_name.is_empty() else String(message.get("player_name", "Player%d" % peer_id)),
 		requested_character_id,
-		_resolve_character_skin_id(String(message.get("character_skin_id", ""))),
-		_resolve_bubble_style_id(String(message.get("bubble_style_id", ""))),
-		_resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+		resolved_character_skin_id,
+		resolved_bubble_style_id,
+		resolved_bubble_skin_id,
+		0,
+		ticket_claim.account_id,
+		ticket_claim.profile_id,
+		ticket_claim.device_session_id,
+		ticket_claim.ticket_id,
+		"profile"
 	)
 	room_state.set_ready(peer_id, false)
 	send_to_peer.emit(peer_id, {
@@ -195,6 +225,11 @@ func _handle_join_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
+	var ticket_validation = room_ticket_verifier.verify_join_ticket(message) if room_ticket_verifier != null else null
+	if ticket_validation == null or not bool(ticket_validation.ok):
+		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_JOIN_REJECTED, ticket_validation)
+		return
+	var ticket_claim = ticket_validation.claim
 	var requested_character_id := String(message.get("character_id", "")).strip_edges()
 	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
 		send_to_peer.emit(peer_id, {
@@ -220,14 +255,30 @@ func _handle_join_request(message: Dictionary) -> void:
 			"user_message": "Active match is not joinable as a player",
 		})
 		return
+	var resolved_character_skin_id := _resolve_character_skin_id(String(message.get("character_skin_id", "")))
+	var resolved_bubble_style_id := _resolve_bubble_style_id(String(message.get("bubble_style_id", "")))
+	var resolved_bubble_skin_id := _resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+	if not room_ticket_verifier.is_loadout_allowed(ticket_claim, requested_character_id, resolved_character_skin_id, resolved_bubble_style_id, resolved_bubble_skin_id):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "ROOM_TICKET_LOADOUT_FORBIDDEN",
+			"user_message": "Requested loadout is not allowed by room ticket",
+		})
+		return
 	
 	room_state.upsert_member(
 		peer_id,
-		String(message.get("player_name", "Player%d" % peer_id)),
+		ticket_claim.display_name if not ticket_claim.display_name.is_empty() else String(message.get("player_name", "Player%d" % peer_id)),
 		requested_character_id,
-		_resolve_character_skin_id(String(message.get("character_skin_id", ""))),
-		_resolve_bubble_style_id(String(message.get("bubble_style_id", ""))),
-		_resolve_bubble_skin_id(String(message.get("bubble_skin_id", "")))
+		resolved_character_skin_id,
+		resolved_bubble_style_id,
+		resolved_bubble_skin_id,
+		0,
+		ticket_claim.account_id,
+		ticket_claim.profile_id,
+		ticket_claim.device_session_id,
+		ticket_claim.ticket_id,
+		"profile"
 	)
 	room_state.set_ready(peer_id, false)
 	send_to_peer.emit(peer_id, {
@@ -461,6 +512,11 @@ func _handle_resume_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
+	var ticket_validation = room_ticket_verifier.verify_resume_ticket(message) if room_ticket_verifier != null else null
+	if ticket_validation == null or not bool(ticket_validation.ok):
+		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_RESUME_REJECTED, ticket_validation)
+		return
+	var ticket_claim = ticket_validation.claim
 	
 	var requested_room_id := String(message.get("room_id", "")).strip_edges()
 	var member_id := String(message.get("member_id", "")).strip_edges()
@@ -494,6 +550,20 @@ func _handle_resume_request(message: Dictionary) -> void:
 			"user_message": "Reconnect token is invalid",
 		})
 		return
+	if binding.account_id != ticket_claim.account_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "ROOM_TICKET_ACCOUNT_MISMATCH",
+			"user_message": "Room ticket account does not match member binding",
+		})
+		return
+	if binding.profile_id != ticket_claim.profile_id:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "ROOM_TICKET_PROFILE_MISMATCH",
+			"user_message": "Room ticket profile does not match member binding",
+		})
+		return
 	
 	# Check if resume window expired
 	if binding.connection_state == "disconnected" and binding.disconnect_deadline_msec > 0:
@@ -516,6 +586,10 @@ func _handle_resume_request(message: Dictionary) -> void:
 		binding.connection_state = "connected"
 		binding.match_peer_id = peer_id
 		binding.disconnect_deadline_msec = 0
+		binding.device_session_id = ticket_claim.device_session_id
+		binding.ticket_id = ticket_claim.ticket_id
+		binding.auth_claim_version = 1
+		binding.display_name_source = "profile"
 		if previous_peer_id > 0 and previous_peer_id != peer_id:
 			room_state.members.erase(previous_peer_id)
 			room_state.ready_map.erase(previous_peer_id)
@@ -548,4 +622,13 @@ func _handle_resume_request(message: Dictionary) -> void:
 		"member_id": member_id,
 		"reconnect_token": reconnect_token,
 		"match_id": requested_match_id,
+		"ticket_claim": ticket_claim.to_dict(),
+	})
+
+
+func _reject_with_ticket_error(peer_id: int, message_type: String, validation_result) -> void:
+	send_to_peer.emit(peer_id, {
+		"message_type": message_type,
+		"error": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
+		"user_message": String(validation_result.user_message if validation_result != null else "Room ticket validation failed"),
 	})

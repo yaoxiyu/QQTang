@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: bitnami/postgresql:16
+    container_name: pg_test
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRESQL_USERNAME=test_user
+      - POSTGRESQL_PASSWORD=test_pass_123
+      - POSTGRESQL_DATABASE=test_db
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres_admin_pass
+    volumes:
+      - ./postgres_data:/bitnami/postgresql
+    restart: unless-stopped

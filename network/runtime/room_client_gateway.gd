@@ -58,7 +58,12 @@ func request_join_room(connection_config: ClientConnectionConfig) -> void:
 		connection_config.selected_character_id,
 		connection_config.selected_character_skin_id,
 		connection_config.selected_bubble_style_id,
-		connection_config.selected_bubble_skin_id
+		connection_config.selected_bubble_skin_id,
+		connection_config.room_ticket,
+		connection_config.room_ticket_id,
+		connection_config.account_id,
+		connection_config.profile_id,
+		connection_config.device_session_id
 	)
 
 
@@ -80,7 +85,12 @@ func request_create_room(connection_config: ClientConnectionConfig) -> void:
 		"",
 		connection_config.selected_mode_id,
 		connection_config.room_kind,
-		connection_config.room_display_name
+		connection_config.room_display_name,
+		connection_config.room_ticket,
+		connection_config.room_ticket_id,
+		connection_config.account_id,
+		connection_config.profile_id,
+		connection_config.device_session_id
 	)
 
 
@@ -158,10 +168,20 @@ func request_rematch() -> void:
 
 
 # Phase17: Resume request
-func request_resume_room(room_id: String, member_id: String, reconnect_token: String, match_id: String) -> void:
-	if client_room_runtime == null:
+func request_resume_room(connection_config: ClientConnectionConfig, member_id: String, reconnect_token: String, match_id: String) -> void:
+	if client_room_runtime == null or connection_config == null:
 		return
-	client_room_runtime.request_resume_room(room_id, member_id, reconnect_token, match_id)
+	client_room_runtime.request_resume_room(
+		connection_config.room_id_hint,
+		member_id,
+		reconnect_token,
+		match_id,
+		connection_config.room_ticket,
+		connection_config.room_ticket_id,
+		connection_config.account_id,
+		connection_config.profile_id,
+		connection_config.device_session_id
+	)
 
 
 func _connect_runtime_signals() -> void:

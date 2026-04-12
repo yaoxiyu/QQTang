@@ -14,6 +14,7 @@ signal broadcast_message(message: Dictionary)
 
 var authority_host: String = "127.0.0.1"
 var authority_port: int = 9000
+var room_ticket_secret: String = "dev_room_ticket_secret"
 
 var _room_service: ServerRoomService = null
 var _match_service: ServerMatchService = null
@@ -33,13 +34,16 @@ func _process(_delta: float) -> void:
 		_room_service.poll_idle_resume_expired()
 
 
-func configure(next_authority_host: String, next_authority_port: int) -> void:
+func configure(next_authority_host: String, next_authority_port: int, next_room_ticket_secret: String = "dev_room_ticket_secret") -> void:
 	authority_host = next_authority_host if not next_authority_host.strip_edges().is_empty() else "127.0.0.1"
 	authority_port = next_authority_port if next_authority_port > 0 else 9000
+	room_ticket_secret = next_room_ticket_secret if not next_room_ticket_secret.strip_edges().is_empty() else "dev_room_ticket_secret"
 	_ensure_services()
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
+	if _room_service != null and _room_service.has_method("configure_room_ticket_verifier"):
+		_room_service.configure_room_ticket_verifier(room_ticket_secret)
 
 
 func create_room_from_request(message: Dictionary) -> Dictionary:
@@ -206,6 +210,8 @@ func _ensure_services() -> void:
 		_room_service = ServerRoomServiceScript.new()
 		_room_service.name = "ServerRoomService"
 		add_child(_room_service)
+		if _room_service.has_method("configure_room_ticket_verifier"):
+			_room_service.configure_room_ticket_verifier(room_ticket_secret)
 		_connect_room_service_signals()
 	if _match_service == null:
 		_match_service = ServerMatchServiceScript.new()
@@ -319,6 +325,15 @@ func _on_resume_request_received(message: Dictionary) -> void:
 			"error": result.get("error", "RESUME_FAILED"),
 			"user_message": "Match resume failed: " + str(result.get("error", "unknown")),
 		})
+		return
+	if _room_service != null and _room_service.room_state != null:
+		var binding := _room_service.room_state.get_member_binding_by_member_id(member_id)
+		var ticket_claim: Dictionary = Dictionary(message.get("ticket_claim", {}))
+		if binding != null and not ticket_claim.is_empty():
+			binding.device_session_id = String(ticket_claim.get("device_session_id", binding.device_session_id))
+			binding.ticket_id = String(ticket_claim.get("ticket_id", binding.ticket_id))
+			binding.auth_claim_version = 1
+			binding.display_name_source = "profile"
 
 
 func _emit_send_to_peer(peer_id: int, message: Dictionary) -> void:

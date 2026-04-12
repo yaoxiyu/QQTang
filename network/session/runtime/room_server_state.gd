@@ -79,7 +79,12 @@ func upsert_member(
 	character_skin_id: String = "",
 	bubble_style_id: String = "",
 	bubble_skin_id: String = "",
-	team_id: int = 0
+	team_id: int = 0,
+	account_id: String = "",
+	profile_id: String = "",
+	device_session_id: String = "",
+	ticket_id: String = "",
+	display_name_source: String = ""
 ) -> void:
 	var profile : Dictionary = members.get(peer_id, {})
 	var resolved_team_id := _resolve_team_id(peer_id, team_id)
@@ -108,7 +113,12 @@ func upsert_member(
 			String(profile["character_skin_id"]),
 			String(profile["bubble_style_id"]),
 			String(profile["bubble_skin_id"]),
-			resolved_team_id
+			resolved_team_id,
+			account_id,
+			profile_id,
+			device_session_id,
+			ticket_id,
+			display_name_source
 		)
 	else:
 		binding.player_name = String(profile["player_name"])
@@ -117,6 +127,18 @@ func upsert_member(
 		binding.bubble_style_id = String(profile["bubble_style_id"])
 		binding.bubble_skin_id = String(profile["bubble_skin_id"])
 		binding.team_id = resolved_team_id
+		if not account_id.is_empty():
+			binding.account_id = account_id
+		if not profile_id.is_empty():
+			binding.profile_id = profile_id
+		if not device_session_id.is_empty():
+			binding.device_session_id = device_session_id
+		if not ticket_id.is_empty():
+			binding.ticket_id = ticket_id
+		if not display_name_source.is_empty():
+			binding.display_name_source = display_name_source
+		if binding.auth_claim_version <= 0 and not binding.account_id.is_empty():
+			binding.auth_claim_version = 1
 
 
 func remove_member(peer_id: int) -> void:
@@ -381,7 +403,12 @@ func create_member_binding(
 	character_skin_id: String = "",
 	bubble_style_id: String = "",
 	bubble_skin_id: String = "",
-	team_id: int = 0
+	team_id: int = 0,
+	account_id: String = "",
+	profile_id: String = "",
+	device_session_id: String = "",
+	ticket_id: String = "",
+	display_name_source: String = ""
 ) -> RoomMemberBindingState:
 	var binding := RoomMemberBindingStateScript.new()
 	var slot_index := member_bindings_by_member_id.size()
@@ -400,6 +427,12 @@ func create_member_binding(
 	binding.is_owner = owner_peer_id <= 0 or owner_peer_id == transport_peer_id
 	binding.connection_state = "connected"
 	binding.last_room_id = room_id
+	binding.account_id = account_id
+	binding.profile_id = profile_id
+	binding.device_session_id = device_session_id
+	binding.ticket_id = ticket_id
+	binding.auth_claim_version = 1 if not account_id.is_empty() else 0
+	binding.display_name_source = display_name_source
 	
 	member_bindings_by_member_id[binding.member_id] = binding
 	member_id_by_transport_peer_id[transport_peer_id] = binding.member_id

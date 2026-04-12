@@ -76,7 +76,7 @@ func _test_lobby_reconnect_without_member_session_fails() -> bool:
 	settings.reconnect_room_kind = "private_room"
 	settings.reconnect_token = "token_without_member"
 	var use_case := LobbyUseCaseScript.new()
-	use_case.configure(null, null, settings, null)
+	use_case.configure(null, null, null, settings, null)
 
 	var result := use_case.resume_recent_room()
 

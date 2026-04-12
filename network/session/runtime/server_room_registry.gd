@@ -20,6 +20,7 @@ var directory_subscribers: Dictionary = {}
 var directory_revision: int = 0
 var authority_host: String = "127.0.0.1"
 var authority_port: int = 9000
+var room_ticket_secret: String = "dev_room_ticket_secret"
 
 
 func route_message(message: Dictionary) -> void:
@@ -269,7 +270,7 @@ func _create_room_runtime() -> ServerRoomRuntime:
 	var runtime := ServerRoomRuntimeScript.new()
 	runtime.name = "ServerRoomRuntime_%d" % int(Time.get_ticks_usec() % 1000000)
 	add_child(runtime)
-	runtime.configure(authority_host, authority_port)
+	runtime.configure(authority_host, authority_port, room_ticket_secret)
 	_connect_runtime_signals(runtime)
 	return runtime
 
