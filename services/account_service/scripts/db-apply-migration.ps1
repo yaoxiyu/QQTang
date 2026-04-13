@@ -1,7 +1,7 @@
 param(
     [ValidateSet("dev", "test")]
     [string]$Target = "dev",
-    [string]$Migration = "0001_phase19_auth_init.sql"
+    [string]$Migration = "0001_account_auth_init.sql"
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,13 +14,13 @@ if (-not (Test-Path $migrationPath)) {
 }
 
 if ($Target -eq "dev") {
-    $container = "qqtang_phase19_pg"
+    $container = "qqtang_account_pg"
     $database = "qqtang_account_dev"
     $user = "qqtang"
     $password = "qqtang_dev_pass"
 }
 else {
-    $container = "qqtang_phase19_pg_test"
+    $container = "qqtang_account_pg_test"
     $database = "qqtang_account_test"
     $user = "qqtang_test"
     $password = "qqtang_test_pass"

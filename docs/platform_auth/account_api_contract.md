@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document defines the Phase19 account authentication HTTP contract.
+This document defines the account authentication HTTP contract.
 
 Base path:
 
@@ -32,7 +32,7 @@ Token semantics:
 - `access_token` is a short-lived bearer token for authenticated API access.
 - `refresh_token` is a long-lived session token used only for session refresh and logout.
 - `device_session_id` identifies one client device session.
-- Default TTL policy for Phase19 V1:
+- Default TTL policy:
   - `access_token`: 15 minutes
   - `refresh_token`: 30 days
 - When `allow_multi_device = false`, a new login revokes previous active session of the same account.

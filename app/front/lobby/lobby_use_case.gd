@@ -236,6 +236,7 @@ func refresh_profile() -> Dictionary:
 		return _fail("PROFILE_GATEWAY_MISSING", "Profile gateway is not available")
 	if auth_session_state == null or auth_session_state.access_token.strip_edges().is_empty():
 		return _fail("AUTH_SESSION_INVALID", "Access session is not available")
+	_configure_account_service_gateways()
 	var result = profile_gateway.fetch_my_profile(auth_session_state.access_token)
 	if result == null:
 		return _fail("PROFILE_FETCH_RESULT_MISSING", "Profile fetch result is missing")
@@ -346,7 +347,7 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 		return _fail("ROOM_TICKET_GATEWAY_MISSING", "Room ticket gateway is not available")
 	if auth_session_state == null or auth_session_state.access_token.strip_edges().is_empty():
 		return _fail("AUTH_SESSION_INVALID", "Access session is not available")
-	_configure_remote_gateways(entry_context.server_host, entry_context.server_port)
+	_configure_account_service_gateways()
 	var request := RoomTicketRequestScript.new()
 	request.purpose = purpose
 	request.room_id = entry_context.target_room_id
@@ -375,9 +376,14 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 	}
 
 
-func _configure_remote_gateways(host: String, port: int) -> void:
-	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
-	var normalized_port := port if port > 0 else 8080
+func _configure_account_service_gateways() -> void:
+	var normalized_host := "127.0.0.1"
+	var normalized_port := 18080
+	if front_settings_state != null:
+		if not front_settings_state.account_service_host.strip_edges().is_empty():
+			normalized_host = front_settings_state.account_service_host.strip_edges()
+		if front_settings_state.account_service_port > 0:
+			normalized_port = front_settings_state.account_service_port
 	var base_url := "http://%s:%d" % [normalized_host, normalized_port]
 	if profile_gateway != null and profile_gateway.has_method("configure_base_url"):
 		profile_gateway.configure_base_url(base_url)

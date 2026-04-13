@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document defines the Phase19 profile HTTP contract.
+This document defines the profile HTTP contract.
 
 Base path:
 

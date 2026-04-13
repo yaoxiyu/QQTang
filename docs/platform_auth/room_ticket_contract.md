@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document defines the Phase19 room ticket HTTP contract and the ticket claim model used by Dedicated Server.
+This document defines the room ticket HTTP contract and the ticket claim model used by Dedicated Server.
 
 Base path:
 
@@ -26,7 +26,7 @@ Purpose:
 
 Ticket semantics:
 
-- Ticket TTL: 30 to 60 seconds, Phase19 V1 default 45 seconds.
+- Ticket TTL: 30 to 60 seconds, current default 45 seconds.
 - Ticket is one-time use.
 - Expired ticket must be rejected.
 - Consumed ticket must be rejected.

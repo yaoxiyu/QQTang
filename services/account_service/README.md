@@ -33,6 +33,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test-integration.ps1
 go run ./cmd/account_service
 ```
 
+一键按 dev 配置启动服务：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-dev.ps1
+```
+
 ## 当前落地边界
 
 - PostgreSQL 通过 `pgxpool` 接入

@@ -132,12 +132,12 @@ func _try_sync_profile() -> Dictionary:
 func _configure_gateways_from_settings() -> void:
 	if app_runtime.front_settings_state == null:
 		return
-	var host := String(app_runtime.front_settings_state.last_server_host).strip_edges()
+	var host := String(app_runtime.front_settings_state.account_service_host).strip_edges()
 	if host.is_empty():
 		host = "127.0.0.1"
-	var port := int(app_runtime.front_settings_state.last_server_port)
+	var port := int(app_runtime.front_settings_state.account_service_port)
 	if port <= 0:
-		port = 8080
+		port = 18080
 	var base_url := "http://%s:%d" % [host, port]
 	if app_runtime.auth_gateway != null and app_runtime.auth_gateway.has_method("configure_base_url"):
 		app_runtime.auth_gateway.configure_base_url(base_url)

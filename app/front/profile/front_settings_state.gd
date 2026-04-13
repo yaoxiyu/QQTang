@@ -3,6 +3,8 @@ extends RefCounted
 
 var remember_profile: bool = true
 var auto_enter_lobby: bool = false
+var account_service_host: String = "127.0.0.1"
+var account_service_port: int = 18080
 var last_server_host: String = "127.0.0.1"
 var last_server_port: int = 9000
 var last_room_id: String = ""
@@ -27,6 +29,8 @@ func to_dict() -> Dictionary:
 	return {
 		"remember_profile": remember_profile,
 		"auto_enter_lobby": auto_enter_lobby,
+		"account_service_host": account_service_host,
+		"account_service_port": account_service_port,
 		"last_server_host": last_server_host,
 		"last_server_port": last_server_port,
 		"last_room_id": last_room_id,
@@ -48,8 +52,18 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	var state := FrontSettingsState.new()
 	state.remember_profile = bool(data.get("remember_profile", true))
 	state.auto_enter_lobby = bool(data.get("auto_enter_lobby", false))
+	state.account_service_host = String(data.get("account_service_host", "127.0.0.1"))
+	state.account_service_port = int(data.get("account_service_port", 18080))
 	state.last_server_host = String(data.get("last_server_host", "127.0.0.1"))
 	state.last_server_port = int(data.get("last_server_port", 9000))
+	if state.account_service_host.strip_edges().is_empty():
+		state.account_service_host = "127.0.0.1"
+	if state.account_service_port <= 0:
+		state.account_service_port = 18080
+	if state.last_server_host.strip_edges().is_empty():
+		state.last_server_host = "127.0.0.1"
+	if state.last_server_port <= 0:
+		state.last_server_port = 9000
 	state.last_room_id = String(data.get("last_room_id", ""))
 	state.reconnect_room_id = String(data.get("reconnect_room_id", ""))
 	state.reconnect_host = String(data.get("reconnect_host", ""))

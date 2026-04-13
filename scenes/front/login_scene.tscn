@@ -27,7 +27,7 @@ text = "QQTang Login"
 
 [node name="IntroLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=2033382970]
 layout_mode = 2
-text = "Guest / Pass-through login. Real auth will be connected later."
+text = "Account service HTTP endpoint for register/login/refresh."
 autowrap_mode = 3
 
 [node name="ProfileCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1895139282]
@@ -106,7 +106,7 @@ layout_mode = 2
 
 [node name="PortInput" type="LineEdit" parent="LoginRoot/MainLayout/EndpointCard/EndpointVBox/PortRow" unique_id=189229112]
 layout_mode = 2
-placeholder_text = "9000"
+placeholder_text = "18080"
 
 [node name="AuthCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1855811312]
 layout_mode = 2
@@ -120,7 +120,7 @@ text = "Auth Mode: pass_through"
 
 [node name="AuthStatusLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=730030213]
 layout_mode = 2
-text = "Validation is bypassed in Phase13."
+text = "Validation is handled by the account service."
 
 [node name="SessionStatusLabel" type="Label" parent="LoginRoot/MainLayout/AuthCard/AuthVBox" unique_id=1954629570]
 layout_mode = 2

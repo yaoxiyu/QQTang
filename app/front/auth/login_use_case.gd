@@ -58,6 +58,7 @@ func login(request: LoginRequest) -> Dictionary:
 		}
 
 	_apply_settings_from_request(request)
+	_configure_profile_gateway_from_settings()
 	_apply_auth_session(result)
 	if auth_session_repository != null and auth_session_repository.has_method("save_session") and not auth_session_repository.save_session(auth_session_state):
 		return {
@@ -93,8 +94,15 @@ func login(request: LoginRequest) -> Dictionary:
 func _apply_settings_from_request(request: LoginRequest) -> void:
 	if request == null:
 		return
-	front_settings_state.last_server_host = request.server_host.strip_edges()
-	front_settings_state.last_server_port = request.server_port
+	front_settings_state.account_service_host = request.server_host.strip_edges() if not request.server_host.strip_edges().is_empty() else "127.0.0.1"
+	front_settings_state.account_service_port = request.server_port if request.server_port > 0 else 18080
+
+
+func _configure_profile_gateway_from_settings() -> void:
+	if profile_gateway == null or not profile_gateway.has_method("configure_base_url"):
+		return
+	var base_url := "http://%s:%d" % [front_settings_state.account_service_host, front_settings_state.account_service_port]
+	profile_gateway.configure_base_url(base_url)
 
 
 func _apply_auth_session(result: LoginResult) -> void:

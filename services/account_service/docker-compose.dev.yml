@@ -4,7 +4,7 @@ services:
   postgres:
     # latest inspected on 2026-04-13 -> app version 18.3.0
     image: bitnami/postgresql@sha256:155a5ff04d5059d8076a85dca404d8a3bc2d765db0fea1afd25ae68e9ac38903
-    container_name: qqtang_phase19_pg
+    container_name: qqtang_account_pg
     restart: unless-stopped
     environment:
       POSTGRESQL_USERNAME: qqtang
@@ -13,7 +13,7 @@ services:
     ports:
       - "54329:5432"
     volumes:
-      - qqtang_phase19_pgdata:/bitnami/postgresql
+      - qqtang_account_pgdata:/bitnami/postgresql
 
 volumes:
-  qqtang_phase19_pgdata:
+  qqtang_account_pgdata:

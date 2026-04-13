@@ -16,7 +16,7 @@ func fetch_my_profile(access_token: String) -> Dictionary:
 			"user_message": "Profile HTTP url is missing",
 		}
 	var client := HTTPClient.new()
-	var parsed_url := _parse_url(service_base_url + "/v1/profile/me")
+	var parsed_url := _parse_url(service_base_url + "/api/v1/profile/me")
 	if parsed_url.is_empty():
 		return {
 			"ok": false,

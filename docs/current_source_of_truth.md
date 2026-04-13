@@ -508,7 +508,7 @@
 
 ## 3.9 `services/account_service/`
 
-**定位：Phase19 平台账号控制面服务目录**
+**定位：平台账号控制面服务目录**
 
 职责包括：
 
@@ -528,6 +528,18 @@
 - 开发库与测试库必须隔离：
   - dev: `docker-compose.dev.yml`
   - test: `docker-compose.test.yml`
+- 客户端与 Dedicated Server 当前都不直接连接 PostgreSQL
+- 客户端默认端口边界当前固定为：
+  - `account_service` HTTP 默认：`127.0.0.1:18080`
+  - Dedicated Server / room directory 默认：`127.0.0.1:9000`
+- 前台设置必须分离保存：
+  - `account_service_host/account_service_port` 只用于认证、profile、room ticket HTTP
+  - `last_server_host/last_server_port` 只用于 Dedicated Server / room directory / room connect
+- 客户端当前通过 HTTP 网关访问 `account_service`：
+  - `/api/v1/auth/*`
+  - `/api/v1/profile/me`
+  - `/api/v1/tickets/room-entry`
+- Dedicated Server 当前只消费 room ticket 签名与 claim，不直接访问账号数据库
 - 本地脚本以 `services/account_service/scripts/` 为准：
   - `db-up.ps1`
   - `db-apply-migration.ps1`

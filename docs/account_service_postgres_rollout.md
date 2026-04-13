@@ -1,8 +1,8 @@
-# Phase19 AccountService PostgreSQL 落地待办
+# AccountService PostgreSQL 落地说明
 
 ## 目标
 
-基于 `05_Phase19_PostgreSQL接入与Go_AccountService落地补充文档.md`，把当前仓库中的 `services/account_service` 从“已有一版可运行雏形”推进到“符合 Phase19 正式化约束的最小闭环实现”。
+基于账号服务 PostgreSQL 接入补充文档，把当前仓库中的 `services/account_service` 从“已有一版可运行雏形”推进到“符合正式约束的最小闭环实现”。
 
 本清单只覆盖平台账号服务与 PostgreSQL 落地，不改 Godot 前台壳、Room、DS 主链路。
 
@@ -17,7 +17,7 @@
 
 当前状态：
 
-- Phase19 PostgreSQL 接入与 Go AccountService 最小闭环已完成
+- PostgreSQL 接入与 Go AccountService 最小闭环已完成
 - 开发库与测试库已通过独立 compose 隔离
 - 集成测试已切换到 test 专用 database，不再默认触碰开发库
 - 配置解析已改为严格失败，不再静默回退
@@ -97,7 +97,7 @@
 
 - 已将 dev/test PostgreSQL 镜像固定为当前 `latest` 对应 digest
 - 当前镜像对应应用版本：`18.3.0`
-- 已成功启动本地 PostgreSQL，并在容器内执行 `0001_phase19_auth_init.sql`
+- 已成功启动本地 PostgreSQL，并在容器内执行 `0001_account_auth_init.sql`
 - 已成功验证：
   - `GET /healthz`
   - `GET /readyz`

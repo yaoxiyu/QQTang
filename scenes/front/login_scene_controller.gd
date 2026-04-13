@@ -61,9 +61,9 @@ func _apply_profile_defaults() -> void:
 	if account_input != null and _app_runtime.auth_session_state != null:
 		account_input.text = _app_runtime.auth_session_state.account_id
 	if host_input != null and settings != null:
-		host_input.text = settings.last_server_host
+		host_input.text = settings.account_service_host
 	if port_input != null and settings != null:
-		port_input.text = str(settings.last_server_port)
+		port_input.text = str(settings.account_service_port)
 
 
 func _connect_signals() -> void:
@@ -90,7 +90,7 @@ func _on_enter_lobby_pressed() -> void:
 	request.server_port = int(port_input.text.to_int()) if port_input != null else 0
 
 	if _app_runtime.profile_gateway != null and _app_runtime.profile_gateway.has_method("configure_base_url"):
-		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 8080])
+		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
 	var result: Dictionary = _app_runtime.login_use_case.login(request)
 	if not bool(result.get("ok", false)):
 		_set_message(String(result.get("user_message", "Login failed")))
@@ -117,7 +117,7 @@ func _on_register_pressed() -> void:
 	request.server_host = host_input.text.strip_edges() if host_input != null else ""
 	request.server_port = int(port_input.text.to_int()) if port_input != null else 0
 	if _app_runtime.profile_gateway != null and _app_runtime.profile_gateway.has_method("configure_base_url"):
-		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 8080])
+		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
 	var result: Dictionary = _app_runtime.register_use_case.register(request)
 	if not bool(result.get("ok", false)):
 		_set_message(String(result.get("user_message", "Register failed")))

@@ -17,7 +17,7 @@ func register(request: RegisterRequest) -> RegisterResult:
 	service_base_url = _build_base_url(request.server_host, request.server_port)
 	return RegisterResultScript.success_from_dict(
 		_request_json(
-			service_base_url + "/v1/auth/register",
+			service_base_url + "/api/v1/auth/register",
 			HTTPClient.METHOD_POST,
 			{
 				"account": request.account,
@@ -34,7 +34,7 @@ func login(request: LoginRequest) -> LoginResult:
 		return LoginResult.fail("LOGIN_REQUEST_INVALID", "Login request is missing")
 	service_base_url = _build_base_url(request.server_host, request.server_port)
 	var response := _request_json(
-		service_base_url + "/v1/auth/login",
+		service_base_url + "/api/v1/auth/login",
 		HTTPClient.METHOD_POST,
 		{
 			"account": request.account,
@@ -63,7 +63,7 @@ func login(request: LoginRequest) -> LoginResult:
 func refresh_session(refresh_token: String, device_session_id: String) -> RefreshSessionResult:
 	return RefreshSessionResultScript.success_from_dict(
 		_request_json(
-			_require_base_url() + "/v1/auth/refresh",
+			_require_base_url() + "/api/v1/auth/refresh",
 			HTTPClient.METHOD_POST,
 			{
 				"refresh_token": refresh_token,
@@ -75,7 +75,7 @@ func refresh_session(refresh_token: String, device_session_id: String) -> Refres
 
 func logout(access_token: String, refresh_token: String, device_session_id: String) -> Dictionary:
 	return _request_json(
-		_require_base_url() + "/v1/auth/logout",
+		_require_base_url() + "/api/v1/auth/logout",
 		HTTPClient.METHOD_POST,
 		{
 			"refresh_token": refresh_token,
@@ -87,7 +87,7 @@ func logout(access_token: String, refresh_token: String, device_session_id: Stri
 
 func get_current_session(access_token: String) -> Dictionary:
 	return _request_json(
-		_require_base_url() + "/v1/auth/session",
+		_require_base_url() + "/api/v1/auth/session",
 		HTTPClient.METHOD_GET,
 		{},
 		["Authorization: Bearer %s" % access_token]
@@ -100,7 +100,7 @@ func _build_base_url(server_host: String, server_port: int) -> String:
 		host = "127.0.0.1"
 	var port := server_port
 	if port <= 0:
-		port = 8080
+		port = 18080
 	return "http://%s:%d" % [host, port]
 
 

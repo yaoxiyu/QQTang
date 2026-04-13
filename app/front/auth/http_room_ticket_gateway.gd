@@ -16,7 +16,7 @@ func issue_room_ticket(access_token: String, request):
 	if service_base_url.is_empty():
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_URL_MISSING", "Room ticket service url is missing")
 	var client := HTTPClient.new()
-	var parsed_url := _parse_url(service_base_url + "/v1/room-tickets")
+	var parsed_url := _parse_url(service_base_url + "/api/v1/tickets/room-entry")
 	if parsed_url.is_empty():
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_URL_INVALID", "Room ticket service url is invalid")
 	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))

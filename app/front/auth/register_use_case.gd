@@ -53,15 +53,15 @@ func register(request: RegisterRequest) -> Dictionary:
 	if app_runtime.auth_session_repository != null and app_runtime.auth_session_repository.has_method("save_session"):
 		app_runtime.auth_session_repository.save_session(app_runtime.auth_session_state)
 	if app_runtime.profile_gateway != null and app_runtime.profile_gateway.has_method("configure_base_url"):
-		app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host.strip_edges() if not request.server_host.strip_edges().is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 8080])
+		app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host.strip_edges() if not request.server_host.strip_edges().is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
 	var profile_result := _fetch_and_apply_profile()
 	if not bool(profile_result.get("ok", false)):
 		return profile_result
 	if app_runtime.profile_repository != null and app_runtime.profile_repository.has_method("save_profile"):
 		app_runtime.profile_repository.save_profile(app_runtime.player_profile_state)
 	if app_runtime.front_settings_state != null:
-		app_runtime.front_settings_state.last_server_host = request.server_host.strip_edges()
-		app_runtime.front_settings_state.last_server_port = request.server_port
+		app_runtime.front_settings_state.account_service_host = request.server_host.strip_edges() if not request.server_host.strip_edges().is_empty() else "127.0.0.1"
+		app_runtime.front_settings_state.account_service_port = request.server_port if request.server_port > 0 else 18080
 		if app_runtime.front_settings_repository != null and app_runtime.front_settings_repository.has_method("save_settings"):
 			app_runtime.front_settings_repository.save_settings(app_runtime.front_settings_state)
 	return {

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document defines the canonical Phase19 error codes shared by client, platform account service, and Dedicated Server room ticket validation.
+This document defines the canonical error codes shared by client, platform account service, and Dedicated Server room ticket validation.
 
 Error response shape:
 
