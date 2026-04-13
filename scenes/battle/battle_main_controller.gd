@@ -247,6 +247,10 @@ func _on_battle_finished_authoritatively(result: BattleResult) -> void:
 		_app_runtime.room_session_controller.mark_match_finished(match_id)
 	_pending_settlement_result = result.duplicate_deep() if result != null else null
 	_settlement_delay_remaining = SETTLEMENT_SHOW_DELAY_SEC
+	_clear_runtime_settlement_summary()
+	var match_id := _resolve_current_match_id()
+	if not match_id.is_empty():
+		call_deferred("_fetch_server_settlement_summary", match_id)
 	battle_hud.match_message_panel.apply_message("Battle resolved...")
 
 
@@ -281,7 +285,7 @@ func _on_transport_runtime_error(code: int, message: String) -> void:
 
 
 func _on_settlement_return_to_room_requested() -> void:
-	_request_post_shutdown_action("return_to_room")
+	_request_post_shutdown_action("return_to_lobby" if _should_return_to_lobby_after_settlement() else "return_to_room")
 
 
 func _on_settlement_rematch_requested() -> void:
@@ -307,6 +311,16 @@ func _complete_return_to_room() -> void:
 	if _app_runtime == null:
 		return
 	_room_return_recovery.recover(_app_runtime, _post_shutdown_action)
+
+
+func _complete_return_to_lobby() -> void:
+	if _app_runtime == null:
+		return
+	if _app_runtime.room_use_case != null and _app_runtime.room_use_case.has_method("leave_room"):
+		_app_runtime.room_use_case.leave_room()
+		return
+	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_lobby"):
+		_app_runtime.front_flow.enter_lobby()
 
 
 func _consume_battle_events(events: Array) -> void:
@@ -364,8 +378,19 @@ func _show_pending_settlement() -> void:
 		return
 	if _app_runtime != null and _app_runtime.front_flow != null:
 		_app_runtime.front_flow.on_battle_finished(_pending_settlement_result)
+	if _should_return_to_lobby_after_settlement():
+		settlement_controller.set_return_button_mode_lobby()
+	else:
+		settlement_controller.set_return_button_mode_room()
 	settlement_controller.show_result(_pending_settlement_result)
-	battle_hud.match_message_panel.apply_message("Press Enter to return room")
+	if _app_runtime != null:
+		var popup_summary: Dictionary = _app_runtime.current_settlement_popup_summary.duplicate(true)
+		if not popup_summary.is_empty():
+			settlement_controller.apply_server_summary(popup_summary)
+	if _should_return_to_lobby_after_settlement():
+		battle_hud.match_message_panel.apply_message("Press Enter to return lobby")
+	else:
+		battle_hud.match_message_panel.apply_message("Press Enter to return room")
 	_pending_settlement_result = null
 	_settlement_delay_remaining = 0.0
 
@@ -397,12 +422,55 @@ func _complete_post_shutdown_action() -> void:
 	match _post_shutdown_action:
 		"return_to_room":
 			_complete_return_to_room()
+		"return_to_lobby":
+			_complete_return_to_lobby()
 		"rematch":
 			_complete_return_to_room()
 		_:
 			pass
 	_post_shutdown_action = ""
 	_queue_scene_cleanup()
+
+
+func _fetch_server_settlement_summary(match_id: String) -> void:
+	if match_id.strip_edges().is_empty() or _app_runtime == null:
+		return
+	if _app_runtime.settlement_sync_use_case == null or not _app_runtime.settlement_sync_use_case.has_method("fetch_match_summary"):
+		return
+	var fetch_result: Dictionary = _app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
+	if not bool(fetch_result.get("ok", false)):
+		return
+	var popup_result: Dictionary = _app_runtime.settlement_sync_use_case.apply_summary_to_popup(fetch_result.get("summary", null))
+	if not bool(popup_result.get("ok", false)):
+		return
+	var popup_summary: Dictionary = popup_result.get("popup_summary", {})
+	_app_runtime.current_settlement_popup_summary = popup_summary.duplicate(true)
+	if settlement_controller != null and settlement_controller.visible:
+		settlement_controller.apply_server_summary(popup_summary)
+
+
+func _resolve_current_match_id() -> String:
+	if _app_runtime != null and _app_runtime.current_start_config != null:
+		return String(_app_runtime.current_start_config.match_id)
+	return ""
+
+
+func _should_return_to_lobby_after_settlement() -> bool:
+	if _app_runtime == null:
+		return false
+	if _app_runtime.current_room_entry_context != null and bool(_app_runtime.current_room_entry_context.return_to_lobby_after_settlement):
+		return true
+	if _app_runtime.current_room_entry_context != null and String(_app_runtime.current_room_entry_context.room_kind) == "matchmade_room":
+		return true
+	if _app_runtime.current_room_snapshot != null and String(_app_runtime.current_room_snapshot.room_kind) == "matchmade_room":
+		return true
+	return false
+
+
+func _clear_runtime_settlement_summary() -> void:
+	if _app_runtime == null:
+		return
+	_app_runtime.current_settlement_popup_summary = {}
 
 
 func _queue_scene_cleanup() -> void:

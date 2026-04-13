@@ -11,6 +11,16 @@ var purpose: String = ""
 var room_id: String = ""
 var room_kind: String = ""
 var requested_match_id: String = ""
+var assignment_id: String = ""
+var match_source: String = ""
+var season_id: String = ""
+var locked_map_id: String = ""
+var locked_rule_set_id: String = ""
+var locked_mode_id: String = ""
+var assigned_team_id: int = 0
+var expected_member_count: int = 0
+var auto_ready_on_join: bool = false
+var hidden_room: bool = false
 var display_name: String = ""
 var allowed_character_ids: Array[String] = []
 var allowed_character_skin_ids: Array[String] = []
@@ -32,6 +42,16 @@ func to_dict() -> Dictionary:
 		"room_id": room_id,
 		"room_kind": room_kind,
 		"requested_match_id": requested_match_id,
+		"assignment_id": assignment_id,
+		"match_source": match_source,
+		"season_id": season_id,
+		"locked_map_id": locked_map_id,
+		"locked_rule_set_id": locked_rule_set_id,
+		"locked_mode_id": locked_mode_id,
+		"assigned_team_id": assigned_team_id,
+		"expected_member_count": expected_member_count,
+		"auto_ready_on_join": auto_ready_on_join,
+		"hidden_room": hidden_room,
 		"display_name": display_name,
 		"allowed_character_ids": allowed_character_ids.duplicate(),
 		"allowed_character_skin_ids": allowed_character_skin_ids.duplicate(),
@@ -54,6 +74,16 @@ static func from_dict(data: Dictionary):
 	claim.room_id = String(data.get("room_id", ""))
 	claim.room_kind = String(data.get("room_kind", ""))
 	claim.requested_match_id = String(data.get("requested_match_id", ""))
+	claim.assignment_id = String(data.get("assignment_id", ""))
+	claim.match_source = String(data.get("match_source", ""))
+	claim.season_id = String(data.get("season_id", ""))
+	claim.locked_map_id = String(data.get("locked_map_id", ""))
+	claim.locked_rule_set_id = String(data.get("locked_rule_set_id", ""))
+	claim.locked_mode_id = String(data.get("locked_mode_id", ""))
+	claim.assigned_team_id = int(data.get("assigned_team_id", 0))
+	claim.expected_member_count = int(data.get("expected_member_count", 0))
+	claim.auto_ready_on_join = bool(data.get("auto_ready_on_join", false))
+	claim.hidden_room = bool(data.get("hidden_room", false))
 	claim.display_name = String(data.get("display_name", ""))
 	claim.allowed_character_ids = _to_string_array(data.get("allowed_character_ids", []))
 	claim.allowed_character_skin_ids = _to_string_array(data.get("allowed_character_skin_ids", []))

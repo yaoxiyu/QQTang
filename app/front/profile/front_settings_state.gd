@@ -5,8 +5,11 @@ var remember_profile: bool = true
 var auto_enter_lobby: bool = false
 var account_service_host: String = "127.0.0.1"
 var account_service_port: int = 18080
+var game_service_host: String = "127.0.0.1"
+var game_service_port: int = 18081
 var last_server_host: String = "127.0.0.1"
 var last_server_port: int = 9000
+var last_queue_type: String = "casual"
 var last_room_id: String = ""
 var reconnect_room_id: String = ""
 var reconnect_host: String = ""
@@ -31,8 +34,11 @@ func to_dict() -> Dictionary:
 		"auto_enter_lobby": auto_enter_lobby,
 		"account_service_host": account_service_host,
 		"account_service_port": account_service_port,
+		"game_service_host": game_service_host,
+		"game_service_port": game_service_port,
 		"last_server_host": last_server_host,
 		"last_server_port": last_server_port,
+		"last_queue_type": last_queue_type,
 		"last_room_id": last_room_id,
 		"reconnect_room_id": reconnect_room_id,
 		"reconnect_host": reconnect_host,
@@ -54,16 +60,25 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	state.auto_enter_lobby = bool(data.get("auto_enter_lobby", false))
 	state.account_service_host = String(data.get("account_service_host", "127.0.0.1"))
 	state.account_service_port = int(data.get("account_service_port", 18080))
+	state.game_service_host = String(data.get("game_service_host", "127.0.0.1"))
+	state.game_service_port = int(data.get("game_service_port", 18081))
 	state.last_server_host = String(data.get("last_server_host", "127.0.0.1"))
 	state.last_server_port = int(data.get("last_server_port", 9000))
+	state.last_queue_type = String(data.get("last_queue_type", "casual"))
 	if state.account_service_host.strip_edges().is_empty():
 		state.account_service_host = "127.0.0.1"
 	if state.account_service_port <= 0:
 		state.account_service_port = 18080
+	if state.game_service_host.strip_edges().is_empty():
+		state.game_service_host = "127.0.0.1"
+	if state.game_service_port <= 0:
+		state.game_service_port = 18081
 	if state.last_server_host.strip_edges().is_empty():
 		state.last_server_host = "127.0.0.1"
 	if state.last_server_port <= 0:
 		state.last_server_port = 9000
+	if state.last_queue_type.strip_edges().is_empty():
+		state.last_queue_type = "casual"
 	state.last_room_id = String(data.get("last_room_id", ""))
 	state.reconnect_room_id = String(data.get("reconnect_room_id", ""))
 	state.reconnect_host = String(data.get("reconnect_host", ""))

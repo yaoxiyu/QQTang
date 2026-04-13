@@ -18,6 +18,14 @@ var owner_peer_id: int = 0
 var max_players: int = 8
 var room_display_name: String = ""
 var is_public_room: bool = false
+var assignment_id: String = ""
+var season_id: String = ""
+var expected_member_count: int = 0
+var is_matchmade_room: bool = false
+var locked_map_id: String = ""
+var locked_rule_set_id: String = ""
+var locked_mode_id: String = ""
+var assignment_revision: int = 0
 var selected_map_id: String = MapCatalogScript.get_default_map_id()
 var selected_rule_id: String = RuleSetCatalogScript.get_default_rule_id()
 var selected_mode_id: String = ModeCatalogScript.get_default_mode_id()
@@ -40,6 +48,14 @@ func reset() -> void:
 	max_players = 8
 	room_display_name = ""
 	is_public_room = false
+	assignment_id = ""
+	season_id = ""
+	expected_member_count = 0
+	is_matchmade_room = false
+	locked_map_id = ""
+	locked_rule_set_id = ""
+	locked_mode_id = ""
+	assignment_revision = 0
 	selected_map_id = MapCatalogScript.get_default_map_id()
 	selected_rule_id = RuleSetCatalogScript.get_default_rule_id()
 	selected_mode_id = ModeCatalogScript.get_default_mode_id()
@@ -58,12 +74,15 @@ func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "p
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
 	var resolved_room_kind := String(next_room_kind).strip_edges().to_lower()
-	if resolved_room_kind != "public_room" and resolved_room_kind != "private_room":
+	if resolved_room_kind != "public_room" and resolved_room_kind != "private_room" and resolved_room_kind != "matchmade_room":
 		resolved_room_kind = "private_room"
 	room_kind = resolved_room_kind
+	is_matchmade_room = room_kind == "matchmade_room"
 	is_public_room = room_kind == "public_room"
 	var normalized_display_name := next_room_display_name.strip_edges()
-	if is_public_room:
+	if is_matchmade_room:
+		room_display_name = "Matchmade Room"
+	elif is_public_room:
 		room_display_name = normalized_display_name if not normalized_display_name.is_empty() else room_id
 	else:
 		room_display_name = normalized_display_name
@@ -168,6 +187,9 @@ func update_profile(
 ) -> void:
 	if not members.has(peer_id):
 		return
+	if is_matchmade_room:
+		var profile_for_team: Dictionary = members.get(peer_id, {})
+		team_id = int(profile_for_team.get("team_id", _resolve_team_id(peer_id, team_id)))
 	if bool(ready_map.get(peer_id, false)):
 		var profile: Dictionary = members.get(peer_id, {})
 		var current_team_id := int(profile.get("team_id", _resolve_team_id(peer_id, 0)))
@@ -195,12 +217,19 @@ func toggle_ready(peer_id: int) -> bool:
 
 
 func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
+	if is_matchmade_room:
+		selected_map_id = locked_map_id if not locked_map_id.is_empty() else MapCatalogScript.get_default_map_id()
+		selected_rule_id = locked_rule_set_id if not locked_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
+		selected_mode_id = locked_mode_id if not locked_mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
+		return
 	selected_map_id = map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id()
 	selected_rule_id = rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 	selected_mode_id = mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
 
 
 func can_start() -> bool:
+	if is_matchmade_room and expected_member_count > 0 and members.size() != expected_member_count:
+		return false
 	if members.size() < min_start_players:
 		return false
 	if get_distinct_team_ids().size() < 2:
@@ -320,6 +349,8 @@ func get_sorted_peer_ids() -> Array[int]:
 
 
 func _resolve_team_id(peer_id: int, team_id: int) -> int:
+	if is_matchmade_room and team_id > 0:
+		return team_id
 	if team_id > 0:
 		return team_id
 	var profile: Dictionary = members.get(peer_id, {})

@@ -58,6 +58,30 @@ func is_loadout_allowed(claim, character_id: String, character_skin_id: String, 
 		and _contains(claim.allowed_bubble_skin_ids, bubble_skin_id)
 
 
+func resolve_requested_map_id(message: Dictionary, claim) -> String:
+	if claim != null and not String(claim.locked_map_id).strip_edges().is_empty():
+		return String(claim.locked_map_id).strip_edges()
+	return String(message.get("map_id", "")).strip_edges()
+
+
+func resolve_requested_rule_set_id(message: Dictionary, claim) -> String:
+	if claim != null and not String(claim.locked_rule_set_id).strip_edges().is_empty():
+		return String(claim.locked_rule_set_id).strip_edges()
+	return String(message.get("rule_set_id", "")).strip_edges()
+
+
+func resolve_requested_mode_id(message: Dictionary, claim) -> String:
+	if claim != null and not String(claim.locked_mode_id).strip_edges().is_empty():
+		return String(claim.locked_mode_id).strip_edges()
+	return String(message.get("mode_id", "")).strip_edges()
+
+
+func resolve_requested_team_id(message: Dictionary, claim) -> int:
+	if claim != null and int(claim.assigned_team_id) > 0:
+		return int(claim.assigned_team_id)
+	return int(message.get("team_id", 0))
+
+
 func _verify_ticket(message: Dictionary):
 	var token := String(message.get("room_ticket", "")).strip_edges()
 	if token.is_empty():
@@ -98,14 +122,20 @@ func _validate_target(message: Dictionary, claim) -> bool:
 	if claim == null:
 		return false
 	var requested_room_id := String(message.get("room_id", message.get("room_id_hint", ""))).strip_edges()
-	var requested_room_kind := String(message.get("room_kind", "")).strip_edges()
+	var requested_room_kind := String(message.get("room_kind", "")).strip_edges().to_lower()
 	var requested_match_id := String(message.get("match_id", "")).strip_edges()
+	var claim_room_kind := String(claim.room_kind).strip_edges().to_lower()
 	match claim.purpose:
 		"create":
-			if not requested_room_kind.is_empty() and not claim.room_kind.is_empty() and requested_room_kind != claim.room_kind:
+			if claim_room_kind == "matchmade_room":
+				if requested_room_kind != "matchmade_room":
+					return false
+			elif not requested_room_kind.is_empty() and not claim_room_kind.is_empty() and requested_room_kind != claim_room_kind:
 				return false
 			return requested_room_id.is_empty() or claim.room_id.is_empty() or requested_room_id == claim.room_id
 		"join":
+			if claim_room_kind == "matchmade_room" and requested_room_kind != "matchmade_room":
+				return false
 			if requested_room_id.is_empty() or claim.room_id.is_empty():
 				return false
 			return requested_room_id == claim.room_id

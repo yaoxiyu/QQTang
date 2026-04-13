@@ -19,6 +19,7 @@ func build_view_model(
 	var local_peer_id := int(safe_context.local_player_id)
 	var is_host := local_peer_id != 0 and local_peer_id == int(safe_snapshot.owner_peer_id)
 	var is_practice := resolved_room_kind == "practice"
+	var is_matchmade := resolved_room_kind == "matchmade_room"
 	var member_count := safe_snapshot.member_count()
 	var min_start_players := int(safe_snapshot.min_start_players if safe_snapshot.min_start_players > 0 else safe_context.min_start_players)
 	if min_start_players <= 0:
@@ -30,8 +31,8 @@ func build_view_model(
 	var members := _build_member_view_models(safe_snapshot.sorted_members())
 	var has_server_pending_state := not is_practice and member_count <= 0
 	var local_member_ready := _is_local_member_ready(members)
-	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state
-	var can_start := blocker_text.is_empty() and is_host
+	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state and not is_matchmade
+	var can_start := blocker_text.is_empty() and is_host and not is_matchmade
 	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
 	var lifecycle_status_text := _build_lifecycle_status_text(safe_context)
 	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
@@ -55,8 +56,8 @@ func build_view_model(
 		"pending_action_status_text": pending_action_status_text,
 		"reconnect_window_text": reconnect_window_text,
 		"active_match_resume_text": active_match_resume_text,
-		"can_edit_selection": is_host,
-		"can_edit_team": not local_member_ready,
+		"can_edit_selection": is_host and not is_matchmade,
+		"can_edit_team": (not local_member_ready) and not is_matchmade,
 		"can_ready": can_ready,
 		"can_start": can_start,
 		"show_network_summary": not is_practice,
@@ -111,6 +112,8 @@ func _build_title_text(room_kind: String, room_display_name: String) -> String:
 	match room_kind:
 		"practice":
 			return "Practice Room"
+		"matchmade_room":
+			return "Matchmade Room"
 		"public_room":
 			if not room_display_name.is_empty():
 				return "Public Room - %s" % room_display_name
@@ -240,6 +243,8 @@ func _format_room_kind(room_kind: String) -> String:
 	match room_kind:
 		"practice":
 			return "Practice"
+		"matchmade_room":
+			return "Matchmade Room"
 		"private_room":
 			return "Private Room"
 		"public_room":

@@ -7,15 +7,17 @@ import (
 )
 
 type Config struct {
-	HTTPListenAddr         string
-	PostgresDSN            string
-	AccessTokenTTLSeconds  int
-	RefreshTokenTTLSeconds int
-	RoomTicketTTLSeconds   int
-	TokenSignSecret        string
-	RoomTicketSignSecret   string
-	AllowMultiDevice       bool
-	LogSQL                 bool
+	HTTPListenAddr           string
+	PostgresDSN              string
+	AccessTokenTTLSeconds    int
+	RefreshTokenTTLSeconds   int
+	RoomTicketTTLSeconds     int
+	TokenSignSecret          string
+	RoomTicketSignSecret     string
+	GameServiceBaseURL       string
+	GameInternalSharedSecret string
+	AllowMultiDevice         bool
+	LogSQL                   bool
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -41,15 +43,17 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	cfg := &Config{
-		HTTPListenAddr:         getEnv("ACCOUNT_HTTP_LISTEN_ADDR", "127.0.0.1:18080"),
-		PostgresDSN:            os.Getenv("ACCOUNT_POSTGRES_DSN"),
-		AccessTokenTTLSeconds:  accessTokenTTLSeconds,
-		RefreshTokenTTLSeconds: refreshTokenTTLSeconds,
-		RoomTicketTTLSeconds:   roomTicketTTLSeconds,
-		TokenSignSecret:        os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
-		RoomTicketSignSecret:   os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
-		AllowMultiDevice:       allowMultiDevice,
-		LogSQL:                 logSQL,
+		HTTPListenAddr:           getEnv("ACCOUNT_HTTP_LISTEN_ADDR", "127.0.0.1:18080"),
+		PostgresDSN:              os.Getenv("ACCOUNT_POSTGRES_DSN"),
+		AccessTokenTTLSeconds:    accessTokenTTLSeconds,
+		RefreshTokenTTLSeconds:   refreshTokenTTLSeconds,
+		RoomTicketTTLSeconds:     roomTicketTTLSeconds,
+		TokenSignSecret:          os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
+		RoomTicketSignSecret:     os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
+		GameServiceBaseURL:       getEnv("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),
+		GameInternalSharedSecret: os.Getenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET"),
+		AllowMultiDevice:         allowMultiDevice,
+		LogSQL:                   logSQL,
 	}
 
 	if cfg.HTTPListenAddr == "" {
@@ -63,6 +67,12 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if cfg.RoomTicketSignSecret == "" {
 		return nil, fmt.Errorf("ACCOUNT_ROOM_TICKET_SIGN_SECRET is required")
+	}
+	if cfg.GameServiceBaseURL == "" {
+		return nil, fmt.Errorf("ACCOUNT_GAME_SERVICE_BASE_URL is required")
+	}
+	if cfg.GameInternalSharedSecret == "" {
+		return nil, fmt.Errorf("ACCOUNT_GAME_INTERNAL_SHARED_SECRET is required")
 	}
 
 	return cfg, nil

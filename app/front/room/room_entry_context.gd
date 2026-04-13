@@ -15,6 +15,14 @@ var profile_id: String = ""
 var return_target: String = ""
 var should_auto_connect: bool = false
 var should_auto_join: bool = false
+var assignment_id: String = ""
+var match_source: String = ""
+var locked_map_id: String = ""
+var locked_rule_set_id: String = ""
+var locked_mode_id: String = ""
+var assigned_team_id: int = 0
+var auto_ready_on_join: bool = false
+var return_to_lobby_after_settlement: bool = false
 
 # Phase17: Resume flow fields
 var use_resume_flow: bool = false
@@ -39,6 +47,14 @@ func to_dict() -> Dictionary:
 		"return_target": return_target,
 		"should_auto_connect": should_auto_connect,
 		"should_auto_join": should_auto_join,
+		"assignment_id": assignment_id,
+		"match_source": match_source,
+		"locked_map_id": locked_map_id,
+		"locked_rule_set_id": locked_rule_set_id,
+		"locked_mode_id": locked_mode_id,
+		"assigned_team_id": assigned_team_id,
+		"auto_ready_on_join": auto_ready_on_join,
+		"return_to_lobby_after_settlement": return_to_lobby_after_settlement,
 		"use_resume_flow": use_resume_flow,
 		"reconnect_member_id": reconnect_member_id,
 		"reconnect_token": reconnect_token,
@@ -62,6 +78,14 @@ func duplicate_deep() -> RoomEntryContext:
 	copy.return_target = return_target
 	copy.should_auto_connect = should_auto_connect
 	copy.should_auto_join = should_auto_join
+	copy.assignment_id = assignment_id
+	copy.match_source = match_source
+	copy.locked_map_id = locked_map_id
+	copy.locked_rule_set_id = locked_rule_set_id
+	copy.locked_mode_id = locked_mode_id
+	copy.assigned_team_id = assigned_team_id
+	copy.auto_ready_on_join = auto_ready_on_join
+	copy.return_to_lobby_after_settlement = return_to_lobby_after_settlement
 	# Phase17: Resume flow fields
 	copy.use_resume_flow = use_resume_flow
 	copy.reconnect_member_id = reconnect_member_id

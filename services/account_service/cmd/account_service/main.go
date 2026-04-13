@@ -53,7 +53,8 @@ func main() {
 	)
 	profileService := profile.NewService(profileRepo)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
-	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
+	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalSharedSecret)
+	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, assignmentGrantClient, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		AuthService:       authService,

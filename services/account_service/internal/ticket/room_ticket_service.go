@@ -23,6 +23,7 @@ type Service struct {
 	profileService *profile.Service
 	ticketRepo     *storage.TicketRepository
 	issuer         *RoomTicketIssuer
+	grantClient    *AssignmentGrantClient
 	ttl            time.Duration
 }
 
@@ -33,6 +34,7 @@ type CreateTicketInput struct {
 	RoomID                  string `json:"room_id"`
 	RoomKind                string `json:"room_kind"`
 	RequestedMatchID        string `json:"requested_match_id"`
+	AssignmentID            string `json:"assignment_id"`
 	SelectedCharacterID     string `json:"selected_character_id"`
 	SelectedCharacterSkinID string `json:"selected_character_skin_id"`
 	SelectedBubbleStyleID   string `json:"selected_bubble_style_id"`
@@ -49,6 +51,16 @@ type CreateTicketResult struct {
 	RoomID                  string   `json:"room_id"`
 	RoomKind                string   `json:"room_kind"`
 	RequestedMatchID        string   `json:"requested_match_id"`
+	AssignmentID            string   `json:"assignment_id"`
+	MatchSource             string   `json:"match_source"`
+	SeasonID                string   `json:"season_id"`
+	LockedMapID             string   `json:"locked_map_id"`
+	LockedRuleSetID         string   `json:"locked_rule_set_id"`
+	LockedModeID            string   `json:"locked_mode_id"`
+	AssignedTeamID          int      `json:"assigned_team_id"`
+	ExpectedMemberCount     int      `json:"expected_member_count"`
+	AutoReadyOnJoin         bool     `json:"auto_ready_on_join"`
+	HiddenRoom              bool     `json:"hidden_room"`
 	DisplayName             string   `json:"display_name"`
 	AllowedCharacterIDs     []string `json:"allowed_character_ids"`
 	AllowedCharacterSkinIDs []string `json:"allowed_character_skin_ids"`
@@ -58,11 +70,12 @@ type CreateTicketResult struct {
 	ExpireAtUnixSec         int64    `json:"expire_at_unix_sec"`
 }
 
-func NewService(profileService *profile.Service, ticketRepo *storage.TicketRepository, issuer *RoomTicketIssuer, ttl time.Duration) *Service {
+func NewService(profileService *profile.Service, ticketRepo *storage.TicketRepository, issuer *RoomTicketIssuer, grantClient *AssignmentGrantClient, ttl time.Duration) *Service {
 	return &Service{
 		profileService: profileService,
 		ticketRepo:     ticketRepo,
 		issuer:         issuer,
+		grantClient:    grantClient,
 		ttl:            ttl,
 	}
 }
@@ -70,13 +83,6 @@ func NewService(profileService *profile.Service, ticketRepo *storage.TicketRepos
 func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (CreateTicketResult, error) {
 	if input.Purpose != "create" && input.Purpose != "join" && input.Purpose != "resume" {
 		return CreateTicketResult{}, ErrPurposeInvalid
-	}
-	if input.Purpose == "create" {
-		if strings.TrimSpace(input.RoomKind) == "" {
-			return CreateTicketResult{}, ErrTargetInvalid
-		}
-	} else if strings.TrimSpace(input.RoomID) == "" {
-		return CreateTicketResult{}, ErrTargetInvalid
 	}
 	profileResp, err := s.profileService.GetMyProfile(ctx, input.AccountID)
 	if err != nil {
@@ -87,6 +93,28 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		!contains(profileResp.OwnedBubbleStyleIDs, input.SelectedBubbleStyleID) ||
 		!contains(profileResp.OwnedBubbleSkinIDs, input.SelectedBubbleSkinID) {
 		return CreateTicketResult{}, ErrLoadoutNotOwned
+	}
+
+	lockedClaim := AssignmentGrantResult{}
+	if input.RoomKind == "matchmade_room" && strings.TrimSpace(input.AssignmentID) != "" {
+		if s.grantClient == nil {
+			return CreateTicketResult{}, ErrAssignmentGrantFailed
+		}
+		grant, err := s.grantClient.GetGrant(ctx, input.AssignmentID, profileResp.AccountID, profileResp.ProfileID, input.RoomKind)
+		if err != nil {
+			return CreateTicketResult{}, err
+		}
+		lockedClaim = grant
+		input.RoomID = grant.RoomID
+		input.RoomKind = grant.RoomKind
+		input.RequestedMatchID = grant.MatchID
+	}
+	if input.Purpose == "create" {
+		if strings.TrimSpace(input.RoomKind) == "" {
+			return CreateTicketResult{}, ErrTargetInvalid
+		}
+	} else if strings.TrimSpace(input.RoomID) == "" {
+		return CreateTicketResult{}, ErrTargetInvalid
 	}
 
 	now := time.Now().UTC()
@@ -108,6 +136,16 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		RoomID:                  input.RoomID,
 		RoomKind:                input.RoomKind,
 		RequestedMatchID:        input.RequestedMatchID,
+		AssignmentID:            input.AssignmentID,
+		MatchSource:             lockedClaim.MatchSource,
+		SeasonID:                lockedClaim.SeasonID,
+		LockedMapID:             lockedClaim.LockedMapID,
+		LockedRuleSetID:         lockedClaim.LockedRuleSetID,
+		LockedModeID:            lockedClaim.LockedModeID,
+		AssignedTeamID:          lockedClaim.AssignedTeamID,
+		ExpectedMemberCount:     lockedClaim.ExpectedMemberCount,
+		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
+		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
 		AllowedCharacterIDs:     profileResp.OwnedCharacterIDs,
 		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,
@@ -150,6 +188,16 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		RoomID:                  input.RoomID,
 		RoomKind:                input.RoomKind,
 		RequestedMatchID:        input.RequestedMatchID,
+		AssignmentID:            input.AssignmentID,
+		MatchSource:             lockedClaim.MatchSource,
+		SeasonID:                lockedClaim.SeasonID,
+		LockedMapID:             lockedClaim.LockedMapID,
+		LockedRuleSetID:         lockedClaim.LockedRuleSetID,
+		LockedModeID:            lockedClaim.LockedModeID,
+		AssignedTeamID:          lockedClaim.AssignedTeamID,
+		ExpectedMemberCount:     lockedClaim.ExpectedMemberCount,
+		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
+		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
 		AllowedCharacterIDs:     profileResp.OwnedCharacterIDs,
 		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,

@@ -149,13 +149,15 @@ func _handle_create_request(message: Dictionary) -> void:
 	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
 	var requested_room_kind := String(message.get("room_kind", "private_room")).strip_edges().to_lower()
 	var requested_room_display_name := String(message.get("room_display_name", "")).strip_edges()
-	if requested_room_kind != "private_room" and requested_room_kind != "public_room":
+	if requested_room_kind != "private_room" and requested_room_kind != "public_room" and requested_room_kind != "matchmade_room":
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
 			"error": "ROOM_KIND_INVALID",
 			"user_message": "Room kind is invalid",
 		})
 		return
+	if String(ticket_claim.room_kind).strip_edges().to_lower() == "matchmade_room":
+		requested_room_kind = "matchmade_room"
 	if requested_room_kind == "public_room":
 		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
 		if requested_room_display_name.is_empty():
@@ -165,6 +167,8 @@ func _handle_create_request(message: Dictionary) -> void:
 				"user_message": "Public room name is required",
 			})
 			return
+	elif requested_room_kind == "matchmade_room":
+		requested_room_display_name = "Matchmade Room"
 	else:
 		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
 	var resolved_character_skin_id := _resolve_character_skin_id(String(message.get("character_skin_id", "")))
@@ -178,10 +182,11 @@ func _handle_create_request(message: Dictionary) -> void:
 		})
 		return
 	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
+	_apply_ticket_claim_to_room_state(ticket_claim)
 	room_state.set_selection(
-		String(message.get("map_id", "")),
-		String(message.get("rule_set_id", "")),
-		String(message.get("mode_id", ""))
+		room_ticket_verifier.resolve_requested_map_id(message, ticket_claim),
+		room_ticket_verifier.resolve_requested_rule_set_id(message, ticket_claim),
+		room_ticket_verifier.resolve_requested_mode_id(message, ticket_claim)
 	)
 	room_state.upsert_member(
 		peer_id,
@@ -190,14 +195,14 @@ func _handle_create_request(message: Dictionary) -> void:
 		resolved_character_skin_id,
 		resolved_bubble_style_id,
 		resolved_bubble_skin_id,
-		0,
+		room_ticket_verifier.resolve_requested_team_id(message, ticket_claim),
 		ticket_claim.account_id,
 		ticket_claim.profile_id,
 		ticket_claim.device_session_id,
 		ticket_claim.ticket_id,
 		"profile"
 	)
-	room_state.set_ready(peer_id, false)
+	room_state.set_ready(peer_id, bool(ticket_claim.auto_ready_on_join))
 	send_to_peer.emit(peer_id, {
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_ACCEPTED,
 		"room_id": room_state.room_id,
@@ -219,6 +224,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		})
 	
 	_broadcast_snapshot()
+	_maybe_auto_start_match()
 
 
 func _handle_join_request(message: Dictionary) -> void:
@@ -266,6 +272,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		})
 		return
 	
+	_apply_ticket_claim_to_room_state(ticket_claim)
 	room_state.upsert_member(
 		peer_id,
 		ticket_claim.display_name if not ticket_claim.display_name.is_empty() else String(message.get("player_name", "Player%d" % peer_id)),
@@ -273,14 +280,14 @@ func _handle_join_request(message: Dictionary) -> void:
 		resolved_character_skin_id,
 		resolved_bubble_style_id,
 		resolved_bubble_skin_id,
-		0,
+		room_ticket_verifier.resolve_requested_team_id(message, ticket_claim),
 		ticket_claim.account_id,
 		ticket_claim.profile_id,
 		ticket_claim.device_session_id,
 		ticket_claim.ticket_id,
 		"profile"
 	)
-	room_state.set_ready(peer_id, false)
+	room_state.set_ready(peer_id, bool(ticket_claim.auto_ready_on_join))
 	send_to_peer.emit(peer_id, {
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_ACCEPTED,
 		"room_id": room_state.room_id,
@@ -300,6 +307,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		})
 	
 	_broadcast_snapshot()
+	_maybe_auto_start_match()
 
 
 func _handle_update_profile(message: Dictionary) -> void:
@@ -320,6 +328,9 @@ func _handle_update_profile(message: Dictionary) -> void:
 			"user_message": "Character selection is invalid",
 		})
 		return
+	if room_state.is_matchmade_room:
+		var current_profile: Dictionary = room_state.members.get(peer_id, {})
+		team_id = int(current_profile.get("team_id", team_id))
 	if team_id < 1 or team_id > room_state.max_players:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
@@ -351,6 +362,13 @@ func _handle_update_profile(message: Dictionary) -> void:
 
 func _handle_update_selection(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_matchmade_room:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_SELECTION_LOCKED",
+			"user_message": "Matchmade room selection is locked",
+		})
+		return
 	if peer_id != room_state.owner_peer_id:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
@@ -389,10 +407,18 @@ func _handle_toggle_ready(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	room_state.toggle_ready(peer_id)
 	_broadcast_snapshot()
+	_maybe_auto_start_match()
 
 
 func _handle_start_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_matchmade_room:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_START_LOCKED",
+			"user_message": "Matchmade room starts automatically",
+		})
+		return
 	if room_state.match_active:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
@@ -479,6 +505,36 @@ func _broadcast_snapshot() -> void:
 		"message_type": TransportMessageTypesScript.ROOM_SNAPSHOT,
 		"snapshot": snapshot.to_dict(),
 	})
+
+
+func _apply_ticket_claim_to_room_state(ticket_claim) -> void:
+	if room_state == null or ticket_claim == null:
+		return
+	room_state.assignment_id = String(ticket_claim.assignment_id)
+	room_state.season_id = String(ticket_claim.season_id)
+	room_state.expected_member_count = int(ticket_claim.expected_member_count)
+	room_state.locked_map_id = String(ticket_claim.locked_map_id)
+	room_state.locked_rule_set_id = String(ticket_claim.locked_rule_set_id)
+	room_state.locked_mode_id = String(ticket_claim.locked_mode_id)
+	room_state.is_matchmade_room = String(ticket_claim.room_kind).strip_edges().to_lower() == "matchmade_room"
+	if room_state.is_matchmade_room:
+		room_state.room_kind = "matchmade_room"
+		room_state.is_public_room = false
+		room_state.room_display_name = "Matchmade Room"
+
+
+func _maybe_auto_start_match() -> void:
+	if room_state == null or not room_state.is_matchmade_room:
+		return
+	if room_state.match_active:
+		return
+	if room_state.expected_member_count <= 0:
+		return
+	if room_state.members.size() != room_state.expected_member_count:
+		return
+	if not room_state.can_start():
+		return
+	start_match_requested.emit(room_state.build_snapshot())
 
 
 func _resolve_character_skin_id(character_skin_id: String) -> String:

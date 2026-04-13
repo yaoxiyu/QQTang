@@ -43,6 +43,16 @@ func (h *RoomTicketHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"room_id":                    result.RoomID,
 		"room_kind":                  result.RoomKind,
 		"requested_match_id":         result.RequestedMatchID,
+		"assignment_id":              result.AssignmentID,
+		"match_source":               result.MatchSource,
+		"season_id":                  result.SeasonID,
+		"locked_map_id":              result.LockedMapID,
+		"locked_rule_set_id":         result.LockedRuleSetID,
+		"locked_mode_id":             result.LockedModeID,
+		"assigned_team_id":           result.AssignedTeamID,
+		"expected_member_count":      result.ExpectedMemberCount,
+		"auto_ready_on_join":         result.AutoReadyOnJoin,
+		"hidden_room":                result.HiddenRoom,
 		"display_name":               result.DisplayName,
 		"allowed_character_ids":      result.AllowedCharacterIDs,
 		"allowed_character_skin_ids": result.AllowedCharacterSkinIDs,
@@ -57,7 +67,7 @@ func mapTicketError(err error) (int, string) {
 	switch {
 	case errors.Is(err, ticket.ErrPurposeInvalid), errors.Is(err, ticket.ErrTargetInvalid), errors.Is(err, ticket.ErrRequestedMatchInvalid):
 		return http.StatusBadRequest, err.Error()
-	case errors.Is(err, ticket.ErrLoadoutNotOwned):
+	case errors.Is(err, ticket.ErrLoadoutNotOwned), errors.Is(err, ticket.ErrAssignmentGrantFailed), errors.Is(err, ticket.ErrAssignmentGrantForbidden):
 		return http.StatusConflict, err.Error()
 	default:
 		log.Printf("httpapi room ticket internal error: %v", err)

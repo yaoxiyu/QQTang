@@ -21,6 +21,10 @@ var _authority_runtime: AuthorityRuntime = null
 var _tick_accumulator: float = 0.0
 var _active: bool = false
 var _current_config: BattleStartConfig = null
+var _last_finished_result: BattleResult = null
+var _last_finished_config: BattleStartConfig = null
+var _last_finished_match_id: String = ""
+var _last_finished_room_id: String = ""
 
 
 func _ready() -> void:
@@ -123,6 +127,22 @@ func get_current_config() -> BattleStartConfig:
 	return _current_config.duplicate_deep() if _current_config != null else null
 
 
+func get_last_finished_result() -> BattleResult:
+	return _last_finished_result.duplicate_deep() if _last_finished_result != null else null
+
+
+func get_last_finished_config() -> BattleStartConfig:
+	return _last_finished_config.duplicate_deep() if _last_finished_config != null else null
+
+
+func get_last_finished_match_id() -> String:
+	return _last_finished_match_id
+
+
+func get_last_finished_room_id() -> String:
+	return _last_finished_room_id
+
+
 # Phase17: Build resume checkpoint message
 func build_resume_checkpoint_message() -> Dictionary:
 	if not is_match_active() or _authority_runtime == null or _authority_runtime.server_session == null or _authority_runtime.server_session.active_match == null:
@@ -161,6 +181,7 @@ func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
 	result.finish_tick = 0
 	if _authority_runtime != null and _authority_runtime.server_session != null and _authority_runtime.server_session.active_match != null:
 		result.finish_tick = _authority_runtime.server_session.active_match.sim_world.state.match_state.tick
+	_cache_finished_payload(result)
 	shutdown_match()
 	broadcast_message.emit({
 		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
@@ -186,6 +207,7 @@ func abort_match_due_to_resume_timeout(member_id: String) -> BattleResult:
 	result.finish_tick = 0
 	if _authority_runtime != null and _authority_runtime.server_session != null and _authority_runtime.server_session.active_match != null:
 		result.finish_tick = _authority_runtime.server_session.active_match.sim_world.state.match_state.tick
+	_cache_finished_payload(result)
 	shutdown_match()
 	broadcast_message.emit({
 		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
@@ -209,6 +231,13 @@ func shutdown_match() -> void:
 		_authority_runtime.shutdown_runtime()
 
 
+func _cache_finished_payload(result: BattleResult) -> void:
+	_last_finished_result = result.duplicate_deep() if result != null else null
+	_last_finished_config = _current_config.duplicate_deep() if _current_config != null else null
+	_last_finished_match_id = String(_current_config.match_id) if _current_config != null else ""
+	_last_finished_room_id = String(_current_config.room_id) if _current_config != null else ""
+
+
 func _ensure_runtime() -> void:
 	if _coordinator == null:
 		_coordinator = MatchStartCoordinatorScript.new()
@@ -222,5 +251,6 @@ func _ensure_runtime() -> void:
 
 
 func _on_battle_finished(_result: BattleResult) -> void:
+	_cache_finished_payload(_result)
 	shutdown_match()
 	match_finished.emit(_result)

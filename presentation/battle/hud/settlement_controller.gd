@@ -18,6 +18,11 @@ signal input_frozen(frozen: bool)
 @export var bubble_summary_label_path: NodePath = ^"BubbleSummaryLabel"
 @export var score_summary_label_path: NodePath = ^"ScoreSummaryLabel"
 @export var team_outcome_label_path: NodePath = ^"TeamOutcomeLabel"
+@export var server_sync_label_path: NodePath = ^"ServerSyncLabel"
+@export var rating_delta_label_path: NodePath = ^"RatingDeltaLabel"
+@export var season_point_delta_label_path: NodePath = ^"SeasonPointDeltaLabel"
+@export var reward_summary_label_path: NodePath = ^"RewardSummaryLabel"
+@export var career_summary_label_path: NodePath = ^"CareerSummaryLabel"
 @export var return_button_path: NodePath = ^"ActionRow/ReturnToRoomButton"
 @export var rematch_button_path: NodePath = ^"ActionRow/RematchButton"
 
@@ -31,10 +36,22 @@ var character_summary_label: Label = null
 var bubble_summary_label: Label = null
 var score_summary_label: Label = null
 var team_outcome_label: Label = null
+var server_sync_label: Label = null
+var rating_delta_label: Label = null
+var season_point_delta_label: Label = null
+var reward_summary_label: Label = null
+var career_summary_label: Label = null
 var return_button: Button = null
 var rematch_button: Button = null
 var current_result: BattleResult = null
 var input_locked: bool = false
+var server_sync_state: String = "pending"
+var rating_delta: int = 0
+var rating_after: int = 0
+var season_point_delta: int = 0
+var reward_summary_text: String = ""
+var career_summary_text: String = ""
+var return_to_lobby_mode: bool = false
 
 
 func _ready() -> void:
@@ -58,6 +75,16 @@ func _ready() -> void:
 		score_summary_label = get_node(score_summary_label_path)
 	if has_node(team_outcome_label_path):
 		team_outcome_label = get_node(team_outcome_label_path)
+	if has_node(server_sync_label_path):
+		server_sync_label = get_node(server_sync_label_path)
+	if has_node(rating_delta_label_path):
+		rating_delta_label = get_node(rating_delta_label_path)
+	if has_node(season_point_delta_label_path):
+		season_point_delta_label = get_node(season_point_delta_label_path)
+	if has_node(reward_summary_label_path):
+		reward_summary_label = get_node(reward_summary_label_path)
+	if has_node(career_summary_label_path):
+		career_summary_label = get_node(career_summary_label_path)
 	if has_node(return_button_path):
 		return_button = get_node(return_button_path)
 	if has_node(rematch_button_path):
@@ -77,6 +104,12 @@ func show_result(result: BattleResult) -> void:
 		return
 
 	current_result = result.duplicate_deep()
+	server_sync_state = "pending"
+	rating_delta = 0
+	rating_after = 0
+	season_point_delta = 0
+	reward_summary_text = ""
+	career_summary_text = ""
 	_set_input_locked(true)
 	_refresh_text()
 	visible = true
@@ -103,6 +136,35 @@ func reset_settlement() -> void:
 	hide_result()
 
 
+func apply_server_summary(summary: Dictionary) -> void:
+	var resolved_summary: Dictionary = summary.duplicate(true) if summary != null else {}
+	server_sync_state = String(resolved_summary.get("server_sync_state", server_sync_state))
+	rating_delta = int(resolved_summary.get("rating_delta", rating_delta))
+	rating_after = int(resolved_summary.get("rating_after", rating_after))
+	season_point_delta = int(resolved_summary.get("season_point_delta", season_point_delta))
+	reward_summary_text = String(resolved_summary.get("reward_summary_text", reward_summary_text))
+	career_summary_text = String(resolved_summary.get("career_summary_text", career_summary_text))
+	_refresh_text()
+
+
+func set_return_button_mode_lobby() -> void:
+	return_to_lobby_mode = true
+	if return_button != null:
+		return_button.text = "Back To Lobby"
+	if rematch_button != null:
+		rematch_button.disabled = true
+		rematch_button.visible = false
+
+
+func set_return_button_mode_room() -> void:
+	return_to_lobby_mode = false
+	if return_button != null:
+		return_button.text = "返回房间"
+	if rematch_button != null:
+		rematch_button.disabled = false
+		rematch_button.visible = true
+
+
 func debug_dump_settlement_state() -> Dictionary:
 	return {
 		"visible": visible,
@@ -117,6 +179,12 @@ func debug_dump_settlement_state() -> Dictionary:
 		"bubble_summary_text": bubble_summary_label.text if bubble_summary_label != null else "",
 		"score_summary_text": score_summary_label.text if score_summary_label != null else "",
 		"team_outcome_text": team_outcome_label.text if team_outcome_label != null else "",
+		"server_sync_text": server_sync_label.text if server_sync_label != null else "",
+		"rating_delta_text": rating_delta_label.text if rating_delta_label != null else "",
+		"season_point_delta_text": season_point_delta_label.text if season_point_delta_label != null else "",
+		"reward_summary_text": reward_summary_label.text if reward_summary_label != null else "",
+		"career_summary_text": career_summary_label.text if career_summary_label != null else "",
+		"return_to_lobby_mode": return_to_lobby_mode,
 	}
 
 
@@ -146,6 +214,16 @@ func _refresh_text() -> void:
 		score_summary_label.text = _build_score_summary_text()
 	if team_outcome_label != null:
 		team_outcome_label.text = _build_team_outcome_text()
+	if server_sync_label != null:
+		server_sync_label.text = _build_server_sync_text()
+	if rating_delta_label != null:
+		rating_delta_label.text = _build_rating_delta_text()
+	if season_point_delta_label != null:
+		season_point_delta_label.text = _build_season_point_delta_text()
+	if reward_summary_label != null:
+		reward_summary_label.text = _build_reward_summary_text()
+	if career_summary_label != null:
+		career_summary_label.text = _build_career_summary_text()
 
 
 func _build_title_text() -> String:
@@ -286,6 +364,36 @@ func _build_team_outcome_text() -> String:
 	return "\n".join(lines)
 
 
+func _build_server_sync_text() -> String:
+	return "Server Sync: %s" % _map_server_sync_text(server_sync_state)
+
+
+func _build_rating_delta_text() -> String:
+	if server_sync_state == "pending":
+		return "Rating: -"
+	if rating_after > 0:
+		return "Rating: %s -> %d" % [_format_signed_number(rating_delta), rating_after]
+	return "Rating: %s" % _format_signed_number(rating_delta)
+
+
+func _build_season_point_delta_text() -> String:
+	if server_sync_state == "pending":
+		return "Season Point: -"
+	return "Season Point: %s" % _format_signed_number(season_point_delta)
+
+
+func _build_reward_summary_text() -> String:
+	if reward_summary_text.strip_edges().is_empty():
+		return "Reward: -"
+	return "Reward: %s" % reward_summary_text
+
+
+func _build_career_summary_text() -> String:
+	if career_summary_text.strip_edges().is_empty():
+		return "Career: -"
+	return "Career: %s" % career_summary_text
+
+
 func _resolve_current_start_config():
 	var tree := get_tree()
 	if tree == null:
@@ -356,3 +464,23 @@ func _map_outcome_text(local_outcome: String) -> String:
 			return "Draw"
 		_:
 			return local_outcome
+
+
+func _map_server_sync_text(state: String) -> String:
+	match state.strip_edges().to_lower():
+		"ok", "synced", "success", "completed":
+			return "Synced"
+		"failed", "error":
+			return "Failed"
+		"conflict":
+			return "Conflict"
+		"pending", "":
+			return "Pending"
+		_:
+			return state
+
+
+func _format_signed_number(value: int) -> String:
+	if value > 0:
+		return "+%d" % value
+	return "%d" % value

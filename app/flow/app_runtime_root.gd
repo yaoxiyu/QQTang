@@ -16,7 +16,11 @@ const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
 const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
 const LobbyDirectoryUseCaseScript = preload("res://app/front/lobby/lobby_directory_use_case.gd")
+const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
+const HttpMatchmakingGatewayScript = preload("res://app/front/matchmaking/http_matchmaking_gateway.gd")
 const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
+const CareerUseCaseScript = preload("res://app/front/career/career_use_case.gd")
+const HttpCareerGatewayScript = preload("res://app/front/career/http_career_gateway.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
 const HttpProfileGatewayScript = preload("res://app/front/profile/http_profile_gateway.gd")
@@ -26,6 +30,8 @@ const PlayerProfileStateScript = preload("res://app/front/profile/player_profile
 const ProfileRepositoryScript = preload("res://app/front/profile/profile_repository.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const RoomUseCaseScript = preload("res://app/front/room/room_use_case.gd")
+const SettlementSyncUseCaseScript = preload("res://app/front/settlement/settlement_sync_use_case.gd")
+const HttpSettlementGatewayScript = preload("res://app/front/settlement/http_settlement_gateway.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
@@ -75,6 +81,9 @@ var auth_session_repository: RefCounted = null
 var auth_gateway: RefCounted = null
 var profile_gateway: RefCounted = null
 var room_ticket_gateway: RefCounted = null
+var matchmaking_gateway: RefCounted = null
+var career_gateway: RefCounted = null
+var settlement_gateway: RefCounted = null
 var profile_repository: RefCounted = null
 var front_settings_repository: RefCounted = null
 var auth_session_restore_use_case: RefCounted = null
@@ -84,7 +93,10 @@ var logout_use_case: RefCounted = null
 var login_use_case: RefCounted = null
 var lobby_use_case: RefCounted = null
 var lobby_directory_use_case: RefCounted = null
+var matchmaking_use_case: RefCounted = null
+var career_use_case: RefCounted = null
 var room_use_case: RefCounted = null
+var settlement_sync_use_case: RefCounted = null
 var practice_room_factory: RefCounted = null
 var current_room_entry_context: RoomEntryContext = null
 var loading_use_case: RefCounted = null
@@ -99,6 +111,7 @@ var current_presentation_bridge: Node = null
 var current_battle_hud_controller: Node = null
 var current_battle_camera_controller: Node = null
 var current_settlement_controller: Node = null
+var current_settlement_popup_summary: Dictionary = {}
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
 # Phase17: Resume payload storage
@@ -308,6 +321,7 @@ func clear_battle_payload() -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+	current_settlement_popup_summary = {}
 	# Phase17: Clear resume payload
 	current_resume_snapshot = null
 	current_loading_mode = "normal_start"
@@ -514,6 +528,12 @@ func _ensure_front_services() -> void:
 		profile_gateway = HttpProfileGatewayScript.new()
 	if room_ticket_gateway == null:
 		room_ticket_gateway = HttpRoomTicketGatewayScript.new()
+	if matchmaking_gateway == null:
+		matchmaking_gateway = HttpMatchmakingGatewayScript.new()
+	if career_gateway == null:
+		career_gateway = HttpCareerGatewayScript.new()
+	if settlement_gateway == null:
+		settlement_gateway = HttpSettlementGatewayScript.new()
 	if practice_room_factory == null:
 		practice_room_factory = PracticeRoomFactoryScript.new()
 
@@ -556,6 +576,26 @@ func _ensure_front_use_cases() -> void:
 			front_settings_state
 		)
 
+	if matchmaking_use_case == null:
+		matchmaking_use_case = MatchmakingUseCaseScript.new()
+	if matchmaking_use_case != null and matchmaking_use_case.has_method("configure"):
+		matchmaking_use_case.configure(
+			auth_session_state,
+			player_profile_state,
+			front_settings_state,
+			matchmaking_gateway,
+			room_ticket_gateway
+		)
+
+	if career_use_case == null:
+		career_use_case = CareerUseCaseScript.new()
+	if career_use_case != null and career_use_case.has_method("configure"):
+		career_use_case.configure(
+			auth_session_state,
+			front_settings_state,
+			career_gateway
+		)
+
 	if room_use_case == null:
 		room_use_case = RoomUseCaseScript.new()
 	if room_use_case != null and room_use_case.has_method("configure"):
@@ -571,6 +611,15 @@ func _ensure_front_use_cases() -> void:
 		if room_use_case != null:
 			gateway = room_use_case.get("room_client_gateway")
 		loading_use_case.configure(self, gateway)
+
+	if settlement_sync_use_case == null:
+		settlement_sync_use_case = SettlementSyncUseCaseScript.new()
+	if settlement_sync_use_case != null and settlement_sync_use_case.has_method("configure"):
+		settlement_sync_use_case.configure(
+			auth_session_state,
+			front_settings_state,
+			settlement_gateway
+		)
 
 	if auth_session_restore_use_case == null:
 		var restore_script = _try_load_script("res://app/front/auth/auth_session_restore_use_case.gd")

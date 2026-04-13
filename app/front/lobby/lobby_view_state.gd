@@ -34,6 +34,19 @@ var reconnect_resume_deadline_msec: int = 0
 var preferred_map_id: String = ""
 var preferred_rule_id: String = ""
 var preferred_mode_id: String = ""
+var current_season_id: String = ""
+var current_rating: int = 0
+var current_rank_tier: String = ""
+var career_total_matches: int = 0
+var career_total_wins: int = 0
+var career_total_losses: int = 0
+var career_total_draws: int = 0
+var career_win_rate_bp: int = 0
+var queue_state: String = ""
+var queue_type: String = ""
+var queue_status_text: String = ""
+var assignment_id: String = ""
+var assignment_status_text: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -66,4 +79,17 @@ func to_dict() -> Dictionary:
 		"preferred_map_id": preferred_map_id,
 		"preferred_rule_id": preferred_rule_id,
 		"preferred_mode_id": preferred_mode_id,
+		"current_season_id": current_season_id,
+		"current_rating": current_rating,
+		"current_rank_tier": current_rank_tier,
+		"career_total_matches": career_total_matches,
+		"career_total_wins": career_total_wins,
+		"career_total_losses": career_total_losses,
+		"career_total_draws": career_total_draws,
+		"career_win_rate_bp": career_win_rate_bp,
+		"queue_state": queue_state,
+		"queue_type": queue_type,
+		"queue_status_text": queue_status_text,
+		"assignment_id": assignment_id,
+		"assignment_status_text": assignment_status_text,
 	}

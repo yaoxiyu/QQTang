@@ -165,6 +165,107 @@ layout_mode = 2
 [node name="DefaultBubbleSkinValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleSkinRow" unique_id=407045286]
 layout_mode = 2
 
+[node name="CareerCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=950712317]
+layout_mode = 2
+
+[node name="CareerVBox" type="VBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard" unique_id=1050657064]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CareerTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1478655954]
+layout_mode = 2
+text = "Career / Ranked"
+
+[node name="CurrentSeasonRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1421199478]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CurrentSeasonLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/CurrentSeasonRow" unique_id=1838528359]
+layout_mode = 2
+text = "Season"
+
+[node name="CurrentSeasonValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/CurrentSeasonRow" unique_id=913060896]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RatingRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1554777549]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RatingLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/RatingRow" unique_id=372378801]
+layout_mode = 2
+text = "Rating"
+
+[node name="RatingValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/RatingRow" unique_id=1199255069]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RankTierRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1661239864]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RankTierLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/RankTierRow" unique_id=377320407]
+layout_mode = 2
+text = "Rank Tier"
+
+[node name="RankTierValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/RankTierRow" unique_id=819289923]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TotalMatchesRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1067821470]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TotalMatchesLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/TotalMatchesRow" unique_id=1847562256]
+layout_mode = 2
+text = "Matches"
+
+[node name="TotalMatchesValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/TotalMatchesRow" unique_id=347435505]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WinsRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=787943458]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WinsLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/WinsRow" unique_id=1032148190]
+layout_mode = 2
+text = "Wins"
+
+[node name="WinsValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/WinsRow" unique_id=1233405089]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WinRateRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=374003062]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="WinRateLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/WinRateRow" unique_id=312647124]
+layout_mode = 2
+text = "Win Rate"
+
+[node name="WinRateValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/WinRateRow" unique_id=1290271169]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LastMatchRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=64093410]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="LastMatchLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/LastMatchRow" unique_id=13420589]
+layout_mode = 2
+text = "Last Match"
+
+[node name="LastMatchValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/LastMatchRow" unique_id=1476407224]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 2
+
+[node name="RefreshCareerButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1252159047]
+layout_mode = 2
+text = "Refresh Career"
+size_flags_horizontal = 0
+
 [node name="PracticeCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=1936014117]
 layout_mode = 2
 
@@ -299,6 +400,104 @@ text = "Join Selected Room"
 [node name="DirectoryStatusLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=322910582]
 layout_mode = 2
 autowrap_mode = 2
+
+[node name="MatchmakingCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=437423149]
+layout_mode = 2
+
+[node name="MatchmakingVBox" type="VBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard" unique_id=691536919]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MatchmakingTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1851063227]
+layout_mode = 2
+text = "Matchmaking"
+
+[node name="GameServiceRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=542337971]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GameServiceHostLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=1062108237]
+layout_mode = 2
+text = "Game Service Host"
+
+[node name="GameServiceHostInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=245683158]
+layout_mode = 2
+placeholder_text = "127.0.0.1"
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 0)
+
+[node name="GameServicePortLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=1696999629]
+layout_mode = 2
+text = "Port"
+
+[node name="GameServicePortInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=170416829]
+layout_mode = 2
+placeholder_text = "18081"
+custom_minimum_size = Vector2(96, 0)
+
+[node name="QueueTypeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=267330401]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="QueueTypeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow" unique_id=758628052]
+layout_mode = 2
+text = "Queue Type"
+
+[node name="QueueTypeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow" unique_id=2029924615]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(180, 0)
+
+[node name="QueueModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1021532690]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="QueueModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueModeRow" unique_id=1750391047]
+layout_mode = 2
+text = "Mode"
+
+[node name="QueueModeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueModeRow" unique_id=1632855128]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 0)
+
+[node name="QueueRuleRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1960837822]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="QueueRuleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueRuleRow" unique_id=259352098]
+layout_mode = 2
+text = "Rule"
+
+[node name="QueueRuleSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueRuleRow" unique_id=683540986]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 0)
+
+[node name="QueueActionRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=450860999]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="EnterQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=389456174]
+layout_mode = 2
+text = "Enter Queue"
+size_flags_horizontal = 3
+
+[node name="CancelQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=1305131417]
+layout_mode = 2
+text = "Cancel Queue"
+size_flags_horizontal = 3
+
+[node name="QueueStatusLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1429993601]
+layout_mode = 2
+text = "Queue Status: Idle"
+autowrap_mode = 2
+
+[node name="AssignmentSummaryLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1114078427]
+layout_mode = 2
+text = "Assignment: -"
+autowrap_mode = 3
+size_flags_horizontal = 3
 
 [node name="RecentCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=723798529]
 layout_mode = 2

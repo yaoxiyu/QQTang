@@ -5,6 +5,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
+const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
@@ -19,6 +20,7 @@ var room_ticket_secret: String = "dev_room_ticket_secret"
 var _room_service: ServerRoomService = null
 var _match_service: ServerMatchService = null
 var _loading_coordinator: ServerMatchLoadingCoordinator = null
+var _match_finalize_reporter: ServerMatchFinalizeReporter = null
 var _resume_coordinator: ServerMatchResumeCoordinator = null  # Phase17
 
 
@@ -177,6 +179,16 @@ func is_match_active() -> bool:
 	return _match_service != null and _match_service.is_match_active()
 
 
+func get_room_state():
+	_ensure_services()
+	return _room_service.room_state if _room_service != null else null
+
+
+func get_match_service() -> ServerMatchService:
+	_ensure_services()
+	return _match_service
+
+
 func get_room_id() -> String:
 	_ensure_services()
 	if _room_service == null or _room_service.room_state == null:
@@ -237,6 +249,9 @@ func _ensure_services() -> void:
 		_connect_resume_coordinator_signals()
 		if _room_service != null and _match_service != null:
 			_resume_coordinator.configure(_room_service.room_state, _match_service)
+	if _match_finalize_reporter == null:
+		_match_finalize_reporter = ServerMatchFinalizeReporterScript.new()
+		_match_finalize_reporter.configure()
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
@@ -292,6 +307,8 @@ func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
 func _on_match_finished(_result: BattleResult) -> void:
 	if _room_service != null and _room_service.has_method("handle_match_finished"):
 		_room_service.handle_match_finished()
+	if _match_finalize_reporter != null and _match_finalize_reporter.has_method("report_match_result_async"):
+		_match_finalize_reporter.report_match_result_async(self, _result)
 	# Phase17: Clear resume state on match finish
 	if _resume_coordinator != null:
 		_resume_coordinator.clear_match_state()

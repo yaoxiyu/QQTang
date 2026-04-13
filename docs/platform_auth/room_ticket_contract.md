@@ -46,6 +46,15 @@ Claim payload:
   "room_id": "",
   "room_kind": "private_room",
   "requested_match_id": "",
+  "assignment_id": "",
+  "match_source": "manual",
+  "locked_map_id": "",
+  "locked_rule_set_id": "",
+  "locked_mode_id": "",
+  "assigned_team_id": 0,
+  "expected_member_count": 0,
+  "auto_ready_on_join": false,
+  "hidden_room": false,
   "display_name": "PlayerA",
   "allowed_character_ids": ["character_default", "character_knight"],
   "allowed_character_skin_ids": ["skin_default"],
@@ -63,6 +72,7 @@ Rules:
 - `display_name` comes from profile authoritative nickname.
 - Allowed asset sets are copied from current owned assets snapshot.
 - DS uses allowed asset sets for loadout validation without profile service round-trip.
+- Matchmade room tickets additionally carry assignment-locked fields granted by `game_service`.
 
 ## POST /api/v1/tickets/room-entry
 
@@ -76,6 +86,7 @@ Request JSON:
   "room_id": "",
   "room_kind": "private_room",
   "requested_match_id": "",
+  "assignment_id": "",
   "selected_character_id": "character_default",
   "selected_character_skin_id": "skin_default",
   "selected_bubble_style_id": "bubble_style_default",
@@ -93,6 +104,10 @@ Request rules:
 - `requested_match_id`:
   - optional for create and join
   - required when resume targets an active match
+- `assignment_id`:
+  - empty for manual room flows
+  - required for `matchmade_room`
+  - when paired with `room_kind = "matchmade_room"`, `account_service` must query `game_service` internal grant and must not trust client-supplied map/rule/mode/team
 - Selected loadout must be owned by current profile.
 
 Success response:
@@ -109,6 +124,15 @@ Success response:
   "room_id": "",
   "room_kind": "private_room",
   "requested_match_id": "",
+  "assignment_id": "",
+  "match_source": "manual",
+  "locked_map_id": "",
+  "locked_rule_set_id": "",
+  "locked_mode_id": "",
+  "assigned_team_id": 0,
+  "expected_member_count": 0,
+  "auto_ready_on_join": false,
+  "hidden_room": false,
   "display_name": "PlayerA",
   "allowed_character_ids": ["character_default", "character_knight"],
   "allowed_character_skin_ids": ["skin_default"],
@@ -127,6 +151,8 @@ Possible error codes:
 - `ROOM_TICKET_TARGET_INVALID`
 - `ROOM_TICKET_LOADOUT_NOT_OWNED`
 - `ROOM_TICKET_REQUESTED_MATCH_INVALID`
+- `ROOM_TICKET_ASSIGNMENT_GRANT_FAILED`
+- `ROOM_TICKET_ASSIGNMENT_GRANT_FORBIDDEN`
 - `INTERNAL_ERROR`
 
 ## Claim Differences By Purpose
@@ -158,6 +184,15 @@ Possible error codes:
 - DS must additionally verify:
   - `ticket.account_id == binding.account_id`
   - `ticket.profile_id == binding.profile_id`
+
+### Matchmade ticket
+
+- `room_kind = "matchmade_room"`
+- `assignment_id` required
+- `match_source = "matchmaking"`
+- `locked_map_id`, `locked_rule_set_id`, `locked_mode_id`, and `assigned_team_id` come from internal assignment grant
+- `expected_member_count`, `auto_ready_on_join`, and `hidden_room` come from internal assignment grant
+- account_service must not trust client-provided selection/team for this case
 
 ## Expiry And Consumption
 

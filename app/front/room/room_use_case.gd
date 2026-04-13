@@ -3,6 +3,7 @@ extends RefCounted
 
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
+const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
 const ClientConnectionConfigScript = preload("res://network/runtime/client_connection_config.gd")
@@ -50,6 +51,9 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 	if app_runtime == null:
 		_log_room_anomaly("enter_room_without_runtime", {})
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
+	if _is_matchmade_room(entry_context):
+		entry_context.return_target = FrontReturnTargetScript.LOBBY
+		entry_context.return_to_lobby_after_settlement = true
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
 
 	if entry_context != null and String(entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER and String(entry_context.room_kind) != FrontRoomKindScript.PRACTICE:
@@ -91,6 +95,10 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
+	if _is_matchmade_room():
+		if app_runtime.current_room_entry_context != null:
+			app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
+			app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
 	if room_client_gateway != null and _is_online_room():
 		if room_client_gateway.has_method("request_leave_room_and_disconnect"):
 			room_client_gateway.request_leave_room_and_disconnect()
@@ -121,6 +129,9 @@ func update_local_profile(
 ) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	var effective_team_id := team_id
+	if _is_matchmade_room():
+		effective_team_id = _resolve_locked_team_id(team_id)
 	var result: Dictionary = app_runtime.room_session_controller.request_update_member_profile(
 		int(app_runtime.local_peer_id),
 		player_name,
@@ -128,16 +139,18 @@ func update_local_profile(
 		character_skin_id,
 		bubble_style_id,
 		bubble_skin_id,
-		team_id
+		effective_team_id
 	)
 	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
-		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
+		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, effective_team_id)
 	return result
 
 
 func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	if _is_matchmade_room():
+		return _fail("MATCHMADE_SELECTION_LOCKED", "Matchmade room selection is locked")
 	var result: Dictionary = app_runtime.room_session_controller.request_update_selection(
 		int(app_runtime.local_peer_id),
 		map_id,
@@ -259,6 +272,29 @@ func _is_online_room() -> bool:
 	if app_runtime.room_session_controller != null and app_runtime.room_session_controller.room_runtime_context != null:
 		return String(app_runtime.room_session_controller.room_runtime_context.topology) == FrontTopologyScript.DEDICATED_SERVER
 	return false
+
+
+func _is_matchmade_room(entry_context: RoomEntryContext = null) -> bool:
+	var target = entry_context
+	if target == null and app_runtime != null:
+		target = app_runtime.current_room_entry_context
+	if target != null and String(target.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
+		return true
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		return String(app_runtime.current_room_snapshot.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM
+	return false
+
+
+func _resolve_locked_team_id(fallback_team_id: int) -> int:
+	if app_runtime == null:
+		return fallback_team_id
+	if app_runtime.current_room_snapshot != null:
+		for member in app_runtime.current_room_snapshot.members:
+			if member != null and member.peer_id == int(app_runtime.local_peer_id) and int(member.team_id) > 0:
+				return int(member.team_id)
+	if app_runtime.current_room_entry_context != null and int(app_runtime.current_room_entry_context.assigned_team_id) > 0:
+		return int(app_runtime.current_room_entry_context.assigned_team_id)
+	return fallback_team_id
 
 
 func _connect_gateway_signals() -> void:

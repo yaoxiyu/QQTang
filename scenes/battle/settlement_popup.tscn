@@ -76,27 +76,72 @@ offset_top = 420.0
 offset_right = 560.0
 offset_bottom = 452.0
 
+[node name="ServerSyncLabel" type="Label" parent="." unique_id=1647050168]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 456.0
+offset_right = 560.0
+offset_bottom = 488.0
+text = "Server Sync: Pending"
+
 [node name="ScoreSummaryLabel" type="Label" parent="." unique_id=1603967823]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 420.0
-offset_right = 64.0
-offset_bottom = 443.0
+offset_top = 492.0
+offset_right = 560.0
+offset_bottom = 556.0
+text = "Team Score:"
+autowrap_mode = 3
+
+[node name="RatingDeltaLabel" type="Label" parent="." unique_id=1166218446]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 612.0
+offset_right = 560.0
+offset_bottom = 644.0
+text = "Rating: -"
+
+[node name="SeasonPointDeltaLabel" type="Label" parent="." unique_id=568782001]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 648.0
+offset_right = 560.0
+offset_bottom = 680.0
+text = "Season Point: -"
+
+[node name="RewardSummaryLabel" type="Label" parent="." unique_id=799286316]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 684.0
+offset_right = 560.0
+offset_bottom = 732.0
+text = "Reward: -"
+autowrap_mode = 3
+
+[node name="CareerSummaryLabel" type="Label" parent="." unique_id=1958331870]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 736.0
+offset_right = 560.0
+offset_bottom = 800.0
+text = "Career: -"
 autowrap_mode = 3
 
 [node name="TeamOutcomeLabel" type="Label" parent="." unique_id=840457758]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 420.0
-offset_right = 64.0
-offset_bottom = 443.0
+offset_top = 560.0
+offset_right = 560.0
+offset_bottom = 608.0
+text = ""
+autowrap_mode = 3
 
 [node name="ActionRow" type="HBoxContainer" parent="." unique_id=621369778]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 468.0
+offset_top = 816.0
 offset_right = 320.0
-offset_bottom = 508.0
+offset_bottom = 856.0
 theme_override_constants/separation = 12
 
 [node name="ReturnToRoomButton" type="Button" parent="ActionRow" unique_id=1499231930]

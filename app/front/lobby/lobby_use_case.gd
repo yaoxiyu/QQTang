@@ -45,7 +45,7 @@ func configure(
 	room_ticket_gateway = p_room_ticket_gateway
 
 
-func enter_lobby() -> Dictionary:
+func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 	var view_state := LobbyViewStateScript.new()
 	if auth_session_state != null:
 		view_state.account_id = auth_session_state.account_id
@@ -80,6 +80,8 @@ func enter_lobby() -> Dictionary:
 		view_state.reconnect_token = front_settings_state.reconnect_token
 		view_state.reconnect_state = front_settings_state.reconnect_state
 		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
+	_try_attach_career_summary(view_state, refresh_career_summary)
+	_attach_matchmaking_state(view_state)
 	return {
 		"ok": true,
 		"error_code": "",
@@ -316,6 +318,14 @@ func resume_recent_room() -> Dictionary:
 	return _attach_room_ticket(entry_context, "resume")
 
 
+func build_matchmade_entry_context() -> Dictionary:
+	if app_runtime == null or app_runtime.matchmaking_use_case == null:
+		return _fail("MATCHMAKING_USE_CASE_MISSING", "Matchmaking use case is not available")
+	if not app_runtime.matchmaking_use_case.has_method("consume_assignment_and_build_room_entry_context"):
+		return _fail("MATCHMAKING_USE_CASE_INVALID", "Matchmaking room entry flow is not available")
+	return app_runtime.matchmaking_use_case.consume_assignment_and_build_room_entry_context()
+
+
 func _build_online_entry_context(
 	entry_kind: String,
 	room_kind: String,
@@ -374,6 +384,43 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 		"user_message": "",
 		"entry_context": entry_context,
 	}
+
+
+func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool = true) -> void:
+	if view_state == null or app_runtime == null or app_runtime.career_use_case == null:
+		return
+	if should_refresh and app_runtime.career_use_case.has_method("refresh_career_summary"):
+		var refresh_result: Dictionary = app_runtime.career_use_case.refresh_career_summary()
+		var has_cached_summary: bool = app_runtime.career_use_case.has_method("get_current_summary") and app_runtime.career_use_case.get_current_summary() != null
+		if not bool(refresh_result.get("ok", false)) and not has_cached_summary:
+			return
+	if not app_runtime.career_use_case.has_method("build_lobby_career_view_model"):
+		return
+	var career_view_state = app_runtime.career_use_case.build_lobby_career_view_model()
+	if career_view_state == null:
+		return
+	view_state.current_season_id = String(career_view_state.current_season_id)
+	view_state.current_rating = int(career_view_state.current_rating)
+	view_state.current_rank_tier = String(career_view_state.current_rank_tier)
+	view_state.career_total_matches = int(career_view_state.career_total_matches)
+	view_state.career_total_wins = int(career_view_state.career_total_wins)
+	view_state.career_total_losses = int(career_view_state.career_total_losses)
+	view_state.career_total_draws = int(career_view_state.career_total_draws)
+	view_state.career_win_rate_bp = int(career_view_state.career_win_rate_bp)
+
+
+func _attach_matchmaking_state(view_state: LobbyViewState) -> void:
+	if view_state == null or app_runtime == null or app_runtime.matchmaking_use_case == null:
+		return
+	var queue_state = app_runtime.matchmaking_use_case.get_queue_state() if app_runtime.matchmaking_use_case.has_method("get_queue_state") else null
+	if queue_state != null:
+		view_state.queue_state = String(queue_state.queue_state)
+		view_state.queue_type = String(queue_state.queue_type)
+		view_state.queue_status_text = String(queue_state.queue_status_text)
+	var assignment_state = app_runtime.matchmaking_use_case.get_assignment_state() if app_runtime.matchmaking_use_case.has_method("get_assignment_state") else null
+	if assignment_state != null:
+		view_state.assignment_id = String(assignment_state.assignment_id)
+		view_state.assignment_status_text = String(assignment_state.assignment_status_text)
 
 
 func _configure_account_service_gateways() -> void:
