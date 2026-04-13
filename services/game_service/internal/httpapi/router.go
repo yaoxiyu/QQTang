@@ -41,6 +41,13 @@ func NewRouter(deps RouterDeps) http.Handler {
 		}
 		deps.InternalAssignmentHandler.GetGrant(w, r)
 	})))
+	mux.Handle("POST /internal/v1/assignments/", withInternalAuth(deps.InternalAuth, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/commit") {
+			http.NotFound(w, r)
+			return
+		}
+		deps.InternalAssignmentHandler.Commit(w, r)
+	})))
 	mux.Handle("POST /internal/v1/matches/finalize", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalFinalizeHandler.Finalize)))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {

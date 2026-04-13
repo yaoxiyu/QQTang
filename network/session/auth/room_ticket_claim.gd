@@ -12,6 +12,7 @@ var room_id: String = ""
 var room_kind: String = ""
 var requested_match_id: String = ""
 var assignment_id: String = ""
+var assignment_revision: int = 0
 var match_source: String = ""
 var season_id: String = ""
 var locked_map_id: String = ""
@@ -43,6 +44,7 @@ func to_dict() -> Dictionary:
 		"room_kind": room_kind,
 		"requested_match_id": requested_match_id,
 		"assignment_id": assignment_id,
+		"assignment_revision": assignment_revision,
 		"match_source": match_source,
 		"season_id": season_id,
 		"locked_map_id": locked_map_id,
@@ -75,6 +77,7 @@ static func from_dict(data: Dictionary):
 	claim.room_kind = String(data.get("room_kind", ""))
 	claim.requested_match_id = String(data.get("requested_match_id", ""))
 	claim.assignment_id = String(data.get("assignment_id", ""))
+	claim.assignment_revision = int(data.get("assignment_revision", 0))
 	claim.match_source = String(data.get("match_source", ""))
 	claim.season_id = String(data.get("season_id", ""))
 	claim.locked_map_id = String(data.get("locked_map_id", ""))

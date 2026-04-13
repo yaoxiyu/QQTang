@@ -72,6 +72,39 @@ func (r *QueueRepository) FindByQueueEntryID(ctx context.Context, queueEntryID s
 	`, queueEntryID))
 }
 
+func (r *QueueRepository) FindQueuedByKey(ctx context.Context, queueKey string, limit int, minHeartbeatUnixSec int64) ([]QueueEntry, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT queue_entry_id, queue_type, queue_key, season_id, account_id, profile_id, device_session_id,
+		       mode_id, rule_set_id, preferred_map_pool_id, rating_snapshot, enqueue_unix_sec, last_heartbeat_unix_sec,
+		       state, assignment_id, assignment_revision, cancel_reason, created_at, updated_at
+		FROM matchmaking_queue_entries
+		WHERE queue_key = $1 AND state = 'queued'
+		  AND last_heartbeat_unix_sec >= $3
+		ORDER BY enqueue_unix_sec ASC, created_at ASC
+		LIMIT $2
+	`, queueKey, limit, minHeartbeatUnixSec)
+	if err != nil {
+		return nil, err
+	}
+	if rows == nil {
+		return []QueueEntry{}, nil
+	}
+	defer rows.Close()
+
+	entries := []QueueEntry{}
+	for rows.Next() {
+		entry, err := scanQueueEntry(rows)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
 func (r *QueueRepository) UpdateStatus(ctx context.Context, queueEntryID string, state string, cancelReason string, assignmentID string, assignmentRevision int, heartbeatUnixSec int64) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE matchmaking_queue_entries

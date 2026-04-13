@@ -46,6 +46,8 @@ func main() {
 	ratingService := rating.NewEloService()
 	rewardService := reward.NewService()
 	queueService := queue.NewService(queueRepo, assignmentRepo, time.Duration(cfg.QueueHeartbeatTTLSeconds)*time.Second)
+	queueService.ConfigureAssignmentDefaults(cfg.DefaultDSHost, cfg.DefaultDSPort, cfg.CaptainDeadlineSeconds, cfg.CommitDeadlineSeconds)
+	queueService.ConfigureRatingRepository(ratingRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)

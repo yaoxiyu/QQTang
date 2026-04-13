@@ -18,6 +18,7 @@ const TRACE_PREFIX := "[qq_battle_trace]"
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
+const SETTLEMENT_SYNC_RETRY_DELAYS_SEC: Array[float] = [1.0, 2.0, 4.0, 4.0, 4.0]
 
 @onready var battle_bootstrap: BattleBootstrap = $BattleBootstrap
 @onready var presentation_bridge: BattlePresentationBridge = $BattleBootstrap/PresentationBridge
@@ -43,6 +44,7 @@ var _settlement_delay_remaining: float = 0.0
 var _post_shutdown_action: String = ""
 var _scene_cleanup_queued: bool = false
 var _shutting_down: bool = false
+var _settlement_sync_token: int = 0
 var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
 var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
@@ -250,7 +252,8 @@ func _on_battle_finished_authoritatively(result: BattleResult) -> void:
 	_clear_runtime_settlement_summary()
 	var match_id := _resolve_current_match_id()
 	if not match_id.is_empty():
-		call_deferred("_fetch_server_settlement_summary", match_id)
+		_settlement_sync_token += 1
+		call_deferred("_fetch_server_settlement_summary_with_retry", match_id, _settlement_sync_token)
 	battle_hud.match_message_panel.apply_message("Battle resolved...")
 
 
@@ -432,21 +435,35 @@ func _complete_post_shutdown_action() -> void:
 	_queue_scene_cleanup()
 
 
-func _fetch_server_settlement_summary(match_id: String) -> void:
+func _fetch_server_settlement_summary_with_retry(match_id: String, token: int) -> void:
+	for attempt in range(SETTLEMENT_SYNC_RETRY_DELAYS_SEC.size() + 1):
+		if token != _settlement_sync_token:
+			return
+		var synced := _fetch_server_settlement_summary_once(match_id)
+		if synced:
+			return
+		if attempt >= SETTLEMENT_SYNC_RETRY_DELAYS_SEC.size():
+			return
+		var delay_sec := float(SETTLEMENT_SYNC_RETRY_DELAYS_SEC[attempt])
+		await get_tree().create_timer(delay_sec).timeout
+
+
+func _fetch_server_settlement_summary_once(match_id: String) -> bool:
 	if match_id.strip_edges().is_empty() or _app_runtime == null:
-		return
+		return true
 	if _app_runtime.settlement_sync_use_case == null or not _app_runtime.settlement_sync_use_case.has_method("fetch_match_summary"):
-		return
+		return true
 	var fetch_result: Dictionary = _app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
 	if not bool(fetch_result.get("ok", false)):
-		return
+		return false
 	var popup_result: Dictionary = _app_runtime.settlement_sync_use_case.apply_summary_to_popup(fetch_result.get("summary", null))
 	if not bool(popup_result.get("ok", false)):
-		return
+		return false
 	var popup_summary: Dictionary = popup_result.get("popup_summary", {})
 	_app_runtime.current_settlement_popup_summary = popup_summary.duplicate(true)
 	if settlement_controller != null and settlement_controller.visible:
 		settlement_controller.apply_server_summary(popup_summary)
+	return String(popup_summary.get("server_sync_state", "")).strip_edges().to_lower() != "pending"
 
 
 func _resolve_current_match_id() -> String:
@@ -471,6 +488,7 @@ func _clear_runtime_settlement_summary() -> void:
 	if _app_runtime == null:
 		return
 	_app_runtime.current_settlement_popup_summary = {}
+	_settlement_sync_token += 1
 
 
 func _queue_scene_cleanup() -> void:

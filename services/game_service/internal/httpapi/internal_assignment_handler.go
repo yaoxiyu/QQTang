@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -39,4 +40,28 @@ func (h *InternalAssignmentHandler) GetGrant(w http.ResponseWriter, r *http.Requ
 		"auto_ready_on_join": grant.AutoReadyOnJoin, "hidden_room": grant.HiddenRoom,
 		"captain_account_id": grant.CaptainAccountID, "captain_deadline_unix_sec": grant.CaptainDeadlineUnixSec,
 		"commit_deadline_unix_sec": grant.CommitDeadlineUnixSec})
+}
+
+func (h *InternalAssignmentHandler) Commit(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/internal/v1/assignments/")
+	assignmentID := strings.TrimSuffix(path, "/commit")
+	var request assignment.CommitInput
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeError(w, http.StatusBadRequest, "REQUEST_INVALID_JSON", "Invalid JSON")
+		return
+	}
+	request.AssignmentID = assignmentID
+	result, err := h.service.CommitRoom(r.Context(), request)
+	if err != nil {
+		code, message := mapError(err)
+		writeError(w, code, message, message)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":                  true,
+		"assignment_id":       result.AssignmentID,
+		"assignment_revision": result.AssignmentRevision,
+		"commit_state":        result.CommitState,
+		"room_id":             result.RoomID,
+	})
 }

@@ -40,7 +40,13 @@ func _initialize() -> void:
 	if _test_node.has_signal("test_finished"):
 		_test_node.test_finished.connect(_finish, CONNECT_ONE_SHOT)
 	else:
-		call_deferred("_finish")
+		call_deferred("_finish_without_signal")
+
+
+func _finish_without_signal() -> void:
+	for _index in range(30):
+		await process_frame
+	_finish()
 
 
 func _finish() -> void:

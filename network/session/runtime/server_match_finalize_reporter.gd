@@ -2,11 +2,14 @@ class_name ServerMatchFinalizeReporter
 extends RefCounted
 
 const FINALIZE_PATH := "/internal/v1/matches/finalize"
+const ASSIGNMENT_COMMIT_PATH_TEMPLATE := "/internal/v1/assignments/%s/commit"
 
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081
 var internal_shared_secret: String = ""
 var last_finalize_status: Dictionary = {}
+var last_assignment_commit_status: Dictionary = {}
+var retry_delays_msec: Array[int] = [500, 1500, 3000]
 
 
 func configure(
@@ -26,6 +29,10 @@ func report_match_result_async(room_runtime: Node, result: BattleResult) -> void
 	call_deferred("_report_match_result", room_runtime, duplicated_result)
 
 
+func report_assignment_commit_async(payload: Dictionary) -> void:
+	call_deferred("_report_assignment_commit", payload.duplicate(true))
+
+
 func _report_match_result(room_runtime: Node, result: BattleResult) -> void:
 	var payload := _build_finalize_payload(room_runtime, result)
 	if payload.is_empty():
@@ -38,10 +45,28 @@ func _report_match_result(room_runtime: Node, result: BattleResult) -> void:
 		return
 	var result_hash := _build_result_hash(payload)
 	payload["result_hash"] = result_hash
-	var response := _send_finalize_request(payload)
+	var response := await _send_internal_post_with_retry(FINALIZE_PATH, payload)
 	response["result_hash"] = result_hash
 	response["reported_at"] = _utc_now_string()
 	last_finalize_status = response
+
+
+func _report_assignment_commit(payload: Dictionary) -> void:
+	var assignment_id := String(payload.get("assignment_id", "")).strip_edges()
+	if assignment_id.is_empty():
+		last_assignment_commit_status = {
+			"ok": false,
+			"error_code": "MATCHMAKING_ASSIGNMENT_ID_MISSING",
+			"user_message": "Assignment commit payload is incomplete",
+			"reported_at": _utc_now_string(),
+		}
+		return
+	payload.erase("assignment_id")
+	var path := ASSIGNMENT_COMMIT_PATH_TEMPLATE % assignment_id
+	var response := await _send_internal_post_with_retry(path, payload)
+	response["assignment_id"] = assignment_id
+	response["reported_at"] = _utc_now_string()
+	last_assignment_commit_status = response
 
 
 func _build_finalize_payload(room_runtime: Node, result: BattleResult) -> Dictionary:
@@ -134,6 +159,8 @@ func _resolve_placement(result: BattleResult, peer_id: int, team_id: int) -> int
 func _build_result_hash(payload: Dictionary) -> String:
 	var hash_payload := payload.duplicate(true)
 	hash_payload.erase("result_hash")
+	hash_payload.erase("started_at")
+	hash_payload.erase("finished_at")
 	var bytes := JSON.stringify(hash_payload).to_utf8_buffer()
 	var hashing := HashingContext.new()
 	var err := hashing.start(HashingContext.HASH_SHA256)
@@ -144,6 +171,28 @@ func _build_result_hash(payload: Dictionary) -> String:
 
 
 func _send_finalize_request(payload: Dictionary) -> Dictionary:
+	return await _send_internal_post_with_retry(FINALIZE_PATH, payload)
+
+
+func _send_internal_post_with_retry(path: String, payload: Dictionary) -> Dictionary:
+	var response: Dictionary = {}
+	for attempt in range(retry_delays_msec.size() + 1):
+		response = _send_internal_post_once(path, payload)
+		if bool(response.get("ok", false)):
+			return response
+		if _is_terminal_internal_error(String(response.get("error_code", ""))):
+			return response
+		if attempt >= retry_delays_msec.size():
+			return response
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree == null:
+			OS.delay_msec(int(retry_delays_msec[attempt]))
+		else:
+			await tree.create_timer(float(retry_delays_msec[attempt]) / 1000.0).timeout
+	return response
+
+
+func _send_internal_post_once(path: String, payload: Dictionary) -> Dictionary:
 	if internal_shared_secret.strip_edges().is_empty():
 		return {
 			"ok": false,
@@ -171,7 +220,7 @@ func _send_finalize_request(payload: Dictionary) -> Dictionary:
 		"Content-Type: application/json",
 		"X-Internal-Secret: %s" % internal_shared_secret,
 	])
-	err = client.request(HTTPClient.METHOD_POST, FINALIZE_PATH, headers, JSON.stringify(payload))
+	err = client.request(HTTPClient.METHOD_POST, path, headers, JSON.stringify(payload))
 	if err != OK:
 		return {
 			"ok": false,
@@ -205,6 +254,14 @@ func _send_finalize_request(payload: Dictionary) -> Dictionary:
 	if not response.has("user_message") and response.has("message"):
 		response["user_message"] = response.get("message", "")
 	return response
+
+
+func _is_terminal_internal_error(error_code: String) -> bool:
+	match error_code:
+		"MATCH_FINALIZE_HASH_MISMATCH", "MATCH_FINALIZE_CONTEXT_MISMATCH", "MATCH_FINALIZE_ASSIGNMENT_NOT_FOUND", "MATCH_FINALIZE_MEMBER_RESULT_INVALID", "MATCHMAKING_ASSIGNMENT_REVISION_STALE", "MATCHMAKING_ASSIGNMENT_GRANT_FORBIDDEN", "MATCHMAKING_ASSIGNMENT_EXPIRED":
+			return true
+		_:
+			return false
 
 
 func _read_env(name: String, fallback: String = "") -> String:

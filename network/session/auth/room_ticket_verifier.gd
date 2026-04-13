@@ -121,6 +121,8 @@ func _verify_ticket(message: Dictionary):
 func _validate_target(message: Dictionary, claim) -> bool:
 	if claim == null:
 		return false
+	if String(claim.room_kind).strip_edges().to_lower() == "matchmade_room" and not _is_valid_matchmade_claim(claim):
+		return false
 	var requested_room_id := String(message.get("room_id", message.get("room_id_hint", ""))).strip_edges()
 	var requested_room_kind := String(message.get("room_kind", "")).strip_edges().to_lower()
 	var requested_match_id := String(message.get("match_id", "")).strip_edges()
@@ -147,6 +149,26 @@ func _validate_target(message: Dictionary, claim) -> bool:
 			return true
 		_:
 			return false
+
+
+func _is_valid_matchmade_claim(claim) -> bool:
+	if String(claim.assignment_id).strip_edges().is_empty():
+		return false
+	if int(claim.assignment_revision) <= 0:
+		return false
+	if String(claim.match_source).strip_edges() != "matchmaking":
+		return false
+	if String(claim.locked_map_id).strip_edges().is_empty():
+		return false
+	if String(claim.locked_rule_set_id).strip_edges().is_empty():
+		return false
+	if String(claim.locked_mode_id).strip_edges().is_empty():
+		return false
+	if int(claim.assigned_team_id) <= 0:
+		return false
+	if int(claim.expected_member_count) <= 0:
+		return false
+	return bool(claim.auto_ready_on_join) and bool(claim.hidden_room)
 
 
 func _sign(encoded_payload: String) -> String:

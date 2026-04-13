@@ -144,7 +144,7 @@ func _ready() -> void:
 	battle_result.finish_reason = "last_survivor"
 	settlement_controller.show_result(battle_result)
 	settlement_controller.set_return_button_mode_lobby()
-	var popup_summary := settlement_sync.apply_summary_to_popup(settlement_sync.fetch_match_summary("match_smoke").get("summary", null)).get("popup_summary", {})
+	var popup_summary : Dictionary = settlement_sync.apply_summary_to_popup(settlement_sync.fetch_match_summary("match_smoke").get("summary", null)).get("popup_summary", {})
 	settlement_controller.apply_server_summary(popup_summary)
 
 	var dump: Dictionary = settlement_controller.debug_dump_settlement_state()

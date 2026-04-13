@@ -13,14 +13,16 @@ var (
 	ErrAssignmentMemberNotFound = errors.New("MATCHMAKING_ASSIGNMENT_MEMBER_NOT_FOUND")
 	ErrAssignmentExpired        = errors.New("MATCHMAKING_ASSIGNMENT_EXPIRED")
 	ErrAssignmentGrantForbidden = errors.New("MATCHMAKING_ASSIGNMENT_GRANT_FORBIDDEN")
+	ErrAssignmentRevisionStale  = errors.New("MATCHMAKING_ASSIGNMENT_REVISION_STALE")
 )
 
 type Service struct {
-	repo *storage.AssignmentRepository
+	repo            *storage.AssignmentRepository
+	captainDeadline time.Duration
 }
 
-func NewService(repo *storage.AssignmentRepository, _ time.Duration) *Service {
-	return &Service{repo: repo}
+func NewService(repo *storage.AssignmentRepository, captainDeadline time.Duration) *Service {
+	return &Service{repo: repo, captainDeadline: captainDeadline}
 }
 
 func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID string, profileID string, roomKind string) (GrantResult, error) {
@@ -47,6 +49,13 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 	if assignmentRecord.CommitDeadlineUnixSec < time.Now().UTC().Unix() || assignmentRecord.State == "finalized" {
 		return GrantResult{}, ErrAssignmentExpired
 	}
+	assignmentRecord, member, err = s.reElectCaptainIfNeeded(ctx, assignmentRecord, member)
+	if err != nil {
+		return GrantResult{}, err
+	}
+	if err := s.repo.MarkMemberTicketGranted(ctx, assignmentRecord.AssignmentID, member.AccountID); err != nil {
+		return GrantResult{}, err
+	}
 	return GrantResult{
 		AssignmentID:           assignmentRecord.AssignmentID,
 		AssignmentRevision:     assignmentRecord.AssignmentRevision,
@@ -71,4 +80,77 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 		CaptainDeadlineUnixSec: assignmentRecord.CaptainDeadlineUnixSec,
 		CommitDeadlineUnixSec:  assignmentRecord.CommitDeadlineUnixSec,
 	}, nil
+}
+
+func (s *Service) CommitRoom(ctx context.Context, input CommitInput) (CommitResult, error) {
+	assignmentRecord, err := s.repo.FindByID(ctx, input.AssignmentID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return CommitResult{}, ErrAssignmentNotFound
+		}
+		return CommitResult{}, err
+	}
+	member, err := s.repo.FindMember(ctx, input.AssignmentID, input.AccountID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return CommitResult{}, ErrAssignmentMemberNotFound
+		}
+		return CommitResult{}, err
+	}
+	if member.ProfileID != input.ProfileID || member.TicketRole != "create" || assignmentRecord.CaptainAccountID != input.AccountID {
+		return CommitResult{}, ErrAssignmentGrantForbidden
+	}
+	if input.AssignmentRevision != assignmentRecord.AssignmentRevision {
+		return CommitResult{}, ErrAssignmentRevisionStale
+	}
+	if input.RoomID != "" && input.RoomID != assignmentRecord.RoomID {
+		return CommitResult{}, ErrAssignmentGrantForbidden
+	}
+	now := time.Now().UTC().Unix()
+	if assignmentRecord.CommitDeadlineUnixSec < now || assignmentRecord.State == "finalized" {
+		return CommitResult{}, ErrAssignmentExpired
+	}
+	if assignmentRecord.State != "committed" {
+		if err := s.repo.MarkCommitted(ctx, assignmentRecord.AssignmentID, input.AccountID); err != nil {
+			return CommitResult{}, err
+		}
+	}
+	return CommitResult{
+		AssignmentID:       assignmentRecord.AssignmentID,
+		AssignmentRevision: assignmentRecord.AssignmentRevision,
+		CommitState:        "committed",
+		RoomID:             assignmentRecord.RoomID,
+	}, nil
+}
+
+func (s *Service) reElectCaptainIfNeeded(ctx context.Context, assignmentRecord storage.Assignment, member storage.AssignmentMember) (storage.Assignment, storage.AssignmentMember, error) {
+	now := time.Now().UTC()
+	if assignmentRecord.State == "committed" || assignmentRecord.CaptainDeadlineUnixSec >= now.Unix() {
+		return assignmentRecord, member, nil
+	}
+	members, err := s.repo.ListMembers(ctx, assignmentRecord.AssignmentID)
+	if err != nil {
+		return storage.Assignment{}, storage.AssignmentMember{}, err
+	}
+	accountIDs := make([]string, 0, len(members))
+	for _, candidate := range members {
+		accountIDs = append(accountIDs, candidate.AccountID)
+	}
+	nextCaptain := NextCaptainAccountID(assignmentRecord.CaptainAccountID, accountIDs)
+	if nextCaptain == "" {
+		return assignmentRecord, member, nil
+	}
+	nextRevision := assignmentRecord.AssignmentRevision + 1
+	nextDeadline := now.Add(s.captainDeadline).Unix()
+	if err := s.repo.ReelectCaptain(ctx, assignmentRecord.AssignmentID, nextCaptain, nextRevision, nextDeadline); err != nil {
+		return storage.Assignment{}, storage.AssignmentMember{}, err
+	}
+	assignmentRecord.CaptainAccountID = nextCaptain
+	assignmentRecord.AssignmentRevision = nextRevision
+	assignmentRecord.CaptainDeadlineUnixSec = nextDeadline
+	member, err = s.repo.FindMember(ctx, assignmentRecord.AssignmentID, member.AccountID)
+	if err != nil {
+		return storage.Assignment{}, storage.AssignmentMember{}, err
+	}
+	return assignmentRecord, member, nil
 }

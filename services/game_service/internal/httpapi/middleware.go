@@ -81,10 +81,14 @@ func mapError(err error) (int, string) {
 		return http.StatusNotFound, err.Error()
 	case assignment.ErrAssignmentExpired, assignment.ErrAssignmentGrantForbidden:
 		return http.StatusConflict, err.Error()
+	case assignment.ErrAssignmentRevisionStale:
+		return http.StatusConflict, err.Error()
 	case finalize.ErrFinalizeAlreadyCommitted, finalize.ErrFinalizeHashMismatch:
 		return http.StatusConflict, err.Error()
 	case finalize.ErrFinalizeAssignmentNotFound, finalize.ErrSettlementMatchNotFound:
 		return http.StatusNotFound, err.Error()
+	case finalize.ErrFinalizeContextMismatch:
+		return http.StatusConflict, err.Error()
 	case finalize.ErrFinalizeMemberResultInvalid:
 		return http.StatusBadRequest, err.Error()
 	default:

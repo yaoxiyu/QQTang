@@ -24,3 +24,18 @@ type GrantResult struct {
 	CaptainDeadlineUnixSec int64  `json:"captain_deadline_unix_sec"`
 	CommitDeadlineUnixSec  int64  `json:"commit_deadline_unix_sec"`
 }
+
+type CommitInput struct {
+	AssignmentID       string `json:"assignment_id"`
+	AccountID          string `json:"account_id"`
+	ProfileID          string `json:"profile_id"`
+	AssignmentRevision int    `json:"assignment_revision"`
+	RoomID             string `json:"room_id"`
+}
+
+type CommitResult struct {
+	AssignmentID       string `json:"assignment_id"`
+	AssignmentRevision int    `json:"assignment_revision"`
+	CommitState        string `json:"commit_state"`
+	RoomID             string `json:"room_id"`
+}

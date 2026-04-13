@@ -156,7 +156,7 @@ func newIntegrationEnv(t *testing.T) *integrationEnv {
 	authService := auth.NewAuthService(store.Pool, accountRepo, profileRepo, sessionRepo, passwordHasher, tokenIssuer, sessionService, 15*time.Minute, 14*24*time.Hour)
 	profileService := profile.NewService(profileRepo)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer("replace_me_room_ticket_secret")
-	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, 60*time.Second)
+	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, nil, 60*time.Second)
 
 	router := NewRouter(RouterDeps{
 		AuthService:       authService,

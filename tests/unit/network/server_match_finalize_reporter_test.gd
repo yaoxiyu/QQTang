@@ -73,7 +73,7 @@ func _test_finalize_payload_contains_member_results() -> bool:
 	var result = BattleResultScript.new()
 	result.finish_reason = "last_survivor"
 	result.score_policy = "team_score"
-	result.winner_team_ids = [1]
+	result.winner_team_ids.append(1)
 	result.player_scores = {"1": 5, "2": 1}
 	result.team_scores = {"1": 10, "2": 4}
 
@@ -115,5 +115,7 @@ func _test_result_hash_is_stable_for_same_payload() -> bool:
 	}
 
 	var hash_a := reporter._build_result_hash(payload)
-	var hash_b := reporter._build_result_hash(payload.duplicate(true))
-	return TestAssert.is_true(hash_a == hash_b, "same payload should produce stable result hash", "server_match_finalize_reporter_test.hash")
+	var retried_payload: Dictionary = payload.duplicate(true)
+	retried_payload["finished_at"] = "2026-04-13T10:00:05Z"
+	var hash_b := reporter._build_result_hash(retried_payload)
+	return TestAssert.is_true(hash_a == hash_b, "retry payload should produce stable result hash", "server_match_finalize_reporter_test.hash")

@@ -165,6 +165,8 @@ func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dicti
 func toggle_ready() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	if _is_matchmade_room():
+		return _fail("MATCHMADE_READY_LOCKED", "Matchmade room readiness is automatic")
 	var result: Dictionary = app_runtime.room_session_controller.request_toggle_ready(int(app_runtime.local_peer_id))
 	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
 		room_client_gateway.request_toggle_ready()
@@ -192,6 +194,8 @@ func start_match() -> Dictionary:
 func request_rematch() -> Dictionary:
 	if app_runtime == null or room_client_gateway == null:
 		return _fail("ROOM_USE_CASE_MISSING", "App runtime or gateway is not configured")
+	if _is_matchmade_room():
+		return _fail("MATCHMADE_REMATCH_FORBIDDEN", "Matchmade rooms return to lobby after settlement")
 	if not _is_online_room():
 		return _fail("NOT_ONLINE_ROOM", "Rematch is only supported in online rooms")
 	room_client_gateway.request_rematch()

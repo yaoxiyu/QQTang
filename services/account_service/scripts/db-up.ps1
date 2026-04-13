@@ -20,3 +20,5 @@ if ($Recreate) {
 
 docker compose -f $composeFile up -d
 docker compose -f $composeFile ps
+
+Pause

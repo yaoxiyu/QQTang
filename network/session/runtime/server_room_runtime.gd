@@ -269,6 +269,8 @@ func _connect_room_service_signals() -> void:
 	# Phase17: Connect resume request signal
 	if _room_service.has_signal("resume_request_received") and not _room_service.resume_request_received.is_connected(_on_resume_request_received):
 		_room_service.resume_request_received.connect(_on_resume_request_received)
+	if _room_service.has_signal("assignment_commit_requested") and not _room_service.assignment_commit_requested.is_connected(_on_assignment_commit_requested):
+		_room_service.assignment_commit_requested.connect(_on_assignment_commit_requested)
 
 
 func _connect_match_service_signals() -> void:
@@ -312,6 +314,11 @@ func _on_match_finished(_result: BattleResult) -> void:
 	# Phase17: Clear resume state on match finish
 	if _resume_coordinator != null:
 		_resume_coordinator.clear_match_state()
+
+
+func _on_assignment_commit_requested(payload: Dictionary) -> void:
+	if _match_finalize_reporter != null and _match_finalize_reporter.has_method("report_assignment_commit_async"):
+		_match_finalize_reporter.report_assignment_commit_async(payload)
 
 
 # Phase17: Handle resume timeout abort request

@@ -10,6 +10,7 @@ type RoomTicketClaim struct {
 	RoomKind                string   `json:"room_kind"`
 	RequestedMatchID        string   `json:"requested_match_id"`
 	AssignmentID            string   `json:"assignment_id"`
+	AssignmentRevision      int      `json:"assignment_revision"`
 	MatchSource             string   `json:"match_source"`
 	SeasonID                string   `json:"season_id"`
 	LockedMapID             string   `json:"locked_map_id"`

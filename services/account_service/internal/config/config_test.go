@@ -13,6 +13,7 @@ func TestLoadFromEnvSuccess(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "30")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET", "internal-secret")
 	t.Setenv("ACCOUNT_ALLOW_MULTI_DEVICE", "true")
 	t.Setenv("ACCOUNT_LOG_SQL", "true")
 
@@ -75,6 +76,7 @@ func setMinimumValidEnv(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "60")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET", "internal-secret")
 	t.Setenv("ACCOUNT_ALLOW_MULTI_DEVICE", "false")
 	t.Setenv("ACCOUNT_LOG_SQL", "false")
 }

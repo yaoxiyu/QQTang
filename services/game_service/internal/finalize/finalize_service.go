@@ -19,6 +19,7 @@ var (
 	ErrFinalizeAlreadyCommitted    = errors.New("MATCH_FINALIZE_ALREADY_COMMITTED")
 	ErrFinalizeHashMismatch        = errors.New("MATCH_FINALIZE_HASH_MISMATCH")
 	ErrFinalizeAssignmentNotFound  = errors.New("MATCH_FINALIZE_ASSIGNMENT_NOT_FOUND")
+	ErrFinalizeContextMismatch     = errors.New("MATCH_FINALIZE_CONTEXT_MISMATCH")
 	ErrFinalizeMemberResultInvalid = errors.New("MATCH_FINALIZE_MEMBER_RESULT_INVALID")
 	ErrSettlementMatchNotFound     = errors.New("SETTLEMENT_MATCH_NOT_FOUND")
 )
@@ -78,18 +79,21 @@ func (s *Service) Finalize(ctx context.Context, input FinalizeInput) (FinalizeRe
 	if assignmentRecord.MatchID != input.MatchID {
 		return FinalizeResult{}, ErrFinalizeAssignmentNotFound
 	}
+	if !matchesAssignmentContext(input, assignmentRecord) {
+		return FinalizeResult{}, ErrFinalizeContextMismatch
+	}
 
 	winnerTeamJSON, _ := json.Marshal(input.WinnerTeamIDs)
 	winnerPeerJSON, _ := json.Marshal(input.WinnerPeerIDs)
 	if err := finalizeRepo.InsertMatchResult(ctx, storage.MatchResultRecord{
 		MatchID:           input.MatchID,
 		AssignmentID:      input.AssignmentID,
-		RoomID:            input.RoomID,
-		RoomKind:          input.RoomKind,
-		SeasonID:          input.SeasonID,
-		ModeID:            input.ModeID,
-		RuleSetID:         input.RuleSetID,
-		MapID:             input.MapID,
+		RoomID:            assignmentRecord.RoomID,
+		RoomKind:          assignmentRecord.RoomKind,
+		SeasonID:          assignmentRecord.SeasonID,
+		ModeID:            assignmentRecord.ModeID,
+		RuleSetID:         assignmentRecord.RuleSetID,
+		MapID:             assignmentRecord.MapID,
 		FinishReason:      input.FinishReason,
 		ScorePolicy:       input.ScorePolicy,
 		WinnerTeamIDsJSON: string(winnerTeamJSON),
@@ -99,11 +103,31 @@ func (s *Service) Finalize(ctx context.Context, input FinalizeInput) (FinalizeRe
 		ResultHash:        input.ResultHash,
 		FinalizeRevision:  1,
 	}); err != nil {
+		if storage.IsConstraintViolation(err, "match_results_pkey") {
+			_ = tx.Rollback(ctx)
+			existing, findErr := readRepo.FindMatchResult(ctx, input.MatchID)
+			if findErr != nil {
+				return FinalizeResult{}, findErr
+			}
+			if existing.ResultHash != input.ResultHash {
+				return FinalizeResult{}, ErrFinalizeHashMismatch
+			}
+			return FinalizeResult{
+				FinalizeState:    "committed",
+				MatchID:          existing.MatchID,
+				AssignmentID:     existing.AssignmentID,
+				AlreadyCommitted: true,
+				ResultHash:       existing.ResultHash,
+				FinalizedAt:      existing.FinishedAt,
+			}, nil
+		}
 		return FinalizeResult{}, err
 	}
 
-	summary := SettlementSummary{}
-	finalizedAt := time.Now().UTC()
+	assignmentMembers := map[string]storage.AssignmentMember{}
+	snapshots := map[string]storage.SeasonRatingSnapshot{}
+	teamRatingSum := map[int]int{}
+	teamRatingCount := map[int]int{}
 	for _, member := range input.MemberResults {
 		assignmentMember, err := assignmentRepo.FindMember(ctx, input.AssignmentID, member.AccountID)
 		if err != nil || assignmentMember.ProfileID != member.ProfileID {
@@ -123,11 +147,21 @@ func (s *Service) Finalize(ctx context.Context, input FinalizeInput) (FinalizeRe
 				RankTier:  rating.MapRankTier(assignmentMember.RatingBefore),
 			}
 		}
+		assignmentMembers[member.AccountID] = assignmentMember
+		snapshots[member.AccountID] = snapshot
+		teamRatingSum[member.TeamID] += snapshot.Rating
+		teamRatingCount[member.TeamID]++
+	}
+
+	summary := SettlementSummary{}
+	finalizedAt := time.Now().UTC()
+	for _, member := range input.MemberResults {
+		snapshot := snapshots[member.AccountID]
 
 		delta := s.ratingService.ComputeDelta(rating.PlayerDeltaInput{
 			QueueType:    assignmentRecord.QueueType,
 			RatingBefore: snapshot.Rating,
-			OpponentAvg:  1000,
+			OpponentAvg:  resolveOpponentAverage(member.TeamID, teamRatingSum, teamRatingCount, snapshot.Rating),
 			Outcome:      member.Outcome,
 		})
 		rewardBreakdown := s.rewardService.Build(assignmentRecord.QueueType, member.Outcome)
@@ -230,6 +264,9 @@ func (s *Service) Finalize(ctx context.Context, input FinalizeInput) (FinalizeRe
 	if err := assignmentRepo.MarkFinalized(ctx, input.AssignmentID, finalizedAt); err != nil {
 		return FinalizeResult{}, err
 	}
+	if err := assignmentRepo.MarkMembersFinalized(ctx, input.AssignmentID); err != nil {
+		return FinalizeResult{}, err
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return FinalizeResult{}, err
 	}
@@ -253,7 +290,6 @@ func (s *Service) GetMatchSummary(ctx context.Context, matchID string, accountID
 		SeasonPointDelta    int
 		CareerXPDelta       int
 		GoldDelta           int
-		RankTierAfter       string
 		CurrentSeasonID     string
 		CurrentRating       int
 		CurrentRankTier     string
@@ -270,19 +306,17 @@ func (s *Service) GetMatchSummary(ctx context.Context, matchID string, accountID
 	var row summaryRow
 	err := s.pool.QueryRow(ctx, `
 		SELECT pmr.outcome, pmr.rating_before, pmr.rating_delta, pmr.rating_after, pmr.season_point_delta,
-		       pmr.career_xp_delta, pmr.gold_delta, srs.rank_tier, cs.current_season_id, cs.current_rating,
+		       pmr.career_xp_delta, pmr.gold_delta, cs.current_season_id, cs.current_rating,
 		       cs.current_rank_tier, cs.total_matches, cs.total_wins, cs.total_losses, cs.total_draws,
 		       cs.win_rate_bp, cs.last_match_id, cs.last_match_outcome, cs.last_match_finished_at
 		FROM player_match_results pmr
-		JOIN season_rating_snapshots srs
-		  ON srs.account_id = pmr.account_id AND srs.last_match_id = pmr.match_id
 		JOIN career_summaries cs
 		  ON cs.profile_id = pmr.profile_id
 		WHERE pmr.match_id = $1 AND pmr.account_id = $2 AND pmr.profile_id = $3
 		LIMIT 1
 	`, matchID, accountID, profileID).Scan(
 		&row.Outcome, &row.RatingBefore, &row.RatingDelta, &row.RatingAfter, &row.SeasonPointDelta,
-		&row.CareerXPDelta, &row.GoldDelta, &row.RankTierAfter, &row.CurrentSeasonID, &row.CurrentRating,
+		&row.CareerXPDelta, &row.GoldDelta, &row.CurrentSeasonID, &row.CurrentRating,
 		&row.CurrentRankTier, &row.TotalMatches, &row.TotalWins, &row.TotalLosses, &row.TotalDraws,
 		&row.WinRateBP, &row.LastMatchID, &row.LastMatchOutcome, &row.LastMatchFinishedAt,
 	)
@@ -305,7 +339,7 @@ func (s *Service) GetMatchSummary(ctx context.Context, matchID string, accountID
 		RatingBefore:     row.RatingBefore,
 		RatingDelta:      row.RatingDelta,
 		RatingAfter:      row.RatingAfter,
-		RankTierAfter:    row.RankTierAfter,
+		RankTierAfter:    rating.MapRankTier(row.RatingAfter),
 		SeasonPointDelta: row.SeasonPointDelta,
 		CareerXPDelta:    row.CareerXPDelta,
 		GoldDelta:        row.GoldDelta,
@@ -337,4 +371,39 @@ func ledgerID() (string, error) {
 		return "", err
 	}
 	return "ledger_" + hex.EncodeToString(buf), nil
+}
+
+func matchesAssignmentContext(input FinalizeInput, assignmentRecord storage.Assignment) bool {
+	if input.RoomID != assignmentRecord.RoomID {
+		return false
+	}
+	if input.RoomKind != assignmentRecord.RoomKind {
+		return false
+	}
+	if input.SeasonID != assignmentRecord.SeasonID {
+		return false
+	}
+	if input.ModeID != assignmentRecord.ModeID {
+		return false
+	}
+	if input.RuleSetID != assignmentRecord.RuleSetID {
+		return false
+	}
+	return input.MapID == assignmentRecord.MapID
+}
+
+func resolveOpponentAverage(teamID int, teamRatingSum map[int]int, teamRatingCount map[int]int, fallback int) int {
+	opponentSum := 0
+	opponentCount := 0
+	for candidateTeamID, sum := range teamRatingSum {
+		if candidateTeamID == teamID {
+			continue
+		}
+		opponentSum += sum
+		opponentCount += teamRatingCount[candidateTeamID]
+	}
+	if opponentCount <= 0 {
+		return fallback
+	}
+	return opponentSum / opponentCount
 }

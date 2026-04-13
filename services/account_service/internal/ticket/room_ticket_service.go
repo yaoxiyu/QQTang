@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	ErrPurposeInvalid        = errors.New("ROOM_TICKET_PURPOSE_INVALID")
-	ErrTargetInvalid         = errors.New("ROOM_TICKET_TARGET_INVALID")
-	ErrRequestedMatchInvalid = errors.New("ROOM_TICKET_REQUESTED_MATCH_INVALID")
-	ErrLoadoutNotOwned       = errors.New("ROOM_TICKET_LOADOUT_NOT_OWNED")
+	ErrPurposeInvalid              = errors.New("ROOM_TICKET_PURPOSE_INVALID")
+	ErrTargetInvalid               = errors.New("ROOM_TICKET_TARGET_INVALID")
+	ErrRequestedMatchInvalid       = errors.New("ROOM_TICKET_REQUESTED_MATCH_INVALID")
+	ErrLoadoutNotOwned             = errors.New("ROOM_TICKET_LOADOUT_NOT_OWNED")
+	ErrMatchmadeAssignmentRequired = errors.New("ROOM_TICKET_MATCHMADE_ASSIGNMENT_REQUIRED")
 )
 
 type Service struct {
@@ -96,13 +97,19 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 	}
 
 	lockedClaim := AssignmentGrantResult{}
-	if input.RoomKind == "matchmade_room" && strings.TrimSpace(input.AssignmentID) != "" {
+	if input.RoomKind == "matchmade_room" {
+		if strings.TrimSpace(input.AssignmentID) == "" {
+			return CreateTicketResult{}, ErrMatchmadeAssignmentRequired
+		}
 		if s.grantClient == nil {
 			return CreateTicketResult{}, ErrAssignmentGrantFailed
 		}
 		grant, err := s.grantClient.GetGrant(ctx, input.AssignmentID, profileResp.AccountID, profileResp.ProfileID, input.RoomKind)
 		if err != nil {
 			return CreateTicketResult{}, err
+		}
+		if grant.TicketRole != input.Purpose {
+			return CreateTicketResult{}, ErrAssignmentGrantForbidden
 		}
 		lockedClaim = grant
 		input.RoomID = grant.RoomID
@@ -137,6 +144,7 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		RoomKind:                input.RoomKind,
 		RequestedMatchID:        input.RequestedMatchID,
 		AssignmentID:            input.AssignmentID,
+		AssignmentRevision:      lockedClaim.AssignmentRevision,
 		MatchSource:             lockedClaim.MatchSource,
 		SeasonID:                lockedClaim.SeasonID,
 		LockedMapID:             lockedClaim.LockedMapID,

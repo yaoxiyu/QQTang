@@ -18,6 +18,7 @@ signal start_match_requested(snapshot: RoomSnapshot)
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
 signal resume_request_received(message: Dictionary)  # Phase17: For ServerRoomRuntime to handle match resume
+signal assignment_commit_requested(payload: Dictionary)
 
 var room_state: RoomServerState = RoomServerStateScript.new()
 var room_ticket_verifier: RefCounted = RoomTicketVerifierScript.new()
@@ -138,6 +139,13 @@ func _handle_create_request(message: Dictionary) -> void:
 		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_CREATE_REJECTED, ticket_validation)
 		return
 	var ticket_claim = ticket_validation.claim
+	if not _is_matchmade_ticket_compatible(ticket_claim):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
+			"user_message": "Match assignment ticket is stale",
+		})
+		return
 	var requested_character_id := String(message.get("character_id", "")).strip_edges()
 	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
 		send_to_peer.emit(peer_id, {
@@ -210,6 +218,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		"room_kind": room_state.room_kind,
 		"room_display_name": room_state.room_display_name,
 	})
+	_emit_assignment_commit_if_needed(ticket_claim)
 	
 	# Phase17: Send ROOM_MEMBER_SESSION for reconnect capability
 	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
@@ -236,6 +245,20 @@ func _handle_join_request(message: Dictionary) -> void:
 		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_JOIN_REJECTED, ticket_validation)
 		return
 	var ticket_claim = ticket_validation.claim
+	if not _is_matchmade_ticket_compatible(ticket_claim):
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
+			"user_message": "Match assignment ticket is stale",
+		})
+		return
+	if room_state.is_matchmade_room and String(ticket_claim.room_kind).strip_edges().to_lower() != "matchmade_room":
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+			"error": "MATCHMADE_ROOM_MANUAL_JOIN_FORBIDDEN",
+			"user_message": "Matchmade room requires assignment ticket",
+		})
+		return
 	var requested_character_id := String(message.get("character_id", "")).strip_edges()
 	if requested_character_id.is_empty() or not CharacterCatalogScript.has_character(requested_character_id):
 		send_to_peer.emit(peer_id, {
@@ -405,6 +428,13 @@ func _handle_update_selection(message: Dictionary) -> void:
 
 func _handle_toggle_ready(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_matchmade_room:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "ROOM_READY_LOCKED",
+			"user_message": "Matchmade room readiness is automatic",
+		})
+		return
 	room_state.toggle_ready(peer_id)
 	_broadcast_snapshot()
 	_maybe_auto_start_match()
@@ -462,6 +492,13 @@ func _handle_leave_request(message: Dictionary) -> void:
 
 func _handle_rematch_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_matchmade_room:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
+			"error": "MATCHMADE_REMATCH_FORBIDDEN",
+			"user_message": "Matchmade rooms return to lobby after settlement",
+		})
+		return
 	if peer_id != room_state.owner_peer_id:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
@@ -510,7 +547,10 @@ func _broadcast_snapshot() -> void:
 func _apply_ticket_claim_to_room_state(ticket_claim) -> void:
 	if room_state == null or ticket_claim == null:
 		return
+	if String(ticket_claim.room_kind).strip_edges().to_lower() != "matchmade_room":
+		return
 	room_state.assignment_id = String(ticket_claim.assignment_id)
+	room_state.assignment_revision = int(ticket_claim.assignment_revision)
 	room_state.season_id = String(ticket_claim.season_id)
 	room_state.expected_member_count = int(ticket_claim.expected_member_count)
 	room_state.locked_map_id = String(ticket_claim.locked_map_id)
@@ -521,6 +561,48 @@ func _apply_ticket_claim_to_room_state(ticket_claim) -> void:
 		room_state.room_kind = "matchmade_room"
 		room_state.is_public_room = false
 		room_state.room_display_name = "Matchmade Room"
+
+
+func _is_matchmade_ticket_compatible(ticket_claim) -> bool:
+	if ticket_claim == null:
+		return false
+	if String(ticket_claim.room_kind).strip_edges().to_lower() != "matchmade_room":
+		return true
+	if String(ticket_claim.assignment_id).strip_edges().is_empty():
+		return false
+	if int(ticket_claim.assignment_revision) <= 0:
+		return false
+	if int(ticket_claim.expected_member_count) <= 0:
+		return false
+	if String(ticket_claim.locked_map_id).strip_edges().is_empty():
+		return false
+	if String(ticket_claim.locked_rule_set_id).strip_edges().is_empty():
+		return false
+	if String(ticket_claim.locked_mode_id).strip_edges().is_empty():
+		return false
+	if room_state == null or room_state.room_id.is_empty():
+		return true
+	if String(room_state.assignment_id) != String(ticket_claim.assignment_id):
+		return false
+	if int(room_state.assignment_revision) > 0 and int(ticket_claim.assignment_revision) != int(room_state.assignment_revision):
+		return false
+	return true
+
+
+func _emit_assignment_commit_if_needed(ticket_claim) -> void:
+	if ticket_claim == null:
+		return
+	if String(ticket_claim.room_kind).strip_edges().to_lower() != "matchmade_room":
+		return
+	if String(ticket_claim.purpose) != "create":
+		return
+	assignment_commit_requested.emit({
+		"assignment_id": String(ticket_claim.assignment_id),
+		"account_id": String(ticket_claim.account_id),
+		"profile_id": String(ticket_claim.profile_id),
+		"assignment_revision": int(ticket_claim.assignment_revision),
+		"room_id": String(ticket_claim.room_id),
+	})
 
 
 func _maybe_auto_start_match() -> void:

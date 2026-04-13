@@ -468,7 +468,7 @@ func _map_outcome_text(local_outcome: String) -> String:
 
 func _map_server_sync_text(state: String) -> String:
 	match state.strip_edges().to_lower():
-		"ok", "synced", "success", "completed":
+		"ok", "synced", "success", "completed", "committed":
 			return "Synced"
 		"failed", "error":
 			return "Failed"

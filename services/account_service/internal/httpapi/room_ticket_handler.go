@@ -65,7 +65,7 @@ func (h *RoomTicketHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func mapTicketError(err error) (int, string) {
 	switch {
-	case errors.Is(err, ticket.ErrPurposeInvalid), errors.Is(err, ticket.ErrTargetInvalid), errors.Is(err, ticket.ErrRequestedMatchInvalid):
+	case errors.Is(err, ticket.ErrPurposeInvalid), errors.Is(err, ticket.ErrTargetInvalid), errors.Is(err, ticket.ErrRequestedMatchInvalid), errors.Is(err, ticket.ErrMatchmadeAssignmentRequired):
 		return http.StatusBadRequest, err.Error()
 	case errors.Is(err, ticket.ErrLoadoutNotOwned), errors.Is(err, ticket.ErrAssignmentGrantFailed), errors.Is(err, ticket.ErrAssignmentGrantForbidden):
 		return http.StatusConflict, err.Error()
