@@ -3,6 +3,7 @@ param(
     [string]$ProjectPath = '',
     [int]$ClientCount = 2,
     [int]$ServerPort = 9000,
+    [string]$RoomTicketSecret = 'dev_room_ticket_secret',
     [switch]$UseConsoleClients,
     [switch]$NoHeadlessServer,
     [switch]$Wait
@@ -95,6 +96,11 @@ if ($NoHeadlessServer) {
     )
 }
 $serverArgs += 'res://scenes/network/dedicated_server_scene.tscn'
+$serverArgs += '--'
+$serverArgs += '--qqt-ds-port'
+$serverArgs += $ServerPort.ToString()
+$serverArgs += '--qqt-ds-room-ticket-secret'
+$serverArgs += $RoomTicketSecret
 
 $processes += Start-GodotRole `
     -Name 'DedicatedServer' `
@@ -144,6 +150,7 @@ $summaryLines += "GodotDir: $GodotDir"
 $summaryLines += "ServerExe: $serverExe"
 $summaryLines += "ClientExe: $clientExe"
 $summaryLines += "ServerPort: $ServerPort"
+$summaryLines += "RoomTicketSecret: $RoomTicketSecret"
 $summaryLines += "ServerPortListening: $serverReady"
 $summaryLines += "RunRoot: $runRoot"
 $summaryLines += ''

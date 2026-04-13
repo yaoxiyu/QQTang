@@ -2,12 +2,9 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
-const RegisterRequestScript = preload("res://app/front/auth/register_request.gd")
 
 @onready var account_input = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/AccountRow/AccountInput")
 @onready var password_input = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/PasswordRow/PasswordInput")
-@onready var confirm_password_input = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/ConfirmPasswordRow/ConfirmPasswordInput")
-@onready var player_name_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow/PlayerNameInput")
 @onready var host_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/EndpointCard/EndpointVBox/HostRow/HostInput")
 @onready var port_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/EndpointCard/EndpointVBox/PortRow/PortInput")
 @onready var enter_lobby_button: Button = get_node_or_null("LoginRoot/MainLayout/ActionRow/EnterLobbyButton")
@@ -56,8 +53,6 @@ func _apply_profile_defaults() -> void:
 		return
 	var profile = _app_runtime.player_profile_state
 	var settings = _app_runtime.front_settings_state
-	if player_name_input != null and profile != null:
-		player_name_input.text = profile.nickname
 	if account_input != null and _app_runtime.auth_session_state != null:
 		account_input.text = _app_runtime.auth_session_state.account_id
 	if host_input != null and settings != null:
@@ -81,8 +76,13 @@ func _on_enter_lobby_pressed() -> void:
 	if _app_runtime == null or _app_runtime.login_use_case == null:
 		_set_message("Login use case is not available.")
 		return
+	if account_input != null and account_input.text.strip_edges().is_empty():
+		_set_message("Account is required.")
+		return
+	if password_input != null and password_input.text.is_empty():
+		_set_message("Password is required.")
+		return
 	var request := LoginRequestScript.new()
-	request.nickname = player_name_input.text.strip_edges() if player_name_input != null else ""
 	request.account = account_input.text.strip_edges() if account_input != null else ""
 	request.password = password_input.text if password_input != null else ""
 	request.client_platform = OS.get_name().to_lower()
@@ -103,30 +103,18 @@ func _on_enter_lobby_pressed() -> void:
 
 
 func _on_register_pressed() -> void:
-	if _app_runtime == null or _app_runtime.register_use_case == null:
-		_set_message("Register use case is not available.")
+	var host := host_input.text.strip_edges() if host_input != null else ""
+	if host.is_empty():
+		host = "127.0.0.1"
+	var port := int(port_input.text.to_int()) if port_input != null else 0
+	if port <= 0:
+		port = 18080
+	var register_url := "http://%s:%d/register" % [host, port]
+	var open_result := OS.shell_open(register_url)
+	if open_result != OK:
+		_set_message("Failed to open register page: %s" % register_url)
 		return
-	if password_input != null and confirm_password_input != null and password_input.text != confirm_password_input.text:
-		_set_message("Password confirmation does not match.")
-		return
-	var request := RegisterRequestScript.new()
-	request.account = account_input.text.strip_edges() if account_input != null else ""
-	request.password = password_input.text if password_input != null else ""
-	request.nickname = player_name_input.text.strip_edges() if player_name_input != null else ""
-	request.client_platform = OS.get_name().to_lower()
-	request.server_host = host_input.text.strip_edges() if host_input != null else ""
-	request.server_port = int(port_input.text.to_int()) if port_input != null else 0
-	if _app_runtime.profile_gateway != null and _app_runtime.profile_gateway.has_method("configure_base_url"):
-		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
-	var result: Dictionary = _app_runtime.register_use_case.register(request)
-	if not bool(result.get("ok", false)):
-		_set_message(String(result.get("user_message", "Register failed")))
-		_refresh_session_summary()
-		return
-	_set_message("")
-	_refresh_session_summary()
-	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_lobby"):
-		_app_runtime.front_flow.enter_lobby()
+	_set_message("Register page opened in browser.")
 
 
 func _on_guest_login_pressed() -> void:

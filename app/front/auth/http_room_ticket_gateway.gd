@@ -34,12 +34,12 @@ func issue_room_ticket(access_token: String, request):
 	err = client.request(HTTPClient.METHOD_POST, String(parsed_url["path"]), headers, JSON.stringify(request.to_dict()))
 	if err != OK:
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_REQUEST_FAILED", "Failed to send room ticket request")
-	while client.get_status() == HTTPClient.STATUS_REQUESTING or client.get_status() == HTTPClient.STATUS_BODY:
+	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
 	var raw := client.read_response_body_chunk()
 	var chunks := PackedByteArray()
-	while not raw.is_empty():
+	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
 		chunks.append_array(raw)
 		client.poll()
 		raw = client.read_response_body_chunk()

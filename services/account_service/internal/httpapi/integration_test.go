@@ -31,6 +31,7 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 
 	mustExpectStatus(t, http.MethodGet, server.URL+"/healthz", nil, nil, http.StatusOK, nil)
 	mustExpectStatus(t, http.MethodGet, server.URL+"/readyz", nil, nil, http.StatusOK, nil)
+	mustExpectTextContains(t, http.MethodGet, server.URL+"/register", http.StatusOK, "注册账号")
 
 	account := fmt.Sprintf("itest_%d", time.Now().UnixNano())
 	var registerResp authPayload
@@ -74,10 +75,10 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/tickets/room-entry", map[string]any{
 		"purpose":                    "create",
 		"room_kind":                  "online_room",
-		"selected_character_id":      "character_default",
-		"selected_character_skin_id": "skin_default",
-		"selected_bubble_style_id":   "bubble_style_default",
-		"selected_bubble_skin_id":    "bubble_skin_default",
+		"selected_character_id":      "char_huoying",
+		"selected_character_skin_id": "skin_gold",
+		"selected_bubble_style_id":   "bubble_round",
+		"selected_bubble_skin_id":    "bubble_skin_gold",
 	}, authHeader, http.StatusOK, &ticketResp)
 	if ticketResp.TicketID == "" || ticketResp.Ticket == "" {
 		t.Fatalf("ticket response missing ticket data: %+v", ticketResp)
@@ -236,6 +237,31 @@ func mustExpectStatus(t *testing.T, method string, url string, body any, headers
 		if err := json.Unmarshal(raw, out); err != nil {
 			t.Fatalf("decode response: %v; raw=%s", err, string(raw))
 		}
+	}
+}
+
+func mustExpectTextContains(t *testing.T, method string, url string, wantStatus int, wantText string) {
+	t.Helper()
+
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	if resp.StatusCode != wantStatus {
+		t.Fatalf("%s %s expected status %d, got %d: %s", method, url, wantStatus, resp.StatusCode, string(raw))
+	}
+	if !bytes.Contains(raw, []byte(wantText)) {
+		t.Fatalf("%s %s expected body to contain %q, got: %s", method, url, wantText, string(raw))
 	}
 }
 

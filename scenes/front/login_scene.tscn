@@ -27,7 +27,7 @@ text = "QQTang Login"
 
 [node name="IntroLabel" type="Label" parent="LoginRoot/MainLayout" unique_id=2033382970]
 layout_mode = 2
-text = "Account service HTTP endpoint for register/login/refresh."
+text = "Login uses account service. Register opens the browser registration page."
 autowrap_mode = 3
 
 [node name="ProfileCard" type="PanelContainer" parent="LoginRoot/MainLayout" unique_id=1895139282]
@@ -37,6 +37,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="PlayerNameRow" type="HBoxContainer" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox" unique_id=1958605384]
+visible = false
 layout_mode = 2
 
 [node name="PlayerNameLabel" type="Label" parent="LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow" unique_id=1150442701]
@@ -143,7 +144,7 @@ text = "Exit"
 
 [node name="RegisterButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=876162740]
 layout_mode = 2
-text = "Register"
+text = "Open Register Page"
 
 [node name="GuestLoginButton" type="Button" parent="LoginRoot/MainLayout/ActionRow" unique_id=1056569032]
 visible = false

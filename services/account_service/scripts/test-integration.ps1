@@ -20,3 +20,5 @@ try {
 finally {
     Pop-Location
 }
+
+Pause

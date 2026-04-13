@@ -13,7 +13,7 @@ $env:ACCOUNT_ACCESS_TOKEN_TTL_SECONDS = "900"
 $env:ACCOUNT_REFRESH_TOKEN_TTL_SECONDS = "1209600"
 $env:ACCOUNT_ROOM_TICKET_TTL_SECONDS = "60"
 $env:ACCOUNT_TOKEN_SIGN_SECRET = "replace_me_access_secret"
-$env:ACCOUNT_ROOM_TICKET_SIGN_SECRET = "replace_me_room_ticket_secret"
+$env:ACCOUNT_ROOM_TICKET_SIGN_SECRET = "dev_room_ticket_secret"
 $env:ACCOUNT_ALLOW_MULTI_DEVICE = "false"
 $env:ACCOUNT_LOG_SQL = if ($LogSQL) { "true" } else { "false" }
 

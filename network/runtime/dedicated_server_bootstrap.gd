@@ -17,6 +17,7 @@ var _room_registry: ServerRoomRegistry = null
 func _ready() -> void:
 	## 初始化 Dedicated Server 日志系统
 	LogSystemInitializerScript.initialize_dedicated_server()
+	_apply_command_line_overrides()
 	
 	_room_registry = ServerRoomRegistryScript.new()
 	_room_registry.name = "ServerRoomRegistry"
@@ -34,6 +35,24 @@ func _ready() -> void:
 	})
 	_connect_transport_signals()
 	LogNetScript.info("started on %s:%d" % [authority_host, listen_port], "", 0, "net.server_bootstrap")
+
+
+func _apply_command_line_overrides() -> void:
+	var args := OS.get_cmdline_user_args()
+	for index in range(args.size()):
+		var key := String(args[index])
+		if key == "--qqt-ds-port" and index + 1 < args.size():
+			var parsed_port := int(String(args[index + 1]).to_int())
+			if parsed_port > 0:
+				listen_port = parsed_port
+		elif key == "--qqt-ds-host" and index + 1 < args.size():
+			var parsed_host := String(args[index + 1]).strip_edges()
+			if not parsed_host.is_empty():
+				authority_host = parsed_host
+		elif key == "--qqt-ds-room-ticket-secret" and index + 1 < args.size():
+			var parsed_secret := String(args[index + 1]).strip_edges()
+			if not parsed_secret.is_empty():
+				room_ticket_secret = parsed_secret
 
 
 func _process(_delta: float) -> void:

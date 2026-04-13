@@ -27,3 +27,5 @@ else {
 }
 
 Get-Content -Raw $migrationPath | docker exec -e PGPASSWORD=$password -i $container psql -U $user -d $database
+
+Pause

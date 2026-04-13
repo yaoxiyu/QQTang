@@ -50,12 +50,12 @@ func fetch_my_profile(access_token: String) -> Dictionary:
 			"error_code": "PROFILE_HTTP_REQUEST_FAILED",
 			"user_message": "Failed to send profile request",
 		}
-	while client.get_status() == HTTPClient.STATUS_REQUESTING or client.get_status() == HTTPClient.STATUS_BODY:
+	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
 	var raw := client.read_response_body_chunk()
 	var chunks := PackedByteArray()
-	while not raw.is_empty():
+	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
 		chunks.append_array(raw)
 		client.poll()
 		raw = client.read_response_body_chunk()

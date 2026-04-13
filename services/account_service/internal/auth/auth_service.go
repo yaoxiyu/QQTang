@@ -147,10 +147,10 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 			ProfileID:              profileID,
 			AccountID:              accountID,
 			Nickname:               nickname,
-			DefaultCharacterID:     "character_default",
-			DefaultCharacterSkinID: "skin_default",
-			DefaultBubbleStyleID:   "bubble_style_default",
-			DefaultBubbleSkinID:    "bubble_skin_default",
+			DefaultCharacterID:     "char_huoying",
+			DefaultCharacterSkinID: "skin_gold",
+			DefaultBubbleStyleID:   "bubble_round",
+			DefaultBubbleSkinID:    "bubble_skin_gold",
 			ProfileVersion:         1,
 			OwnedAssetRevision:     0,
 			UpdatedAt:              now,
@@ -159,10 +159,10 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 		}
 
 		defaultAssets := []storage.OwnedAsset{
-			{AccountID: accountID, ProfileID: profileID, AssetType: "character", AssetID: "character_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "character_skin", AssetID: "skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble", AssetID: "bubble_style_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble_skin", AssetID: "bubble_skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "character", AssetID: "char_huoying", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "character_skin", AssetID: "skin_gold", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble", AssetID: "bubble_round", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble_skin", AssetID: "bubble_skin_gold", State: "owned", AcquiredAt: now, SourceType: "system"},
 		}
 		for _, asset := range defaultAssets {
 			if err := profileRepo.InsertOwnedAsset(ctx, asset); err != nil {

@@ -17,6 +17,7 @@ type RouterDeps struct {
 
 func NewRouter(deps RouterDeps) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /register", serveRegisterPage)
 
 	registerVersionedRoutes := func(prefix string) {
 		mux.HandleFunc("POST "+prefix+"/auth/register", deps.AuthHandler.Register)
