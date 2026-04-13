@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Profile struct {
@@ -34,15 +36,15 @@ type OwnedAsset struct {
 }
 
 type ProfileRepository struct {
-	db *sql.DB
+	db DBTX
 }
 
-func NewProfileRepository(db *sql.DB) *ProfileRepository {
+func NewProfileRepository(db DBTX) *ProfileRepository {
 	return &ProfileRepository{db: db}
 }
 
 func (r *ProfileRepository) Create(ctx context.Context, profile Profile) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`INSERT INTO player_profiles (
 			profile_id,
@@ -77,7 +79,7 @@ func (r *ProfileRepository) Create(ctx context.Context, profile Profile) error {
 }
 
 func (r *ProfileRepository) FindByAccountID(ctx context.Context, accountID string) (Profile, error) {
-	row := r.db.QueryRowContext(
+	row := r.db.QueryRow(
 		ctx,
 		`SELECT
 			profile_id,
@@ -101,7 +103,7 @@ func (r *ProfileRepository) FindByAccountID(ctx context.Context, accountID strin
 }
 
 func (r *ProfileRepository) UpdateProfile(ctx context.Context, profile Profile) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE player_profiles
 		SET nickname = $2,
@@ -123,7 +125,7 @@ func (r *ProfileRepository) UpdateProfile(ctx context.Context, profile Profile) 
 }
 
 func (r *ProfileRepository) UpdateLoadout(ctx context.Context, profile Profile) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE player_profiles
 		SET default_character_id = $2,
@@ -145,7 +147,7 @@ func (r *ProfileRepository) UpdateLoadout(ctx context.Context, profile Profile) 
 }
 
 func (r *ProfileRepository) InsertOwnedAsset(ctx context.Context, asset OwnedAsset) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`INSERT INTO player_owned_assets (
 			account_id,
@@ -169,7 +171,7 @@ func (r *ProfileRepository) InsertOwnedAsset(ctx context.Context, asset OwnedAss
 }
 
 func (r *ProfileRepository) ListOwnedAssets(ctx context.Context, profileID string) ([]OwnedAsset, error) {
-	rows, err := r.db.QueryContext(
+	rows, err := r.db.Query(
 		ctx,
 		`SELECT
 			account_id,
@@ -226,7 +228,7 @@ func scanProfile(scanner interface{ Scan(dest ...any) error }) (Profile, error) 
 		&profile.OwnedAssetRevision,
 		&profile.UpdatedAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return Profile{}, ErrNotFound
 	}
 	return profile, err

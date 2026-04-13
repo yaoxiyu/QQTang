@@ -136,6 +136,7 @@
 - `res://tests/integration/...`
 - `res://tests/contracts/...`
 - `res://tests/smoke/...`
+- `services/account_service/...`
 
 旧文档中如果仍出现：
 
@@ -504,6 +505,40 @@
 - `res://assets/animation/`
   - 角色与泡泡动画原始 png 资产目录
   - 只作为内容生产源，不作为 Battle 运行期直接消费真相
+
+## 3.9 `services/account_service/`
+
+**定位：Phase19 平台账号控制面服务目录**
+
+职责包括：
+
+- PostgreSQL 账号库接入
+- Account / Profile / Session / Room Ticket 控制面 API
+- 开发数据库与测试数据库的本地 compose 管理
+- migration 与集成测试脚本
+
+当前正式约束：
+
+- 存储层统一使用 `pgx/v5 + pgxpool`
+- `main.go` 只负责启动装配，不承载业务逻辑
+- 事务边界放在 service 层，不放 HTTP handler 层
+- `register / login / refresh` 已按事务闭环落地
+- `refresh_token` 数据库存 hash
+- `/healthz` 只反映进程存活，`/readyz` 必须真实探测 DB
+- 开发库与测试库必须隔离：
+  - dev: `docker-compose.dev.yml`
+  - test: `docker-compose.test.yml`
+- 本地脚本以 `services/account_service/scripts/` 为准：
+  - `db-up.ps1`
+  - `db-apply-migration.ps1`
+  - `db-reset-test-schema.ps1`
+  - `test-integration.ps1`
+
+约束：
+
+- 不允许再新增第二套测试数据库 compose 或重复启动脚本
+- 不允许让集成测试默认指向开发库
+- `ACCOUNT_LOG_SQL` 已是正式配置项，打开后必须输出 `pgx` SQL trace
 
 ---
 

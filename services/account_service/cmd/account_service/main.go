@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os/signal"
@@ -25,32 +26,41 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	store, err := storage.NewPostgresStore(ctx, cfg.PostgresDSN)
+	store, err := storage.NewPostgresStore(ctx, cfg.PostgresDSN, cfg.LogSQL)
 	if err != nil {
 		log.Fatalf("connect postgres: %v", err)
 	}
-	defer func() {
-		_ = store.Close()
-	}()
+	defer store.Close()
 
-	accountRepo := storage.NewAccountRepository(store.DB)
-	profileRepo := storage.NewProfileRepository(store.DB)
-	sessionRepo := storage.NewSessionRepository(store.DB)
-	ticketRepo := storage.NewTicketRepository(store.DB)
+	accountRepo := storage.NewAccountRepository(store.Pool)
+	profileRepo := storage.NewProfileRepository(store.Pool)
+	sessionRepo := storage.NewSessionRepository(store.Pool)
+	ticketRepo := storage.NewTicketRepository(store.Pool)
 
 	passwordHasher := auth.NewPasswordHasher()
-	tokenIssuer := auth.NewTokenIssuer(cfg.TokenSecret)
-	sessionService := auth.NewSessionService(sessionRepo, false)
-	authService := auth.NewAuthService(accountRepo, profileRepo, sessionRepo, passwordHasher, tokenIssuer, sessionService, cfg.AccessTokenTTL, cfg.RefreshTokenTTL)
+	tokenIssuer := auth.NewTokenIssuer(cfg.TokenSignSecret)
+	sessionService := auth.NewSessionService(sessionRepo, cfg.AllowMultiDevice)
+	authService := auth.NewAuthService(
+		store.Pool,
+		accountRepo,
+		profileRepo,
+		sessionRepo,
+		passwordHasher,
+		tokenIssuer,
+		sessionService,
+		time.Duration(cfg.AccessTokenTTLSeconds)*time.Second,
+		time.Duration(cfg.RefreshTokenTTLSeconds)*time.Second,
+	)
 	profileService := profile.NewService(profileRepo)
-	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSecret)
-	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, cfg.RoomTicketTTL)
+	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
+	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		AuthService:       authService,
 		AuthHandler:       httpapi.NewAuthHandler(authService),
 		ProfileHandler:    httpapi.NewProfileHandler(profileService),
 		RoomTicketHandler: httpapi.NewRoomTicketHandler(roomTicketService),
+		ReadinessCheck:    store.Ping,
 	})
 
 	server := &http.Server{
@@ -67,7 +77,7 @@ func main() {
 	}()
 
 	log.Printf("account_service listening on %s", cfg.HTTPListenAddr)
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("listen: %v", err)
 	}
 }

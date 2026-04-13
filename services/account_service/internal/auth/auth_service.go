@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"qqtang/services/account_service/internal/profile"
 	"qqtang/services/account_service/internal/storage"
 )
@@ -27,6 +30,7 @@ var (
 )
 
 type AuthService struct {
+	pool            *pgxpool.Pool
 	accountRepo     *storage.AccountRepository
 	profileRepo     *storage.ProfileRepository
 	sessionRepo     *storage.SessionRepository
@@ -61,6 +65,7 @@ type LogoutInput struct {
 }
 
 type AuthResult struct {
+	SessionID              string `json:"-"`
 	AccountID              string `json:"account_id"`
 	ProfileID              string `json:"profile_id"`
 	DisplayName            string `json:"display_name"`
@@ -73,8 +78,9 @@ type AuthResult struct {
 	SessionState           string `json:"session_state"`
 }
 
-func NewAuthService(accountRepo *storage.AccountRepository, profileRepo *storage.ProfileRepository, sessionRepo *storage.SessionRepository, hasher *PasswordHasher, tokenIssuer *TokenIssuer, sessionService *SessionService, accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *AuthService {
+func NewAuthService(pool *pgxpool.Pool, accountRepo *storage.AccountRepository, profileRepo *storage.ProfileRepository, sessionRepo *storage.SessionRepository, hasher *PasswordHasher, tokenIssuer *TokenIssuer, sessionService *SessionService, accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *AuthService {
 	return &AuthService{
+		pool:            pool,
 		accountRepo:     accountRepo,
 		profileRepo:     profileRepo,
 		sessionRepo:     sessionRepo,
@@ -114,46 +120,71 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 	if err != nil {
 		return AuthResult{}, err
 	}
-	passwordHash, algo := s.hasher.Hash(password)
+	passwordHash, algo, err := s.hasher.HashPassword(password)
+	if err != nil {
+		return AuthResult{}, err
+	}
 
-	if err := s.accountRepo.Create(ctx, storage.Account{
-		AccountID:    accountID,
-		LoginName:    account,
-		PasswordHash: passwordHash,
-		PasswordAlgo: algo,
-		Status:       "active",
-		CreatedAt:    now,
-		UpdatedAt:    now,
-		LastLoginAt:  sql.NullTime{},
-	}); err != nil {
-		return AuthResult{}, err
-	}
-	if err := s.profileRepo.Create(ctx, storage.Profile{
-		ProfileID:              profileID,
-		AccountID:              accountID,
-		Nickname:               nickname,
-		DefaultCharacterID:     "character_default",
-		DefaultCharacterSkinID: "skin_default",
-		DefaultBubbleStyleID:   "bubble_style_default",
-		DefaultBubbleSkinID:    "bubble_skin_default",
-		ProfileVersion:         1,
-		OwnedAssetRevision:     0,
-		UpdatedAt:              now,
-	}); err != nil {
-		return AuthResult{}, err
-	}
-	defaultAssets := []storage.OwnedAsset{
-		{AccountID: accountID, ProfileID: profileID, AssetType: "character", AssetID: "character_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-		{AccountID: accountID, ProfileID: profileID, AssetType: "character_skin", AssetID: "skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-		{AccountID: accountID, ProfileID: profileID, AssetType: "bubble", AssetID: "bubble_style_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-		{AccountID: accountID, ProfileID: profileID, AssetType: "bubble_skin", AssetID: "bubble_skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
-	}
-	for _, asset := range defaultAssets {
-		if err := s.profileRepo.InsertOwnedAsset(ctx, asset); err != nil {
-			return AuthResult{}, err
+	var result AuthResult
+	err = s.runInTx(ctx, func(tx pgx.Tx) error {
+		accountRepo := storage.NewAccountRepository(tx)
+		profileRepo := storage.NewProfileRepository(tx)
+		sessionRepo := storage.NewSessionRepository(tx)
+
+		if err := accountRepo.Create(ctx, storage.Account{
+			AccountID:    accountID,
+			LoginName:    account,
+			PasswordHash: passwordHash,
+			PasswordAlgo: algo,
+			Status:       "active",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+			LastLoginAt:  sql.NullTime{},
+		}); err != nil {
+			return err
 		}
+		if err := profileRepo.Create(ctx, storage.Profile{
+			ProfileID:              profileID,
+			AccountID:              accountID,
+			Nickname:               nickname,
+			DefaultCharacterID:     "character_default",
+			DefaultCharacterSkinID: "skin_default",
+			DefaultBubbleStyleID:   "bubble_style_default",
+			DefaultBubbleSkinID:    "bubble_skin_default",
+			ProfileVersion:         1,
+			OwnedAssetRevision:     0,
+			UpdatedAt:              now,
+		}); err != nil {
+			return err
+		}
+
+		defaultAssets := []storage.OwnedAsset{
+			{AccountID: accountID, ProfileID: profileID, AssetType: "character", AssetID: "character_default", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "character_skin", AssetID: "skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble", AssetID: "bubble_style_default", State: "owned", AcquiredAt: now, SourceType: "system"},
+			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble_skin", AssetID: "bubble_skin_default", State: "owned", AcquiredAt: now, SourceType: "system"},
+		}
+		for _, asset := range defaultAssets {
+			if err := profileRepo.InsertOwnedAsset(ctx, asset); err != nil {
+				return err
+			}
+		}
+
+		issued, err := s.issueSessionWithRepo(ctx, sessionRepo, accountID, profileID, nickname, input.ClientPlatform, now)
+		if err != nil {
+			return err
+		}
+		result = issued
+		return nil
+	})
+	if err != nil {
+		if storage.IsConstraintViolation(err, "uq_accounts_login_name") {
+			return AuthResult{}, ErrAccountAlreadyExists
+		}
+		return AuthResult{}, err
 	}
-	return s.issueSession(ctx, accountID, profileID, nickname, input.ClientPlatform, now)
+
+	return result, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, error) {
@@ -164,7 +195,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, 
 		}
 		return AuthResult{}, err
 	}
-	if !s.hasher.Verify(strings.TrimSpace(input.Password), account.PasswordHash) {
+	if !s.hasher.VerifyPassword(strings.TrimSpace(input.Password), account.PasswordHash, account.PasswordAlgo) {
 		return AuthResult{}, ErrInvalidCredentials
 	}
 	switch account.Status {
@@ -173,15 +204,38 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, 
 	case "banned":
 		return AuthResult{}, ErrAccountBanned
 	}
+
 	profileRecord, err := s.profileRepo.FindByAccountID(ctx, account.AccountID)
 	if err != nil {
 		return AuthResult{}, err
 	}
+
 	now := time.Now().UTC()
-	if err := s.accountRepo.UpdateLastLoginAt(ctx, account.AccountID, now); err != nil {
+	var result AuthResult
+	err = s.runInTx(ctx, func(tx pgx.Tx) error {
+		accountRepo := storage.NewAccountRepository(tx)
+		sessionRepo := storage.NewSessionRepository(tx)
+
+		if !s.sessionService.AllowMultiDevice() {
+			if err := sessionRepo.RevokeAllActiveByAccountID(ctx, account.AccountID, now); err != nil {
+				return err
+			}
+		}
+		issued, err := s.issueSessionWithRepo(ctx, sessionRepo, account.AccountID, profileRecord.ProfileID, profileRecord.Nickname, input.ClientPlatform, now)
+		if err != nil {
+			return err
+		}
+		if err := accountRepo.UpdateLastLoginAt(ctx, account.AccountID, now); err != nil {
+			return err
+		}
+		result = issued
+		return nil
+	})
+	if err != nil {
 		return AuthResult{}, err
 	}
-	return s.issueSession(ctx, account.AccountID, profileRecord.ProfileID, profileRecord.Nickname, input.ClientPlatform, now)
+
+	return result, nil
 }
 
 func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (AuthResult, error) {
@@ -201,47 +255,46 @@ func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (AuthResu
 	if input.DeviceSessionID != "" && input.DeviceSessionID != session.DeviceSessionID {
 		return AuthResult{}, ErrDeviceSessionMismatch
 	}
+
 	profileRecord, err := s.profileRepo.FindByAccountID(ctx, session.AccountID)
 	if err != nil {
 		return AuthResult{}, err
 	}
+
 	now := time.Now().UTC()
-	accessExpireAt := now.Add(s.accessTokenTTL)
-	refreshExpireAt := now.Add(s.refreshTokenTTL)
-	refreshToken, err := s.tokenIssuer.IssueOpaqueToken("rtk")
-	if err != nil {
-		return AuthResult{}, err
-	}
-	session.RefreshTokenHash = s.tokenIssuer.HashOpaqueToken(refreshToken)
-	session.AccessExpireAt = accessExpireAt
-	session.RefreshExpireAt = refreshExpireAt
-	session.LastSeenAt = now
-	if err := s.sessionRepo.UpdateRotatedTokens(ctx, session); err != nil {
-		return AuthResult{}, err
-	}
-	accessToken, err := s.tokenIssuer.IssueAccessToken(AccessTokenClaims{
-		AccountID:        session.AccountID,
-		ProfileID:        profileRecord.ProfileID,
-		DeviceSessionID:  session.DeviceSessionID,
-		AuthMode:         "password",
-		DisplayName:      profileRecord.Nickname,
-		ExpiresAtUnixSec: accessExpireAt.Unix(),
+	var result AuthResult
+	err = s.runInTx(ctx, func(tx pgx.Tx) error {
+		sessionRepo := storage.NewSessionRepository(tx)
+
+		current, err := sessionRepo.FindBySessionID(ctx, session.SessionID)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrRefreshTokenInvalid
+			}
+			return err
+		}
+		if current.RevokedAt.Valid {
+			return ErrSessionRevoked
+		}
+		if !current.RefreshExpireAt.After(now) {
+			return ErrRefreshTokenExpired
+		}
+
+		if err := sessionRepo.RevokeSessionByID(ctx, current.SessionID, now); err != nil {
+			return err
+		}
+		issued, err := s.issueSessionWithRepoUsingDevice(ctx, sessionRepo, current.AccountID, profileRecord.ProfileID, profileRecord.Nickname, current.ClientPlatform, current.DeviceSessionID, now)
+		if err != nil {
+			return err
+		}
+		result = issued
+		return nil
 	})
 	if err != nil {
 		return AuthResult{}, err
 	}
-	return AuthResult{
-		AccountID:              session.AccountID,
-		ProfileID:              profileRecord.ProfileID,
-		DisplayName:            profileRecord.Nickname,
-		AuthMode:               "password",
-		AccessToken:            accessToken,
-		RefreshToken:           refreshToken,
-		DeviceSessionID:        session.DeviceSessionID,
-		AccessExpireAtUnixSec:  accessExpireAt.Unix(),
-		RefreshExpireAtUnixSec: refreshExpireAt.Unix(),
-		SessionState:           "active",
-	}, nil
+
+	return result, nil
 }
 
 func (s *AuthService) Logout(ctx context.Context, input LogoutInput) error {
@@ -262,38 +315,59 @@ func (s *AuthService) Logout(ctx context.Context, input LogoutInput) error {
 }
 
 func (s *AuthService) ValidateAccessToken(ctx context.Context, accessToken string) (AuthResult, error) {
-	_ = ctx
 	claims, err := s.tokenIssuer.ParseAccessToken(accessToken)
 	if err != nil {
 		return AuthResult{}, ErrAccessTokenInvalid
 	}
-	if s.tokenIssuer.IsExpired(claims.ExpiresAtUnixSec, time.Now().UTC()) {
+	now := time.Now().UTC()
+	if s.tokenIssuer.IsExpired(claims.ExpiresAtUnixSec, now) {
 		return AuthResult{}, ErrAccessTokenExpired
 	}
+
+	session, err := s.sessionRepo.FindBySessionID(ctx, claims.SessionID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return AuthResult{}, ErrAccessTokenInvalid
+		}
+		return AuthResult{}, err
+	}
+	if session.RevokedAt.Valid {
+		return AuthResult{}, ErrSessionRevoked
+	}
+	if session.AccountID != claims.AccountID || session.DeviceSessionID != claims.DeviceSessionID {
+		return AuthResult{}, ErrAccessTokenInvalid
+	}
+	if !session.AccessExpireAt.After(now) {
+		return AuthResult{}, ErrAccessTokenExpired
+	}
+
 	profileRecord, err := s.profileRepo.FindByAccountID(ctx, claims.AccountID)
 	if err != nil {
 		return AuthResult{}, err
 	}
 	return AuthResult{
-		AccountID:             claims.AccountID,
-		ProfileID:             profileRecord.ProfileID,
-		DisplayName:           profileRecord.Nickname,
-		AuthMode:              claims.AuthMode,
-		DeviceSessionID:       claims.DeviceSessionID,
-		AccessExpireAtUnixSec: claims.ExpiresAtUnixSec,
-		SessionState:          "active",
+		SessionID:              claims.SessionID,
+		AccountID:              claims.AccountID,
+		ProfileID:              profileRecord.ProfileID,
+		DisplayName:            profileRecord.Nickname,
+		AuthMode:               claims.AuthMode,
+		DeviceSessionID:        claims.DeviceSessionID,
+		AccessExpireAtUnixSec:  claims.ExpiresAtUnixSec,
+		RefreshExpireAtUnixSec: session.RefreshExpireAt.Unix(),
+		SessionState:           "active",
 	}, nil
 }
 
-func (s *AuthService) issueSession(ctx context.Context, accountID string, profileID string, displayName string, clientPlatform string, now time.Time) (AuthResult, error) {
-	if err := s.sessionService.RevokeOtherSessions(ctx, accountID, now); err != nil {
-		return AuthResult{}, err
-	}
-	sessionID, err := s.tokenIssuer.IssueOpaqueToken("sess")
+func (s *AuthService) issueSessionWithRepo(ctx context.Context, sessionRepo *storage.SessionRepository, accountID string, profileID string, displayName string, clientPlatform string, now time.Time) (AuthResult, error) {
+	deviceSessionID, err := s.tokenIssuer.IssueOpaqueToken("dsess")
 	if err != nil {
 		return AuthResult{}, err
 	}
-	deviceSessionID, err := s.tokenIssuer.IssueOpaqueToken("dsess")
+	return s.issueSessionWithRepoUsingDevice(ctx, sessionRepo, accountID, profileID, displayName, clientPlatform, deviceSessionID, now)
+}
+
+func (s *AuthService) issueSessionWithRepoUsingDevice(ctx context.Context, sessionRepo *storage.SessionRepository, accountID string, profileID string, displayName string, clientPlatform string, deviceSessionID string, now time.Time) (AuthResult, error) {
+	sessionID, err := s.tokenIssuer.IssueOpaqueToken("sess")
 	if err != nil {
 		return AuthResult{}, err
 	}
@@ -301,9 +375,11 @@ func (s *AuthService) issueSession(ctx context.Context, accountID string, profil
 	if err != nil {
 		return AuthResult{}, err
 	}
+
 	accessExpireAt := now.Add(s.accessTokenTTL)
 	refreshExpireAt := now.Add(s.refreshTokenTTL)
 	accessToken, err := s.tokenIssuer.IssueAccessToken(AccessTokenClaims{
+		SessionID:        sessionID,
 		AccountID:        accountID,
 		ProfileID:        profileID,
 		DeviceSessionID:  deviceSessionID,
@@ -314,7 +390,8 @@ func (s *AuthService) issueSession(ctx context.Context, accountID string, profil
 	if err != nil {
 		return AuthResult{}, err
 	}
-	if err := s.sessionRepo.Create(ctx, storage.Session{
+
+	if err := sessionRepo.Create(ctx, storage.Session{
 		SessionID:        sessionID,
 		AccountID:        accountID,
 		DeviceSessionID:  deviceSessionID,
@@ -327,7 +404,9 @@ func (s *AuthService) issueSession(ctx context.Context, accountID string, profil
 	}); err != nil {
 		return AuthResult{}, err
 	}
+
 	return AuthResult{
+		SessionID:              sessionID,
 		AccountID:              accountID,
 		ProfileID:              profileID,
 		DisplayName:            displayName,
@@ -339,4 +418,18 @@ func (s *AuthService) issueSession(ctx context.Context, accountID string, profil
 		RefreshExpireAtUnixSec: refreshExpireAt.Unix(),
 		SessionState:           "active",
 	}, nil
+}
+
+func (s *AuthService) runInTx(ctx context.Context, fn func(tx pgx.Tx) error) error {
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
 }

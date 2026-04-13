@@ -7,8 +7,13 @@ This document defines the Phase19 account authentication HTTP contract.
 Base path:
 
 ```text
-/v1/auth
+/api/v1/auth
 ```
+
+Compatibility note:
+
+- Current service temporarily keeps legacy `/v1/auth/*` routes for local migration.
+- New callers should use `/api/v1/auth/*`.
 
 Content type:
 
@@ -44,7 +49,7 @@ Common error response:
 }
 ```
 
-## POST /v1/auth/register
+## POST /api/v1/auth/register
 
 Register a new account and create the initial player profile.
 
@@ -95,7 +100,7 @@ Possible error codes:
 - `PROFILE_NICKNAME_INVALID`
 - `INTERNAL_ERROR`
 
-## POST /v1/auth/login
+## POST /api/v1/auth/login
 
 Login with account and password.
 
@@ -135,7 +140,7 @@ Possible error codes:
 - `AUTH_SESSION_REVOKED`
 - `INTERNAL_ERROR`
 
-## POST /v1/auth/refresh
+## POST /api/v1/auth/refresh
 
 Refresh access session using refresh token.
 
@@ -180,7 +185,7 @@ Possible error codes:
 - `AUTH_DEVICE_SESSION_MISMATCH`
 - `INTERNAL_ERROR`
 
-## POST /v1/auth/logout
+## POST /api/v1/auth/logout
 
 Revoke the current login session.
 
@@ -215,7 +220,7 @@ Possible error codes:
 - `AUTH_SESSION_REVOKED`
 - `INTERNAL_ERROR`
 
-## GET /v1/auth/session
+## GET /api/v1/auth/session
 
 Validate current access session and return current principal summary.
 

@@ -25,3 +25,7 @@ func (s *SessionService) RevokeOtherSessions(ctx context.Context, accountID stri
 	}
 	return s.sessionRepo.RevokeAllActiveByAccountID(ctx, accountID, now)
 }
+
+func (s *SessionService) AllowMultiDevice() bool {
+	return s.allowMultiDevice
+}

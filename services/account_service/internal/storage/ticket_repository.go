@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type RoomEntryTicketRecord struct {
@@ -24,15 +26,15 @@ type RoomEntryTicketRecord struct {
 }
 
 type TicketRepository struct {
-	db *sql.DB
+	db DBTX
 }
 
-func NewTicketRepository(db *sql.DB) *TicketRepository {
+func NewTicketRepository(db DBTX) *TicketRepository {
 	return &TicketRepository{db: db}
 }
 
 func (r *TicketRepository) Create(ctx context.Context, record RoomEntryTicketRecord) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`INSERT INTO room_entry_tickets (
 			ticket_id,
@@ -65,7 +67,7 @@ func (r *TicketRepository) Create(ctx context.Context, record RoomEntryTicketRec
 }
 
 func (r *TicketRepository) FindByID(ctx context.Context, ticketID string) (RoomEntryTicketRecord, error) {
-	row := r.db.QueryRowContext(
+	row := r.db.QueryRow(
 		ctx,
 		`SELECT
 			ticket_id,
@@ -99,14 +101,14 @@ func (r *TicketRepository) FindByID(ctx context.Context, ticketID string) (RoomE
 		&record.ExpireAt,
 		&record.ConsumedAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return RoomEntryTicketRecord{}, ErrNotFound
 	}
 	return record, err
 }
 
 func (r *TicketRepository) MarkConsumed(ctx context.Context, ticketID string, consumedAt time.Time) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE room_entry_tickets
 		SET consumed_at = $2

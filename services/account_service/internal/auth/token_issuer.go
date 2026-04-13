@@ -17,6 +17,7 @@ type TokenIssuer struct {
 }
 
 type AccessTokenClaims struct {
+	SessionID        string `json:"session_id"`
 	AccountID        string `json:"account_id"`
 	ProfileID        string `json:"profile_id"`
 	DeviceSessionID  string `json:"device_session_id"`
@@ -58,7 +59,7 @@ func (i *TokenIssuer) ParseAccessToken(token string) (AccessTokenClaims, error) 
 }
 
 func (i *TokenIssuer) IssueOpaqueToken(prefix string) (string, error) {
-	raw := make([]byte, 32)
+	raw := make([]byte, 16)
 	if _, err := rand.Read(raw); err != nil {
 		return "", err
 	}

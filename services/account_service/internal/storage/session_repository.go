@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Session struct {
@@ -21,15 +23,15 @@ type Session struct {
 }
 
 type SessionRepository struct {
-	db *sql.DB
+	db DBTX
 }
 
-func NewSessionRepository(db *sql.DB) *SessionRepository {
+func NewSessionRepository(db DBTX) *SessionRepository {
 	return &SessionRepository{db: db}
 }
 
 func (r *SessionRepository) Create(ctx context.Context, session Session) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`INSERT INTO account_sessions (
 			session_id,
@@ -58,7 +60,7 @@ func (r *SessionRepository) Create(ctx context.Context, session Session) error {
 }
 
 func (r *SessionRepository) FindByRefreshHash(ctx context.Context, refreshHash string) (Session, error) {
-	row := r.db.QueryRowContext(
+	row := r.db.QueryRow(
 		ctx,
 		`SELECT
 			session_id,
@@ -78,13 +80,35 @@ func (r *SessionRepository) FindByRefreshHash(ctx context.Context, refreshHash s
 	return scanSession(row)
 }
 
+func (r *SessionRepository) FindBySessionID(ctx context.Context, sessionID string) (Session, error) {
+	row := r.db.QueryRow(
+		ctx,
+		`SELECT
+			session_id,
+			account_id,
+			device_session_id,
+			refresh_token_hash,
+			client_platform,
+			issued_at,
+			access_expire_at,
+			refresh_expire_at,
+			revoked_at,
+			last_seen_at
+		FROM account_sessions
+		WHERE session_id = $1`,
+		sessionID,
+	)
+	return scanSession(row)
+}
+
 func (r *SessionRepository) RevokeSessionByID(ctx context.Context, sessionID string, revokedAt time.Time) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE account_sessions
 		SET revoked_at = $2,
 			last_seen_at = $2
-		WHERE session_id = $1`,
+		WHERE session_id = $1
+			AND revoked_at IS NULL`,
 		sessionID,
 		revokedAt,
 	)
@@ -92,7 +116,7 @@ func (r *SessionRepository) RevokeSessionByID(ctx context.Context, sessionID str
 }
 
 func (r *SessionRepository) RevokeAllActiveByAccountID(ctx context.Context, accountID string, revokedAt time.Time) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE account_sessions
 		SET revoked_at = $2,
@@ -106,7 +130,7 @@ func (r *SessionRepository) RevokeAllActiveByAccountID(ctx context.Context, acco
 }
 
 func (r *SessionRepository) UpdateRotatedTokens(ctx context.Context, session Session) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE account_sessions
 		SET refresh_token_hash = $2,
@@ -119,6 +143,18 @@ func (r *SessionRepository) UpdateRotatedTokens(ctx context.Context, session Ses
 		session.AccessExpireAt,
 		session.RefreshExpireAt,
 		session.LastSeenAt,
+	)
+	return err
+}
+
+func (r *SessionRepository) TouchSessionSeenAt(ctx context.Context, sessionID string, seenAt time.Time) error {
+	_, err := r.db.Exec(
+		ctx,
+		`UPDATE account_sessions
+		SET last_seen_at = $2
+		WHERE session_id = $1`,
+		sessionID,
+		seenAt,
 	)
 	return err
 }
@@ -137,7 +173,7 @@ func scanSession(scanner interface{ Scan(dest ...any) error }) (Session, error) 
 		&session.RevokedAt,
 		&session.LastSeenAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return Session{}, ErrNotFound
 	}
 	return session, err

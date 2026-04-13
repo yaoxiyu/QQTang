@@ -7,8 +7,13 @@ This document defines the Phase19 room ticket HTTP contract and the ticket claim
 Base path:
 
 ```text
-/v1/room-tickets
+/api/v1/tickets/room-entry
 ```
+
+Compatibility note:
+
+- Current service temporarily keeps legacy `POST /v1/room-tickets` for local migration.
+- New callers should use `POST /api/v1/tickets/room-entry`.
 
 Authentication:
 
@@ -59,7 +64,7 @@ Rules:
 - Allowed asset sets are copied from current owned assets snapshot.
 - DS uses allowed asset sets for loadout validation without profile service round-trip.
 
-## POST /v1/room-tickets
+## POST /api/v1/tickets/room-entry
 
 Issue one ticket for create, join, or resume.
 

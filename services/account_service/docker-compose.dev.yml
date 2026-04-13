@@ -1,0 +1,19 @@
+name: account_service_dev
+
+services:
+  postgres:
+    # latest inspected on 2026-04-13 -> app version 18.3.0
+    image: bitnami/postgresql@sha256:155a5ff04d5059d8076a85dca404d8a3bc2d765db0fea1afd25ae68e9ac38903
+    container_name: qqtang_phase19_pg
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_USERNAME: qqtang
+      POSTGRESQL_PASSWORD: qqtang_dev_pass
+      POSTGRESQL_DATABASE: qqtang_account_dev
+    ports:
+      - "54329:5432"
+    volumes:
+      - qqtang_phase19_pgdata:/bitnami/postgresql
+
+volumes:
+  qqtang_phase19_pgdata:

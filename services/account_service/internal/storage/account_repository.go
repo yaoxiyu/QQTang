@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -21,15 +23,15 @@ type Account struct {
 }
 
 type AccountRepository struct {
-	db *sql.DB
+	db DBTX
 }
 
-func NewAccountRepository(db *sql.DB) *AccountRepository {
+func NewAccountRepository(db DBTX) *AccountRepository {
 	return &AccountRepository{db: db}
 }
 
 func (r *AccountRepository) Create(ctx context.Context, account Account) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`INSERT INTO accounts (
 			account_id,
@@ -54,7 +56,7 @@ func (r *AccountRepository) Create(ctx context.Context, account Account) error {
 }
 
 func (r *AccountRepository) FindByLoginName(ctx context.Context, loginName string) (Account, error) {
-	row := r.db.QueryRowContext(
+	row := r.db.QueryRow(
 		ctx,
 		`SELECT
 			account_id,
@@ -73,7 +75,7 @@ func (r *AccountRepository) FindByLoginName(ctx context.Context, loginName strin
 }
 
 func (r *AccountRepository) FindByAccountID(ctx context.Context, accountID string) (Account, error) {
-	row := r.db.QueryRowContext(
+	row := r.db.QueryRow(
 		ctx,
 		`SELECT
 			account_id,
@@ -92,7 +94,7 @@ func (r *AccountRepository) FindByAccountID(ctx context.Context, accountID strin
 }
 
 func (r *AccountRepository) UpdateLastLoginAt(ctx context.Context, accountID string, ts time.Time) error {
-	_, err := r.db.ExecContext(
+	_, err := r.db.Exec(
 		ctx,
 		`UPDATE accounts
 		SET last_login_at = $2,
@@ -116,7 +118,7 @@ func scanAccount(scanner interface{ Scan(dest ...any) error }) (Account, error) 
 		&account.UpdatedAt,
 		&account.LastLoginAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return Account{}, ErrNotFound
 	}
 	return account, err

@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -63,6 +64,7 @@ func mapError(err error) (int, string) {
 	case auth.ErrDeviceSessionMismatch:
 		return http.StatusConflict, err.Error()
 	default:
+		log.Printf("httpapi internal error: %v", err)
 		return http.StatusInternalServerError, "INTERNAL_ERROR"
 	}
 }

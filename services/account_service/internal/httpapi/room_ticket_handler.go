@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"qqtang/services/account_service/internal/ticket"
@@ -59,6 +60,7 @@ func mapTicketError(err error) (int, string) {
 	case errors.Is(err, ticket.ErrLoadoutNotOwned):
 		return http.StatusConflict, err.Error()
 	default:
+		log.Printf("httpapi room ticket internal error: %v", err)
 		return http.StatusInternalServerError, "INTERNAL_ERROR"
 	}
 }

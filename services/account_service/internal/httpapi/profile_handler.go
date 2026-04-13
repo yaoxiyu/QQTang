@@ -3,6 +3,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 
 	"qqtang/services/account_service/internal/profile"
@@ -122,6 +123,7 @@ func mapProfileError(err error) (int, string) {
 	case errors.Is(err, profile.ErrLoadoutNotOwned):
 		return http.StatusConflict, err.Error()
 	default:
+		log.Printf("httpapi profile internal error: %v", err)
 		return http.StatusInternalServerError, "INTERNAL_ERROR"
 	}
 }

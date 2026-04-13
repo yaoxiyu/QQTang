@@ -7,8 +7,13 @@ This document defines the Phase19 profile HTTP contract.
 Base path:
 
 ```text
-/v1/profile
+/api/v1/profile
 ```
+
+Compatibility note:
+
+- Current service temporarily keeps legacy `/v1/profile/*` routes for local migration.
+- New callers should use `/api/v1/profile/*`.
 
 Authentication:
 
@@ -31,7 +36,7 @@ Common error response:
 }
 ```
 
-## GET /v1/profile/me
+## GET /api/v1/profile/me
 
 Fetch current authoritative profile and owned assets.
 
@@ -66,7 +71,7 @@ Possible error codes:
 - `PROFILE_NOT_FOUND`
 - `INTERNAL_ERROR`
 
-## PATCH /v1/profile/me
+## PATCH /api/v1/profile/me
 
 Update mutable profile fields.
 
@@ -106,7 +111,7 @@ Possible error codes:
 - `PROFILE_NICKNAME_INVALID`
 - `INTERNAL_ERROR`
 
-## PATCH /v1/profile/me/loadout
+## PATCH /api/v1/profile/me/loadout
 
 Update default loadout.
 

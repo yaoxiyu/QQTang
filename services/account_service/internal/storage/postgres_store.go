@@ -2,30 +2,65 @@ package storage
 
 import (
 	"context"
-	"database/sql"
+	"errors"
+	"log"
+	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/tracelog"
 )
 
+var ErrStoreUnavailable = errors.New("store unavailable")
+
 type PostgresStore struct {
-	DB *sql.DB
+	Pool *pgxpool.Pool
 }
 
-func NewPostgresStore(ctx context.Context, dsn string) (*PostgresStore, error) {
-	db, err := sql.Open("pgx", dsn)
+func NewPostgresStore(ctx context.Context, dsn string, logSQL bool) (*PostgresStore, error) {
+	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		return nil, err
 	}
-	if err := db.PingContext(ctx); err != nil {
-		_ = db.Close()
+
+	cfg.MaxConns = 10
+	cfg.MinConns = 1
+	cfg.MaxConnIdleTime = 5 * time.Minute
+	cfg.HealthCheckPeriod = 30 * time.Second
+	if logSQL {
+		cfg.ConnConfig.Tracer = &tracelog.TraceLog{
+			Logger: tracelog.LoggerFunc(func(ctx context.Context, level tracelog.LogLevel, msg string, data map[string]any) {
+				log.Printf("pgx %s %s %v", level.String(), msg, data)
+			}),
+			LogLevel: tracelog.LogLevelInfo,
+		}
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
 		return nil, err
 	}
-	return &PostgresStore{DB: db}, nil
+
+	pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err := pool.Ping(pingCtx); err != nil {
+		pool.Close()
+		return nil, err
+	}
+
+	return &PostgresStore{Pool: pool}, nil
 }
 
-func (s *PostgresStore) Close() error {
-	if s == nil || s.DB == nil {
-		return nil
+func (s *PostgresStore) Ping(ctx context.Context) error {
+	if s == nil || s.Pool == nil {
+		return ErrStoreUnavailable
 	}
-	return s.DB.Close()
+
+	var value int
+	return s.Pool.QueryRow(ctx, "SELECT 1").Scan(&value)
+}
+
+func (s *PostgresStore) Close() {
+	if s != nil && s.Pool != nil {
+		s.Pool.Close()
+	}
 }
