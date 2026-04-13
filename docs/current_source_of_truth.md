@@ -91,6 +91,8 @@
 - `res://scenes/front/login_scene.tscn`
   - 正式登录前台场景
   - 当前只负责认证信息与服务器连接端点输入
+  - 当前只支持登录，不再在客户端内直接执行注册
+  - `Register` 按钮当前正式语义是打开账号服务提供的浏览器注册页 `/register`
   - 不负责角色 / 角色皮肤 / 泡泡 / 泡泡皮肤选择
   - 角色 / 泡泡及其皮肤属于玩家档案与房间内 loadout 语义, 不属于登录校验语义
 - `res://scenes/front/lobby_scene.tscn`
@@ -539,7 +541,14 @@
   - `/api/v1/auth/*`
   - `/api/v1/profile/me`
   - `/api/v1/tickets/room-entry`
+- 账号注册当前通过 `GET /register` 提供的轻量浏览器页面完成, 页面内部再调用 `/api/v1/auth/register`
 - Dedicated Server 当前只消费 room ticket 签名与 claim，不直接访问账号数据库
+- `room_ticket_secret` 当前是 account service 与 Dedicated Server 之间的服务端共享密钥, 不下发给客户端
+- 新账号默认玩家档案与初始 owned assets 必须与当前内容真相一致：
+  - `char_huoying`
+  - `skin_gold`
+  - `bubble_round`
+  - `bubble_skin_gold`
 - 本地脚本以 `services/account_service/scripts/` 为准：
   - `db-up.ps1`
   - `db-apply-migration.ps1`
