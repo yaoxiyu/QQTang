@@ -26,6 +26,6 @@ else {
     $password = "qqtang_test_pass"
 }
 
-Get-Content -Raw $migrationPath | docker exec -e PGPASSWORD=$password -i $container psql -U $user -d $database
+Get-Content -Raw $migrationPath | docker exec -e PGPASSWORD=$password -i $container psql -v ON_ERROR_STOP=1 -U $user -d $database
 
 Pause

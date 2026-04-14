@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -287,8 +289,8 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 }
 
 func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.QueueEntry, queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
-	const expectedMemberCount = 4
 	const candidateLimit = 32
+	expectedMemberCount := expectedMemberCountFromQueueKey(entry.QueueKey)
 	now := time.Now().UTC()
 	minHeartbeatUnixSec := now.Add(-s.heartbeatTTL).Unix()
 	var queuedEntries []storage.QueueEntry
@@ -370,6 +372,27 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 		}
 	}
 	return nil
+}
+
+func expectedMemberCountFromQueueKey(queueKey string) int {
+	const defaultMemberCount = 4
+	parts := strings.Split(queueKey, ":")
+	if len(parts) < 4 {
+		return defaultMemberCount
+	}
+	formatParts := strings.Split(parts[3], "v")
+	if len(formatParts) != 2 {
+		return defaultMemberCount
+	}
+	left, err := strconv.Atoi(formatParts[0])
+	if err != nil || left <= 0 {
+		return defaultMemberCount
+	}
+	right, err := strconv.Atoi(formatParts[1])
+	if err != nil || right <= 0 {
+		return defaultMemberCount
+	}
+	return left + right
 }
 
 func (s *Service) resolveMapID(preferredMapPoolID string) string {

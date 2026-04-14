@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS matchmaking_queue_entries (
     enqueue_unix_sec         BIGINT NOT NULL,
     last_heartbeat_unix_sec  BIGINT NOT NULL,
     state                    TEXT NOT NULL DEFAULT 'queued',
-    assignment_id            TEXT NOT NULL DEFAULT '',
+    assignment_id            TEXT NULL,
     assignment_revision      INTEGER NOT NULL DEFAULT 0,
     cancel_reason            TEXT NOT NULL DEFAULT '',
     created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),

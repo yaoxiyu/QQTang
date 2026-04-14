@@ -125,7 +125,11 @@ static func _get_valid_bindings(use_matchmaking_variants: bool) -> Array[Diction
 	var bindings: Array[Dictionary] = []
 	for map_id in MapCatalogScript.get_map_ids():
 		var map_metadata := MapCatalogScript.get_map_metadata(map_id)
-		var map_bindings := _build_bindings(map_metadata) if use_matchmaking_variants else [_build_legacy_binding(map_metadata)]
+		var map_bindings: Array[Dictionary] = []
+		if use_matchmaking_variants:
+			map_bindings = _build_bindings(map_metadata)
+		else:
+			map_bindings.append(_build_legacy_binding(map_metadata))
 		for binding in map_bindings:
 			if binding.is_empty():
 				continue
@@ -271,7 +275,9 @@ static func _sort_mode_entries(values: Array) -> Array[Dictionary]:
 
 
 static func _sort_map_entries(values: Array[Dictionary]) -> Array[Dictionary]:
-	var entries := values.duplicate(true)
+	var entries: Array[Dictionary] = []
+	for value in values:
+		entries.append(value.duplicate(true))
 	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		var a_sort := int(a.get("sort_order", 0))
 		var b_sort := int(b.get("sort_order", 0))

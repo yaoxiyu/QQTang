@@ -525,6 +525,63 @@ func TestEnterQueueFormsAssignmentWhenFourthMemberArrives(t *testing.T) {
 	}
 }
 
+func TestEnterQueueFormsOneVOneAssignmentWhenSecondMemberArrives(t *testing.T) {
+	db := newFakeQueueDB()
+	queueKey := BuildQueueKey("casual", "1v1", "mode_classic", "rule_standard")
+	now := time.Now().UTC()
+	seed := storage.QueueEntry{
+		QueueEntryID:         "queue_seed_a",
+		QueueType:            "casual",
+		QueueKey:             queueKey,
+		SeasonID:             "season_s1",
+		AccountID:            "account_seed_a",
+		ProfileID:            "profile_seed_a",
+		DeviceSessionID:      "device_seed",
+		ModeID:               "mode_classic",
+		RuleSetID:            "rule_standard",
+		PreferredMapPoolID:   "map_classic_square",
+		RatingSnapshot:       1000,
+		EnqueueUnixSec:       now.Unix(),
+		LastHeartbeatUnixSec: now.Unix(),
+		State:                "queued",
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+	db.entriesByID[seed.QueueEntryID] = seed
+	db.entriesByProfile[seed.ProfileID] = seed
+	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+
+	status, err := service.EnterQueue(context.Background(), EnterQueueInput{
+		AccountID:          "account_2",
+		ProfileID:          "profile_2",
+		DeviceSessionID:    "device_2",
+		QueueType:          "casual",
+		MatchFormatID:      "1v1",
+		ModeID:             "mode_classic",
+		RuleSetID:          "rule_standard",
+		PreferredMapPoolID: "map_classic_square",
+	})
+	if err != nil {
+		t.Fatalf("EnterQueue returned error: %v", err)
+	}
+	if status.QueueState != "assigned" {
+		t.Fatalf("expected assigned status for second 1v1 member, got %s", status.QueueState)
+	}
+	if len(db.assignmentsByID) != 1 {
+		t.Fatalf("expected one assignment, got %d", len(db.assignmentsByID))
+	}
+	var assignment storage.Assignment
+	for _, record := range db.assignmentsByID {
+		assignment = record
+	}
+	if assignment.ExpectedMemberCount != 2 {
+		t.Fatalf("expected 1v1 assignment member count 2, got %d", assignment.ExpectedMemberCount)
+	}
+	if len(db.membersByKey) != 2 {
+		t.Fatalf("expected two assignment members, got %d", len(db.membersByKey))
+	}
+}
+
 func TestEnterQueuePostgresFormsSingleAssignment(t *testing.T) {
 	pool := openQueueTestPool(t)
 	if pool == nil {

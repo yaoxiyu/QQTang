@@ -56,9 +56,31 @@ function Apply-Migration {
     if (-not (Test-Path -LiteralPath $MigrationPath)) {
         throw "Migration file not found: $MigrationPath"
     }
-    Get-Content -LiteralPath $MigrationPath -Raw | docker exec -e PGPASSWORD=$Password -i $Container psql -U $User -d $Database
+    Get-Content -LiteralPath $MigrationPath -Raw | docker exec -e PGPASSWORD=$Password -i $Container psql -v ON_ERROR_STOP=1 -U $User -d $Database
     if ($LASTEXITCODE -ne 0) {
         throw "Migration failed: $MigrationPath"
+    }
+}
+
+function Apply-MigrationsInDirectory {
+    param(
+        [string]$MigrationDir,
+        [string]$Container,
+        [string]$User,
+        [string]$Password,
+        [string]$Database
+    )
+
+    if (-not (Test-Path -LiteralPath $MigrationDir)) {
+        throw "Migration directory not found: $MigrationDir"
+    }
+    Get-ChildItem -LiteralPath $MigrationDir -Filter "*.sql" | Sort-Object Name | ForEach-Object {
+        Apply-Migration `
+            -MigrationPath $_.FullName `
+            -Container $Container `
+            -User $User `
+            -Password $Password `
+            -Database $Database
     }
 }
 
@@ -118,8 +140,8 @@ if (-not $SkipMigration) {
         -Password "qqtang_dev_pass" `
         -Database "qqtang_account_dev"
 
-    Apply-Migration `
-        -MigrationPath (Join-Path $gameRoot "migrations\0001_phase20_matchmaking_and_progression_init.sql") `
+    Apply-MigrationsInDirectory `
+        -MigrationDir (Join-Path $gameRoot "migrations") `
         -Container "qqtang_game_pg" `
         -User "qqtang_game" `
         -Password "qqtang_game_dev_pass" `

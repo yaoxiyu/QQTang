@@ -551,6 +551,10 @@ func _on_enter_queue_pressed() -> void:
 	if _app_runtime == null or _app_runtime.matchmaking_use_case == null or _app_runtime.lobby_use_case == null:
 		_set_message("Matchmaking flow is not available.")
 		return
+	_log_online_lobby("enter_queue_blocked_room_required", _build_online_debug_context())
+	_set_message("Create or join a room first, ready the room, then enter matchmaking from the room.")
+	_set_directory_status("Create or join a room first.")
+	return
 	_queue_assignment_consuming = false
 	_save_matchmaking_settings()
 	var selected_map_ids := _selected_item_list_metadata(queue_map_multi_select)
@@ -684,6 +688,10 @@ func _poll_queue_status() -> void:
 		"assigned_mode_id": String(assignment_state.mode_id),
 		"assigned_team_id": int(assignment_state.assigned_team_id),
 	})
+	_log_online_lobby("assignment_room_entry_blocked_room_first_flow", _build_online_debug_context())
+	_set_message("Match found, but room-first battle handoff is not wired yet.")
+	_refresh_matchmaking_panel(view_state)
+	return
 	_queue_assignment_consuming = true
 	var entry_result: Dictionary = _app_runtime.lobby_use_case.build_matchmade_entry_context()
 	if not bool(entry_result.get("ok", false)):
