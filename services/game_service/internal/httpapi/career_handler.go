@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"qqtang/services/game_service/internal/career"
+	"qqtang/services/game_service/internal/platform/httpx"
 )
 
 type CareerHandler struct {
@@ -19,10 +20,10 @@ func (h *CareerHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.service.GetSummary(r.Context(), claims.AccountID, claims.ProfileID)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                     true,
 		"profile_id":             summary.ProfileID,
 		"account_id":             summary.AccountID,

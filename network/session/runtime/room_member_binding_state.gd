@@ -1,8 +1,11 @@
 class_name RoomMemberBindingState
 extends RefCounted
 
+const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
+
 var member_id: String = ""
 var reconnect_token: String = ""
+var reconnect_token_hash: String = ""
 var account_id: String = ""
 var profile_id: String = ""
 var device_session_id: String = ""
@@ -32,7 +35,7 @@ var last_match_id: String = ""
 func to_dict() -> Dictionary:
 	return {
 		"member_id": member_id,
-		"reconnect_token": reconnect_token,
+		"reconnect_token_hash": reconnect_token_hash,
 		"account_id": account_id,
 		"profile_id": profile_id,
 		"device_session_id": device_session_id,
@@ -60,6 +63,10 @@ static func from_dict(data: Dictionary) -> RoomMemberBindingState:
 	var state := RoomMemberBindingState.new()
 	state.member_id = String(data.get("member_id", ""))
 	state.reconnect_token = String(data.get("reconnect_token", ""))
+	state.reconnect_token_hash = String(data.get("reconnect_token_hash", ""))
+	if state.reconnect_token_hash.is_empty() and not state.reconnect_token.strip_edges().is_empty():
+		state.reconnect_token_hash = ResumeTokenUtilsScript.hash_resume_token(state.reconnect_token)
+	state.clear_reconnect_token_plaintext()
 	state.account_id = String(data.get("account_id", ""))
 	state.profile_id = String(data.get("profile_id", ""))
 	state.device_session_id = String(data.get("device_session_id", ""))
@@ -82,3 +89,19 @@ static func from_dict(data: Dictionary) -> RoomMemberBindingState:
 	state.last_room_id = String(data.get("last_room_id", ""))
 	state.last_match_id = String(data.get("last_match_id", ""))
 	return state
+
+
+func set_reconnect_token_plaintext(token: String) -> void:
+	reconnect_token = token.strip_edges()
+	reconnect_token_hash = ResumeTokenUtilsScript.hash_resume_token(reconnect_token)
+
+
+func clear_reconnect_token_plaintext() -> void:
+	reconnect_token = ""
+
+
+func is_reconnect_token_valid(token: String) -> bool:
+	var normalized := token.strip_edges()
+	if normalized.is_empty() or reconnect_token_hash.is_empty():
+		return false
+	return ResumeTokenUtilsScript.hash_resume_token(normalized) == reconnect_token_hash

@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"qqtang/services/account_service/internal/internalhttp"
 )
 
 var (
@@ -38,15 +40,17 @@ type AssignmentGrantResult struct {
 }
 
 type AssignmentGrantClient struct {
-	baseURL        string
-	internalSecret string
-	httpClient     *http.Client
+	baseURL      string
+	keyID        string
+	sharedSecret string
+	httpClient   *http.Client
 }
 
-func NewAssignmentGrantClient(baseURL string, internalSecret string) *AssignmentGrantClient {
+func NewAssignmentGrantClient(baseURL string, keyID string, sharedSecret string) *AssignmentGrantClient {
 	return &AssignmentGrantClient{
-		baseURL:        strings.TrimRight(strings.TrimSpace(baseURL), "/"),
-		internalSecret: internalSecret,
+		baseURL:      strings.TrimRight(strings.TrimSpace(baseURL), "/"),
+		keyID:        keyID,
+		sharedSecret: sharedSecret,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -69,7 +73,9 @@ func (c *AssignmentGrantClient) GetGrant(ctx context.Context, assignmentID strin
 	if err != nil {
 		return AssignmentGrantResult{}, fmt.Errorf("%w: %v", ErrAssignmentGrantFailed, err)
 	}
-	req.Header.Set("X-Internal-Secret", c.internalSecret)
+	if err := internalhttp.SignRequest(req, c.keyID, c.sharedSecret, nil, time.Now()); err != nil {
+		return AssignmentGrantResult{}, fmt.Errorf("%w: %v", ErrAssignmentGrantFailed, err)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

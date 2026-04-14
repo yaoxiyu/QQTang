@@ -1,11 +1,11 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
+	"qqtang/services/account_service/internal/platform/httpx"
 	"qqtang/services/account_service/internal/ticket"
 )
 
@@ -20,8 +20,8 @@ func NewRoomTicketHandler(ticketService *ticket.Service) *RoomTicketHandler {
 func (h *RoomTicketHandler) Create(w http.ResponseWriter, r *http.Request) {
 	authResult := getAuthResult(r.Context())
 	var request ticket.CreateTicketInput
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	request.AccountID = authResult.AccountID
@@ -29,10 +29,10 @@ func (h *RoomTicketHandler) Create(w http.ResponseWriter, r *http.Request) {
 	result, err := h.ticketService.CreateTicket(r.Context(), request)
 	if err != nil {
 		status, code := mapTicketError(err)
-		writeError(w, status, code, code)
+		httpx.WriteError(w, status, code, code)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                         true,
 		"ticket":                     result.Ticket,
 		"ticket_id":                  result.TicketID,

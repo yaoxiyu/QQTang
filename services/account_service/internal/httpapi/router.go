@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"qqtang/services/account_service/internal/auth"
+	"qqtang/services/account_service/internal/platform/httpx"
 )
 
 type RouterDeps struct {
@@ -37,18 +38,18 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux.Handle("POST /v1/room-tickets", withAuth(deps.AuthService, http.HandlerFunc(deps.RoomTicketHandler.Create)))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		if deps.ReadinessCheck == nil {
-			writeError(w, http.StatusServiceUnavailable, "READINESS_CHECK_MISSING", "Readiness check is not configured")
+			httpx.WriteError(w, http.StatusServiceUnavailable, "READINESS_CHECK_MISSING", "Readiness check is not configured")
 			return
 		}
 		if err := deps.ReadinessCheck(r.Context()); err != nil {
-			writeError(w, http.StatusServiceUnavailable, "DB_NOT_READY", "Database is not ready")
+			httpx.WriteError(w, http.StatusServiceUnavailable, "DB_NOT_READY", "Database is not ready")
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
 
 	return mux

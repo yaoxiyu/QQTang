@@ -37,6 +37,7 @@ type AuthService struct {
 	hasher          *PasswordHasher
 	tokenIssuer     *TokenIssuer
 	sessionService  *SessionService
+	securityHooks   LoginSecurityHooks
 	accessTokenTTL  time.Duration
 	refreshTokenTTL time.Duration
 }
@@ -52,6 +53,9 @@ type LoginInput struct {
 	Account        string
 	Password       string
 	ClientPlatform string
+	RemoteAddr     string
+	UserAgent      string
+	CaptchaToken   string
 }
 
 type RefreshInput struct {
@@ -78,8 +82,18 @@ type AuthResult struct {
 	SessionState           string `json:"session_state"`
 }
 
-func NewAuthService(pool *pgxpool.Pool, accountRepo *storage.AccountRepository, profileRepo *storage.ProfileRepository, sessionRepo *storage.SessionRepository, hasher *PasswordHasher, tokenIssuer *TokenIssuer, sessionService *SessionService, accessTokenTTL time.Duration, refreshTokenTTL time.Duration) *AuthService {
-	return &AuthService{
+type AuthServiceOption func(*AuthService)
+
+func WithLoginSecurityHooks(hooks LoginSecurityHooks) AuthServiceOption {
+	return func(s *AuthService) {
+		if hooks != nil {
+			s.securityHooks = hooks
+		}
+	}
+}
+
+func NewAuthService(pool *pgxpool.Pool, accountRepo *storage.AccountRepository, profileRepo *storage.ProfileRepository, sessionRepo *storage.SessionRepository, hasher *PasswordHasher, tokenIssuer *TokenIssuer, sessionService *SessionService, accessTokenTTL time.Duration, refreshTokenTTL time.Duration, opts ...AuthServiceOption) *AuthService {
+	service := &AuthService{
 		pool:            pool,
 		accountRepo:     accountRepo,
 		profileRepo:     profileRepo,
@@ -87,9 +101,14 @@ func NewAuthService(pool *pgxpool.Pool, accountRepo *storage.AccountRepository, 
 		hasher:          hasher,
 		tokenIssuer:     tokenIssuer,
 		sessionService:  sessionService,
+		securityHooks:   NewNoopLoginSecurityHooks(),
 		accessTokenTTL:  accessTokenTTL,
 		refreshTokenTTL: refreshTokenTTL,
 	}
+	for _, opt := range opts {
+		opt(service)
+	}
+	return service
 }
 
 func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthResult, error) {
@@ -188,20 +207,37 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, error) {
-	account, err := s.accountRepo.FindByLoginName(ctx, strings.TrimSpace(input.Account))
+	now := time.Now().UTC()
+	loginName := strings.TrimSpace(input.Account)
+	if err := s.securityHooks.CheckLoginAllowed(ctx, LoginSecurityDecisionInput{
+		Account:        loginName,
+		ClientPlatform: input.ClientPlatform,
+		RemoteAddr:     input.RemoteAddr,
+		UserAgent:      input.UserAgent,
+		CaptchaToken:   input.CaptchaToken,
+		AttemptedAt:    now,
+	}); err != nil {
+		return AuthResult{}, err
+	}
+
+	account, err := s.accountRepo.FindByLoginName(ctx, loginName)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
+			_ = s.recordLoginAttempt(ctx, input, loginName, "", now, false, ErrInvalidCredentials)
 			return AuthResult{}, ErrInvalidCredentials
 		}
 		return AuthResult{}, err
 	}
 	if !s.hasher.VerifyPassword(strings.TrimSpace(input.Password), account.PasswordHash, account.PasswordAlgo) {
+		_ = s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, false, ErrInvalidCredentials)
 		return AuthResult{}, ErrInvalidCredentials
 	}
 	switch account.Status {
 	case "disabled":
+		_ = s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, false, ErrAccountDisabled)
 		return AuthResult{}, ErrAccountDisabled
 	case "banned":
+		_ = s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, false, ErrAccountBanned)
 		return AuthResult{}, ErrAccountBanned
 	}
 
@@ -210,7 +246,6 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, 
 		return AuthResult{}, err
 	}
 
-	now := time.Now().UTC()
 	var result AuthResult
 	err = s.runInTx(ctx, func(tx pgx.Tx) error {
 		accountRepo := storage.NewAccountRepository(tx)
@@ -234,8 +269,24 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, 
 	if err != nil {
 		return AuthResult{}, err
 	}
+	if err := s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, true, nil); err != nil {
+		return AuthResult{}, err
+	}
 
 	return result, nil
+}
+
+func (s *AuthService) recordLoginAttempt(ctx context.Context, input LoginInput, loginName string, accountID string, attemptedAt time.Time, succeeded bool, cause error) error {
+	return s.securityHooks.RecordLoginAttempt(ctx, LoginSecurityRecordInput{
+		Account:        loginName,
+		AccountID:      accountID,
+		ClientPlatform: input.ClientPlatform,
+		RemoteAddr:     input.RemoteAddr,
+		UserAgent:      input.UserAgent,
+		AttemptedAt:    attemptedAt,
+		Succeeded:      succeeded,
+		FailureReason:  failureReason(cause),
+	})
 }
 
 func (s *AuthService) Refresh(ctx context.Context, input RefreshInput) (AuthResult, error) {

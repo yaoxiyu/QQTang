@@ -1,11 +1,11 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
 
+	"qqtang/services/account_service/internal/platform/httpx"
 	"qqtang/services/account_service/internal/profile"
 )
 
@@ -22,10 +22,10 @@ func (h *ProfileHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 	result, err := h.profileService.GetMyProfile(r.Context(), authResult.AccountID)
 	if err != nil {
 		status, code := mapProfileError(err)
-		writeError(w, status, code, code)
+		httpx.WriteError(w, status, code, code)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                        true,
 		"profile_id":                result.ProfileID,
 		"account_id":                result.AccountID,
@@ -54,8 +54,8 @@ func (h *ProfileHandler) PatchMe(w http.ResponseWriter, r *http.Request) {
 		PreferredMapID     *string `json:"preferred_map_id"`
 		PreferredRuleSetID *string `json:"preferred_rule_set_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	result, err := h.profileService.UpdateMyProfile(r.Context(), profile.UpdateProfileInput{
@@ -67,10 +67,10 @@ func (h *ProfileHandler) PatchMe(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		status, code := mapProfileError(err)
-		writeError(w, status, code, code)
+		httpx.WriteError(w, status, code, code)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                   true,
 		"profile_id":           result.ProfileID,
 		"profile_version":      result.ProfileVersion,
@@ -86,8 +86,8 @@ func (h *ProfileHandler) PatchLoadout(w http.ResponseWriter, r *http.Request) {
 		DefaultBubbleStyleID   string `json:"default_bubble_style_id"`
 		DefaultBubbleSkinID    string `json:"default_bubble_skin_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	result, err := h.profileService.UpdateMyLoadout(r.Context(), profile.UpdateLoadoutInput{
@@ -99,10 +99,10 @@ func (h *ProfileHandler) PatchLoadout(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		status, code := mapProfileError(err)
-		writeError(w, status, code, code)
+		httpx.WriteError(w, status, code, code)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                        true,
 		"profile_id":                result.ProfileID,
 		"default_character_id":      result.DefaultCharacterID,

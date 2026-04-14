@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"qqtang/services/game_service/internal/assignment"
 	"qqtang/services/game_service/internal/auth"
 	"qqtang/services/game_service/internal/finalize"
+	"qqtang/services/game_service/internal/platform/httpx"
 	"qqtang/services/game_service/internal/queue"
 )
 
@@ -17,31 +17,17 @@ type contextKey string
 
 const authContextKey contextKey = "auth_claims"
 
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func writeError(w http.ResponseWriter, status int, code string, message string) {
-	writeJSON(w, status, map[string]any{
-		"ok":         false,
-		"error_code": code,
-		"message":    message,
-	})
-}
-
 func withAuth(jwtAuth *auth.JWTAuth, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
-			writeError(w, http.StatusUnauthorized, "AUTH_ACCESS_TOKEN_INVALID", "Missing access token")
+			httpx.WriteError(w, http.StatusUnauthorized, "AUTH_ACCESS_TOKEN_INVALID", "Missing access token")
 			return
 		}
 		claims, err := jwtAuth.ValidateAccessToken(r.Context(), strings.TrimPrefix(header, "Bearer "))
 		if err != nil {
 			status, code := mapError(err)
-			writeError(w, status, code, code)
+			httpx.WriteError(w, status, code, code)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authContextKey, claims)))
@@ -51,7 +37,7 @@ func withAuth(jwtAuth *auth.JWTAuth, next http.Handler) http.Handler {
 func withInternalAuth(internalAuth *auth.InternalAuth, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := internalAuth.ValidateRequest(r); err != nil {
-			writeError(w, http.StatusUnauthorized, "INTERNAL_AUTH_INVALID", "Internal auth failed")
+			httpx.WriteError(w, http.StatusUnauthorized, "INTERNAL_AUTH_INVALID", "Internal auth failed")
 			return
 		}
 		next.ServeHTTP(w, r)

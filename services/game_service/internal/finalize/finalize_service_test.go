@@ -13,6 +13,7 @@ import (
 
 	"qqtang/services/game_service/internal/rating"
 	"qqtang/services/game_service/internal/reward"
+	"qqtang/services/game_service/internal/storage"
 )
 
 func TestFinalizeIdempotenceAndCareerRefresh(t *testing.T) {
@@ -56,7 +57,7 @@ func TestFinalizeIdempotenceAndCareerRefresh(t *testing.T) {
 	if summary.ServerSyncState != "committed" {
 		t.Fatalf("expected committed summary, got %s", summary.ServerSyncState)
 	}
-	if got := int(summary.CareerSummary["career_total_matches"].(int32)); got != 1 {
+	if got := summaryInt(summary.CareerSummary["career_total_matches"]); got != 1 {
 		t.Fatalf("expected career total matches 1, got %d", got)
 	}
 }
@@ -80,6 +81,110 @@ func TestFinalizeHashMismatch(t *testing.T) {
 	}
 }
 
+func TestFinalizeDataIntegrityConstraints(t *testing.T) {
+	pool := openFinalizeTestPool(t)
+	if pool == nil {
+		return
+	}
+	ctx := context.Background()
+	resetFinalizeSchema(t, ctx, pool)
+	seedFinalizeAssignment(t, ctx, pool, "assign_constraints", "match_constraints")
+
+	finalizeRepo := storage.NewFinalizeRepository(pool)
+	finishedAt := time.Now().UTC()
+	if err := finalizeRepo.InsertMatchResult(ctx, storage.MatchResultRecord{
+		MatchID:           "match_constraints",
+		AssignmentID:      "assign_constraints",
+		RoomID:            "room_alpha",
+		RoomKind:          "matchmade_room",
+		SeasonID:          "season_s1",
+		ModeID:            "mode_ranked",
+		RuleSetID:         "rule_standard",
+		MapID:             "map_arcade",
+		FinishReason:      "last_survivor",
+		ScorePolicy:       "team_score",
+		WinnerTeamIDsJSON: "[]",
+		WinnerPeerIDsJSON: "[]",
+		FinishedAt:        finishedAt,
+		ResultHash:        "sha256:constraints",
+		FinalizeRevision:  1,
+	}); err != nil {
+		t.Fatalf("insert baseline match result: %v", err)
+	}
+
+	err := finalizeRepo.InsertMatchResult(ctx, storage.MatchResultRecord{
+		MatchID:           "match_constraints_second",
+		AssignmentID:      "assign_constraints",
+		RoomID:            "room_alpha",
+		RoomKind:          "matchmade_room",
+		SeasonID:          "season_s1",
+		ModeID:            "mode_ranked",
+		RuleSetID:         "rule_standard",
+		MapID:             "map_arcade",
+		FinishReason:      "last_survivor",
+		ScorePolicy:       "team_score",
+		WinnerTeamIDsJSON: "[]",
+		WinnerPeerIDsJSON: "[]",
+		FinishedAt:        finishedAt,
+		ResultHash:        "sha256:constraints-second",
+		FinalizeRevision:  1,
+	})
+	if !storage.IsConstraintViolation(err, "uq_match_results_assignment") {
+		t.Fatalf("expected assignment finalize uniqueness violation, got %v", err)
+	}
+
+	err = finalizeRepo.InsertPlayerMatchResult(ctx, storage.PlayerMatchResultRecord{
+		MatchID:      "match_constraints",
+		AccountID:    "account_a",
+		ProfileID:    "profile_a",
+		TeamID:       1,
+		PeerID:       1,
+		Outcome:      "cheated",
+		RatingBefore: 1000,
+		RatingDelta:  0,
+		RatingAfter:  1000,
+	})
+	if !storage.IsConstraintViolation(err, "chk_player_match_results_outcome") {
+		t.Fatalf("expected player outcome check violation, got %v", err)
+	}
+
+	rewardRepo := storage.NewRewardRepository(pool)
+	entry := storage.RewardLedgerEntry{
+		LedgerID:   "ledger_constraints_a",
+		AccountID:  "account_a",
+		ProfileID:  "profile_a",
+		MatchID:    "match_constraints",
+		RewardType: "soft_gold",
+		Delta:      10,
+		SourceType: "match_finalize",
+		ExtraJSON:  "{}",
+		IssuedAt:   finishedAt,
+	}
+	if err := rewardRepo.Insert(ctx, entry); err != nil {
+		t.Fatalf("insert baseline reward ledger: %v", err)
+	}
+	entry.LedgerID = "ledger_constraints_b"
+	err = rewardRepo.Insert(ctx, entry)
+	if !storage.IsConstraintViolation(err, "uq_reward_ledger_entries_match_account_type_source") {
+		t.Fatalf("expected reward ledger uniqueness violation, got %v", err)
+	}
+
+	ratingRepo := storage.NewRatingRepository(pool)
+	err = ratingRepo.UpsertSnapshot(ctx, storage.SeasonRatingSnapshot{
+		SeasonID:      "season_s1",
+		AccountID:     "account_a",
+		ProfileID:     "profile_a",
+		Rating:        1000,
+		RankTier:      "mythic",
+		MatchesPlayed: 1,
+		Wins:          1,
+		LastMatchID:   "match_constraints",
+	})
+	if !storage.IsConstraintViolation(err, "chk_season_rating_snapshots_rank_tier") {
+		t.Fatalf("expected rating rank tier check violation, got %v", err)
+	}
+}
+
 func openFinalizeTestPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	dsn := strings.TrimSpace(os.Getenv("GAME_TEST_POSTGRES_DSN"))
@@ -90,21 +195,63 @@ func openFinalizeTestPool(t *testing.T) *pgxpool.Pool {
 	if err != nil {
 		t.Fatalf("open pgx pool: %v", err)
 	}
+	t.Cleanup(func() { pool.Close() })
+	lockGameTestDatabase(t, pool)
 	if err := applyFinalizeMigration(context.Background(), pool); err != nil {
 		t.Fatalf("apply migration: %v", err)
 	}
-	t.Cleanup(func() { pool.Close() })
 	return pool
 }
 
+func lockGameTestDatabase(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	ctx := context.Background()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatalf("acquire db lock connection: %v", err)
+	}
+	deadline := time.Now().Add(2 * time.Minute)
+	for {
+		var locked bool
+		if err := conn.QueryRow(ctx, `SELECT pg_try_advisory_lock(240031013)`).Scan(&locked); err != nil {
+			conn.Release()
+			t.Fatalf("acquire db advisory lock: %v", err)
+		}
+		if locked {
+			break
+		}
+		if time.Now().After(deadline) {
+			conn.Release()
+			t.Fatal("timed out waiting for db advisory lock")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Cleanup(func() {
+		_, _ = conn.Exec(context.Background(), `SELECT pg_advisory_unlock(240031013)`)
+		conn.Release()
+	})
+}
+
 func applyFinalizeMigration(ctx context.Context, pool *pgxpool.Pool) error {
-	migrationPath := filepath.Join("..", "..", "migrations", "0001_phase20_matchmaking_and_progression_init.sql")
-	sqlBytes, err := os.ReadFile(migrationPath)
+	migrationDir := filepath.Join("..", "..", "migrations")
+	entries, err := os.ReadDir(migrationDir)
 	if err != nil {
 		return err
 	}
-	_, err = pool.Exec(ctx, string(sqlBytes))
-	return err
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+		migrationPath := filepath.Join(migrationDir, entry.Name())
+		sqlBytes, err := os.ReadFile(migrationPath)
+		if err != nil {
+			return err
+		}
+		if _, err := pool.Exec(ctx, string(sqlBytes)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resetFinalizeSchema(t *testing.T, ctx context.Context, pool *pgxpool.Pool) {
@@ -118,6 +265,7 @@ func resetFinalizeSchema(t *testing.T, ctx context.Context, pool *pgxpool.Pool) 
 			season_rating_snapshots,
 			matchmaking_assignment_members,
 			matchmaking_assignments
+		CASCADE
 	`)
 	if err != nil {
 		t.Fatalf("reset schema: %v", err)
@@ -176,5 +324,18 @@ func buildFinalizeInput(assignmentID string, matchID string, resultHash string) 
 			{AccountID: "account_a", ProfileID: "profile_a", TeamID: 1, PeerID: 1, Outcome: "win", PlayerScore: 5, TeamScore: 10, Placement: 1},
 			{AccountID: "account_b", ProfileID: "profile_b", TeamID: 2, PeerID: 2, Outcome: "loss", PlayerScore: 1, TeamScore: 4, Placement: 2},
 		},
+	}
+}
+
+func summaryInt(value any) int {
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int32:
+		return int(typed)
+	case int64:
+		return int(typed)
+	default:
+		return 0
 	}
 }

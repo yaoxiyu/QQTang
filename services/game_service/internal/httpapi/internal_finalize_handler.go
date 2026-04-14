@@ -1,10 +1,10 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"qqtang/services/game_service/internal/finalize"
+	"qqtang/services/game_service/internal/platform/httpx"
 )
 
 type InternalFinalizeHandler struct {
@@ -17,17 +17,17 @@ func NewInternalFinalizeHandler(service *finalize.Service) *InternalFinalizeHand
 
 func (h *InternalFinalizeHandler) Finalize(w http.ResponseWriter, r *http.Request) {
 	var input finalize.FinalizeInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		writeError(w, http.StatusBadRequest, "REQUEST_INVALID_JSON", "Invalid JSON")
+	if err := httpx.DecodeJSONBody(w, r, &input); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	result, err := h.service.Finalize(r.Context(), input)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                 true,
 		"finalize_state":     result.FinalizeState,
 		"match_id":           result.MatchID,

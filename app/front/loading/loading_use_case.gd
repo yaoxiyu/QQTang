@@ -112,7 +112,7 @@ func build_view_state() -> LoadingViewState:
 			state.status_message = "Waiting for players..."
 	else:
 		state.loading_phase_text = "initializing"
-		state.status_message = "Preparing runtime..."
+		state.status_message = "Missing BattleStartConfig. Preparing runtime..."
 
 	return state
 

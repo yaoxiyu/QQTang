@@ -3,7 +3,8 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
+
+	"qqtang/services/account_service/internal/platform/configx"
 )
 
 type Config struct {
@@ -15,43 +16,51 @@ type Config struct {
 	TokenSignSecret          string
 	RoomTicketSignSecret     string
 	GameServiceBaseURL       string
+	GameInternalAuthKeyID    string
 	GameInternalSharedSecret string
+	GameInternalMaxSkewSec   int
 	AllowMultiDevice         bool
 	LogSQL                   bool
 }
 
 func LoadFromEnv() (*Config, error) {
-	accessTokenTTLSeconds, err := getRequiredPositiveInt("ACCOUNT_ACCESS_TOKEN_TTL_SECONDS", 900)
+	accessTokenTTLSeconds, err := configx.RequiredPositiveInt("ACCOUNT_ACCESS_TOKEN_TTL_SECONDS", 900)
 	if err != nil {
 		return nil, err
 	}
-	refreshTokenTTLSeconds, err := getRequiredPositiveInt("ACCOUNT_REFRESH_TOKEN_TTL_SECONDS", 14*24*60*60)
+	refreshTokenTTLSeconds, err := configx.RequiredPositiveInt("ACCOUNT_REFRESH_TOKEN_TTL_SECONDS", 14*24*60*60)
 	if err != nil {
 		return nil, err
 	}
-	roomTicketTTLSeconds, err := getRequiredPositiveInt("ACCOUNT_ROOM_TICKET_TTL_SECONDS", 60)
+	roomTicketTTLSeconds, err := configx.RequiredPositiveInt("ACCOUNT_ROOM_TICKET_TTL_SECONDS", 60)
 	if err != nil {
 		return nil, err
 	}
-	allowMultiDevice, err := getBool("ACCOUNT_ALLOW_MULTI_DEVICE", false)
+	allowMultiDevice, err := configx.Bool("ACCOUNT_ALLOW_MULTI_DEVICE", false)
 	if err != nil {
 		return nil, err
 	}
-	logSQL, err := getBool("ACCOUNT_LOG_SQL", false)
+	logSQL, err := configx.Bool("ACCOUNT_LOG_SQL", false)
+	if err != nil {
+		return nil, err
+	}
+	gameInternalMaxSkewSec, err := configx.RequiredPositiveInt("ACCOUNT_GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS", 60)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg := &Config{
-		HTTPListenAddr:           getEnv("ACCOUNT_HTTP_LISTEN_ADDR", "127.0.0.1:18080"),
+		HTTPListenAddr:           configx.Env("ACCOUNT_HTTP_LISTEN_ADDR", "127.0.0.1:18080"),
 		PostgresDSN:              os.Getenv("ACCOUNT_POSTGRES_DSN"),
 		AccessTokenTTLSeconds:    accessTokenTTLSeconds,
 		RefreshTokenTTLSeconds:   refreshTokenTTLSeconds,
 		RoomTicketTTLSeconds:     roomTicketTTLSeconds,
 		TokenSignSecret:          os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
 		RoomTicketSignSecret:     os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
-		GameServiceBaseURL:       getEnv("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),
-		GameInternalSharedSecret: os.Getenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET"),
+		GameServiceBaseURL:       configx.Env("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),
+		GameInternalAuthKeyID:    configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "primary"),
+		GameInternalSharedSecret: configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", os.Getenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET")),
+		GameInternalMaxSkewSec:   gameInternalMaxSkewSec,
 		AllowMultiDevice:         allowMultiDevice,
 		LogSQL:                   logSQL,
 	}
@@ -72,44 +81,8 @@ func LoadFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("ACCOUNT_GAME_SERVICE_BASE_URL is required")
 	}
 	if cfg.GameInternalSharedSecret == "" {
-		return nil, fmt.Errorf("ACCOUNT_GAME_INTERNAL_SHARED_SECRET is required")
+		return nil, fmt.Errorf("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET is required")
 	}
 
 	return cfg, nil
-}
-
-func getEnv(key string, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
-}
-
-func getRequiredPositiveInt(key string, fallback int) (int, error) {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback, nil
-	}
-
-	parsed, err := strconv.Atoi(value)
-	if err != nil {
-		return 0, fmt.Errorf("%s must be a valid integer: %w", key, err)
-	}
-	if parsed <= 0 {
-		return 0, fmt.Errorf("%s must be > 0", key)
-	}
-	return parsed, nil
-}
-
-func getBool(key string, fallback bool) (bool, error) {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback, nil
-	}
-
-	parsed, err := strconv.ParseBool(value)
-	if err != nil {
-		return false, fmt.Errorf("%s must be a valid boolean: %w", key, err)
-	}
-	return parsed, nil
 }

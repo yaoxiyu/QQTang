@@ -1,4 +1,6 @@
-﻿# Scene Contract
+# Scene Contract
+
+> Archival note: this document is a historical source document. Its still-valid contract content has been merged into `docs/current_source_of_truth.md`; do not treat this archived file as current truth.
 
 本文件记录当前正式前台与战斗入口使用的场景路径、关键节点名与脚本挂载约定。
 

@@ -13,7 +13,9 @@ func TestLoadFromEnvSuccess(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "30")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
-	t.Setenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET", "internal-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "test-key")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", "internal-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS", "45")
 	t.Setenv("ACCOUNT_ALLOW_MULTI_DEVICE", "true")
 	t.Setenv("ACCOUNT_LOG_SQL", "true")
 
@@ -33,6 +35,9 @@ func TestLoadFromEnvSuccess(t *testing.T) {
 	}
 	if !cfg.AllowMultiDevice || !cfg.LogSQL {
 		t.Fatalf("expected bool flags to be true: %+v", cfg)
+	}
+	if cfg.GameInternalAuthKeyID != "test-key" || cfg.GameInternalSharedSecret != "internal-secret" || cfg.GameInternalMaxSkewSec != 45 {
+		t.Fatalf("unexpected internal auth config: %+v", cfg)
 	}
 }
 
@@ -76,7 +81,9 @@ func setMinimumValidEnv(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "60")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
-	t.Setenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET", "internal-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", "internal-secret")
+	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS", "60")
 	t.Setenv("ACCOUNT_ALLOW_MULTI_DEVICE", "false")
 	t.Setenv("ACCOUNT_LOG_SQL", "false")
 }

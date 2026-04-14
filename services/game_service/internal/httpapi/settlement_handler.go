@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"qqtang/services/game_service/internal/finalize"
+	"qqtang/services/game_service/internal/platform/httpx"
 )
 
 type SettlementHandler struct {
@@ -21,10 +22,10 @@ func (h *SettlementHandler) GetMatchSummary(w http.ResponseWriter, r *http.Reque
 	summary, err := h.service.GetMatchSummary(r.Context(), matchID, claims.AccountID, claims.ProfileID)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                 true,
 		"match_id":           summary.MatchID,
 		"profile_id":         summary.ProfileID,

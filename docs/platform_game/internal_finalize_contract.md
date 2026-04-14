@@ -12,9 +12,17 @@ Base path:
 
 Authentication:
 
-- Requires internal shared secret header.
-- Recommended header:
-  - `X-Internal-Secret: <GAME_INTERNAL_SHARED_SECRET>`
+- Requires signed internal request headers.
+- Required headers:
+  - `X-Internal-Key-Id`
+  - `X-Internal-Timestamp`
+  - `X-Internal-Nonce`
+  - `X-Internal-Body-SHA256`
+  - `X-Internal-Signature`
+- Signature canonical string is `METHOD + "\n" + PATH_AND_QUERY + "\n" + TIMESTAMP + "\n" + NONCE + "\n" + BODY_SHA256`.
+- Signature algorithm is `HMAC-SHA256(<shared_secret>, canonical_string)`.
+- `game_service` rejects unknown key ids, missing headers, body hash mismatch, stale timestamps, invalid signatures, and nonce replay within the configured skew window.
+- Formal config keys are `GAME_INTERNAL_AUTH_KEY_ID`, `GAME_INTERNAL_AUTH_SHARED_SECRET`, and `GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS`.
 
 Purpose:
 

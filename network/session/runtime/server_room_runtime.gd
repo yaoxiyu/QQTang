@@ -227,7 +227,7 @@ func can_route_resume_request(member_id: String, reconnect_token: String) -> boo
 	if normalized_member_id.is_empty() or normalized_token.is_empty():
 		return false
 	var binding := _room_service.room_state.get_member_binding_by_member_id(normalized_member_id)
-	return binding != null and binding.reconnect_token == normalized_token
+	return binding != null and binding.is_reconnect_token_valid(normalized_token)
 
 
 func _ensure_services() -> void:

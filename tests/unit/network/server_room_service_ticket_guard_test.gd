@@ -54,6 +54,8 @@ func _test_create_accepts_valid_ticket_and_writes_binding() -> bool:
 		ok = TestAssert.is_true(String(binding.account_id) == "account_2", "binding should record account id", prefix) and ok
 		ok = TestAssert.is_true(String(binding.profile_id) == "profile_2", "binding should record profile id", prefix) and ok
 		ok = TestAssert.is_true(String(binding.device_session_id) == "dsess_2", "binding should record device session id", prefix) and ok
+		ok = TestAssert.is_true(String(binding.reconnect_token).is_empty(), "binding should not retain plaintext reconnect token after session send", prefix) and ok
+		ok = TestAssert.is_true(not String(binding.reconnect_token_hash).is_empty(), "binding should retain reconnect token hash", prefix) and ok
 	service.queue_free()
 	return ok
 

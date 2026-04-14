@@ -57,7 +57,7 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	)
 	if animation_name == _current_animation_name and pose_state == _current_pose_state:
 		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
-			print(
+			LogPresentationScript.debug(
 				"[qq_remote_anim][body] entity=%d animation=%s unchanged anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
 					int(view_state.get("entity_id", -1)),
 					animation_name,
@@ -66,12 +66,15 @@ func apply_actor_state(view_state: Dictionary) -> void:
 					anim_move_y,
 					move_state,
 					facing,
-				]
+				],
+				"",
+				0,
+				"presentation.remote_anim.body"
 			)
 		return
 	if animation_name.is_empty():
 		if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
-			print(
+			LogPresentationScript.debug(
 				"[qq_remote_anim][body] entity=%d missing_animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
 					int(view_state.get("entity_id", -1)),
 					animation_name,
@@ -80,7 +83,10 @@ func apply_actor_state(view_state: Dictionary) -> void:
 					anim_move_y,
 					move_state,
 					facing,
-				]
+				],
+				"",
+				0,
+				"presentation.remote_anim.body"
 			)
 		return
 
@@ -103,7 +109,7 @@ func apply_actor_state(view_state: Dictionary) -> void:
 		"presentation.pose.body"
 	)
 	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
-		print(
+		LogPresentationScript.debug(
 			"[qq_remote_anim][body] entity=%d animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [
 				int(view_state.get("entity_id", -1)),
 				animation_name,
@@ -112,7 +118,10 @@ func apply_actor_state(view_state: Dictionary) -> void:
 				anim_move_y,
 				move_state,
 				facing,
-			]
+			],
+			"",
+			0,
+			"presentation.remote_anim.body"
 		)
 
 

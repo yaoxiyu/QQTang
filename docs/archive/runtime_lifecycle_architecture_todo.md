@@ -1,5 +1,7 @@
 # Runtime Lifecycle Architecture TODO
 
+> Archival note: this document is retained as historical route context. Still-valid lifecycle debt has been merged into `docs/current_source_of_truth.md`; do not treat this archived file as current truth.
+
 > 文档定位：记录 Phase13 完成后，建议单独立项处理的运行时生命周期架构优化项。  
 > 状态：`Phase14 Route A Implemented`  
 > 优先级：`Medium`  

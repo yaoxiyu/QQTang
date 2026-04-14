@@ -54,7 +54,7 @@ func try_resume(member_id: String, reconnect_token: String, transport_peer_id: i
 	if binding == null:
 		return {"ok": false, "error": "MEMBER_NOT_FOUND"}
 	
-	if binding.reconnect_token != reconnect_token:
+	if not binding.is_reconnect_token_valid(reconnect_token):
 		return {"ok": false, "error": "TOKEN_INVALID"}
 	
 	if not _match_service.is_match_active():

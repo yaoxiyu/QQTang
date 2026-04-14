@@ -45,6 +45,8 @@ const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.g
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 const LoadingUseCaseScript = preload("res://app/front/loading/loading_use_case.gd")
+const FrontRuntimeContextScript = preload("res://app/flow/front_runtime_context.gd")
+const BattleRuntimeContextScript = preload("res://app/flow/battle_runtime_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
@@ -76,6 +78,8 @@ var runtime_config: RefCounted = null
 var error_router: RefCounted = NetworkErrorRouterScript.new()
 var session_diagnostics: RefCounted = SessionDiagnosticsScript.new()
 var last_runtime_error: Dictionary = {}
+var front_context: RefCounted = FrontRuntimeContextScript.new()
+var battle_context: RefCounted = BattleRuntimeContextScript.new()
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
 var front_settings_state: FrontSettingsState = null
@@ -187,6 +191,7 @@ func request_initialize(reason: String = "manual") -> void:
 	_initialization_in_progress = true
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.INITIALIZING, reason)
 	_ensure_root_nodes()
+	_ensure_runtime_contexts()
 	_ensure_runtime_config()
 	_ensure_front_repositories()
 	_ensure_front_local_state()
@@ -281,11 +286,13 @@ func build_and_store_start_config(snapshot):
 	if snapshot == null or match_start_coordinator == null:
 		return null
 	current_room_snapshot = snapshot.duplicate_deep()
+	battle_context.current_room_snapshot = current_room_snapshot
 	if error_router != null:
 		error_router.clear_last_error(self)
 
 	var prepare_result: Dictionary = match_start_coordinator.prepare_start_config(snapshot) if match_start_coordinator.has_method("prepare_start_config") else {}
 	current_start_config = prepare_result.get("config", null)
+	battle_context.current_start_config = current_start_config
 	_update_current_battle_content_manifest()
 	if not bool(prepare_result.get("ok", false)):
 		if error_router != null:
@@ -325,15 +332,18 @@ func clear_battle_payload() -> void:
 	current_battle_camera_controller = null
 	current_settlement_controller = null
 	current_settlement_popup_summary = {}
+	battle_context.clear_battle_payload()
 	# Phase17: Clear resume payload
 	current_resume_snapshot = null
 	current_loading_mode = "normal_start"
+	front_context.clear_resume_payload()
 	if battle_session_adapter != null:
 		battle_session_adapter.setup_from_start_config(null)
 
 
 func apply_canonical_start_config(config) -> void:
 	current_start_config = config.duplicate_deep() if config != null else null
+	battle_context.current_start_config = current_start_config
 	_update_current_battle_content_manifest()
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
@@ -345,12 +355,15 @@ func apply_match_resume_payload(config, resume_snapshot) -> void:
 	apply_canonical_start_config(config)
 	current_resume_snapshot = resume_snapshot
 	current_loading_mode = "resume_match"
+	front_context.current_resume_snapshot = current_resume_snapshot
+	front_context.current_loading_mode = current_loading_mode
 
 
 # Phase17: Clear resume payload
 func clear_resume_payload() -> void:
 	current_resume_snapshot = null
 	current_loading_mode = "normal_start"
+	front_context.clear_resume_payload()
 
 
 func set_local_peer_id(peer_id: int) -> void:
@@ -375,6 +388,7 @@ func register_battle_modules(
 	current_battle_hud_controller = hud
 	current_battle_camera_controller = camera_controller
 	current_settlement_controller = settlement_controller
+	_sync_battle_context_from_fields()
 	if battle_scene != null and battle_root != null and battle_scene.get_parent() != battle_root:
 		_reparent_to(battle_scene, battle_root)
 	_log_online_runtime("register_battle_modules", debug_dump_online_runtime_state())
@@ -389,6 +403,7 @@ func unregister_battle_modules(battle_scene: Node) -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+	_sync_battle_context_from_fields()
 	_log_online_runtime("unregister_battle_modules", debug_dump_online_runtime_state())
 
 
@@ -502,6 +517,15 @@ func _ensure_runtime_config() -> void:
 		runtime_config = AppRuntimeConfigScript.new()
 
 
+func _ensure_runtime_contexts() -> void:
+	if front_context == null:
+		front_context = FrontRuntimeContextScript.new()
+	if battle_context == null:
+		battle_context = BattleRuntimeContextScript.new()
+	_sync_front_context_from_fields()
+	_sync_battle_context_from_fields()
+
+
 func _ensure_front_local_state() -> void:
 	if auth_session_state == null:
 		auth_session_state = AuthSessionStateScript.new()
@@ -522,6 +546,7 @@ func _ensure_front_local_state() -> void:
 		front_settings_state = front_settings_repository.load_settings()
 		if front_settings_state == null:
 			front_settings_state = FrontSettingsStateScript.new()
+	_sync_front_context_from_fields()
 
 
 func _ensure_front_repositories() -> void:
@@ -625,6 +650,7 @@ func _ensure_front_use_cases() -> void:
 
 	if current_room_entry_context == null:
 		current_room_entry_context = RoomEntryContextScript.new()
+	_sync_front_context_from_fields()
 
 	if loading_use_case == null:
 		loading_use_case = LoadingUseCaseScript.new()
@@ -695,8 +721,37 @@ func _reparent_to(node: Node, new_parent: Node) -> void:
 func _update_current_battle_content_manifest() -> void:
 	if current_start_config == null:
 		current_battle_content_manifest = {}
+		battle_context.current_battle_content_manifest = {}
 		return
 	current_battle_content_manifest = _content_manifest_builder.build_for_start_config(current_start_config)
+	battle_context.current_battle_content_manifest = current_battle_content_manifest.duplicate(true)
+
+
+func _sync_front_context_from_fields() -> void:
+	if front_context == null:
+		return
+	front_context.auth_session_state = auth_session_state
+	front_context.player_profile_state = player_profile_state
+	front_context.front_settings_state = front_settings_state
+	front_context.current_room_entry_context = current_room_entry_context
+	front_context.pending_room_action = pending_room_action
+	front_context.current_loading_mode = current_loading_mode
+	front_context.current_resume_snapshot = current_resume_snapshot
+
+
+func _sync_battle_context_from_fields() -> void:
+	if battle_context == null:
+		return
+	battle_context.current_room_snapshot = current_room_snapshot
+	battle_context.current_start_config = current_start_config
+	battle_context.current_battle_content_manifest = current_battle_content_manifest.duplicate(true)
+	battle_context.current_battle_scene = current_battle_scene
+	battle_context.current_battle_bootstrap = current_battle_bootstrap
+	battle_context.current_presentation_bridge = current_presentation_bridge
+	battle_context.current_battle_hud_controller = current_battle_hud_controller
+	battle_context.current_battle_camera_controller = current_battle_camera_controller
+	battle_context.current_settlement_controller = current_settlement_controller
+	battle_context.current_settlement_popup_summary = current_settlement_popup_summary.duplicate(true)
 
 
 func _exit_tree() -> void:

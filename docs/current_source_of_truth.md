@@ -110,6 +110,31 @@
 
 任何旧测试沙盒路径、历史 sandbox 场景，都不应再被理解为正式入口。
 
+正式场景契约：
+
+- Front 消费型场景控制器统一等待 `AppRuntimeRoot.runtime_ready`; 直接打开且 runtime 缺失时，正式行为是回到 `boot_scene.tscn`
+- `boot_scene.tscn` 对应控制器负责 runtime bootstrap
+- `login_scene.tscn` / `lobby_scene.tscn` / `room_scene.tscn` / `loading_scene.tscn` 都是 runtime 消费者，不自行创建第二套 runtime
+- Room 场景正式脚本挂载：
+  - `RoomScene` -> `res://scenes/front/room_scene_controller.gd`
+  - `RoomHudController` -> `res://presentation/battle/hud/room_hud_controller.gd`
+  - `RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport` -> `res://presentation/front/preview/room_character_preview.gd`
+- Room 恢复状态 UI 只允许由 `RoomViewModelBuilder -> RoomScenePresenter` 写入；`RoomSceneController` 不得绕过 presenter 自行拼接恢复窗口文本
+- Loading 场景正式脚本挂载：
+  - `LoadingScene` -> `res://scenes/front/loading_scene_controller.gd`
+- 普通开局通过 `FrontFlowController.request_start_match()` 从 Room 进入 Loading，并继续提交 `MATCH_LOADING_READY`
+- 战中恢复通过 `FrontFlowController.request_resume_match()` 从 Lobby 或 Room 进入 Loading，`LoadingUseCase.loading_mode` 必须为 `resume_match`
+- `resume_match` 模式不提交 `MATCH_LOADING_READY`; Battle 启动前必须把 `AppRuntimeRoot.current_resume_snapshot` 交给 `BattleSessionAdapter` 注入 checkpoint
+- BattleMain 是当前唯一正式战斗入口，关键脚本挂载：
+  - `BattleBootstrap` -> `res://gameplay/battle/runtime/battle_bootstrap.gd`
+  - `PresentationBridge` -> `res://presentation/battle/bridge/presentation_bridge.gd`
+  - `BattleCameraController` -> `res://presentation/battle/scene/battle_camera_controller.gd`
+  - `SpawnFxController` -> `res://presentation/battle/scene/spawn_fx_controller.gd`
+  - `BattleHUD` -> `res://presentation/battle/hud/battle_hud_controller.gd`
+  - `SettlementController` -> `res://presentation/battle/hud/settlement_controller.gd`
+- 正式流程层只允许使用 `SceneFlowController.BATTLE_SCENE_PATH = res://scenes/battle/battle_main.tscn`
+- `res://scenes/sandbox/simulation_prototype.tscn` 仅保留为 sandbox / prototype 调试场景，不是正式入口
+
 补充生命周期真相：
 
 - `AppRuntimeRoot` 当前仍是普通节点, 不是 Autoload
@@ -117,6 +142,12 @@
 - `Login / Lobby / Room / Loading` 只消费现有 runtime, 统一使用 `get_existing()`
 - 前台初始化顺序当前统一由 `runtime_ready` 驱动, 不再依赖 deferred + retry
 - 错误路由与 transport 回调等非启动路径不得隐式创建 runtime
+
+后续 runtime 生命周期架构债务：
+
+- 继续用完整回归验证 Battle / Dedicated Server / front 主链路中的 runtime ownership 与清理一致性
+- 继续评估 `BattleSessionAdapter` / `ClientRoomRuntime` 与 runtime lifecycle 的长期耦合点
+- 是否把 `AppRuntimeRoot` 升级为 Autoload 仍需单独立项；不得和 Auth、公共房、匹配队列、好友系统、UI 改版或玩法规则调整混做
 
 ## 2.3 当前工程已经采用 canonical path 思路
 
@@ -524,8 +555,19 @@
 - 存储层统一使用 `pgx/v5 + pgxpool`
 - `main.go` 只负责启动装配，不承载业务逻辑
 - 事务边界放在 service 层，不放 HTTP handler 层
+- `account_service` 与 `game_service` HTTP server 必须配置 read header/read/write/idle timeout
+- 所有 JSON request body 入口必须通过统一 decode helper，限制 body 大小、拒绝未知字段、空 body、非法 JSON 与尾随垃圾
+- `account_service -> game_service` 内部 HTTP 调用使用 HMAC-SHA256 签名式鉴权，不再发送裸 `X-Internal-Secret`
+- Go 服务内重复基础工具按服务边界收进 `internal/platform/configx` 与 `internal/platform/httpx`，不在 repo 根部引入跨 go.mod 共享模块
+- `AppRuntimeRoot` 保留兼容字段，同时新增 `front_context` / `battle_context` 作为前台会话状态与战斗临时状态的正式收口对象；新增逻辑应优先接入 context
+- `ServerRoomService` 的 resume 校验与 member session payload 生成已抽离到独立 helper，服务本体不再直接承载这两段判定/组包细节
+- 前台 room ticket / Dedicated Server 连接前的角色、角色皮肤、泡泡、泡泡皮肤选择统一通过 `app/front/loadout/loadout_normalizer.gd` 归一化；Dedicated Server 入房与房间资料更新统一通过 `network/session/runtime/room_selection_policy.gd` 校验和回退
 - `register / login / refresh` 已按事务闭环落地
 - `refresh_token` 数据库存 hash
+- 真实商用账号安全增强当前只做接口预留，尚未正式启用：
+  - `auth.LoginSecurityHooks` 是登录限流、失败次数统计、captcha、IP/account 风控的接入点
+  - 默认装配为 no-op，不会改变现有登录判定或引入强制验证码
+  - 不得把该预留误认为已具备完整反暴力破解、验证码校验或风控拦截能力
 - `/healthz` 只反映进程存活，`/readyz` 必须真实探测 DB
 - 开发库与测试库必须隔离：
   - dev: `docker-compose.dev.yml`
@@ -534,6 +576,18 @@
 - 客户端默认端口边界当前固定为：
   - `account_service` HTTP 默认：`127.0.0.1:18080`
   - Dedicated Server / room directory 默认：`127.0.0.1:9000`
+- `game_service` matchmaking 默认值统一收口在 `services/game_service/internal/queue/defaults.go`：
+  - 默认赛季：`GAME_DEFAULT_SEASON_ID`，开发 fallback 为 `season_s1`
+  - 默认匹配地图：`GAME_DEFAULT_MAP_ID`，开发 fallback 为 `map_classic_square`
+  - 默认 Dedicated Server 地址：`GAME_DEFAULT_DS_HOST/GAME_DEFAULT_DS_PORT`
+  - matchmaking heartbeat / captain / commit deadline 由配置读取，开发 fallback 来自同一 defaults 文件
+- `game_service` 数据层仍有后续安全增强预留，尚未在本阶段正式落满：
+  - 更细的状态 `CHECK`
+  - 关键外键补完
+  - finalize / reward / rating 的幂等唯一约束
+  - assignment / queue 更清晰的状态机约束
+  - 上述项目必须通过后续 migration 与对应测试正式落地后，才可视为生产级数据库约束
+- `services/game_service/scripts/db-clean-nonprod-data.ps1` 仅用于非生产 dev/test 数据清理，可在后续强约束 migration 前暴力清空 game_service 业务表；清 dev 数据必须显式传入 `-Force`
 - 前台设置必须分离保存：
   - `account_service_host/account_service_port` 只用于认证、profile、room ticket HTTP
   - `last_server_host/last_server_port` 只用于 Dedicated Server / room directory / room connect
@@ -880,18 +934,19 @@ Phase18 Battle 启动链路进一步约束为：
 30. **Phase17: Active match resume 使用 `FrontFlowController.request_resume_match()` 进入 `MATCH_LOADING`，不复用普通开局的 `ROOM -> request_start_match()` 前置条件**
 31. **Phase17: Resume battle 启动前将 `MatchResumeSnapshot` 交给 `BattleSessionAdapter`；若 client runtime 已启动，`apply_resume_snapshot()` 必须立即注入 checkpoint**
 32. **Phase17: Idle room 普通断线保留 member session 短窗口用于 room-only resume；窗口过期、手动 leave、room reset 必须移除 member binding 并使 token 失效**
-33. **Phase17: 服务端 battle input 必须校验 `sender_transport_peer_id -> member_id -> match_peer_id`，只接受匹配 `frame.peer_id` 的输入**
-34. **Phase17: `ServerRoomRegistry` 必须显式路由 `ROOM_RESUME_REQUEST`，并在 resume 成功后把新 transport peer 绑定回原 room runtime**
-35. **Phase17: Room 恢复状态 UI 以 `RoomViewModelBuilder -> RoomScenePresenter` 为单一来源，场景 controller 不再自行拼接恢复窗口文本**
-36. **Phase17: 客户端手动离房必须清理本地 reconnect ticket，并持久化到 `FrontSettingsRepository`**
-37. **Phase18: `team_id` 已成为 Room -> Battle 的正式配置字段，任何链路都不得再通过 slot 奇偶或其它隐式规则推导 team**
-38. **Phase18: `TRAPPED` 与 `REVIVING` 都属于“队伍仍然活跃”的状态，不能在淘汰判定中当作已淘汰**
-39. **Phase18: 当前玩家生命处理必须走 `PlayerLifeTransitionSystem / JellyInteractionSystem / RespawnSystem / ScoreSystem` 正式规则栈，不得再把新增生命规则继续堆入旧 `StatusEffectSystem`**
-40. **Phase18: 积分模式 `score_policy=team_score` 下，不得走 last survivor 提前结束，`TIME_UP` 必须按 `mode_state.team_scores` 结算**
-41. **Phase18: 计分必须发生在最终死亡确认时，不得在进入果冻 `TRAPPED` 时提前记分**
-42. **Phase18: Battle 表现层必须通过 `pose_state` 消费胜负姿态与果冻姿态，缺失动画资源时必须按既定回退策略继续运行**
-43. **Phase18: 果冻不能无限持续, `TRAPPED` 必须受 `trapped_timeout_sec` 驱动并在超时后自动进入最终死亡流程**
-44. **Phase18: 复活回出生点属于位置重置, Battle Actor 必须直接 snap 到权威出生位置, 不允许出现跨格平滑过渡**
+33. **Phase17: reconnect token 由 32 字节随机源生成；服务端只以 SHA-256 hash 校验 token，明文只允许在首次 `ROOM_MEMBER_SESSION` 下发给客户端时短暂存在**
+34. **Phase17: 服务端 battle input 必须校验 `sender_transport_peer_id -> member_id -> match_peer_id`，只接受匹配 `frame.peer_id` 的输入**
+35. **Phase17: `ServerRoomRegistry` 必须显式路由 `ROOM_RESUME_REQUEST`，并在 resume 成功后把新 transport peer 绑定回原 room runtime**
+36. **Phase17: Room 恢复状态 UI 以 `RoomViewModelBuilder -> RoomScenePresenter` 为单一来源，场景 controller 不再自行拼接恢复窗口文本**
+37. **Phase17: 客户端手动离房必须清理本地 reconnect ticket，并持久化到 `FrontSettingsRepository`**
+38. **Phase18: `team_id` 已成为 Room -> Battle 的正式配置字段，任何链路都不得再通过 slot 奇偶或其它隐式规则推导 team**
+39. **Phase18: `TRAPPED` 与 `REVIVING` 都属于“队伍仍然活跃”的状态，不能在淘汰判定中当作已淘汰**
+40. **Phase18: 当前玩家生命处理必须走 `PlayerLifeTransitionSystem / JellyInteractionSystem / RespawnSystem / ScoreSystem` 正式规则栈，不得再把新增生命规则继续堆入旧 `StatusEffectSystem`**
+41. **Phase18: 积分模式 `score_policy=team_score` 下，不得走 last survivor 提前结束，`TIME_UP` 必须按 `mode_state.team_scores` 结算**
+42. **Phase18: 计分必须发生在最终死亡确认时，不得在进入果冻 `TRAPPED` 时提前记分**
+43. **Phase18: Battle 表现层必须通过 `pose_state` 消费胜负姿态与果冻姿态，缺失动画资源时必须按既定回退策略继续运行**
+44. **Phase18: 果冻不能无限持续, `TRAPPED` 必须受 `trapped_timeout_sec` 驱动并在超时后自动进入最终死亡流程**
+45. **Phase18: 复活回出生点属于位置重置, Battle Actor 必须直接 snap 到权威出生位置, 不允许出现跨格平滑过渡**
 
 ---
 

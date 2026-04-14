@@ -147,7 +147,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"presentation.pose.mapper"
 	)
 	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
-		print(
+		LogPresentationScript.debug(
 			"[qq_remote_anim][mapper] entity=%d slot=%d move_state=%d facing=%d last=(%d,%d) input=(%d,%d) anim_moving=%s anim_dir=(%d,%d) pos=%s" % [
 				player.entity_id,
 				player.player_slot,
@@ -161,7 +161,10 @@ func map_player_state(player: PlayerState) -> Dictionary:
 				int(animation_state.get("move_x", 0)),
 				int(animation_state.get("move_y", 0)),
 				str(position),
-			]
+			],
+			"",
+			0,
+			"presentation.remote_anim.mapper"
 		)
 	return {
 		"entity_id": player.entity_id,

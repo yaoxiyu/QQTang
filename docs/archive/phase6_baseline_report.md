@@ -1,5 +1,6 @@
 # Phase6 Baseline Report
 
+> Archival note: this file is a historical Phase6 snapshot and is not current implementation truth. Current source structure and responsibilities are defined by `docs/current_source_of_truth.md`.
 > Purpose: freeze the current Phase5-closeout baseline before Phase6 implementation.
 > Source date: 2026-04-02
 > Source of truth priority: `docs/current_source_of_truth.md`

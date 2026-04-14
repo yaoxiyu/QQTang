@@ -131,6 +131,25 @@ LogNet.info("started on %s:%d" % [host, port], "", 0, "net.server_bootstrap")
 LogSync.debug("rollback_corrected entity=%d" % entity_id, "", 0, "sync.trace sync.client_runtime.rollback")
 ```
 
+迁移规则：
+
+1. 业务代码不得直接调用 `print()`，应按模块选择 `LogPresentation` / `LogFront` / `LogNet` / `LogSession` / `LogBattle` / `LogSimulation` / `LogSync` / `LogContent` 等门面。
+2. 高频 tick、同步、表现层诊断日志使用 DEBUG。
+3. 异常但可恢复的状态漂移、资源缺失、连接异常使用 WARN。
+4. token、auth、ticket、resume token 等敏感信息不得直接写入日志。
+5. 测试代码中的 `print("xxx PASS")` 暂时保留，便于 headless 测试输出。
+6. `app/logging/log_manager.gd` 内部的 `print()` 是日志系统自身 console sink，是当前允许例外；业务模块不得绕过日志门面。
+
+已迁移的重点 runtime 区域包括：
+
+- `network/runtime/*`
+- `network/session/*`
+- `app/front/*`
+- `presentation/battle/bridge/*`
+- `presentation/battle/actors/character_sprite_body_view.gd`
+- `gameplay/simulation/systems/*`
+- `tools/content_pipeline/content_pipeline_runner.gd`
+
 ## 性能注意
 
 1. DEBUG 级别在生产环境会默认关闭，debug 构建默认保留 DEBUG，release 构建默认 INFO

@@ -10,6 +10,7 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 var auth_session_state: AuthSessionState = null
@@ -379,11 +380,12 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 	request.room_id = entry_context.target_room_id
 	request.room_kind = entry_context.room_kind
 	request.requested_match_id = entry_context.reconnect_match_id if purpose == "resume" else ""
-	if player_profile_state != null:
-		request.selected_character_id = player_profile_state.default_character_id
-		request.selected_character_skin_id = player_profile_state.default_character_skin_id
-		request.selected_bubble_style_id = player_profile_state.default_bubble_style_id
-		request.selected_bubble_skin_id = player_profile_state.default_bubble_skin_id
+	var loadout_result = LoadoutNormalizerScript.apply_to_ticket_request(request, player_profile_state)
+	if loadout_result != null and not loadout_result.changed_fields.is_empty():
+		_log_phase15("ticket_loadout_normalized", {
+			"purpose": purpose,
+			"changed_fields": loadout_result.changed_fields,
+		})
 	var result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
 	if result == null or not result.ok:
 		return _fail(

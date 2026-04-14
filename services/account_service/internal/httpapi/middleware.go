@@ -2,43 +2,29 @@ package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 
 	"qqtang/services/account_service/internal/auth"
+	"qqtang/services/account_service/internal/platform/httpx"
 )
 
 type contextKey string
 
 const authContextKey contextKey = "auth_result"
 
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func writeError(w http.ResponseWriter, status int, code string, message string) {
-	writeJSON(w, status, map[string]any{
-		"ok":         false,
-		"error_code": code,
-		"message":    message,
-	})
-}
-
 func withAuth(authService *auth.AuthService, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
-			writeError(w, http.StatusUnauthorized, "AUTH_ACCESS_TOKEN_INVALID", "Missing access token")
+			httpx.WriteError(w, http.StatusUnauthorized, "AUTH_ACCESS_TOKEN_INVALID", "Missing access token")
 			return
 		}
 		result, err := authService.ValidateAccessToken(r.Context(), strings.TrimPrefix(header, "Bearer "))
 		if err != nil {
 			status, code := mapError(err)
-			writeError(w, status, code, code)
+			httpx.WriteError(w, status, code, code)
 			return
 		}
 		ctx := context.WithValue(r.Context(), authContextKey, result)
@@ -59,7 +45,9 @@ func mapError(err error) (int, string) {
 		return http.StatusBadRequest, err.Error()
 	case auth.ErrInvalidCredentials, auth.ErrRefreshTokenInvalid, auth.ErrRefreshTokenExpired, auth.ErrSessionRevoked, auth.ErrAccessTokenInvalid, auth.ErrAccessTokenExpired:
 		return http.StatusUnauthorized, err.Error()
-	case auth.ErrAccountDisabled, auth.ErrAccountBanned:
+	case auth.ErrLoginRateLimited:
+		return http.StatusTooManyRequests, err.Error()
+	case auth.ErrAccountDisabled, auth.ErrAccountBanned, auth.ErrCaptchaRequired, auth.ErrLoginRiskBlocked:
 		return http.StatusForbidden, err.Error()
 	case auth.ErrDeviceSessionMismatch:
 		return http.StatusConflict, err.Error()

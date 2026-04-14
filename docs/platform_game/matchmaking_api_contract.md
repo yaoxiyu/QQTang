@@ -29,6 +29,8 @@ Queue semantics:
 - Current content baseline only has valid `2v2` maps, so `1v1 / 4v4` may be structurally exposed but operationally disabled.
 - One `profile_id` can have only one active queue entry in states `queued`, `assigned`, or `committing`.
 - Assignment data is authoritative once status becomes `assigned`.
+- Assignment formation is transactional: candidate locking, assignment creation, member creation, and queue state binding must commit or roll back as one unit.
+- Current `2v2` assignment baseline expects four members.
 - Client must not synthesize `map_id`, `rule_set_id`, `mode_id`, or `team_id` after assignment.
 
 ## State Machine

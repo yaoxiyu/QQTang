@@ -7,8 +7,7 @@ const FrontReturnTargetScript = preload("res://app/front/navigation/front_return
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
 const ClientConnectionConfigScript = preload("res://network/runtime/client_connection_config.gd")
-const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -228,10 +227,13 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 		config.device_session_id = app_runtime.auth_session_state.device_session_id
 	if app_runtime != null and app_runtime.player_profile_state != null:
 		config.player_name = app_runtime.player_profile_state.nickname
-		config.selected_character_id = app_runtime.player_profile_state.default_character_id
-		config.selected_character_skin_id = app_runtime.player_profile_state.default_character_skin_id
-		config.selected_bubble_style_id = app_runtime.player_profile_state.default_bubble_style_id
-		config.selected_bubble_skin_id = app_runtime.player_profile_state.default_bubble_skin_id
+		var loadout_result = LoadoutNormalizerScript.apply_to_connection_config(config, app_runtime.player_profile_state)
+		if loadout_result != null and not loadout_result.changed_fields.is_empty():
+			_log_phase15("connection_loadout_normalized", {
+				"entry_kind": String(entry_context.entry_kind),
+				"room_kind": String(entry_context.room_kind),
+				"changed_fields": loadout_result.changed_fields,
+			})
 		var default_selection := _resolve_default_selection(entry_context)
 		config.selected_map_id = String(default_selection.get("map_id", ""))
 		config.selected_rule_set_id = String(default_selection.get("rule_set_id", ""))
@@ -261,10 +263,6 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 func _sanitize_connection_profile(config: ClientConnectionConfig) -> void:
 	if config == null:
 		return
-	if not CharacterCatalogScript.has_character(config.selected_character_id):
-		config.selected_character_id = CharacterCatalogScript.get_default_character_id()
-	if not BubbleCatalogScript.has_bubble(config.selected_bubble_style_id):
-		config.selected_bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
 	if config.selected_map_id.is_empty():
 		config.selected_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
 	var binding := MapSelectionCatalogScript.get_map_binding(config.selected_map_id)

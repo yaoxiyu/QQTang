@@ -7,6 +7,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"qqtang/services/game_service/internal/storage"
 )
 
@@ -23,39 +26,50 @@ var (
 type Service struct {
 	queueRepo              *storage.QueueRepository
 	assignmentRepo         *storage.AssignmentRepository
+	txPool                 *pgxpool.Pool
 	ratingRepo             *storage.RatingRepository
 	heartbeatTTL           time.Duration
+	defaultSeasonID        string
+	defaultMapID           string
 	defaultDSHost          string
 	defaultDSPort          int
 	captainDeadlineSeconds int
 	commitDeadlineSeconds  int
 }
 
-func NewService(queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, heartbeatTTL time.Duration) *Service {
+func NewService(queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, txPool *pgxpool.Pool, heartbeatTTL time.Duration) *Service {
+	defaults := DefaultAssignmentDefaults()
 	return &Service{
 		queueRepo:              queueRepo,
 		assignmentRepo:         assignmentRepo,
+		txPool:                 txPool,
 		heartbeatTTL:           heartbeatTTL,
-		defaultDSHost:          "127.0.0.1",
-		defaultDSPort:          9000,
-		captainDeadlineSeconds: 15,
-		commitDeadlineSeconds:  45,
+		defaultSeasonID:        defaults.SeasonID,
+		defaultMapID:           defaults.MapID,
+		defaultDSHost:          defaults.DSHost,
+		defaultDSPort:          defaults.DSPort,
+		captainDeadlineSeconds: defaults.CaptainDeadlineSeconds,
+		commitDeadlineSeconds:  defaults.CommitDeadlineSeconds,
 	}
 }
 
 func (s *Service) ConfigureAssignmentDefaults(defaultDSHost string, defaultDSPort int, captainDeadlineSeconds int, commitDeadlineSeconds int) {
-	if defaultDSHost != "" {
-		s.defaultDSHost = defaultDSHost
-	}
-	if defaultDSPort > 0 {
-		s.defaultDSPort = defaultDSPort
-	}
-	if captainDeadlineSeconds > 0 {
-		s.captainDeadlineSeconds = captainDeadlineSeconds
-	}
-	if commitDeadlineSeconds > 0 {
-		s.commitDeadlineSeconds = commitDeadlineSeconds
-	}
+	s.ConfigureDefaults(AssignmentDefaults{
+		DSHost:                 defaultDSHost,
+		DSPort:                 defaultDSPort,
+		CaptainDeadlineSeconds: captainDeadlineSeconds,
+		CommitDeadlineSeconds:  commitDeadlineSeconds,
+	})
+}
+
+func (s *Service) ConfigureDefaults(defaults AssignmentDefaults) {
+	normalized := NormalizeAssignmentDefaults(defaults)
+	s.defaultSeasonID = normalized.SeasonID
+	s.defaultMapID = normalized.MapID
+	s.defaultDSHost = normalized.DSHost
+	s.defaultDSPort = normalized.DSPort
+	s.captainDeadlineSeconds = normalized.CaptainDeadlineSeconds
+	s.commitDeadlineSeconds = normalized.CommitDeadlineSeconds
 }
 
 func (s *Service) ConfigureRatingRepository(ratingRepo *storage.RatingRepository) {
@@ -80,7 +94,7 @@ func (s *Service) EnterQueue(ctx context.Context, input EnterQueueInput) (QueueS
 	}
 
 	now := time.Now().UTC()
-	seasonID := "season_s1"
+	seasonID := s.defaultSeasonID
 	ratingSnapshot, err := s.resolveRatingSnapshot(ctx, seasonID, input.AccountID)
 	if err != nil {
 		return QueueStatus{}, err
@@ -255,14 +269,35 @@ func opaqueID(prefix string) (string, error) {
 }
 
 func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntry) error {
-	const expectedMemberCount = 2
-	const candidateLimit = 32
 	if s.assignmentRepo == nil {
 		return nil
 	}
+	if s.txPool == nil {
+		return s.tryFormAssignmentWithRepos(ctx, entry, s.queueRepo, s.assignmentRepo, false)
+	}
+	err := storage.WithTx(ctx, s.txPool, func(tx pgx.Tx) error {
+		txQueueRepo := storage.NewQueueRepository(tx)
+		txAssignmentRepo := storage.NewAssignmentRepository(tx)
+		return s.tryFormAssignmentWithRepos(ctx, entry, txQueueRepo, txAssignmentRepo, true)
+	})
+	if errors.Is(err, storage.ErrConcurrentStateChanged) {
+		return nil
+	}
+	return err
+}
+
+func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.QueueEntry, queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
+	const expectedMemberCount = 4
+	const candidateLimit = 32
 	now := time.Now().UTC()
 	minHeartbeatUnixSec := now.Add(-s.heartbeatTTL).Unix()
-	queuedEntries, err := s.queueRepo.FindQueuedByKey(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
+	var queuedEntries []storage.QueueEntry
+	var err error
+	if lockCandidates {
+		queuedEntries, err = queueRepo.FindQueuedByKeyForUpdate(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
+	} else {
+		queuedEntries, err = queueRepo.FindQueuedByKey(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
+	}
 	if err != nil {
 		return err
 	}
@@ -284,7 +319,7 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 		return err
 	}
 	captainAccountID := queuedEntries[0].AccountID
-	mapID := resolveMapID(queuedEntries[0].PreferredMapPoolID)
+	mapID := s.resolveMapID(queuedEntries[0].PreferredMapPoolID)
 	assignmentRecord := storage.Assignment{
 		AssignmentID:           assignmentID,
 		QueueKey:               entry.QueueKey,
@@ -307,7 +342,7 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 		CreatedAt:              now,
 		UpdatedAt:              now,
 	}
-	if err := s.assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
+	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
 		return err
 	}
 	for idx, queued := range queuedEntries {
@@ -327,21 +362,21 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
-		if err := s.assignmentRepo.InsertMember(ctx, member); err != nil {
+		if err := assignmentRepo.InsertMember(ctx, member); err != nil {
 			return err
 		}
-		if err := s.queueRepo.UpdateStatus(ctx, queued.QueueEntryID, "assigned", "", assignmentID, 1, now.Unix()); err != nil {
+		if err := queueRepo.UpdateStatusIfCurrentState(ctx, queued.QueueEntryID, "queued", "assigned", "", assignmentID, 1, now.Unix()); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func resolveMapID(preferredMapPoolID string) string {
+func (s *Service) resolveMapID(preferredMapPoolID string) string {
 	if preferredMapPoolID != "" {
 		return preferredMapPoolID
 	}
-	return "map_classic_square"
+	return s.defaultMapID
 }
 
 func (s *Service) resolveRatingSnapshot(ctx context.Context, seasonID string, accountID string) (int, error) {

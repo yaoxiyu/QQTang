@@ -202,32 +202,52 @@ func _log_actor_sync_anomalies(world: SimWorld, tick_id: int, events: Array) -> 
 	var actor_bubbles := int(actor_summary.get("bubbles", 0))
 	var actor_items := int(actor_summary.get("items", 0))
 	if world_bubbles != actor_bubbles:
-		print("%s[presentation_bridge] anomaly=bubble_view_count_mismatch tick=%d world_bubbles=%d actor_bubbles=%d" % [
-			TRACE_PREFIX,
-			tick_id,
-			world_bubbles,
-			actor_bubbles,
-		])
+		LogPresentationScript.warn(
+			"%s[presentation_bridge] anomaly=bubble_view_count_mismatch tick=%d world_bubbles=%d actor_bubbles=%d" % [
+				TRACE_PREFIX,
+				tick_id,
+				world_bubbles,
+				actor_bubbles,
+			],
+			"",
+			0,
+			"presentation.bridge.anomaly"
+		)
 	if world_items != actor_items:
-		print("%s[presentation_bridge] anomaly=item_view_count_mismatch tick=%d world_items=%d actor_items=%d" % [
-			TRACE_PREFIX,
-			tick_id,
-			world_items,
-			actor_items,
-		])
+		LogPresentationScript.warn(
+			"%s[presentation_bridge] anomaly=item_view_count_mismatch tick=%d world_items=%d actor_items=%d" % [
+				TRACE_PREFIX,
+				tick_id,
+				world_items,
+				actor_items,
+			],
+			"",
+			0,
+			"presentation.bridge.anomaly"
+		)
 	if _contains_bubble_placed_without_actor(world, events):
-		print("%s[presentation_bridge] anomaly=bubble_placed_without_actor tick=%d world_bubbles=%d actor_bubbles=%d" % [
-			TRACE_PREFIX,
-			tick_id,
-			world_bubbles,
-			actor_bubbles,
-		])
+		LogPresentationScript.warn(
+			"%s[presentation_bridge] anomaly=bubble_placed_without_actor tick=%d world_bubbles=%d actor_bubbles=%d" % [
+				TRACE_PREFIX,
+				tick_id,
+				world_bubbles,
+				actor_bubbles,
+			],
+			"",
+			0,
+			"presentation.bridge.anomaly"
+		)
 	if LOG_FX_ANOMALIES and _contains_fx_worthy_event(events) and fx_layer != null and fx_layer.get_child_count() <= 0:
-		print("%s[presentation_bridge] anomaly=events_without_fx tick=%d event_count=%d" % [
-			TRACE_PREFIX,
-			tick_id,
-			events.size(),
-		])
+		LogPresentationScript.debug(
+			"%s[presentation_bridge] anomaly=events_without_fx tick=%d event_count=%d" % [
+				TRACE_PREFIX,
+				tick_id,
+				events.size(),
+			],
+			"",
+			0,
+			"presentation.bridge.fx"
+		)
 
 
 func _contains_fx_worthy_event(events: Array) -> bool:

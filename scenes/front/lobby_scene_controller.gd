@@ -331,7 +331,10 @@ func _refresh_matchmaking_panel(view_state = null) -> void:
 	_select_metadata(queue_format_selector, _resolve_preferred_matchmaking_format_id(queue_type, String(view_state.preferred_mode_id)))
 	_populate_matchmaking_mode_selector()
 	_select_metadata(queue_game_mode_selector, String(view_state.preferred_mode_id))
-	_populate_matchmaking_map_list([String(view_state.preferred_map_id)] if not String(view_state.preferred_map_id).is_empty() else [])
+	var preferred_map_ids: Array[String] = []
+	if not String(view_state.preferred_map_id).is_empty():
+		preferred_map_ids.append(String(view_state.preferred_map_id))
+	_populate_matchmaking_map_list(preferred_map_ids)
 	if queue_status_label != null:
 		var queue_state_text := String(view_state.queue_state)
 		var queue_status_text := String(view_state.queue_status_text)

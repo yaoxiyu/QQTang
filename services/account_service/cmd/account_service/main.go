@@ -53,7 +53,7 @@ func main() {
 	)
 	profileService := profile.NewService(profileRepo)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
-	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalSharedSecret)
+	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
 	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, assignmentGrantClient, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
@@ -68,6 +68,9 @@ func main() {
 		Addr:              cfg.HTTPListenAddr,
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

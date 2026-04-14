@@ -9,6 +9,7 @@ const MatchmakingQueueStateScript = preload("res://app/front/matchmaking/matchma
 const MatchmakingAssignmentStateScript = preload("res://app/front/matchmaking/matchmaking_assignment_state.gd")
 const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
@@ -126,11 +127,12 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 	request.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
 	request.room_id = _current_assignment_state.room_id
 	request.assignment_id = _current_assignment_state.assignment_id
-	if player_profile_state != null:
-		request.selected_character_id = player_profile_state.default_character_id
-		request.selected_character_skin_id = player_profile_state.default_character_skin_id
-		request.selected_bubble_style_id = player_profile_state.default_bubble_style_id
-		request.selected_bubble_skin_id = player_profile_state.default_bubble_skin_id
+	var loadout_result = LoadoutNormalizerScript.apply_to_ticket_request(request, player_profile_state)
+	if loadout_result != null and not loadout_result.changed_fields.is_empty():
+		_log_matchmaking("ticket_loadout_normalized", {
+			"assignment_id": _current_assignment_state.assignment_id,
+			"changed_fields": loadout_result.changed_fields,
+		})
 	var ticket_result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
 	if ticket_result == null or not bool(ticket_result.ok):
 		_log_matchmaking("consume_assignment_ticket_failed", {

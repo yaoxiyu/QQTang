@@ -83,8 +83,8 @@ func (s *Service) Finalize(ctx context.Context, input FinalizeInput) (FinalizeRe
 		return FinalizeResult{}, ErrFinalizeContextMismatch
 	}
 
-	winnerTeamJSON, _ := json.Marshal(input.WinnerTeamIDs)
-	winnerPeerJSON, _ := json.Marshal(input.WinnerPeerIDs)
+	winnerTeamJSON, _ := json.Marshal(nonNilIntSlice(input.WinnerTeamIDs))
+	winnerPeerJSON, _ := json.Marshal(nonNilIntSlice(input.WinnerPeerIDs))
 	if err := finalizeRepo.InsertMatchResult(ctx, storage.MatchResultRecord{
 		MatchID:           input.MatchID,
 		AssignmentID:      input.AssignmentID,
@@ -406,4 +406,11 @@ func resolveOpponentAverage(teamID int, teamRatingSum map[int]int, teamRatingCou
 		return fallback
 	}
 	return opponentSum / opponentCount
+}
+
+func nonNilIntSlice(values []int) []int {
+	if values == nil {
+		return []int{}
+	}
+	return values
 }

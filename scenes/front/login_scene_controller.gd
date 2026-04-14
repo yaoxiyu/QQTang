@@ -4,6 +4,7 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
 
 @onready var account_input = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/AccountRow/AccountInput")
+@onready var player_name_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow/PlayerNameInput")
 @onready var password_input = get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/PasswordRow/PasswordInput")
 @onready var host_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/EndpointCard/EndpointVBox/HostRow/HostInput")
 @onready var port_input: LineEdit = get_node_or_null("LoginRoot/MainLayout/EndpointCard/EndpointVBox/PortRow/PortInput")
@@ -53,6 +54,8 @@ func _apply_profile_defaults() -> void:
 		return
 	var profile = _app_runtime.player_profile_state
 	var settings = _app_runtime.front_settings_state
+	if player_name_input != null and profile != null:
+		player_name_input.text = String(profile.nickname)
 	if account_input != null and _app_runtime.auth_session_state != null:
 		account_input.text = _app_runtime.auth_session_state.account_id
 	if host_input != null and settings != null:

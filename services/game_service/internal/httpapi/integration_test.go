@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +22,8 @@ import (
 	"qqtang/services/game_service/internal/auth"
 	"qqtang/services/game_service/internal/career"
 	"qqtang/services/game_service/internal/finalize"
+	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/game_service/internal/platform/httpx"
 	"qqtang/services/game_service/internal/queue"
 	"qqtang/services/game_service/internal/storage"
 )
@@ -140,10 +143,10 @@ func queueEntryHTTPRow(entry storage.QueueEntry) []any {
 
 func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	db := newFakeHTTPQueueDB()
-	queueService := queue.NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), 30*time.Second)
+	queueService := queue.NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
 	router := NewRouter(RouterDeps{
 		JWTAuth:            auth.NewJWTAuth("test_secret"),
-		InternalAuth:       auth.NewInternalAuth("internal_secret"),
+		InternalAuth:       auth.NewInternalAuth("primary", "internal_secret", time.Minute),
 		MatchmakingHandler: NewMatchmakingHandler(queueService),
 		CareerHandler:      NewCareerHandler((*career.Service)(nil)),
 		SettlementHandler:  NewSettlementHandler((*finalize.Service)(nil)),
@@ -196,6 +199,77 @@ func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	}
 }
 
+func TestRouterMatchmakingCancelRejectsInvalidBody(t *testing.T) {
+	db := newFakeHTTPQueueDB()
+	queueService := queue.NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	router := NewRouter(RouterDeps{
+		JWTAuth:            auth.NewJWTAuth("test_secret"),
+		InternalAuth:       auth.NewInternalAuth("primary", "internal_secret", time.Minute),
+		MatchmakingHandler: NewMatchmakingHandler(queueService),
+		CareerHandler:      NewCareerHandler((*career.Service)(nil)),
+		SettlementHandler:  NewSettlementHandler((*finalize.Service)(nil)),
+		InternalAssignmentHandler: NewInternalAssignmentHandler(
+			assignmentpkg.NewService(storage.NewAssignmentRepository(db), time.Minute),
+		),
+		InternalFinalizeHandler: NewInternalFinalizeHandler((*finalize.Service)(nil)),
+		ReadinessCheck:          func(context.Context) error { return nil },
+	})
+
+	token := signedAccessToken(t, "test_secret", auth.AccessTokenClaims{
+		AccountID:        "account_1",
+		ProfileID:        "profile_1",
+		DeviceSessionID:  "device_1",
+		ExpiresAtUnixSec: time.Now().UTC().Add(time.Hour).Unix(),
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/matchmaking/queue/cancel", strings.NewReader(`{"queue_entry_id":`))
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 on invalid cancel body, got %d body=%s", resp.Code, resp.Body.String())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(resp.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode error response: %v", err)
+	}
+	if payload["error_code"] != "REQUEST_INVALID_JSON" {
+		t.Fatalf("expected REQUEST_INVALID_JSON, got %+v", payload)
+	}
+}
+
+func TestInternalAuthMiddlewareAcceptsSignedRequest(t *testing.T) {
+	body := []byte(`{"room_id":"room_a"}`)
+	req := httptest.NewRequest(http.MethodPost, "/internal/v1/assignments/assign_a/commit?x=1", bytes.NewReader(body))
+	signInternalHTTPTestRequest(t, req, body, "primary", "internal_secret", time.Now())
+	resp := httptest.NewRecorder()
+	handler := withInternalAuth(auth.NewInternalAuth("primary", "internal_secret", time.Minute), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("handler could not read restored body: %v", err)
+		}
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})
+	}))
+
+	handler.ServeHTTP(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("expected 200 for signed request, got %d body=%s", resp.Code, resp.Body.String())
+	}
+}
+
+func TestInternalAuthMiddlewareRejectsMissingSignature(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/internal/v1/assignments/assign_a/grant", nil)
+	resp := httptest.NewRecorder()
+	handler := withInternalAuth(auth.NewInternalAuth("primary", "internal_secret", time.Minute), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler must not be called")
+	}))
+
+	handler.ServeHTTP(resp, req)
+	if resp.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for missing internal auth, got %d body=%s", resp.Code, resp.Body.String())
+	}
+}
+
 func signedAccessToken(t *testing.T, secret string, claims auth.AccessTokenClaims) string {
 	t.Helper()
 	payload, err := json.Marshal(claims)
@@ -207,4 +281,17 @@ func signedAccessToken(t *testing.T, secret string, claims auth.AccessTokenClaim
 	_, _ = mac.Write([]byte(encoded))
 	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 	return encoded + "." + signature
+}
+
+func signInternalHTTPTestRequest(t *testing.T, req *http.Request, body []byte, keyID string, secret string, now time.Time) {
+	t.Helper()
+	timestamp := strconv.FormatInt(now.UTC().Unix(), 10)
+	nonce := "nonce-" + timestamp
+	bodyHash := internalhttp.BodySHA256Hex(body)
+	signature := internalhttp.Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
+	req.Header.Set(internalhttp.HeaderKeyID, keyID)
+	req.Header.Set(internalhttp.HeaderTimestamp, timestamp)
+	req.Header.Set(internalhttp.HeaderNonce, nonce)
+	req.Header.Set(internalhttp.HeaderBodySHA256, bodyHash)
+	req.Header.Set(internalhttp.HeaderSignature, signature)
 }

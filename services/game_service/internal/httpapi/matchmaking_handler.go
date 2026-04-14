@@ -1,9 +1,9 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"qqtang/services/game_service/internal/platform/httpx"
 	"qqtang/services/game_service/internal/queue"
 )
 
@@ -22,8 +22,8 @@ func (h *MatchmakingHandler) EnterQueue(w http.ResponseWriter, r *http.Request) 
 		RuleSetID          string `json:"rule_set_id"`
 		PreferredMapPoolID string `json:"preferred_map_pool_id"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "REQUEST_INVALID_JSON", "Invalid JSON")
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	claims := getAuthClaims(r.Context())
@@ -38,10 +38,10 @@ func (h *MatchmakingHandler) EnterQueue(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                      true,
 		"queue_entry_id":          status.QueueEntryID,
 		"queue_state":             status.QueueState,
@@ -58,15 +58,18 @@ func (h *MatchmakingHandler) CancelQueue(w http.ResponseWriter, r *http.Request)
 	var request struct {
 		QueueEntryID string `json:"queue_entry_id"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&request)
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
+		return
+	}
 	claims := getAuthClaims(r.Context())
 	status, err := h.service.CancelQueue(r.Context(), claims.ProfileID, request.QueueEntryID)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":             true,
 		"queue_entry_id": status.QueueEntryID,
 		"queue_state":    status.QueueState,
@@ -79,7 +82,7 @@ func (h *MatchmakingHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	status, err := h.service.GetStatus(r.Context(), claims.ProfileID, r.URL.Query().Get("queue_entry_id"))
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
 	response := map[string]any{
@@ -109,5 +112,5 @@ func (h *MatchmakingHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 		response["captain_deadline_unix_sec"] = status.CaptainDeadlineUnixSec
 		response["commit_deadline_unix_sec"] = status.CommitDeadlineUnixSec
 	}
-	writeJSON(w, http.StatusOK, response)
+	httpx.WriteJSON(w, http.StatusOK, response)
 }

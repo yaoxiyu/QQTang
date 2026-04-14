@@ -42,11 +42,18 @@ func main() {
 	ratingRepo := storage.NewRatingRepository(store.Pool)
 
 	jwtAuth := auth.NewJWTAuth(cfg.JWTSharedSecret)
-	internalAuth := auth.NewInternalAuth(cfg.InternalSharedSecret)
+	internalAuth := auth.NewInternalAuth(cfg.InternalAuthKeyID, cfg.InternalSharedSecret, time.Duration(cfg.InternalAuthMaxSkewSec)*time.Second)
 	ratingService := rating.NewEloService()
 	rewardService := reward.NewService()
-	queueService := queue.NewService(queueRepo, assignmentRepo, time.Duration(cfg.QueueHeartbeatTTLSeconds)*time.Second)
-	queueService.ConfigureAssignmentDefaults(cfg.DefaultDSHost, cfg.DefaultDSPort, cfg.CaptainDeadlineSeconds, cfg.CommitDeadlineSeconds)
+	queueService := queue.NewService(queueRepo, assignmentRepo, store.Pool, time.Duration(cfg.QueueHeartbeatTTLSeconds)*time.Second)
+	queueService.ConfigureDefaults(queue.AssignmentDefaults{
+		SeasonID:               cfg.DefaultSeasonID,
+		MapID:                  cfg.DefaultMapID,
+		DSHost:                 cfg.DefaultDSHost,
+		DSPort:                 cfg.DefaultDSPort,
+		CaptainDeadlineSeconds: cfg.CaptainDeadlineSeconds,
+		CommitDeadlineSeconds:  cfg.CommitDeadlineSeconds,
+	})
 	queueService.ConfigureRatingRepository(ratingRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
 	careerService := career.NewService(careerRepo, ratingRepo)
@@ -67,6 +74,9 @@ func main() {
 		Addr:              cfg.HTTPListenAddr,
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

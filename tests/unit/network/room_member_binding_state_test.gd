@@ -13,7 +13,7 @@ func _ready() -> void:
 func _test_round_trip_preserves_resume_fields() -> bool:
 	var binding := RoomMemberBindingStateScript.new()
 	binding.member_id = "member_7"
-	binding.reconnect_token = "token_abc"
+	binding.set_reconnect_token_plaintext("token_abc")
 	binding.account_id = "account_7"
 	binding.profile_id = "profile_7"
 	binding.device_session_id = "dsess_7"
@@ -36,8 +36,14 @@ func _test_round_trip_preserves_resume_fields() -> bool:
 	if restored.member_id != binding.member_id:
 		print("FAIL: member_id mismatch")
 		return false
-	if restored.reconnect_token != binding.reconnect_token:
-		print("FAIL: reconnect_token mismatch")
+	if not restored.reconnect_token.is_empty():
+		print("FAIL: reconnect_token plaintext should not round trip")
+		return false
+	if restored.reconnect_token_hash != binding.reconnect_token_hash:
+		print("FAIL: reconnect_token_hash mismatch")
+		return false
+	if not restored.is_reconnect_token_valid("token_abc"):
+		print("FAIL: reconnect_token_hash should validate original token")
 		return false
 	if restored.account_id != binding.account_id:
 		print("FAIL: account_id mismatch")

@@ -1,4 +1,4 @@
-﻿extends Node
+extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
@@ -376,8 +376,8 @@ func _update_preview(snapshot: RoomSnapshot) -> void:
 			bubble_skin_preview_label.text = "Bubble Skin: %s" % String(profile.default_bubble_skin_id)
 		if character_preview_viewport != null and character_preview_viewport.has_method("configure_preview"):
 			character_preview_viewport.configure_preview(
-				String(profile.default_character_id),
-				String(profile.default_character_skin_id)
+				_resolve_preview_character_id(String(profile.default_character_id)),
+				_resolve_preview_character_skin_id(String(profile.default_character_skin_id))
 			)
 
 
@@ -637,6 +637,20 @@ func _get_fallback_bubble_id() -> String:
 		if not entry_id.is_empty():
 			return entry_id
 	return "bubble_style_default"
+
+
+func _resolve_preview_character_id(character_id: String) -> String:
+	var trimmed := character_id.strip_edges()
+	if not trimmed.is_empty() and CharacterCatalogScript.has_character(trimmed):
+		return trimmed
+	return CharacterCatalogScript.get_default_character_id()
+
+
+func _resolve_preview_character_skin_id(character_skin_id: String) -> String:
+	var trimmed := character_skin_id.strip_edges()
+	if not trimmed.is_empty() and CharacterSkinCatalogScript.has_id(trimmed):
+		return trimmed
+	return CharacterSkinCatalogScript.get_default_skin_id()
 
 
 func _resolve_map_binding(map_id: String) -> Dictionary:

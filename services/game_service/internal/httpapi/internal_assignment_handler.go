@@ -1,11 +1,11 @@
 package httpapi
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 
 	"qqtang/services/game_service/internal/assignment"
+	"qqtang/services/game_service/internal/platform/httpx"
 )
 
 type InternalAssignmentHandler struct {
@@ -28,10 +28,10 @@ func (h *InternalAssignmentHandler) GetGrant(w http.ResponseWriter, r *http.Requ
 	)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "grant_state": grant.GrantState, "assignment_id": grant.AssignmentID,
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{"ok": true, "grant_state": grant.GrantState, "assignment_id": grant.AssignmentID,
 		"assignment_revision": grant.AssignmentRevision, "match_source": grant.MatchSource, "queue_type": grant.QueueType,
 		"ticket_role": grant.TicketRole, "room_id": grant.RoomID, "room_kind": grant.RoomKind, "match_id": grant.MatchID,
 		"season_id": grant.SeasonID, "server_host": grant.ServerHost, "server_port": grant.ServerPort,
@@ -46,18 +46,18 @@ func (h *InternalAssignmentHandler) Commit(w http.ResponseWriter, r *http.Reques
 	path := strings.TrimPrefix(r.URL.Path, "/internal/v1/assignments/")
 	assignmentID := strings.TrimSuffix(path, "/commit")
 	var request assignment.CommitInput
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		writeError(w, http.StatusBadRequest, "REQUEST_INVALID_JSON", "Invalid JSON")
+	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
+		httpx.WriteInvalidRequestBody(w)
 		return
 	}
 	request.AssignmentID = assignmentID
 	result, err := h.service.CommitRoom(r.Context(), request)
 	if err != nil {
 		code, message := mapError(err)
-		writeError(w, code, message, message)
+		httpx.WriteError(w, code, message, message)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                  true,
 		"assignment_id":       result.AssignmentID,
 		"assignment_revision": result.AssignmentRevision,

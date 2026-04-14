@@ -21,6 +21,12 @@ Error response shape:
 - Client use case layer should branch by `error_code`, not by `message`.
 - HTTP handlers should map contract errors to consistent status codes.
 
+## Request Domain
+
+| Error Code | Meaning | Suggested HTTP Status |
+|---|---|---|
+| `REQUEST_INVALID_JSON` | Request body is empty, invalid JSON, too large, contains unknown fields, or has trailing data | `400` |
+
 ## Auth Domain
 
 | Error Code | Meaning | Suggested HTTP Status |

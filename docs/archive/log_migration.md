@@ -1,5 +1,7 @@
 # 日志系统迁移报告
 
+> Archival note: this document is a historical migration report. Current logging usage rules live in `app/logging/USAGE.md`, and current project truth lives in `docs/current_source_of_truth.md`.
+
 ## 迁移概览
 
 本次迁移为项目引入了结构化日志系统，并迁移了首批核心运行时模块的 `print()` 调用，按模块分类并设置合理的日志级别。
@@ -27,8 +29,11 @@
 | `app/front/lobby/lobby_directory_use_case.gd` | 1 | LogFront | DEBUG |
 | `app/front/room/room_use_case.gd` | 2 | LogFront / LogNet | DEBUG / WARN |
 | `tools/content_pipeline/content_pipeline_runner.gd` | 1 | LogContent | INFO |
+| `presentation/battle/bridge/presentation_bridge.gd` | 4 | LogPresentation | WARN / DEBUG |
+| `presentation/battle/bridge/state_to_view_mapper.gd` | 1 | LogPresentation | DEBUG |
+| `presentation/battle/actors/character_sprite_body_view.gd` | 3 | LogPresentation | DEBUG |
 
-**总计：30 处 print 已迁移（非全量）**
+**总计：38 处 print 已迁移（非全量）**
 
 ## 日志级别分配原则
 
@@ -72,9 +77,21 @@
 
 如需迁移测试代码，可后续处理。
 
+## 当前允许例外
+
+- `app/logging/log_manager.gd` 中的 `print()` 是日志系统自身的控制台输出 sink，不属于业务代码直出日志。业务模块不得绕过 `LogPresentation` / `LogFront` / `LogNet` / `LogSession` 等门面直接调用 `print()`。
+
 ## 验证
 
-迁移文件需要继续结合 Godot 编译和运行时验证，尤其关注日志初始化、文件输出路径和高频日志场景下的性能表现。
+本轮已执行：
+
+- `rg "\bprint\(" app content gameplay network presentation scenes -g "*.gd"`：仅剩 `app/logging/log_manager.gd` sink 例外
+- Godot `--check-only`：
+  - `presentation/battle/bridge/presentation_bridge.gd`
+  - `presentation/battle/bridge/state_to_view_mapper.gd`
+  - `presentation/battle/actors/character_sprite_body_view.gd`
+
+迁移文件仍需继续结合运行时验证，尤其关注日志初始化、文件输出路径和高频日志场景下的性能表现。
 
 ## 后续工作
 

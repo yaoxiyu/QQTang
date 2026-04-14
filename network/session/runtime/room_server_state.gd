@@ -5,12 +5,9 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
-const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
-const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const RoomSelectionPolicyScript = preload("res://network/session/runtime/room_selection_policy.gd")
 const RoomMemberBindingStateScript = preload("res://network/session/runtime/room_member_binding_state.gd")
+const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
 
 var room_id: String = ""
 var room_kind: String = "private_room"
@@ -108,12 +105,13 @@ func upsert_member(
 ) -> void:
 	var profile : Dictionary = members.get(peer_id, {})
 	var resolved_team_id := _resolve_team_id(peer_id, team_id)
+	var resolved_loadout: Dictionary = RoomSelectionPolicyScript.normalize_member_loadout(character_id, character_skin_id, bubble_style_id, bubble_skin_id)
 	profile["peer_id"] = peer_id
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
-	profile["character_id"] = _resolve_character_id(character_id)
-	profile["character_skin_id"] = _resolve_character_skin_id(character_skin_id)
-	profile["bubble_style_id"] = _resolve_bubble_style_id(bubble_style_id, String(profile["character_id"]))
-	profile["bubble_skin_id"] = _resolve_bubble_skin_id(bubble_skin_id)
+	profile["character_id"] = String(resolved_loadout.get("character_id", ""))
+	profile["character_skin_id"] = String(resolved_loadout.get("character_skin_id", ""))
+	profile["bubble_style_id"] = String(resolved_loadout.get("bubble_style_id", ""))
+	profile["bubble_skin_id"] = String(resolved_loadout.get("bubble_skin_id", ""))
 	profile["team_id"] = resolved_team_id
 	members[peer_id] = profile
 	if not ready_map.has(peer_id):
@@ -395,42 +393,6 @@ func _get_sorted_member_bindings() -> Array[RoomMemberBindingState]:
 	return bindings
 
 
-func _resolve_character_id(character_id: String) -> String:
-	var trimmed := character_id.strip_edges()
-	if CharacterCatalogScript.has_character(trimmed):
-		return trimmed
-	return CharacterCatalogScript.get_default_character_id()
-
-
-func _resolve_character_skin_id(character_skin_id: String) -> String:
-	var trimmed := character_skin_id.strip_edges()
-	if trimmed.is_empty():
-		return ""
-	if CharacterSkinCatalogScript.has_id(trimmed):
-		return trimmed
-	return ""
-
-
-func _resolve_bubble_style_id(bubble_style_id: String, character_id: String) -> String:
-	var trimmed := bubble_style_id.strip_edges()
-	if BubbleCatalogScript.has_bubble(trimmed):
-		return trimmed
-	var metadata := CharacterLoaderScript.build_character_metadata(character_id)
-	var default_bubble_style_id := String(metadata.get("default_bubble_style_id", ""))
-	if BubbleCatalogScript.has_bubble(default_bubble_style_id):
-		return default_bubble_style_id
-	return BubbleCatalogScript.get_default_bubble_id()
-
-
-func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
-	var trimmed := bubble_skin_id.strip_edges()
-	if trimmed.is_empty():
-		return ""
-	if BubbleSkinCatalogScript.has_id(trimmed):
-		return trimmed
-	return ""
-
-
 # Phase17: Stable member identity methods
 
 func allocate_member_id() -> String:
@@ -440,9 +402,7 @@ func allocate_member_id() -> String:
 
 
 func allocate_reconnect_token() -> String:
-	var timestamp := Time.get_ticks_msec()
-	var random_part := randi() % 100000
-	return "token_%d_%d" % [timestamp, random_part]
+	return ResumeTokenUtilsScript.generate_resume_token()
 
 
 func create_member_binding(
@@ -462,7 +422,7 @@ func create_member_binding(
 	var binding := RoomMemberBindingStateScript.new()
 	var slot_index := member_bindings_by_member_id.size()
 	binding.member_id = allocate_member_id()
-	binding.reconnect_token = allocate_reconnect_token()
+	binding.set_reconnect_token_plaintext(allocate_reconnect_token())
 	binding.transport_peer_id = transport_peer_id
 	binding.match_peer_id = transport_peer_id
 	binding.player_name = player_name if not player_name.strip_edges().is_empty() else "Player%d" % transport_peer_id
