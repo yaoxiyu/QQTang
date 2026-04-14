@@ -5,7 +5,9 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 var server_host: String = "127.0.0.1"
 var server_port: int = 9000
@@ -23,6 +25,8 @@ var selected_character_id: String = CharacterCatalogScript.get_default_character
 var selected_character_skin_id: String = ""
 var selected_bubble_style_id: String = BubbleCatalogScript.get_default_bubble_id()
 var selected_bubble_skin_id: String = ""
+var selected_map_id: String = MapCatalogScript.get_default_map_id()
+var selected_rule_set_id: String = RuleSetCatalogScript.get_default_rule_id()
 var selected_mode_id: String = ModeCatalogScript.get_default_mode_id()
 
 
@@ -44,6 +48,8 @@ func to_dict() -> Dictionary:
 		"selected_character_skin_id": selected_character_skin_id,
 		"selected_bubble_style_id": selected_bubble_style_id,
 		"selected_bubble_skin_id": selected_bubble_skin_id,
+		"selected_map_id": selected_map_id,
+		"selected_rule_set_id": selected_rule_set_id,
 		"selected_mode_id": selected_mode_id,
 	}
 
@@ -66,5 +72,7 @@ func duplicate_deep() -> ClientConnectionConfig:
 	duplicated.selected_character_skin_id = selected_character_skin_id
 	duplicated.selected_bubble_style_id = selected_bubble_style_id
 	duplicated.selected_bubble_skin_id = selected_bubble_skin_id
+	duplicated.selected_map_id = selected_map_id
+	duplicated.selected_rule_set_id = selected_rule_set_id
 	duplicated.selected_mode_id = selected_mode_id
 	return duplicated

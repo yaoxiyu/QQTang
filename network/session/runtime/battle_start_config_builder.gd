@@ -3,6 +3,7 @@ extends RefCounted
 
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
@@ -10,6 +11,7 @@ const CharacterLoaderScript = preload("res://content/characters/runtime/characte
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 const DEFAULT_START_TICK: int = 0
 const DEFAULT_PROTOCOL_VERSION: int = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
@@ -25,21 +27,22 @@ var local_player_bubble_style_id: String = ""
 func can_build_from_room(snapshot: RoomSnapshot) -> bool:
 	if snapshot == null:
 		return false
+	var resolved_selection := _resolve_authoritative_selection(snapshot, null)
+	if resolved_selection.is_empty():
+		return false
+	var binding := MapSelectionCatalogScript.get_map_binding(String(resolved_selection.get("map_id", "")))
+	var required_team_count := int(binding.get("required_team_count", snapshot.min_start_players))
 	if snapshot.member_count() < snapshot.min_start_players:
 		return false
-	if _collect_distinct_team_ids(snapshot).size() < 2:
+	if _collect_distinct_team_ids(snapshot).size() < required_team_count:
 		return false
 	if not snapshot.all_ready:
 		return false
-	if snapshot.selected_map_id.is_empty():
+	if not MapCatalogScript.has_map(String(resolved_selection.get("map_id", ""))):
 		return false
-	if snapshot.rule_set_id.is_empty():
+	if not RuleSetCatalogScript.has_rule(String(resolved_selection.get("rule_set_id", ""))):
 		return false
-	if not MapCatalogScript.has_map(snapshot.selected_map_id):
-		return false
-	if not RuleSetCatalogScript.has_rule(snapshot.rule_set_id):
-		return false
-	var resolved_mode_id := _resolve_mode_id(snapshot, null, snapshot.rule_set_id)
+	var resolved_mode_id := String(resolved_selection.get("mode_id", ""))
 	if not ModeCatalogScript.has_mode(resolved_mode_id):
 		return false
 	return true
@@ -161,18 +164,14 @@ func _peek_match_id(snapshot: RoomSnapshot) -> String:
 
 
 func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool, room_runtime_context: RoomRuntimeContext = null) -> BattleStartConfig:
-	var resolved_map_id := snapshot.selected_map_id
-	var resolved_rule_set_id := snapshot.rule_set_id
-	if room_runtime_context != null:
-		if resolved_map_id.is_empty():
-			resolved_map_id = room_runtime_context.selected_map_id
-		if resolved_rule_set_id.is_empty():
-			resolved_rule_set_id = room_runtime_context.selected_rule_set_id
+	var resolved_selection := _resolve_authoritative_selection(snapshot, room_runtime_context)
+	var resolved_map_id := String(resolved_selection.get("map_id", ""))
+	var resolved_rule_set_id := String(resolved_selection.get("rule_set_id", ""))
+	var resolved_mode_id := String(resolved_selection.get("mode_id", ""))
 
 	var map_metadata := _load_map_metadata(resolved_map_id)
 	var rule_metadata := _load_rule_metadata(resolved_rule_set_id)
 	var player_slots := assign_spawn_slots(snapshot)
-	var resolved_mode_id := _resolve_mode_id(snapshot, room_runtime_context, resolved_rule_set_id)
 	var resolved_topology := _resolve_topology(snapshot, room_runtime_context)
 	var config := BattleStartConfig.new()
 	config.protocol_version = DEFAULT_PROTOCOL_VERSION
@@ -277,15 +276,55 @@ func _resolve_character_id(character_id: String) -> String:
 	return CharacterCatalogScript.get_default_character_id()
 
 
-func _resolve_mode_id(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null, rule_set_id: String = "") -> String:
-	if snapshot != null and ModeCatalogScript.has_mode(snapshot.mode_id):
-		return snapshot.mode_id
-	if room_runtime_context != null and ModeCatalogScript.has_mode(room_runtime_context.mode_id):
-		return room_runtime_context.mode_id
-	for entry in ModeCatalogScript.get_mode_entries():
-		if String(entry.get("rule_set_id", "")) == rule_set_id:
-			return String(entry.get("mode_id", entry.get("id", "")))
-	return ModeCatalogScript.get_default_mode_id()
+func _resolve_authoritative_selection(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null) -> Dictionary:
+	var resolved_map_id := ""
+	if snapshot != null and not String(snapshot.selected_map_id).is_empty():
+		resolved_map_id = String(snapshot.selected_map_id)
+	elif room_runtime_context != null and not String(room_runtime_context.selected_map_id).is_empty():
+		resolved_map_id = String(room_runtime_context.selected_map_id)
+	if resolved_map_id.is_empty():
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(resolved_map_id)
+	var binding_mode_id := String(binding.get("bound_mode_id", ""))
+	var binding_rule_set_id := String(binding.get("bound_rule_set_id", ""))
+	var snapshot_mode_id := String(snapshot.mode_id) if snapshot != null else ""
+	var snapshot_rule_set_id := String(snapshot.rule_set_id) if snapshot != null else ""
+	var context_mode_id := String(room_runtime_context.mode_id) if room_runtime_context != null else ""
+	var context_rule_set_id := String(room_runtime_context.selected_rule_set_id) if room_runtime_context != null else ""
+	var resolved_mode_id := binding_mode_id
+	var resolved_rule_set_id := binding_rule_set_id
+	if resolved_mode_id.is_empty():
+		resolved_mode_id = snapshot_mode_id if ModeCatalogScript.has_mode(snapshot_mode_id) else context_mode_id
+	if resolved_rule_set_id.is_empty():
+		resolved_rule_set_id = snapshot_rule_set_id if RuleSetCatalogScript.has_rule(snapshot_rule_set_id) else context_rule_set_id
+	if not binding.is_empty() and bool(binding.get("valid", false)):
+		if not snapshot_rule_set_id.is_empty() and snapshot_rule_set_id != resolved_rule_set_id:
+			LogNetScript.warn(
+				"BattleStartConfigBuilder: rule mismatch map=%s snapshot=%s authoritative=%s" % [
+					resolved_map_id,
+					snapshot_rule_set_id,
+					resolved_rule_set_id,
+				],
+				"",
+				0,
+				"net.match_start.config"
+			)
+		if not snapshot_mode_id.is_empty() and snapshot_mode_id != resolved_mode_id:
+			LogNetScript.warn(
+				"BattleStartConfigBuilder: mode mismatch map=%s snapshot=%s authoritative=%s" % [
+					resolved_map_id,
+					snapshot_mode_id,
+					resolved_mode_id,
+				],
+				"",
+				0,
+				"net.match_start.config"
+			)
+	return {
+		"map_id": resolved_map_id,
+		"mode_id": resolved_mode_id,
+		"rule_set_id": resolved_rule_set_id,
+	}
 
 
 func _resolve_topology(snapshot: RoomSnapshot, room_runtime_context: RoomRuntimeContext = null) -> String:

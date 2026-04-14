@@ -10,6 +10,7 @@ const ClientConnectionConfigScript = preload("res://network/runtime/client_conne
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
@@ -231,8 +232,20 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 		config.selected_character_skin_id = app_runtime.player_profile_state.default_character_skin_id
 		config.selected_bubble_style_id = app_runtime.player_profile_state.default_bubble_style_id
 		config.selected_bubble_skin_id = app_runtime.player_profile_state.default_bubble_skin_id
-		config.selected_mode_id = app_runtime.player_profile_state.preferred_mode_id
+		var default_selection := _resolve_default_selection(entry_context)
+		config.selected_map_id = String(default_selection.get("map_id", ""))
+		config.selected_rule_set_id = String(default_selection.get("rule_set_id", ""))
+		config.selected_mode_id = String(default_selection.get("mode_id", app_runtime.player_profile_state.preferred_mode_id))
 	_sanitize_connection_profile(config)
+	_log_phase15("connection_selection_resolved", {
+		"entry_kind": String(entry_context.entry_kind),
+		"room_kind": String(entry_context.room_kind),
+		"topology": String(entry_context.topology),
+		"selected_map_id": config.selected_map_id,
+		"selected_rule_set_id": config.selected_rule_set_id,
+		"selected_mode_id": config.selected_mode_id,
+		"target_room_id": String(entry_context.target_room_id),
+	})
 	if config.server_host.strip_edges().is_empty() or config.server_port <= 0:
 		_log_room_anomaly("invalid_connection_config", {
 			"entry_kind": String(entry_context.entry_kind),
@@ -252,6 +265,12 @@ func _sanitize_connection_profile(config: ClientConnectionConfig) -> void:
 		config.selected_character_id = CharacterCatalogScript.get_default_character_id()
 	if not BubbleCatalogScript.has_bubble(config.selected_bubble_style_id):
 		config.selected_bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
+	if config.selected_map_id.is_empty():
+		config.selected_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
+	var binding := MapSelectionCatalogScript.get_map_binding(config.selected_map_id)
+	if not binding.is_empty():
+		config.selected_rule_set_id = String(binding.get("bound_rule_set_id", config.selected_rule_set_id))
+		config.selected_mode_id = String(binding.get("bound_mode_id", config.selected_mode_id))
 	if not ModeCatalogScript.has_mode(config.selected_mode_id):
 		config.selected_mode_id = ModeCatalogScript.get_default_mode_id()
 
@@ -689,3 +708,28 @@ func _build_snapshot_context(snapshot: RoomSnapshot) -> Dictionary:
 	context["snapshot_topology"] = String(snapshot.topology) if snapshot != null else ""
 	context["snapshot_member_count"] = snapshot.members.size() if snapshot != null else -1
 	return context
+
+
+func _resolve_default_selection(entry_context: RoomEntryContext) -> Dictionary:
+	if entry_context != null and String(entry_context.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
+		return {
+			"map_id": String(entry_context.locked_map_id),
+			"rule_set_id": String(entry_context.locked_rule_set_id),
+			"mode_id": String(entry_context.locked_mode_id),
+		}
+	var preferred_map_id := ""
+	if app_runtime != null and app_runtime.player_profile_state != null:
+		preferred_map_id = String(app_runtime.player_profile_state.preferred_map_id)
+	var resolved_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id(preferred_map_id)
+	var binding := MapSelectionCatalogScript.get_map_binding(resolved_map_id)
+	if binding.is_empty():
+		return {
+			"map_id": resolved_map_id,
+			"rule_set_id": "",
+			"mode_id": "",
+		}
+	return {
+		"map_id": resolved_map_id,
+		"rule_set_id": String(binding.get("bound_rule_set_id", "")),
+		"mode_id": String(binding.get("bound_mode_id", "")),
+	}

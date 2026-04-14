@@ -6,7 +6,7 @@ func configure_base_url(base_url: String) -> void:
 	pass
 
 
-func enter_queue(access_token: String, queue_type: String, mode_id: String, rule_set_id: String):
+func enter_queue(access_token: String, queue_type: String, match_format_id: String, mode_id: String, selected_map_ids: Array[String]):
 	return {
 		"ok": false,
 		"error_code": "NOT_IMPLEMENTED",

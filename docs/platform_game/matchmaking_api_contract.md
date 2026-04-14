@@ -25,7 +25,8 @@ Purpose:
 
 Queue semantics:
 
-- Phase20 only supports `2v2`.
+- Phase21 keeps `1v1 / 2v2 / 4v4` as formal queue format ids.
+- Current content baseline only has valid `2v2` maps, so `1v1 / 4v4` may be structurally exposed but operationally disabled.
 - One `profile_id` can have only one active queue entry in states `queued`, `assigned`, or `committing`.
 - Assignment data is authoritative once status becomes `assigned`.
 - Client must not synthesize `map_id`, `rule_set_id`, `mode_id`, or `team_id` after assignment.
@@ -55,13 +56,13 @@ Rules:
 Queue key format:
 
 ```text
-{queue_type}:{mode_id}:{rule_set_id}:2v2
+{queue_type}:{match_format_id}:{mode_id}
 ```
 
 Examples:
 
-- `casual:team_rescue:rescue_rule:2v2`
-- `ranked:team_score:ranked_rule:2v2`
+- `casual:2v2:mode_classic`
+- `ranked:2v2:mode_score_team`
 
 ## POST /api/v1/matchmaking/queue/enter
 
@@ -72,17 +73,18 @@ Request JSON:
 ```json
 {
   "queue_type": "ranked",
-  "mode_id": "team_score",
-  "rule_set_id": "ranked_rule",
-  "preferred_map_pool_id": ""
+  "match_format_id": "2v2",
+  "mode_id": "mode_score_team",
+  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"]
 }
 ```
 
 Request rules:
 
 - `queue_type` must be one of `casual`, `ranked`.
-- `mode_id` and `rule_set_id` are required.
-- `preferred_map_pool_id` is optional in Phase20 and may be empty.
+- `match_format_id` must be one of `1v1`, `2v2`, `4v4`.
+- `mode_id` is required.
+- `selected_map_ids` is required and must contain at least one map id acceptable for the requested format and mode.
 - If the same `profile_id` already has an active queue entry, request must fail.
 
 Success response:
@@ -92,7 +94,11 @@ Success response:
   "ok": true,
   "queue_entry_id": "queue_001",
   "queue_state": "queued",
-  "queue_key": "ranked:team_score:ranked_rule:2v2",
+  "queue_key": "ranked:2v2:mode_score_team",
+  "queue_type": "ranked",
+  "match_format_id": "2v2",
+  "mode_id": "mode_score_team",
+  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"],
   "enqueue_unix_sec": 1770000100,
   "last_heartbeat_unix_sec": 1770000100,
   "assignment_id": "",
@@ -105,8 +111,9 @@ Possible error codes:
 
 - `AUTH_ACCESS_TOKEN_INVALID`
 - `MATCHMAKING_QUEUE_TYPE_INVALID`
+- `MATCHMAKING_FORMAT_INVALID`
 - `MATCHMAKING_MODE_INVALID`
-- `MATCHMAKING_RULE_SET_INVALID`
+- `MATCHMAKING_MAP_SELECTION_INVALID`
 - `MATCHMAKING_QUEUE_ALREADY_ACTIVE`
 - `PROFILE_NOT_FOUND`
 - `INTERNAL_ERROR`
@@ -182,7 +189,11 @@ Success response when queued:
   "ok": true,
   "queue_state": "queued",
   "queue_entry_id": "queue_001",
-  "queue_key": "ranked:team_score:ranked_rule:2v2",
+  "queue_key": "ranked:2v2:mode_score_team",
+  "queue_type": "ranked",
+  "match_format_id": "2v2",
+  "mode_id": "mode_score_team",
+  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"],
   "assignment_id": "",
   "assignment_revision": 0,
   "queue_status_text": "Searching for players",
@@ -200,7 +211,9 @@ Success response when assigned:
   "ok": true,
   "queue_state": "assigned",
   "queue_entry_id": "queue_001",
-  "queue_key": "ranked:team_score:ranked_rule:2v2",
+  "queue_key": "ranked:2v2:mode_score_team",
+  "queue_type": "ranked",
+  "match_format_id": "2v2",
   "assignment_id": "assign_001",
   "assignment_revision": 2,
   "ticket_role": "join",
@@ -208,9 +221,9 @@ Success response when assigned:
   "room_kind": "matchmade_room",
   "server_host": "127.0.0.1",
   "server_port": 9000,
-  "mode_id": "team_score",
+  "mode_id": "mode_score_team",
   "rule_set_id": "ranked_rule",
-  "map_id": "map_factory",
+  "map_id": "map_classic_square",
   "assigned_team_id": 2,
   "captain_account_id": "account_captain",
   "queue_status_text": "Match found",

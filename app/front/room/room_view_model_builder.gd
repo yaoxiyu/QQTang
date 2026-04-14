@@ -1,6 +1,8 @@
 class_name RoomViewModelBuilder
 extends RefCounted
 
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+
 
 func build_view_model(
 	snapshot: RoomSnapshot,
@@ -39,9 +41,16 @@ func build_view_model(
 	var reconnect_window_text := _build_reconnect_window_text(safe_snapshot)
 	var active_match_resume_text := _build_active_match_resume_text(safe_snapshot)
 	var local_team_id := _resolve_local_team_id(members)
-	var team_option_max := int(safe_snapshot.max_players)
-	if team_option_max <= 0:
-		team_option_max = 1
+	var binding := _resolve_map_binding(String(safe_snapshot.selected_map_id))
+	var required_team_count := int(binding.get("required_team_count", min_start_players))
+	if required_team_count <= 0:
+		required_team_count = max(1, min_start_players)
+	var max_player_count := int(binding.get("max_player_count", safe_snapshot.max_players))
+	if max_player_count <= 0:
+		max_player_count = safe_snapshot.max_players
+	var can_edit_selection := is_host and not is_matchmade and not binding.is_empty()
+	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
+	var mode_display_name := String(binding.get("mode_name", safe_snapshot.mode_id))
 
 	return {
 		"title_text": title_text,
@@ -56,7 +65,7 @@ func build_view_model(
 		"pending_action_status_text": pending_action_status_text,
 		"reconnect_window_text": reconnect_window_text,
 		"active_match_resume_text": active_match_resume_text,
-		"can_edit_selection": is_host and not is_matchmade,
+		"can_edit_selection": can_edit_selection,
 		"can_edit_team": (not local_member_ready) and not is_matchmade,
 		"can_ready": can_ready,
 		"can_start": can_start,
@@ -69,12 +78,16 @@ func build_view_model(
 		"selected_map_id": String(safe_snapshot.selected_map_id),
 		"selected_rule_set_id": String(safe_snapshot.rule_set_id),
 		"selected_mode_id": String(safe_snapshot.mode_id),
+		"selected_rule_display_name": rule_display_name,
+		"selected_mode_display_name": mode_display_name,
 		"local_character_id": String(safe_profile.default_character_id),
 		"local_character_skin_id": String(safe_profile.default_character_skin_id),
 		"local_bubble_style_id": String(safe_profile.default_bubble_style_id),
 		"local_bubble_skin_id": String(safe_profile.default_bubble_skin_id),
 		"local_team_id": local_team_id,
-		"team_option_max": team_option_max,
+		"team_option_max": required_team_count,
+		"required_team_count": required_team_count,
+		"max_player_count": max_player_count,
 		"entry_kind": String(safe_entry_context.entry_kind),
 		"return_target": String(safe_entry_context.return_target),
 	}
@@ -116,10 +129,10 @@ func _build_title_text(room_kind: String, room_display_name: String) -> String:
 			return "Matchmade Room"
 		"public_room":
 			if not room_display_name.is_empty():
-				return "Public Room - %s" % room_display_name
-			return "Public Room"
+				return "Custom Room - %s" % room_display_name
+			return "Custom Room"
 		"private_room":
-			return "Private Room"
+			return "Custom Room"
 		_:
 			return room_display_name if not room_display_name.is_empty() else room_kind
 
@@ -193,10 +206,17 @@ func _build_blocker_text(
 		return "" if is_practice else "Waiting for host action"
 	if snapshot.selected_map_id.is_empty() or snapshot.rule_set_id.is_empty() or snapshot.mode_id.is_empty():
 		return "Selection is incomplete"
+	var binding := _resolve_map_binding(String(snapshot.selected_map_id))
+	if binding.is_empty():
+		return "Selection is incomplete"
+	var required_team_count := int(binding.get("required_team_count", min_start_players))
+	var max_player_count := int(binding.get("max_player_count", snapshot.max_players))
+	if max_player_count > 0 and member_count > max_player_count:
+		return "Room is over capacity"
 	if member_count < min_start_players:
 		return "Need at least %d player(s)" % min_start_players
-	if _count_distinct_team_ids(snapshot) < 2:
-		return "At least two teams are required"
+	if _count_distinct_team_ids(snapshot) < required_team_count:
+		return "Need at least %d teams" % required_team_count
 	if not snapshot.all_ready:
 		return "All players must be ready"
 	return ""
@@ -246,9 +266,9 @@ func _format_room_kind(room_kind: String) -> String:
 		"matchmade_room":
 			return "Matchmade Room"
 		"private_room":
-			return "Private Room"
+			return "Custom Room (Private)"
 		"public_room":
-			return "Public Room"
+			return "Custom Room (Public)"
 		_:
 			return room_kind
 
@@ -318,3 +338,12 @@ func _build_active_match_resume_text(snapshot: RoomSnapshot) -> String:
 	if disconnected_count > 0:
 		return "Active Match Resume: %d disconnected" % disconnected_count
 	return "Active Match Resume: all connected"
+
+
+func _resolve_map_binding(map_id: String) -> Dictionary:
+	if map_id.is_empty():
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return {}
+	return binding

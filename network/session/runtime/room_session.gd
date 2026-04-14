@@ -1,6 +1,9 @@
 class_name RoomSession
 extends RefCounted
 
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+
 var room_id: String = ""
 var room_kind: String = ""
 var topology: String = ""
@@ -43,8 +46,17 @@ func set_ready(peer_id: int, ready: bool) -> void:
 func set_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
 	if locked:
 		return
-
-	selected_map_id = map_id
+	var resolved_map_id := map_id
+	if resolved_map_id.is_empty() and room_kind != "matchmade_room":
+		resolved_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
+	if resolved_map_id.is_empty():
+		resolved_map_id = MapCatalogScript.get_default_map_id()
+	var binding := MapSelectionCatalogScript.get_map_binding(resolved_map_id)
+	selected_map_id = resolved_map_id
+	if not binding.is_empty() and bool(binding.get("valid", false)):
+		selected_rule_set_id = String(binding.get("bound_rule_set_id", rule_set_id))
+		selected_mode_id = String(binding.get("bound_mode_id", mode_id))
+		return
 	selected_rule_set_id = rule_set_id
 	selected_mode_id = mode_id
 

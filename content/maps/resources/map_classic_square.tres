@@ -17,4 +17,8 @@ foreground_overlay_entries = Array[Dictionary]([{
 "offset_px": Vector2(0, -18),
 "presentation_id": "tile_pres_tree_canopy_placeholder"
 }])
+bound_mode_id = "mode_classic"
+bound_rule_set_id = "ruleset_classic"
+matchmaking_ranked_enabled = true
+sort_order = 10
 content_hash = "map_classic_square_csv_v1"

@@ -5,11 +5,13 @@ const CharacterLoaderScript = preload("res://content/characters/runtime/characte
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const ModeLoaderScript = preload("res://content/modes/runtime/mode_loader.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const MapThemeCatalogScript = preload("res://content/map_themes/catalog/map_theme_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const LogBattleScript = preload("res://app/logging/log_battle.gd")
 
 const MAP_DATA_DIR := "res://content/maps/data/map"
 
@@ -22,22 +24,52 @@ func build(room_selection_state: RoomSelectionState) -> BattleRuntimeConfig:
 		return _fail_with("BattleRuntimeConfigBuilder.build: room_selection_state is null")
 
 	var mode_id := String(room_selection_state.mode_id)
-	if mode_id.is_empty():
-		return _fail_with("BattleRuntimeConfigBuilder.build: room_selection_state.mode_id is empty")
+	var map_id := String(room_selection_state.map_id)
+	if map_id.is_empty():
+		return _fail_with("BattleRuntimeConfigBuilder.build: room_selection_state.map_id is empty")
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return _fail_with("BattleRuntimeConfigBuilder.build: invalid map binding for map=%s" % map_id)
+	var authoritative_mode_id := String(binding.get("bound_mode_id", mode_id))
+	var authoritative_rule_set_id := String(binding.get("bound_rule_set_id", ""))
+	if authoritative_mode_id.is_empty():
+		return _fail_with("BattleRuntimeConfigBuilder.build: authoritative mode_id is empty for map=%s" % map_id)
 	var mode_config := ModeLoaderScript.load_mode_def(mode_id)
+	if authoritative_mode_id != mode_id and not mode_id.is_empty():
+		LogBattleScript.warn(
+			"BattleRuntimeConfigBuilder.build: mode mismatch map=%s snapshot=%s authoritative=%s" % [
+				map_id,
+				mode_id,
+				authoritative_mode_id,
+			],
+			"",
+			0,
+			"battle.runtime.config"
+		)
+	mode_config = ModeLoaderScript.load_mode_def(authoritative_mode_id)
 	if mode_config == null:
-		return _fail_with("BattleRuntimeConfigBuilder.build: failed to load mode: %s" % mode_id)
+		return _fail_with("BattleRuntimeConfigBuilder.build: failed to load mode: %s" % authoritative_mode_id)
 
-	var rule_set_id := String(mode_config.rule_set_id)
+	var rule_set_id := authoritative_rule_set_id
 	if rule_set_id.is_empty():
-		return _fail_with("BattleRuntimeConfigBuilder.build: mode.rule_set_id is empty for mode=%s" % mode_id)
+		rule_set_id = String(mode_config.rule_set_id)
+	if rule_set_id.is_empty():
+		return _fail_with("BattleRuntimeConfigBuilder.build: authoritative rule_set_id is empty for map=%s" % map_id)
+	if authoritative_rule_set_id != String(room_selection_state.rule_set_id) and not String(room_selection_state.rule_set_id).is_empty():
+		LogBattleScript.warn(
+			"BattleRuntimeConfigBuilder.build: rule mismatch map=%s snapshot=%s authoritative=%s" % [
+				map_id,
+				String(room_selection_state.rule_set_id),
+				authoritative_rule_set_id,
+			],
+			"",
+			0,
+			"battle.runtime.config"
+		)
 	var rule_config := RuleSetCatalogScript.get_by_id(rule_set_id)
 	if rule_config == null:
 		return _fail_with("BattleRuntimeConfigBuilder.build: failed to load RuleSetDef: %s" % rule_set_id)
 
-	var map_id := String(room_selection_state.map_id)
-	if map_id.is_empty():
-		return _fail_with("BattleRuntimeConfigBuilder.build: room_selection_state.map_id is empty")
 	var map_config := _load_map_def(map_id)
 	if map_config == null:
 		return _fail_with("BattleRuntimeConfigBuilder.build: failed to load MapDef: %s" % map_id)
@@ -142,10 +174,10 @@ func _load_map_def(map_id: String) -> MapDef:
 		var resource := load(resource_path)
 		if resource != null and resource is MapDef:
 			return resource as MapDef
-		push_error("BattleRuntimeConfigBuilder._load_map_def: invalid MapDef resource: %s" % resource_path)
+		LogBattleScript.error("BattleRuntimeConfigBuilder._load_map_def: invalid MapDef resource: %s" % resource_path, "", 0, "battle.runtime.config")
 	var map_resource := MapLoaderScript.load_map_resource(map_id)
 	if map_resource == null:
-		push_error("BattleRuntimeConfigBuilder._load_map_def: missing map resource: %s" % resource_path)
+		LogBattleScript.error("BattleRuntimeConfigBuilder._load_map_def: missing map resource: %s" % resource_path, "", 0, "battle.runtime.config")
 		return null
 	var compat_def := MapDef.new()
 	compat_def.map_id = String(map_resource.map_id)
@@ -159,5 +191,5 @@ func _load_map_def(map_id: String) -> MapDef:
 
 func _fail_with(message: String):
 	_last_errors.append(message)
-	push_error(message)
+	LogBattleScript.error(message, "", 0, "battle.runtime.config")
 	return null

@@ -4,6 +4,7 @@ extends Node
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
@@ -194,10 +195,29 @@ func _handle_create_request(message: Dictionary) -> void:
 		return
 	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
 	_apply_ticket_claim_to_room_state(ticket_claim)
-	room_state.set_selection(
+	var resolved_selection := _resolve_selection_from_map(
 		room_ticket_verifier.resolve_requested_map_id(message, ticket_claim),
 		room_ticket_verifier.resolve_requested_rule_set_id(message, ticket_claim),
-		room_ticket_verifier.resolve_requested_mode_id(message, ticket_claim)
+		room_ticket_verifier.resolve_requested_mode_id(message, ticket_claim),
+		not room_state.is_matchmade_room
+	)
+	if resolved_selection.is_empty():
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "ROOM_SELECTION_INVALID",
+			"user_message": "Map selection is invalid",
+		})
+		return
+	_log_online_room_service("create_request_selection_resolved", _with_service_debug_payload(_build_online_service_context(ticket_claim, message), {
+		"visibility": requested_room_kind,
+		"default_map_id": String(resolved_selection.get("map_id", "")),
+		"derived_mode_id": String(resolved_selection.get("mode_id", "")),
+		"derived_rule_set_id": String(resolved_selection.get("rule_set_id", "")),
+	}))
+	room_state.set_selection(
+		String(resolved_selection.get("map_id", "")),
+		String(resolved_selection.get("rule_set_id", "")),
+		String(resolved_selection.get("mode_id", ""))
 	)
 	room_state.upsert_member(
 		peer_id,
@@ -407,29 +427,31 @@ func _handle_update_selection(message: Dictionary) -> void:
 		})
 		return
 	var map_id := String(message.get("map_id", ""))
-	var rule_set_id := String(message.get("rule_set_id", ""))
-	var mode_id := String(message.get("mode_id", ""))
-	if not MapCatalogScript.has_map(map_id) or not RuleSetCatalogScript.has_rule(rule_set_id) or not ModeCatalogScript.has_mode(mode_id):
+	var old_map_id := String(room_state.selected_map_id)
+	var resolved_selection := _resolve_selection_from_map(
+		map_id,
+		String(message.get("rule_set_id", "")),
+		String(message.get("mode_id", "")),
+		false
+	)
+	if resolved_selection.is_empty():
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_SELECTION_INVALID",
-			"user_message": "Map, rule, or mode selection is invalid",
-		})
-		return
-	var mode_metadata := ModeCatalogScript.get_mode_metadata(mode_id)
-	var mode_rule_set_id := String(mode_metadata.get("rule_set_id", ""))
-	if not mode_rule_set_id.is_empty() and mode_rule_set_id != rule_set_id:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_SELECTION_INVALID",
-			"user_message": "Mode does not match the selected rule set",
+			"user_message": "Map selection is invalid",
 		})
 		return
 	room_state.set_selection(
-		map_id,
-		rule_set_id,
-		mode_id
+		String(resolved_selection.get("map_id", "")),
+		String(resolved_selection.get("rule_set_id", "")),
+		String(resolved_selection.get("mode_id", ""))
 	)
+	_log_online_room_service("room_selection_changed", _with_service_debug_payload(_build_online_service_context(null, message), {
+		"old_map_id": old_map_id,
+		"new_map_id": String(resolved_selection.get("map_id", "")),
+		"derived_mode_id": String(resolved_selection.get("mode_id", "")),
+		"derived_rule_set_id": String(resolved_selection.get("rule_set_id", "")),
+	}))
 	_broadcast_snapshot()
 
 
@@ -459,6 +481,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if room_state.match_active:
+		_log_online_room_service("start_blocked_match_active", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "MATCH_ALREADY_ACTIVE",
@@ -466,6 +489,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if room_state.get_distinct_team_ids().size() < 2:
+		_log_online_room_service("start_blocked_team_count", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_TEAM_INVALID",
@@ -473,6 +497,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if peer_id != room_state.owner_peer_id or not room_state.can_start():
+		_log_online_room_service("start_blocked_room_not_ready", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_START_FORBIDDEN",
@@ -634,7 +659,7 @@ func _maybe_auto_start_match() -> void:
 		_log_online_room_service("auto_start_waiting_members", _build_online_service_context())
 		return
 	if not room_state.can_start():
-		_log_online_room_service("auto_start_blocked_can_start_false", _build_online_service_context())
+		_log_online_room_service("auto_start_blocked_can_start_false", _build_start_gate_debug_context())
 		return
 	_log_online_room_service("auto_start_triggered", _build_online_service_context())
 	start_match_requested.emit(room_state.build_snapshot())
@@ -816,3 +841,54 @@ func _build_online_service_context(ticket_claim = null, message: Dictionary = {}
 
 func _log_online_room_service(event_name: String, payload: Dictionary) -> void:
 	LogNetScript.debug("%s[server_room_service] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.room_service")
+
+
+func _with_service_debug_payload(base_payload: Dictionary, extra_payload: Dictionary) -> Dictionary:
+	var payload := base_payload.duplicate(true)
+	for key in extra_payload.keys():
+		payload[key] = extra_payload[key]
+	return payload
+
+
+func _build_start_gate_debug_context(message: Dictionary = {}) -> Dictionary:
+	var payload := _build_online_service_context(null, message)
+	var binding := MapSelectionCatalogScript.get_map_binding(String(room_state.selected_map_id)) if room_state != null else {}
+	var required_team_count := int(binding.get("required_team_count", room_state.min_start_players if room_state != null else 0))
+	var max_player_count := int(binding.get("max_player_count", room_state.max_players if room_state != null else 0))
+	var non_empty_team_count := room_state.get_distinct_team_ids().size() if room_state != null else 0
+	payload["map_id"] = String(room_state.selected_map_id) if room_state != null else ""
+	payload["rule_set_id"] = String(room_state.selected_rule_id) if room_state != null else ""
+	payload["mode_id"] = String(room_state.selected_mode_id) if room_state != null else ""
+	payload["required_team_count"] = required_team_count
+	payload["non_empty_team_count"] = non_empty_team_count
+	payload["member_count"] = room_state.members.size() if room_state != null else 0
+	payload["max_player_count"] = max_player_count
+	payload["all_ready"] = _are_all_members_ready()
+	return payload
+
+
+func _are_all_members_ready() -> bool:
+	if room_state == null:
+		return false
+	for peer_id in room_state.members.keys():
+		if not bool(room_state.ready_map.get(peer_id, false)):
+			return false
+	return true
+
+
+func _resolve_selection_from_map(map_id: String, fallback_rule_set_id: String, fallback_mode_id: String, allow_custom_default: bool) -> Dictionary:
+	var resolved_map_id := map_id
+	if resolved_map_id.is_empty() and allow_custom_default:
+		resolved_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
+	if resolved_map_id.is_empty():
+		return {}
+	if not MapCatalogScript.has_map(resolved_map_id):
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(resolved_map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return {}
+	return {
+		"map_id": resolved_map_id,
+		"rule_set_id": String(binding.get("bound_rule_set_id", fallback_rule_set_id)),
+		"mode_id": String(binding.get("bound_mode_id", fallback_mode_id)),
+	}

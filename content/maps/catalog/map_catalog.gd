@@ -2,6 +2,9 @@ class_name MapCatalog
 extends RefCounted
 
 const MapResourceScript = preload("res://content/maps/resources/map_resource.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const LogContentScript = preload("res://app/logging/log_content.gd")
 const DATA_DIR := "res://content/maps/resources"
 
 const LEGACY_MAP_REGISTRY := {}
@@ -21,12 +24,13 @@ static func load_all() -> void:
 			var resource_path := "%s/%s" % [DATA_DIR, file_name]
 			var resource := load(resource_path)
 			if resource == null or not resource is MapResourceScript:
-				push_error("MapCatalog failed to load MapResource: %s" % resource_path)
+				LogContentScript.error("MapCatalog failed to load MapResource: %s" % resource_path, "", 0, "content.map.catalog")
 				continue
 			var map_resource := resource as MapResource
 			if map_resource.map_id.is_empty():
-				push_error("MapCatalog map_id is empty: %s" % resource_path)
+				LogContentScript.error("MapCatalog map_id is empty: %s" % resource_path, "", 0, "content.map.catalog")
 				continue
+			_validate_map_resource(map_resource, resource_path)
 			_map_registry[map_resource.map_id] = {
 				"display_name": String(map_resource.display_name if not map_resource.display_name.is_empty() else map_resource.map_id),
 				"resource_path": resource_path,
@@ -66,6 +70,15 @@ static func get_map_entries() -> Array:
 			"width": int(metadata.get("width", 0)),
 			"height": int(metadata.get("height", 0)),
 			"item_spawn_profile_id": String(metadata.get("item_spawn_profile_id", "")),
+			"bound_mode_id": String(metadata.get("bound_mode_id", "")),
+			"bound_rule_set_id": String(metadata.get("bound_rule_set_id", "")),
+			"match_format_id": String(metadata.get("match_format_id", "2v2")),
+			"required_team_count": int(metadata.get("required_team_count", 2)),
+			"max_player_count": int(metadata.get("max_player_count", 0)),
+			"custom_room_enabled": bool(metadata.get("custom_room_enabled", true)),
+			"matchmaking_casual_enabled": bool(metadata.get("matchmaking_casual_enabled", true)),
+			"matchmaking_ranked_enabled": bool(metadata.get("matchmaking_ranked_enabled", false)),
+			"sort_order": int(metadata.get("sort_order", 0)),
 			"resource_path": get_map_path(map_id),
 		})
 	return entries
@@ -118,3 +131,39 @@ static func get_map_metadata(map_id: String) -> Dictionary:
 static func _ensure_loaded() -> void:
 	if _map_registry.is_empty():
 		load_all()
+
+
+static func _validate_map_resource(map_resource: MapResource, resource_path: String) -> void:
+	if map_resource == null:
+		return
+	var issues: Array[String] = []
+	if map_resource.bound_mode_id.is_empty():
+		issues.append("bound_mode_id is empty")
+	elif not ModeCatalogScript.has_mode(map_resource.bound_mode_id):
+		issues.append("bound_mode_id is unknown: %s" % map_resource.bound_mode_id)
+	if map_resource.bound_rule_set_id.is_empty():
+		issues.append("bound_rule_set_id is empty")
+	elif not RuleSetCatalogScript.has_rule(map_resource.bound_rule_set_id):
+		issues.append("bound_rule_set_id is unknown: %s" % map_resource.bound_rule_set_id)
+	if map_resource.required_team_count < 2:
+		issues.append("required_team_count must be >= 2")
+	if map_resource.max_player_count <= 0:
+		issues.append("max_player_count must be > 0")
+	elif map_resource.spawn_points.size() < map_resource.max_player_count:
+		issues.append(
+			"spawn_points size (%d) is smaller than max_player_count (%d)" % [
+				map_resource.spawn_points.size(),
+				map_resource.max_player_count,
+			]
+		)
+	if issues.is_empty():
+		return
+	LogContentScript.warn(
+		"MapCatalog validation warning for %s: %s" % [
+			resource_path,
+			"; ".join(issues),
+		],
+		"",
+		0,
+		"content.map.catalog"
+	)

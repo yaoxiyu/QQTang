@@ -1,12 +1,15 @@
 extends Node
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
 const RoomRuntimeContextScript = preload("res://network/session/runtime/room_runtime_context.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
+const PHASE21_LOG_PREFIX := "[QQT_P21]"
 signal room_snapshot_changed(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 signal room_flow_state_changed(previous_state: int, new_state: int, reason: String)
@@ -79,10 +82,10 @@ func create_room(owner_peer_id: int) -> void:
 	room_session = RoomSession.new("room_%d" % owner_peer_id)
 	room_session.room_kind = "private_room"
 	room_session.topology = "dedicated_server"
-	room_session.min_start_players = 2
 	self.owner_peer_id = owner_peer_id
 	member_profiles.clear()
 	room_session.add_peer(owner_peer_id)
+	set_room_selection("", "", "")
 	set_room_flow_state(RoomFlowStateScript.Value.HOSTING, "room_created")
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "host_room_ready")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "room_created")
@@ -145,9 +148,16 @@ func set_member_ready(peer_id: int, ready: bool) -> void:
 
 
 func can_start_match() -> bool:
+	var binding := _resolve_map_binding(_resolve_map_id())
+	if binding.is_empty():
+		return false
+	var required_team_count := int(binding.get("required_team_count", room_session.min_start_players))
+	var max_player_count := int(binding.get("max_player_count", max_players))
 	if room_session.peers.size() < room_session.min_start_players:
 		return false
-	if _collect_distinct_team_ids().size() < 2:
+	if max_player_count > 0 and room_session.peers.size() > max_player_count:
+		return false
+	if _collect_distinct_team_ids().size() < required_team_count:
 		return false
 	if not MapCatalogScript.has_map(_resolve_map_id()):
 		return false
@@ -175,15 +185,28 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Only the host can start the match",
 		}
+	var binding := _resolve_map_binding(_resolve_map_id())
+	if binding.is_empty():
+		return {
+			"error_code": "ROOM_SELECTION_INVALID",
+			"user_message": "Selection is incomplete",
+		}
+	var required_team_count := int(binding.get("required_team_count", room_session.min_start_players))
+	var max_player_count := int(binding.get("max_player_count", max_players))
 	if room_session.peers.size() < room_session.min_start_players:
 		return {
 			"error_code": "ROOM_MEMBER_NOT_READY",
 			"user_message": "At least %d player(s) are required to start" % room_session.min_start_players,
 		}
-	if _collect_distinct_team_ids().size() < 2:
+	if max_player_count > 0 and room_session.peers.size() > max_player_count:
+		return {
+			"error_code": "ROOM_CAPACITY_EXCEEDED",
+			"user_message": "Room is over capacity",
+		}
+	if _collect_distinct_team_ids().size() < required_team_count:
 		return {
 			"error_code": "ROOM_TEAM_INVALID",
-			"user_message": "At least two teams are required to start",
+			"user_message": "Need at least %d teams" % required_team_count,
 		}
 	if not MapCatalogScript.has_map(_resolve_map_id()) or not RuleSetCatalogScript.has_rule(_resolve_rule_set_id()):
 		return {
@@ -228,21 +251,24 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Only the host can change room selection",
 		}
-	if not MapCatalogScript.has_map(map_id) or not RuleSetCatalogScript.has_rule(rule_set_id) or not ModeCatalogScript.has_mode(mode_id):
+	var binding := _resolve_map_binding(map_id)
+	if binding.is_empty():
+		_log_phase21("selection_update_rejected_invalid_binding", {
+			"requester_peer_id": requester_peer_id,
+			"requested_map_id": map_id,
+			"requested_rule_set_id": rule_set_id,
+			"requested_mode_id": mode_id,
+		})
 		return {
 			"ok": false,
 			"error_code": "ROOM_SELECTION_INVALID",
-			"user_message": "Map, rule, or mode selection is invalid",
+			"user_message": "Map selection is invalid",
 		}
-	var mode_metadata := ModeCatalogScript.get_mode_metadata(mode_id)
-	var mode_rule_set_id := String(mode_metadata.get("rule_set_id", ""))
-	if not mode_rule_set_id.is_empty() and mode_rule_set_id != rule_set_id:
-		return {
-			"ok": false,
-			"error_code": "ROOM_SELECTION_INVALID",
-			"user_message": "Mode does not match the selected rule set",
-		}
-	set_room_selection(map_id, rule_set_id, mode_id)
+	set_room_selection(
+		String(binding.get("map_id", map_id)),
+		String(binding.get("bound_rule_set_id", rule_set_id)),
+		String(binding.get("bound_mode_id", mode_id))
+	)
 	return {"ok": true}
 
 
@@ -320,6 +346,18 @@ func request_begin_match(requester_peer_id: int) -> Dictionary:
 	var blocker := get_start_match_blocker(requester_peer_id)
 	if not blocker.is_empty():
 		blocker["ok"] = false
+		_log_phase21("start_match_blocked", {
+			"requester_peer_id": requester_peer_id,
+			"error_code": String(blocker.get("error_code", "")),
+			"user_message": String(blocker.get("user_message", "")),
+			"map_id": _resolve_map_id(),
+			"rule_set_id": _resolve_rule_set_id(),
+			"mode_id": _resolve_mode_id(),
+			"member_count": room_session.peers.size() if room_session != null else 0,
+			"team_count": _collect_distinct_team_ids().size(),
+			"min_start_players": room_session.min_start_players if room_session != null else 0,
+			"max_players": max_players,
+		})
 		return blocker
 	request_start_match(requester_peer_id)
 	return {"ok": true, "snapshot": build_room_snapshot().to_dict()}
@@ -337,11 +375,25 @@ func request_start_match(requester_peer_id: int) -> void:
 
 
 func set_room_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
-	room_session.set_selection(
-		map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id(),
-		rule_set_id if not rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id(),
-		mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
-	)
+	var old_map_id := _resolve_map_id()
+	var resolved_map_id := _resolve_custom_room_map_id(map_id)
+	var binding := _resolve_map_binding(resolved_map_id)
+	var resolved_rule_set_id := String(binding.get("bound_rule_set_id", rule_set_id if not rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()))
+	var resolved_mode_id := String(binding.get("bound_mode_id", mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()))
+	room_session.set_selection(resolved_map_id, resolved_rule_set_id, resolved_mode_id)
+	if not binding.is_empty():
+		room_session.min_start_players = int(binding.get("required_team_count", room_session.min_start_players))
+		max_players = int(binding.get("max_player_count", max_players))
+	_log_phase21("room_selection_resolved", {
+		"old_map_id": old_map_id,
+		"new_map_id": resolved_map_id,
+		"derived_rule_set_id": resolved_rule_set_id,
+		"derived_mode_id": resolved_mode_id,
+		"required_team_count": room_session.min_start_players,
+		"max_player_count": max_players,
+		"binding_valid": not binding.is_empty(),
+		"room_kind": String(room_session.room_kind) if room_session != null else "",
+	})
 	_sync_runtime_context()
 	_emit_snapshot_changed()
 
@@ -358,8 +410,6 @@ func configure_practice_room(
 	room_session = RoomSession.new("practice")
 	room_session.room_kind = "practice"
 	room_session.topology = "local"
-	room_session.min_start_players = 1
-	max_players = 1
 	owner_peer_id = local_peer_id
 	member_profiles.clear()
 	room_session.add_peer(local_peer_id)
@@ -373,6 +423,8 @@ func configure_practice_room(
 		"team_id": 1,
 	}
 	set_room_selection(map_id, rule_id, mode_id)
+	room_session.min_start_players = 1
+	max_players = 1
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "practice_room_configured")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "practice_room_configured")
 	_sync_runtime_context()
@@ -600,3 +652,25 @@ func _can_interact_in_room() -> bool:
 
 func _reassign_owner() -> void:
 	owner_peer_id = room_session.peers[0] if not room_session.peers.is_empty() else 0
+
+
+func _resolve_custom_room_map_id(preferred_map_id: String) -> String:
+	if room_session != null and room_session.room_kind == "matchmade_room":
+		return preferred_map_id if not preferred_map_id.is_empty() else MapCatalogScript.get_default_map_id()
+	var resolved_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id(preferred_map_id)
+	if not resolved_map_id.is_empty():
+		return resolved_map_id
+	return preferred_map_id if not preferred_map_id.is_empty() else MapCatalogScript.get_default_map_id()
+
+
+func _resolve_map_binding(map_id: String) -> Dictionary:
+	if map_id.is_empty():
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return {}
+	return binding
+
+
+func _log_phase21(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("%s[room_session_controller] %s %s" % [PHASE21_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.room_session.controller")

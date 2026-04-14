@@ -14,23 +14,27 @@ func build_view_models(snapshot: RoomDirectorySnapshot) -> Array[Dictionary]:
 		if entry == null:
 			continue
 		var room_display_name := String(entry.room_display_name if not String(entry.room_display_name).is_empty() else entry.room_id)
+		var mode_id := String(entry.mode_id)
+		var mode_name := _resolve_mode_name(mode_id)
 		view_models.append({
 			"room_id": String(entry.room_id),
 			"room_display_name": room_display_name,
 			"room_kind": String(entry.room_kind),
+			"mode_id": mode_id,
+			"mode_name": mode_name,
 			"owner_name": _resolve_owner_name(entry),
 			"map_name": _resolve_map_name(String(entry.selected_map_id)),
 			"rule_name": _resolve_rule_name(String(entry.rule_set_id)),
-			"mode_name": _resolve_mode_name(String(entry.mode_id)),
+			"mode_name_text": mode_name,
 			"member_text": "%d/%d" % [int(entry.member_count), int(entry.max_players)],
 			"joinable": bool(entry.joinable),
 			"match_active": bool(entry.match_active),
-			"summary_text": _build_summary_text(entry, room_display_name),
+			"summary_text": _build_summary_text(entry, room_display_name, mode_name),
 		})
 	return view_models
 
 
-func _build_summary_text(entry: RoomDirectoryEntry, room_display_name: String) -> String:
+func _build_summary_text(entry: RoomDirectoryEntry, room_display_name: String, mode_name: String) -> String:
 	var suffix := ""
 	if bool(entry.match_active):
 		suffix = " [In Match]"
@@ -39,8 +43,8 @@ func _build_summary_text(entry: RoomDirectoryEntry, room_display_name: String) -
 	return "%s | %s | %s | %s | %s%s" % [
 		room_display_name,
 		_resolve_owner_name(entry),
+		mode_name,
 		_resolve_map_name(String(entry.selected_map_id)),
-		_resolve_rule_name(String(entry.rule_set_id)),
 		"%d/%d" % [int(entry.member_count), int(entry.max_players)],
 		suffix,
 	]

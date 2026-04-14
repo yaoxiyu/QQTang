@@ -263,8 +263,8 @@ autowrap_mode = 2
 
 [node name="RefreshCareerButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox" unique_id=1252159047]
 layout_mode = 2
-text = "Refresh Career"
 size_flags_horizontal = 0
+text = "Refresh Career"
 
 [node name="PracticeCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=1936014117]
 layout_mode = 2
@@ -275,33 +275,6 @@ layout_mode = 2
 [node name="PracticeTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox" unique_id=1475125928]
 layout_mode = 2
 text = "Practice"
-
-[node name="PracticeMapRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox" unique_id=404001715]
-layout_mode = 2
-
-[node name="PracticeMapLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeMapRow" unique_id=236806591]
-layout_mode = 2
-
-[node name="PracticeMapSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeMapRow" unique_id=1091915188]
-layout_mode = 2
-
-[node name="PracticeRuleRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox" unique_id=1987186887]
-layout_mode = 2
-
-[node name="PracticeRuleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeRuleRow" unique_id=1032685101]
-layout_mode = 2
-
-[node name="PracticeRuleSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeRuleRow" unique_id=298778879]
-layout_mode = 2
-
-[node name="PracticeModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox" unique_id=1001836100]
-layout_mode = 2
-
-[node name="PracticeModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeModeRow" unique_id=2035349432]
-layout_mode = 2
-
-[node name="PracticeModeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeModeRow" unique_id=1357303427]
-layout_mode = 2
 
 [node name="StartPracticeButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox" unique_id=889028129]
 layout_mode = 2
@@ -332,16 +305,6 @@ layout_mode = 2
 [node name="PortInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/ServerRow" unique_id=1526289612]
 layout_mode = 2
 
-[node name="CreateRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=1640567019]
-layout_mode = 2
-
-[node name="CreateRoomHintLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreateRoomRow" unique_id=1699146807]
-layout_mode = 2
-
-[node name="CreateRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreateRoomRow" unique_id=735352221]
-layout_mode = 2
-text = "Create Room"
-
 [node name="JoinRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=2113898342]
 layout_mode = 2
 
@@ -370,24 +333,46 @@ text = "Connect Server"
 layout_mode = 2
 text = "Refresh Rooms"
 
-[node name="CreatePublicRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=969818193]
+[node name="CustomRoomCreateRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=180745022]
 layout_mode = 2
 
-[node name="PublicRoomNameLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=1127369367]
+[node name="RoomVisibilityLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow" unique_id=156784016]
 layout_mode = 2
-text = "Public Room Name"
+text = "房间可见性"
 
-[node name="PublicRoomNameInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=567518521]
+[node name="RoomVisibilitySelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow" unique_id=1668976792]
 layout_mode = 2
-placeholder_text = "room name"
+item_count = 2
+popup/item_0/text = "Private"
+popup/item_0/id = 0
+popup/item_1/text = "Public"
+popup/item_1/id = 1
 
-[node name="CreatePublicRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreatePublicRoomRow" unique_id=1093508964]
+[node name="CustomRoomNameLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow" unique_id=325926845]
 layout_mode = 2
-text = "Create Public Room"
+text = "自定义房间名"
+
+[node name="CustomRoomNameInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow" unique_id=448455868]
+layout_mode = 2
+placeholder_text = "公开房间必填"
+
+[node name="CreateCustomRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow" unique_id=1665812622]
+layout_mode = 2
+text = "创建自定义房间"
+
+[node name="CustomRoomFilterRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=104807615]
+layout_mode = 2
+
+[node name="CustomRoomModeFilterLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomFilterRow" unique_id=1695612438]
+layout_mode = 2
+text = "玩法筛选"
+
+[node name="CustomRoomModeFilterSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomFilterRow" unique_id=1306278741]
+layout_mode = 2
 
 [node name="PublicRoomListTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=1913070309]
 layout_mode = 2
-text = "Public Rooms"
+text = "自定义房间列表"
 
 [node name="PublicRoomList" type="ItemList" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=2074634657]
 custom_minimum_size = Vector2(0, 180)
@@ -395,7 +380,7 @@ layout_mode = 2
 
 [node name="JoinSelectedPublicRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=1180817432]
 layout_mode = 2
-text = "Join Selected Room"
+text = "加入自定义房间"
 
 [node name="DirectoryStatusLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox" unique_id=322910582]
 layout_mode = 2
@@ -421,19 +406,19 @@ layout_mode = 2
 text = "Game Service Host"
 
 [node name="GameServiceHostInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=245683158]
-layout_mode = 2
-placeholder_text = "127.0.0.1"
-size_flags_horizontal = 3
 custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "127.0.0.1"
 
 [node name="GameServicePortLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=1696999629]
 layout_mode = 2
 text = "Port"
 
 [node name="GameServicePortInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=170416829]
+custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
 placeholder_text = "18081"
-custom_minimum_size = Vector2(96, 0)
 
 [node name="QueueTypeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=267330401]
 layout_mode = 2
@@ -444,35 +429,9 @@ layout_mode = 2
 text = "Queue Type"
 
 [node name="QueueTypeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow" unique_id=2029924615]
-layout_mode = 2
-size_flags_horizontal = 3
 custom_minimum_size = Vector2(180, 0)
-
-[node name="QueueModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1021532690]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="QueueModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueModeRow" unique_id=1750391047]
-layout_mode = 2
-text = "Mode"
-
-[node name="QueueModeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueModeRow" unique_id=1632855128]
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(220, 0)
-
-[node name="QueueRuleRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1960837822]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="QueueRuleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueRuleRow" unique_id=259352098]
-layout_mode = 2
-text = "Rule"
-
-[node name="QueueRuleSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueRuleRow" unique_id=683540986]
-layout_mode = 2
-size_flags_horizontal = 3
-custom_minimum_size = Vector2(220, 0)
 
 [node name="QueueActionRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=450860999]
 layout_mode = 2
@@ -480,13 +439,13 @@ theme_override_constants/separation = 12
 
 [node name="EnterQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=389456174]
 layout_mode = 2
-text = "Enter Queue"
 size_flags_horizontal = 3
+text = "Enter Queue"
 
 [node name="CancelQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=1305131417]
 layout_mode = 2
-text = "Cancel Queue"
 size_flags_horizontal = 3
+text = "Cancel Queue"
 
 [node name="QueueStatusLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1429993601]
 layout_mode = 2
@@ -495,9 +454,39 @@ autowrap_mode = 2
 
 [node name="AssignmentSummaryLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1114078427]
 layout_mode = 2
+size_flags_horizontal = 3
 text = "Assignment: -"
 autowrap_mode = 3
-size_flags_horizontal = 3
+
+[node name="QueueFormatRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1617970050]
+layout_mode = 2
+
+[node name="QueueFormatLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow" unique_id=803631003]
+layout_mode = 2
+text = "人数模式"
+
+[node name="QueueFormatSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow" unique_id=845365515]
+layout_mode = 2
+
+[node name="QueueGameModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1279979999]
+layout_mode = 2
+
+[node name="QueueGameModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow" unique_id=1488116089]
+layout_mode = 2
+text = "玩法模式"
+
+[node name="QueueGameModeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow" unique_id=284631040]
+layout_mode = 2
+
+[node name="QueueMapListTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1293790382]
+layout_mode = 2
+text = "地图池（可多选）"
+
+[node name="QueueMapMultiSelect" type="ItemList" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1871738626]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+select_mode = 1
+allow_reselect = true
 
 [node name="RecentCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=723798529]
 layout_mode = 2

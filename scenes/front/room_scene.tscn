@@ -228,10 +228,8 @@ custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Rule"
 
-[node name="RuleSelector" type="OptionButton" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=1961601893]
-custom_minimum_size = Vector2(180, 0)
+[node name="RuleValueLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=615274748]
 layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="ModeRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1168006238]
 layout_mode = 2

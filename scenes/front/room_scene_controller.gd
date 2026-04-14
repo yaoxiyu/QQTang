@@ -5,11 +5,12 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
-const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const RoomScenePresenterScript = preload("res://app/front/room/room_scene_presenter.gd")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const PHASE21_LOG_PREFIX := "[QQT_P21]"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
 @onready var room_root: Control = get_node_or_null("RoomRoot")
@@ -35,7 +36,7 @@ const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model
 @onready var bubble_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector")
 @onready var bubble_skin_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow/BubbleSkinSelector")
 @onready var map_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector")
-@onready var rule_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleSelector")
+@onready var rule_value_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleValueLabel")
 @onready var game_mode_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector")
 @onready var member_list: VBoxContainer = get_node_or_null("RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList")
 @onready var map_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel")
@@ -151,9 +152,8 @@ func _populate_selectors() -> void:
 	_populate_character_skin_selector()
 	_populate_bubble_selector()
 	_populate_bubble_skin_selector()
-	_populate_map_selector()
-	_populate_rule_selector()
 	_populate_mode_selector()
+	_populate_map_selector()
 	_suppress_selection_callbacks = false
 
 
@@ -237,31 +237,29 @@ func _populate_bubble_skin_selector() -> void:
 		bubble_skin_selector.set_item_metadata(bubble_skin_selector.item_count - 1, skin_def.bubble_skin_id)
 
 
-func _populate_map_selector() -> void:
+func _populate_map_selector(mode_id: String = "") -> void:
 	if map_selector == null:
 		return
+	var current_value := _selected_metadata(map_selector)
 	map_selector.clear()
-	for entry in MapCatalogScript.get_map_entries():
-		map_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-		map_selector.set_item_metadata(map_selector.item_count - 1, String(entry.get("id", "")))
-
-
-func _populate_rule_selector() -> void:
-	if rule_selector == null:
-		return
-	rule_selector.clear()
-	for entry in RuleSetCatalogScript.get_rule_entries():
-		rule_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-		rule_selector.set_item_metadata(rule_selector.item_count - 1, String(entry.get("id", "")))
+	var resolved_mode_id := mode_id
+	if resolved_mode_id.is_empty():
+		resolved_mode_id = _selected_metadata(game_mode_selector)
+	for entry in MapSelectionCatalogScript.get_custom_room_maps_by_mode(resolved_mode_id):
+		map_selector.add_item(String(entry.get("display_name", entry.get("map_id", ""))))
+		map_selector.set_item_metadata(map_selector.item_count - 1, String(entry.get("map_id", "")))
+	_select_metadata(map_selector, current_value)
 
 
 func _populate_mode_selector() -> void:
 	if game_mode_selector == null:
 		return
+	var current_value := _selected_metadata(game_mode_selector)
 	game_mode_selector.clear()
-	for entry in ModeCatalogScript.get_mode_entries():
-		game_mode_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-		game_mode_selector.set_item_metadata(game_mode_selector.item_count - 1, String(entry.get("mode_id", entry.get("id", ""))))
+	for entry in MapSelectionCatalogScript.get_custom_room_mode_entries():
+		game_mode_selector.add_item(String(entry.get("display_name", entry.get("mode_id", ""))))
+		game_mode_selector.set_item_metadata(game_mode_selector.item_count - 1, String(entry.get("mode_id", "")))
+	_select_metadata(game_mode_selector, current_value)
 
 
 func _connect_ui_signals() -> void:
@@ -287,12 +285,10 @@ func _connect_ui_signals() -> void:
 		bubble_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
 	if bubble_skin_selector != null and not bubble_skin_selector.item_selected.is_connected(_on_profile_selector_changed):
 		bubble_skin_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
+	if game_mode_selector != null and not game_mode_selector.item_selected.is_connected(_on_mode_selection_changed):
+		game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_mode_selection_changed())
 	if map_selector != null and not map_selector.item_selected.is_connected(_on_selection_changed):
 		map_selector.item_selected.connect(func(_index: int) -> void: _on_selection_changed())
-	if rule_selector != null and not rule_selector.item_selected.is_connected(_on_selection_changed):
-		rule_selector.item_selected.connect(func(_index: int) -> void: _on_selection_changed())
-	if game_mode_selector != null and not game_mode_selector.item_selected.is_connected(_on_selection_changed):
-		game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_selection_changed())
 
 
 func _connect_runtime_signals() -> void:
@@ -330,10 +326,11 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 	_suppress_selection_callbacks = true
 	_populate_team_selector(int(view_model.get("team_option_max", 2)))
 	_select_team_id(int(view_model.get("local_team_id", 1)))
-	_suppress_selection_callbacks = false
-	_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
-	_select_metadata(rule_selector, String(view_model.get("selected_rule_set_id", "")))
+	_populate_mode_selector()
 	_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
+	_populate_map_selector(String(view_model.get("selected_mode_id", "")))
+	_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
+	_suppress_selection_callbacks = false
 	_update_auth_binding_summary(snapshot)
 	_update_preview(snapshot)
 	_update_debug_text(snapshot, view_model)
@@ -496,7 +493,7 @@ func _on_add_opponent_pressed() -> void:
 		int(_app_runtime.local_peer_id),
 		int(_app_runtime.remote_peer_id),
 		_selected_metadata(map_selector),
-		_selected_metadata(rule_selector)
+		String(_resolve_map_binding(_selected_metadata(map_selector)).get("bound_rule_set_id", ""))
 	)
 	_set_room_feedback("")
 
@@ -526,13 +523,33 @@ func _on_profile_selector_changed() -> void:
 	_on_profile_changed()
 
 
+func _on_mode_selection_changed() -> void:
+	if _suppress_selection_callbacks:
+		return
+	_suppress_selection_callbacks = true
+	_populate_map_selector(_selected_metadata(game_mode_selector))
+	if map_selector != null and map_selector.item_count > 0:
+		map_selector.select(0)
+	_suppress_selection_callbacks = false
+	_on_selection_changed()
+
+
 func _on_selection_changed() -> void:
 	if _suppress_selection_callbacks or _room_use_case == null:
 		return
+	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
+	var map_id := _selected_metadata(map_selector)
+	var binding := _resolve_map_binding(map_id)
+	_log_phase21("room_selection_change_requested", {
+		"old_map_id": String(snapshot.selected_map_id) if snapshot != null else "",
+		"new_map_id": map_id,
+		"derived_mode_id": String(binding.get("bound_mode_id", _selected_metadata(game_mode_selector))),
+		"derived_rule_set_id": String(binding.get("bound_rule_set_id", "")),
+	})
 	var result := _room_use_case.update_selection(
-		_selected_metadata(map_selector),
-		_selected_metadata(rule_selector),
-		_selected_metadata(game_mode_selector)
+		map_id,
+		String(binding.get("bound_rule_set_id", "")),
+		String(binding.get("bound_mode_id", _selected_metadata(game_mode_selector)))
 	)
 	if not bool(result.get("ok", false)):
 		_set_room_feedback(String(result.get("user_message", "Failed to update room selection")))
@@ -620,6 +637,20 @@ func _get_fallback_bubble_id() -> String:
 		if not entry_id.is_empty():
 			return entry_id
 	return "bubble_style_default"
+
+
+func _resolve_map_binding(map_id: String) -> Dictionary:
+	if map_id.is_empty():
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return {}
+	return binding
+
+
+func _log_phase21(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[room_scene] %s %s" % [PHASE21_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.room.scene")
+
 
 func _try_consume_pending_room_action() -> void:
 	if _app_runtime == null:

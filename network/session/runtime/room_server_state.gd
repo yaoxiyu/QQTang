@@ -2,6 +2,7 @@ class_name RoomServerState
 extends RefCounted
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
@@ -87,8 +88,8 @@ func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "p
 	else:
 		room_display_name = normalized_display_name
 	topology = "dedicated_server"
-	min_start_players = 2
 	match_active = false
+	set_selection("", "", "")
 
 
 func upsert_member(
@@ -217,22 +218,39 @@ func toggle_ready(peer_id: int) -> bool:
 
 
 func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
+	var resolved_map_id := map_id
 	if is_matchmade_room:
-		selected_map_id = locked_map_id if not locked_map_id.is_empty() else MapCatalogScript.get_default_map_id()
-		selected_rule_id = locked_rule_set_id if not locked_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
-		selected_mode_id = locked_mode_id if not locked_mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
+		resolved_map_id = locked_map_id if not locked_map_id.is_empty() else resolved_map_id
+	elif resolved_map_id.is_empty():
+		resolved_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
+	if resolved_map_id.is_empty():
+		resolved_map_id = MapCatalogScript.get_default_map_id()
+	var binding := _resolve_map_binding(resolved_map_id)
+	selected_map_id = resolved_map_id
+	if not binding.is_empty():
+		selected_rule_id = String(binding.get("bound_rule_set_id", ""))
+		selected_mode_id = String(binding.get("bound_mode_id", ""))
+		min_start_players = int(binding.get("required_team_count", 2))
+		max_players = int(binding.get("max_player_count", max_players))
 		return
-	selected_map_id = map_id if not map_id.is_empty() else MapCatalogScript.get_default_map_id()
-	selected_rule_id = rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
-	selected_mode_id = mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
+	selected_rule_id = locked_rule_set_id if is_matchmade_room and not locked_rule_set_id.is_empty() else (rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id())
+	selected_mode_id = locked_mode_id if is_matchmade_room and not locked_mode_id.is_empty() else (mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id())
+	min_start_players = 2
 
 
 func can_start() -> bool:
+	var binding := _resolve_map_binding(selected_map_id)
+	if binding.is_empty():
+		return false
+	var required_team_count := int(binding.get("required_team_count", min_start_players))
+	var max_player_count := int(binding.get("max_player_count", max_players))
 	if is_matchmade_room and expected_member_count > 0 and members.size() != expected_member_count:
 		return false
 	if members.size() < min_start_players:
 		return false
-	if get_distinct_team_ids().size() < 2:
+	if max_player_count > 0 and members.size() > max_player_count:
+		return false
+	if get_distinct_team_ids().size() < required_team_count:
 		return false
 	if selected_map_id.is_empty() or selected_rule_id.is_empty() or selected_mode_id.is_empty():
 		return false
@@ -551,3 +569,12 @@ func freeze_match_peer_bindings(match_id: String) -> void:
 		if binding.connection_state == "connected" and binding.transport_peer_id > 0:
 			binding.match_peer_id = binding.transport_peer_id
 			binding.last_match_id = match_id
+
+
+func _resolve_map_binding(map_id: String) -> Dictionary:
+	if map_id.is_empty():
+		return {}
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	if binding.is_empty() or not bool(binding.get("valid", false)):
+		return {}
+	return binding

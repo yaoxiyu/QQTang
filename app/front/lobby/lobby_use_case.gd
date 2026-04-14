@@ -93,12 +93,28 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 func start_practice(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
 	if practice_room_factory == null:
 		return _fail("PRACTICE_ROOM_FACTORY_MISSING", "Practice room factory is not configured")
+	_log_phase15("start_practice", {
+		"preferred_map_id": map_id,
+		"preferred_rule_id": rule_id,
+		"preferred_mode_id": mode_id,
+	})
 	return practice_room_factory.create_practice_room(
 		player_profile_state,
-		map_id,
-		rule_id,
-		mode_id
+		"",
+		"",
+		""
 	)
+
+
+func create_custom_room(host: String, port: int, visibility: String, room_display_name: String) -> Dictionary:
+	var normalized_visibility := visibility.strip_edges().to_lower()
+	match normalized_visibility:
+		"private":
+			return create_private_room(host, port)
+		"public":
+			return create_public_room(host, port, room_display_name)
+		_:
+			return _fail("ROOM_VISIBILITY_INVALID", "Room visibility is invalid")
 
 
 func create_private_room(host: String, port: int) -> Dictionary:

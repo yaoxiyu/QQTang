@@ -1,10 +1,8 @@
-﻿extends Node
+extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LobbyRoomDirectoryBuilderScript = preload("res://app/front/lobby/lobby_room_directory_builder.gd")
-const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
-const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
-const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -22,19 +20,20 @@ const MATCHMAKING_POLL_INTERVAL_SEC := 2.0
 @onready var default_character_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterSkinRow/DefaultCharacterSkinValue")
 @onready var default_bubble_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleRow/DefaultBubbleValue")
 @onready var default_bubble_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleSkinRow/DefaultBubbleSkinValue")
-@onready var practice_map_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeMapRow/PracticeMapSelector")
-@onready var practice_rule_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeRuleRow/PracticeRuleSelector")
-@onready var practice_mode_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/PracticeModeRow/PracticeModeSelector")
 @onready var start_practice_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/StartPracticeButton")
 @onready var host_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/ServerRow/HostInput")
 @onready var port_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/ServerRow/PortInput")
-@onready var create_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreateRoomRow/CreateRoomButton")
 @onready var room_id_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinRoomRow/RoomIdInput")
 @onready var join_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinRoomRow/JoinRoomButton")
 @onready var connect_directory_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/DirectoryConnectionRow/ConnectDirectoryButton")
 @onready var refresh_room_list_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/DirectoryConnectionRow/RefreshRoomListButton")
-@onready var public_room_name_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreatePublicRoomRow/PublicRoomNameInput")
-@onready var create_public_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CreatePublicRoomRow/CreatePublicRoomButton")
+@onready var room_visibility_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow/RoomVisibilityLabel")
+@onready var room_visibility_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow/RoomVisibilitySelector")
+@onready var custom_room_name_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow/CustomRoomNameLabel")
+@onready var custom_room_name_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow/CustomRoomNameInput")
+@onready var create_custom_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomCreateRow/CreateCustomRoomButton")
+@onready var custom_room_mode_filter_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomFilterRow/CustomRoomModeFilterLabel")
+@onready var custom_room_mode_filter_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/CustomRoomFilterRow/CustomRoomModeFilterSelector")
 @onready var public_room_list: ItemList = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/PublicRoomList")
 @onready var join_selected_public_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinSelectedPublicRoomButton")
 @onready var directory_status_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/DirectoryStatusLabel")
@@ -55,8 +54,9 @@ const MATCHMAKING_POLL_INTERVAL_SEC := 2.0
 @onready var game_service_host_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow/GameServiceHostInput")
 @onready var game_service_port_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow/GameServicePortInput")
 @onready var queue_type_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow/QueueTypeSelector")
-@onready var queue_mode_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueModeRow/QueueModeSelector")
-@onready var queue_rule_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueRuleRow/QueueRuleSelector")
+@onready var queue_format_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow/QueueFormatSelector")
+@onready var queue_game_mode_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow/QueueGameModeSelector")
+@onready var queue_map_multi_select: ItemList = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueMapMultiSelect")
 @onready var enter_queue_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow/EnterQueueButton")
 @onready var cancel_queue_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow/CancelQueueButton")
 @onready var queue_status_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueStatusLabel")
@@ -90,6 +90,8 @@ func _bind_runtime() -> void:
 
 func _on_runtime_ready() -> void:
 	_populate_practice_selectors()
+	_configure_custom_room_controls()
+	_populate_custom_room_mode_filter()
 	_populate_matchmaking_selectors()
 	_refresh_view()
 	_connect_signals()
@@ -105,21 +107,31 @@ func _redirect_to_boot_if_missing() -> void:
 
 
 func _populate_practice_selectors() -> void:
-	if practice_map_selector != null:
-		practice_map_selector.clear()
-		for entry in MapCatalogScript.get_map_entries():
-			practice_map_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-			practice_map_selector.set_item_metadata(practice_map_selector.item_count - 1, String(entry.get("id", "")))
-	if practice_rule_selector != null:
-		practice_rule_selector.clear()
-		for entry in RuleSetCatalogScript.get_rule_entries():
-			practice_rule_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-			practice_rule_selector.set_item_metadata(practice_rule_selector.item_count - 1, String(entry.get("id", "")))
-	if practice_mode_selector != null:
-		practice_mode_selector.clear()
-		for entry in ModeCatalogScript.get_mode_entries():
-			practice_mode_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-			practice_mode_selector.set_item_metadata(practice_mode_selector.item_count - 1, String(entry.get("id", "")))
+	return
+
+
+func _configure_custom_room_controls() -> void:
+	if room_visibility_label != null:
+		room_visibility_label.text = "房间可见性"
+	if custom_room_name_label != null:
+		custom_room_name_label.text = "自定义房间名"
+	if custom_room_name_input != null:
+		custom_room_name_input.placeholder_text = "公开房间必填"
+	if create_custom_room_button != null:
+		create_custom_room_button.text = "创建自定义房间"
+	if join_selected_public_room_button != null:
+		join_selected_public_room_button.text = "加入自定义房间"
+	if custom_room_mode_filter_label != null:
+		custom_room_mode_filter_label.text = "玩法筛选"
+	if room_visibility_selector == null:
+		return
+	var current_value := _selected_metadata(room_visibility_selector)
+	room_visibility_selector.clear()
+	room_visibility_selector.add_item("Private")
+	room_visibility_selector.set_item_metadata(0, "private")
+	room_visibility_selector.add_item("Public")
+	room_visibility_selector.set_item_metadata(1, "public")
+	_select_metadata(room_visibility_selector, current_value if not current_value.is_empty() else "private")
 
 
 func _populate_matchmaking_selectors() -> void:
@@ -129,17 +141,76 @@ func _populate_matchmaking_selectors() -> void:
 		queue_type_selector.set_item_metadata(0, "casual")
 		queue_type_selector.add_item("Ranked")
 		queue_type_selector.set_item_metadata(1, "ranked")
-	if queue_mode_selector != null:
-		queue_mode_selector.clear()
-		for entry in ModeCatalogScript.get_mode_entries():
-			var mode_id := String(entry.get("mode_id", entry.get("id", "")))
-			queue_mode_selector.add_item(String(entry.get("display_name", mode_id)))
-			queue_mode_selector.set_item_metadata(queue_mode_selector.item_count - 1, mode_id)
-	if queue_rule_selector != null:
-		queue_rule_selector.clear()
-		for entry in RuleSetCatalogScript.get_rule_entries():
-			queue_rule_selector.add_item(String(entry.get("display_name", entry.get("id", ""))))
-			queue_rule_selector.set_item_metadata(queue_rule_selector.item_count - 1, String(entry.get("id", "")))
+	_populate_matchmaking_format_selector()
+	_populate_matchmaking_mode_selector()
+	_populate_matchmaking_map_list()
+
+
+func _populate_custom_room_mode_filter() -> void:
+	if custom_room_mode_filter_selector == null:
+		return
+	custom_room_mode_filter_selector.clear()
+	custom_room_mode_filter_selector.add_item("All")
+	custom_room_mode_filter_selector.set_item_metadata(0, "")
+	for entry in MapSelectionCatalogScript.get_custom_room_mode_entries():
+		var mode_id := String(entry.get("mode_id", ""))
+		custom_room_mode_filter_selector.add_item(String(entry.get("display_name", mode_id)))
+		custom_room_mode_filter_selector.set_item_metadata(custom_room_mode_filter_selector.item_count - 1, mode_id)
+	if custom_room_mode_filter_selector.item_count > 0:
+		custom_room_mode_filter_selector.select(0)
+
+
+func _populate_matchmaking_format_selector() -> void:
+	if queue_format_selector == null:
+		return
+	var current_value := _selected_metadata(queue_format_selector)
+	queue_format_selector.clear()
+	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
+		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
+		var display_name := String(entry.get("display_name", match_format_id))
+		var enabled := bool(entry.get("enabled", false))
+		if not enabled:
+			display_name += " (Locked)"
+		queue_format_selector.add_item(display_name)
+		queue_format_selector.set_item_metadata(queue_format_selector.item_count - 1, match_format_id)
+		queue_format_selector.set_item_disabled(queue_format_selector.item_count - 1, not enabled)
+	_select_metadata(queue_format_selector, current_value)
+
+
+func _populate_matchmaking_mode_selector() -> void:
+	if queue_game_mode_selector == null:
+		return
+	var current_value := _selected_metadata(queue_game_mode_selector)
+	var match_format_id := _selected_metadata(queue_format_selector)
+	var queue_type := _selected_metadata(queue_type_selector)
+	queue_game_mode_selector.clear()
+	for entry in MapSelectionCatalogScript.get_matchmaking_mode_entries(match_format_id, queue_type):
+		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
+		queue_game_mode_selector.add_item(String(entry.get("display_name", mode_id)))
+		queue_game_mode_selector.set_item_metadata(queue_game_mode_selector.item_count - 1, mode_id)
+	_select_metadata(queue_game_mode_selector, current_value)
+
+
+func _populate_matchmaking_map_list(preferred_map_ids: Array[String] = []) -> void:
+	if queue_map_multi_select == null:
+		return
+	var match_format_id := _selected_metadata(queue_format_selector)
+	var queue_type := _selected_metadata(queue_type_selector)
+	var mode_id := _selected_metadata(queue_game_mode_selector)
+	queue_map_multi_select.clear()
+	var has_preferred_selection := false
+	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, queue_type, mode_id):
+		var map_id := String(entry.get("map_id", entry.get("id", "")))
+		var label := String(entry.get("display_name", map_id))
+		queue_map_multi_select.add_item(label)
+		var index := queue_map_multi_select.item_count - 1
+		queue_map_multi_select.set_item_metadata(index, map_id)
+		if preferred_map_ids.has(map_id):
+			queue_map_multi_select.select(index, false)
+			has_preferred_selection = true
+	if not has_preferred_selection:
+		for index in range(queue_map_multi_select.item_count):
+			queue_map_multi_select.select(index, false)
 
 
 func _refresh_view() -> void:
@@ -202,9 +273,6 @@ func _refresh_view() -> void:
 			reconnect_state_label.text = "Reconnect State: %s" % reconnect_state
 		else:
 			reconnect_state_label.text = "Reconnect State: -"
-	_select_metadata(practice_map_selector, String(view_state.preferred_map_id))
-	_select_metadata(practice_rule_selector, String(view_state.preferred_rule_id))
-	_select_metadata(practice_mode_selector, String(view_state.preferred_mode_id))
 	_refresh_career_panel(view_state)
 	_refresh_matchmaking_panel(view_state)
 	_set_message("")
@@ -259,8 +327,11 @@ func _refresh_matchmaking_panel(view_state = null) -> void:
 		return
 	var queue_type := String(view_state.queue_type if not String(view_state.queue_type).is_empty() else (_app_runtime.front_settings_state.last_queue_type if front_settings_state_available() else "casual"))
 	_select_metadata(queue_type_selector, queue_type)
-	_select_metadata(queue_mode_selector, String(view_state.preferred_mode_id))
-	_select_metadata(queue_rule_selector, String(view_state.preferred_rule_id))
+	_populate_matchmaking_format_selector()
+	_select_metadata(queue_format_selector, _resolve_preferred_matchmaking_format_id(queue_type, String(view_state.preferred_mode_id)))
+	_populate_matchmaking_mode_selector()
+	_select_metadata(queue_game_mode_selector, String(view_state.preferred_mode_id))
+	_populate_matchmaking_map_list([String(view_state.preferred_map_id)] if not String(view_state.preferred_map_id).is_empty() else [])
 	if queue_status_label != null:
 		var queue_state_text := String(view_state.queue_state)
 		var queue_status_text := String(view_state.queue_status_text)
@@ -286,8 +357,8 @@ func _refresh_matchmaking_panel(view_state = null) -> void:
 func _connect_signals() -> void:
 	if start_practice_button != null and not start_practice_button.pressed.is_connected(_on_start_practice_pressed):
 		start_practice_button.pressed.connect(_on_start_practice_pressed)
-	if create_room_button != null and not create_room_button.pressed.is_connected(_on_create_room_pressed):
-		create_room_button.pressed.connect(_on_create_room_pressed)
+	if create_custom_room_button != null and not create_custom_room_button.pressed.is_connected(_on_create_custom_room_pressed):
+		create_custom_room_button.pressed.connect(_on_create_custom_room_pressed)
 	if join_room_button != null and not join_room_button.pressed.is_connected(_on_join_room_pressed):
 		join_room_button.pressed.connect(_on_join_room_pressed)
 	if reconnect_button != null and not reconnect_button.pressed.is_connected(_on_reconnect_pressed):
@@ -302,10 +373,16 @@ func _connect_signals() -> void:
 		connect_directory_button.pressed.connect(_on_connect_directory_pressed)
 	if refresh_room_list_button != null and not refresh_room_list_button.pressed.is_connected(_on_refresh_room_list_pressed):
 		refresh_room_list_button.pressed.connect(_on_refresh_room_list_pressed)
-	if create_public_room_button != null and not create_public_room_button.pressed.is_connected(_on_create_public_room_pressed):
-		create_public_room_button.pressed.connect(_on_create_public_room_pressed)
 	if join_selected_public_room_button != null and not join_selected_public_room_button.pressed.is_connected(_on_join_selected_public_room_pressed):
 		join_selected_public_room_button.pressed.connect(_on_join_selected_public_room_pressed)
+	if custom_room_mode_filter_selector != null and not custom_room_mode_filter_selector.item_selected.is_connected(_on_custom_room_mode_filter_changed):
+		custom_room_mode_filter_selector.item_selected.connect(func(_index: int) -> void: _on_custom_room_mode_filter_changed())
+	if queue_type_selector != null and not queue_type_selector.item_selected.is_connected(_on_matchmaking_filter_changed):
+		queue_type_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_filter_changed())
+	if queue_format_selector != null and not queue_format_selector.item_selected.is_connected(_on_matchmaking_filter_changed):
+		queue_format_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_filter_changed())
+	if queue_game_mode_selector != null and not queue_game_mode_selector.item_selected.is_connected(_on_matchmaking_mode_changed):
+		queue_game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_mode_changed())
 	if enter_queue_button != null and not enter_queue_button.pressed.is_connected(_on_enter_queue_pressed):
 		enter_queue_button.pressed.connect(_on_enter_queue_pressed)
 	if cancel_queue_button != null and not cancel_queue_button.pressed.is_connected(_on_cancel_queue_pressed):
@@ -322,21 +399,29 @@ func _on_start_practice_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.start_practice(
-		_selected_metadata(practice_map_selector),
-		_selected_metadata(practice_rule_selector),
-		_selected_metadata(practice_mode_selector)
-	)
+	var result: Dictionary = _app_runtime.lobby_use_case.start_practice("", "", "")
 	_handle_room_entry_result(result)
 
 
-func _on_create_room_pressed() -> void:
+func _on_create_custom_room_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.create_private_room(
+	var visibility := _selected_metadata(room_visibility_selector)
+	var default_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id()
+	var default_binding := MapSelectionCatalogScript.get_map_binding(default_map_id)
+	_log_phase15("custom_room_create_requested", {
+		"visibility": visibility,
+		"default_map_id": default_map_id,
+		"derived_mode_id": String(default_binding.get("bound_mode_id", "")),
+		"derived_rule_set_id": String(default_binding.get("bound_rule_set_id", "")),
+		"room_display_name": custom_room_name_input.text.strip_edges() if custom_room_name_input != null else "",
+	})
+	var result: Dictionary = _app_runtime.lobby_use_case.create_custom_room(
 		host_input.text.strip_edges() if host_input != null else "",
-		int(port_input.text.to_int()) if port_input != null else 0
+		int(port_input.text.to_int()) if port_input != null else 0,
+		visibility,
+		custom_room_name_input.text.strip_edges() if custom_room_name_input != null else ""
 	)
 	_handle_room_entry_result(result)
 
@@ -385,26 +470,9 @@ func _on_refresh_room_list_pressed() -> void:
 	_apply_directory_result(result)
 
 
-func _on_create_public_room_pressed() -> void:
-	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
-		_set_directory_status("Lobby room flow is not available.")
-		return
-	_log_phase15("ui_create_public_room_pressed", {
-		"host": host_input.text.strip_edges() if host_input != null else "",
-		"port": int(port_input.text.to_int()) if port_input != null else 0,
-		"room_display_name": public_room_name_input.text.strip_edges() if public_room_name_input != null else "",
-	})
-	var result: Dictionary = _app_runtime.lobby_use_case.create_public_room(
-		host_input.text.strip_edges() if host_input != null else "",
-		int(port_input.text.to_int()) if port_input != null else 0,
-		public_room_name_input.text.strip_edges() if public_room_name_input != null else ""
-	)
-	_handle_room_entry_result(result)
-
-
 func _on_join_selected_public_room_pressed() -> void:
 	if public_room_list == null or public_room_list.get_selected_items().is_empty():
-		_set_directory_status("Select a public room first.")
+		_set_directory_status("Select a custom room first.")
 		return
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_directory_status("Lobby room flow is not available.")
@@ -421,6 +489,19 @@ func _on_join_selected_public_room_pressed() -> void:
 		room_id
 	)
 	_handle_room_entry_result(result)
+
+
+func _on_custom_room_mode_filter_changed() -> void:
+	_refresh_directory_list()
+
+
+func _on_matchmaking_filter_changed() -> void:
+	_populate_matchmaking_mode_selector()
+	_populate_matchmaking_map_list()
+
+
+func _on_matchmaking_mode_changed() -> void:
+	_populate_matchmaking_map_list()
 
 
 func _on_reconnect_pressed() -> void:
@@ -469,13 +550,30 @@ func _on_enter_queue_pressed() -> void:
 		return
 	_queue_assignment_consuming = false
 	_save_matchmaking_settings()
+	var selected_map_ids := _selected_item_list_metadata(queue_map_multi_select)
+	if selected_map_ids.is_empty():
+		_set_message("Please select at least one matchmaking map.")
+		_log_online_lobby("enter_queue_blocked_empty_map_pool", {
+			"queue_type": _selected_metadata(queue_type_selector),
+			"match_format_id": _selected_metadata(queue_format_selector),
+			"mode_id": _selected_metadata(queue_game_mode_selector),
+		})
+		return
+	var queue_debug_payload := {
+		"queue_type": _selected_metadata(queue_type_selector),
+		"match_format_id": _selected_metadata(queue_format_selector),
+		"mode_id": _selected_metadata(queue_game_mode_selector),
+		"selected_map_ids": selected_map_ids,
+	}
+	_log_online_lobby("enter_queue_requested", queue_debug_payload)
 	var result: Dictionary = _app_runtime.matchmaking_use_case.enter_queue(
-		_selected_metadata(queue_type_selector),
-		_selected_metadata(queue_mode_selector),
-		_selected_metadata(queue_rule_selector)
+		String(queue_debug_payload.get("queue_type", "")),
+		String(queue_debug_payload.get("match_format_id", "")),
+		String(queue_debug_payload.get("mode_id", "")),
+		selected_map_ids
 	)
 	if not bool(result.get("ok", false)):
-		_log_online_lobby("enter_queue_failed", result)
+		_log_online_lobby("enter_queue_failed", _with_debug_payload(result, queue_debug_payload))
 		if String(result.get("error_code", "")) == "MATCHMAKING_QUEUE_ALREADY_ACTIVE":
 			var status_result: Dictionary = _app_runtime.matchmaking_use_case.poll_queue_status()
 			if bool(status_result.get("ok", false)):
@@ -488,7 +586,7 @@ func _on_enter_queue_pressed() -> void:
 		return
 	_refresh_view()
 	_set_message("Queue entered, searching for players...")
-	_log_online_lobby("enter_queue_succeeded", _build_online_debug_context())
+	_log_online_lobby("enter_queue_succeeded", _with_debug_payload(_build_online_debug_context(), queue_debug_payload))
 
 
 func _on_cancel_queue_pressed() -> void:
@@ -525,6 +623,11 @@ func _handle_room_entry_result(result: Dictionary) -> void:
 		"room_kind": String(entry_context.room_kind),
 		"target_room_id": String(entry_context.target_room_id),
 		"room_display_name": String(entry_context.room_display_name),
+		"assignment_id": String(entry_context.assignment_id),
+		"assigned_map_id": String(entry_context.locked_map_id),
+		"assigned_rule_set_id": String(entry_context.locked_rule_set_id),
+		"assigned_mode_id": String(entry_context.locked_mode_id),
+		"assigned_team_id": int(entry_context.assigned_team_id),
 	})
 	_directory_connect_requested = false
 	if _app_runtime != null and _app_runtime.client_room_runtime != null and _app_runtime.client_room_runtime.has_method("unsubscribe_room_directory"):
@@ -571,6 +674,10 @@ func _poll_queue_status() -> void:
 		"assignment_id": String(assignment_state.assignment_id),
 		"ticket_role": String(assignment_state.ticket_role),
 		"room_id": String(assignment_state.room_id),
+		"assigned_map_id": String(assignment_state.map_id),
+		"assigned_rule_set_id": String(assignment_state.rule_set_id),
+		"assigned_mode_id": String(assignment_state.mode_id),
+		"assigned_team_id": int(assignment_state.assigned_team_id),
 	})
 	_queue_assignment_consuming = true
 	var entry_result: Dictionary = _app_runtime.lobby_use_case.build_matchmade_entry_context()
@@ -615,6 +722,15 @@ func _selected_metadata(selector: OptionButton) -> String:
 	if selector == null or selector.selected < 0:
 		return ""
 	return String(selector.get_item_metadata(selector.selected))
+
+
+func _selected_item_list_metadata(item_list: ItemList) -> Array[String]:
+	var result: Array[String] = []
+	if item_list == null:
+		return result
+	for index in item_list.get_selected_items():
+		result.append(String(item_list.get_item_metadata(index)))
+	return result
 
 
 func _select_metadata(selector: OptionButton, target: String) -> void:
@@ -681,22 +797,31 @@ func _apply_directory_result(result: Dictionary) -> void:
 
 func _on_room_directory_snapshot_received(snapshot) -> void:
 	_last_room_directory_snapshot = snapshot.duplicate_deep() if snapshot != null and snapshot.has_method("duplicate_deep") else snapshot
+	_refresh_directory_list()
+
+
+func _refresh_directory_list() -> void:
 	if public_room_list == null:
 		return
 	public_room_list.clear()
+	var snapshot = _last_room_directory_snapshot
 	if snapshot == null:
-		_set_directory_status("No public rooms available.")
+		_set_directory_status("No custom rooms available.")
 		return
 	var view_models := _room_directory_builder.build_view_models(snapshot)
-	_log_phase15("ui_room_directory_snapshot_render", {
-		"entry_count": view_models.size(),
-		"revision": int(snapshot.revision) if snapshot != null else -1,
-	})
+	var filtered_mode_id := _selected_metadata(custom_room_mode_filter_selector)
+	var rendered_count := 0
 	for view_model in view_models:
+		if String(view_model.get("room_kind", "")) != "public_room":
+			continue
+		var mode_id := String(view_model.get("mode_id", ""))
+		if not filtered_mode_id.is_empty() and mode_id != filtered_mode_id:
+			continue
 		var label_text := String(view_model.get("summary_text", view_model.get("room_display_name", "")))
 		public_room_list.add_item(label_text)
 		public_room_list.set_item_metadata(public_room_list.item_count - 1, String(view_model.get("room_id", "")))
-	_set_directory_status("Loaded %d public room(s)." % public_room_list.item_count)
+		rendered_count += 1
+	_set_directory_status("Loaded %d custom room(s)." % rendered_count)
 
 
 func _log_phase15(event_name: String, payload: Dictionary) -> void:
@@ -705,6 +830,13 @@ func _log_phase15(event_name: String, payload: Dictionary) -> void:
 
 func _log_online_lobby(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[lobby_scene] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.online")
+
+
+func _with_debug_payload(base_payload: Dictionary, extra_payload: Dictionary) -> Dictionary:
+	var payload := base_payload.duplicate(true)
+	for key in extra_payload.keys():
+		payload[key] = extra_payload[key]
+	return payload
 
 
 func _build_online_debug_context() -> Dictionary:
@@ -726,3 +858,20 @@ func _build_online_debug_context() -> Dictionary:
 		"game_service_port": int(game_service_port_input.text.to_int()) if game_service_port_input != null else 0,
 		"queue_assignment_consuming": _queue_assignment_consuming,
 	}
+
+
+func _resolve_preferred_matchmaking_format_id(queue_type: String, preferred_mode_id: String) -> String:
+	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
+		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
+		if not bool(entry.get("enabled", false)):
+			continue
+		if preferred_mode_id.is_empty():
+			return match_format_id
+		var modes := MapSelectionCatalogScript.get_matchmaking_mode_entries(match_format_id, queue_type)
+		for mode_entry in modes:
+			if String(mode_entry.get("mode_id", "")) == preferred_mode_id:
+				return match_format_id
+	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
+		if bool(entry.get("enabled", false)):
+			return String(entry.get("match_format_id", entry.get("id", "")))
+	return ""
