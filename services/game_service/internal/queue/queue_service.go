@@ -255,7 +255,7 @@ func opaqueID(prefix string) (string, error) {
 }
 
 func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntry) error {
-	const expectedMemberCount = 4
+	const expectedMemberCount = 2
 	const candidateLimit = 32
 	if s.assignmentRepo == nil {
 		return nil

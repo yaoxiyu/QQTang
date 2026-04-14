@@ -1,6 +1,8 @@
 class_name HttpProfileGateway
 extends ProfileGateway
 
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+
 var service_base_url: String = ""
 
 
@@ -53,12 +55,16 @@ func fetch_my_profile(access_token: String) -> Dictionary:
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"front",
+		"front.profile.gateway",
+		"http_profile_gateway",
+		{
+			"url": service_base_url + "/api/v1/profile/me",
+			"method": HTTPClient.METHOD_GET,
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return {

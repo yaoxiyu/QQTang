@@ -11,7 +11,9 @@ const CharacterSkinCatalogScript = preload("res://content/character_skins/catalo
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const RoomTicketVerifierScript = preload("res://network/session/auth/room_ticket_verifier.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 const MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH: int = 24
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
@@ -140,6 +142,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		return
 	var ticket_claim = ticket_validation.claim
 	if not _is_matchmade_ticket_compatible(ticket_claim):
+		_log_online_room_service("create_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
 			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
@@ -219,6 +222,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		"room_display_name": room_state.room_display_name,
 	})
 	_emit_assignment_commit_if_needed(ticket_claim)
+	_log_online_room_service("create_request_accepted", _build_online_service_context(ticket_claim, message))
 	
 	# Phase17: Send ROOM_MEMBER_SESSION for reconnect capability
 	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
@@ -246,6 +250,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		return
 	var ticket_claim = ticket_validation.claim
 	if not _is_matchmade_ticket_compatible(ticket_claim):
+		_log_online_room_service("join_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
 			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
@@ -331,6 +336,7 @@ func _handle_join_request(message: Dictionary) -> void:
 	
 	_broadcast_snapshot()
 	_maybe_auto_start_match()
+	_log_online_room_service("join_request_accepted", _build_online_service_context(ticket_claim, message))
 
 
 func _handle_update_profile(message: Dictionary) -> void:
@@ -386,6 +392,7 @@ func _handle_update_profile(message: Dictionary) -> void:
 func _handle_update_selection(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_state.is_matchmade_room:
+		_log_online_room_service("update_selection_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_SELECTION_LOCKED",
@@ -429,6 +436,7 @@ func _handle_update_selection(message: Dictionary) -> void:
 func _handle_toggle_ready(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_state.is_matchmade_room:
+		_log_online_room_service("toggle_ready_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_READY_LOCKED",
@@ -443,6 +451,7 @@ func _handle_toggle_ready(message: Dictionary) -> void:
 func _handle_start_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_state.is_matchmade_room:
+		_log_online_room_service("start_request_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_START_LOCKED",
@@ -603,19 +612,31 @@ func _emit_assignment_commit_if_needed(ticket_claim) -> void:
 		"assignment_revision": int(ticket_claim.assignment_revision),
 		"room_id": String(ticket_claim.room_id),
 	})
+	_log_online_room_service("assignment_commit_emitted", {
+		"assignment_id": String(ticket_claim.assignment_id),
+		"assignment_revision": int(ticket_claim.assignment_revision),
+		"account_id": String(ticket_claim.account_id),
+		"profile_id": String(ticket_claim.profile_id),
+		"room_id": String(ticket_claim.room_id),
+	})
 
 
 func _maybe_auto_start_match() -> void:
 	if room_state == null or not room_state.is_matchmade_room:
 		return
 	if room_state.match_active:
+		_log_online_room_service("auto_start_skipped_match_active", _build_online_service_context())
 		return
 	if room_state.expected_member_count <= 0:
+		_log_online_room_service("auto_start_skipped_missing_expected_count", _build_online_service_context())
 		return
 	if room_state.members.size() != room_state.expected_member_count:
+		_log_online_room_service("auto_start_waiting_members", _build_online_service_context())
 		return
 	if not room_state.can_start():
+		_log_online_room_service("auto_start_blocked_can_start_false", _build_online_service_context())
 		return
+	_log_online_room_service("auto_start_triggered", _build_online_service_context())
 	start_match_requested.emit(room_state.build_snapshot())
 
 
@@ -765,8 +786,33 @@ func _handle_resume_request(message: Dictionary) -> void:
 
 
 func _reject_with_ticket_error(peer_id: int, message_type: String, validation_result) -> void:
+	_log_online_room_service("ticket_validation_rejected", {
+		"peer_id": peer_id,
+		"message_type": message_type,
+		"error_code": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
+		"user_message": String(validation_result.user_message if validation_result != null else "Room ticket validation failed"),
+	})
 	send_to_peer.emit(peer_id, {
 		"message_type": message_type,
 		"error": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
 		"user_message": String(validation_result.user_message if validation_result != null else "Room ticket validation failed"),
 	})
+
+
+func _build_online_service_context(ticket_claim = null, message: Dictionary = {}) -> Dictionary:
+	return {
+		"room_id": String(room_state.room_id) if room_state != null else "",
+		"room_kind": String(room_state.room_kind) if room_state != null else "",
+		"assignment_id": String(ticket_claim.assignment_id) if ticket_claim != null else (String(room_state.assignment_id) if room_state != null else ""),
+		"assignment_revision": int(ticket_claim.assignment_revision) if ticket_claim != null else (int(room_state.assignment_revision) if room_state != null else 0),
+		"season_id": String(ticket_claim.season_id) if ticket_claim != null else (String(room_state.season_id) if room_state != null else ""),
+		"sender_peer_id": int(message.get("sender_peer_id", 0)),
+		"message_type": String(message.get("message_type", "")),
+		"member_count": room_state.members.size() if room_state != null else 0,
+		"expected_member_count": int(room_state.expected_member_count) if room_state != null else 0,
+		"match_active": bool(room_state.match_active) if room_state != null else false,
+	}
+
+
+func _log_online_room_service(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("%s[server_room_service] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.room_service")

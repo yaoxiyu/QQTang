@@ -9,6 +9,8 @@ const MatchmakingQueueStateScript = preload("res://app/front/matchmaking/matchma
 const MatchmakingAssignmentStateScript = preload("res://app/front/matchmaking/matchmaking_assignment_state.gd")
 const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
@@ -38,13 +40,23 @@ func enter_queue(queue_type: String, mode_id: String, rule_set_id: String) -> Di
 	if not _is_ready():
 		return _fail("MATCHMAKING_USE_CASE_NOT_READY", "Matchmaking use case is not ready")
 	_configure_gateways()
+	_log_matchmaking("enter_queue_requested", {
+		"queue_type": queue_type,
+		"mode_id": mode_id,
+		"rule_set_id": rule_set_id,
+	})
 	var response = matchmaking_gateway.enter_queue(auth_session_state.access_token, queue_type, mode_id, rule_set_id)
 	if not bool(response.get("ok", false)):
+		_log_matchmaking("enter_queue_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_ENTER_FAILED")), String(response.get("user_message", "Failed to enter queue")))
 	_current_queue_state = MatchmakingQueueStateScript.from_response(response, queue_type)
 	_current_assignment_state = null
 	if front_settings_state != null:
 		front_settings_state.last_queue_type = queue_type
+	_log_matchmaking("enter_queue_succeeded", {
+		"queue_entry_id": _current_queue_state.queue_entry_id if _current_queue_state != null else "",
+		"queue_state": _current_queue_state.queue_state if _current_queue_state != null else "",
+	})
 	return {"ok": true, "queue_state": _current_queue_state}
 
 
@@ -53,11 +65,19 @@ func cancel_queue() -> Dictionary:
 		return _fail("MATCHMAKING_USE_CASE_NOT_READY", "Matchmaking use case is not ready")
 	_configure_gateways()
 	var queue_entry_id := _current_queue_state.queue_entry_id if _current_queue_state != null else ""
+	_log_matchmaking("cancel_queue_requested", {
+		"queue_entry_id": queue_entry_id,
+	})
 	var response = matchmaking_gateway.cancel_queue(auth_session_state.access_token, queue_entry_id)
 	if not bool(response.get("ok", false)):
+		_log_matchmaking("cancel_queue_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_CANCEL_FAILED")), String(response.get("user_message", "Failed to cancel queue")))
 	_current_queue_state = MatchmakingQueueStateScript.from_response(response)
 	_current_assignment_state = null
+	_log_matchmaking("cancel_queue_succeeded", {
+		"queue_entry_id": _current_queue_state.queue_entry_id if _current_queue_state != null else queue_entry_id,
+		"queue_state": _current_queue_state.queue_state if _current_queue_state != null else "",
+	})
 	return {"ok": true, "queue_state": _current_queue_state}
 
 
@@ -68,9 +88,16 @@ func poll_queue_status() -> Dictionary:
 	var queue_entry_id := _current_queue_state.queue_entry_id if _current_queue_state != null else ""
 	var response = matchmaking_gateway.get_queue_status(auth_session_state.access_token, queue_entry_id)
 	if not bool(response.get("ok", false)):
+		_log_matchmaking("poll_queue_status_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_STATUS_FAILED")), String(response.get("user_message", "Failed to query queue status")))
 	_current_queue_state = MatchmakingQueueStateScript.from_response(response, front_settings_state.last_queue_type if front_settings_state != null else "")
 	_current_assignment_state = MatchmakingAssignmentStateScript.from_response(response) if _current_queue_state.queue_state == "assigned" else null
+	_log_matchmaking("poll_queue_status_succeeded", {
+		"queue_entry_id": _current_queue_state.queue_entry_id if _current_queue_state != null else queue_entry_id,
+		"queue_state": _current_queue_state.queue_state if _current_queue_state != null else "",
+		"assignment_id": _current_assignment_state.assignment_id if _current_assignment_state != null else "",
+		"ticket_role": _current_assignment_state.ticket_role if _current_assignment_state != null else "",
+	})
 	return {
 		"ok": true,
 		"queue_state": _current_queue_state,
@@ -84,6 +111,11 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 	if _current_assignment_state == null or _current_assignment_state.assignment_id.is_empty():
 		return _fail("MATCHMAKING_ASSIGNMENT_MISSING", "No assignment is ready")
 	_configure_gateways()
+	_log_matchmaking("consume_assignment_requested", {
+		"assignment_id": _current_assignment_state.assignment_id,
+		"ticket_role": _current_assignment_state.ticket_role,
+		"room_id": _current_assignment_state.room_id,
+	})
 	var request = RoomTicketRequestScript.new()
 	request.purpose = "create" if _current_assignment_state.ticket_role == "create" else "join"
 	request.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
@@ -96,6 +128,11 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 		request.selected_bubble_skin_id = player_profile_state.default_bubble_skin_id
 	var ticket_result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
 	if ticket_result == null or not bool(ticket_result.ok):
+		_log_matchmaking("consume_assignment_ticket_failed", {
+			"assignment_id": _current_assignment_state.assignment_id,
+			"error_code": String(ticket_result.error_code if ticket_result != null else "MATCHMADE_TICKET_FAILED"),
+			"user_message": String(ticket_result.user_message if ticket_result != null else "Failed to issue room ticket"),
+		})
 		return _fail(
 			String(ticket_result.error_code if ticket_result != null else "MATCHMADE_TICKET_FAILED"),
 			String(ticket_result.user_message if ticket_result != null else "Failed to issue room ticket")
@@ -127,6 +164,14 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 		front_settings_state.last_server_host = entry_context.server_host
 		front_settings_state.last_server_port = entry_context.server_port
 		front_settings_state.last_room_id = entry_context.target_room_id
+	_log_matchmaking("consume_assignment_succeeded", {
+		"assignment_id": entry_context.assignment_id,
+		"room_id": entry_context.target_room_id,
+		"server_host": entry_context.server_host,
+		"server_port": entry_context.server_port,
+		"assigned_team_id": entry_context.assigned_team_id,
+		"match_source": entry_context.match_source,
+	})
 	return {
 		"ok": true,
 		"entry_context": entry_context,
@@ -175,3 +220,7 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 		"error_code": error_code,
 		"user_message": user_message,
 	}
+
+
+func _log_matchmaking(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[matchmaking_use_case] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.matchmaking.use_case")

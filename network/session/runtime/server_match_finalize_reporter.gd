@@ -3,6 +3,9 @@ extends RefCounted
 
 const FINALIZE_PATH := "/internal/v1/matches/finalize"
 const ASSIGNMENT_COMMIT_PATH_TEMPLATE := "/internal/v1/assignments/%s/commit"
+const LogNetScript = preload("res://app/logging/log_net.gd")
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081
@@ -22,6 +25,11 @@ func configure(
 	if game_service_port <= 0:
 		game_service_port = 18081
 	internal_shared_secret = p_internal_shared_secret if not p_internal_shared_secret.strip_edges().is_empty() else _read_env("GAME_INTERNAL_SHARED_SECRET", "")
+	_log_finalize("configure", {
+		"game_service_host": game_service_host,
+		"game_service_port": game_service_port,
+		"has_internal_secret": not internal_shared_secret.is_empty(),
+	})
 
 
 func report_match_result_async(room_runtime: Node, result: BattleResult) -> void:
@@ -42,13 +50,22 @@ func _report_match_result(room_runtime: Node, result: BattleResult) -> void:
 			"user_message": "Finalize payload is incomplete",
 			"reported_at": _utc_now_string(),
 		}
+		_log_finalize("finalize_payload_invalid", last_finalize_status)
 		return
 	var result_hash := _build_result_hash(payload)
 	payload["result_hash"] = result_hash
+	_log_finalize("finalize_report_requested", {
+		"match_id": String(payload.get("match_id", "")),
+		"assignment_id": String(payload.get("assignment_id", "")),
+		"room_id": String(payload.get("room_id", "")),
+		"member_count": (payload.get("member_results", []) as Array).size(),
+		"result_hash": result_hash,
+	})
 	var response := await _send_internal_post_with_retry(FINALIZE_PATH, payload)
 	response["result_hash"] = result_hash
 	response["reported_at"] = _utc_now_string()
 	last_finalize_status = response
+	_log_finalize("finalize_report_completed", response)
 
 
 func _report_assignment_commit(payload: Dictionary) -> void:
@@ -60,13 +77,19 @@ func _report_assignment_commit(payload: Dictionary) -> void:
 			"user_message": "Assignment commit payload is incomplete",
 			"reported_at": _utc_now_string(),
 		}
+		_log_finalize("assignment_commit_payload_invalid", last_assignment_commit_status)
 		return
 	payload.erase("assignment_id")
 	var path := ASSIGNMENT_COMMIT_PATH_TEMPLATE % assignment_id
+	_log_finalize("assignment_commit_requested", {
+		"assignment_id": assignment_id,
+		"payload_keys": payload.keys(),
+	})
 	var response := await _send_internal_post_with_retry(path, payload)
 	response["assignment_id"] = assignment_id
 	response["reported_at"] = _utc_now_string()
 	last_assignment_commit_status = response
+	_log_finalize("assignment_commit_completed", response)
 
 
 func _build_finalize_payload(room_runtime: Node, result: BattleResult) -> Dictionary:
@@ -177,10 +200,19 @@ func _send_finalize_request(payload: Dictionary) -> Dictionary:
 func _send_internal_post_with_retry(path: String, payload: Dictionary) -> Dictionary:
 	var response: Dictionary = {}
 	for attempt in range(retry_delays_msec.size() + 1):
+		_log_finalize("internal_post_attempt", {
+			"path": path,
+			"attempt": attempt + 1,
+		})
 		response = _send_internal_post_once(path, payload)
 		if bool(response.get("ok", false)):
 			return response
 		if _is_terminal_internal_error(String(response.get("error_code", ""))):
+			_log_finalize("internal_post_terminal_error", {
+				"path": path,
+				"attempt": attempt + 1,
+				"error_code": String(response.get("error_code", "")),
+			})
 			return response
 		if attempt >= retry_delays_msec.size():
 			return response
@@ -230,12 +262,17 @@ func _send_internal_post_once(path: String, payload: Dictionary) -> Dictionary:
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"net",
+		"net.online.finalize",
+		"server_match_finalize_reporter",
+		{
+			"path": path,
+			"match_id": String(payload.get("match_id", "")),
+			"assignment_id": String(payload.get("assignment_id", "")),
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return {
@@ -271,3 +308,7 @@ func _read_env(name: String, fallback: String = "") -> String:
 
 func _utc_now_string() -> String:
 	return "%sZ" % Time.get_datetime_string_from_system(true, false)
+
+
+func _log_finalize(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("%s[server_match_finalize_reporter] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.finalize")

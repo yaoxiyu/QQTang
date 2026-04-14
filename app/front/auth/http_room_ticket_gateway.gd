@@ -2,6 +2,7 @@ class_name HttpRoomTicketGateway
 extends "res://app/front/auth/room_ticket_gateway.gd"
 
 const HttpRoomTicketResultScript = preload("res://app/front/auth/room_ticket_result.gd")
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 
 var service_base_url: String = ""
 
@@ -37,12 +38,18 @@ func issue_room_ticket(access_token: String, request):
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"front",
+		"front.auth.room_ticket_gateway",
+		"http_room_ticket_gateway",
+		{
+			"url": service_base_url + "/api/v1/tickets/room-entry",
+			"method": HTTPClient.METHOD_POST,
+			"room_kind": String(request.room_kind),
+			"assignment_id": String(request.assignment_id),
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_EMPTY_RESPONSE", "Room ticket service returned empty response")

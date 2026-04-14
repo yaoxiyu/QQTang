@@ -1,6 +1,8 @@
 class_name HttpSettlementGateway
 extends SettlementGateway
 
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+
 var service_base_url: String = ""
 
 
@@ -35,12 +37,17 @@ func fetch_match_summary(access_token: String, match_id: String) -> Dictionary:
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"front",
+		"front.settlement.gateway",
+		"http_settlement_gateway",
+		{
+			"url": service_base_url + "/api/v1/settlement/matches/%s" % match_id.uri_encode(),
+			"method": HTTPClient.METHOD_GET,
+			"match_id": match_id,
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return _fail("SETTLEMENT_EMPTY_RESPONSE", "Settlement service returned empty response")

@@ -2,6 +2,8 @@ class_name SettlementController
 extends Control
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 signal settlement_shown(result: BattleResult)
 signal settlement_hidden()
 signal return_to_room_requested()
@@ -113,6 +115,7 @@ func show_result(result: BattleResult) -> void:
 	_set_input_locked(true)
 	_refresh_text()
 	visible = true
+	_log_online_settlement("show_result", debug_dump_settlement_state())
 	settlement_shown.emit(current_result)
 
 
@@ -121,6 +124,7 @@ func hide_result() -> void:
 	_set_input_locked(false)
 	visible = false
 	_refresh_text()
+	_log_online_settlement("hide_result", debug_dump_settlement_state())
 	settlement_hidden.emit()
 
 
@@ -145,6 +149,7 @@ func apply_server_summary(summary: Dictionary) -> void:
 	reward_summary_text = String(resolved_summary.get("reward_summary_text", reward_summary_text))
 	career_summary_text = String(resolved_summary.get("career_summary_text", career_summary_text))
 	_refresh_text()
+	_log_online_settlement("apply_server_summary", debug_dump_settlement_state())
 
 
 func set_return_button_mode_lobby() -> void:
@@ -154,6 +159,7 @@ func set_return_button_mode_lobby() -> void:
 	if rematch_button != null:
 		rematch_button.disabled = true
 		rematch_button.visible = false
+	_log_online_settlement("set_return_button_mode_lobby", debug_dump_settlement_state())
 
 
 func set_return_button_mode_room() -> void:
@@ -163,6 +169,7 @@ func set_return_button_mode_room() -> void:
 	if rematch_button != null:
 		rematch_button.disabled = false
 		rematch_button.visible = true
+	_log_online_settlement("set_return_button_mode_room", debug_dump_settlement_state())
 
 
 func debug_dump_settlement_state() -> Dictionary:
@@ -484,3 +491,7 @@ func _format_signed_number(value: int) -> String:
 	if value > 0:
 		return "+%d" % value
 	return "%d" % value
+
+
+func _log_online_settlement(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[settlement_controller] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.settlement.controller")

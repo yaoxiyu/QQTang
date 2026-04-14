@@ -45,6 +45,8 @@ const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.g
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 const LoadingUseCaseScript = preload("res://app/front/loading/loading_use_case.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 signal runtime_state_changed(previous_state: int, next_state: int, reason: String)
 signal runtime_ready()
@@ -313,6 +315,7 @@ func build_and_store_start_config(snapshot):
 
 
 func clear_battle_payload() -> void:
+	_log_online_runtime("clear_battle_payload", debug_dump_online_runtime_state())
 	current_start_config = null
 	current_battle_content_manifest = {}
 	current_battle_scene = null
@@ -334,6 +337,7 @@ func apply_canonical_start_config(config) -> void:
 	_update_current_battle_content_manifest()
 	if battle_session_adapter != null and current_start_config != null:
 		battle_session_adapter.setup_from_start_config(current_start_config)
+	_log_online_runtime("apply_canonical_start_config", debug_dump_online_runtime_state())
 
 
 # Phase17: Apply match resume payload
@@ -373,6 +377,7 @@ func register_battle_modules(
 	current_settlement_controller = settlement_controller
 	if battle_scene != null and battle_root != null and battle_scene.get_parent() != battle_root:
 		_reparent_to(battle_scene, battle_root)
+	_log_online_runtime("register_battle_modules", debug_dump_online_runtime_state())
 
 
 func unregister_battle_modules(battle_scene: Node) -> void:
@@ -384,6 +389,23 @@ func unregister_battle_modules(battle_scene: Node) -> void:
 	current_battle_hud_controller = null
 	current_battle_camera_controller = null
 	current_settlement_controller = null
+	_log_online_runtime("unregister_battle_modules", debug_dump_online_runtime_state())
+
+
+func debug_dump_online_runtime_state() -> Dictionary:
+	return {
+		"room_kind": String(current_room_entry_context.room_kind) if current_room_entry_context != null else "",
+		"assignment_id": String(current_room_entry_context.assignment_id) if current_room_entry_context != null else "",
+		"match_source": String(current_room_entry_context.match_source) if current_room_entry_context != null else "",
+		"return_to_lobby_after_settlement": bool(current_room_entry_context.return_to_lobby_after_settlement) if current_room_entry_context != null else false,
+		"room_id": String(current_room_entry_context.target_room_id) if current_room_entry_context != null else "",
+		"match_id": String(current_start_config.match_id) if current_start_config != null else "",
+		"mode_id": String(current_start_config.mode_id) if current_start_config != null else "",
+		"rule_set_id": String(current_start_config.rule_set_id) if current_start_config != null else "",
+		"map_id": String(current_start_config.map_id) if current_start_config != null else "",
+		"has_settlement_popup_summary": not current_settlement_popup_summary.is_empty(),
+		"settlement_popup_summary": current_settlement_popup_summary.duplicate(true),
+	}
 
 
 func debug_dump_runtime_structure() -> Dictionary:
@@ -704,3 +726,7 @@ func _try_load_script(path: String):
 		return null
 	var script = load(path)
 	return script
+
+
+func _log_online_runtime(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[app_runtime_root] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.runtime.online")

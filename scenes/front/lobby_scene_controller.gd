@@ -7,6 +7,7 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 const MATCHMAKING_POLL_INTERVAL_SEC := 2.0
 
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
@@ -93,6 +94,7 @@ func _on_runtime_ready() -> void:
 	_refresh_view()
 	_connect_signals()
 	_ensure_matchmaking_poll_timer()
+	_log_online_lobby("runtime_ready", _build_online_debug_context())
 
 
 func _redirect_to_boot_if_missing() -> void:
@@ -206,6 +208,7 @@ func _refresh_view() -> void:
 	_refresh_career_panel(view_state)
 	_refresh_matchmaking_panel(view_state)
 	_set_message("")
+	_log_online_lobby("refresh_view", _build_online_debug_context())
 
 
 func _refresh_career_panel(view_state = null) -> void:
@@ -274,7 +277,8 @@ func _refresh_matchmaking_panel(view_state = null) -> void:
 				" | %s" % assignment_status_text if not assignment_status_text.is_empty() else "",
 			]
 	if enter_queue_button != null:
-		enter_queue_button.disabled = String(view_state.queue_state) == "searching" or String(view_state.queue_state) == "assigned"
+		var queue_state := String(view_state.queue_state)
+		enter_queue_button.disabled = queue_state == "queued" or queue_state == "assigned" or queue_state == "committing"
 	if cancel_queue_button != null:
 		cancel_queue_button.disabled = String(view_state.queue_state).is_empty() or String(view_state.queue_state) == "cancelled"
 
@@ -452,9 +456,11 @@ func _on_refresh_career_pressed() -> void:
 		return
 	var result: Dictionary = _app_runtime.career_use_case.refresh_career_summary()
 	if not bool(result.get("ok", false)):
+		_log_online_lobby("refresh_career_failed", result)
 		_set_message(String(result.get("user_message", "Career refresh failed")))
 		return
 	_refresh_view()
+	_log_online_lobby("refresh_career_succeeded", _build_online_debug_context())
 
 
 func _on_enter_queue_pressed() -> void:
@@ -469,11 +475,20 @@ func _on_enter_queue_pressed() -> void:
 		_selected_metadata(queue_rule_selector)
 	)
 	if not bool(result.get("ok", false)):
-		_set_message(String(result.get("user_message", "Failed to enter queue")))
+		_log_online_lobby("enter_queue_failed", result)
+		if String(result.get("error_code", "")) == "MATCHMAKING_QUEUE_ALREADY_ACTIVE":
+			var status_result: Dictionary = _app_runtime.matchmaking_use_case.poll_queue_status()
+			if bool(status_result.get("ok", false)):
+				var view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
+				_refresh_matchmaking_panel(view_state)
+			_set_message("Existing active queue detected. Cancel it first or wait for assignment.")
+		else:
+			_set_message(String(result.get("user_message", "Failed to enter queue")))
 		_refresh_matchmaking_panel()
 		return
 	_refresh_view()
 	_set_message("Queue entered, searching for players...")
+	_log_online_lobby("enter_queue_succeeded", _build_online_debug_context())
 
 
 func _on_cancel_queue_pressed() -> void:
@@ -482,22 +497,26 @@ func _on_cancel_queue_pressed() -> void:
 		return
 	var result: Dictionary = _app_runtime.matchmaking_use_case.cancel_queue()
 	if not bool(result.get("ok", false)):
+		_log_online_lobby("cancel_queue_failed", result)
 		_set_message(String(result.get("user_message", "Failed to cancel queue")))
 		return
 	_queue_assignment_consuming = false
 	_refresh_view()
 	_set_message("Queue cancelled.")
+	_log_online_lobby("cancel_queue_succeeded", _build_online_debug_context())
 
 
 func _handle_room_entry_result(result: Dictionary) -> void:
 	if not bool(result.get("ok", false)):
 		_queue_assignment_consuming = false
+		_log_online_lobby("room_entry_failed", result)
 		_set_message(String(result.get("user_message", "Room entry failed")))
 		_set_directory_status(String(result.get("user_message", "")))
 		return
 	var entry_context: Variant = result.get("entry_context", null)
 	if entry_context == null:
 		_queue_assignment_consuming = false
+		_log_online_lobby("room_entry_missing_context", result)
 		_set_message("Room entry context is missing.")
 		_set_directory_status("Room entry context is missing.")
 		return
@@ -513,15 +532,18 @@ func _handle_room_entry_result(result: Dictionary) -> void:
 	var room_result: Dictionary = _app_runtime.room_use_case.enter_room(entry_context)
 	if not bool(room_result.get("ok", false)):
 		_queue_assignment_consuming = false
+		_log_online_lobby("room_use_case_enter_failed", room_result)
 		_set_message(String(room_result.get("user_message", "Failed to enter room")))
 		_set_directory_status(String(room_result.get("user_message", "")))
 		return
 	if bool(room_result.get("pending", false)):
+		_log_online_lobby("room_entry_pending", _build_online_debug_context())
 		_set_message("Connecting...")
 		_set_directory_status("")
 		return
 	_set_message("")
 	_set_directory_status("")
+	_log_online_lobby("room_entry_completed", _build_online_debug_context())
 
 
 func _poll_queue_status() -> void:
@@ -536,6 +558,7 @@ func _poll_queue_status() -> void:
 		return
 	var status_result: Dictionary = _app_runtime.matchmaking_use_case.poll_queue_status()
 	if not bool(status_result.get("ok", false)):
+		_log_online_lobby("poll_queue_status_failed", status_result)
 		_set_message(String(status_result.get("user_message", "Matchmaking status refresh failed")))
 		_refresh_matchmaking_panel()
 		return
@@ -544,10 +567,16 @@ func _poll_queue_status() -> void:
 	var assignment_state = status_result.get("assignment_state", null)
 	if assignment_state == null or String(assignment_state.assignment_id).is_empty():
 		return
+	_log_online_lobby("assignment_detected", {
+		"assignment_id": String(assignment_state.assignment_id),
+		"ticket_role": String(assignment_state.ticket_role),
+		"room_id": String(assignment_state.room_id),
+	})
 	_queue_assignment_consuming = true
 	var entry_result: Dictionary = _app_runtime.lobby_use_case.build_matchmade_entry_context()
 	if not bool(entry_result.get("ok", false)):
 		_queue_assignment_consuming = false
+		_log_online_lobby("build_matchmade_entry_context_failed", entry_result)
 		_set_message(String(entry_result.get("user_message", "Failed to consume match assignment")))
 		_refresh_matchmaking_panel()
 		return
@@ -623,6 +652,10 @@ func _on_room_error(_error_code: String, user_message: String) -> void:
 		return
 	_set_message(user_message)
 	_set_directory_status(user_message)
+	_log_online_lobby("room_error", {
+		"user_message": user_message,
+		"context": _build_online_debug_context(),
+	})
 
 
 func _on_transport_connected() -> void:
@@ -668,3 +701,28 @@ func _on_room_directory_snapshot_received(snapshot) -> void:
 
 func _log_phase15(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[lobby_scene] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.scene")
+
+
+func _log_online_lobby(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[lobby_scene] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.online")
+
+
+func _build_online_debug_context() -> Dictionary:
+	var queue_state = null
+	var assignment_state = null
+	if _app_runtime != null and _app_runtime.matchmaking_use_case != null:
+		if _app_runtime.matchmaking_use_case.has_method("get_queue_state"):
+			queue_state = _app_runtime.matchmaking_use_case.get_queue_state()
+		if _app_runtime.matchmaking_use_case.has_method("get_assignment_state"):
+			assignment_state = _app_runtime.matchmaking_use_case.get_assignment_state()
+	return {
+		"flow_state": _app_runtime.front_flow.get_state_name() if _app_runtime != null and _app_runtime.front_flow != null else &"",
+		"queue_state": queue_state.queue_state if queue_state != null else "",
+		"queue_entry_id": queue_state.queue_entry_id if queue_state != null else "",
+		"assignment_id": assignment_state.assignment_id if assignment_state != null else "",
+		"assignment_room_id": assignment_state.room_id if assignment_state != null else "",
+		"assignment_ticket_role": assignment_state.ticket_role if assignment_state != null else "",
+		"game_service_host": game_service_host_input.text.strip_edges() if game_service_host_input != null else "",
+		"game_service_port": int(game_service_port_input.text.to_int()) if game_service_port_input != null else 0,
+		"queue_assignment_consuming": _queue_assignment_consuming,
+	}

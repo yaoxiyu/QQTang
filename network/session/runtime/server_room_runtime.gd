@@ -9,6 +9,7 @@ const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
@@ -51,6 +52,12 @@ func configure(next_authority_host: String, next_authority_port: int, next_room_
 func create_room_from_request(message: Dictionary) -> Dictionary:
 	_ensure_services()
 	var previous_room_id := get_room_id()
+	_log_online_room_runtime("create_room_from_request", {
+		"previous_room_id": previous_room_id,
+		"requested_room_kind": String(message.get("room_kind", "")),
+		"requested_room_id_hint": String(message.get("room_id_hint", "")),
+		"sender_peer_id": int(message.get("sender_peer_id", 0)),
+	})
 	_room_service.handle_message(message)
 	var resolved_room_id := get_room_id()
 	return {
@@ -75,6 +82,12 @@ func handle_room_message(message: Dictionary) -> void:
 			"user_message": "Room is already in loading",
 		})
 		return
+	if message_type == TransportMessageTypesScript.ROOM_CREATE_REQUEST or message_type == TransportMessageTypesScript.ROOM_JOIN_REQUEST:
+		_log_online_room_runtime("handle_room_message", {
+			"message_type": message_type,
+			"sender_peer_id": int(message.get("sender_peer_id", 0)),
+			"room_id_hint": String(message.get("room_id_hint", "")),
+		})
 	_room_service.handle_message(message)
 
 
@@ -309,6 +322,7 @@ func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
 func _on_match_finished(_result: BattleResult) -> void:
 	if _room_service != null and _room_service.has_method("handle_match_finished"):
 		_room_service.handle_match_finished()
+	_log_online_room_runtime("match_finished", _build_online_runtime_context())
 	if _match_finalize_reporter != null and _match_finalize_reporter.has_method("report_match_result_async"):
 		_match_finalize_reporter.report_match_result_async(self, _result)
 	# Phase17: Clear resume state on match finish
@@ -317,6 +331,7 @@ func _on_match_finished(_result: BattleResult) -> void:
 
 
 func _on_assignment_commit_requested(payload: Dictionary) -> void:
+	_log_online_room_runtime("assignment_commit_requested", payload)
 	if _match_finalize_reporter != null and _match_finalize_reporter.has_method("report_assignment_commit_async"):
 		_match_finalize_reporter.report_assignment_commit_async(payload)
 
@@ -476,3 +491,22 @@ func _on_loading_committed(_config: BattleStartConfig, _snapshot: MatchLoadingSn
 		_room_service.handle_match_committed()
 	if _resume_coordinator != null:
 		_resume_coordinator.on_match_committed(_config)
+	_log_online_room_runtime("loading_committed", _build_online_runtime_context())
+
+
+func _build_online_runtime_context() -> Dictionary:
+	var room_state = _room_service.room_state if _room_service != null else null
+	return {
+		"room_id": String(room_state.room_id) if room_state != null else "",
+		"room_kind": String(room_state.room_kind) if room_state != null else "",
+		"assignment_id": String(room_state.assignment_id) if room_state != null else "",
+		"assignment_revision": int(room_state.assignment_revision) if room_state != null else 0,
+		"season_id": String(room_state.season_id) if room_state != null else "",
+		"expected_member_count": int(room_state.expected_member_count) if room_state != null else 0,
+		"member_count": room_state.members.size() if room_state != null else 0,
+		"match_active": bool(room_state.match_active) if room_state != null else false,
+	}
+
+
+func _log_online_room_runtime(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("%s[server_room_runtime] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.room_runtime")

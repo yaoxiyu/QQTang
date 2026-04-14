@@ -14,7 +14,9 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 const TICK_INTERVAL_SEC: float = TickRunnerScript.TICK_DT
 const SETTLEMENT_SHOW_DELAY_SEC: float = 0.35
@@ -251,6 +253,12 @@ func _on_battle_finished_authoritatively(result: BattleResult) -> void:
 	_settlement_delay_remaining = SETTLEMENT_SHOW_DELAY_SEC
 	_clear_runtime_settlement_summary()
 	var match_id := _resolve_current_match_id()
+	_log_online_flow("battle_finished_authoritatively", {
+		"match_id": match_id,
+		"finish_reason": result.finish_reason if result != null else "",
+		"local_outcome": result.local_outcome if result != null else "",
+		"return_to_lobby_after_settlement": _should_return_to_lobby_after_settlement(),
+	})
 	if not match_id.is_empty():
 		_settlement_sync_token += 1
 		call_deferred("_fetch_server_settlement_summary_with_retry", match_id, _settlement_sync_token)
@@ -306,6 +314,10 @@ func _request_post_shutdown_action(action: String) -> void:
 			if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
 				_app_runtime.room_session_controller.set_pending_room_action("rematch")
 	_post_shutdown_action = action
+	_log_online_flow("post_shutdown_action_requested", {
+		"action": action,
+		"match_id": _resolve_current_match_id(),
+	})
 	_shutdown_active_battle()
 	_complete_post_shutdown_action()
 
@@ -386,6 +398,11 @@ func _show_pending_settlement() -> void:
 	else:
 		settlement_controller.set_return_button_mode_room()
 	settlement_controller.show_result(_pending_settlement_result)
+	_log_online_flow("settlement_opened", {
+		"match_id": _resolve_current_match_id(),
+		"return_mode": "lobby" if _should_return_to_lobby_after_settlement() else "room",
+		"has_cached_server_summary": _app_runtime != null and not _app_runtime.current_settlement_popup_summary.is_empty(),
+	})
 	if _app_runtime != null:
 		var popup_summary: Dictionary = _app_runtime.current_settlement_popup_summary.duplicate(true)
 		if not popup_summary.is_empty():
@@ -453,17 +470,38 @@ func _fetch_server_settlement_summary_once(match_id: String) -> bool:
 		return true
 	if _app_runtime.settlement_sync_use_case == null or not _app_runtime.settlement_sync_use_case.has_method("fetch_match_summary"):
 		return true
+	_log_online_flow("settlement_summary_fetch_requested", {
+		"match_id": match_id,
+	})
 	var fetch_result: Dictionary = _app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
 	if not bool(fetch_result.get("ok", false)):
+		_log_online_flow("settlement_summary_fetch_failed", {
+			"match_id": match_id,
+			"error_code": String(fetch_result.get("error_code", "")),
+			"user_message": String(fetch_result.get("user_message", "")),
+		})
 		return false
 	var popup_result: Dictionary = _app_runtime.settlement_sync_use_case.apply_summary_to_popup(fetch_result.get("summary", null))
 	if not bool(popup_result.get("ok", false)):
+		_log_online_flow("settlement_popup_apply_failed", {
+			"match_id": match_id,
+			"error_code": String(popup_result.get("error_code", "")),
+			"user_message": String(popup_result.get("user_message", "")),
+		})
 		return false
 	var popup_summary: Dictionary = popup_result.get("popup_summary", {})
 	_app_runtime.current_settlement_popup_summary = popup_summary.duplicate(true)
 	if settlement_controller != null and settlement_controller.visible:
 		settlement_controller.apply_server_summary(popup_summary)
-	return String(popup_summary.get("server_sync_state", "")).strip_edges().to_lower() != "pending"
+	var synced := String(popup_summary.get("server_sync_state", "")).strip_edges().to_lower() != "pending"
+	_log_online_flow("settlement_summary_fetch_succeeded", {
+		"match_id": match_id,
+		"server_sync_state": String(popup_summary.get("server_sync_state", "")),
+		"rating_delta": int(popup_summary.get("rating_delta", 0)),
+		"season_point_delta": int(popup_summary.get("season_point_delta", 0)),
+		"synced": synced,
+	})
+	return synced
 
 
 func _resolve_current_match_id() -> String:
@@ -489,6 +527,10 @@ func _clear_runtime_settlement_summary() -> void:
 		return
 	_app_runtime.current_settlement_popup_summary = {}
 	_settlement_sync_token += 1
+	_log_online_flow("settlement_summary_cleared", {
+		"match_id": _resolve_current_match_id(),
+		"settlement_sync_token": _settlement_sync_token,
+	})
 
 
 func _queue_scene_cleanup() -> void:
@@ -832,3 +874,7 @@ func _disconnect_session_signals(include_stop_signal: bool) -> void:
 		_session_adapter.prediction_debug_event.disconnect(_on_prediction_debug_event)
 	if _session_adapter.network_transport_error.is_connected(_on_transport_runtime_error):
 		_session_adapter.network_transport_error.disconnect(_on_transport_runtime_error)
+
+
+func _log_online_flow(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[battle_main] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.battle.online")

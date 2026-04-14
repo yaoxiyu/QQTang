@@ -3,6 +3,8 @@ extends RefCounted
 
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const CareerSummaryStateScript = preload("res://app/front/career/career_summary_state.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var auth_session_state: AuthSessionState = null
 var front_settings_state: FrontSettingsState = null
@@ -26,10 +28,18 @@ func refresh_career_summary() -> Dictionary:
 	if career_gateway == null:
 		return _fail("CAREER_GATEWAY_MISSING", "Career gateway is not available")
 	_configure_gateway()
+	_log_career("refresh_requested", {})
 	var response = career_gateway.fetch_my_career(auth_session_state.access_token)
 	if not bool(response.get("ok", false)):
+		_log_career("refresh_failed", response)
 		return _fail(String(response.get("error_code", "CAREER_FETCH_FAILED")), String(response.get("user_message", "Failed to fetch career summary")))
 	current_summary = CareerSummaryStateScript.from_response(response)
+	_log_career("refresh_succeeded", {
+		"current_season_id": current_summary.current_season_id if current_summary != null else "",
+		"current_rating": current_summary.current_rating if current_summary != null else 0,
+		"current_rank_tier": current_summary.current_rank_tier if current_summary != null else "",
+		"career_total_matches": current_summary.career_total_matches if current_summary != null else 0,
+	})
 	return {
 		"ok": true,
 		"summary": current_summary,
@@ -68,3 +78,7 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 		"error_code": error_code,
 		"user_message": user_message,
 	}
+
+
+func _log_career(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[career_use_case] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.career.use_case")

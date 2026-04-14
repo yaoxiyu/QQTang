@@ -3,6 +3,7 @@ extends AuthGateway
 
 const RegisterResultScript = preload("res://app/front/auth/register_result.gd")
 const RefreshSessionResultScript = preload("res://app/front/auth/refresh_session_result.gd")
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 
 var service_base_url: String = ""
 
@@ -155,12 +156,16 @@ func _request_json(url: String, method: int, body: Dictionary, extra_headers: Ar
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"front",
+		"front.auth.gateway",
+		"http_auth_gateway",
+		{
+			"url": url,
+			"method": method,
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return {

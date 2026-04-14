@@ -80,11 +80,12 @@ function Start-ServiceWindow {
         $envLines += "`$env:$key = $(Quote-PS ([string]$Env[$key]))"
     }
     $script = @(
-        "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title)",
-        $envLines,
-        "Set-Location -LiteralPath $(Quote-PS $WorkDir)",
+        "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title)"
+        $envLines
+        "Set-Location -LiteralPath $(Quote-PS $WorkDir)"
         $Command
     ) -join "; "
+
 
     return Start-Process -FilePath $PowerShellExe -ArgumentList @(
         "-NoExit",
@@ -164,3 +165,5 @@ Write-Host "  account postgres: 127.0.0.1:$AccountPostgresPort"
 Write-Host "  game postgres:    127.0.0.1:$GamePostgresPort"
 Write-Host ""
 Write-Host "Close the spawned PowerShell windows to stop the Go services."
+
+Pause

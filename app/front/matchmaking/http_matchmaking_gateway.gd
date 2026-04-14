@@ -1,6 +1,8 @@
 class_name HttpMatchmakingGateway
 extends MatchmakingGateway
 
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+
 var service_base_url: String = ""
 
 
@@ -66,12 +68,16 @@ func _send_json_request(method: int, path: String, access_token: String, payload
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
 		client.poll()
 		OS.delay_msec(10)
-	var raw := client.read_response_body_chunk()
-	var chunks := PackedByteArray()
-	while client.get_status() == HTTPClient.STATUS_BODY or not raw.is_empty():
-		chunks.append_array(raw)
-		client.poll()
-		raw = client.read_response_body_chunk()
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client,
+		"front",
+		"front.matchmaking.gateway",
+		"http_matchmaking_gateway",
+		{
+			"url": service_base_url + path,
+			"method": method,
+		}
+	)
 	var text := chunks.get_string_from_utf8()
 	if text.strip_edges().is_empty():
 		return _fail("MATCHMAKING_EMPTY_RESPONSE", "Matchmaking service returned empty response")
