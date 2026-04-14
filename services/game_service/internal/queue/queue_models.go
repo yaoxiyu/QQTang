@@ -5,6 +5,7 @@ type EnterQueueInput struct {
 	ProfileID          string
 	DeviceSessionID    string
 	QueueType          string
+	MatchFormatID      string
 	ModeID             string
 	RuleSetID          string
 	PreferredMapPoolID string

@@ -73,6 +73,7 @@ static func get_map_entries() -> Array:
 			"bound_mode_id": String(metadata.get("bound_mode_id", "")),
 			"bound_rule_set_id": String(metadata.get("bound_rule_set_id", "")),
 			"match_format_id": String(metadata.get("match_format_id", "2v2")),
+			"match_format_variants": metadata.get("match_format_variants", []).duplicate(true),
 			"required_team_count": int(metadata.get("required_team_count", 2)),
 			"max_player_count": int(metadata.get("max_player_count", 0)),
 			"custom_room_enabled": bool(metadata.get("custom_room_enabled", true)),
@@ -156,6 +157,24 @@ static func _validate_map_resource(map_resource: MapResource, resource_path: Str
 				map_resource.max_player_count,
 			]
 		)
+	for variant in map_resource.match_format_variants:
+		if not variant is Dictionary:
+			issues.append("match_format_variants entries must be dictionaries")
+			continue
+		var variant_format := String((variant as Dictionary).get("match_format_id", ""))
+		var variant_max_players := int((variant as Dictionary).get("max_player_count", map_resource.max_player_count))
+		if variant_format.is_empty():
+			issues.append("match_format_variants entry match_format_id is empty")
+		if variant_max_players <= 0:
+			issues.append("match_format_variants entry max_player_count must be > 0")
+		elif map_resource.spawn_points.size() < variant_max_players:
+			issues.append(
+				"spawn_points size (%d) is smaller than variant %s max_player_count (%d)" % [
+					map_resource.spawn_points.size(),
+					variant_format,
+					variant_max_players,
+				]
+			)
 	if issues.is_empty():
 		return
 	LogContentScript.warn(

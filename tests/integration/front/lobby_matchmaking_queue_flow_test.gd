@@ -16,7 +16,7 @@ class FakeMatchmakingGateway:
 	func configure_base_url(base_url: String) -> void:
 		last_base_url = base_url
 
-	func enter_queue(_access_token: String, queue_type: String, match_format_id: String, mode_id: String, selected_map_ids: Array[String]) -> Dictionary:
+	func enter_queue(_access_token: String, queue_type: String, match_format_id: String, mode_id: String, rule_set_id: String, selected_map_ids: Array[String]) -> Dictionary:
 		return {
 			"ok": true,
 			"queue_entry_id": "queue_alpha",
@@ -24,6 +24,7 @@ class FakeMatchmakingGateway:
 			"queue_key": "%s:%s:%s" % [queue_type, match_format_id, mode_id],
 			"match_format_id": match_format_id,
 			"mode_id": mode_id,
+			"rule_set_id": rule_set_id,
 			"selected_map_ids": selected_map_ids.duplicate(),
 			"enqueue_unix_sec": 1,
 			"last_heartbeat_unix_sec": 1,
@@ -76,7 +77,7 @@ func _ready() -> void:
 	use_case.configure(auth, profile, settings, gateway, FakeRoomTicketGateway.new())
 
 	var ok := true
-	var enter_result: Dictionary = use_case.enter_queue("ranked", "2v2", "mode_ranked", ["map_arcade"])
+	var enter_result: Dictionary = use_case.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"])
 	ok = TestAssert.is_true(bool(enter_result.get("ok", false)), "enter queue should succeed", "lobby_matchmaking_queue_flow_test") and ok
 	ok = TestAssert.is_true(settings.last_queue_type == "ranked", "enter queue should persist last queue type", "lobby_matchmaking_queue_flow_test") and ok
 

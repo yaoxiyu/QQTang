@@ -37,7 +37,7 @@ func configure(
 	room_ticket_gateway = p_room_ticket_gateway
 
 
-func enter_queue(queue_type: String, match_format_id: String, mode_id: String, selected_map_ids: Array[String]) -> Dictionary:
+func enter_queue(queue_type: String, match_format_id: String, mode_id: String, rule_set_id: String, selected_map_ids: Array[String]) -> Dictionary:
 	if not _is_ready():
 		return _fail("MATCHMAKING_USE_CASE_NOT_READY", "Matchmaking use case is not ready")
 	_configure_gateways()
@@ -45,9 +45,10 @@ func enter_queue(queue_type: String, match_format_id: String, mode_id: String, s
 		"queue_type": queue_type,
 		"match_format_id": match_format_id,
 		"mode_id": mode_id,
+		"rule_set_id": rule_set_id,
 		"selected_map_ids": selected_map_ids,
 	})
-	var response = matchmaking_gateway.enter_queue(auth_session_state.access_token, queue_type, match_format_id, mode_id, selected_map_ids)
+	var response = matchmaking_gateway.enter_queue(auth_session_state.access_token, queue_type, match_format_id, mode_id, rule_set_id, selected_map_ids)
 	if not bool(response.get("ok", false)):
 		_log_matchmaking("enter_queue_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_ENTER_FAILED")), String(response.get("user_message", "Failed to enter queue")))

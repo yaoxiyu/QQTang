@@ -19,7 +19,7 @@ class FakeMatchmakingGateway:
 	func configure_base_url(_base_url: String) -> void:
 		pass
 
-	func enter_queue(_access_token: String, _queue_type: String, _match_format_id: String, _mode_id: String, _selected_map_ids: Array[String]) -> Dictionary:
+	func enter_queue(_access_token: String, _queue_type: String, _match_format_id: String, _mode_id: String, _rule_set_id: String, _selected_map_ids: Array[String]) -> Dictionary:
 		return {
 			"ok": true,
 			"queue_entry_id": "queue_smoke",
@@ -139,7 +139,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	var ok := true
-	ok = TestAssert.is_true(bool(matchmaking.enter_queue("ranked", "2v2", "mode_ranked", ["map_arcade"]).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = TestAssert.is_true(bool(matchmaking.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"]).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
 	ok = TestAssert.is_true(bool(matchmaking.poll_queue_status().get("ok", false)), "smoke queue assign should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
 	var consume_result: Dictionary = matchmaking.consume_assignment_and_build_room_entry_context()
 	ok = TestAssert.is_true(bool(consume_result.get("ok", false)), "smoke assignment consumption should succeed", "matchmaking_ranked_e2e_smoke_test") and ok

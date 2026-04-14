@@ -106,7 +106,7 @@ func (s *Service) EnterQueue(ctx context.Context, input EnterQueueInput) (QueueS
 	entry := storage.QueueEntry{
 		QueueEntryID:         entryID,
 		QueueType:            input.QueueType,
-		QueueKey:             BuildQueueKey(input.QueueType, input.ModeID, input.RuleSetID),
+		QueueKey:             BuildQueueKey(input.QueueType, input.MatchFormatID, input.ModeID, input.RuleSetID),
 		SeasonID:             seasonID,
 		AccountID:            input.AccountID,
 		ProfileID:            input.ProfileID,

@@ -566,6 +566,7 @@ func _on_enter_queue_pressed() -> void:
 		"queue_type": _selected_metadata(queue_type_selector),
 		"match_format_id": _selected_metadata(queue_format_selector),
 		"mode_id": _selected_metadata(queue_game_mode_selector),
+		"rule_set_id": _resolve_selected_matchmaking_rule_set_id(selected_map_ids),
 		"selected_map_ids": selected_map_ids,
 	}
 	_log_online_lobby("enter_queue_requested", queue_debug_payload)
@@ -573,6 +574,7 @@ func _on_enter_queue_pressed() -> void:
 		String(queue_debug_payload.get("queue_type", "")),
 		String(queue_debug_payload.get("match_format_id", "")),
 		String(queue_debug_payload.get("mode_id", "")),
+		String(queue_debug_payload.get("rule_set_id", "")),
 		selected_map_ids
 	)
 	if not bool(result.get("ok", false)):
@@ -734,6 +736,16 @@ func _selected_item_list_metadata(item_list: ItemList) -> Array[String]:
 	for index in item_list.get_selected_items():
 		result.append(String(item_list.get_item_metadata(index)))
 	return result
+
+
+func _resolve_selected_matchmaking_rule_set_id(selected_map_ids: Array[String]) -> String:
+	var match_format_id := _selected_metadata(queue_format_selector)
+	var queue_type := _selected_metadata(queue_type_selector)
+	var mode_id := _selected_metadata(queue_game_mode_selector)
+	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, queue_type, mode_id):
+		if selected_map_ids.has(String(entry.get("map_id", ""))):
+			return String(entry.get("rule_set_id", ""))
+	return ""
 
 
 func _select_metadata(selector: OptionButton, target: String) -> void:

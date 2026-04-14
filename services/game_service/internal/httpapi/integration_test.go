@@ -165,9 +165,13 @@ func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	})
 
 	enterBody, _ := json.Marshal(map[string]any{
-		"queue_type":  "ranked",
-		"mode_id":     "ranked_mode",
-		"rule_set_id": "rule_standard",
+		"queue_type":      "ranked",
+		"match_format_id": "1v1",
+		"mode_id":         "ranked_mode",
+		"rule_set_id":     "rule_standard",
+		"selected_map_ids": []string{
+			"map_classic_square",
+		},
 	})
 	enterReq := httptest.NewRequest(http.MethodPost, "/api/v1/matchmaking/queue/enter", bytes.NewReader(enterBody))
 	enterReq.Header.Set("Authorization", "Bearer "+token)
@@ -184,6 +188,12 @@ func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	queueEntryID := enterPayload["queue_entry_id"].(string)
 	if queueEntryID == "" {
 		t.Fatal("expected queue_entry_id in enter response")
+	}
+	if got := enterPayload["queue_key"]; got != "ranked:ranked_mode:rule_standard:1v1" {
+		t.Fatalf("expected 1v1 queue key, got %v", got)
+	}
+	if got := db.entriesByID[queueEntryID].PreferredMapPoolID; got != "map_classic_square" {
+		t.Fatalf("expected selected map to be stored, got %s", got)
 	}
 
 	cancelBody, _ := json.Marshal(map[string]any{"queue_entry_id": queueEntryID})

@@ -10,7 +10,7 @@ func configure_base_url(base_url: String) -> void:
 	service_base_url = base_url.strip_edges()
 
 
-func enter_queue(access_token: String, queue_type: String, match_format_id: String, mode_id: String, selected_map_ids: Array[String]):
+func enter_queue(access_token: String, queue_type: String, match_format_id: String, mode_id: String, rule_set_id: String, selected_map_ids: Array[String]):
 	return _send_json_request(
 		HTTPClient.METHOD_POST,
 		"/api/v1/matchmaking/queue/enter",
@@ -19,6 +19,7 @@ func enter_queue(access_token: String, queue_type: String, match_format_id: Stri
 			"queue_type": queue_type,
 			"match_format_id": match_format_id,
 			"mode_id": mode_id,
+			"rule_set_id": rule_set_id,
 			"selected_map_ids": selected_map_ids.duplicate(),
 		}
 	)

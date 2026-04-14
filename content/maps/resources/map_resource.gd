@@ -18,6 +18,7 @@ extends Resource
 @export var match_format_id: String = "2v2"
 @export var required_team_count: int = 2
 @export var max_player_count: int = 4
+@export var match_format_variants: Array[Dictionary] = []
 @export var custom_room_enabled: bool = true
 @export var matchmaking_casual_enabled: bool = true
 @export var matchmaking_ranked_enabled: bool = false
@@ -39,6 +40,7 @@ func to_metadata() -> Dictionary:
 		"match_format_id": match_format_id,
 		"required_team_count": required_team_count,
 		"max_player_count": max_player_count,
+		"match_format_variants": match_format_variants.duplicate(true),
 		"custom_room_enabled": custom_room_enabled,
 		"matchmaking_casual_enabled": matchmaking_casual_enabled,
 		"matchmaking_ranked_enabled": matchmaking_ranked_enabled,

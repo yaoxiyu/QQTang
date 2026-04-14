@@ -17,10 +17,12 @@ func NewMatchmakingHandler(service *queue.Service) *MatchmakingHandler {
 
 func (h *MatchmakingHandler) EnterQueue(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		QueueType          string `json:"queue_type"`
-		ModeID             string `json:"mode_id"`
-		RuleSetID          string `json:"rule_set_id"`
-		PreferredMapPoolID string `json:"preferred_map_pool_id"`
+		QueueType          string   `json:"queue_type"`
+		MatchFormatID      string   `json:"match_format_id"`
+		ModeID             string   `json:"mode_id"`
+		RuleSetID          string   `json:"rule_set_id"`
+		PreferredMapPoolID string   `json:"preferred_map_pool_id"`
+		SelectedMapIDs     []string `json:"selected_map_ids"`
 	}
 	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
 		httpx.WriteInvalidRequestBody(w)
@@ -32,9 +34,10 @@ func (h *MatchmakingHandler) EnterQueue(w http.ResponseWriter, r *http.Request) 
 		ProfileID:          claims.ProfileID,
 		DeviceSessionID:    claims.DeviceSessionID,
 		QueueType:          request.QueueType,
+		MatchFormatID:      request.MatchFormatID,
 		ModeID:             request.ModeID,
 		RuleSetID:          request.RuleSetID,
-		PreferredMapPoolID: request.PreferredMapPoolID,
+		PreferredMapPoolID: preferredMapPoolID(request.PreferredMapPoolID, request.SelectedMapIDs),
 	})
 	if err != nil {
 		code, message := mapError(err)
@@ -52,6 +55,16 @@ func (h *MatchmakingHandler) EnterQueue(w http.ResponseWriter, r *http.Request) 
 		"assignment_revision":     status.AssignmentRevision,
 		"expires_at_unix_sec":     status.ExpiresAtUnixSec,
 	})
+}
+
+func preferredMapPoolID(preferredMapPoolID string, selectedMapIDs []string) string {
+	if preferredMapPoolID != "" {
+		return preferredMapPoolID
+	}
+	if len(selectedMapIDs) == 0 {
+		return ""
+	}
+	return selectedMapIDs[0]
 }
 
 func (h *MatchmakingHandler) CancelQueue(w http.ResponseWriter, r *http.Request) {

@@ -14,7 +14,7 @@ class FakeMatchmakingGateway:
 	func configure_base_url(_base_url: String) -> void:
 		pass
 
-	func enter_queue(_access_token: String, _queue_type: String, _match_format_id: String, _mode_id: String, _selected_map_ids: Array[String]) -> Dictionary:
+	func enter_queue(_access_token: String, _queue_type: String, _match_format_id: String, _mode_id: String, _rule_set_id: String, _selected_map_ids: Array[String]) -> Dictionary:
 		return {
 			"ok": true,
 			"queue_entry_id": "queue_alpha",
@@ -94,7 +94,7 @@ func _ready() -> void:
 
 	var use_case = MatchmakingUseCaseScript.new()
 	use_case.configure(auth, profile, settings, FakeMatchmakingGateway.new(), FakeRoomTicketGateway.new())
-	use_case.enter_queue("ranked", "2v2", "mode_ranked", ["map_arcade"])
+	use_case.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"])
 	use_case.poll_queue_status()
 	var consume_result: Dictionary = use_case.consume_assignment_and_build_room_entry_context()
 

@@ -14,11 +14,11 @@ static func get_map_binding(map_id: String) -> Dictionary:
 	var map_metadata := MapCatalogScript.get_map_metadata(map_id)
 	if map_metadata.is_empty():
 		return {}
-	return _build_binding(map_metadata)
+	return _build_legacy_binding(map_metadata)
 
 
 static func get_custom_room_mode_entries() -> Array[Dictionary]:
-	var bindings := _get_valid_bindings()
+	var bindings := _get_valid_bindings(false)
 	var entries_by_mode: Dictionary = {}
 	for binding in bindings:
 		if not bool(binding.get("custom_room_enabled", false)):
@@ -41,7 +41,7 @@ static func get_custom_room_mode_entries() -> Array[Dictionary]:
 
 static func get_custom_room_maps_by_mode(mode_id: String) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
-	for binding in _get_valid_bindings():
+	for binding in _get_valid_bindings(false):
 		if not bool(binding.get("custom_room_enabled", false)):
 			continue
 		if String(binding.get("bound_mode_id", "")) != mode_id:
@@ -87,7 +87,7 @@ static func get_matchmaking_format_entries() -> Array[Dictionary]:
 
 static func get_matchmaking_mode_entries(match_format_id: String, queue_type: String) -> Array[Dictionary]:
 	var entries_by_mode: Dictionary = {}
-	for binding in _get_valid_bindings():
+	for binding in _get_valid_bindings(true):
 		if String(binding.get("match_format_id", "")) != match_format_id:
 			continue
 		if not _is_matchmaking_enabled(binding, queue_type):
@@ -110,7 +110,7 @@ static func get_matchmaking_mode_entries(match_format_id: String, queue_type: St
 
 static func get_matchmaking_maps(match_format_id: String, queue_type: String, mode_id: String) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
-	for binding in _get_valid_bindings():
+	for binding in _get_valid_bindings(true):
 		if String(binding.get("match_format_id", "")) != match_format_id:
 			continue
 		if String(binding.get("bound_mode_id", "")) != mode_id:
@@ -121,27 +121,48 @@ static func get_matchmaking_maps(match_format_id: String, queue_type: String, mo
 	return _sort_map_entries(entries)
 
 
-static func _get_valid_bindings() -> Array[Dictionary]:
+static func _get_valid_bindings(use_matchmaking_variants: bool) -> Array[Dictionary]:
 	var bindings: Array[Dictionary] = []
 	for map_id in MapCatalogScript.get_map_ids():
-		var binding := get_map_binding(map_id)
-		if binding.is_empty():
-			continue
-		if not bool(binding.get("valid", false)):
-			continue
-		bindings.append(binding)
+		var map_metadata := MapCatalogScript.get_map_metadata(map_id)
+		var map_bindings := _build_bindings(map_metadata) if use_matchmaking_variants else [_build_legacy_binding(map_metadata)]
+		for binding in map_bindings:
+			if binding.is_empty():
+				continue
+			if not bool(binding.get("valid", false)):
+				continue
+			bindings.append(binding)
 	return bindings
 
 
-static func _build_binding(map_metadata: Dictionary) -> Dictionary:
+static func _build_legacy_binding(map_metadata: Dictionary) -> Dictionary:
+	return _build_binding(map_metadata, {
+		"match_format_id": String(map_metadata.get("match_format_id", "2v2")),
+		"required_team_count": int(map_metadata.get("required_team_count", 2)),
+		"max_player_count": int(map_metadata.get("max_player_count", 0)),
+		"custom_room_enabled": bool(map_metadata.get("custom_room_enabled", true)),
+		"matchmaking_casual_enabled": bool(map_metadata.get("matchmaking_casual_enabled", true)),
+		"matchmaking_ranked_enabled": bool(map_metadata.get("matchmaking_ranked_enabled", false)),
+	})
+
+
+static func _build_bindings(map_metadata: Dictionary) -> Array[Dictionary]:
 	if map_metadata.is_empty():
-		return {}
+		return []
+	var variants := _normalize_match_format_variants(map_metadata)
+	var bindings: Array[Dictionary] = []
+	for variant in variants:
+		bindings.append(_build_binding(map_metadata, variant))
+	return bindings
+
+
+static func _build_binding(map_metadata: Dictionary, variant: Dictionary) -> Dictionary:
 	var map_id := String(map_metadata.get("map_id", map_metadata.get("id", "")))
 	var bound_mode_id := String(map_metadata.get("bound_mode_id", ""))
 	var bound_rule_set_id := String(map_metadata.get("bound_rule_set_id", ""))
-	var match_format_id := String(map_metadata.get("match_format_id", "2v2"))
-	var required_team_count := int(map_metadata.get("required_team_count", 2))
-	var max_player_count := int(map_metadata.get("max_player_count", 0))
+	var match_format_id := String(variant.get("match_format_id", map_metadata.get("match_format_id", "2v2")))
+	var required_team_count := int(variant.get("required_team_count", map_metadata.get("required_team_count", 2)))
+	var max_player_count := int(variant.get("max_player_count", map_metadata.get("max_player_count", 0)))
 	var spawn_points = map_metadata.get("spawn_points", [])
 	var issues: Array[String] = []
 
@@ -176,15 +197,35 @@ static func _build_binding(map_metadata: Dictionary) -> Dictionary:
 		"match_format_id": match_format_id,
 		"required_team_count": required_team_count,
 		"max_player_count": max_player_count,
-		"custom_room_enabled": bool(map_metadata.get("custom_room_enabled", true)),
-		"matchmaking_casual_enabled": bool(map_metadata.get("matchmaking_casual_enabled", true)),
-		"matchmaking_ranked_enabled": bool(map_metadata.get("matchmaking_ranked_enabled", false)),
+		"custom_room_enabled": bool(variant.get("custom_room_enabled", map_metadata.get("custom_room_enabled", true))),
+		"matchmaking_casual_enabled": bool(variant.get("matchmaking_casual_enabled", map_metadata.get("matchmaking_casual_enabled", true))),
+		"matchmaking_ranked_enabled": bool(variant.get("matchmaking_ranked_enabled", map_metadata.get("matchmaking_ranked_enabled", false))),
 		"sort_order": int(map_metadata.get("sort_order", 0)),
 		"content_hash": String(map_metadata.get("content_hash", "")),
 		"resource_path": String(map_metadata.get("resource_path", "")),
 		"valid": issues.is_empty(),
 		"validation_issues": issues,
 	}
+
+
+static func _normalize_match_format_variants(map_metadata: Dictionary) -> Array[Dictionary]:
+	var variants: Array[Dictionary] = []
+	var raw_variants = map_metadata.get("match_format_variants", [])
+	if raw_variants is Array:
+		for raw_variant in raw_variants:
+			if not raw_variant is Dictionary:
+				continue
+			var variant := (raw_variant as Dictionary).duplicate(true)
+			if String(variant.get("match_format_id", "")).is_empty():
+				continue
+			variants.append(variant)
+	if variants.is_empty():
+		variants.append({
+			"match_format_id": String(map_metadata.get("match_format_id", "2v2")),
+			"required_team_count": int(map_metadata.get("required_team_count", 2)),
+			"max_player_count": int(map_metadata.get("max_player_count", 0)),
+		})
+	return variants
 
 
 static func _is_matchmaking_enabled(binding: Dictionary, queue_type: String) -> bool:
