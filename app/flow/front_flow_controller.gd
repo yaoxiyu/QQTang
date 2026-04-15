@@ -10,6 +10,7 @@ signal loading_started()
 signal battle_started(payload)
 signal settlement_opened(result: BattleResult)
 signal return_to_room_requested()
+signal return_to_source_room_requested()
 signal return_to_lobby_requested()
 signal room_returned()
 signal lobby_entered()
@@ -83,6 +84,15 @@ func request_resume_match() -> void:
 	_enter_match_loading("request_resume_match")
 
 
+## Phase23: Battle entry flow — room_service signals battle_entry_ready,
+## client transitions to loading scene to acquire ticket and connect battle_ds.
+func request_battle_entry() -> void:
+	if current_state != FlowState.ROOM:
+		return
+
+	_enter_match_loading("request_battle_entry")
+
+
 func _enter_match_loading(trigger_stage: String) -> void:
 	last_loading_payload = null
 	_change_state(FlowState.MATCH_LOADING)
@@ -138,6 +148,12 @@ func return_to_room() -> void:
 	return_to_room_requested.emit()
 
 
+## Phase23: After battle settlement, return to source room instead of lobby.
+func return_to_source_room() -> void:
+	_change_state(FlowState.RETURNING_TO_ROOM)
+	return_to_source_room_requested.emit()
+
+
 func return_to_lobby() -> void:
 	_change_state(FlowState.RETURNING_TO_LOBBY)
 	return_to_lobby_requested.emit()
@@ -159,6 +175,11 @@ func on_return_to_room_completed() -> void:
 			return
 	room_entered.emit()
 	room_returned.emit()
+
+
+## Phase23: Called when return-to-source-room fails — fallback to lobby.
+func on_return_to_source_room_failed() -> void:
+	return_to_lobby()
 
 
 func on_return_to_lobby_completed() -> void:

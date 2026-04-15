@@ -34,6 +34,21 @@ layout_mode = 2
 text = "Phase: waiting"
 autowrap_mode = 3
 
+[node name="BattleAssignmentLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=472378996]
+layout_mode = 2
+text = "Assignment: -"
+autowrap_mode = 2
+
+[node name="BattleEndpointLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1648352081]
+layout_mode = 2
+text = "Battle Endpoint: -"
+autowrap_mode = 2
+
+[node name="ReturnTargetLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=575606830]
+layout_mode = 2
+text = "Return Target: -"
+autowrap_mode = 2
+
 [node name="ResumeHintLabel" type="Label" parent="LoadingRoot/MainLayout" unique_id=1462798502]
 layout_mode = 2
 text = "Resume Hint: -"
@@ -55,6 +70,7 @@ layout_mode = 2
 autowrap_mode = 3
 
 [node name="ModeSummaryLabel" type="Label" parent="LoadingRoot/MainLayout/ManifestSummaryPanel/SummaryVBox" unique_id=1679274070]
+visible = false
 layout_mode = 2
 autowrap_mode = 3
 

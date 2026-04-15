@@ -24,6 +24,16 @@ var all_ready: bool = false
 var max_players: int = 0
 var match_active: bool = false
 
+# Phase23: Room lifecycle & battle handoff
+var room_lifecycle_state: String = "idle"
+var current_assignment_id: String = ""
+var current_battle_id: String = ""
+var battle_allocation_state: String = ""
+var battle_server_host: String = ""
+var battle_server_port: int = 0
+var room_return_policy: String = "return_to_source_room"
+var battle_entry_ready: bool = false
+
 
 func to_dict() -> Dictionary:
 	var member_dicts: Array[Dictionary] = []
@@ -55,6 +65,14 @@ func to_dict() -> Dictionary:
 		"all_ready": all_ready,
 		"max_players": max_players,
 		"match_active": match_active,
+		"room_lifecycle_state": room_lifecycle_state,
+		"current_assignment_id": current_assignment_id,
+		"current_battle_id": current_battle_id,
+		"battle_allocation_state": battle_allocation_state,
+		"battle_server_host": battle_server_host,
+		"battle_server_port": battle_server_port,
+		"room_return_policy": room_return_policy,
+		"battle_entry_ready": battle_entry_ready,
 	}
 
 
@@ -81,6 +99,14 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.all_ready = bool(data.get("all_ready", false))
 	snapshot.max_players = int(data.get("max_players", 0))
 	snapshot.match_active = bool(data.get("match_active", false))
+	snapshot.room_lifecycle_state = String(data.get("room_lifecycle_state", "idle"))
+	snapshot.current_assignment_id = String(data.get("current_assignment_id", ""))
+	snapshot.current_battle_id = String(data.get("current_battle_id", ""))
+	snapshot.battle_allocation_state = String(data.get("battle_allocation_state", ""))
+	snapshot.battle_server_host = String(data.get("battle_server_host", ""))
+	snapshot.battle_server_port = int(data.get("battle_server_port", 0))
+	snapshot.room_return_policy = String(data.get("room_return_policy", "return_to_source_room"))
+	snapshot.battle_entry_ready = bool(data.get("battle_entry_ready", false))
 
 	var member_entries: Array = data.get("members", [])
 	for entry in member_entries:

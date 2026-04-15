@@ -11,6 +11,7 @@ import (
 
 	"qqtang/services/game_service/internal/assignment"
 	"qqtang/services/game_service/internal/auth"
+	"qqtang/services/game_service/internal/battlealloc"
 	"qqtang/services/game_service/internal/career"
 	"qqtang/services/game_service/internal/config"
 	"qqtang/services/game_service/internal/finalize"
@@ -40,6 +41,7 @@ func main() {
 	partyQueueRepo := storage.NewPartyQueueRepository(store.Pool)
 	partyQueueMemberRepo := storage.NewPartyQueueMemberRepository(store.Pool)
 	assignmentRepo := storage.NewAssignmentRepository(store.Pool)
+	battleInstanceRepo := storage.NewBattleInstanceRepository(store.Pool)
 	careerRepo := storage.NewCareerRepository(store.Pool)
 	ratingRepo := storage.NewRatingRepository(store.Pool)
 
@@ -59,6 +61,7 @@ func main() {
 	queueService.ConfigureRatingRepository(ratingRepo)
 	queueService.ConfigurePartyQueueRepositories(partyQueueRepo, partyQueueMemberRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
+	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL)
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)
 
@@ -72,6 +75,9 @@ func main() {
 		SettlementHandler:         httpapi.NewSettlementHandler(finalizeService),
 		InternalAssignmentHandler: httpapi.NewInternalAssignmentHandler(assignmentService),
 		InternalFinalizeHandler:   httpapi.NewInternalFinalizeHandler(finalizeService),
+		InternalBattleManifestHandler:   httpapi.NewInternalBattleManifestHandler(battleAllocService),
+		InternalBattleReadyHandler:      httpapi.NewInternalBattleReadyHandler(battleAllocService),
+		InternalManualRoomBattleHandler: httpapi.NewInternalManualRoomBattleHandler(battleAllocService, assignmentRepo),
 		ReadinessCheck:            store.Ping,
 	})
 

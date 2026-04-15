@@ -6,6 +6,8 @@ const PRIVATE_ROOM := "private_room"
 const PUBLIC_ROOM := "public_room"
 const CASUAL_MATCH_ROOM := "casual_match_room"
 const RANKED_MATCH_ROOM := "ranked_match_room"
+# Phase23: MATCHMADE_ROOM is deprecated. Kept for migration compat only.
+# New flows should NOT construct this kind. Use assignment-based battle entry instead.
 const MATCHMADE_ROOM := "matchmade_room"
 
 

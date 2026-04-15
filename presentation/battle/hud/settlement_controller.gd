@@ -7,6 +7,7 @@ const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 signal settlement_shown(result: BattleResult)
 signal settlement_hidden()
 signal return_to_room_requested()
+signal return_to_source_room_requested()
 signal rematch_requested()
 signal input_frozen(frozen: bool)
 
@@ -132,6 +133,11 @@ func request_return_to_room() -> void:
 	return_to_room_requested.emit()
 
 
+## Phase23: Default post-battle action — return to source room instead of lobby.
+func request_return_to_source_room() -> void:
+	return_to_source_room_requested.emit()
+
+
 func request_rematch() -> void:
 	rematch_requested.emit()
 
@@ -166,6 +172,11 @@ func set_return_button_mode_room() -> void:
 	return_to_lobby_mode = false
 	if return_button != null:
 		return_button.text = "返回房间"
+		# Phase23: reconnect return button to source room flow
+		if return_button.pressed.is_connected(request_return_to_room):
+			return_button.pressed.disconnect(request_return_to_room)
+		if not return_button.pressed.is_connected(request_return_to_source_room):
+			return_button.pressed.connect(request_return_to_source_room)
 	if rematch_button != null:
 		rematch_button.disabled = false
 		rematch_button.visible = true

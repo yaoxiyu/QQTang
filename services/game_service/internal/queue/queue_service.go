@@ -549,6 +549,10 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 	if err != nil {
 		return err
 	}
+	battleID, err := opaqueID("battle")
+	if err != nil {
+		return err
+	}
 	expectedMemberCount := requiredPartySize * 2
 	assignmentRecord := storage.Assignment{
 		AssignmentID:           assignmentID,
@@ -571,6 +575,12 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		CommitDeadlineUnixSec:  now.Add(time.Duration(s.commitDeadlineSeconds) * time.Second).Unix(),
 		CreatedAt:              now,
 		UpdatedAt:              now,
+		// Phase23: battle allocation fields
+		SourceRoomID:     "",
+		SourceRoomKind:   "",
+		BattleID:         battleID,
+		AllocationState:  "assigned",
+		RoomReturnPolicy: "return_to_source_room",
 	}
 	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
 		return err
@@ -586,7 +596,7 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 				role = "create"
 			}
 			member := storage.AssignmentMember{
-				AssignmentID:   assignmentID,
+				AssignmentID:    assignmentID,
 				AccountID:      queuedMember.AccountID,
 				ProfileID:      queuedMember.ProfileID,
 				TicketRole:     role,
@@ -596,6 +606,8 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 				ResultState:    "",
 				CreatedAt:      now,
 				UpdatedAt:      now,
+				BattleJoinState: "assigned",
+				RoomReturnState: "pending",
 			}
 			if err := assignmentRepo.InsertMember(ctx, member); err != nil {
 				return err
@@ -642,6 +654,10 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 	}
 	captainAccountID := queuedEntries[0].AccountID
 	mapID := s.resolveMapID(queuedEntries[0].PreferredMapPoolID)
+	battleID, err := opaqueID("battle")
+	if err != nil {
+		return err
+	}
 	assignmentRecord := storage.Assignment{
 		AssignmentID:           assignmentID,
 		QueueKey:               entry.QueueKey,
@@ -663,6 +679,12 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 		CommitDeadlineUnixSec:  now.Add(time.Duration(s.commitDeadlineSeconds) * time.Second).Unix(),
 		CreatedAt:              now,
 		UpdatedAt:              now,
+		// Phase23: battle allocation fields
+		SourceRoomID:     "",
+		SourceRoomKind:   "",
+		BattleID:         battleID,
+		AllocationState:  "assigned",
+		RoomReturnPolicy: "return_to_source_room",
 	}
 	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
 		return err
@@ -673,16 +695,18 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 			role = "create"
 		}
 		member := storage.AssignmentMember{
-			AssignmentID:   assignmentID,
-			AccountID:      queued.AccountID,
-			ProfileID:      queued.ProfileID,
-			TicketRole:     role,
-			AssignedTeamID: (idx % 2) + 1,
-			RatingBefore:   queued.RatingSnapshot,
-			JoinState:      "assigned",
-			ResultState:    "",
-			CreatedAt:      now,
-			UpdatedAt:      now,
+			AssignmentID:    assignmentID,
+			AccountID:       queued.AccountID,
+			ProfileID:       queued.ProfileID,
+			TicketRole:      role,
+			AssignedTeamID:  (idx % 2) + 1,
+			RatingBefore:    queued.RatingSnapshot,
+			JoinState:       "assigned",
+			ResultState:     "",
+			CreatedAt:       now,
+			UpdatedAt:       now,
+			BattleJoinState: "assigned",
+			RoomReturnState: "pending",
 		}
 		if err := assignmentRepo.InsertMember(ctx, member); err != nil {
 			return err

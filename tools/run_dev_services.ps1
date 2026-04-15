@@ -10,9 +10,16 @@ param(
     [string]$GamePostgresPort = "54331",
     [string]$TokenSecret = "replace_me_access_secret",
     [string]$RoomTicketSecret = "dev_room_ticket_secret",
-    [string]$InternalSharedSecret = "dev_game_internal_secret",
+    [string]$InternalSharedSecret = "dev_internal_shared_secret",
     [string]$DefaultDSHost = "127.0.0.1",
-    [int]$DefaultDSPort = 9000
+    [int]$DefaultDSPort = 9000,
+    [string]$DSManagerListenAddr = "127.0.0.1:18090",
+    [string]$GodotExecutable = "f:\godot\Godot_console.exe",
+    [int]$DSMPortRangeStart = 19010,
+    [int]$DSMPortRangeEnd = 19050,
+    [string]$BattleTicketSecret = "dev_battle_ticket_secret",
+    [int]$RoomServicePort = 9100,
+    [string]$RoomServiceHost = "127.0.0.1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -158,9 +165,12 @@ $accountEnv["ACCOUNT_POSTGRES_DSN"] = "postgres://qqtang:qqtang_dev_pass@127.0.0
 $accountEnv["ACCOUNT_ACCESS_TOKEN_TTL_SECONDS"] = "900"
 $accountEnv["ACCOUNT_REFRESH_TOKEN_TTL_SECONDS"] = "1209600"
 $accountEnv["ACCOUNT_ROOM_TICKET_TTL_SECONDS"] = "60"
+$accountEnv["ACCOUNT_BATTLE_TICKET_TTL_SECONDS"] = "60"
 $accountEnv["ACCOUNT_TOKEN_SIGN_SECRET"] = $TokenSecret
 $accountEnv["ACCOUNT_ROOM_TICKET_SIGN_SECRET"] = $RoomTicketSecret
 $accountEnv["ACCOUNT_GAME_SERVICE_BASE_URL"] = "http://$GameListenAddr"
+$accountEnv["ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID"] = "primary"
+$accountEnv["ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET"] = $InternalSharedSecret
 $accountEnv["ACCOUNT_GAME_INTERNAL_SHARED_SECRET"] = $InternalSharedSecret
 $accountEnv["ACCOUNT_ALLOW_MULTI_DEVICE"] = "false"
 $accountEnv["ACCOUNT_LOG_SQL"] = if ($LogSQL) { "true" } else { "false" }
@@ -169,22 +179,46 @@ $gameEnv = $sharedEnv.Clone()
 $gameEnv["GAME_HTTP_ADDR"] = $GameListenAddr
 $gameEnv["GAME_POSTGRES_DSN"] = "postgres://qqtang_game:qqtang_game_dev_pass@127.0.0.1:$GamePostgresPort/qqtang_game_dev?sslmode=disable"
 $gameEnv["GAME_JWT_SHARED_SECRET"] = $TokenSecret
+$gameEnv["GAME_INTERNAL_AUTH_KEY_ID"] = "primary"
+$gameEnv["GAME_INTERNAL_AUTH_SHARED_SECRET"] = $InternalSharedSecret
 $gameEnv["GAME_DEFAULT_DS_HOST"] = $DefaultDSHost
 $gameEnv["GAME_DEFAULT_DS_PORT"] = [string]$DefaultDSPort
+$gameEnv["GAME_DS_MANAGER_URL"] = "http://$DSManagerListenAddr"
 $gameEnv["GAME_QUEUE_HEARTBEAT_TTL_SECONDS"] = "30"
 $gameEnv["GAME_CAPTAIN_DEADLINE_SECONDS"] = "15"
 $gameEnv["GAME_COMMIT_DEADLINE_SECONDS"] = "45"
 $gameEnv["GAME_LOG_SQL"] = if ($LogSQL) { "true" } else { "false" }
 
+$dsmRoot = Join-Path $root "services\ds_manager_service"
+
+$dsmEnv = @{}
+$dsmEnv["DSM_HTTP_ADDR"] = $DSManagerListenAddr
+$dsmEnv["DSM_GODOT_EXECUTABLE"] = $GodotExecutable
+$dsmEnv["DSM_PROJECT_ROOT"] = $root
+$dsmEnv["DSM_BATTLE_SCENE_PATH"] = "res://scenes/network/dedicated_server_scene.tscn"
+$dsmEnv["DSM_BATTLE_TICKET_SECRET"] = $BattleTicketSecret
+$dsmEnv["DSM_DS_HOST"] = $DefaultDSHost
+$dsmEnv["DSM_PORT_RANGE_START"] = [string]$DSMPortRangeStart
+$dsmEnv["DSM_PORT_RANGE_END"] = [string]$DSMPortRangeEnd
+$dsmEnv["DSM_READY_TIMEOUT_SEC"] = "15"
+$dsmEnv["DSM_IDLE_REAP_TIMEOUT_SEC"] = "300"
+
 $processes = @()
 $processes += Start-ServiceWindow -Title "QQTang account_service : $AccountListenAddr" -WorkDir $accountRoot -Env $accountEnv -Command "go run ./cmd/account_service"
 $processes += Start-ServiceWindow -Title "QQTang game_service : $GameListenAddr" -WorkDir $gameRoot -Env $gameEnv -Command "go run ./cmd/game_service"
+$processes += Start-ServiceWindow -Title "QQTang ds_manager_service : $DSManagerListenAddr" -WorkDir $dsmRoot -Env $dsmEnv -Command "go run ./cmd/ds_manager_service"
+
+# Phase23: room_service (Godot headless)
+$roomServiceCmd = "& $(Quote-PS $GodotExecutable) --headless --path $(Quote-PS $root) 'res://scenes/network/room_service_scene.tscn' -- --qqt-room-port $RoomServicePort --qqt-room-host $RoomServiceHost --qqt-room-ticket-secret $(Quote-PS $RoomTicketSecret)"
+$processes += Start-ServiceWindow -Title "QQTang room_service : ${RoomServiceHost}:${RoomServicePort}" -WorkDir $root -Env @{} -Command $roomServiceCmd
 
 Write-Host "Started QQTang dev services:"
-Write-Host "  account_service: http://$AccountListenAddr pid=$($processes[0].Id)"
-Write-Host "  game_service:    http://$GameListenAddr pid=$($processes[1].Id)"
-Write-Host "  account postgres: 127.0.0.1:$AccountPostgresPort"
-Write-Host "  game postgres:    127.0.0.1:$GamePostgresPort"
+Write-Host "  account_service:    http://$AccountListenAddr pid=$($processes[0].Id)"
+Write-Host "  game_service:       http://$GameListenAddr pid=$($processes[1].Id)"
+Write-Host "  ds_manager_service: http://$DSManagerListenAddr pid=$($processes[2].Id)"
+Write-Host "  room_service:       ${RoomServiceHost}:${RoomServicePort} pid=$($processes[3].Id)"
+Write-Host "  account postgres:   127.0.0.1:$AccountPostgresPort"
+Write-Host "  game postgres:      127.0.0.1:$GamePostgresPort"
 Write-Host ""
 Write-Host "Close the spawned PowerShell windows to stop the Go services."
 

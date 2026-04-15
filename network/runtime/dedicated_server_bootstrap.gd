@@ -1,5 +1,9 @@
 extends Node
 
+## DEPRECATED (Phase23): Use battle_dedicated_server_bootstrap.gd for battle-only DS,
+## or room_service_bootstrap.gd for room service.
+## This file is kept as a compatibility wrapper during migration.
+
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")

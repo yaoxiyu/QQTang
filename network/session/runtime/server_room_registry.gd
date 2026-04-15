@@ -2,7 +2,7 @@ class_name ServerRoomRegistry
 extends Node
 
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
+const RoomAuthorityRuntimeScript = preload("res://network/session/runtime/room_authority_runtime.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
 const ROOM_REGISTRY_DIRECTORY_TAG := "session.room_registry.directory"
 
@@ -29,25 +29,17 @@ func route_message(message: Dictionary) -> void:
 	match message_type:
 		ROOM_DIRECTORY_REQUEST:
 			if sender_peer_id > 0:
-				_log_directory_event("directory_request", {
-					"peer_id": sender_peer_id,
-				})
+				_log_directory_event("directory_request", {"peer_id": sender_peer_id})
 				send_directory_snapshot_to(sender_peer_id)
 		ROOM_DIRECTORY_SUBSCRIBE:
 			if sender_peer_id > 0:
 				directory_subscribers[sender_peer_id] = true
-				_log_directory_event("directory_subscribe", {
-					"peer_id": sender_peer_id,
-					"subscriber_count": directory_subscribers.size(),
-				})
+				_log_directory_event("directory_subscribe", {"peer_id": sender_peer_id, "subscriber_count": directory_subscribers.size()})
 				send_directory_snapshot_to(sender_peer_id)
 		ROOM_DIRECTORY_UNSUBSCRIBE:
 			if sender_peer_id > 0:
 				directory_subscribers.erase(sender_peer_id)
-				_log_directory_event("directory_unsubscribe", {
-					"peer_id": sender_peer_id,
-					"subscriber_count": directory_subscribers.size(),
-				})
+				_log_directory_event("directory_unsubscribe", {"peer_id": sender_peer_id, "subscriber_count": directory_subscribers.size()})
 		TransportMessageTypesScript.ROOM_CREATE_REQUEST:
 			_route_create_room_message(message)
 		TransportMessageTypesScript.ROOM_JOIN_REQUEST:
@@ -62,8 +54,12 @@ func route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
 			_route_bound_room_message(message)
 		TransportMessageTypesScript.INPUT_FRAME:
+			# Phase23: battle input no longer routed through room registry
+			# Kept temporarily for backward compat during transition
 			_route_battle_message(message)
 		TransportMessageTypesScript.MATCH_LOADING_READY:
+			# Phase23: loading messages no longer routed through room registry
+			# Kept temporarily for backward compat during transition
 			_route_loading_message(message)
 		_:
 			pass
@@ -80,7 +76,7 @@ func handle_peer_disconnected(peer_id: int) -> void:
 	var room_id := String(peer_room_bindings.get(peer_id, ""))
 	if room_id.is_empty():
 		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	var runtime = room_runtimes.get(room_id, null)
 	if runtime != null:
 		runtime.handle_peer_disconnected(peer_id)
 	peer_room_bindings.erase(peer_id)
@@ -97,10 +93,10 @@ func build_directory_snapshot() -> RoomDirectorySnapshot:
 		room_ids.append(String(room_id_variant))
 	room_ids.sort()
 	for room_id in room_ids:
-		var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+		var runtime = room_runtimes.get(room_id, null)
 		if runtime == null:
 			continue
-		var entry := runtime.build_directory_entry()
+		var entry = runtime.build_directory_entry()
 		if entry != null:
 			snapshot.entries.append(entry)
 	return snapshot
@@ -135,8 +131,8 @@ func send_directory_snapshot_to(peer_id: int) -> void:
 
 
 func _route_create_room_message(message: Dictionary) -> void:
-	var runtime := _create_room_runtime()
-	var create_result := runtime.create_room_from_request(message)
+	var runtime = _create_room_runtime()
+	var create_result: Dictionary = runtime.create_room_from_request(message)
 	var room_id := String(create_result.get("room_id", ""))
 	var owner_peer_id := int(create_result.get("owner_peer_id", 0))
 	if room_id.is_empty() or owner_peer_id <= 0:
@@ -158,7 +154,7 @@ func _route_join_room_message(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_id_hint.is_empty():
 		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id_hint, null)
+	var runtime = room_runtimes.get(room_id_hint, null)
 	if runtime == null:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
@@ -188,7 +184,7 @@ func _route_resume_room_message(message: Dictionary) -> void:
 		"match_id": String(message.get("match_id", "")),
 		"runtime_count": room_runtimes.size(),
 	})
-	var runtime: ServerRoomRuntime = room_runtimes.get(requested_room_id, null)
+	var runtime = room_runtimes.get(requested_room_id, null)
 	var resolved_room_id := requested_room_id
 	if runtime == null:
 		runtime = _find_resume_runtime(member_id, reconnect_token)
@@ -232,7 +228,7 @@ func _route_bound_room_message(message: Dictionary) -> void:
 	var room_id := String(peer_room_bindings.get(peer_id, ""))
 	if room_id.is_empty():
 		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	var runtime = room_runtimes.get(room_id, null)
 	if runtime == null:
 		peer_room_bindings.erase(peer_id)
 		return
@@ -242,40 +238,45 @@ func _route_bound_room_message(message: Dictionary) -> void:
 	_reconcile_runtime_bindings(room_id, runtime)
 
 
+## Phase23 compat: battle input routing kept for transition period
 func _route_battle_message(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	var room_id := String(peer_room_bindings.get(peer_id, ""))
 	if room_id.is_empty():
 		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	var runtime = room_runtimes.get(room_id, null)
 	if runtime == null:
 		peer_room_bindings.erase(peer_id)
 		return
-	runtime.handle_battle_message(message)
+	if runtime.has_method("handle_battle_message"):
+		runtime.handle_battle_message(message)
 
 
+## Phase23 compat: loading routing kept for transition period
 func _route_loading_message(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	var room_id := String(peer_room_bindings.get(peer_id, ""))
 	if room_id.is_empty():
 		return
-	var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+	var runtime = room_runtimes.get(room_id, null)
 	if runtime == null:
 		peer_room_bindings.erase(peer_id)
 		return
-	runtime.handle_loading_message(message)
+	if runtime.has_method("handle_loading_message"):
+		runtime.handle_loading_message(message)
 
 
-func _create_room_runtime() -> ServerRoomRuntime:
-	var runtime := ServerRoomRuntimeScript.new()
-	runtime.name = "ServerRoomRuntime_%d" % int(Time.get_ticks_usec() % 1000000)
+func _create_room_runtime():
+	# Phase23: Create RoomAuthorityRuntime instead of mixed ServerRoomRuntime
+	var runtime = RoomAuthorityRuntimeScript.new()
+	runtime.name = "RoomAuthorityRuntime_%d" % int(Time.get_ticks_usec() % 1000000)
 	add_child(runtime)
 	runtime.configure(authority_host, authority_port, room_ticket_secret)
 	_connect_runtime_signals(runtime)
 	return runtime
 
 
-func _connect_runtime_signals(runtime: ServerRoomRuntime) -> void:
+func _connect_runtime_signals(runtime) -> void:
 	if runtime == null:
 		return
 	var send_callable := Callable(self, "_on_runtime_send_to_peer").bind(runtime)
@@ -286,13 +287,13 @@ func _connect_runtime_signals(runtime: ServerRoomRuntime) -> void:
 		runtime.broadcast_message.connect(broadcast_callable)
 
 
-func _on_runtime_send_to_peer(peer_id: int, message: Dictionary, _runtime: ServerRoomRuntime) -> void:
+func _on_runtime_send_to_peer(peer_id: int, message: Dictionary, _runtime) -> void:
 	send_to_peer.emit(peer_id, message)
 
 
-func _on_runtime_broadcast_message(message: Dictionary, runtime: ServerRoomRuntime) -> void:
+func _on_runtime_broadcast_message(message: Dictionary, runtime) -> void:
 	broadcast_message.emit(message)
-	var room_id := runtime.get_room_id() if runtime != null else ""
+	var room_id: String = runtime.get_room_id() if runtime != null else ""
 	_reconcile_runtime_bindings(room_id, runtime)
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	if message_type == TransportMessageTypesScript.ROOM_SNAPSHOT:
@@ -303,7 +304,7 @@ func _on_runtime_broadcast_message(message: Dictionary, runtime: ServerRoomRunti
 		broadcast_directory_snapshot()
 
 
-func _reconcile_runtime_bindings(room_id: String, runtime: ServerRoomRuntime) -> void:
+func _reconcile_runtime_bindings(room_id: String, runtime) -> void:
 	if room_id.is_empty() or runtime == null:
 		return
 	if runtime.is_empty():
@@ -321,13 +322,13 @@ func _remove_bindings_for_room(room_id: String) -> void:
 		peer_room_bindings.erase(peer_id)
 
 
-func _find_resume_runtime(member_id: String, reconnect_token: String) -> ServerRoomRuntime:
+func _find_resume_runtime(member_id: String, reconnect_token: String):
 	var normalized_member_id := member_id.strip_edges()
 	var normalized_token := reconnect_token.strip_edges()
 	if normalized_member_id.is_empty() or normalized_token.is_empty():
 		return null
 	for room_id in _sorted_room_ids():
-		var runtime: ServerRoomRuntime = room_runtimes.get(room_id, null)
+		var runtime = room_runtimes.get(room_id, null)
 		if runtime != null and runtime.can_route_resume_request(normalized_member_id, normalized_token):
 			return runtime
 	return null
@@ -341,10 +342,10 @@ func _sorted_room_ids() -> Array[String]:
 	return room_ids
 
 
-func _destroy_runtime(runtime: ServerRoomRuntime, room_id: String = "") -> void:
+func _destroy_runtime(runtime, room_id: String = "") -> void:
 	if runtime == null:
 		return
-	var resolved_room_id := room_id if not room_id.is_empty() else runtime.get_room_id()
+	var resolved_room_id: String = room_id if not room_id.is_empty() else runtime.get_room_id()
 	_log_directory_event("room_runtime_destroyed", {
 		"room_id": resolved_room_id,
 		"runtime_count_before": room_runtimes.size(),

@@ -54,6 +54,8 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_button_text(scene_controller, "cancel_queue_button", "取消匹配")
 	_set_button_text(scene_controller, "add_opponent_button", "Add Opponent")
 	_render_member_list(scene_controller, view_model.get("members", []))
+	# Phase23: battle allocation status
+	_set_text(scene_controller, "battle_allocation_label", _build_battle_allocation_text(view_model))
 
 
 func _build_room_meta_text(view_model: Dictionary) -> String:
@@ -127,3 +129,19 @@ func _set_disabled(scene_controller: Node, property_name: String, disabled: bool
 		return
 	if node is OptionButton:
 		node.disabled = disabled
+
+
+func _build_battle_allocation_text(view_model: Dictionary) -> String:
+	var lifecycle := String(view_model.get("room_lifecycle_state", ""))
+	var alloc_state := String(view_model.get("battle_allocation_state", ""))
+	var battle_ready := bool(view_model.get("battle_entry_ready", false))
+	if lifecycle == "idle" or lifecycle.is_empty():
+		return ""
+	if battle_ready:
+		return "Battle Ready — %s:%d" % [
+			String(view_model.get("battle_server_host", "")),
+			int(view_model.get("battle_server_port", 0)),
+		]
+	if alloc_state.is_empty():
+		return "Room: %s" % lifecycle
+	return "Battle: %s / %s" % [lifecycle, alloc_state]

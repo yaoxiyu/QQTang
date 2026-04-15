@@ -107,6 +107,26 @@ layout_mode = 2
 text = "Active Match Resume: -"
 autowrap_mode = 3
 
+[node name="RoomServiceEndpointLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1629577792]
+layout_mode = 2
+text = "Room Service Endpoint: -"
+autowrap_mode = 2
+
+[node name="BattleAssignmentLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=578085822]
+layout_mode = 2
+text = "Battle Assignment: -"
+autowrap_mode = 2
+
+[node name="BattleEndpointLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1113552038]
+layout_mode = 2
+text = "Battle Endpoint: -"
+autowrap_mode = 2
+
+[node name="ReturnPolicyLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=135612625]
+layout_mode = 2
+text = "Return Policy: return_to_source_room"
+autowrap_mode = 2
+
 [node name="LocalLoadoutCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=355255835]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -291,6 +311,10 @@ layout_mode = 2
 
 [node name="QueueErrorLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=444087796]
 layout_mode = 2
+
+[node name="BattleAllocationStatusLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1956393451]
+layout_mode = 2
+text = "Battle Allocation: idle"
 
 [node name="MemberCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=2068653707]
 layout_mode = 2

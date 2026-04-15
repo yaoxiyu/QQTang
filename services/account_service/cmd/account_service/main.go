@@ -55,13 +55,16 @@ func main() {
 	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
 	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
 	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, assignmentGrantClient, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
+	battleGrantClient := ticket.NewBattleAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
+	battleTicketService := ticket.NewBattleTicketService(profileService, ticketRepo, roomTicketIssuer, battleGrantClient, time.Duration(cfg.BattleTicketTTLSeconds)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
-		AuthService:       authService,
-		AuthHandler:       httpapi.NewAuthHandler(authService),
-		ProfileHandler:    httpapi.NewProfileHandler(profileService),
-		RoomTicketHandler: httpapi.NewRoomTicketHandler(roomTicketService),
-		ReadinessCheck:    store.Ping,
+		AuthService:         authService,
+		AuthHandler:         httpapi.NewAuthHandler(authService),
+		ProfileHandler:      httpapi.NewProfileHandler(profileService),
+		RoomTicketHandler:   httpapi.NewRoomTicketHandler(roomTicketService),
+		BattleTicketHandler: httpapi.NewBattleTicketHandler(battleTicketService),
+		ReadinessCheck:      store.Ping,
 	})
 
 	server := &http.Server{

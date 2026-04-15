@@ -65,6 +65,7 @@ const PHASE21_LOG_PREFIX := "[QQT_P21]"
 @onready var add_opponent_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/AddOpponentButton")
 @onready var room_debug_panel: PanelContainer = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel")
 @onready var debug_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel/DebugLabel")
+@onready var battle_allocation_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/BattleAllocationLabel")
 
 var _app_runtime: Node = null
 var _room_controller: Node = null
@@ -542,6 +543,13 @@ func _resolve_local_member(snapshot: RoomSnapshot) -> RoomMemberState:
 
 func _on_room_snapshot_changed(snapshot: RoomSnapshot) -> void:
 	_refresh_room(snapshot)
+	# Phase23: When battle_entry_ready becomes true, trigger battle entry flow
+	if snapshot != null and snapshot.battle_entry_ready and _room_use_case != null and _front_flow != null:
+		var battle_ctx = _room_use_case.build_battle_entry_context(snapshot)
+		if battle_ctx != null and _app_runtime != null:
+			_app_runtime.current_battle_entry_context = battle_ctx
+			if _front_flow.has_method("request_battle_entry"):
+				_front_flow.request_battle_entry()
 
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:

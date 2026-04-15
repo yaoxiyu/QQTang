@@ -23,6 +23,9 @@ type Config struct {
 	CaptainDeadlineSeconds   int
 	CommitDeadlineSeconds    int
 	LogSQL                   bool
+
+	// Phase23: DS Manager Service URL
+	DSManagerURL string
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -66,6 +69,9 @@ func LoadFromEnv() (*Config, error) {
 		CaptainDeadlineSeconds:   captainDeadlineSeconds,
 		CommitDeadlineSeconds:    commitDeadlineSeconds,
 		LogSQL:                   logSQL,
+
+		// Phase23
+		DSManagerURL: configx.Env("GAME_DS_MANAGER_URL", "http://127.0.0.1:18090"),
 	}
 
 	if cfg.HTTPListenAddr == "" {

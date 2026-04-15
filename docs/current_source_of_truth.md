@@ -101,7 +101,11 @@
   - 正式房间前台场景
   - 承载 Practice Room 与 Dedicated Server 客户端房间接入
 - `res://scenes/network/dedicated_server_scene.tscn`
-  - 正式 Dedicated Server 进程入口
+  - 正式 Battle Dedicated Server 进程入口（Phase23: battle-only）
+- `res://scenes/network/room_service_scene.tscn`
+  - 正式 Room Service 进程入口（Phase23 新增）
+  - bootstrap: `res://network/runtime/room_service_bootstrap.gd`
+  - 只处理 room create/join/resume/snapshot，不处理 battle
 - `res://scenes/battle/battle_main.tscn`
   - 正式 Battle 场景入口
 - `res://scenes/network/network_bootstrap_scene.tscn`
@@ -123,6 +127,8 @@
 - Loading 场景正式脚本挂载：
   - `LoadingScene` -> `res://scenes/front/loading_scene_controller.gd`
 - 普通开局通过 `FrontFlowController.request_start_match()` 从 Room 进入 Loading，并继续提交 `MATCH_LOADING_READY`
+- Phase23 battle entry 通过 `FrontFlowController.request_battle_entry()` 从 Room 进入 Loading，Loading 场景检测 `current_battle_entry_context` 后走 battle ticket 获取流程
+- Phase23 结算后默认通过 `FrontFlowController.return_to_source_room()` 返回源房间，失败时 `on_return_to_source_room_failed()` 降级回 lobby
 - 战中恢复通过 `FrontFlowController.request_resume_match()` 从 Lobby 或 Room 进入 Loading，`LoadingUseCase.loading_mode` 必须为 `resume_match`
 - `resume_match` 模式不提交 `MATCH_LOADING_READY`; Battle 启动前必须把 `AppRuntimeRoot.current_resume_snapshot` 交给 `BattleSessionAdapter` 注入 checkpoint
 - BattleMain 是当前唯一正式战斗入口，关键脚本挂载：
@@ -560,6 +566,8 @@
 - `account_service -> game_service` 内部 HTTP 调用使用 HMAC-SHA256 签名式鉴权，不再发送裸 `X-Internal-Secret`
 - Go 服务内重复基础工具按服务边界收进 `internal/platform/configx` 与 `internal/platform/httpx`，不在 repo 根部引入跨 go.mod 共享模块
 - `AppRuntimeRoot` 保留兼容字段，同时新增 `front_context` / `battle_context` 作为前台会话状态与战斗临时状态的正式收口对象；新增逻辑应优先接入 context
+- Phase23: `AppRuntimeRoot.current_battle_entry_context` 承载 battle handoff 数据（`BattleEntryContext`），由 room scene 构建，loading scene 消费
+- Phase23: `BattleEntryUseCase` 负责从 `account_service` 请求 battle ticket，独立于 `RoomUseCase`
 - `ServerRoomService` 的 resume 校验与 member session payload 生成已抽离到独立 helper，服务本体不再直接承载这两段判定/组包细节
 - 前台 room ticket / Dedicated Server 连接前的角色、角色皮肤、泡泡、泡泡皮肤选择统一通过 `app/front/loadout/loadout_normalizer.gd` 归一化；Dedicated Server 入房与房间资料更新统一通过 `network/session/runtime/room_selection_policy.gd` 校验和回退
 - `register / login / refresh` 已按事务闭环落地
@@ -575,12 +583,19 @@
 - 客户端与 Dedicated Server 当前都不直接连接 PostgreSQL
 - 客户端默认端口边界当前固定为：
   - `account_service` HTTP 默认：`127.0.0.1:18080`
-  - Dedicated Server / room directory 默认：`127.0.0.1:9000`
+  - `game_service` HTTP 默认：`127.0.0.1:18081`
+  - `ds_manager_service` HTTP 默认：`127.0.0.1:18090`（Phase23 新增）
+  - Room Service / room directory 默认：`127.0.0.1:9100`（Phase23: 独立端口）
+  - Battle DS 端口池默认：`19010-19050`（Phase23: 由 ds_manager 分配）
 - `game_service` matchmaking 默认值统一收口在 `services/game_service/internal/queue/defaults.go`：
   - 默认赛季：`GAME_DEFAULT_SEASON_ID`，开发 fallback 为 `season_s1`
   - 默认匹配地图：`GAME_DEFAULT_MAP_ID`，开发 fallback 为 `map_classic_square`
   - 默认 Dedicated Server 地址：`GAME_DEFAULT_DS_HOST/GAME_DEFAULT_DS_PORT`
   - matchmaking heartbeat / captain / commit deadline 由配置读取，开发 fallback 来自同一 defaults 文件
+- Phase23: `game_service` 新增 battle allocation 内部 API：
+  - `POST /internal/v1/battles/manual-room/create`：自定义房间开战创建 assignment + 分配 battle DS
+  - `POST /internal/v1/battles/{battle_id}/ready`：battle_ds ready 回写
+  - `GET /internal/v1/battles/{battle_id}/manifest`：battle_ds 获取权威 battle 配置
 - `game_service` 数据层仍有后续安全增强预留，尚未在本阶段正式落满：
   - 更细的状态 `CHECK`
   - 关键外键补完
@@ -595,6 +610,7 @@
   - `/api/v1/auth/*`
   - `/api/v1/profile/me`
   - `/api/v1/tickets/room-entry`
+  - `/api/v1/tickets/battle-entry`（Phase23 新增：battle ticket 独立端点）
 - 账号注册当前通过 `GET /register` 提供的轻量浏览器页面完成, 页面内部再调用 `/api/v1/auth/register`
 - Dedicated Server 当前只消费 room ticket 签名与 claim，不直接访问账号数据库
 - `room_ticket_secret` 当前是 account service 与 Dedicated Server 之间的服务端共享密钥, 不下发给客户端
@@ -614,6 +630,32 @@
 - 不允许再新增第二套测试数据库 compose 或重复启动脚本
 - 不允许让集成测试默认指向开发库
 - `ACCOUNT_LOG_SQL` 已是正式配置项，打开后必须输出 `pgx` SQL trace
+
+## 3.9.1 `services/ds_manager_service/`
+
+**定位：Phase23 新增 — Battle DS 进程管理服务**
+
+职责包括：
+
+- 管理 battle_ds Godot headless 进程的端口分配与生命周期
+- 接收 `game_service` 的 allocation 请求，启动 Godot battle_ds
+- 接收 battle_ds ready 回报
+- 提供 force-reap 接口
+- 自动回收超时未 ready 或空闲过久的 battle_ds 实例
+
+当前正式 API：
+
+- `POST /internal/v1/battles/allocate`
+- `POST /internal/v1/battles/{battle_id}/ready`
+- `POST /internal/v1/battles/{battle_id}/reap`
+- `GET /healthz`
+
+约束：
+
+- `ds_manager_service` 不直接访问数据库
+- `ds_manager_service` 不处理玩家认证
+- 端口池由 `DSM_PORT_RANGE_START` / `DSM_PORT_RANGE_END` 控制
+- 默认 HTTP 地址：`127.0.0.1:18090`
 
 ---
 
@@ -947,6 +989,14 @@ Phase18 Battle 启动链路进一步约束为：
 43. **Phase18: Battle 表现层必须通过 `pose_state` 消费胜负姿态与果冻姿态，缺失动画资源时必须按既定回退策略继续运行**
 44. **Phase18: 果冻不能无限持续, `TRAPPED` 必须受 `trapped_timeout_sec` 驱动并在超时后自动进入最终死亡流程**
 45. **Phase18: 复活回出生点属于位置重置, Battle Actor 必须直接 snap 到权威出生位置, 不允许出现跨格平滑过渡**
+46. **Phase23: Room Service 与 Battle DS 已拆分为独立进程。`room_service_scene.tscn` 只负责 room 生命周期，`dedicated_server_scene.tscn` 只负责 battle 执行**
+47. **Phase23: 客户端 battle 入场必须使用 `battle_entry` purpose 票据，不再通过 `matchmade_room` 的 room ticket 入场**
+48. **Phase23: `matchmade_room` 已标记 deprecated，新流程不得构造此 room_kind**
+49. **Phase23: 结算后默认行为是 `return_to_source_room`，只有源房间不可用时才降级回 lobby**
+50. **Phase23: battle allocation 由 `game_service` 发起、`ds_manager_service` 执行，battle_ds 启动后向两者报 ready**
+51. **Phase23: `BattleEntryContext` 与 `RoomEntryContext` 分离，room 连接配置与 battle 连接配置不再混为一体**
+52. **Phase23: `ds_manager_service` 是 Go 侧 battle DS 进程管理器，负责端口分配、进程启动/回收**
+53. **Phase23: `room_service` 目前以 Godot headless 实现（与客户端共享 ENet 协议和 RoomSnapshot 模型）。后续应重构为 Go 服务（WebSocket + JSON），理由：room 逻辑不涉及游戏仿真，Go 实现在部署体积、资源占用、可观测性、水平扩展方面均优于 Godot headless。battle_ds 必须保留 Godot，因为权威仿真代码需与客户端 prediction 完全一致**
 
 ---
 

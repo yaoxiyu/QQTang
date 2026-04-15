@@ -26,8 +26,9 @@ Authentication:
 
 Purpose:
 
-- Allow `account_service` to fetch authoritative assignment lock data before issuing a room ticket for `matchmade_room`.
-- Prevent client-supplied map/rule/mode/team fields from being trusted in matchmaking flows.
+- Allow `account_service` to fetch authoritative assignment lock data before issuing a room ticket for `matchmade_room` or a battle ticket for `battle_entry`.
+- Prevent client-supplied map/rule/mode/team fields from being trusted in matchmaking or battle-entry flows.
+- Phase23: When `ticket_type=battle` and `battle_id` are provided, grant response additionally includes `battle_server_host`, `battle_server_port`, and `allocation_state`.
 
 Grant semantics:
 
@@ -65,6 +66,15 @@ account_id=<required>
 profile_id=<required>
 room_kind=matchmade_room
 ```
+
+Phase23 battle-entry grant additional query parameters:
+
+```text
+ticket_type=battle
+battle_id=<required for battle grants>
+```
+
+When `ticket_type=battle`, the response includes additional fields: `battle_server_host`, `battle_server_port`, `allocation_state`.
 
 Success response:
 

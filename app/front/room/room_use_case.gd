@@ -10,9 +10,11 @@ const ClientConnectionConfigScript = preload("res://network/runtime/client_conne
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const PHASE23_LOG_PREFIX := "[QQT_P23]"
 const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
 const PENDING_CONNECTION_WATCHDOG_GRACE_SEC := 1.0
 
@@ -52,8 +54,10 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 		_log_room_anomaly("enter_room_without_runtime", {})
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
 	if _is_matchmade_room(entry_context):
-		entry_context.return_target = FrontReturnTargetScript.LOBBY
-		entry_context.return_to_lobby_after_settlement = true
+		# Phase23: Only force lobby return if room_return_policy is not return_to_source_room
+		if not _has_source_room_return_policy(entry_context):
+			entry_context.return_target = FrontReturnTargetScript.LOBBY
+			entry_context.return_to_lobby_after_settlement = true
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
 
 	if entry_context != null and String(entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER and String(entry_context.room_kind) != FrontRoomKindScript.PRACTICE:
@@ -95,10 +99,15 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
+	# Phase23: matchmade_room no longer forces lobby return; room_return_policy governs this
 	if _is_matchmade_room():
-		if app_runtime.current_room_entry_context != null:
-			app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
-			app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
+		var return_policy := ""
+		if app_runtime.current_room_snapshot != null:
+			return_policy = String(app_runtime.current_room_snapshot.room_return_policy)
+		if return_policy != "return_to_source_room":
+			if app_runtime.current_room_entry_context != null:
+				app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
+				app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
 	if room_client_gateway != null and _is_online_room():
 		if _is_match_room() and _get_current_room_queue_state() == "queueing" and room_client_gateway.has_method("request_cancel_match_queue"):
 			room_client_gateway.request_cancel_match_queue()
@@ -251,6 +260,51 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	_update_reconnect_state(snapshot)
 
 
+## Phase23: Public method — build connection config for room_service only.
+func build_room_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
+	return _build_connection_config(entry_context)
+
+
+## Phase23: Build BattleEntryContext from authoritative RoomSnapshot Phase23 fields.
+## Returns null if the snapshot doesn't have battle_entry_ready or required fields.
+func build_battle_entry_context(snapshot: RoomSnapshot = null):
+	var target_snapshot := snapshot
+	if target_snapshot == null and app_runtime != null:
+		target_snapshot = app_runtime.current_room_snapshot
+	if target_snapshot == null:
+		return null
+	if not target_snapshot.battle_entry_ready:
+		return null
+	if target_snapshot.current_assignment_id.is_empty() or target_snapshot.current_battle_id.is_empty():
+		return null
+	if target_snapshot.battle_server_host.is_empty() or target_snapshot.battle_server_port <= 0:
+		return null
+
+	var ctx := BattleEntryContextScript.new()
+	ctx.assignment_id = target_snapshot.current_assignment_id
+	ctx.battle_id = target_snapshot.current_battle_id
+	ctx.map_id = target_snapshot.selected_map_id
+	ctx.rule_set_id = target_snapshot.rule_set_id
+	ctx.mode_id = target_snapshot.mode_id
+	ctx.battle_server_host = target_snapshot.battle_server_host
+	ctx.battle_server_port = target_snapshot.battle_server_port
+	ctx.room_return_policy = target_snapshot.room_return_policy
+	ctx.source_room_id = target_snapshot.room_id
+	ctx.source_room_kind = target_snapshot.room_kind
+	if app_runtime != null and app_runtime.current_room_entry_context != null:
+		ctx.source_server_host = app_runtime.current_room_entry_context.server_host
+		ctx.source_server_port = app_runtime.current_room_entry_context.server_port
+
+	_log_phase23("battle_entry_context_built", {
+		"assignment_id": ctx.assignment_id,
+		"battle_id": ctx.battle_id,
+		"battle_server_host": ctx.battle_server_host,
+		"battle_server_port": ctx.battle_server_port,
+		"source_room_id": ctx.source_room_id,
+	})
+	return ctx
+
+
 func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
 	var config := ClientConnectionConfigScript.new()
 	config.server_host = entry_context.server_host
@@ -376,6 +430,13 @@ func _is_custom_room(entry_context: RoomEntryContext = null) -> bool:
 
 func _is_assigned_room(entry_context: RoomEntryContext = null) -> bool:
 	return _is_matchmade_room(entry_context)
+
+
+func _has_source_room_return_policy(_entry_context: RoomEntryContext = null) -> bool:
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		if String(app_runtime.current_room_snapshot.room_return_policy) == "return_to_source_room":
+			return true
+	return false
 
 
 func _get_current_room_queue_state() -> String:
@@ -818,3 +879,7 @@ func _resolve_default_selection(entry_context: RoomEntryContext) -> Dictionary:
 		"rule_set_id": String(binding.get("bound_rule_set_id", "")),
 		"mode_id": String(binding.get("bound_mode_id", "")),
 	}
+
+
+func _log_phase23(event_name: String, details: Dictionary) -> void:
+	LogFrontScript.debug("%s[room_use_case] %s %s" % [PHASE23_LOG_PREFIX, event_name, JSON.stringify(details)], "", 0, "front.room.flow")

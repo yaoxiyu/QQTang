@@ -9,11 +9,12 @@ import (
 )
 
 type RouterDeps struct {
-	AuthService       *auth.AuthService
-	AuthHandler       *AuthHandler
-	ProfileHandler    *ProfileHandler
-	RoomTicketHandler *RoomTicketHandler
-	ReadinessCheck    func(ctx context.Context) error
+	AuthService         *auth.AuthService
+	AuthHandler         *AuthHandler
+	ProfileHandler      *ProfileHandler
+	RoomTicketHandler   *RoomTicketHandler
+	BattleTicketHandler *BattleTicketHandler
+	ReadinessCheck      func(ctx context.Context) error
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
@@ -35,6 +36,7 @@ func NewRouter(deps RouterDeps) http.Handler {
 	registerVersionedRoutes("/api/v1")
 	registerVersionedRoutes("/v1")
 	mux.Handle("POST /api/v1/tickets/room-entry", withAuth(deps.AuthService, http.HandlerFunc(deps.RoomTicketHandler.Create)))
+	mux.Handle("POST /api/v1/tickets/battle-entry", withAuth(deps.AuthService, http.HandlerFunc(deps.BattleTicketHandler.Create)))
 	mux.Handle("POST /v1/room-tickets", withAuth(deps.AuthService, http.HandlerFunc(deps.RoomTicketHandler.Create)))
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {

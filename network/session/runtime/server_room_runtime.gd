@@ -1,6 +1,10 @@
 class_name ServerRoomRuntime
 extends Node
 
+## DEPRECATED (Phase23): This is a compatibility wrapper.
+## New code should use RoomAuthorityRuntime (room-only) or ServerBattleRuntime (battle-only).
+## This file is kept only to avoid breaking existing references during migration.
+
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")

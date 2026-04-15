@@ -25,6 +25,9 @@ tests/**/*.txt.tmp
 content_source/csv/**/*.translation
 content_source/csv/**/*.csv.import
 
+# Service env files (contain secrets)
+.env
+
 # OS junk
 .DS_Store
 Thumbs.db

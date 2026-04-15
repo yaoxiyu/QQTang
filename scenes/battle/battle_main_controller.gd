@@ -98,10 +98,16 @@ func _initialize_runtime() -> void:
 		return
 	_runtime_bound = true
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
-	if _app_runtime != null and _app_runtime.current_start_config == null and _session_adapter != null:
-		var adapter_config: BattleStartConfig = _session_adapter.get("start_config")
-		if adapter_config != null:
-			_app_runtime.apply_canonical_start_config(adapter_config)
+	if _app_runtime != null and _app_runtime.current_start_config == null:
+		# Phase23: Build BattleStartConfig from BattleEntryContext (battle ticket flow)
+		var battle_entry_ctx = _app_runtime.current_battle_entry_context
+		if battle_entry_ctx != null and battle_entry_ctx.is_valid():
+			var config: BattleStartConfig = _build_start_config_from_battle_entry(battle_entry_ctx)
+			_app_runtime.apply_canonical_start_config(config)
+		elif _session_adapter != null:
+			var adapter_config: BattleStartConfig = _session_adapter.get("start_config")
+			if adapter_config != null:
+				_app_runtime.apply_canonical_start_config(adapter_config)
 	if _app_runtime != null:
 		_app_runtime.register_battle_modules(self, battle_bootstrap, presentation_bridge, battle_hud, battle_camera_controller, settlement_controller)
 	_connect_session_signals()
@@ -687,6 +693,21 @@ func _apply_map_theme() -> void:
 		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
 	if map_root != null:
 		map_root.apply_map_theme(runtime_config.map_theme)
+
+
+func _build_start_config_from_battle_entry(ctx: BattleEntryContext) -> BattleStartConfig:
+	var config := BattleStartConfig.new()
+	config.session_mode = "network_client"
+	config.topology = "dedicated_server"
+	config.authority_host = ctx.battle_server_host
+	config.authority_port = ctx.battle_server_port
+	config.match_id = ctx.match_id
+	config.map_id = ctx.map_id
+	config.mode_id = ctx.mode_id
+	config.rule_set_id = ctx.rule_set_id
+	config.room_id = ctx.source_room_id
+	config.build_mode = BattleStartConfig.BUILD_MODE_CANONICAL
+	return config
 
 
 func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartConfig) -> RoomSnapshot:

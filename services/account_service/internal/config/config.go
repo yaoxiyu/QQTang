@@ -13,6 +13,7 @@ type Config struct {
 	AccessTokenTTLSeconds    int
 	RefreshTokenTTLSeconds   int
 	RoomTicketTTLSeconds     int
+	BattleTicketTTLSeconds   int
 	TokenSignSecret          string
 	RoomTicketSignSecret     string
 	GameServiceBaseURL       string
@@ -36,6 +37,10 @@ func LoadFromEnv() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	battleTicketTTLSeconds, err := configx.RequiredPositiveInt("ACCOUNT_BATTLE_TICKET_TTL_SECONDS", 60)
+	if err != nil {
+		return nil, err
+	}
 	allowMultiDevice, err := configx.Bool("ACCOUNT_ALLOW_MULTI_DEVICE", false)
 	if err != nil {
 		return nil, err
@@ -55,6 +60,7 @@ func LoadFromEnv() (*Config, error) {
 		AccessTokenTTLSeconds:    accessTokenTTLSeconds,
 		RefreshTokenTTLSeconds:   refreshTokenTTLSeconds,
 		RoomTicketTTLSeconds:     roomTicketTTLSeconds,
+		BattleTicketTTLSeconds:   battleTicketTTLSeconds,
 		TokenSignSecret:          os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
 		RoomTicketSignSecret:     os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
 		GameServiceBaseURL:       configx.Env("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),

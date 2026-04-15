@@ -41,6 +41,18 @@ var members: Dictionary = {}
 var ready_map: Dictionary = {}
 var match_active: bool = false
 
+# Phase23: Room lifecycle & battle handoff fields
+var room_lifecycle_state: String = "idle"  # idle/gathering/queueing/assignment_pending/allocating_battle/battle_ready/in_battle_frozen/awaiting_return/destroying/destroyed
+var current_assignment_id: String = ""
+var current_battle_id: String = ""
+var battle_allocation_state: String = ""  # ""/allocating/battle_ready/battle_active/finalizing/finalized
+var battle_server_host: String = ""
+var battle_server_port: int = 0
+var room_return_policy: String = "return_to_source_room"
+
+# Phase22 compatibility (deprecated in Phase23 — do not use for new logic)
+# is_matchmade_room, locked_map_id, locked_rule_set_id, locked_mode_id retained above
+
 # Phase17: Stable member identity model
 var member_bindings_by_member_id: Dictionary = {}
 var member_id_by_transport_peer_id: Dictionary = {}
@@ -77,6 +89,13 @@ func reset() -> void:
 	room_queue_error_message = ""
 	min_start_players = 2
 	match_active = false
+	room_lifecycle_state = "idle"
+	current_assignment_id = ""
+	current_battle_id = ""
+	battle_allocation_state = ""
+	battle_server_host = ""
+	battle_server_port = 0
+	room_return_policy = "return_to_source_room"
 	members.clear()
 	ready_map.clear()
 	member_bindings_by_member_id.clear()
@@ -360,6 +379,14 @@ func build_snapshot() -> RoomSnapshot:
 	snapshot.min_start_players = min_start_players
 	snapshot.all_ready = can_start()
 	snapshot.match_active = match_active
+	snapshot.room_lifecycle_state = room_lifecycle_state
+	snapshot.current_assignment_id = current_assignment_id
+	snapshot.current_battle_id = current_battle_id
+	snapshot.battle_allocation_state = battle_allocation_state
+	snapshot.battle_server_host = battle_server_host
+	snapshot.battle_server_port = battle_server_port
+	snapshot.room_return_policy = room_return_policy
+	snapshot.battle_entry_ready = battle_allocation_state == "battle_ready"
 
 	if not member_bindings_by_member_id.is_empty():
 		for binding in _get_sorted_member_bindings():

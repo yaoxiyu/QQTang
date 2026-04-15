@@ -19,6 +19,9 @@ type RouterDeps struct {
 	SettlementHandler         *SettlementHandler
 	InternalAssignmentHandler *InternalAssignmentHandler
 	InternalFinalizeHandler   *InternalFinalizeHandler
+	InternalBattleManifestHandler *InternalBattleManifestHandler
+	InternalBattleReadyHandler    *InternalBattleReadyHandler
+	InternalManualRoomBattleHandler *InternalManualRoomBattleHandler
 	ReadinessCheck            func(ctx context.Context) error
 }
 
@@ -52,6 +55,15 @@ func NewRouter(deps RouterDeps) http.Handler {
 		deps.InternalAssignmentHandler.Commit(w, r)
 	})))
 	mux.Handle("POST /internal/v1/matches/finalize", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalFinalizeHandler.Finalize)))
+	if deps.InternalBattleManifestHandler != nil {
+		mux.Handle("GET /internal/v1/battles/{battle_id}/manifest", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalBattleManifestHandler.GetManifest)))
+	}
+	if deps.InternalBattleReadyHandler != nil {
+		mux.Handle("POST /internal/v1/battles/{battle_id}/ready", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalBattleReadyHandler.MarkReady)))
+	}
+	if deps.InternalManualRoomBattleHandler != nil {
+		mux.Handle("POST /internal/v1/battles/manual-room/create", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalManualRoomBattleHandler.Create)))
+	}
 	if deps.PartyMatchmakingHandler != nil {
 		mux.Handle("POST /internal/v1/matchmaking/party-queue/enter", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.EnterPartyQueue)))
 		mux.Handle("POST /internal/v1/matchmaking/party-queue/cancel", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.CancelPartyQueue)))
