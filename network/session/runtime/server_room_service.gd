@@ -198,6 +198,15 @@ func _handle_create_request(message: Dictionary) -> void:
 				"user_message": "Public room name is required",
 			})
 			return
+	
+	# Phase22: Reject create if room already exists (single-room-per-DS model)
+	if not room_state.room_id.is_empty():
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
+			"error": "ROOM_ALREADY_EXISTS",
+			"user_message": "房间已存在",
+		})
+		return
 	elif requested_room_kind == "matchmade_room":
 		requested_room_display_name = "Matchmade Room"
 	elif requested_room_kind == "casual_match_room":
@@ -314,6 +323,25 @@ func _handle_join_request(message: Dictionary) -> void:
 			"user_message": "Active match is not joinable as a player",
 		})
 		return
+	
+	# Phase22: Reject join when room is at capacity
+	if room_state.is_match_room():
+		if room_state.members.size() >= room_state.required_party_size:
+			send_to_peer.emit(peer_id, {
+				"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+				"error": "ROOM_MATCH_CAPACITY_FULL",
+				"user_message": "匹配房间已满员",
+			})
+			return
+	elif room_state.max_players > 0:
+		if room_state.members.size() >= room_state.max_players:
+			send_to_peer.emit(peer_id, {
+				"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
+				"error": "ROOM_CAPACITY_FULL",
+				"user_message": "房间已满员",
+			})
+			return
+	
 	_apply_ticket_claim_to_room_state(ticket_claim)
 	room_state.upsert_member(
 		peer_id,

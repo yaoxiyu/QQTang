@@ -56,6 +56,7 @@ func build_view_model(
 	var can_cancel_queue := is_host and is_match_room and String(safe_snapshot.room_queue_state) == "queueing"
 	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
 	var mode_display_name := String(binding.get("mode_name", safe_snapshot.mode_id))
+	var eligible_map_pool_hint_text := _build_eligible_map_pool_hint_text(safe_snapshot) if is_match_room else ""
 
 	return {
 		"title_text": title_text,
@@ -86,8 +87,8 @@ func build_view_model(
 		"can_edit_match_room_config": can_edit_match_room_config,
 		"can_enter_queue": can_enter_queue,
 		"can_cancel_queue": can_cancel_queue,
-		"match_room_party_status_text": _build_match_room_party_status_text(safe_snapshot, member_count),
-		"eligible_map_pool_hint_text": _build_eligible_map_pool_hint_text(safe_snapshot),
+		"match_room_party_status_text": _build_match_room_party_status_text(safe_snapshot, member_count) if is_match_room else "",
+		"eligible_map_pool_hint_text": eligible_map_pool_hint_text,
 		"invite_code_text": String(safe_snapshot.room_id),
 		"queue_status_text": _build_queue_status_text(safe_snapshot),
 		"queue_error_text": _build_queue_error_text(safe_snapshot),
