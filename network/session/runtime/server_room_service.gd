@@ -26,6 +26,7 @@ var room_state: RoomServerState = RoomServerStateScript.new()
 var room_ticket_verifier: RefCounted = RoomTicketVerifierScript.new()
 var room_resume_validator: RefCounted = RoomResumeValidatorScript.new()
 var member_session_payload_builder: RefCounted = MemberSessionPayloadBuilderScript.new()
+var game_service_party_queue_client: RefCounted = null
 
 
 func configure_room_ticket_verifier(secret: String, allow_unsigned_dev_ticket: bool = false) -> void:
@@ -35,9 +36,16 @@ func configure_room_ticket_verifier(secret: String, allow_unsigned_dev_ticket: b
 		room_ticket_verifier.configure(secret, allow_unsigned_dev_ticket)
 
 
+func configure_party_queue_client(client: RefCounted) -> void:
+	game_service_party_queue_client = client
+
+
 func handle_peer_disconnected(peer_id: int) -> void:
 	if room_state == null:
 		return
+	if room_state.is_match_room() and room_state.room_queue_state == "queueing":
+		_cancel_party_queue_backend()
+		_cancel_match_queue_locally("member_disconnected")
 	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
 	if binding != null and not room_state.match_active:
 		room_state.mark_member_disconnected_by_transport_peer(
@@ -120,6 +128,12 @@ func handle_message(message: Dictionary) -> void:
 			_handle_update_profile(message)
 		TransportMessageTypesScript.ROOM_UPDATE_SELECTION:
 			_handle_update_selection(message)
+		TransportMessageTypesScript.ROOM_UPDATE_MATCH_ROOM_CONFIG:
+			_handle_update_match_room_config(message)
+		TransportMessageTypesScript.ROOM_ENTER_MATCH_QUEUE:
+			_handle_enter_match_queue(message)
+		TransportMessageTypesScript.ROOM_CANCEL_MATCH_QUEUE:
+			_handle_cancel_match_queue(message)
 		TransportMessageTypesScript.ROOM_TOGGLE_READY:
 			_handle_toggle_ready(message)
 		TransportMessageTypesScript.ROOM_START_REQUEST:
@@ -162,7 +176,11 @@ func _handle_create_request(message: Dictionary) -> void:
 	var requested_room_id := String(message.get("room_id_hint", "")).strip_edges()
 	var requested_room_kind := String(message.get("room_kind", "private_room")).strip_edges().to_lower()
 	var requested_room_display_name := String(message.get("room_display_name", "")).strip_edges()
-	if requested_room_kind != "private_room" and requested_room_kind != "public_room" and requested_room_kind != "matchmade_room":
+	if requested_room_kind != "private_room" \
+		and requested_room_kind != "public_room" \
+		and requested_room_kind != "matchmade_room" \
+		and requested_room_kind != "casual_match_room" \
+		and requested_room_kind != "ranked_match_room":
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
 			"error": "ROOM_KIND_INVALID",
@@ -182,6 +200,10 @@ func _handle_create_request(message: Dictionary) -> void:
 			return
 	elif requested_room_kind == "matchmade_room":
 		requested_room_display_name = "Matchmade Room"
+	elif requested_room_kind == "casual_match_room":
+		requested_room_display_name = "Casual Match Room"
+	elif requested_room_kind == "ranked_match_room":
+		requested_room_display_name = "Ranked Match Room"
 	else:
 		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
 	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
@@ -375,6 +397,13 @@ func _handle_update_profile(message: Dictionary) -> void:
 
 func _handle_update_selection(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_match_room():
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "MATCH_ROOM_SELECTION_FORBIDDEN",
+			"user_message": "Match rooms use match format and mode pool",
+		})
+		return
 	if room_state.is_matchmade_room:
 		_log_online_room_service("update_selection_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
@@ -419,6 +448,82 @@ func _handle_update_selection(message: Dictionary) -> void:
 	_broadcast_snapshot()
 
 
+func _handle_update_match_room_config(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if not room_state.can_update_match_room_config(peer_id):
+		_send_match_queue_status(peer_id, "MATCH_ROOM_CONFIG_FORBIDDEN", "Match room config cannot be changed")
+		return
+	var next_format_id := String(message.get("match_format_id", "1v1")).strip_edges()
+	if not _is_valid_match_format_id(next_format_id):
+		_send_match_queue_status(peer_id, "MATCH_FORMAT_INVALID", "Match format is invalid")
+		_broadcast_snapshot()
+		return
+	var selected_mode_ids := _to_string_array(message.get("selected_mode_ids", []))
+	var eligible_mode_ids := _get_eligible_match_mode_ids(room_state.queue_type, next_format_id)
+	for mode_id in selected_mode_ids:
+		if not eligible_mode_ids.has(mode_id):
+			_send_match_queue_status(peer_id, "MATCH_MODE_INVALID", "Selected mode is not available for this queue")
+			_broadcast_snapshot()
+			return
+	room_state.match_format_id = next_format_id
+	room_state.required_party_size = room_state.resolve_required_party_size(next_format_id)
+	room_state.selected_match_mode_ids = selected_mode_ids
+	room_state.room_queue_state = "idle"
+	room_state.room_queue_status_text = ""
+	room_state.max_players = room_state.required_party_size
+	room_state.min_start_players = room_state.required_party_size
+	room_state.room_queue_error_code = ""
+	room_state.room_queue_error_message = ""
+	_broadcast_snapshot()
+
+
+func _handle_enter_match_queue(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if not room_state.can_enter_match_queue(peer_id):
+		_send_match_queue_status(peer_id, "MATCH_ROOM_QUEUE_FORBIDDEN", "Match room is not ready to enter queue")
+		_broadcast_snapshot()
+		return
+	var request := _build_party_queue_request()
+	var result := _enter_party_queue_backend(request)
+	if not bool(result.get("ok", false)):
+		_send_match_queue_status(
+			peer_id,
+			String(result.get("error_code", "PARTY_QUEUE_ENTER_FAILED")),
+			String(result.get("user_message", "Failed to enter matchmaking queue"))
+		)
+		_broadcast_snapshot()
+		return
+	room_state.room_queue_state = "queueing"
+	room_state.room_queue_entry_id = String(result.get("queue_entry_id", result.get("party_queue_entry_id", "")))
+	room_state.room_queue_status_text = String(result.get("queue_status_text", "Queueing"))
+	room_state.room_queue_error_code = ""
+	room_state.room_queue_error_message = ""
+	_broadcast_snapshot()
+	_broadcast_match_queue_status()
+
+
+func _handle_cancel_match_queue(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if not room_state.is_match_room():
+		_send_match_queue_status(peer_id, "NOT_MATCH_ROOM", "Current room is not a match room")
+		return
+	if peer_id != room_state.owner_peer_id:
+		_send_match_queue_status(peer_id, "MATCH_QUEUE_CANCEL_FORBIDDEN", "Only the host can cancel matchmaking")
+		return
+	var result := _cancel_party_queue_backend()
+	if not bool(result.get("ok", false)):
+		_send_match_queue_status(
+			peer_id,
+			String(result.get("error_code", "PARTY_QUEUE_CANCEL_FAILED")),
+			String(result.get("user_message", "Failed to cancel matchmaking queue"))
+		)
+		_broadcast_snapshot()
+		return
+	_cancel_match_queue_locally("host_cancelled")
+	_broadcast_snapshot()
+	_broadcast_match_queue_status()
+
+
 func _handle_toggle_ready(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_state.is_matchmade_room:
@@ -436,6 +541,13 @@ func _handle_toggle_ready(message: Dictionary) -> void:
 
 func _handle_start_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	if room_state.is_match_room():
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
+			"error": "MATCH_ROOM_START_FORBIDDEN",
+			"user_message": "Match rooms must enter matchmaking queue",
+		})
+		return
 	if room_state.is_matchmade_room:
 		_log_online_room_service("start_request_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
@@ -477,6 +589,9 @@ func _handle_leave_request(message: Dictionary) -> void:
 		return
 	var had_member := room_state != null and room_state.members.has(peer_id)
 	if had_member:
+		if room_state.is_match_room() and room_state.room_queue_state == "queueing":
+			_cancel_party_queue_backend()
+			_cancel_match_queue_locally("member_left")
 		room_state.remove_member(peer_id)
 		if room_state.members.is_empty():
 			room_state.reset()
@@ -539,6 +654,115 @@ func _broadcast_snapshot() -> void:
 	broadcast_message.emit({
 		"message_type": TransportMessageTypesScript.ROOM_SNAPSHOT,
 		"snapshot": snapshot.to_dict(),
+	})
+
+
+func _broadcast_match_queue_status() -> void:
+	broadcast_message.emit({
+		"message_type": TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS,
+		"room_id": room_state.room_id,
+		"queue_type": room_state.queue_type,
+		"match_format_id": room_state.match_format_id,
+		"selected_match_mode_ids": room_state.selected_match_mode_ids.duplicate(),
+		"required_party_size": room_state.required_party_size,
+		"queue_state": room_state.room_queue_state,
+		"queue_entry_id": room_state.room_queue_entry_id,
+		"queue_status_text": room_state.room_queue_status_text,
+		"error_code": room_state.room_queue_error_code,
+		"user_message": room_state.room_queue_error_message,
+	})
+
+
+func _send_match_queue_status(peer_id: int, error_code: String = "", user_message: String = "") -> void:
+	if not error_code.is_empty():
+		room_state.room_queue_error_code = error_code
+		room_state.room_queue_error_message = user_message
+	send_to_peer.emit(peer_id, {
+		"message_type": TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS,
+		"room_id": room_state.room_id,
+		"queue_type": room_state.queue_type,
+		"match_format_id": room_state.match_format_id,
+		"selected_match_mode_ids": room_state.selected_match_mode_ids.duplicate(),
+		"required_party_size": room_state.required_party_size,
+		"queue_state": room_state.room_queue_state,
+		"queue_entry_id": room_state.room_queue_entry_id,
+		"queue_status_text": room_state.room_queue_status_text,
+		"error_code": error_code,
+		"user_message": user_message,
+	})
+
+
+func _build_party_queue_request() -> Dictionary:
+	var members: Array[Dictionary] = []
+	var seat_index := 0
+	for binding in room_state._get_sorted_member_bindings():
+		if binding == null:
+			continue
+		members.append({
+			"account_id": String(binding.account_id),
+			"profile_id": String(binding.profile_id),
+			"device_session_id": String(binding.device_session_id),
+			"seat_index": seat_index,
+		})
+		seat_index += 1
+	if members.is_empty():
+		for peer_id in room_state.get_sorted_peer_ids():
+			var profile: Dictionary = room_state.members.get(peer_id, {})
+			members.append({
+				"account_id": String(profile.get("account_id", "")),
+				"profile_id": String(profile.get("profile_id", "")),
+				"device_session_id": String(profile.get("device_session_id", "")),
+				"seat_index": seat_index,
+			})
+			seat_index += 1
+	return {
+		"party_room_id": room_state.room_id,
+		"queue_type": room_state.queue_type,
+		"match_format_id": room_state.match_format_id,
+		"selected_mode_ids": room_state.selected_match_mode_ids.duplicate(),
+		"members": members,
+	}
+
+
+func _enter_party_queue_backend(request: Dictionary) -> Dictionary:
+	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("enter_party_queue"):
+		return {
+			"ok": false,
+			"error_code": "PARTY_QUEUE_CLIENT_MISSING",
+			"user_message": "Party queue service is not configured",
+		}
+	var result = game_service_party_queue_client.enter_party_queue(request)
+	if result is Dictionary:
+		return result
+	return {
+		"ok": false,
+		"error_code": "PARTY_QUEUE_RESULT_INVALID",
+		"user_message": "Party queue service returned invalid result",
+	}
+
+
+func _cancel_party_queue_backend() -> Dictionary:
+	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("cancel_party_queue"):
+		return {"ok": true}
+	var result = game_service_party_queue_client.cancel_party_queue(room_state.room_id, room_state.room_queue_entry_id)
+	if result is Dictionary:
+		return result
+	return {
+		"ok": false,
+		"error_code": "PARTY_QUEUE_CANCEL_RESULT_INVALID",
+		"user_message": "Party queue cancel returned invalid result",
+	}
+
+
+func _cancel_match_queue_locally(reason: String) -> void:
+	room_state.room_queue_state = "cancelled"
+	room_state.room_queue_entry_id = ""
+	room_state.room_queue_status_text = "Queue cancelled"
+	room_state.room_queue_error_code = ""
+	room_state.room_queue_error_message = ""
+	_log_online_room_service("match_queue_cancelled_locally", {
+		"room_id": room_state.room_id,
+		"reason": reason,
 	})
 
 
@@ -795,3 +1019,24 @@ func _resolve_selection_from_map(map_id: String, fallback_rule_set_id: String, f
 		"rule_set_id": String(binding.get("bound_rule_set_id", fallback_rule_set_id)),
 		"mode_id": String(binding.get("bound_mode_id", fallback_mode_id)),
 	}
+
+
+func _is_valid_match_format_id(match_format_id: String) -> bool:
+	return ["1v1", "2v2", "4v4"].has(match_format_id)
+
+
+func _get_eligible_match_mode_ids(queue_type: String, match_format_id: String) -> Array[String]:
+	var result: Array[String] = []
+	for entry in MapSelectionCatalogScript.get_match_room_mode_entries(queue_type, match_format_id):
+		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
+		if not mode_id.is_empty() and bool(entry.get("enabled", true)) and not result.has(mode_id):
+			result.append(mode_id)
+	return result
+
+
+func _to_string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item in value:
+			result.append(String(item))
+	return result

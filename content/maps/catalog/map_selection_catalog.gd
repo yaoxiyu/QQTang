@@ -121,6 +121,63 @@ static func get_matchmaking_maps(match_format_id: String, queue_type: String, mo
 	return _sort_map_entries(entries)
 
 
+static func get_match_room_format_entries(queue_type: String) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for match_format_id in MATCH_FORMAT_IDS:
+		var mode_entries := get_match_room_mode_entries(queue_type, match_format_id)
+		entries.append({
+			"id": match_format_id,
+			"match_format_id": match_format_id,
+			"display_name": match_format_id,
+			"enabled": not mode_entries.is_empty(),
+		})
+	return entries
+
+
+static func get_match_room_mode_entries(queue_type: String, match_format_id: String) -> Array[Dictionary]:
+	var entries_by_mode: Dictionary = {}
+	for binding in _get_valid_bindings(true):
+		if String(binding.get("match_format_id", "")) != match_format_id:
+			continue
+		if not _is_matchmaking_enabled(binding, queue_type):
+			continue
+		var mode_id := String(binding.get("bound_mode_id", ""))
+		if mode_id.is_empty() or entries_by_mode.has(mode_id):
+			continue
+		var mode_metadata := ModeCatalogScript.get_mode_metadata(mode_id)
+		entries_by_mode[mode_id] = {
+			"id": mode_id,
+			"mode_id": mode_id,
+			"display_name": String(mode_metadata.get("display_name", mode_id)),
+			"enabled": true,
+			"sort_order": int(binding.get("sort_order", 0)),
+		}
+	return _sort_mode_entries(entries_by_mode.values())
+
+
+static func get_match_room_eligible_map_count(queue_type: String, match_format_id: String, selected_mode_ids: Array[String]) -> int:
+	var map_ids: Dictionary = {}
+	for mode_id in selected_mode_ids:
+		for entry in get_match_room_maps(queue_type, match_format_id, String(mode_id)):
+			var map_id := String(entry.get("map_id", ""))
+			if not map_id.is_empty():
+				map_ids[map_id] = true
+	return map_ids.size()
+
+
+static func get_match_room_maps(queue_type: String, match_format_id: String, mode_id: String) -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	for binding in _get_valid_bindings(true):
+		if String(binding.get("match_format_id", "")) != match_format_id:
+			continue
+		if String(binding.get("bound_mode_id", "")) != mode_id:
+			continue
+		if not _is_matchmaking_enabled(binding, queue_type):
+			continue
+		entries.append(_to_map_entry(binding))
+	return _sort_map_entries(entries)
+
+
 static func _get_valid_bindings(use_matchmaking_variants: bool) -> Array[Dictionary]:
 	var bindings: Array[Dictionary] = []
 	for map_id in MapCatalogScript.get_map_ids():

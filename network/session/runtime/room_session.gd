@@ -12,6 +12,15 @@ var ready_state: Dictionary = {}
 var selected_map_id: String = ""
 var selected_rule_set_id: String = ""
 var selected_mode_id: String = ""
+var queue_type: String = ""
+var match_format_id: String = "1v1"
+var selected_match_mode_ids: Array[String] = []
+var required_party_size: int = 1
+var room_queue_state: String = "idle"
+var room_queue_entry_id: String = ""
+var room_queue_status_text: String = ""
+var room_queue_error_code: String = ""
+var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var locked: bool = false
 
@@ -45,6 +54,11 @@ func set_ready(peer_id: int, ready: bool) -> void:
 
 func set_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
 	if locked:
+		return
+	if room_kind == "casual_match_room" or room_kind == "ranked_match_room":
+		selected_map_id = ""
+		selected_rule_set_id = ""
+		selected_mode_id = ""
 		return
 	var resolved_map_id := map_id
 	if resolved_map_id.is_empty() and room_kind != "matchmade_room":

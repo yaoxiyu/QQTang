@@ -386,107 +386,48 @@ text = "加入自定义房间"
 layout_mode = 2
 autowrap_mode = 2
 
-[node name="MatchmakingCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=437423149]
+[node name="MatchRoomEntryCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=437423149]
 layout_mode = 2
 
-[node name="MatchmakingVBox" type="VBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard" unique_id=691536919]
+[node name="MatchRoomEntryVBox" type="VBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard" unique_id=691536919]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="MatchmakingTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1851063227]
+[node name="MatchRoomEntryTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox" unique_id=1851063227]
 layout_mode = 2
 text = "Matchmaking"
 
-[node name="GameServiceRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=542337971]
+[node name="CasualMatchRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox" unique_id=542337971]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GameServiceHostLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=1062108237]
+[node name="CasualMatchRoomLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/CasualMatchRoomRow" unique_id=1062108237]
 layout_mode = 2
-text = "Game Service Host"
+text = "Casual Match Room"
 
-[node name="GameServiceHostInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=245683158]
-custom_minimum_size = Vector2(220, 0)
+[node name="CreateCasualMatchRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/CasualMatchRoomRow" unique_id=1101855099]
+custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "127.0.0.1"
+text = "创建普通匹配房间"
 
-[node name="GameServicePortLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=1696999629]
-layout_mode = 2
-text = "Port"
-
-[node name="GameServicePortInput" type="LineEdit" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow" unique_id=170416829]
-custom_minimum_size = Vector2(96, 0)
-layout_mode = 2
-placeholder_text = "18081"
-
-[node name="QueueTypeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=267330401]
+[node name="RankedMatchRoomRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox" unique_id=1524151288]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="QueueTypeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow" unique_id=758628052]
+[node name="RankedMatchRoomLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/RankedMatchRoomRow" unique_id=1163675672]
 layout_mode = 2
-text = "Queue Type"
+text = "Ranked Match Room"
 
-[node name="QueueTypeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow" unique_id=2029924615]
-custom_minimum_size = Vector2(180, 0)
+[node name="CreateRankedMatchRoomButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/RankedMatchRoomRow" unique_id=1526263306]
+custom_minimum_size = Vector2(220, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+text = "创建排位匹配房间"
 
-[node name="QueueActionRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=450860999]
+[node name="MatchRoomHintLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox" unique_id=1293790382]
 layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="EnterQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=389456174]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Enter Queue"
-
-[node name="CancelQueueButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow" unique_id=1305131417]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Cancel Queue"
-
-[node name="QueueStatusLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1429993601]
-layout_mode = 2
-text = "Queue Status: Idle"
-autowrap_mode = 2
-
-[node name="AssignmentSummaryLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1114078427]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Assignment: -"
-autowrap_mode = 3
-
-[node name="QueueFormatRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1617970050]
-layout_mode = 2
-
-[node name="QueueFormatLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow" unique_id=803631003]
-layout_mode = 2
-text = "人数模式"
-
-[node name="QueueFormatSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow" unique_id=845365515]
-layout_mode = 2
-
-[node name="QueueGameModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1279979999]
-layout_mode = 2
-
-[node name="QueueGameModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow" unique_id=1488116089]
-layout_mode = 2
-text = "玩法模式"
-
-[node name="QueueGameModeSelector" type="OptionButton" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow" unique_id=284631040]
-layout_mode = 2
-
-[node name="QueueMapListTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1293790382]
-layout_mode = 2
-text = "地图池（可多选）"
-
-[node name="QueueMapMultiSelect" type="ItemList" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox" unique_id=1871738626]
-custom_minimum_size = Vector2(0, 180)
-layout_mode = 2
-select_mode = 1
-allow_reselect = true
+text = "进入匹配房间后再选择几v几与模式池，队伍准备完成后再开始匹配。"
 
 [node name="RecentCard" type="PanelContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent" unique_id=723798529]
 layout_mode = 2

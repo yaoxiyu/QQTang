@@ -21,20 +21,22 @@ func build_view_model(
 	var local_peer_id := int(safe_context.local_player_id)
 	var is_host := local_peer_id != 0 and local_peer_id == int(safe_snapshot.owner_peer_id)
 	var is_practice := resolved_room_kind == "practice"
-	var is_matchmade := resolved_room_kind == "matchmade_room"
+	var is_custom_room := FrontRoomKind.is_custom_room(resolved_room_kind)
+	var is_match_room := FrontRoomKind.is_match_room(resolved_room_kind)
+	var is_assigned_room := FrontRoomKind.is_assigned_room(resolved_room_kind)
 	var member_count := safe_snapshot.member_count()
 	var min_start_players := int(safe_snapshot.min_start_players if safe_snapshot.min_start_players > 0 else safe_context.min_start_players)
 	if min_start_players <= 0:
 		min_start_players = 2
 
-	var blocker_text := _build_blocker_text(safe_snapshot, safe_context, safe_entry_context, is_host, member_count, min_start_players, is_practice)
+	var blocker_text := _build_blocker_text(safe_snapshot, safe_context, safe_entry_context, is_host, member_count, min_start_players, is_practice, is_match_room)
 	var owner_name := _resolve_owner_name(safe_snapshot, safe_profile)
 	var connection_status_text := _build_connection_status_text(safe_snapshot, safe_context, safe_entry_context, is_practice)
 	var members := _build_member_view_models(safe_snapshot.sorted_members())
 	var has_server_pending_state := not is_practice and member_count <= 0
 	var local_member_ready := _is_local_member_ready(members)
-	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state and not is_matchmade
-	var can_start := blocker_text.is_empty() and is_host and not is_matchmade
+	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state and not is_assigned_room
+	var can_start := blocker_text.is_empty() and is_host and is_custom_room
 	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
 	var lifecycle_status_text := _build_lifecycle_status_text(safe_context)
 	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
@@ -48,12 +50,19 @@ func build_view_model(
 	var max_player_count := int(binding.get("max_player_count", safe_snapshot.max_players))
 	if max_player_count <= 0:
 		max_player_count = safe_snapshot.max_players
-	var can_edit_selection := is_host and not is_matchmade and not binding.is_empty()
+	var can_edit_selection := is_host and is_custom_room and not binding.is_empty()
+	var can_edit_match_room_config := is_host and is_match_room and String(safe_snapshot.room_queue_state) != "queueing"
+	var can_enter_queue := _can_enter_match_queue(safe_snapshot, is_host, member_count, is_match_room)
+	var can_cancel_queue := is_host and is_match_room and String(safe_snapshot.room_queue_state) == "queueing"
 	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
 	var mode_display_name := String(binding.get("mode_name", safe_snapshot.mode_id))
 
 	return {
 		"title_text": title_text,
+		"room_kind": resolved_room_kind,
+		"is_custom_room": is_custom_room,
+		"is_match_room": is_match_room,
+		"is_assigned_room": is_assigned_room,
 		"room_display_name": resolved_room_display_name,
 		"room_id_text": _resolve_room_id_text(safe_snapshot, safe_entry_context, is_practice),
 		"room_kind_text": _format_room_kind(resolved_room_kind),
@@ -66,9 +75,22 @@ func build_view_model(
 		"reconnect_window_text": reconnect_window_text,
 		"active_match_resume_text": active_match_resume_text,
 		"can_edit_selection": can_edit_selection,
-		"can_edit_team": (not local_member_ready) and not is_matchmade,
+		"can_edit_team": (not local_member_ready) and is_custom_room,
 		"can_ready": can_ready,
 		"can_start": can_start,
+		"show_match_format_selector": is_match_room,
+		"show_match_mode_multi_select": is_match_room,
+		"show_queue_buttons": is_match_room,
+		"show_invite_row": is_match_room,
+		"show_team_selector": is_custom_room,
+		"can_edit_match_room_config": can_edit_match_room_config,
+		"can_enter_queue": can_enter_queue,
+		"can_cancel_queue": can_cancel_queue,
+		"match_room_party_status_text": _build_match_room_party_status_text(safe_snapshot, member_count),
+		"eligible_map_pool_hint_text": _build_eligible_map_pool_hint_text(safe_snapshot),
+		"invite_code_text": String(safe_snapshot.room_id),
+		"queue_status_text": _build_queue_status_text(safe_snapshot),
+		"queue_error_text": _build_queue_error_text(safe_snapshot),
 		"show_network_summary": not is_practice,
 		"show_room_id": not is_practice,
 		"show_connection_status": not is_practice,
@@ -127,6 +149,10 @@ func _build_title_text(room_kind: String, room_display_name: String) -> String:
 			return "Practice Room"
 		"matchmade_room":
 			return "Matchmade Room"
+		"casual_match_room":
+			return "Casual Match Room"
+		"ranked_match_room":
+			return "Ranked Match Room"
 		"public_room":
 			if not room_display_name.is_empty():
 				return "Custom Room - %s" % room_display_name
@@ -193,7 +219,8 @@ func _build_blocker_text(
 	is_host: bool,
 	member_count: int,
 	min_start_players: int,
-	is_practice: bool
+	is_practice: bool,
+	is_match_room: bool
 ) -> String:
 	if snapshot == null:
 		return "Room context is not ready"
@@ -204,6 +231,8 @@ func _build_blocker_text(
 		return "Connecting to dedicated server..."
 	if not is_host:
 		return "" if is_practice else "Waiting for host action"
+	if is_match_room:
+		return _build_match_room_blocker_text(snapshot, member_count)
 	if snapshot.selected_map_id.is_empty() or snapshot.rule_set_id.is_empty() or snapshot.mode_id.is_empty():
 		return "Selection is incomplete"
 	var binding := _resolve_map_binding(String(snapshot.selected_map_id))
@@ -265,6 +294,10 @@ func _format_room_kind(room_kind: String) -> String:
 			return "Practice"
 		"matchmade_room":
 			return "Matchmade Room"
+		"casual_match_room":
+			return "Casual Match Room"
+		"ranked_match_room":
+			return "Ranked Match Room"
 		"private_room":
 			return "Custom Room (Private)"
 		"public_room":
@@ -347,3 +380,73 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 	if binding.is_empty() or not bool(binding.get("valid", false)):
 		return {}
 	return binding
+
+
+func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count: int, is_match_room: bool) -> bool:
+	if snapshot == null or not is_host or not is_match_room:
+		return false
+	return true
+
+
+func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -> String:
+	if snapshot == null:
+		return "Room context is not ready"
+	if String(snapshot.room_queue_state) == "queueing":
+		return "匹配中"
+	if snapshot.selected_match_mode_ids.is_empty():
+		return "请选择匹配模式"
+	var required_party_size := int(snapshot.required_party_size)
+	if required_party_size <= 0:
+		required_party_size = 1
+	if member_count != required_party_size:
+		return "队伍人数需为 %d" % required_party_size
+	if not bool(snapshot.all_ready):
+		return "所有成员需要准备"
+	return ""
+
+
+func _build_match_room_party_status_text(snapshot: RoomSnapshot, member_count: int) -> String:
+	if snapshot == null:
+		return "队伍状态：未知"
+	var required_party_size := int(snapshot.required_party_size)
+	if required_party_size <= 0:
+		required_party_size = 1
+	return "队伍人数：%d / %d" % [member_count, required_party_size]
+
+
+func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
+	if snapshot == null:
+		return ""
+	var queue_type := String(snapshot.queue_type)
+	var match_format_id := String(snapshot.match_format_id)
+	var selected_mode_ids := snapshot.selected_match_mode_ids
+	var count := MapSelectionCatalogScript.get_match_room_eligible_map_count(queue_type, match_format_id, selected_mode_ids)
+	if count <= 0:
+		if match_format_id == "4v4":
+			return "4v4 当前暂无可运营地图"
+		return "当前选择没有合法地图"
+	return "当前模式池可匹配 %d 张地图" % count
+
+
+func _build_queue_status_text(snapshot: RoomSnapshot) -> String:
+	if snapshot == null:
+		return ""
+	if not String(snapshot.room_queue_status_text).is_empty():
+		return String(snapshot.room_queue_status_text)
+	match String(snapshot.room_queue_state):
+		"queueing":
+			return "匹配中"
+		"assigned":
+			return "已分配对局"
+		_:
+			return _build_match_room_party_status_text(snapshot, snapshot.member_count())
+
+
+func _build_queue_error_text(snapshot: RoomSnapshot) -> String:
+	if snapshot == null:
+		return ""
+	if not String(snapshot.room_queue_error_message).is_empty():
+		return String(snapshot.room_queue_error_message)
+	if not String(snapshot.room_queue_error_code).is_empty():
+		return String(snapshot.room_queue_error_code)
+	return ""

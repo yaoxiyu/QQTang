@@ -38,6 +38,13 @@ const PHASE21_LOG_PREFIX := "[QQT_P21]"
 @onready var map_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector")
 @onready var rule_value_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleValueLabel")
 @onready var game_mode_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector")
+@onready var match_format_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow/MatchFormatSelector")
+@onready var match_mode_multi_select: ItemList = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/MatchModeMultiSelect")
+@onready var eligible_map_pool_hint_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/EligibleMapPoolHintLabel")
+@onready var invite_code_value_label: LineEdit = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/InviteCodeValueLabel")
+@onready var copy_invite_code_button: Button = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/CopyInviteCodeButton")
+@onready var queue_status_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueStatusLabel")
+@onready var queue_error_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueErrorLabel")
 @onready var member_list: VBoxContainer = get_node_or_null("RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList")
 @onready var map_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel")
 @onready var rule_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/RulePreviewLabel")
@@ -53,6 +60,8 @@ const PHASE21_LOG_PREFIX := "[QQT_P21]"
 @onready var leave_room_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/LeaveRoomButton")
 @onready var ready_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/ReadyButton")
 @onready var start_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/StartButton")
+@onready var enter_queue_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/EnterQueueButton")
+@onready var cancel_queue_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/CancelQueueButton")
 @onready var add_opponent_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/AddOpponentButton")
 @onready var room_debug_panel: PanelContainer = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel")
 @onready var debug_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel/DebugLabel")
@@ -154,6 +163,8 @@ func _populate_selectors() -> void:
 	_populate_bubble_skin_selector()
 	_populate_mode_selector()
 	_populate_map_selector()
+	_populate_match_format_selector("casual")
+	_populate_match_mode_multi_select("casual", "1v1")
 	_suppress_selection_callbacks = false
 
 
@@ -262,6 +273,38 @@ func _populate_mode_selector() -> void:
 	_select_metadata(game_mode_selector, current_value)
 
 
+func _populate_match_format_selector(queue_type: String) -> void:
+	if match_format_selector == null:
+		return
+	var current_value := _selected_metadata(match_format_selector)
+	match_format_selector.clear()
+	for entry in MapSelectionCatalogScript.get_match_room_format_entries(queue_type):
+		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
+		var display_name := String(entry.get("display_name", match_format_id))
+		var enabled := bool(entry.get("enabled", false))
+		if not enabled:
+			display_name += " (Locked)"
+		match_format_selector.add_item(display_name)
+		var index := match_format_selector.item_count - 1
+		match_format_selector.set_item_metadata(index, match_format_id)
+		match_format_selector.set_item_disabled(index, not enabled)
+	_select_metadata(match_format_selector, current_value if not current_value.is_empty() else "1v1")
+
+
+func _populate_match_mode_multi_select(queue_type: String, match_format_id: String, selected_mode_ids: Array[String] = []) -> void:
+	if match_mode_multi_select == null:
+		return
+	match_mode_multi_select.clear()
+	for entry in MapSelectionCatalogScript.get_match_room_mode_entries(queue_type, match_format_id):
+		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
+		match_mode_multi_select.add_item(String(entry.get("display_name", mode_id)))
+		var index := match_mode_multi_select.item_count - 1
+		match_mode_multi_select.set_item_metadata(index, mode_id)
+		if selected_mode_ids.has(mode_id) or selected_mode_ids.is_empty():
+			match_mode_multi_select.select(index, false)
+	_update_eligible_map_pool_hint(queue_type, match_format_id)
+
+
 func _connect_ui_signals() -> void:
 	if back_to_lobby_button != null and not back_to_lobby_button.pressed.is_connected(_on_back_to_lobby_pressed):
 		back_to_lobby_button.pressed.connect(_on_back_to_lobby_pressed)
@@ -271,6 +314,12 @@ func _connect_ui_signals() -> void:
 		ready_button.pressed.connect(_on_ready_button_pressed)
 	if start_button != null and not start_button.pressed.is_connected(_on_start_button_pressed):
 		start_button.pressed.connect(_on_start_button_pressed)
+	if enter_queue_button != null and not enter_queue_button.pressed.is_connected(_on_enter_queue_button_pressed):
+		enter_queue_button.pressed.connect(_on_enter_queue_button_pressed)
+	if cancel_queue_button != null and not cancel_queue_button.pressed.is_connected(_on_cancel_queue_button_pressed):
+		cancel_queue_button.pressed.connect(_on_cancel_queue_button_pressed)
+	if copy_invite_code_button != null and not copy_invite_code_button.pressed.is_connected(_on_copy_invite_code_button_pressed):
+		copy_invite_code_button.pressed.connect(_on_copy_invite_code_button_pressed)
 	if add_opponent_button != null and not add_opponent_button.pressed.is_connected(_on_add_opponent_pressed):
 		add_opponent_button.pressed.connect(_on_add_opponent_pressed)
 	if player_name_input != null and not player_name_input.text_submitted.is_connected(_on_profile_changed):
@@ -289,6 +338,10 @@ func _connect_ui_signals() -> void:
 		game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_mode_selection_changed())
 	if map_selector != null and not map_selector.item_selected.is_connected(_on_selection_changed):
 		map_selector.item_selected.connect(func(_index: int) -> void: _on_selection_changed())
+	if match_format_selector != null and not match_format_selector.item_selected.is_connected(_on_match_format_changed):
+		match_format_selector.item_selected.connect(func(_index: int) -> void: _on_match_format_changed())
+	if match_mode_multi_select != null and not match_mode_multi_select.multi_selected.is_connected(_on_match_mode_multi_select_changed):
+		match_mode_multi_select.multi_selected.connect(func(_index: int, _selected: bool) -> void: _on_match_mode_multi_select_changed())
 
 
 func _connect_runtime_signals() -> void:
@@ -326,11 +379,18 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 	_suppress_selection_callbacks = true
 	_populate_team_selector(int(view_model.get("team_option_max", 2)))
 	_select_team_id(int(view_model.get("local_team_id", 1)))
-	_populate_mode_selector()
-	_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
-	_populate_map_selector(String(view_model.get("selected_mode_id", "")))
-	_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
+	if bool(view_model.get("is_match_room", false)):
+		_populate_match_format_selector(String(snapshot.queue_type))
+		_select_metadata(match_format_selector, String(snapshot.match_format_id))
+		_populate_match_mode_multi_select(String(snapshot.queue_type), String(snapshot.match_format_id), snapshot.selected_match_mode_ids)
+	else:
+		_populate_mode_selector()
+		_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
+		_populate_map_selector(String(view_model.get("selected_mode_id", "")))
+		_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
 	_suppress_selection_callbacks = false
+	_apply_room_kind_visibility(view_model)
+	_refresh_match_room_controls(snapshot, view_model)
 	_update_auth_binding_summary(snapshot)
 	_update_preview(snapshot)
 	_update_debug_text(snapshot, view_model)
@@ -426,6 +486,51 @@ func _update_debug_text(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
 	debug_label.text = "\n".join(lines)
 
 
+func _apply_room_kind_visibility(view_model: Dictionary) -> void:
+	var room_kind := String(view_model.get("room_kind", ""))
+	var is_custom_room := bool(view_model.get("is_custom_room", room_kind == "practice" or room_kind == "private_room" or room_kind == "public_room"))
+	var is_match_room := bool(view_model.get("is_match_room", room_kind == "casual_match_room" or room_kind == "ranked_match_room"))
+	var is_assigned_room := bool(view_model.get("is_assigned_room", room_kind == "matchmade_room"))
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow", is_custom_room or is_assigned_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow", is_custom_room or is_assigned_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow", is_custom_room or is_assigned_room)
+	_set_node_visible("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow", is_custom_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow", is_match_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow", is_match_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow", is_match_room)
+	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow", is_match_room)
+	if start_button != null:
+		start_button.visible = is_custom_room
+	if enter_queue_button != null:
+		enter_queue_button.visible = is_match_room
+	if cancel_queue_button != null:
+		cancel_queue_button.visible = is_match_room
+	if ready_button != null:
+		ready_button.visible = is_custom_room or is_match_room
+
+
+func _refresh_match_room_controls(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
+	if snapshot == null:
+		return
+	if invite_code_value_label != null:
+		invite_code_value_label.text = String(view_model.get("invite_code_text", snapshot.room_id))
+	if queue_status_label != null:
+		queue_status_label.text = String(view_model.get("queue_status_text", snapshot.room_queue_status_text))
+	if queue_error_label != null:
+		queue_error_label.text = String(view_model.get("queue_error_text", snapshot.room_queue_error_message))
+	if enter_queue_button != null:
+		enter_queue_button.disabled = not bool(view_model.get("can_enter_queue", false))
+	if cancel_queue_button != null:
+		cancel_queue_button.disabled = not bool(view_model.get("can_cancel_queue", false))
+	_update_eligible_map_pool_hint(snapshot.queue_type, snapshot.match_format_id)
+
+
+func _set_node_visible(path: String, visible: bool) -> void:
+	var node := get_node_or_null(path)
+	if node is CanvasItem:
+		(node as CanvasItem).visible = visible
+
+
 func _resolve_local_member(snapshot: RoomSnapshot) -> RoomMemberState:
 	if snapshot == null or _app_runtime == null:
 		return null
@@ -479,6 +584,29 @@ func _on_start_button_pressed() -> void:
 	var result := _room_use_case.start_match()
 	if not bool(result.get("ok", false)):
 		_set_room_feedback(String(result.get("user_message", "Failed to start match")))
+
+
+func _on_enter_queue_button_pressed() -> void:
+	if _room_use_case == null:
+		return
+	var result := _room_use_case.enter_match_queue()
+	if not bool(result.get("ok", false)):
+		_set_room_feedback(String(result.get("user_message", "Failed to enter queue")))
+
+
+func _on_cancel_queue_button_pressed() -> void:
+	if _room_use_case == null:
+		return
+	var result := _room_use_case.cancel_match_queue()
+	if not bool(result.get("ok", false)):
+		_set_room_feedback(String(result.get("user_message", "Failed to cancel queue")))
+
+
+func _on_copy_invite_code_button_pressed() -> void:
+	if invite_code_value_label == null:
+		return
+	DisplayServer.clipboard_set(invite_code_value_label.text)
+	_set_room_feedback("Invite code copied")
 
 
 func _on_add_opponent_pressed() -> void:
@@ -555,6 +683,29 @@ func _on_selection_changed() -> void:
 		_set_room_feedback(String(result.get("user_message", "Failed to update room selection")))
 
 
+func _on_match_format_changed() -> void:
+	if _suppress_selection_callbacks:
+		return
+	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
+	var queue_type := String(snapshot.queue_type) if snapshot != null else "casual"
+	var match_format_id := _selected_metadata(match_format_selector)
+	_suppress_selection_callbacks = true
+	_populate_match_mode_multi_select(queue_type, match_format_id)
+	_suppress_selection_callbacks = false
+	_on_match_mode_multi_select_changed()
+
+
+func _on_match_mode_multi_select_changed() -> void:
+	if _suppress_selection_callbacks or _room_use_case == null:
+		return
+	var result := _room_use_case.update_match_room_config(
+		_selected_metadata(match_format_selector),
+		_selected_match_mode_ids()
+	)
+	if not bool(result.get("ok", false)):
+		_set_room_feedback(String(result.get("user_message", "Failed to update match room config")))
+
+
 func _set_room_feedback(message: String) -> void:
 	if blocker_label != null:
 		blocker_label.text = message
@@ -590,6 +741,26 @@ func _select_team_id(team_id: int) -> void:
 		if int(team_selector.get_item_metadata(index)) == team_id:
 			team_selector.select(index)
 			return
+
+
+func _selected_match_mode_ids() -> Array[String]:
+	var result: Array[String] = []
+	if match_mode_multi_select == null:
+		return result
+	for index in match_mode_multi_select.get_selected_items():
+		result.append(String(match_mode_multi_select.get_item_metadata(index)))
+	return result
+
+
+func _update_eligible_map_pool_hint(queue_type: String, match_format_id: String) -> void:
+	if eligible_map_pool_hint_label == null:
+		return
+	var selected_mode_ids := _selected_match_mode_ids()
+	var count := MapSelectionCatalogScript.get_match_room_eligible_map_count(queue_type, match_format_id, selected_mode_ids)
+	if count <= 0:
+		eligible_map_pool_hint_label.text = "当前选择没有合法地图"
+	else:
+		eligible_map_pool_hint_label.text = "当前模式池可匹配 %d 张地图" % count
 
 
 func _get_owned_ids(asset_type: String) -> Array[String]:

@@ -49,6 +49,15 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.selected_map_id = _resolve_map_id()
 	snapshot.rule_set_id = _resolve_rule_set_id()
 	snapshot.mode_id = _resolve_mode_id()
+	snapshot.queue_type = room_session.queue_type
+	snapshot.match_format_id = room_session.match_format_id
+	snapshot.selected_match_mode_ids = room_session.selected_match_mode_ids.duplicate()
+	snapshot.required_party_size = room_session.required_party_size
+	snapshot.room_queue_state = room_session.room_queue_state
+	snapshot.room_queue_entry_id = room_session.room_queue_entry_id
+	snapshot.room_queue_status_text = room_session.room_queue_status_text
+	snapshot.room_queue_error_code = room_session.room_queue_error_code
+	snapshot.room_queue_error_message = room_session.room_queue_error_message
 	snapshot.min_start_players = room_session.min_start_players
 	snapshot.max_players = max_players
 	snapshot.owner_peer_id = owner_peer_id
@@ -321,6 +330,15 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.room_kind = snapshot.room_kind
 	room_session.topology = snapshot.topology
 	room_session.min_start_players = snapshot.min_start_players
+	room_session.queue_type = snapshot.queue_type
+	room_session.match_format_id = snapshot.match_format_id
+	room_session.selected_match_mode_ids = snapshot.selected_match_mode_ids.duplicate()
+	room_session.required_party_size = snapshot.required_party_size
+	room_session.room_queue_state = snapshot.room_queue_state
+	room_session.room_queue_entry_id = snapshot.room_queue_entry_id
+	room_session.room_queue_status_text = snapshot.room_queue_status_text
+	room_session.room_queue_error_code = snapshot.room_queue_error_code
+	room_session.room_queue_error_message = snapshot.room_queue_error_message
 	owner_peer_id = snapshot.owner_peer_id
 	max_players = snapshot.max_players
 	member_profiles.clear()
@@ -600,20 +618,35 @@ func _sync_runtime_context() -> void:
 	room_runtime_context.selected_map_id = _resolve_map_id()
 	room_runtime_context.selected_rule_set_id = _resolve_rule_set_id()
 	room_runtime_context.mode_id = _resolve_mode_id()
+	room_runtime_context.queue_type = room_session.queue_type
+	room_runtime_context.match_format_id = room_session.match_format_id
+	room_runtime_context.selected_match_mode_ids = room_session.selected_match_mode_ids.duplicate()
+	room_runtime_context.required_party_size = room_session.required_party_size
+	room_runtime_context.room_queue_state = room_session.room_queue_state
+	room_runtime_context.room_queue_entry_id = room_session.room_queue_entry_id
+	room_runtime_context.room_queue_status_text = room_session.room_queue_status_text
+	room_runtime_context.room_queue_error_code = room_session.room_queue_error_code
+	room_runtime_context.room_queue_error_message = room_session.room_queue_error_message
 	room_runtime_context.min_start_players = room_session.min_start_players
 	room_runtime_context.host_player_id = owner_peer_id
 	room_runtime_context.is_host = room_runtime_context.local_player_id != 0 and room_runtime_context.local_player_id == owner_peer_id
 
 
 func _resolve_map_id() -> String:
+	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		return ""
 	return room_session.selected_map_id if not room_session.selected_map_id.is_empty() else MapCatalogScript.get_default_map_id()
 
 
 func _resolve_rule_set_id() -> String:
+	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		return ""
 	return room_session.selected_rule_set_id if not room_session.selected_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 
 
 func _resolve_mode_id() -> String:
+	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		return ""
 	return room_session.selected_mode_id if not room_session.selected_mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
 
 

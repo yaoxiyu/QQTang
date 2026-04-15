@@ -82,7 +82,6 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.reconnect_state = front_settings_state.reconnect_state
 		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
 	_try_attach_career_summary(view_state, refresh_career_summary)
-	_attach_matchmaking_state(view_state)
 	return {
 		"ok": true,
 		"error_code": "",
@@ -136,6 +135,14 @@ func create_private_room(host: String, port: int) -> Dictionary:
 		false
 	)
 	return _attach_room_ticket(entry_context, "create")
+
+
+func create_casual_match_room(host: String, port: int) -> Dictionary:
+	return _create_match_room(host, port, FrontRoomKindScript.CASUAL_MATCH_ROOM, "casual")
+
+
+func create_ranked_match_room(host: String, port: int) -> Dictionary:
+	return _create_match_room(host, port, FrontRoomKindScript.RANKED_MATCH_ROOM, "ranked")
 
 
 func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
@@ -336,11 +343,7 @@ func resume_recent_room() -> Dictionary:
 
 
 func build_matchmade_entry_context() -> Dictionary:
-	if app_runtime == null or app_runtime.matchmaking_use_case == null:
-		return _fail("MATCHMAKING_USE_CASE_MISSING", "Matchmaking use case is not available")
-	if not app_runtime.matchmaking_use_case.has_method("consume_assignment_and_build_room_entry_context"):
-		return _fail("MATCHMAKING_USE_CASE_INVALID", "Matchmaking room entry flow is not available")
-	return app_runtime.matchmaking_use_case.consume_assignment_and_build_room_entry_context()
+	return _fail("LEGACY_MATCHMADE_ENTRY_DISABLED", "Phase22 enters matchmaking from match rooms")
 
 
 func _build_online_entry_context(
@@ -365,6 +368,32 @@ func _build_online_entry_context(
 	entry_context.should_auto_connect = should_auto_connect
 	entry_context.should_auto_join = should_auto_join
 	return entry_context
+
+
+func _create_match_room(host: String, port: int, room_kind: String, queue_type: String) -> Dictionary:
+	var normalized_host := _normalize_host(host)
+	var normalized_port := _normalize_port(port)
+	_update_last_server(normalized_host, normalized_port)
+	_log_phase15("create_match_room", {
+		"host": normalized_host,
+		"port": normalized_port,
+		"room_kind": room_kind,
+		"queue_type": queue_type,
+	})
+	var entry_context := _build_online_entry_context(
+		FrontEntryKindScript.ONLINE_CREATE,
+		room_kind,
+		normalized_host,
+		normalized_port,
+		"",
+		true,
+		true
+	)
+	entry_context.queue_type = queue_type
+	entry_context.match_format_id = "1v1"
+	entry_context.selected_match_mode_ids = []
+	entry_context.is_prequeue_match_room = true
+	return _attach_room_ticket(entry_context, "create")
 
 
 func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Dictionary:
@@ -428,6 +457,7 @@ func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool
 
 
 func _attach_matchmaking_state(view_state: LobbyViewState) -> void:
+	# LEGACY: Phase22 formal Lobby no longer reflects client-direct queue state.
 	if view_state == null or app_runtime == null or app_runtime.matchmaking_use_case == null:
 		return
 	var queue_state = app_runtime.matchmaking_use_case.get_queue_state() if app_runtime.matchmaking_use_case.has_method("get_queue_state") else null

@@ -1,5 +1,6 @@
 extends Node
 
+# LEGACY: covers pre-Phase22 client-direct matchmaking assignment only.
 const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")

@@ -1,3 +1,5 @@
+# LEGACY: Phase22 正式流程不再由客户端直接 enter queue。
+# Retained for old tests and backend smoke only.
 class_name MatchmakingUseCase
 extends RefCounted
 

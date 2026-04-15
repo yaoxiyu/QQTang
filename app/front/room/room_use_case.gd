@@ -100,6 +100,8 @@ func leave_room() -> Dictionary:
 			app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
 			app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
 	if room_client_gateway != null and _is_online_room():
+		if _is_match_room() and _get_current_room_queue_state() == "queueing" and room_client_gateway.has_method("request_cancel_match_queue"):
+			room_client_gateway.request_cancel_match_queue()
 		if room_client_gateway.has_method("request_leave_room_and_disconnect"):
 			room_client_gateway.request_leave_room_and_disconnect()
 		else:
@@ -149,6 +151,8 @@ func update_local_profile(
 func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	if _is_match_room():
+		return _fail("MATCH_ROOM_SELECTION_FORBIDDEN", "Match room selection is controlled by match format and mode pool")
 	if _is_matchmade_room():
 		return _fail("MATCHMADE_SELECTION_LOCKED", "Matchmade room selection is locked")
 	var result: Dictionary = app_runtime.room_session_controller.request_update_selection(
@@ -176,6 +180,8 @@ func toggle_ready() -> Dictionary:
 func start_match() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	if _is_match_room():
+		return _fail("MATCH_ROOM_START_FORBIDDEN", "Match rooms must enter matchmaking queue")
 	if room_client_gateway != null and _is_online_room():
 		var blocker: Dictionary = app_runtime.room_session_controller.get_start_match_blocker(int(app_runtime.local_peer_id))
 		if not blocker.is_empty():
@@ -189,6 +195,39 @@ func start_match() -> Dictionary:
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
 		app_runtime.front_flow.request_start_match()
 	return result
+
+
+func update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> Dictionary:
+	if not _is_match_room():
+		return _fail("NOT_MATCH_ROOM", "Match room config can only be updated in match rooms")
+	if room_client_gateway == null or not _is_online_room():
+		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
+	if not room_client_gateway.has_method("request_update_match_room_config"):
+		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	room_client_gateway.request_update_match_room_config(match_format_id, selected_mode_ids)
+	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
+
+
+func enter_match_queue() -> Dictionary:
+	if not _is_match_room():
+		return _fail("NOT_MATCH_ROOM", "Queue can only be entered from match rooms")
+	if room_client_gateway == null or not _is_online_room():
+		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
+	if not room_client_gateway.has_method("request_enter_match_queue"):
+		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	room_client_gateway.request_enter_match_queue()
+	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
+
+
+func cancel_match_queue() -> Dictionary:
+	if not _is_match_room():
+		return _fail("NOT_MATCH_ROOM", "Queue can only be cancelled from match rooms")
+	if room_client_gateway == null or not _is_online_room():
+		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
+	if not room_client_gateway.has_method("request_cancel_match_queue"):
+		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	room_client_gateway.request_cancel_match_queue()
+	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
 
 func request_rematch() -> Dictionary:
@@ -234,11 +273,16 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 				"room_kind": String(entry_context.room_kind),
 				"changed_fields": loadout_result.changed_fields,
 			})
+	if FrontRoomKindScript.is_match_room(String(entry_context.room_kind)):
+		config.selected_map_id = ""
+		config.selected_rule_set_id = ""
+		config.selected_mode_id = ""
+	else:
 		var default_selection := _resolve_default_selection(entry_context)
 		config.selected_map_id = String(default_selection.get("map_id", ""))
 		config.selected_rule_set_id = String(default_selection.get("rule_set_id", ""))
-		config.selected_mode_id = String(default_selection.get("mode_id", app_runtime.player_profile_state.preferred_mode_id))
-	_sanitize_connection_profile(config)
+		config.selected_mode_id = String(default_selection.get("mode_id", _get_preferred_mode_id()))
+	_sanitize_connection_profile(config, not FrontRoomKindScript.is_match_room(String(entry_context.room_kind)))
 	_log_phase15("connection_selection_resolved", {
 		"entry_kind": String(entry_context.entry_kind),
 		"room_kind": String(entry_context.room_kind),
@@ -260,8 +304,10 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 	return config
 
 
-func _sanitize_connection_profile(config: ClientConnectionConfig) -> void:
+func _sanitize_connection_profile(config: ClientConnectionConfig, should_sanitize_selection: bool = true) -> void:
 	if config == null:
+		return
+	if not should_sanitize_selection:
 		return
 	if config.selected_map_id.is_empty():
 		config.selected_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
@@ -304,6 +350,47 @@ func _is_matchmade_room(entry_context: RoomEntryContext = null) -> bool:
 	if app_runtime != null and app_runtime.current_room_snapshot != null:
 		return String(app_runtime.current_room_snapshot.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM
 	return false
+
+
+func _is_match_room(entry_context: RoomEntryContext = null) -> bool:
+	var target = entry_context
+	if target == null and app_runtime != null:
+		target = app_runtime.current_room_entry_context
+	if target != null and FrontRoomKindScript.is_match_room(String(target.room_kind)):
+		return true
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		return FrontRoomKindScript.is_match_room(String(app_runtime.current_room_snapshot.room_kind))
+	return false
+
+
+func _is_custom_room(entry_context: RoomEntryContext = null) -> bool:
+	var target = entry_context
+	if target == null and app_runtime != null:
+		target = app_runtime.current_room_entry_context
+	if target != null and FrontRoomKindScript.is_custom_room(String(target.room_kind)):
+		return true
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		return FrontRoomKindScript.is_custom_room(String(app_runtime.current_room_snapshot.room_kind))
+	return false
+
+
+func _is_assigned_room(entry_context: RoomEntryContext = null) -> bool:
+	return _is_matchmade_room(entry_context)
+
+
+func _get_current_room_queue_state() -> String:
+	if app_runtime == null or app_runtime.current_room_snapshot == null:
+		return ""
+	for property in app_runtime.current_room_snapshot.get_property_list():
+		if String(property.get("name", "")) == "room_queue_state":
+			return String(app_runtime.current_room_snapshot.get("room_queue_state"))
+	return ""
+
+
+func _get_preferred_mode_id() -> String:
+	if app_runtime != null and app_runtime.player_profile_state != null:
+		return String(app_runtime.player_profile_state.preferred_mode_id)
+	return ""
 
 
 func _resolve_locked_team_id(fallback_team_id: int) -> int:

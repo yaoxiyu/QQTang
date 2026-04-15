@@ -10,6 +10,15 @@ var room_display_name: String = ""
 var selected_map_id: String = ""
 var rule_set_id: String = ""
 var mode_id: String = ""
+var queue_type: String = ""
+var match_format_id: String = "1v1"
+var selected_match_mode_ids: Array[String] = []
+var required_party_size: int = 1
+var room_queue_state: String = "idle"
+var room_queue_entry_id: String = ""
+var room_queue_status_text: String = ""
+var room_queue_error_code: String = ""
+var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var all_ready: bool = false
 var max_players: int = 0
@@ -33,6 +42,15 @@ func to_dict() -> Dictionary:
 		"selected_map_id": selected_map_id,
 		"rule_set_id": rule_set_id,
 		"mode_id": mode_id,
+		"queue_type": queue_type,
+		"match_format_id": match_format_id,
+		"selected_match_mode_ids": selected_match_mode_ids.duplicate(),
+		"required_party_size": required_party_size,
+		"room_queue_state": room_queue_state,
+		"room_queue_entry_id": room_queue_entry_id,
+		"room_queue_status_text": room_queue_status_text,
+		"room_queue_error_code": room_queue_error_code,
+		"room_queue_error_message": room_queue_error_message,
 		"min_start_players": min_start_players,
 		"all_ready": all_ready,
 		"max_players": max_players,
@@ -50,6 +68,15 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.selected_map_id = String(data.get("selected_map_id", ""))
 	snapshot.rule_set_id = String(data.get("rule_set_id", ""))
 	snapshot.mode_id = String(data.get("mode_id", ""))
+	snapshot.queue_type = String(data.get("queue_type", ""))
+	snapshot.match_format_id = String(data.get("match_format_id", "1v1"))
+	snapshot.selected_match_mode_ids = _to_string_array(data.get("selected_match_mode_ids", []))
+	snapshot.required_party_size = int(data.get("required_party_size", 1))
+	snapshot.room_queue_state = String(data.get("room_queue_state", "idle"))
+	snapshot.room_queue_entry_id = String(data.get("room_queue_entry_id", ""))
+	snapshot.room_queue_status_text = String(data.get("room_queue_status_text", ""))
+	snapshot.room_queue_error_code = String(data.get("room_queue_error_code", ""))
+	snapshot.room_queue_error_message = String(data.get("room_queue_error_message", ""))
 	snapshot.min_start_players = int(data.get("min_start_players", 2))
 	snapshot.all_ready = bool(data.get("all_ready", false))
 	snapshot.max_players = int(data.get("max_players", 0))
@@ -90,3 +117,11 @@ func has_member(peer_id: int) -> bool:
 		if member != null and member.peer_id == peer_id:
 			return true
 	return false
+
+
+static func _to_string_array(value: Variant) -> Array[String]:
+	var result: Array[String] = []
+	if value is Array:
+		for item in value:
+			result.append(String(item))
+	return result

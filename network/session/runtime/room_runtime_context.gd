@@ -11,6 +11,15 @@ var topology: String = ""
 var selected_map_id: String = ""
 var selected_rule_set_id: String = ""
 var mode_id: String = ""
+var queue_type: String = ""
+var match_format_id: String = "1v1"
+var selected_match_mode_ids: Array[String] = []
+var required_party_size: int = 1
+var room_queue_state: String = "idle"
+var room_queue_entry_id: String = ""
+var room_queue_status_text: String = ""
+var room_queue_error_code: String = ""
+var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var room_entry_kind: String = ""
 var return_target: String = ""
@@ -39,6 +48,15 @@ func to_dict() -> Dictionary:
 		"selected_map_id": selected_map_id,
 		"selected_rule_set_id": selected_rule_set_id,
 		"mode_id": mode_id,
+		"queue_type": queue_type,
+		"match_format_id": match_format_id,
+		"selected_match_mode_ids": selected_match_mode_ids.duplicate(),
+		"required_party_size": required_party_size,
+		"room_queue_state": room_queue_state,
+		"room_queue_entry_id": room_queue_entry_id,
+		"room_queue_status_text": room_queue_status_text,
+		"room_queue_error_code": room_queue_error_code,
+		"room_queue_error_message": room_queue_error_message,
 		"min_start_players": min_start_players,
 		"room_entry_kind": room_entry_kind,
 		"return_target": return_target,

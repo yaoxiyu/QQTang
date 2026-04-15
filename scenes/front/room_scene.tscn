@@ -245,6 +245,53 @@ custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="MatchFormatRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=212404316]
+layout_mode = 2
+
+[node name="MatchFormatLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=301372241]
+layout_mode = 2
+
+[node name="MatchFormatSelector" type="OptionButton" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=1629720085]
+layout_mode = 2
+
+[node name="MatchModeRow" type="VBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1876673512]
+layout_mode = 2
+
+[node name="MatchModeLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1474312521]
+layout_mode = 2
+
+[node name="MatchModeMultiSelect" type="ItemList" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=719655817]
+layout_mode = 2
+select_mode = 1
+allow_reselect = true
+
+[node name="EligibleMapPoolHintLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1809312294]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="InviteRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1322086230]
+layout_mode = 2
+
+[node name="InviteCodeLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=2024142766]
+layout_mode = 2
+
+[node name="InviteCodeValueLabel" type="LineEdit" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=1539701790]
+layout_mode = 2
+editable = false
+
+[node name="CopyInviteCodeButton" type="Button" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=320840306]
+layout_mode = 2
+text = "复制邀请码"
+
+[node name="QueueStatusRow" type="VBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=2001734952]
+layout_mode = 2
+
+[node name="QueueStatusLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1392619934]
+layout_mode = 2
+
+[node name="QueueErrorLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=444087796]
+layout_mode = 2
+
 [node name="MemberCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=2068653707]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -345,6 +392,16 @@ text = "Ready"
 custom_minimum_size = Vector2(160, 44)
 layout_mode = 2
 text = "Start Match"
+
+[node name="EnterQueueButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=976223268]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = "开始匹配"
+
+[node name="CancelQueueButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=1907269394]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+text = "取消匹配"
 
 [node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
 visible = false

@@ -37,6 +37,8 @@ func main() {
 	defer store.Close()
 
 	queueRepo := storage.NewQueueRepository(store.Pool)
+	partyQueueRepo := storage.NewPartyQueueRepository(store.Pool)
+	partyQueueMemberRepo := storage.NewPartyQueueMemberRepository(store.Pool)
 	assignmentRepo := storage.NewAssignmentRepository(store.Pool)
 	careerRepo := storage.NewCareerRepository(store.Pool)
 	ratingRepo := storage.NewRatingRepository(store.Pool)
@@ -55,6 +57,7 @@ func main() {
 		CommitDeadlineSeconds:  cfg.CommitDeadlineSeconds,
 	})
 	queueService.ConfigureRatingRepository(ratingRepo)
+	queueService.ConfigurePartyQueueRepositories(partyQueueRepo, partyQueueMemberRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)
@@ -62,7 +65,9 @@ func main() {
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		JWTAuth:                   jwtAuth,
 		InternalAuth:              internalAuth,
+		InternalSharedSecret:      cfg.InternalSharedSecret,
 		MatchmakingHandler:        httpapi.NewMatchmakingHandler(queueService),
+		PartyMatchmakingHandler:   httpapi.NewPartyMatchmakingHandler(queueService),
 		CareerHandler:             httpapi.NewCareerHandler(careerService),
 		SettlementHandler:         httpapi.NewSettlementHandler(finalizeService),
 		InternalAssignmentHandler: httpapi.NewInternalAssignmentHandler(assignmentService),

@@ -1,10 +1,19 @@
 # Matchmaking API Contract
 
-## Scope
+## Status
 
-This document defines the public matchmaking HTTP contract served by `game_service`.
+This public client queue API is **legacy** after Phase22.
+`MatchmakingUseCase` is retained only for old tests and backend smoke coverage.
 
-Base paths:
+Formal Phase22 flow:
+
+```text
+Lobby -> match room -> DS room authority -> internal party queue -> hidden matchmade_room -> loading -> battle
+```
+
+Lobby and Room formal UI must not call this API directly.
+
+Legacy base paths:
 
 ```text
 /api/v1/matchmaking/queue/enter
@@ -14,240 +23,17 @@ Base paths:
 
 Authentication:
 
-- Requires `Authorization: Bearer <access_token>`.
-- JWT validation uses the same shared secret as `account_service`.
+- `Authorization: Bearer <access_token>`
 
-Purpose:
+Legacy semantics:
 
-- Enter one active queue per profile.
-- Poll queue progress until assignment is ready.
-- Cancel queue explicitly before assignment commit.
+- One authenticated `profile_id` enters queue as a single entry.
+- Request may include `mode_id`, `rule_set_id`, and `selected_map_ids`.
+- This path is retained for old tests and compatibility only.
 
-Queue semantics:
+Phase22 formal constraints:
 
-- Phase21 keeps `1v1 / 2v2 / 4v4` as formal queue format ids.
-- Current content baseline only has valid `2v2` maps, so `1v1 / 4v4` may be structurally exposed but operationally disabled.
-- One `profile_id` can have only one active queue entry in states `queued`, `assigned`, or `committing`.
-- Assignment data is authoritative once status becomes `assigned`.
-- Assignment formation is transactional: candidate locking, assignment creation, member creation, and queue state binding must commit or roll back as one unit.
-- Current `2v2` assignment baseline expects four members.
-- Client must not synthesize `map_id`, `rule_set_id`, `mode_id`, or `team_id` after assignment.
-
-## State Machine
-
-Queue state flow:
-
-```text
-idle -> queued -> assigned -> committing -> finalized
-               \-> cancelled
-               \-> expired
-```
-
-Rules:
-
-- `idle`: no active queue entry.
-- `queued`: entry is waiting in matchmaking pool.
-- `assigned`: assignment is ready and ticket grant may be requested.
-- `committing`: assignment exists and at least one member has started room commit.
-- `cancelled`: queue was cancelled by caller or heartbeat timeout.
-- `expired`: assignment revision expired or assignment deadline elapsed.
-- `finalized`: match result has been committed by DS finalize.
-
-## Queue Key
-
-Queue key format:
-
-```text
-{queue_type}:{match_format_id}:{mode_id}
-```
-
-Examples:
-
-- `casual:2v2:mode_classic`
-- `ranked:2v2:mode_score_team`
-
-## POST /api/v1/matchmaking/queue/enter
-
-Create one queue entry for the current authenticated profile.
-
-Request JSON:
-
-```json
-{
-  "queue_type": "ranked",
-  "match_format_id": "2v2",
-  "mode_id": "mode_score_team",
-  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"]
-}
-```
-
-Request rules:
-
-- `queue_type` must be one of `casual`, `ranked`.
-- `match_format_id` must be one of `1v1`, `2v2`, `4v4`.
-- `mode_id` is required.
-- `selected_map_ids` is required and must contain at least one map id acceptable for the requested format and mode.
-- If the same `profile_id` already has an active queue entry, request must fail.
-
-Success response:
-
-```json
-{
-  "ok": true,
-  "queue_entry_id": "queue_001",
-  "queue_state": "queued",
-  "queue_key": "ranked:2v2:mode_score_team",
-  "queue_type": "ranked",
-  "match_format_id": "2v2",
-  "mode_id": "mode_score_team",
-  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"],
-  "enqueue_unix_sec": 1770000100,
-  "last_heartbeat_unix_sec": 1770000100,
-  "assignment_id": "",
-  "assignment_revision": 0,
-  "expires_at_unix_sec": 1770000400
-}
-```
-
-Possible error codes:
-
-- `AUTH_ACCESS_TOKEN_INVALID`
-- `MATCHMAKING_QUEUE_TYPE_INVALID`
-- `MATCHMAKING_FORMAT_INVALID`
-- `MATCHMAKING_MODE_INVALID`
-- `MATCHMAKING_MAP_SELECTION_INVALID`
-- `MATCHMAKING_QUEUE_ALREADY_ACTIVE`
-- `PROFILE_NOT_FOUND`
-- `INTERNAL_ERROR`
-
-Idempotency:
-
-- No idempotent replay guarantee.
-- Repeating the same request while active queue exists must return `MATCHMAKING_QUEUE_ALREADY_ACTIVE`.
-
-Expiry semantics:
-
-- `expires_at_unix_sec` represents current queue heartbeat expiry for the active entry.
-- If heartbeat is not refreshed within TTL, service may auto-cancel the entry.
-
-## POST /api/v1/matchmaking/queue/cancel
-
-Cancel the current active queue entry for the authenticated profile.
-
-Request JSON:
-
-```json
-{
-  "queue_entry_id": "queue_001"
-}
-```
-
-Request rules:
-
-- `queue_entry_id` is optional if profile has exactly one active queue.
-- If `assigned` entry has already moved into a newer `assignment_revision`, stale cancel must fail.
-
-Success response:
-
-```json
-{
-  "ok": true,
-  "queue_entry_id": "queue_001",
-  "queue_state": "cancelled",
-  "cancel_reason": "client_cancelled"
-}
-```
-
-Possible error codes:
-
-- `AUTH_ACCESS_TOKEN_INVALID`
-- `MATCHMAKING_QUEUE_NOT_FOUND`
-- `MATCHMAKING_ASSIGNMENT_REVISION_STALE`
-- `INTERNAL_ERROR`
-
-Idempotency:
-
-- Cancelling an already cancelled entry may return success with the same terminal state.
-
-Expiry semantics:
-
-- Terminal `cancelled` entries are not resumable.
-- Caller must re-enter queue with a new queue entry.
-
-## GET /api/v1/matchmaking/queue/status
-
-Return the current queue or assignment state for the authenticated profile.
-
-Query parameters:
-
-```text
-queue_entry_id=<optional>
-```
-
-Success response when queued:
-
-```json
-{
-  "ok": true,
-  "queue_state": "queued",
-  "queue_entry_id": "queue_001",
-  "queue_key": "ranked:2v2:mode_score_team",
-  "queue_type": "ranked",
-  "match_format_id": "2v2",
-  "mode_id": "mode_score_team",
-  "selected_map_ids": ["map_classic_square", "map_breakable_center_lane"],
-  "assignment_id": "",
-  "assignment_revision": 0,
-  "queue_status_text": "Searching for players",
-  "assignment_status_text": "",
-  "enqueue_unix_sec": 1770000100,
-  "last_heartbeat_unix_sec": 1770000130,
-  "expires_at_unix_sec": 1770000430
-}
-```
-
-Success response when assigned:
-
-```json
-{
-  "ok": true,
-  "queue_state": "assigned",
-  "queue_entry_id": "queue_001",
-  "queue_key": "ranked:2v2:mode_score_team",
-  "queue_type": "ranked",
-  "match_format_id": "2v2",
-  "assignment_id": "assign_001",
-  "assignment_revision": 2,
-  "ticket_role": "join",
-  "room_id": "room_match_001",
-  "room_kind": "matchmade_room",
-  "server_host": "127.0.0.1",
-  "server_port": 9000,
-  "mode_id": "mode_score_team",
-  "rule_set_id": "ranked_rule",
-  "map_id": "map_classic_square",
-  "assigned_team_id": 2,
-  "captain_account_id": "account_captain",
-  "queue_status_text": "Match found",
-  "assignment_status_text": "Waiting for ticket request",
-  "captain_deadline_unix_sec": 1770000160,
-  "commit_deadline_unix_sec": 1770000220
-}
-```
-
-Possible error codes:
-
-- `AUTH_ACCESS_TOKEN_INVALID`
-- `MATCHMAKING_QUEUE_NOT_FOUND`
-- `MATCHMAKING_ASSIGNMENT_EXPIRED`
-- `MATCHMAKING_ASSIGNMENT_REVISION_STALE`
-- `INTERNAL_ERROR`
-
-Idempotency:
-
-- Read-only endpoint. Same state may be polled repeatedly.
-
-Expiry semantics:
-
-- If assignment deadline or revision becomes stale, service must return `expired` or `MATCHMAKING_ASSIGNMENT_REVISION_STALE`.
-- Client must stop using old assignment data once stale is reported.
+- Do not use `selected_map_ids[]` as formal matchmaking input.
+- Do not let Lobby directly enter queue.
+- Do not let client choose final `map_id` or `rule_set_id`.
+- Use [internal_party_matchmaking_contract.md](internal_party_matchmaking_contract.md) for DS -> game_service party queue.

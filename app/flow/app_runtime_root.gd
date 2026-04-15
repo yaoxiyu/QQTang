@@ -16,8 +16,6 @@ const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
 const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
 const LobbyDirectoryUseCaseScript = preload("res://app/front/lobby/lobby_directory_use_case.gd")
-const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
-const HttpMatchmakingGatewayScript = preload("res://app/front/matchmaking/http_matchmaking_gateway.gd")
 const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
 const CareerUseCaseScript = preload("res://app/front/career/career_use_case.gd")
 const HttpCareerGatewayScript = preload("res://app/front/career/http_career_gateway.gd")
@@ -87,7 +85,6 @@ var auth_session_repository: RefCounted = null
 var auth_gateway: RefCounted = null
 var profile_gateway: RefCounted = null
 var room_ticket_gateway: RefCounted = null
-var matchmaking_gateway: RefCounted = null
 var career_gateway: RefCounted = null
 var settlement_gateway: RefCounted = null
 var profile_repository: RefCounted = null
@@ -99,6 +96,7 @@ var logout_use_case: RefCounted = null
 var login_use_case: RefCounted = null
 var lobby_use_case: RefCounted = null
 var lobby_directory_use_case: RefCounted = null
+# LEGACY: kept as nullable compatibility slot; Phase22 formal UI must not create or call MatchmakingUseCase.
 var matchmaking_use_case: RefCounted = null
 var career_use_case: RefCounted = null
 var room_use_case: RefCounted = null
@@ -575,8 +573,6 @@ func _ensure_front_services() -> void:
 		profile_gateway = HttpProfileGatewayScript.new()
 	if room_ticket_gateway == null:
 		room_ticket_gateway = HttpRoomTicketGatewayScript.new()
-	if matchmaking_gateway == null:
-		matchmaking_gateway = HttpMatchmakingGatewayScript.new()
 	if career_gateway == null:
 		career_gateway = HttpCareerGatewayScript.new()
 	if settlement_gateway == null:
@@ -621,17 +617,6 @@ func _ensure_front_use_cases() -> void:
 		lobby_directory_use_case.configure(
 			client_room_runtime,
 			front_settings_state
-		)
-
-	if matchmaking_use_case == null:
-		matchmaking_use_case = MatchmakingUseCaseScript.new()
-	if matchmaking_use_case != null and matchmaking_use_case.has_method("configure"):
-		matchmaking_use_case.configure(
-			auth_session_state,
-			player_profile_state,
-			front_settings_state,
-			matchmaking_gateway,
-			room_ticket_gateway
 		)
 
 	if career_use_case == null:

@@ -17,6 +17,10 @@ func BuildQueueKey(queueType string, parts ...string) string {
 	return fmt.Sprintf("%s:%s:%s:%s", queueType, modeID, ruleSetID, matchFormatID)
 }
 
+func BuildPartyQueueKey(queueType string, matchFormatID string) string {
+	return fmt.Sprintf("%s:%s", queueType, normalizeMatchFormatID(matchFormatID))
+}
+
 func normalizeMatchFormatID(matchFormatID string) string {
 	if matchFormatID == "" {
 		return "2v2"

@@ -6,7 +6,6 @@ const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_select
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const PHASE15_LOG_PREFIX := "[QQT_P15]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
-const MATCHMAKING_POLL_INTERVAL_SEC := 2.0
 
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
 @onready var logout_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/LogoutButton")
@@ -51,23 +50,15 @@ const MATCHMAKING_POLL_INTERVAL_SEC := 2.0
 @onready var win_rate_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/WinRateRow/WinRateValue")
 @onready var last_match_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/LastMatchRow/LastMatchValue")
 @onready var refresh_career_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard/CareerVBox/RefreshCareerButton")
-@onready var game_service_host_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow/GameServiceHostInput")
-@onready var game_service_port_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/GameServiceRow/GameServicePortInput")
-@onready var queue_type_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueTypeRow/QueueTypeSelector")
-@onready var queue_format_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueFormatRow/QueueFormatSelector")
-@onready var queue_game_mode_selector: OptionButton = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueGameModeRow/QueueGameModeSelector")
-@onready var queue_map_multi_select: ItemList = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueMapMultiSelect")
-@onready var enter_queue_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow/EnterQueueButton")
-@onready var cancel_queue_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueActionRow/CancelQueueButton")
-@onready var queue_status_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/QueueStatusLabel")
-@onready var assignment_summary_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchmakingCard/MatchmakingVBox/AssignmentSummaryLabel")
+@onready var create_casual_match_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/CasualMatchRoomRow/CreateCasualMatchRoomButton")
+@onready var create_ranked_match_room_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/RankedMatchRoomRow/CreateRankedMatchRoomButton")
+@onready var match_room_hint_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard/MatchRoomEntryVBox/MatchRoomHintLabel")
 @onready var message_label: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MessageLabel")
 
 var _app_runtime: Node = null
 var _room_directory_builder = LobbyRoomDirectoryBuilderScript.new()
 var _last_room_directory_snapshot = null
 var _directory_connect_requested: bool = false
-var _queue_poll_timer: Timer = null
 var _queue_assignment_consuming: bool = false
 
 
@@ -92,10 +83,8 @@ func _on_runtime_ready() -> void:
 	_populate_practice_selectors()
 	_configure_custom_room_controls()
 	_populate_custom_room_mode_filter()
-	_populate_matchmaking_selectors()
 	_refresh_view()
 	_connect_signals()
-	_ensure_matchmaking_poll_timer()
 	_log_online_lobby("runtime_ready", _build_online_debug_context())
 
 
@@ -134,18 +123,6 @@ func _configure_custom_room_controls() -> void:
 	_select_metadata(room_visibility_selector, current_value if not current_value.is_empty() else "private")
 
 
-func _populate_matchmaking_selectors() -> void:
-	if queue_type_selector != null:
-		queue_type_selector.clear()
-		queue_type_selector.add_item("Casual")
-		queue_type_selector.set_item_metadata(0, "casual")
-		queue_type_selector.add_item("Ranked")
-		queue_type_selector.set_item_metadata(1, "ranked")
-	_populate_matchmaking_format_selector()
-	_populate_matchmaking_mode_selector()
-	_populate_matchmaking_map_list()
-
-
 func _populate_custom_room_mode_filter() -> void:
 	if custom_room_mode_filter_selector == null:
 		return
@@ -158,59 +135,6 @@ func _populate_custom_room_mode_filter() -> void:
 		custom_room_mode_filter_selector.set_item_metadata(custom_room_mode_filter_selector.item_count - 1, mode_id)
 	if custom_room_mode_filter_selector.item_count > 0:
 		custom_room_mode_filter_selector.select(0)
-
-
-func _populate_matchmaking_format_selector() -> void:
-	if queue_format_selector == null:
-		return
-	var current_value := _selected_metadata(queue_format_selector)
-	queue_format_selector.clear()
-	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
-		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
-		var display_name := String(entry.get("display_name", match_format_id))
-		var enabled := bool(entry.get("enabled", false))
-		if not enabled:
-			display_name += " (Locked)"
-		queue_format_selector.add_item(display_name)
-		queue_format_selector.set_item_metadata(queue_format_selector.item_count - 1, match_format_id)
-		queue_format_selector.set_item_disabled(queue_format_selector.item_count - 1, not enabled)
-	_select_metadata(queue_format_selector, current_value)
-
-
-func _populate_matchmaking_mode_selector() -> void:
-	if queue_game_mode_selector == null:
-		return
-	var current_value := _selected_metadata(queue_game_mode_selector)
-	var match_format_id := _selected_metadata(queue_format_selector)
-	var queue_type := _selected_metadata(queue_type_selector)
-	queue_game_mode_selector.clear()
-	for entry in MapSelectionCatalogScript.get_matchmaking_mode_entries(match_format_id, queue_type):
-		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
-		queue_game_mode_selector.add_item(String(entry.get("display_name", mode_id)))
-		queue_game_mode_selector.set_item_metadata(queue_game_mode_selector.item_count - 1, mode_id)
-	_select_metadata(queue_game_mode_selector, current_value)
-
-
-func _populate_matchmaking_map_list(preferred_map_ids: Array[String] = []) -> void:
-	if queue_map_multi_select == null:
-		return
-	var match_format_id := _selected_metadata(queue_format_selector)
-	var queue_type := _selected_metadata(queue_type_selector)
-	var mode_id := _selected_metadata(queue_game_mode_selector)
-	queue_map_multi_select.clear()
-	var has_preferred_selection := false
-	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, queue_type, mode_id):
-		var map_id := String(entry.get("map_id", entry.get("id", "")))
-		var label := String(entry.get("display_name", map_id))
-		queue_map_multi_select.add_item(label)
-		var index := queue_map_multi_select.item_count - 1
-		queue_map_multi_select.set_item_metadata(index, map_id)
-		if preferred_map_ids.has(map_id):
-			queue_map_multi_select.select(index, false)
-			has_preferred_selection = true
-	if not has_preferred_selection:
-		for index in range(queue_map_multi_select.item_count):
-			queue_map_multi_select.select(index, false)
 
 
 func _refresh_view() -> void:
@@ -274,7 +198,8 @@ func _refresh_view() -> void:
 		else:
 			reconnect_state_label.text = "Reconnect State: -"
 	_refresh_career_panel(view_state)
-	_refresh_matchmaking_panel(view_state)
+	if match_room_hint_label != null:
+		match_room_hint_label.text = "进入匹配房间后再选择几v几与模式池，队伍准备完成后再开始匹配。"
 	_set_message("")
 	_log_online_lobby("refresh_view", _build_online_debug_context())
 
@@ -315,48 +240,6 @@ func _refresh_career_panel(view_state = null) -> void:
 		last_match_value.text = last_match_text
 
 
-func _refresh_matchmaking_panel(view_state = null) -> void:
-	if front_settings_state_available():
-		if game_service_host_input != null:
-			game_service_host_input.text = String(_app_runtime.front_settings_state.game_service_host)
-		if game_service_port_input != null:
-			game_service_port_input.text = str(int(_app_runtime.front_settings_state.game_service_port))
-	if view_state == null and _app_runtime != null and _app_runtime.lobby_use_case != null:
-		view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
-	if view_state == null:
-		return
-	var queue_type := String(view_state.queue_type if not String(view_state.queue_type).is_empty() else (_app_runtime.front_settings_state.last_queue_type if front_settings_state_available() else "casual"))
-	_select_metadata(queue_type_selector, queue_type)
-	_populate_matchmaking_format_selector()
-	_select_metadata(queue_format_selector, _resolve_preferred_matchmaking_format_id(queue_type, String(view_state.preferred_mode_id)))
-	_populate_matchmaking_mode_selector()
-	_select_metadata(queue_game_mode_selector, String(view_state.preferred_mode_id))
-	var preferred_map_ids: Array[String] = []
-	if not String(view_state.preferred_map_id).is_empty():
-		preferred_map_ids.append(String(view_state.preferred_map_id))
-	_populate_matchmaking_map_list(preferred_map_ids)
-	if queue_status_label != null:
-		var queue_state_text := String(view_state.queue_state)
-		var queue_status_text := String(view_state.queue_status_text)
-		if queue_status_text.is_empty():
-			queue_status_text = "Idle" if queue_state_text.is_empty() else queue_state_text.capitalize()
-		queue_status_label.text = "Queue: %s" % queue_status_text
-	if assignment_summary_label != null:
-		var assignment_status_text := String(view_state.assignment_status_text)
-		if String(view_state.assignment_id).is_empty():
-			assignment_summary_label.text = "Assignment: -"
-		else:
-			assignment_summary_label.text = "Assignment: %s%s" % [
-				String(view_state.assignment_id),
-				" | %s" % assignment_status_text if not assignment_status_text.is_empty() else "",
-			]
-	if enter_queue_button != null:
-		var queue_state := String(view_state.queue_state)
-		enter_queue_button.disabled = queue_state == "queued" or queue_state == "assigned" or queue_state == "committing"
-	if cancel_queue_button != null:
-		cancel_queue_button.disabled = String(view_state.queue_state).is_empty() or String(view_state.queue_state) == "cancelled"
-
-
 func _connect_signals() -> void:
 	if start_practice_button != null and not start_practice_button.pressed.is_connected(_on_start_practice_pressed):
 		start_practice_button.pressed.connect(_on_start_practice_pressed)
@@ -380,16 +263,10 @@ func _connect_signals() -> void:
 		join_selected_public_room_button.pressed.connect(_on_join_selected_public_room_pressed)
 	if custom_room_mode_filter_selector != null and not custom_room_mode_filter_selector.item_selected.is_connected(_on_custom_room_mode_filter_changed):
 		custom_room_mode_filter_selector.item_selected.connect(func(_index: int) -> void: _on_custom_room_mode_filter_changed())
-	if queue_type_selector != null and not queue_type_selector.item_selected.is_connected(_on_matchmaking_filter_changed):
-		queue_type_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_filter_changed())
-	if queue_format_selector != null and not queue_format_selector.item_selected.is_connected(_on_matchmaking_filter_changed):
-		queue_format_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_filter_changed())
-	if queue_game_mode_selector != null and not queue_game_mode_selector.item_selected.is_connected(_on_matchmaking_mode_changed):
-		queue_game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_matchmaking_mode_changed())
-	if enter_queue_button != null and not enter_queue_button.pressed.is_connected(_on_enter_queue_pressed):
-		enter_queue_button.pressed.connect(_on_enter_queue_pressed)
-	if cancel_queue_button != null and not cancel_queue_button.pressed.is_connected(_on_cancel_queue_pressed):
-		cancel_queue_button.pressed.connect(_on_cancel_queue_pressed)
+	if create_casual_match_room_button != null and not create_casual_match_room_button.pressed.is_connected(_on_create_casual_match_room_pressed):
+		create_casual_match_room_button.pressed.connect(_on_create_casual_match_room_pressed)
+	if create_ranked_match_room_button != null and not create_ranked_match_room_button.pressed.is_connected(_on_create_ranked_match_room_pressed):
+		create_ranked_match_room_button.pressed.connect(_on_create_ranked_match_room_pressed)
 	if _app_runtime != null and _app_runtime.client_room_runtime != null and not _app_runtime.client_room_runtime.room_error.is_connected(_on_room_error):
 		_app_runtime.client_room_runtime.room_error.connect(_on_room_error)
 	if _app_runtime != null and _app_runtime.client_room_runtime != null and not _app_runtime.client_room_runtime.transport_connected.is_connected(_on_transport_connected):
@@ -425,6 +302,28 @@ func _on_create_custom_room_pressed() -> void:
 		int(port_input.text.to_int()) if port_input != null else 0,
 		visibility,
 		custom_room_name_input.text.strip_edges() if custom_room_name_input != null else ""
+	)
+	_handle_room_entry_result(result)
+
+
+func _on_create_casual_match_room_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_message("Lobby room flow is not available.")
+		return
+	var result: Dictionary = _app_runtime.lobby_use_case.create_casual_match_room(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0
+	)
+	_handle_room_entry_result(result)
+
+
+func _on_create_ranked_match_room_pressed() -> void:
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_message("Lobby room flow is not available.")
+		return
+	var result: Dictionary = _app_runtime.lobby_use_case.create_ranked_match_room(
+		host_input.text.strip_edges() if host_input != null else "",
+		int(port_input.text.to_int()) if port_input != null else 0
 	)
 	_handle_room_entry_result(result)
 
@@ -498,15 +397,6 @@ func _on_custom_room_mode_filter_changed() -> void:
 	_refresh_directory_list()
 
 
-func _on_matchmaking_filter_changed() -> void:
-	_populate_matchmaking_mode_selector()
-	_populate_matchmaking_map_list()
-
-
-func _on_matchmaking_mode_changed() -> void:
-	_populate_matchmaking_map_list()
-
-
 func _on_reconnect_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
@@ -548,68 +438,15 @@ func _on_refresh_career_pressed() -> void:
 
 
 func _on_enter_queue_pressed() -> void:
-	if _app_runtime == null or _app_runtime.matchmaking_use_case == null or _app_runtime.lobby_use_case == null:
-		_set_message("Matchmaking flow is not available.")
-		return
+	# LEGACY: Phase22 formal flow enters queue from match rooms, not Lobby.
 	_log_online_lobby("enter_queue_blocked_room_required", _build_online_debug_context())
 	_set_message("Create or join a room first, ready the room, then enter matchmaking from the room.")
 	_set_directory_status("Create or join a room first.")
-	return
-	_queue_assignment_consuming = false
-	_save_matchmaking_settings()
-	var selected_map_ids := _selected_item_list_metadata(queue_map_multi_select)
-	if selected_map_ids.is_empty():
-		_set_message("Please select at least one matchmaking map.")
-		_log_online_lobby("enter_queue_blocked_empty_map_pool", {
-			"queue_type": _selected_metadata(queue_type_selector),
-			"match_format_id": _selected_metadata(queue_format_selector),
-			"mode_id": _selected_metadata(queue_game_mode_selector),
-		})
-		return
-	var queue_debug_payload := {
-		"queue_type": _selected_metadata(queue_type_selector),
-		"match_format_id": _selected_metadata(queue_format_selector),
-		"mode_id": _selected_metadata(queue_game_mode_selector),
-		"rule_set_id": _resolve_selected_matchmaking_rule_set_id(selected_map_ids),
-		"selected_map_ids": selected_map_ids,
-	}
-	_log_online_lobby("enter_queue_requested", queue_debug_payload)
-	var result: Dictionary = _app_runtime.matchmaking_use_case.enter_queue(
-		String(queue_debug_payload.get("queue_type", "")),
-		String(queue_debug_payload.get("match_format_id", "")),
-		String(queue_debug_payload.get("mode_id", "")),
-		String(queue_debug_payload.get("rule_set_id", "")),
-		selected_map_ids
-	)
-	if not bool(result.get("ok", false)):
-		_log_online_lobby("enter_queue_failed", _with_debug_payload(result, queue_debug_payload))
-		if String(result.get("error_code", "")) == "MATCHMAKING_QUEUE_ALREADY_ACTIVE":
-			var status_result: Dictionary = _app_runtime.matchmaking_use_case.poll_queue_status()
-			if bool(status_result.get("ok", false)):
-				var view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
-				_refresh_matchmaking_panel(view_state)
-			_set_message("Existing active queue detected. Cancel it first or wait for assignment.")
-		else:
-			_set_message(String(result.get("user_message", "Failed to enter queue")))
-		_refresh_matchmaking_panel()
-		return
-	_refresh_view()
-	_set_message("Queue entered, searching for players...")
-	_log_online_lobby("enter_queue_succeeded", _with_debug_payload(_build_online_debug_context(), queue_debug_payload))
 
 
 func _on_cancel_queue_pressed() -> void:
-	if _app_runtime == null or _app_runtime.matchmaking_use_case == null:
-		_set_message("Matchmaking flow is not available.")
-		return
-	var result: Dictionary = _app_runtime.matchmaking_use_case.cancel_queue()
-	if not bool(result.get("ok", false)):
-		_log_online_lobby("cancel_queue_failed", result)
-		_set_message(String(result.get("user_message", "Failed to cancel queue")))
-		return
-	_queue_assignment_consuming = false
-	_refresh_view()
-	_set_message("Queue cancelled.")
+	# LEGACY: Phase22 formal flow cancels queue from match rooms, not Lobby.
+	_set_message("Cancel matchmaking from the match room.")
 	_log_online_lobby("cancel_queue_succeeded", _build_online_debug_context())
 
 
@@ -658,75 +495,6 @@ func _handle_room_entry_result(result: Dictionary) -> void:
 	_log_online_lobby("room_entry_completed", _build_online_debug_context())
 
 
-func _poll_queue_status() -> void:
-	if _queue_assignment_consuming:
-		return
-	if _app_runtime == null or _app_runtime.matchmaking_use_case == null or _app_runtime.front_flow == null:
-		return
-	if _app_runtime.front_flow.get_state_name() != &"LOBBY":
-		return
-	var queue_state = _app_runtime.matchmaking_use_case.get_queue_state() if _app_runtime.matchmaking_use_case.has_method("get_queue_state") else null
-	if queue_state == null or String(queue_state.queue_state).is_empty():
-		return
-	var status_result: Dictionary = _app_runtime.matchmaking_use_case.poll_queue_status()
-	if not bool(status_result.get("ok", false)):
-		_log_online_lobby("poll_queue_status_failed", status_result)
-		_set_message(String(status_result.get("user_message", "Matchmaking status refresh failed")))
-		_refresh_matchmaking_panel()
-		return
-	var view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null) if _app_runtime.lobby_use_case != null else null
-	_refresh_matchmaking_panel(view_state)
-	var assignment_state = status_result.get("assignment_state", null)
-	if assignment_state == null or String(assignment_state.assignment_id).is_empty():
-		return
-	_log_online_lobby("assignment_detected", {
-		"assignment_id": String(assignment_state.assignment_id),
-		"ticket_role": String(assignment_state.ticket_role),
-		"room_id": String(assignment_state.room_id),
-		"assigned_map_id": String(assignment_state.map_id),
-		"assigned_rule_set_id": String(assignment_state.rule_set_id),
-		"assigned_mode_id": String(assignment_state.mode_id),
-		"assigned_team_id": int(assignment_state.assigned_team_id),
-	})
-	_log_online_lobby("assignment_room_entry_blocked_room_first_flow", _build_online_debug_context())
-	_set_message("Match found, but room-first battle handoff is not wired yet.")
-	_refresh_matchmaking_panel(view_state)
-	return
-	_queue_assignment_consuming = true
-	var entry_result: Dictionary = _app_runtime.lobby_use_case.build_matchmade_entry_context()
-	if not bool(entry_result.get("ok", false)):
-		_queue_assignment_consuming = false
-		_log_online_lobby("build_matchmade_entry_context_failed", entry_result)
-		_set_message(String(entry_result.get("user_message", "Failed to consume match assignment")))
-		_refresh_matchmaking_panel()
-		return
-	_handle_room_entry_result(entry_result)
-
-
-func _ensure_matchmaking_poll_timer() -> void:
-	if _queue_poll_timer != null and is_instance_valid(_queue_poll_timer):
-		return
-	_queue_poll_timer = Timer.new()
-	_queue_poll_timer.name = "MatchmakingPollTimer"
-	_queue_poll_timer.wait_time = MATCHMAKING_POLL_INTERVAL_SEC
-	_queue_poll_timer.one_shot = false
-	_queue_poll_timer.autostart = true
-	add_child(_queue_poll_timer)
-	if not _queue_poll_timer.timeout.is_connected(_poll_queue_status):
-		_queue_poll_timer.timeout.connect(_poll_queue_status)
-	_queue_poll_timer.start()
-
-
-func _save_matchmaking_settings() -> void:
-	if not front_settings_state_available():
-		return
-	_app_runtime.front_settings_state.game_service_host = game_service_host_input.text.strip_edges() if game_service_host_input != null else _app_runtime.front_settings_state.game_service_host
-	_app_runtime.front_settings_state.game_service_port = int(game_service_port_input.text.to_int()) if game_service_port_input != null and game_service_port_input.text.to_int() > 0 else _app_runtime.front_settings_state.game_service_port
-	_app_runtime.front_settings_state.last_queue_type = _selected_metadata(queue_type_selector)
-	if _app_runtime.front_settings_repository != null and _app_runtime.front_settings_repository.has_method("save_settings"):
-		_app_runtime.front_settings_repository.save_settings(_app_runtime.front_settings_state)
-
-
 func front_settings_state_available() -> bool:
 	return _app_runtime != null and _app_runtime.front_settings_state != null
 
@@ -735,25 +503,6 @@ func _selected_metadata(selector: OptionButton) -> String:
 	if selector == null or selector.selected < 0:
 		return ""
 	return String(selector.get_item_metadata(selector.selected))
-
-
-func _selected_item_list_metadata(item_list: ItemList) -> Array[String]:
-	var result: Array[String] = []
-	if item_list == null:
-		return result
-	for index in item_list.get_selected_items():
-		result.append(String(item_list.get_item_metadata(index)))
-	return result
-
-
-func _resolve_selected_matchmaking_rule_set_id(selected_map_ids: Array[String]) -> String:
-	var match_format_id := _selected_metadata(queue_format_selector)
-	var queue_type := _selected_metadata(queue_type_selector)
-	var mode_id := _selected_metadata(queue_game_mode_selector)
-	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, queue_type, mode_id):
-		if selected_map_ids.has(String(entry.get("map_id", ""))):
-			return String(entry.get("rule_set_id", ""))
-	return ""
 
 
 func _select_metadata(selector: OptionButton, target: String) -> void:
@@ -775,13 +524,6 @@ func _set_message(text: String) -> void:
 func _set_directory_status(text: String) -> void:
 	if directory_status_label != null:
 		directory_status_label.text = text
-
-
-func _exit_tree() -> void:
-	if _queue_poll_timer != null and is_instance_valid(_queue_poll_timer):
-		if _queue_poll_timer.timeout.is_connected(_poll_queue_status):
-			_queue_poll_timer.timeout.disconnect(_poll_queue_status)
-		_queue_poll_timer.stop()
 
 
 func _on_room_error(_error_code: String, user_message: String) -> void:
@@ -877,24 +619,5 @@ func _build_online_debug_context() -> Dictionary:
 		"assignment_id": assignment_state.assignment_id if assignment_state != null else "",
 		"assignment_room_id": assignment_state.room_id if assignment_state != null else "",
 		"assignment_ticket_role": assignment_state.ticket_role if assignment_state != null else "",
-		"game_service_host": game_service_host_input.text.strip_edges() if game_service_host_input != null else "",
-		"game_service_port": int(game_service_port_input.text.to_int()) if game_service_port_input != null else 0,
 		"queue_assignment_consuming": _queue_assignment_consuming,
 	}
-
-
-func _resolve_preferred_matchmaking_format_id(queue_type: String, preferred_mode_id: String) -> String:
-	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
-		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
-		if not bool(entry.get("enabled", false)):
-			continue
-		if preferred_mode_id.is_empty():
-			return match_format_id
-		var modes := MapSelectionCatalogScript.get_matchmaking_mode_entries(match_format_id, queue_type)
-		for mode_entry in modes:
-			if String(mode_entry.get("mode_id", "")) == preferred_mode_id:
-				return match_format_id
-	for entry in MapSelectionCatalogScript.get_matchmaking_format_entries():
-		if bool(entry.get("enabled", false)):
-			return String(entry.get("match_format_id", entry.get("id", "")))
-	return ""

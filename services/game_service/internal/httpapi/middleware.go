@@ -44,6 +44,20 @@ func withInternalAuth(internalAuth *auth.InternalAuth, next http.Handler) http.H
 	})
 }
 
+func withInternalAuthOrSharedSecret(internalAuth *auth.InternalAuth, sharedSecret string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if internalAuth != nil && internalAuth.ValidateRequest(r) == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if sharedSecret != "" && r.Header.Get("X-Internal-Secret") == sharedSecret {
+			next.ServeHTTP(w, r)
+			return
+		}
+		httpx.WriteError(w, http.StatusUnauthorized, "INTERNAL_AUTH_INVALID", "Internal auth failed")
+	})
+}
+
 func getAuthClaims(ctx context.Context) auth.AccessTokenClaims {
 	value, _ := ctx.Value(authContextKey).(auth.AccessTokenClaims)
 	return value

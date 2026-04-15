@@ -113,6 +113,24 @@ func request_update_selection(map_id: String, rule_id: String, mode_id: String) 
 	client_room_runtime.request_update_selection(map_id, rule_id, mode_id)
 
 
+func request_update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_update_match_room_config(match_format_id, selected_mode_ids)
+
+
+func request_enter_match_queue() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_enter_match_queue()
+
+
+func request_cancel_match_queue() -> void:
+	if client_room_runtime == null:
+		return
+	client_room_runtime.request_cancel_match_queue()
+
+
 func request_toggle_ready() -> void:
 	if client_room_runtime == null:
 		return

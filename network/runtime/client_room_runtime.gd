@@ -198,6 +198,26 @@ func request_update_selection(map_id: String, rule_set_id: String, mode_id: Stri
 	})
 
 
+func request_update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_UPDATE_MATCH_ROOM_CONFIG,
+		"match_format_id": match_format_id,
+		"selected_mode_ids": selected_mode_ids.duplicate(),
+	})
+
+
+func request_enter_match_queue() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_ENTER_MATCH_QUEUE,
+	})
+
+
+func request_cancel_match_queue() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_CANCEL_MATCH_QUEUE,
+	})
+
+
 func request_toggle_ready() -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_TOGGLE_READY,
@@ -371,6 +391,10 @@ func _route_message(message: Dictionary) -> void:
 			match_loading_snapshot_received.emit(snapshot)
 		TransportMessageTypesScript.ROOM_REMATCH_REJECTED:
 			room_error.emit(String(message.get("error", "REMATCH_REJECTED")), String(message.get("user_message", "Rematch rejected")))
+		TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS:
+			_apply_match_queue_status(message)
+		TransportMessageTypesScript.ROOM_MATCH_ASSIGNMENT_READY:
+			pass
 		# Phase17: Resume protocol messages
 		TransportMessageTypesScript.ROOM_MEMBER_SESSION:
 			room_member_session_received.emit(Dictionary(message).duplicate(true))
@@ -390,6 +414,25 @@ func _route_message(message: Dictionary) -> void:
 			battle_message_received.emit(message)
 		_:
 			pass
+
+
+func _apply_match_queue_status(message: Dictionary) -> void:
+	var snapshot := _last_snapshot.duplicate_deep() if _last_snapshot != null else RoomSnapshot.new()
+	snapshot.room_id = String(message.get("room_id", snapshot.room_id))
+	snapshot.queue_type = String(message.get("queue_type", snapshot.queue_type))
+	snapshot.match_format_id = String(message.get("match_format_id", snapshot.match_format_id))
+	if message.has("selected_match_mode_ids"):
+		snapshot.selected_match_mode_ids = RoomSnapshot.from_dict({
+			"selected_match_mode_ids": message.get("selected_match_mode_ids", []),
+		}).selected_match_mode_ids
+	snapshot.required_party_size = int(message.get("required_party_size", snapshot.required_party_size))
+	snapshot.room_queue_state = String(message.get("queue_state", snapshot.room_queue_state))
+	snapshot.room_queue_entry_id = String(message.get("queue_entry_id", snapshot.room_queue_entry_id))
+	snapshot.room_queue_status_text = String(message.get("queue_status_text", snapshot.room_queue_status_text))
+	snapshot.room_queue_error_code = String(message.get("error_code", snapshot.room_queue_error_code))
+	snapshot.room_queue_error_message = String(message.get("user_message", snapshot.room_queue_error_message))
+	_last_snapshot = snapshot
+	room_snapshot_received.emit(snapshot)
 
 
 func _send_to_server(message: Dictionary) -> void:

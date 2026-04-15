@@ -12,7 +12,9 @@ import (
 type RouterDeps struct {
 	JWTAuth                   *auth.JWTAuth
 	InternalAuth              *auth.InternalAuth
+	InternalSharedSecret      string
 	MatchmakingHandler        *MatchmakingHandler
+	PartyMatchmakingHandler   *PartyMatchmakingHandler
 	CareerHandler             *CareerHandler
 	SettlementHandler         *SettlementHandler
 	InternalAssignmentHandler *InternalAssignmentHandler
@@ -50,6 +52,11 @@ func NewRouter(deps RouterDeps) http.Handler {
 		deps.InternalAssignmentHandler.Commit(w, r)
 	})))
 	mux.Handle("POST /internal/v1/matches/finalize", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalFinalizeHandler.Finalize)))
+	if deps.PartyMatchmakingHandler != nil {
+		mux.Handle("POST /internal/v1/matchmaking/party-queue/enter", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.EnterPartyQueue)))
+		mux.Handle("POST /internal/v1/matchmaking/party-queue/cancel", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.CancelPartyQueue)))
+		mux.Handle("GET /internal/v1/matchmaking/party-queue/status", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.GetPartyQueueStatus)))
+	}
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]any{"ok": true})

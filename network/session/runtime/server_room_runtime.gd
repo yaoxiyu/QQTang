@@ -7,6 +7,7 @@ const ServerMatchServiceScript = preload("res://network/session/runtime/server_m
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
+const GameServicePartyQueueClientScript = preload("res://network/services/game_service_party_queue_client.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -17,12 +18,16 @@ signal broadcast_message(message: Dictionary)
 var authority_host: String = "127.0.0.1"
 var authority_port: int = 9000
 var room_ticket_secret: String = "dev_room_ticket_secret"
+var game_service_host: String = "127.0.0.1"
+var game_service_port: int = 18081
+var game_internal_shared_secret: String = ""
 
 var _room_service: ServerRoomService = null
 var _match_service: ServerMatchService = null
 var _loading_coordinator: ServerMatchLoadingCoordinator = null
 var _match_finalize_reporter: ServerMatchFinalizeReporter = null
 var _resume_coordinator: ServerMatchResumeCoordinator = null  # Phase17
+var _party_queue_client: GameServicePartyQueueClient = null
 
 
 func _ready() -> void:
@@ -41,12 +46,19 @@ func configure(next_authority_host: String, next_authority_port: int, next_room_
 	authority_host = next_authority_host if not next_authority_host.strip_edges().is_empty() else "127.0.0.1"
 	authority_port = next_authority_port if next_authority_port > 0 else 9000
 	room_ticket_secret = next_room_ticket_secret if not next_room_ticket_secret.strip_edges().is_empty() else "dev_room_ticket_secret"
+	game_service_host = _read_env("GAME_SERVICE_HOST", game_service_host)
+	game_service_port = int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
+	if game_service_port <= 0:
+		game_service_port = 18081
+	game_internal_shared_secret = _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
 	_ensure_services()
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
 	if _room_service != null and _room_service.has_method("configure_room_ticket_verifier"):
 		_room_service.configure_room_ticket_verifier(room_ticket_secret)
+	if _room_service != null and _party_queue_client != null and _room_service.has_method("configure_party_queue_client"):
+		_room_service.configure_party_queue_client(_party_queue_client)
 
 
 func create_room_from_request(message: Dictionary) -> Dictionary:
@@ -265,6 +277,16 @@ func _ensure_services() -> void:
 	if _match_finalize_reporter == null:
 		_match_finalize_reporter = ServerMatchFinalizeReporterScript.new()
 		_match_finalize_reporter.configure()
+	if _party_queue_client == null:
+		_party_queue_client = GameServicePartyQueueClientScript.new()
+		var resolved_game_host := _read_env("GAME_SERVICE_HOST", game_service_host)
+		var resolved_game_port := int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
+		if resolved_game_port <= 0:
+			resolved_game_port = 18081
+		var resolved_secret := _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
+		_party_queue_client.configure("http://%s:%d" % [resolved_game_host, resolved_game_port], resolved_secret)
+		if _room_service != null and _room_service.has_method("configure_party_queue_client"):
+			_room_service.configure_party_queue_client(_party_queue_client)
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
@@ -510,3 +532,8 @@ func _build_online_runtime_context() -> Dictionary:
 
 func _log_online_room_runtime(event_name: String, payload: Dictionary) -> void:
 	LogNetScript.debug("%s[server_room_runtime] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.room_runtime")
+
+
+func _read_env(name: String, fallback: String) -> String:
+	var value := OS.get_environment(name).strip_edges()
+	return value if not value.is_empty() else fallback

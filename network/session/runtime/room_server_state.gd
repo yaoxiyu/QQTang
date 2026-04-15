@@ -27,6 +27,15 @@ var assignment_revision: int = 0
 var selected_map_id: String = MapCatalogScript.get_default_map_id()
 var selected_rule_id: String = RuleSetCatalogScript.get_default_rule_id()
 var selected_mode_id: String = ModeCatalogScript.get_default_mode_id()
+var queue_type: String = ""
+var match_format_id: String = "1v1"
+var selected_match_mode_ids: Array[String] = []
+var required_party_size: int = 1
+var room_queue_state: String = "idle"
+var room_queue_entry_id: String = ""
+var room_queue_status_text: String = ""
+var room_queue_error_code: String = ""
+var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var members: Dictionary = {}
 var ready_map: Dictionary = {}
@@ -57,6 +66,15 @@ func reset() -> void:
 	selected_map_id = MapCatalogScript.get_default_map_id()
 	selected_rule_id = RuleSetCatalogScript.get_default_rule_id()
 	selected_mode_id = ModeCatalogScript.get_default_mode_id()
+	queue_type = ""
+	match_format_id = "1v1"
+	selected_match_mode_ids.clear()
+	required_party_size = 1
+	room_queue_state = "idle"
+	room_queue_entry_id = ""
+	room_queue_status_text = ""
+	room_queue_error_code = ""
+	room_queue_error_message = ""
 	min_start_players = 2
 	match_active = false
 	members.clear()
@@ -72,14 +90,30 @@ func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "p
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
 	var resolved_room_kind := String(next_room_kind).strip_edges().to_lower()
-	if resolved_room_kind != "public_room" and resolved_room_kind != "private_room" and resolved_room_kind != "matchmade_room":
+	if resolved_room_kind != "public_room" \
+		and resolved_room_kind != "private_room" \
+		and resolved_room_kind != "matchmade_room" \
+		and resolved_room_kind != "casual_match_room" \
+		and resolved_room_kind != "ranked_match_room":
 		resolved_room_kind = "private_room"
 	room_kind = resolved_room_kind
 	is_matchmade_room = room_kind == "matchmade_room"
 	is_public_room = room_kind == "public_room"
+	if is_match_room():
+		queue_type = "ranked" if room_kind == "ranked_match_room" else "casual"
+		match_format_id = "1v1"
+		selected_match_mode_ids.clear()
+		required_party_size = 1
+		room_queue_state = "idle"
+		room_queue_entry_id = ""
+		room_queue_status_text = ""
+		room_queue_error_code = ""
+		room_queue_error_message = ""
 	var normalized_display_name := next_room_display_name.strip_edges()
 	if is_matchmade_room:
 		room_display_name = "Matchmade Room"
+	elif is_match_room():
+		room_display_name = "Ranked Match Room" if room_kind == "ranked_match_room" else "Casual Match Room"
 	elif is_public_room:
 		room_display_name = normalized_display_name if not normalized_display_name.is_empty() else room_id
 	else:
@@ -216,6 +250,13 @@ func toggle_ready(peer_id: int) -> bool:
 
 
 func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
+	if is_match_room():
+		selected_map_id = ""
+		selected_rule_id = ""
+		selected_mode_id = ""
+		min_start_players = required_party_size
+		max_players = required_party_size
+		return
 	var resolved_map_id := map_id
 	if is_matchmade_room:
 		resolved_map_id = locked_map_id if not locked_map_id.is_empty() else resolved_map_id
@@ -237,6 +278,8 @@ func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
 
 
 func can_start() -> bool:
+	if is_match_room():
+		return false
 	var binding := _resolve_map_binding(selected_map_id)
 	if binding.is_empty():
 		return false
@@ -305,6 +348,15 @@ func build_snapshot() -> RoomSnapshot:
 	snapshot.selected_map_id = selected_map_id
 	snapshot.rule_set_id = selected_rule_id
 	snapshot.mode_id = selected_mode_id
+	snapshot.queue_type = queue_type
+	snapshot.match_format_id = match_format_id
+	snapshot.selected_match_mode_ids = selected_match_mode_ids.duplicate()
+	snapshot.required_party_size = required_party_size
+	snapshot.room_queue_state = room_queue_state
+	snapshot.room_queue_entry_id = room_queue_entry_id
+	snapshot.room_queue_status_text = room_queue_status_text
+	snapshot.room_queue_error_code = room_queue_error_code
+	snapshot.room_queue_error_message = room_queue_error_message
 	snapshot.min_start_players = min_start_players
 	snapshot.all_ready = can_start()
 	snapshot.match_active = match_active
@@ -362,6 +414,51 @@ func get_sorted_peer_ids() -> Array[int]:
 		peer_ids.append(int(peer_id))
 	peer_ids.sort()
 	return peer_ids
+
+
+func is_match_room() -> bool:
+	return room_kind == "casual_match_room" or room_kind == "ranked_match_room"
+
+
+func is_custom_room() -> bool:
+	return room_kind == "practice" or room_kind == "private_room" or room_kind == "public_room"
+
+
+func is_assigned_room() -> bool:
+	return room_kind == "matchmade_room"
+
+
+func resolve_required_party_size(next_match_format_id: String) -> int:
+	match String(next_match_format_id):
+		"1v1":
+			return 1
+		"2v2":
+			return 2
+		"4v4":
+			return 4
+		_:
+			return 1
+
+
+func can_enter_match_queue(peer_id: int = 0) -> bool:
+	if not is_match_room():
+		return false
+	if peer_id > 0 and peer_id != owner_peer_id:
+		return false
+	if room_queue_state == "queueing":
+		return false
+	if members.size() != required_party_size:
+		return false
+	if selected_match_mode_ids.is_empty():
+		return false
+	for member_peer_id in members.keys():
+		if not bool(ready_map.get(member_peer_id, false)):
+			return false
+	return true
+
+
+func can_update_match_room_config(peer_id: int) -> bool:
+	return is_match_room() and peer_id == owner_peer_id and room_queue_state != "queueing"
 
 
 func _resolve_team_id(peer_id: int, team_id: int) -> int:

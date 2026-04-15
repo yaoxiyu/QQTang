@@ -27,6 +27,8 @@ var (
 
 type Service struct {
 	queueRepo              *storage.QueueRepository
+	partyQueueRepo         *storage.PartyQueueRepository
+	partyQueueMemberRepo   *storage.PartyQueueMemberRepository
 	assignmentRepo         *storage.AssignmentRepository
 	txPool                 *pgxpool.Pool
 	ratingRepo             *storage.RatingRepository
@@ -76,6 +78,11 @@ func (s *Service) ConfigureDefaults(defaults AssignmentDefaults) {
 
 func (s *Service) ConfigureRatingRepository(ratingRepo *storage.RatingRepository) {
 	s.ratingRepo = ratingRepo
+}
+
+func (s *Service) ConfigurePartyQueueRepositories(partyQueueRepo *storage.PartyQueueRepository, partyQueueMemberRepo *storage.PartyQueueMemberRepository) {
+	s.partyQueueRepo = partyQueueRepo
+	s.partyQueueMemberRepo = partyQueueMemberRepo
 }
 
 func (s *Service) EnterQueue(ctx context.Context, input EnterQueueInput) (QueueStatus, error) {
@@ -136,6 +143,161 @@ func (s *Service) EnterQueue(ctx context.Context, input EnterQueueInput) (QueueS
 		return assignedStatus, nil
 	}
 	return s.buildQueuedStatus(entry), nil
+}
+
+func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInput) (PartyQueueStatus, error) {
+	if input.QueueType != "casual" && input.QueueType != "ranked" {
+		return PartyQueueStatus{}, ErrQueueTypeInvalid
+	}
+	if input.PartyRoomID == "" || len(input.Members) == 0 {
+		return PartyQueueStatus{}, ErrQueueNotFound
+	}
+	if len(input.SelectedModeIDs) == 0 {
+		return PartyQueueStatus{}, ErrModeInvalid
+	}
+	requiredPartySize := requiredPartySizeFromMatchFormat(input.MatchFormatID)
+	if requiredPartySize <= 0 || len(input.Members) != requiredPartySize {
+		return PartyQueueStatus{}, ErrQueueNotFound
+	}
+	if s.partyQueueRepo == nil || s.partyQueueMemberRepo == nil {
+		return PartyQueueStatus{}, ErrQueueNotFound
+	}
+	if _, err := s.partyQueueRepo.FindActiveByRoomID(ctx, input.PartyRoomID); err == nil {
+		return PartyQueueStatus{}, ErrQueueAlreadyActive
+	} else if !errors.Is(err, storage.ErrNotFound) {
+		return PartyQueueStatus{}, err
+	}
+
+	now := time.Now().UTC()
+	entryID, err := opaqueID("party_queue")
+	if err != nil {
+		return PartyQueueStatus{}, err
+	}
+	captain := input.Members[0]
+	entry := storage.PartyQueueEntry{
+		PartyQueueEntryID:    entryID,
+		PartyRoomID:          input.PartyRoomID,
+		QueueType:            input.QueueType,
+		MatchFormatID:        normalizeMatchFormatID(input.MatchFormatID),
+		PartySize:            len(input.Members),
+		CaptainAccountID:     captain.AccountID,
+		CaptainProfileID:     captain.ProfileID,
+		SelectedModeIDs:      normalizeModeIDs(input.SelectedModeIDs),
+		QueueKey:             BuildPartyQueueKey(input.QueueType, input.MatchFormatID),
+		State:                "queued",
+		EnqueueUnixSec:       now.Unix(),
+		LastHeartbeatUnixSec: now.Unix(),
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+	if err := s.partyQueueRepo.Insert(ctx, entry); err != nil {
+		if storage.IsConstraintViolation(err, "uq_matchmaking_party_queue_entries_room_active") {
+			return PartyQueueStatus{}, ErrQueueAlreadyActive
+		}
+		return PartyQueueStatus{}, err
+	}
+	for idx, memberInput := range input.Members {
+		ratingSnapshot := memberInput.RatingSnapshot
+		if ratingSnapshot <= 0 {
+			var err error
+			ratingSnapshot, err = s.resolveRatingSnapshot(ctx, s.defaultSeasonID, memberInput.AccountID)
+			if err != nil {
+				return PartyQueueStatus{}, err
+			}
+		}
+		member := storage.PartyQueueMember{
+			PartyQueueEntryID: entryID,
+			AccountID:         memberInput.AccountID,
+			ProfileID:         memberInput.ProfileID,
+			DeviceSessionID:   memberInput.DeviceSessionID,
+			SeatIndex:         idx,
+			RatingSnapshot:    ratingSnapshot,
+			CreatedAt:         now,
+			UpdatedAt:         now,
+		}
+		if err := s.partyQueueMemberRepo.Insert(ctx, member); err != nil {
+			return PartyQueueStatus{}, err
+		}
+	}
+	if err := s.tryFormPartyAssignment(ctx, entry); err != nil {
+		return PartyQueueStatus{}, err
+	}
+	if assignedStatus, err := s.GetPartyQueueStatus(ctx, input.PartyRoomID, entry.PartyQueueEntryID); err == nil && assignedStatus.QueueState == "assigned" {
+		return assignedStatus, nil
+	}
+	return s.buildPartyQueuedStatus(entry), nil
+}
+
+func (s *Service) CancelPartyQueue(ctx context.Context, partyRoomID string, queueEntryID string) (PartyQueueStatus, error) {
+	entry, err := s.findPartyEntry(ctx, partyRoomID, queueEntryID)
+	if err != nil {
+		return PartyQueueStatus{}, err
+	}
+	nowUnix := time.Now().UTC().Unix()
+	if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, "cancelled", "party_cancelled", entry.AssignmentID, entry.AssignmentRevision, nowUnix); err != nil {
+		return PartyQueueStatus{}, err
+	}
+	entry.State = "cancelled"
+	entry.LastHeartbeatUnixSec = nowUnix
+	entry.CancelReason = "party_cancelled"
+	return s.buildPartyQueuedStatus(entry), nil
+}
+
+func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, queueEntryID string) (PartyQueueStatus, error) {
+	entry, err := s.findPartyEntry(ctx, partyRoomID, queueEntryID)
+	if err != nil {
+		return PartyQueueStatus{}, err
+	}
+	now := time.Now().UTC()
+	if entry.LastHeartbeatUnixSec+int64(s.heartbeatTTL.Seconds()) < now.Unix() {
+		if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, "cancelled", "heartbeat_timeout", entry.AssignmentID, entry.AssignmentRevision, now.Unix()); err != nil {
+			return PartyQueueStatus{}, err
+		}
+		entry.State = "cancelled"
+		return s.buildPartyQueuedStatus(entry), nil
+	}
+	if entry.State == "queued" {
+		_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+		entry.LastHeartbeatUnixSec = now.Unix()
+		return s.buildPartyQueuedStatus(entry), nil
+	}
+	assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return PartyQueueStatus{}, ErrAssignmentExpired
+		}
+		return PartyQueueStatus{}, err
+	}
+	if assignment.CommitDeadlineUnixSec < now.Unix() {
+		return PartyQueueStatus{}, ErrAssignmentExpired
+	}
+	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+	return PartyQueueStatus{
+		QueueState:             entry.State,
+		QueueEntryID:           entry.PartyQueueEntryID,
+		PartyRoomID:            entry.PartyRoomID,
+		QueueKey:               entry.QueueKey,
+		QueueType:              entry.QueueType,
+		MatchFormatID:          entry.MatchFormatID,
+		SelectedModeIDs:        entry.SelectedModeIDs,
+		AssignmentID:           assignment.AssignmentID,
+		AssignmentRevision:     assignment.AssignmentRevision,
+		QueueStatusText:        "Match found",
+		AssignmentStatusText:   "Waiting for room ticket",
+		EnqueueUnixSec:         entry.EnqueueUnixSec,
+		LastHeartbeatUnixSec:   now.Unix(),
+		ExpiresAtUnixSec:       now.Unix() + int64(s.heartbeatTTL.Seconds()),
+		RoomID:                 assignment.RoomID,
+		RoomKind:               assignment.RoomKind,
+		ServerHost:             assignment.ServerHost,
+		ServerPort:             assignment.ServerPort,
+		ModeID:                 assignment.ModeID,
+		RuleSetID:              assignment.RuleSetID,
+		MapID:                  assignment.MapID,
+		CaptainAccountID:       assignment.CaptainAccountID,
+		CaptainDeadlineUnixSec: assignment.CaptainDeadlineUnixSec,
+		CommitDeadlineUnixSec:  assignment.CommitDeadlineUnixSec,
+	}, nil
 }
 
 func (s *Service) CancelQueue(ctx context.Context, profileID string, queueEntryID string) (QueueStatus, error) {
@@ -242,6 +404,29 @@ func (s *Service) buildQueuedStatus(entry storage.QueueEntry) QueueStatus {
 	}
 }
 
+func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQueueStatus {
+	statusText := "Searching for teams"
+	if entry.State == "cancelled" {
+		statusText = "Queue cancelled"
+	}
+	return PartyQueueStatus{
+		QueueState:           entry.State,
+		QueueEntryID:         entry.PartyQueueEntryID,
+		PartyRoomID:          entry.PartyRoomID,
+		QueueKey:             entry.QueueKey,
+		QueueType:            entry.QueueType,
+		MatchFormatID:        entry.MatchFormatID,
+		SelectedModeIDs:      entry.SelectedModeIDs,
+		AssignmentID:         entry.AssignmentID,
+		AssignmentRevision:   entry.AssignmentRevision,
+		QueueStatusText:      statusText,
+		AssignmentStatusText: "",
+		EnqueueUnixSec:       entry.EnqueueUnixSec,
+		LastHeartbeatUnixSec: entry.LastHeartbeatUnixSec,
+		ExpiresAtUnixSec:     entry.LastHeartbeatUnixSec + int64(s.heartbeatTTL.Seconds()),
+	}
+}
+
 func (s *Service) findOwnedEntry(ctx context.Context, profileID string, queueEntryID string) (storage.QueueEntry, error) {
 	var entry storage.QueueEntry
 	var err error
@@ -258,6 +443,26 @@ func (s *Service) findOwnedEntry(ctx context.Context, profileID string, queueEnt
 	}
 	if entry.ProfileID != profileID {
 		return storage.QueueEntry{}, ErrQueueNotFound
+	}
+	return entry, nil
+}
+
+func (s *Service) findPartyEntry(ctx context.Context, partyRoomID string, queueEntryID string) (storage.PartyQueueEntry, error) {
+	var entry storage.PartyQueueEntry
+	var err error
+	if queueEntryID != "" {
+		entry, err = s.partyQueueRepo.FindByEntryID(ctx, queueEntryID)
+	} else {
+		entry, err = s.partyQueueRepo.FindActiveByRoomID(ctx, partyRoomID)
+	}
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return storage.PartyQueueEntry{}, ErrQueueNotFound
+		}
+		return storage.PartyQueueEntry{}, err
+	}
+	if partyRoomID != "" && entry.PartyRoomID != partyRoomID {
+		return storage.PartyQueueEntry{}, ErrQueueNotFound
 	}
 	return entry, nil
 }
@@ -286,6 +491,121 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 		return nil
 	}
 	return err
+}
+
+func (s *Service) tryFormPartyAssignment(ctx context.Context, entry storage.PartyQueueEntry) error {
+	if s.assignmentRepo == nil || s.partyQueueRepo == nil || s.partyQueueMemberRepo == nil {
+		return nil
+	}
+	if s.txPool == nil {
+		return s.tryFormPartyAssignmentWithRepos(ctx, entry, s.partyQueueRepo, s.partyQueueMemberRepo, s.assignmentRepo, false)
+	}
+	err := storage.WithTx(ctx, s.txPool, func(tx pgx.Tx) error {
+		txPartyRepo := storage.NewPartyQueueRepository(tx)
+		txMemberRepo := storage.NewPartyQueueMemberRepository(tx)
+		txAssignmentRepo := storage.NewAssignmentRepository(tx)
+		return s.tryFormPartyAssignmentWithRepos(ctx, entry, txPartyRepo, txMemberRepo, txAssignmentRepo, true)
+	})
+	if errors.Is(err, storage.ErrConcurrentStateChanged) {
+		return nil
+	}
+	return err
+}
+
+func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry storage.PartyQueueEntry, partyRepo *storage.PartyQueueRepository, memberRepo *storage.PartyQueueMemberRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
+	const candidateLimit = 32
+	now := time.Now().UTC()
+	minHeartbeatUnixSec := now.Add(-s.heartbeatTTL).Unix()
+	var queuedEntries []storage.PartyQueueEntry
+	var err error
+	if lockCandidates {
+		queuedEntries, err = partyRepo.FindQueuedByKeyForUpdate(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
+	} else {
+		queuedEntries, err = partyRepo.FindQueuedByKey(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
+	}
+	if err != nil {
+		return err
+	}
+	requiredPartySize := requiredPartySizeFromMatchFormat(entry.MatchFormatID)
+	selected := selectCompatibleParties(queuedEntries, requiredPartySize)
+	if len(selected) != 2 {
+		return nil
+	}
+	finalModeID := firstModeIntersection(selected[0].SelectedModeIDs, selected[1].SelectedModeIDs)
+	if finalModeID == "" {
+		return nil
+	}
+	finalMapID, finalRuleSetID := resolveMapAndRuleForMode(s.defaultMapID, finalModeID)
+
+	assignmentID, err := opaqueID("assign")
+	if err != nil {
+		return err
+	}
+	roomID, err := opaqueID("room")
+	if err != nil {
+		return err
+	}
+	matchID, err := opaqueID("match")
+	if err != nil {
+		return err
+	}
+	expectedMemberCount := requiredPartySize * 2
+	assignmentRecord := storage.Assignment{
+		AssignmentID:           assignmentID,
+		QueueKey:               entry.QueueKey,
+		QueueType:              entry.QueueType,
+		SeasonID:               s.defaultSeasonID,
+		RoomID:                 roomID,
+		RoomKind:               "matchmade_room",
+		MatchID:                matchID,
+		ModeID:                 finalModeID,
+		RuleSetID:              finalRuleSetID,
+		MapID:                  finalMapID,
+		ServerHost:             s.defaultDSHost,
+		ServerPort:             s.defaultDSPort,
+		CaptainAccountID:       selected[0].CaptainAccountID,
+		AssignmentRevision:     1,
+		ExpectedMemberCount:    expectedMemberCount,
+		State:                  "assigned",
+		CaptainDeadlineUnixSec: now.Add(time.Duration(s.captainDeadlineSeconds) * time.Second).Unix(),
+		CommitDeadlineUnixSec:  now.Add(time.Duration(s.commitDeadlineSeconds) * time.Second).Unix(),
+		CreatedAt:              now,
+		UpdatedAt:              now,
+	}
+	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
+		return err
+	}
+	for partyIndex, party := range selected {
+		members, err := memberRepo.ListByEntryID(ctx, party.PartyQueueEntryID)
+		if err != nil {
+			return err
+		}
+		for _, queuedMember := range members {
+			role := "join"
+			if queuedMember.AccountID == selected[0].CaptainAccountID {
+				role = "create"
+			}
+			member := storage.AssignmentMember{
+				AssignmentID:   assignmentID,
+				AccountID:      queuedMember.AccountID,
+				ProfileID:      queuedMember.ProfileID,
+				TicketRole:     role,
+				AssignedTeamID: partyIndex + 1,
+				RatingBefore:   queuedMember.RatingSnapshot,
+				JoinState:      "assigned",
+				ResultState:    "",
+				CreatedAt:      now,
+				UpdatedAt:      now,
+			}
+			if err := assignmentRepo.InsertMember(ctx, member); err != nil {
+				return err
+			}
+		}
+		if err := partyRepo.UpdateStatusIfCurrentState(ctx, party.PartyQueueEntryID, "queued", "assigned", "", assignmentID, 1, now.Unix()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.QueueEntry, queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
@@ -395,11 +715,86 @@ func expectedMemberCountFromQueueKey(queueKey string) int {
 	return left + right
 }
 
+func requiredPartySizeFromMatchFormat(matchFormatID string) int {
+	switch normalizeMatchFormatID(matchFormatID) {
+	case "1v1":
+		return 1
+	case "2v2":
+		return 2
+	case "4v4":
+		return 4
+	default:
+		return 0
+	}
+}
+
 func (s *Service) resolveMapID(preferredMapPoolID string) string {
 	if preferredMapPoolID != "" {
 		return preferredMapPoolID
 	}
 	return s.defaultMapID
+}
+
+func normalizeModeIDs(modeIDs []string) []string {
+	result := make([]string, 0, len(modeIDs))
+	seen := map[string]struct{}{}
+	for _, modeID := range modeIDs {
+		trimmed := strings.TrimSpace(modeID)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		result = append(result, trimmed)
+	}
+	return result
+}
+
+func selectCompatibleParties(entries []storage.PartyQueueEntry, requiredPartySize int) []storage.PartyQueueEntry {
+	for i, left := range entries {
+		if left.PartySize != requiredPartySize {
+			continue
+		}
+		for j, right := range entries {
+			if i == j || right.PartySize != requiredPartySize {
+				continue
+			}
+			if firstModeIntersection(left.SelectedModeIDs, right.SelectedModeIDs) == "" {
+				continue
+			}
+			return []storage.PartyQueueEntry{left, right}
+		}
+	}
+	return nil
+}
+
+func firstModeIntersection(left []string, right []string) string {
+	rightSet := map[string]struct{}{}
+	for _, modeID := range right {
+		rightSet[modeID] = struct{}{}
+	}
+	for _, modeID := range left {
+		if _, ok := rightSet[modeID]; ok {
+			return modeID
+		}
+	}
+	return ""
+}
+
+func resolveMapAndRuleForMode(defaultMapID string, modeID string) (string, string) {
+	switch modeID {
+	case "mode_score_team":
+		return "map_breakable_center_lane", "ruleset_score_team"
+	case "mode_classic":
+		return "map_classic_square", "ruleset_classic"
+	default:
+		if defaultMapID == "" {
+			defaultMapID = "map_classic_square"
+		}
+		return defaultMapID, "ruleset_classic"
+	}
 }
 
 func (s *Service) resolveRatingSnapshot(ctx context.Context, seasonID string, accountID string) (int, error) {

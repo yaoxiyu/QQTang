@@ -21,6 +21,10 @@ var locked_map_id: String = ""
 var locked_rule_set_id: String = ""
 var locked_mode_id: String = ""
 var assigned_team_id: int = 0
+var queue_type: String = ""
+var match_format_id: String = "1v1"
+var selected_match_mode_ids: Array[String] = []
+var is_prequeue_match_room: bool = false
 var auto_ready_on_join: bool = false
 var return_to_lobby_after_settlement: bool = false
 
@@ -53,6 +57,10 @@ func to_dict() -> Dictionary:
 		"locked_rule_set_id": locked_rule_set_id,
 		"locked_mode_id": locked_mode_id,
 		"assigned_team_id": assigned_team_id,
+		"queue_type": queue_type,
+		"match_format_id": match_format_id,
+		"selected_match_mode_ids": selected_match_mode_ids.duplicate(),
+		"is_prequeue_match_room": is_prequeue_match_room,
 		"auto_ready_on_join": auto_ready_on_join,
 		"return_to_lobby_after_settlement": return_to_lobby_after_settlement,
 		"use_resume_flow": use_resume_flow,
@@ -84,6 +92,10 @@ func duplicate_deep() -> RoomEntryContext:
 	copy.locked_rule_set_id = locked_rule_set_id
 	copy.locked_mode_id = locked_mode_id
 	copy.assigned_team_id = assigned_team_id
+	copy.queue_type = queue_type
+	copy.match_format_id = match_format_id
+	copy.selected_match_mode_ids = selected_match_mode_ids.duplicate()
+	copy.is_prequeue_match_room = is_prequeue_match_room
 	copy.auto_ready_on_join = auto_ready_on_join
 	copy.return_to_lobby_after_settlement = return_to_lobby_after_settlement
 	# Phase17: Resume flow fields
