@@ -17,6 +17,7 @@ var _connect_started_msec: int = 0
 var _connection_failure_reported: bool = false
 var _last_logged_connection_status: int = -1
 var _last_logged_connect_progress_sec: int = -1
+var _last_client_packet_probe_msec: int = 0
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -27,6 +28,7 @@ func initialize(config: Dictionary = {}) -> void:
 	_connect_started_msec = 0
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
+	_last_client_packet_probe_msec = 0
 	_peer = ENetMultiplayerPeer.new()
 	var result := OK
 	if _server_mode:
@@ -65,6 +67,7 @@ func shutdown() -> void:
 	_connection_failure_reported = false
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
+	_last_client_packet_probe_msec = 0
 
 
 func poll() -> void:
@@ -86,6 +89,7 @@ func poll() -> void:
 				return
 	if _peer.has_method("poll"):
 		_peer.call("poll")
+	_log_client_packet_probe_if_needed()
 	_sync_connection_state()
 	_sync_remote_peer_ids()
 	while _peer != null and _peer.get_available_packet_count() > 0:
@@ -276,6 +280,23 @@ func _log_client_connect_progress_if_needed(elapsed_seconds: float) -> void:
 	_debug_log("client_connecting_progress elapsed=%.2f timeout=%.2f peers=%s" % [
 		elapsed_seconds,
 		_connect_timeout_seconds,
+		str(_remote_peer_ids),
+	])
+
+
+func _log_client_packet_probe_if_needed() -> void:
+	if _server_mode or _peer == null:
+		return
+	var now := Time.get_ticks_msec()
+	var available := _peer.get_available_packet_count()
+	if available <= 0 and now - _last_client_packet_probe_msec < 1000:
+		return
+	_last_client_packet_probe_msec = now
+	_debug_log("client_packet_probe status=%s available=%d connected=%s local=%d peers=%s" % [
+		_connection_status_name(_peer.get_connection_status()),
+		available,
+		str(_connected),
+		_local_peer_id,
 		str(_remote_peer_ids),
 	])
 

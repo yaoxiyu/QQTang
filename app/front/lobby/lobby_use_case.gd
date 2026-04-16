@@ -343,7 +343,7 @@ func resume_recent_room() -> Dictionary:
 
 
 func build_matchmade_entry_context() -> Dictionary:
-	return _fail("LEGACY_MATCHMADE_ENTRY_DISABLED", "Phase22 enters matchmaking from match rooms")
+	return _fail("LEGACY_MATCHMADE_ENTRY_DISABLED", "Enter matchmaking from match rooms")
 
 
 func _build_online_entry_context(
@@ -457,7 +457,7 @@ func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool
 
 
 func _attach_matchmaking_state(view_state: LobbyViewState) -> void:
-	# LEGACY: Phase22 formal Lobby no longer reflects client-direct queue state.
+	# LEGACY: formal Lobby no longer reflects client-direct queue state.
 	if view_state == null or app_runtime == null or app_runtime.matchmaking_use_case == null:
 		return
 	var queue_state = app_runtime.matchmaking_use_case.get_queue_state() if app_runtime.matchmaking_use_case.has_method("get_queue_state") else null

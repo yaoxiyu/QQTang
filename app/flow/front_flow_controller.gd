@@ -84,7 +84,7 @@ func request_resume_match() -> void:
 	_enter_match_loading("request_resume_match")
 
 
-## Phase23: Battle entry flow — room_service signals battle_entry_ready,
+## Battle entry flow: room_service signals battle_entry_ready,
 ## client transitions to loading scene to acquire ticket and connect battle_ds.
 func request_battle_entry() -> void:
 	if current_state != FlowState.ROOM:
@@ -148,7 +148,7 @@ func return_to_room() -> void:
 	return_to_room_requested.emit()
 
 
-## Phase23: After battle settlement, return to source room instead of lobby.
+## After battle settlement, return to source room instead of lobby.
 func return_to_source_room() -> void:
 	_change_state(FlowState.RETURNING_TO_ROOM)
 	return_to_source_room_requested.emit()
@@ -177,7 +177,7 @@ func on_return_to_room_completed() -> void:
 	room_returned.emit()
 
 
-## Phase23: Called when return-to-source-room fails — fallback to lobby.
+## Called when return-to-source-room fails; fallback to lobby.
 func on_return_to_source_room_failed() -> void:
 	return_to_lobby()
 

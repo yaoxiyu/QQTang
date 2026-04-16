@@ -97,21 +97,33 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 			CommitDeadlineUnixSec:  arguments[17].(int64),
 			CreatedAt:              arguments[18].(time.Time),
 			UpdatedAt:              arguments[19].(time.Time),
+			SourceRoomID:           arguments[20].(string),
+			SourceRoomKind:         arguments[21].(string),
+			BattleID:               arguments[22].(string),
+			DSInstanceID:           arguments[23].(string),
+			BattleServerHost:       arguments[24].(string),
+			BattleServerPort:       arguments[25].(int),
+			AllocationState:        arguments[26].(string),
+			RoomReturnPolicy:       arguments[27].(string),
 		}
 		db.assignmentsByID[assignment.AssignmentID] = assignment
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
 	case strings.Contains(sql, "INSERT INTO matchmaking_assignment_members"):
 		member := storage.AssignmentMember{
-			AssignmentID:   arguments[0].(string),
-			AccountID:      arguments[1].(string),
-			ProfileID:      arguments[2].(string),
-			TicketRole:     arguments[3].(string),
-			AssignedTeamID: arguments[4].(int),
-			RatingBefore:   arguments[5].(int),
-			JoinState:      arguments[6].(string),
-			ResultState:    arguments[7].(string),
-			CreatedAt:      arguments[8].(time.Time),
-			UpdatedAt:      arguments[9].(time.Time),
+			AssignmentID:       arguments[0].(string),
+			AccountID:          arguments[1].(string),
+			ProfileID:          arguments[2].(string),
+			TicketRole:         arguments[3].(string),
+			AssignedTeamID:     arguments[4].(int),
+			RatingBefore:       arguments[5].(int),
+			JoinState:          arguments[6].(string),
+			ResultState:        arguments[7].(string),
+			CreatedAt:          arguments[8].(time.Time),
+			UpdatedAt:          arguments[9].(time.Time),
+			SourceRoomID:       arguments[10].(string),
+			SourceRoomMemberID: arguments[11].(string),
+			BattleJoinState:    arguments[12].(string),
+			RoomReturnState:    arguments[13].(string),
 		}
 		db.membersByKey[member.AssignmentID+":"+member.AccountID] = member
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
@@ -202,6 +214,10 @@ func (db *fakeQueueDB) Query(_ context.Context, sql string, args ...any) (pgx.Ro
 				member.ResultState,
 				member.CreatedAt,
 				member.UpdatedAt,
+				member.SourceRoomID,
+				member.SourceRoomMemberID,
+				member.BattleJoinState,
+				member.RoomReturnState,
 			})
 		}
 		return rows, nil
@@ -262,6 +278,18 @@ func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.
 			assignment.FinalizedAt,
 			assignment.CreatedAt,
 			assignment.UpdatedAt,
+			assignment.SourceRoomID,
+			assignment.SourceRoomKind,
+			assignment.BattleID,
+			assignment.DSInstanceID,
+			assignment.BattleServerHost,
+			assignment.BattleServerPort,
+			assignment.AllocationState,
+			assignment.RoomReturnPolicy,
+			assignment.AllocationStartedAt,
+			assignment.BattleReadyAt,
+			assignment.BattleFinishedAt,
+			assignment.ReturnCompletedAt,
 		}}
 	case strings.Contains(sql, "FROM matchmaking_assignment_members"):
 		member, ok := db.membersByKey[args[0].(string)+":"+args[1].(string)]
@@ -279,6 +307,10 @@ func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.
 			member.ResultState,
 			member.CreatedAt,
 			member.UpdatedAt,
+			member.SourceRoomID,
+			member.SourceRoomMemberID,
+			member.BattleJoinState,
+			member.RoomReturnState,
 		}}
 	case strings.Contains(sql, "WHERE profile_id = $1"):
 		profileID := args[0].(string)

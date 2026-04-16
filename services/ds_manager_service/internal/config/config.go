@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"qqtang/services/ds_manager_service/internal/platform/configx"
 )
@@ -10,10 +12,11 @@ type Config struct {
 	HTTPListenAddr string
 
 	// Godot battle DS process settings
-	GodotExecutable string
-	ProjectRoot     string
-	BattleScenePath string
+	GodotExecutable    string
+	ProjectRoot        string
+	BattleScenePath    string
 	BattleTicketSecret string
+	BattleLogDir       string
 
 	// Port pool range for battle DS instances
 	PortRangeStart int
@@ -36,6 +39,7 @@ func LoadFromEnv() (*Config, error) {
 	cfg.ProjectRoot = configx.Env("DSM_PROJECT_ROOT", "")
 	cfg.BattleScenePath = configx.Env("DSM_BATTLE_SCENE_PATH", "res://scenes/network/dedicated_server_scene.tscn")
 	cfg.BattleTicketSecret = configx.Env("DSM_BATTLE_TICKET_SECRET", "dev_battle_ticket_secret")
+	cfg.BattleLogDir = configx.Env("DSM_BATTLE_LOG_DIR", "")
 
 	cfg.DSHost = configx.Env("DSM_DS_HOST", "127.0.0.1")
 
@@ -65,5 +69,39 @@ func LoadFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("DSM_IDLE_REAP_TIMEOUT_SEC: %w", err)
 	}
 
+	if cfg.BattleLogDir == "" {
+		cfg.BattleLogDir = defaultBattleLogDir(cfg.ProjectRoot)
+	}
+
 	return cfg, nil
+}
+
+func defaultBattleLogDir(projectRoot string) string {
+	if projectRoot == "" {
+		if resolved, ok := findProjectRoot(); ok {
+			projectRoot = resolved
+		}
+	}
+	if projectRoot == "" {
+		return ""
+	}
+	return filepath.Join(projectRoot, "logs", "battle_ds")
+}
+
+func findProjectRoot() (string, bool) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", false
+	}
+	dir := wd
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "project.godot")); err == nil {
+			return dir, true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", false
+		}
+		dir = parent
+	}
 }

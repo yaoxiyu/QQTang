@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 )
 
@@ -13,12 +15,14 @@ type RunnerConfig struct {
 	ProjectRoot        string
 	BattleScenePath    string
 	BattleTicketSecret string
+	BattleLogDir       string
 }
 
 type RunningProcess struct {
 	BattleID string
 	Cmd      *exec.Cmd
 	Cancel   context.CancelFunc
+	LogFile  *os.File
 }
 
 type GodotProcessRunner struct {
@@ -61,8 +65,16 @@ func (r *GodotProcessRunner) Start(battleID, assignmentID, matchID, host string,
 	)
 
 	cmd := exec.CommandContext(ctx, r.config.GodotExecutable, args...)
+	logFile, err := r.attachBattleLog(cmd, battleID)
+	if err != nil {
+		cancel()
+		return 0, err
+	}
 
 	if err := cmd.Start(); err != nil {
+		if logFile != nil {
+			_ = logFile.Close()
+		}
 		cancel()
 		return 0, fmt.Errorf("failed to start godot process: %w", err)
 	}
@@ -72,6 +84,7 @@ func (r *GodotProcessRunner) Start(battleID, assignmentID, matchID, host string,
 		BattleID: battleID,
 		Cmd:      cmd,
 		Cancel:   cancel,
+		LogFile:  logFile,
 	}
 	r.processes[battleID] = rp
 
@@ -101,6 +114,9 @@ func (r *GodotProcessRunner) IsRunning(battleID string) bool {
 
 func (r *GodotProcessRunner) waitForExit(battleID string, rp *RunningProcess) {
 	err := rp.Cmd.Wait()
+	if rp.LogFile != nil {
+		_ = rp.LogFile.Close()
+	}
 	r.mu.Lock()
 	delete(r.processes, battleID)
 	r.mu.Unlock()
@@ -140,8 +156,16 @@ func (r *GodotProcessRunner) StartWithCallback(battleID, assignmentID, matchID, 
 	)
 
 	cmd := exec.CommandContext(ctx, r.config.GodotExecutable, args...)
+	logFile, err := r.attachBattleLog(cmd, battleID)
+	if err != nil {
+		cancel()
+		return 0, err
+	}
 
 	if err := cmd.Start(); err != nil {
+		if logFile != nil {
+			_ = logFile.Close()
+		}
 		cancel()
 		return 0, fmt.Errorf("failed to start godot process: %w", err)
 	}
@@ -151,11 +175,15 @@ func (r *GodotProcessRunner) StartWithCallback(battleID, assignmentID, matchID, 
 		BattleID: battleID,
 		Cmd:      cmd,
 		Cancel:   cancel,
+		LogFile:  logFile,
 	}
 	r.processes[battleID] = rp
 
 	go func() {
 		err := rp.Cmd.Wait()
+		if rp.LogFile != nil {
+			_ = rp.LogFile.Close()
+		}
 		r.mu.Lock()
 		delete(r.processes, battleID)
 		r.mu.Unlock()
@@ -166,4 +194,21 @@ func (r *GodotProcessRunner) StartWithCallback(battleID, assignmentID, matchID, 
 
 	log.Printf("[ds_manager] started battle DS pid=%d battle_id=%s port=%d", pid, battleID, port)
 	return pid, nil
+}
+
+func (r *GodotProcessRunner) attachBattleLog(cmd *exec.Cmd, battleID string) (*os.File, error) {
+	if r.config.BattleLogDir == "" {
+		return nil, nil
+	}
+	if err := os.MkdirAll(r.config.BattleLogDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create battle log dir: %w", err)
+	}
+	path := filepath.Join(r.config.BattleLogDir, fmt.Sprintf("%s.log", battleID))
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open battle log file: %w", err)
+	}
+	cmd.Stdout = file
+	cmd.Stderr = file
+	return file, nil
 }

@@ -25,6 +25,8 @@ func (h *InternalAssignmentHandler) GetGrant(w http.ResponseWriter, r *http.Requ
 		r.URL.Query().Get("account_id"),
 		r.URL.Query().Get("profile_id"),
 		r.URL.Query().Get("room_kind"),
+		r.URL.Query().Get("battle_id"),
+		r.URL.Query().Get("ticket_type"),
 	)
 	if err != nil {
 		code, message := mapError(err)
@@ -35,6 +37,9 @@ func (h *InternalAssignmentHandler) GetGrant(w http.ResponseWriter, r *http.Requ
 		"assignment_revision": grant.AssignmentRevision, "match_source": grant.MatchSource, "queue_type": grant.QueueType,
 		"ticket_role": grant.TicketRole, "room_id": grant.RoomID, "room_kind": grant.RoomKind, "match_id": grant.MatchID,
 		"season_id": grant.SeasonID, "server_host": grant.ServerHost, "server_port": grant.ServerPort,
+		"battle_id": grant.BattleID, "battle_server_host": grant.BattleServerHost,
+		"battle_server_port": grant.BattleServerPort, "allocation_state": grant.AllocationState,
+		"map_id": grant.LockedMapID, "rule_set_id": grant.LockedRuleSetID, "mode_id": grant.LockedModeID,
 		"locked_map_id": grant.LockedMapID, "locked_rule_set_id": grant.LockedRuleSetID, "locked_mode_id": grant.LockedModeID,
 		"assigned_team_id": grant.AssignedTeamID, "expected_member_count": grant.ExpectedMemberCount,
 		"auto_ready_on_join": grant.AutoReadyOnJoin, "hidden_room": grant.HiddenRoom,

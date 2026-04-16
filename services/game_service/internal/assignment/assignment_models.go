@@ -9,10 +9,14 @@ type GrantResult struct {
 	TicketRole             string `json:"ticket_role"`
 	RoomID                 string `json:"room_id"`
 	RoomKind               string `json:"room_kind"`
+	BattleID               string `json:"battle_id"`
 	MatchID                string `json:"match_id"`
 	SeasonID               string `json:"season_id"`
 	ServerHost             string `json:"server_host"`
 	ServerPort             int    `json:"server_port"`
+	BattleServerHost       string `json:"battle_server_host"`
+	BattleServerPort       int    `json:"battle_server_port"`
+	AllocationState        string `json:"allocation_state"`
 	LockedMapID            string `json:"locked_map_id"`
 	LockedRuleSetID        string `json:"locked_rule_set_id"`
 	LockedModeID           string `json:"locked_mode_id"`

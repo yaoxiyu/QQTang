@@ -113,7 +113,7 @@ func build_view_model(
 		"max_player_count": max_player_count,
 		"entry_kind": String(safe_entry_context.entry_kind),
 		"return_target": String(safe_entry_context.return_target),
-		# Phase23: battle allocation state
+		# Battle allocation state.
 		"room_lifecycle_state": String(safe_snapshot.room_lifecycle_state),
 		"battle_allocation_state": String(safe_snapshot.battle_allocation_state),
 		"battle_entry_ready": bool(safe_snapshot.battle_entry_ready),

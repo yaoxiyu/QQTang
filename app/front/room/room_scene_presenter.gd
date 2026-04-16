@@ -54,7 +54,7 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_button_text(scene_controller, "cancel_queue_button", "取消匹配")
 	_set_button_text(scene_controller, "add_opponent_button", "Add Opponent")
 	_render_member_list(scene_controller, view_model.get("members", []))
-	# Phase23: battle allocation status
+	# Battle allocation status.
 	_set_text(scene_controller, "battle_allocation_label", _build_battle_allocation_text(view_model))
 
 

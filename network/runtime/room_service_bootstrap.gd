@@ -1,6 +1,6 @@
 extends Node
 
-## Phase23: Standalone Room Service process bootstrap.
+## Standalone Room Service process bootstrap.
 ## Manages room registry, room create/join/resume, snapshot broadcast.
 ## Does NOT create any battle runtime.
 

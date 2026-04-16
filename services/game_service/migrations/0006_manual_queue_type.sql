@@ -1,4 +1,4 @@
--- Phase23: relax constraints for manual-room-battle flow
+-- Relax constraints for manual-room-battle flow.
 BEGIN;
 
 -- 1. queue_type: allow 'manual' alongside 'casual' and 'ranked'

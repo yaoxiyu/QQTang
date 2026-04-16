@@ -28,34 +28,34 @@ type Assignment struct {
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 
-	// Phase23: Room/Battle decoupling fields
-	SourceRoomID       string
-	SourceRoomKind     string
-	BattleID           string
-	DSInstanceID       string
-	BattleServerHost   string
-	BattleServerPort   int
-	AllocationState    string
-	RoomReturnPolicy   string
+	// Room/Battle decoupling fields.
+	SourceRoomID        string
+	SourceRoomKind      string
+	BattleID            string
+	DSInstanceID        string
+	BattleServerHost    string
+	BattleServerPort    int
+	AllocationState     string
+	RoomReturnPolicy    string
 	AllocationStartedAt *time.Time
-	BattleReadyAt      *time.Time
-	BattleFinishedAt   *time.Time
-	ReturnCompletedAt  *time.Time
+	BattleReadyAt       *time.Time
+	BattleFinishedAt    *time.Time
+	ReturnCompletedAt   *time.Time
 }
 
 type AssignmentMember struct {
-	AssignmentID       string
-	AccountID          string
-	ProfileID          string
-	TicketRole         string
-	AssignedTeamID     int
-	RatingBefore       int
-	JoinState          string
-	ResultState        string
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	AssignmentID   string
+	AccountID      string
+	ProfileID      string
+	TicketRole     string
+	AssignedTeamID int
+	RatingBefore   int
+	JoinState      string
+	ResultState    string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 
-	// Phase23: Room/Battle decoupling fields
+	// Room/Battle decoupling fields.
 	SourceRoomID       string
 	SourceRoomMemberID string
 	BattleJoinState    string
@@ -274,7 +274,7 @@ func (r *AssignmentRepository) MarkFinalized(ctx context.Context, assignmentID s
 	return err
 }
 
-// Phase23: Update allocation state and battle DS connection info
+// UpdateAllocationState updates allocation state and battle DS connection info.
 func (r *AssignmentRepository) UpdateAllocationState(ctx context.Context, assignmentID string, allocationState string, battleID string, dsInstanceID string, battleServerHost string, battleServerPort int) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE matchmaking_assignments

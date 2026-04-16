@@ -1,12 +1,13 @@
 extends Node
 
-## Phase23: Battle-only Dedicated Server bootstrap.
+## Battle-only Dedicated Server bootstrap.
 ## Reads battle manifest, creates ServerBattleRuntime, handles battle lifecycle.
 ## Does NOT create ServerRoomRegistry or handle room create/join.
 
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const ServerBattleRuntimeScript = preload("res://network/battle/runtime/server_battle_runtime.gd")
 const GameServiceBattleManifestClientScript = preload("res://network/services/game_service_battle_manifest_client.gd")
+const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -19,21 +20,24 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 var _transport: ENetBattleTransport = null
 var _battle_runtime: Node = null
 
-# Phase23: Battle manifest fields from command line
+# Battle manifest fields from command line.
 var _battle_id: String = ""
 var _assignment_id: String = ""
 var _match_id: String = ""
 
-# Phase23: Manifest + peer gate
+# Manifest + peer gate.
 var _manifest_client: GameServiceBattleManifestClient = null
 var _manifest: Dictionary = {}
 var _joined_peer_ids: Array[int] = []
 var _loading_started: bool = false
+var _ds_manager_base_url: String = ""
+var _ds_instance_active_reported: bool = false
 
 
 func _ready() -> void:
 	LogSystemInitializerScript.initialize_dedicated_server()
 	_apply_command_line_overrides()
+	_ds_manager_base_url = _resolve_ds_manager_base_url()
 
 	if _battle_id.is_empty() and _assignment_id.is_empty():
 		LogNetScript.warn("battle_ds started without --qqt-battle-id / --qqt-assignment-id, waiting for allocation", "", 0, "net.battle_ds_bootstrap")
@@ -156,7 +160,7 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
-	# TODO Phase23: Validate battle-entry ticket here
+	# TODO: Validate battle-entry ticket here.
 	LogNetScript.info("battle_entry_request peer=%d battle_id=%s" % [peer_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
 	if not _joined_peer_ids.has(peer_id):
 		_joined_peer_ids.append(peer_id)
@@ -177,7 +181,7 @@ func _handle_battle_resume_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
-	# TODO Phase23: Validate resume token and delegate to battle runtime
+	# TODO: Validate resume token and delegate to battle runtime.
 	LogNetScript.info("battle_resume_request peer=%d battle_id=%s" % [peer_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
 	_battle_runtime.handle_peer_disconnected(peer_id)
 
@@ -255,6 +259,8 @@ func _begin_battle_loading() -> void:
 	var result: Dictionary = _battle_runtime.begin_loading(snapshot)
 	if not bool(result.get("ok", false)):
 		LogNetScript.warn("battle_ds begin_loading failed: %s" % String(result.get("user_message", "")), "", 0, "net.battle_ds_bootstrap")
+		return
+	_report_ds_instance_active()
 
 
 func _report_battle_ready() -> void:
@@ -268,6 +274,81 @@ func _report_battle_ready() -> void:
 		LogNetScript.warn("battle_ready report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 	else:
 		LogNetScript.info("battle_ready reported ok battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+	_report_ds_instance_ready()
+
+
+func _report_ds_instance_ready() -> void:
+	if _battle_id.is_empty() or _ds_manager_base_url.is_empty():
+		return
+	var path := "/internal/v1/battles/%s/ready" % _battle_id.uri_encode()
+	var result := _send_plain_json_request(_ds_manager_base_url, path, {})
+	if not bool(result.get("ok", false)):
+		LogNetScript.warn("ds_manager ready report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
+	else:
+		LogNetScript.info("ds_manager ready reported ok battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+
+
+func _report_ds_instance_active() -> void:
+	if _ds_instance_active_reported or _battle_id.is_empty() or _ds_manager_base_url.is_empty():
+		return
+	var path := "/internal/v1/battles/%s/active" % _battle_id.uri_encode()
+	var result := _send_plain_json_request(_ds_manager_base_url, path, {})
+	if not bool(result.get("ok", false)):
+		LogNetScript.warn("ds_manager active report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
+		return
+	_ds_instance_active_reported = true
+	LogNetScript.info("ds_manager active reported ok battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+
+
+func _send_plain_json_request(base_url: String, path: String, payload: Dictionary) -> Dictionary:
+	var parsed_url := _parse_http_url(base_url.trim_suffix("/") + path)
+	if parsed_url.is_empty():
+		return _plain_json_fail("PLAIN_JSON_URL_INVALID", "Target url is invalid")
+	var client := HTTPClient.new()
+	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
+	if err != OK:
+		return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
+	var deadline_ms := Time.get_ticks_msec() + 5000
+	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
+		if Time.get_ticks_msec() > deadline_ms:
+			return _plain_json_fail("PLAIN_JSON_CONNECT_TIMEOUT", "Target service connect timeout")
+		client.poll()
+		OS.delay_msec(10)
+	if client.get_status() != HTTPClient.STATUS_CONNECTED:
+		return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
+	var body := JSON.stringify(payload)
+	err = client.request(HTTPClient.METHOD_POST, String(parsed_url["path"]), ["Content-Type: application/json"], body)
+	if err != OK:
+		return _plain_json_fail("PLAIN_JSON_REQUEST_FAILED", "Failed to send request")
+	while client.get_status() == HTTPClient.STATUS_REQUESTING:
+		if Time.get_ticks_msec() > deadline_ms:
+			return _plain_json_fail("PLAIN_JSON_REQUEST_TIMEOUT", "Target service request timeout")
+		client.poll()
+		OS.delay_msec(10)
+	var chunks := HttpResponseReaderScript.read_body_bytes(
+		client, "net", "net.battle_ds_bootstrap", "battle_dedicated_server_bootstrap",
+		{"path": path, "method": HTTPClient.METHOD_POST}
+	)
+	var text := chunks.get_string_from_utf8()
+	if text.strip_edges().is_empty():
+		return _plain_json_fail("PLAIN_JSON_EMPTY_RESPONSE", "Target service returned empty response")
+	var json := JSON.new()
+	if json.parse(text) != OK:
+		return _plain_json_fail("PLAIN_JSON_RESPONSE_INVALID", "Target service returned invalid response")
+	if not (json.data is Dictionary):
+		return _plain_json_fail("PLAIN_JSON_RESPONSE_INVALID", "Target service returned invalid response type")
+	var result: Dictionary = (json.data as Dictionary).duplicate(true)
+	if not result.has("ok"):
+		result["ok"] = result.get("error_code", "") == ""
+	if not result.has("error_code"):
+		result["error_code"] = ""
+	if not result.has("user_message"):
+		result["user_message"] = String(result.get("message", ""))
+	return result
+
+
+func _plain_json_fail(error_code: String, user_message: String) -> Dictionary:
+	return {"ok": false, "error_code": error_code, "user_message": user_message}
 
 
 # --- Transport helpers ---
@@ -301,3 +382,56 @@ func _on_transport_error(code: int, message: String) -> void:
 func _read_env(env_name: String, fallback: String) -> String:
 	var value := OS.get_environment(env_name).strip_edges()
 	return value if not value.is_empty() else fallback
+
+
+func _resolve_ds_manager_base_url() -> String:
+	var candidates := [
+		_read_env("DS_MANAGER_URL", ""),
+		_read_env("GAME_DS_MANAGER_URL", ""),
+		_read_env("DSM_HTTP_ADDR", "127.0.0.1:18090"),
+	]
+	for raw in candidates:
+		var normalized := _normalize_http_base_url(String(raw))
+		if not normalized.is_empty():
+			LogNetScript.info("ds_manager url resolved: %s" % normalized, "", 0, "net.battle_ds_bootstrap")
+			return normalized
+	LogNetScript.warn("ds_manager url missing; ready/active control reports disabled", "", 0, "net.battle_ds_bootstrap")
+	return ""
+
+
+func _normalize_http_base_url(raw_url: String) -> String:
+	var value := raw_url.strip_edges().trim_suffix("/")
+	if value.is_empty():
+		return ""
+	if value.begins_with(":"):
+		value = "127.0.0.1" + value
+	if not value.begins_with("http://"):
+		value = "http://" + value
+	var parsed := _parse_http_url(value)
+	if parsed.is_empty():
+		return ""
+	return value
+
+
+func _parse_http_url(url: String) -> Dictionary:
+	var normalized := url.strip_edges()
+	if not normalized.begins_with("http://"):
+		return {}
+	var without_scheme := normalized.substr(7)
+	var slash_index := without_scheme.find("/")
+	var host_port := without_scheme
+	var path := "/"
+	if slash_index >= 0:
+		host_port = without_scheme.substr(0, slash_index)
+		path = without_scheme.substr(slash_index, without_scheme.length() - slash_index)
+	var colon_index := host_port.rfind(":")
+	if colon_index <= 0 or colon_index >= host_port.length() - 1:
+		return {}
+	var port := int(host_port.substr(colon_index + 1, host_port.length() - colon_index - 1))
+	if port <= 0:
+		return {}
+	return {
+		"host": host_port.substr(0, colon_index),
+		"port": port,
+		"path": path,
+	}

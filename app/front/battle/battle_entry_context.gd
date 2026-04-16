@@ -1,8 +1,8 @@
 class_name BattleEntryContext
 extends RefCounted
 
-## Phase23: Data object holding all info needed to enter a battle_ds instance.
-## Built from authoritative RoomSnapshot Phase23 fields after allocation is ready.
+## Data object holding all info needed to enter a battle_ds instance.
+## Built from authoritative RoomSnapshot fields after allocation is ready.
 
 var assignment_id: String = ""
 var battle_id: String = ""

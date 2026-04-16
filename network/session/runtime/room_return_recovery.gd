@@ -19,6 +19,11 @@ func recover(
 	var is_practice_room := false
 	if room_controller != null and room_controller.get("room_session") != null and room_controller.room_session != null:
 		is_practice_room = String(room_controller.room_session.room_kind) == "practice"
+	if room_controller != null and is_network_client \
+			and app_runtime.room_use_case != null \
+			and app_runtime.room_use_case.room_gateway != null \
+			and app_runtime.room_use_case.room_gateway.has_method("request_battle_return"):
+		app_runtime.room_use_case.room_gateway.request_battle_return()
 	if room_controller != null and not is_network_client:
 		room_controller.reset_ready_state()
 		if app_runtime.debug_tools != null and app_runtime.debug_tools.has_method("reset_local_loop_room_ready"):

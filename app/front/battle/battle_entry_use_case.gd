@@ -1,15 +1,15 @@
 class_name BattleEntryUseCase
 extends RefCounted
 
-## Phase23: Orchestrates the battle entry flow:
-## 1. Build BattleEntryContext from RoomSnapshot Phase23 fields
+## Orchestrates the battle entry flow:
+## 1. Build BattleEntryContext from authoritative RoomSnapshot fields
 ## 2. Request battle ticket from account_service
 ## 3. Supply context for battle_ds connection and scene transition
 
 const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
-const PHASE23_LOG_PREFIX := "[QQT_P23]"
+const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
 
 var app_runtime: Node = null
 
@@ -45,7 +45,7 @@ func build_battle_entry_context(snapshot: RoomSnapshot):
 		ctx.source_server_host = app_runtime.current_room_entry_context.server_host
 		ctx.source_server_port = app_runtime.current_room_entry_context.server_port
 
-	_log_phase23("battle_entry_context_built", ctx.to_dict())
+	_log_battle_entry("battle_entry_context_built", ctx.to_dict())
 	return ctx
 
 
@@ -69,7 +69,7 @@ func request_battle_ticket(ctx) -> Dictionary:
 		"battle_id": ctx.battle_id,
 	})
 
-	_log_phase23("battle_ticket_request_started", {
+	_log_battle_entry("battle_ticket_request_started", {
 		"assignment_id": ctx.assignment_id,
 		"battle_id": ctx.battle_id,
 		"url": url,
@@ -77,7 +77,7 @@ func request_battle_ticket(ctx) -> Dictionary:
 
 	var result := _http_post_json(url, access_token, body)
 	if not bool(result.get("ok", false)):
-		_log_phase23("battle_ticket_request_failed", {
+		_log_battle_entry("battle_ticket_request_failed", {
 			"error_code": String(result.get("error_code", "")),
 			"user_message": String(result.get("user_message", "")),
 		})
@@ -91,7 +91,7 @@ func request_battle_ticket(ctx) -> Dictionary:
 	if ctx.match_id.is_empty():
 		ctx.match_id = String(response.get("match_id", ""))
 
-	_log_phase23("battle_ticket_acquired", {
+	_log_battle_entry("battle_ticket_acquired", {
 		"ticket_id": ctx.battle_ticket_id,
 		"battle_id": ctx.battle_id,
 		"assignment_id": ctx.assignment_id,
@@ -194,5 +194,5 @@ func _parse_url(url: String) -> Dictionary:
 	}
 
 
-func _log_phase23(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[battle_entry] %s %s" % [PHASE23_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.battle.entry")
+func _log_battle_entry(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[battle_entry] %s %s" % [BATTLE_ENTRY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.battle.entry")

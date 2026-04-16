@@ -24,7 +24,7 @@ type Config struct {
 	CommitDeadlineSeconds    int
 	LogSQL                   bool
 
-	// Phase23: DS Manager Service URL
+	// DS Manager Service URL
 	DSManagerURL string
 }
 
@@ -70,7 +70,7 @@ func LoadFromEnv() (*Config, error) {
 		CommitDeadlineSeconds:    commitDeadlineSeconds,
 		LogSQL:                   logSQL,
 
-		// Phase23
+		// Room/Battle process split
 		DSManagerURL: configx.Env("GAME_DS_MANAGER_URL", "http://127.0.0.1:18090"),
 	}
 

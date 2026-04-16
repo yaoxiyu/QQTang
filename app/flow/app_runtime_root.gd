@@ -96,7 +96,7 @@ var logout_use_case: RefCounted = null
 var login_use_case: RefCounted = null
 var lobby_use_case: RefCounted = null
 var lobby_directory_use_case: RefCounted = null
-# LEGACY: kept as nullable compatibility slot; Phase22 formal UI must not create or call MatchmakingUseCase.
+# LEGACY: kept as nullable compatibility slot; formal UI must not create or call MatchmakingUseCase.
 var matchmaking_use_case: RefCounted = null
 var career_use_case: RefCounted = null
 var room_use_case: RefCounted = null
@@ -108,7 +108,7 @@ var pending_room_action: String = ""
 
 var current_room_snapshot = null
 var current_start_config = null
-var current_battle_entry_context = null  # Phase23: BattleEntryContext for battle_ds entry
+var current_battle_entry_context = null
 var current_battle_content_manifest: Dictionary = {}
 var current_battle_scene: Node = null
 var current_battle_bootstrap: Node = null
@@ -331,7 +331,7 @@ func clear_battle_payload() -> void:
 	current_battle_camera_controller = null
 	current_settlement_controller = null
 	current_settlement_popup_summary = {}
-	# Phase23: Clear battle entry context
+	# Clear battle entry context.
 	current_battle_entry_context = null
 	battle_context.clear_battle_payload()
 	# Phase17: Clear resume payload

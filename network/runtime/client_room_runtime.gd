@@ -219,6 +219,12 @@ func request_cancel_match_queue() -> void:
 	})
 
 
+func request_battle_return() -> void:
+	_send_to_server({
+		"message_type": TransportMessageTypesScript.ROOM_BATTLE_RETURN,
+	})
+
+
 func request_toggle_ready() -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_TOGGLE_READY,

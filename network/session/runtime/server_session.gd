@@ -1,6 +1,10 @@
 class_name ServerSession
 extends Node
 
+const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const TRACE_TAG := "sync.trace"
+
 var room_session: RoomSession = RoomSession.new()
 var active_match: BattleMatch = null
 var outgoing_messages: Array[Dictionary] = []
@@ -77,6 +81,7 @@ func _tick_world(_tick_id: int) -> void:
 	var tick_id := int(result.get("tick", 0))
 	var snapshot: WorldSnapshot = active_match.get_snapshot(tick_id)
 	var events: Array = _serialize_events(result.get("events", []))
+	_log_bubble_placed_events(tick_id, events, snapshot)
 	_queue_message({
 		"msg_type": "STATE_SUMMARY",
 		"tick": tick_id,
@@ -144,6 +149,28 @@ func _serialize_events(raw_events: Array) -> Array[Dictionary]:
 			"payload": _normalize_variant(raw_event.payload),
 		})
 	return serialized
+
+
+func _log_bubble_placed_events(tick_id: int, events: Array[Dictionary], snapshot: WorldSnapshot) -> void:
+	for event in events:
+		if int(event.get("event_type", -1)) != SimEventScript.EventType.BUBBLE_PLACED:
+			continue
+		var payload: Dictionary = event.get("payload", {})
+		LogSyncScript.info(
+			"authority_bubble_placed tick=%d bubble_id=%d owner=%d cell=(%d,%d) snapshot_bubbles=%d" % [
+				tick_id,
+				int(payload.get("bubble_id", -1)),
+				int(payload.get("owner_player_id", -1)),
+				int(payload.get("cell_x", -1)),
+				int(payload.get("cell_y", -1)),
+				snapshot.bubbles.size() if snapshot != null else -1,
+			],
+			"",
+			0,
+			"%s sync.server_session" % TRACE_TAG
+		)
+
+
 func _normalize_variant(value: Variant) -> Variant:
 	if value is Vector2i:
 		return {"x": value.x, "y": value.y, "__type": "Vector2i"}

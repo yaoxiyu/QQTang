@@ -30,10 +30,12 @@ func main() {
 		ProjectRoot:        cfg.ProjectRoot,
 		BattleScenePath:    cfg.BattleScenePath,
 		BattleTicketSecret: cfg.BattleTicketSecret,
+		BattleLogDir:       cfg.BattleLogDir,
 	})
 
 	allocateHandler := httpapi.NewAllocateHandler(alloc, runner)
 	readyHandler := httpapi.NewReadyHandler(alloc)
+	activeHandler := httpapi.NewActiveHandler(alloc)
 	reapHandler := httpapi.NewReapHandler(alloc, runner)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
@@ -41,6 +43,7 @@ func main() {
 		ProcessRunner:   runner,
 		AllocateHandler: allocateHandler,
 		ReadyHandler:    readyHandler,
+		ActiveHandler:   activeHandler,
 		ReapHandler:     reapHandler,
 	})
 

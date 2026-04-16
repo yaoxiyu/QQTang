@@ -99,7 +99,7 @@ func _initialize_runtime() -> void:
 	_runtime_bound = true
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
 	if _app_runtime != null and _app_runtime.current_start_config == null:
-		# Phase23: Build BattleStartConfig from BattleEntryContext (battle ticket flow)
+		# Build BattleStartConfig from BattleEntryContext (battle ticket flow).
 		var battle_entry_ctx = _app_runtime.current_battle_entry_context
 		if battle_entry_ctx != null and battle_entry_ctx.is_valid():
 			var config: BattleStartConfig = _build_start_config_from_battle_entry(battle_entry_ctx)
@@ -375,9 +375,10 @@ func _collect_local_input() -> Dictionary:
 				move_y = -1
 			"down":
 				move_y = 1
-	var place_just_pressed := _place_action_latched
+	var place_pressed := Input.is_key_pressed(KEY_SPACE)
+	var place_just_pressed := _place_action_latched or (place_pressed and not _last_place_pressed)
 	_place_action_latched = false
-	_last_place_pressed = Input.is_key_pressed(KEY_SPACE)
+	_last_place_pressed = place_pressed
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
@@ -655,12 +656,10 @@ func _apply_content_style_overrides() -> void:
 func _apply_player_visual_profiles() -> void:
 	if presentation_bridge == null or _app_runtime == null:
 		return
-	var room_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot
 	var start_config: BattleStartConfig = _app_runtime.current_start_config
 	if start_config == null:
 		return
-	if room_snapshot == null:
-		room_snapshot = _build_fallback_room_snapshot_from_start_config(start_config)
+	var room_snapshot := _resolve_battle_room_snapshot(start_config)
 	if room_snapshot == null:
 		return
 	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
@@ -668,18 +667,28 @@ func _apply_player_visual_profiles() -> void:
 	if runtime_config == null:
 		return
 	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
+	LogFrontScript.debug(
+		"%s[battle_scene] player_visual_profiles_applied room_id=%s room_members=%d start_players=%d profiles=%d" % [
+			ONLINE_LOG_PREFIX,
+			String(room_snapshot.room_id),
+			room_snapshot.member_count(),
+			start_config.player_slots.size(),
+			player_visual_profiles.size(),
+		],
+		"",
+		0,
+		"front.battle.scene"
+	)
 	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
 
 
 func _apply_map_theme() -> void:
 	if _app_runtime == null:
 		return
-	var room_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot
 	var start_config: BattleStartConfig = _app_runtime.current_start_config
 	if start_config == null:
 		return
-	if room_snapshot == null:
-		room_snapshot = _build_fallback_room_snapshot_from_start_config(start_config)
+	var room_snapshot := _resolve_battle_room_snapshot(start_config)
 	if room_snapshot == null:
 		return
 	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
@@ -693,6 +702,30 @@ func _apply_map_theme() -> void:
 		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
 	if map_root != null:
 		map_root.apply_map_theme(runtime_config.map_theme)
+
+
+func _resolve_battle_room_snapshot(start_config: BattleStartConfig) -> RoomSnapshot:
+	if start_config == null:
+		return null
+	var current_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot if _app_runtime != null else null
+	if _snapshot_covers_start_config_players(current_snapshot, start_config):
+		return current_snapshot
+	return _build_fallback_room_snapshot_from_start_config(start_config)
+
+
+func _snapshot_covers_start_config_players(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> bool:
+	if snapshot == null or start_config == null:
+		return false
+	var member_peer_ids: Dictionary = {}
+	for member in snapshot.members:
+		if member == null:
+			continue
+		member_peer_ids[int(member.peer_id)] = true
+	for player_entry in start_config.player_slots:
+		var peer_id := int(player_entry.get("peer_id", -1))
+		if peer_id <= 0 or not member_peer_ids.has(peer_id):
+			return false
+	return true
 
 
 func _build_start_config_from_battle_entry(ctx: BattleEntryContext) -> BattleStartConfig:

@@ -68,9 +68,10 @@ func handle_peer_disconnected(peer_id: int) -> void:
 func handle_match_finished() -> void:
 	if room_state == null:
 		return
-	room_state.match_active = false
-	room_state.reset_ready_state()
+	_restore_after_battle_return()
 	_broadcast_snapshot()
+	if room_state.is_match_room():
+		_broadcast_match_queue_status()
 
 
 func handle_loading_started() -> void:
@@ -136,6 +137,8 @@ func handle_message(message: Dictionary) -> void:
 			_handle_enter_match_queue(message)
 		TransportMessageTypesScript.ROOM_CANCEL_MATCH_QUEUE:
 			_handle_cancel_match_queue(message)
+		TransportMessageTypesScript.ROOM_BATTLE_RETURN:
+			_handle_battle_return(message)
 		TransportMessageTypesScript.ROOM_TOGGLE_READY:
 			_handle_toggle_ready(message)
 		TransportMessageTypesScript.ROOM_START_REQUEST:
@@ -572,6 +575,21 @@ func _handle_cancel_match_queue(message: Dictionary) -> void:
 	_broadcast_match_queue_status()
 
 
+func _handle_battle_return(message: Dictionary) -> void:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	_log_room_service("battle_return_received", {
+		"peer_id": peer_id,
+		"room_id": room_state.room_id if room_state != null else "",
+		"queue_state": room_state.room_queue_state if room_state != null else "",
+		"match_active": bool(room_state.match_active) if room_state != null else false,
+		"battle_id": room_state.current_battle_id if room_state != null else "",
+	})
+	_restore_after_battle_return()
+	_broadcast_snapshot()
+	if room_state.is_match_room():
+		_broadcast_match_queue_status()
+
+
 func poll_queue_status() -> void:
 	if room_state == null or room_state.room_queue_state != "queueing":
 		return
@@ -595,6 +613,25 @@ func poll_queue_status() -> void:
 		_cancel_match_queue_locally(queue_state)
 		_broadcast_snapshot()
 		_broadcast_match_queue_status()
+
+
+func _restore_after_battle_return() -> void:
+	if room_state == null:
+		return
+	room_state.match_active = false
+	room_state.reset_ready_state()
+	room_state.room_queue_state = "idle"
+	room_state.room_queue_entry_id = ""
+	room_state.room_queue_status_text = ""
+	room_state.room_queue_error_code = ""
+	room_state.room_queue_error_message = ""
+	room_state.room_lifecycle_state = "idle"
+	room_state.current_assignment_id = ""
+	room_state.current_battle_id = ""
+	room_state.current_match_id = ""
+	room_state.battle_allocation_state = ""
+	room_state.battle_server_host = ""
+	room_state.battle_server_port = 0
 
 
 func _apply_queue_assignment(result: Dictionary) -> void:

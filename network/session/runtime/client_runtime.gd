@@ -390,23 +390,31 @@ func _apply_authority_sideband_from_message(message: Dictionary, include_walls: 
 		return
 	var world := prediction_controller.predicted_sim_world
 	var message_tick := int(message.get("tick", 0))
+	var has_bubbles := message.has("bubbles")
+	var has_items := message.has("items")
+	var has_walls := include_walls and message.has("walls")
+	var has_match_state := message.has("match_state")
+	var has_mode_state := include_mode_state and message.has("mode_state")
 	var bubbles: Array[Dictionary] = _coerce_dictionary_array(message.get("bubbles", []))
 	var items: Array[Dictionary] = _coerce_dictionary_array(message.get("items", []))
 	var walls: Array[Dictionary] = []
 	var match_state: Dictionary = _coerce_dictionary(message.get("match_state", {}))
 	var mode_state: Dictionary = {}
-	if include_walls:
+	if has_walls:
 		walls = _coerce_dictionary_array(message.get("walls", []))
-	if include_mode_state:
+	if has_mode_state:
 		mode_state = _coerce_dictionary(message.get("mode_state", {}))
-	if bubbles.is_empty() and items.is_empty() and walls.is_empty() and match_state.is_empty() and mode_state.is_empty():
+	if not has_bubbles and not has_items and not has_walls and not has_match_state and not has_mode_state:
 		return
-	_restore_bubbles(world, bubbles)
-	_restore_items(world, items)
-	if include_walls:
+	if has_bubbles:
+		_restore_bubbles(world, bubbles)
+	if has_items:
+		_restore_items(world, items)
+	if has_walls:
 		_restore_walls(world, walls)
-	_restore_match_state(world, match_state, message_tick)
-	if include_mode_state:
+	if has_match_state:
+		_restore_match_state(world, match_state, message_tick)
+	if has_mode_state:
 		_restore_mode_state(world, mode_state)
 	world.rebuild_runtime_indexes()
 	_last_applied_authority_sideband_tick = max(_last_applied_authority_sideband_tick, message_tick)
@@ -424,15 +432,32 @@ func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool
 	if not requested_place:
 		return false
 	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		LogSyncScript.debug(
+			"place_request tick=%d effective=true reason=no_prediction_world" % local_tick,
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
 		return true
 	var world := prediction_controller.predicted_sim_world
 	var player := _get_controlled_player_state(world)
 	if player == null:
+		LogSyncScript.debug(
+			"place_request tick=%d effective=true reason=no_controlled_player" % local_tick,
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
 		return true
 	var target_cell := BubblePlaceResolverScript.resolve_place_cell(player)
-	if world.state.grid == null or not world.state.grid.is_in_bounds(target_cell.x, target_cell.y):
+	var bomb_available := int(player.bomb_available)
+	if bomb_available <= 0:
 		LogSyncScript.warn(
-			"place_blocked reason=out_of_bounds cell=(%d,%d)" % [
+			"place_blocked reason=no_bomb tick=%d slot=%d entity=%d bomb_available=%d cell=(%d,%d)" % [
+				local_tick,
+				int(player.player_slot),
+				int(player.entity_id),
+				bomb_available,
 				target_cell.x,
 				target_cell.y,
 			],
@@ -441,6 +466,49 @@ func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool
 			"%s sync.client_runtime" % TRACE_TAG
 		)
 		return false
+	if world.state.grid == null or not world.state.grid.is_in_bounds(target_cell.x, target_cell.y):
+		LogSyncScript.warn(
+			"place_blocked reason=out_of_bounds tick=%d slot=%d entity=%d cell=(%d,%d)" % [
+				local_tick,
+				int(player.player_slot),
+				int(player.entity_id),
+				target_cell.x,
+				target_cell.y,
+			],
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
+		return false
+	var bubble_at_cell := world.queries.get_bubble_at(target_cell.x, target_cell.y)
+	if bubble_at_cell != -1:
+		LogSyncScript.warn(
+			"place_blocked reason=bubble_occupied tick=%d slot=%d entity=%d bubble_id=%d cell=(%d,%d)" % [
+				local_tick,
+				int(player.player_slot),
+				int(player.entity_id),
+				bubble_at_cell,
+				target_cell.x,
+				target_cell.y,
+			],
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
+		return false
+	LogSyncScript.debug(
+		"place_request tick=%d effective=true slot=%d entity=%d bomb_available=%d cell=(%d,%d)" % [
+			local_tick,
+			int(player.player_slot),
+			int(player.entity_id),
+			bomb_available,
+			target_cell.x,
+			target_cell.y,
+		],
+		"",
+		0,
+		"%s sync.client_runtime" % TRACE_TAG
+	)
 	return true
 
 

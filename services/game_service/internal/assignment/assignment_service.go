@@ -3,6 +3,7 @@ package assignment
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"qqtang/services/game_service/internal/storage"
@@ -25,7 +26,7 @@ func NewService(repo *storage.AssignmentRepository, captainDeadline time.Duratio
 	return &Service{repo: repo, captainDeadline: captainDeadline}
 }
 
-func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID string, profileID string, roomKind string) (GrantResult, error) {
+func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID string, profileID string, roomKind string, battleID string, ticketType string) (GrantResult, error) {
 	assignmentRecord, err := s.repo.FindByID(ctx, assignmentID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -43,7 +44,12 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 	if member.ProfileID != profileID {
 		return GrantResult{}, ErrAssignmentGrantForbidden
 	}
-	if roomKind != "" && roomKind != assignmentRecord.RoomKind {
+	isBattleTicket := strings.EqualFold(strings.TrimSpace(ticketType), "battle")
+	if isBattleTicket {
+		if battleID == "" || assignmentRecord.BattleID != battleID {
+			return GrantResult{}, ErrAssignmentGrantForbidden
+		}
+	} else if roomKind != "" && roomKind != assignmentRecord.RoomKind {
 		return GrantResult{}, ErrAssignmentGrantForbidden
 	}
 	if assignmentRecord.CommitDeadlineUnixSec < time.Now().UTC().Unix() || assignmentRecord.State == "finalized" {
@@ -56,7 +62,7 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 	if err := s.repo.MarkMemberTicketGranted(ctx, assignmentRecord.AssignmentID, member.AccountID); err != nil {
 		return GrantResult{}, err
 	}
-	return GrantResult{
+	result := GrantResult{
 		AssignmentID:           assignmentRecord.AssignmentID,
 		AssignmentRevision:     assignmentRecord.AssignmentRevision,
 		GrantState:             "grantable",
@@ -79,7 +85,19 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 		CaptainAccountID:       assignmentRecord.CaptainAccountID,
 		CaptainDeadlineUnixSec: assignmentRecord.CaptainDeadlineUnixSec,
 		CommitDeadlineUnixSec:  assignmentRecord.CommitDeadlineUnixSec,
-	}, nil
+		BattleID:               assignmentRecord.BattleID,
+		BattleServerHost:       assignmentRecord.BattleServerHost,
+		BattleServerPort:       assignmentRecord.BattleServerPort,
+		AllocationState:        assignmentRecord.AllocationState,
+	}
+	if isBattleTicket {
+		result.RoomID = ""
+		result.RoomKind = ""
+		result.ServerHost = ""
+		result.ServerPort = 0
+		result.HiddenRoom = false
+	}
+	return result, nil
 }
 
 func (s *Service) CommitRoom(ctx context.Context, input CommitInput) (CommitResult, error) {

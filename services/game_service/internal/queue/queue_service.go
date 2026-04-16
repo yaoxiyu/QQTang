@@ -408,6 +408,12 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 		return QueueStatus{}, ErrAssignmentRevisionStale
 	}
 	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+	resolvedHost := assignment.ServerHost
+	resolvedPort := assignment.ServerPort
+	if assignment.BattleServerHost != "" && assignment.BattleServerPort > 0 {
+		resolvedHost = assignment.BattleServerHost
+		resolvedPort = assignment.BattleServerPort
+	}
 	return QueueStatus{
 		QueueState:             entry.State,
 		QueueEntryID:           entry.QueueEntryID,
@@ -422,8 +428,8 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 		TicketRole:             member.TicketRole,
 		RoomID:                 assignment.RoomID,
 		RoomKind:               assignment.RoomKind,
-		ServerHost:             assignment.ServerHost,
-		ServerPort:             assignment.ServerPort,
+		ServerHost:             resolvedHost,
+		ServerPort:             resolvedPort,
 		ModeID:                 assignment.ModeID,
 		RuleSetID:              assignment.RuleSetID,
 		MapID:                  assignment.MapID,
@@ -640,10 +646,6 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 	if err != nil {
 		return nil, err
 	}
-	roomID, err := opaqueID("room")
-	if err != nil {
-		return nil, err
-	}
 	matchID, err := opaqueID("match")
 	if err != nil {
 		return nil, err
@@ -653,19 +655,20 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		return nil, err
 	}
 	expectedMemberCount := requiredPartySize * 2
+	sourceRoomKind := resolveMatchRoomKind(entry.QueueType)
 	assignmentRecord := storage.Assignment{
 		AssignmentID:           assignmentID,
 		QueueKey:               entry.QueueKey,
 		QueueType:              entry.QueueType,
 		SeasonID:               s.defaultSeasonID,
-		RoomID:                 roomID,
-		RoomKind:               "matchmade_room",
+		RoomID:                 entry.PartyRoomID,
+		RoomKind:               sourceRoomKind,
 		MatchID:                matchID,
 		ModeID:                 finalModeID,
 		RuleSetID:              finalRuleSetID,
 		MapID:                  finalMapID,
-		ServerHost:             s.defaultDSHost,
-		ServerPort:             s.defaultDSPort,
+		ServerHost:             "",
+		ServerPort:             0,
 		CaptainAccountID:       selected[0].CaptainAccountID,
 		AssignmentRevision:     1,
 		ExpectedMemberCount:    expectedMemberCount,
@@ -674,12 +677,11 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		CommitDeadlineUnixSec:  now.Add(time.Duration(s.commitDeadlineSeconds) * time.Second).Unix(),
 		CreatedAt:              now,
 		UpdatedAt:              now,
-		// Phase23: battle allocation fields
-		SourceRoomID:     "",
-		SourceRoomKind:   "",
-		BattleID:         battleID,
-		AllocationState:  "assigned",
-		RoomReturnPolicy: "return_to_source_room",
+		SourceRoomID:           entry.PartyRoomID,
+		SourceRoomKind:         sourceRoomKind,
+		BattleID:               battleID,
+		AllocationState:        "allocating",
+		RoomReturnPolicy:       "return_to_source_room",
 	}
 	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
 		return nil, err
@@ -696,15 +698,15 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 			}
 			member := storage.AssignmentMember{
 				AssignmentID:    assignmentID,
-				AccountID:      queuedMember.AccountID,
-				ProfileID:      queuedMember.ProfileID,
-				TicketRole:     role,
-				AssignedTeamID: partyIndex + 1,
-				RatingBefore:   queuedMember.RatingSnapshot,
-				JoinState:      "assigned",
-				ResultState:    "",
-				CreatedAt:      now,
-				UpdatedAt:      now,
+				AccountID:       queuedMember.AccountID,
+				ProfileID:       queuedMember.ProfileID,
+				TicketRole:      role,
+				AssignedTeamID:  partyIndex + 1,
+				RatingBefore:    queuedMember.RatingSnapshot,
+				JoinState:       "assigned",
+				ResultState:     "",
+				CreatedAt:       now,
+				UpdatedAt:       now,
 				BattleJoinState: "assigned",
 				RoomReturnState: "pending",
 			}
@@ -720,6 +722,8 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		AssignmentID:        assignmentID,
 		BattleID:            battleID,
 		MatchID:             matchID,
+		SourceRoomID:        entry.PartyRoomID,
+		SourceRoomKind:      sourceRoomKind,
 		ModeID:              finalModeID,
 		RuleSetID:           finalRuleSetID,
 		MapID:               finalMapID,
@@ -786,7 +790,7 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 		CommitDeadlineUnixSec:  now.Add(time.Duration(s.commitDeadlineSeconds) * time.Second).Unix(),
 		CreatedAt:              now,
 		UpdatedAt:              now,
-		// Phase23: battle allocation fields
+		// Battle allocation fields.
 		SourceRoomID:     "",
 		SourceRoomKind:   "",
 		BattleID:         battleID,
@@ -856,6 +860,15 @@ func requiredPartySizeFromMatchFormat(matchFormatID string) int {
 		return 4
 	default:
 		return 0
+	}
+}
+
+func resolveMatchRoomKind(queueType string) string {
+	switch queueType {
+	case "ranked":
+		return "ranked_match_room"
+	default:
+		return "casual_match_room"
 	}
 }
 

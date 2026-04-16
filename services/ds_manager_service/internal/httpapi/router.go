@@ -13,6 +13,7 @@ type RouterDeps struct {
 	AllocateHandler *AllocateHandler
 	ReapHandler     *ReapHandler
 	ReadyHandler    *ReadyHandler
+	ActiveHandler   *ActiveHandler
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
@@ -25,6 +26,7 @@ func NewRouter(deps RouterDeps) http.Handler {
 
 	mux.HandleFunc("POST /internal/v1/battles/allocate", deps.AllocateHandler.Handle)
 	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/ready", deps.ReadyHandler.Handle)
+	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/active", deps.ActiveHandler.Handle)
 	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/reap", deps.ReapHandler.Handle)
 
 	return mux

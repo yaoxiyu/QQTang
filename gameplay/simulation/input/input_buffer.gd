@@ -62,6 +62,8 @@ func push_input(frame: PlayerInputFrame) -> void:
 
 	var peer_frames: Dictionary = frames_by_peer[frame.peer_id]
 	if peer_frames.has(frame.tick_id):
+		_merge_input_frame(peer_frames[frame.tick_id], frame)
+		last_input_by_peer[frame.peer_id] = peer_frames[frame.tick_id]
 		return
 
 	peer_frames[frame.tick_id] = frame
@@ -142,3 +144,16 @@ func clear() -> void:
 	frames_by_peer.clear()
 	last_ack_tick_by_peer.clear()
 	last_input_by_peer.clear()
+
+
+func _merge_input_frame(existing: PlayerInputFrame, incoming: PlayerInputFrame) -> void:
+	if existing == null or incoming == null:
+		return
+	if incoming.seq >= existing.seq:
+		existing.seq = incoming.seq
+		existing.move_x = incoming.move_x
+		existing.move_y = incoming.move_y
+	existing.action_place = existing.action_place or incoming.action_place
+	existing.action_skill1 = existing.action_skill1 or incoming.action_skill1
+	existing.action_skill2 = existing.action_skill2 or incoming.action_skill2
+	existing.sanitize()

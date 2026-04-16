@@ -1,6 +1,6 @@
 extends Node
 
-## DEPRECATED (Phase23): Use battle_dedicated_server_bootstrap.gd for battle-only DS,
+## DEPRECATED: Use battle_dedicated_server_bootstrap.gd for battle-only DS,
 ## or room_service_bootstrap.gd for room service.
 ## This file is kept as a compatibility wrapper during migration.
 

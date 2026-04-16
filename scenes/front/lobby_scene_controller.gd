@@ -438,14 +438,14 @@ func _on_refresh_career_pressed() -> void:
 
 
 func _on_enter_queue_pressed() -> void:
-	# LEGACY: Phase22 formal flow enters queue from match rooms, not Lobby.
+	# LEGACY: formal flow enters queue from match rooms, not Lobby.
 	_log_online_lobby("enter_queue_blocked_room_required", _build_online_debug_context())
 	_set_message("Create or join a room first, ready the room, then enter matchmaking from the room.")
 	_set_directory_status("Create or join a room first.")
 
 
 func _on_cancel_queue_pressed() -> void:
-	# LEGACY: Phase22 formal flow cancels queue from match rooms, not Lobby.
+	# LEGACY: formal flow cancels queue from match rooms, not Lobby.
 	_set_message("Cancel matchmaking from the match room.")
 	_log_online_lobby("cancel_queue_succeeded", _build_online_debug_context())
 

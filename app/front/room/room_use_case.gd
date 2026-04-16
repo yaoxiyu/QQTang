@@ -53,7 +53,7 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 		_log_room_anomaly("enter_room_without_runtime", {})
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
 	if _is_matchmade_room(entry_context):
-		# Phase23: Only force lobby return if room_return_policy is not return_to_source_room
+		# Only force lobby return if room_return_policy is not return_to_source_room.
 		if not _has_source_room_return_policy(entry_context):
 			entry_context.return_target = FrontReturnTargetScript.LOBBY
 			entry_context.return_to_lobby_after_settlement = true
@@ -98,7 +98,7 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
-	# Phase23: matchmade_room no longer forces lobby return; room_return_policy governs this
+	# matchmade_room no longer forces lobby return; room_return_policy governs this.
 	if _is_matchmade_room():
 		var return_policy := ""
 		if app_runtime.current_room_snapshot != null:
@@ -266,12 +266,12 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	_update_reconnect_state(snapshot)
 
 
-## Phase23: Public method — build connection config for room_service only.
+## Public method: build connection config for room_service only.
 func build_room_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
 	return _build_connection_config(entry_context)
 
 
-## Phase23: Build BattleEntryContext from authoritative RoomSnapshot Phase23 fields.
+## Build BattleEntryContext from authoritative RoomSnapshot fields.
 ## Returns null if the snapshot doesn't have battle_entry_ready or required fields.
 func build_battle_entry_context(snapshot: RoomSnapshot = null):
 	var target_snapshot := snapshot

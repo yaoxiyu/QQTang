@@ -471,19 +471,49 @@ func _inject_pending_resume_snapshot() -> void:
 
 func _advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
 	if _bootstrap_client_runtime == null:
+		network_log_event.emit("client_tick_skip reason=no_client_runtime mode=%d transport=%s" % [network_mode, str(transport != null)])
 		return
-	# Phase23: send input directly to the DS over ENet.
 	var input_message := _bootstrap_client_runtime.build_local_input_message(local_input)
 	if not input_message.is_empty() and transport != null and transport.is_transport_connected():
 		transport.send_to_peer(1, input_message)
-	# Drain DS -> client messages (STATE_SUMMARY / CHECKPOINT / INPUT_ACK / ...).
 	if transport != null:
 		transport.poll()
 		var incoming := transport.consume_incoming()
+		var connected := transport.is_transport_connected()
+		var local_peer := transport.get_local_peer_id() if transport.has_method("get_local_peer_id") else -1
+		var remote_peers := transport.get_remote_peer_ids() if transport.has_method("get_remote_peer_ids") else []
+		if incoming.is_empty():
+			network_log_event.emit("client_tick_poll incoming=0 connected=%s local_peer=%d remote_peers=%s predicted_tick=%d ack_tick=%d" % [
+				str(connected),
+				local_peer,
+				str(remote_peers),
+				prediction_controller.predicted_until_tick if prediction_controller != null else -1,
+				client_session.last_confirmed_tick if client_session != null else -1,
+			])
+		else:
+			network_log_event.emit("client_tick_poll incoming=%d types=%s connected=%s local_peer=%d remote_peers=%s predicted_tick=%d ack_tick=%d" % [
+				incoming.size(),
+				str(_describe_message_types(incoming)),
+				str(connected),
+				local_peer,
+				str(remote_peers),
+				prediction_controller.predicted_until_tick if prediction_controller != null else -1,
+				client_session.last_confirmed_tick if client_session != null else -1,
+			])
 		if not incoming.is_empty():
 			_ensure_runtime_message_router()
 			_runtime_message_router.route_messages(incoming)
 	_emit_client_runtime_tick()
+
+
+func _describe_message_types(messages: Array) -> Array[String]:
+	var result: Array[String] = []
+	for message in messages:
+		if not (message is Dictionary):
+			result.append("<invalid>")
+			continue
+		result.append(String((message as Dictionary).get("message_type", (message as Dictionary).get("msg_type", ""))))
+	return result
 
 
 func _enqueue_remote_inputs(tick_id: int) -> void:
@@ -1060,10 +1090,17 @@ func _on_bootstrap_join_battle_accepted(message: Dictionary) -> void:
 		return
 	# Phase23: Prefer the DS-issued local_peer_id; fall back to transport-derived value.
 	var resolved_peer_id := int(config.local_peer_id) if int(config.local_peer_id) > 0 else _bootstrap_local_peer_id
-	_start_runtime_session(BattleNetworkMode.CLIENT, config, {
+	var started := _start_runtime_session(BattleNetworkMode.CLIENT, config, {
 		"local_peer_id": resolved_peer_id,
 		"controlled_peer_id": int(config.controlled_peer_id) if int(config.controlled_peer_id) > 0 else resolved_peer_id,
 	})
+	if started and current_context != null:
+		network_log_event.emit("client_runtime_rebound local_peer=%d controlled_peer=%d match_id=%s" % [
+			_bootstrap_local_peer_id,
+			_bootstrap_client_runtime.controlled_peer_id if _bootstrap_client_runtime != null else -1,
+			String(config.match_id),
+		])
+		battle_context_created.emit(current_context)
 
 
 func _on_bootstrap_join_battle_rejected(message: Dictionary) -> void:
@@ -1077,11 +1114,21 @@ func _on_bootstrap_input_frame_message(message: Dictionary) -> void:
 
 func _on_bootstrap_client_runtime_message(message: Dictionary) -> void:
 	if (network_mode == BattleNetworkMode.CLIENT or network_mode == BattleNetworkMode.LOCAL_LOOPBACK) and _bootstrap_client_runtime != null:
+		network_log_event.emit("client_runtime_ingest type=%s tick=%d local_peer=%d controlled_peer=%d" % [
+			String(message.get("message_type", message.get("msg_type", ""))),
+			int(message.get("tick", message.get("ack_tick", 0))),
+			_bootstrap_local_peer_id,
+			_bootstrap_client_runtime.controlled_peer_id if _bootstrap_client_runtime != null else -1,
+		])
 		_bootstrap_client_runtime.ingest_network_message(message)
 
 
-func _on_bootstrap_match_start_message(_message: Dictionary) -> void:
-	pass
+func _on_bootstrap_match_start_message(message: Dictionary) -> void:
+	network_log_event.emit("client_match_start_received match_id=%s local_peer=%d controlled_peer=%d" % [
+		String(message.get("match_id", "")),
+		_bootstrap_local_peer_id,
+		_bootstrap_client_runtime.controlled_peer_id if _bootstrap_client_runtime != null else -1,
+	])
 
 
 func _on_bootstrap_match_finished_message(message: Dictionary) -> void:

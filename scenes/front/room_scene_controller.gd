@@ -543,7 +543,7 @@ func _resolve_local_member(snapshot: RoomSnapshot) -> RoomMemberState:
 
 func _on_room_snapshot_changed(snapshot: RoomSnapshot) -> void:
 	_refresh_room(snapshot)
-	# Phase23: When battle_entry_ready becomes true, trigger battle entry flow
+	# When battle_entry_ready becomes true, trigger battle entry flow.
 	if snapshot != null and snapshot.battle_entry_ready and _room_use_case != null and _front_flow != null:
 		var battle_ctx = _room_use_case.build_battle_entry_context(snapshot)
 		if battle_ctx != null and _app_runtime != null:

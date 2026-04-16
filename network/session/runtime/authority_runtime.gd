@@ -4,6 +4,8 @@ extends Node
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const TRACE_TAG := "sync.trace"
 
 signal match_started(config: BattleStartConfig)
 signal authoritative_tick_completed(tick_result: Dictionary, metrics: Dictionary)
@@ -70,6 +72,7 @@ func ingest_network_message(message: Dictionary) -> void:
 	var frame := PlayerInputFrame.from_dict(message.get("frame", {}))
 	if frame.peer_id <= 0:
 		frame.peer_id = int(message.get("sender_peer_id", 0))
+	_retarget_late_place_frame(frame)
 	server_session.receive_input(frame)
 
 
@@ -131,6 +134,30 @@ func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerIn
 	frame.action_place = bool(local_input.get("action_place", false))
 	frame.sanitize()
 	return frame
+
+
+func _retarget_late_place_frame(frame: PlayerInputFrame) -> void:
+	if frame == null or not frame.action_place:
+		return
+	if server_session == null or server_session.active_match == null or server_session.active_match.sim_world == null:
+		return
+	var authority_tick := int(server_session.active_match.sim_world.state.match_state.tick)
+	if frame.tick_id > authority_tick:
+		return
+	var original_tick := frame.tick_id
+	frame.tick_id = authority_tick + 1
+	frame.sanitize()
+	LogSyncScript.info(
+		"authority_input late_place_retarget peer=%d from_tick=%d to_tick=%d authority_tick=%d" % [
+			frame.peer_id,
+			original_tick,
+			frame.tick_id,
+			authority_tick,
+		],
+		"",
+		0,
+		"%s sync.authority_runtime" % TRACE_TAG
+	)
 
 
 func _decorate_messages(messages: Array) -> Array[Dictionary]:

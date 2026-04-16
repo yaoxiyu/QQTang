@@ -11,6 +11,7 @@ type AllocationState string
 const (
 	StateStarting AllocationState = "starting"
 	StateReady    AllocationState = "ready"
+	StateActive   AllocationState = "active"
 	StateFailed   AllocationState = "failed"
 	StateFinished AllocationState = "finished"
 )
@@ -26,6 +27,8 @@ type DSInstance struct {
 	PID          int
 	CreatedAt    time.Time
 	ReadyAt      time.Time
+	ActiveAt     time.Time
+	UpdatedAt    time.Time
 }
 
 type AllocateRequest struct {
@@ -87,6 +90,7 @@ func (a *Allocator) Allocate(req AllocateRequest) (*AllocateResult, error) {
 		State:        StateStarting,
 		CreatedAt:    time.Now(),
 	}
+	inst.UpdatedAt = inst.CreatedAt
 	a.instances[req.BattleID] = inst
 
 	return &AllocateResult{
@@ -116,7 +120,23 @@ func (a *Allocator) MarkReady(battleID string) error {
 		return fmt.Errorf("battle %s in state %s, expected starting", battleID, inst.State)
 	}
 	inst.State = StateReady
-	inst.ReadyAt = time.Now()
+	now := time.Now()
+	inst.ReadyAt = now
+	inst.UpdatedAt = now
+	return nil
+}
+
+func (a *Allocator) MarkActive(battleID string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	inst, ok := a.instances[battleID]
+	if !ok {
+		return fmt.Errorf("battle %s not found", battleID)
+	}
+	inst.State = StateActive
+	now := time.Now()
+	inst.ActiveAt = now
+	inst.UpdatedAt = now
 	return nil
 }
 
@@ -125,6 +145,7 @@ func (a *Allocator) MarkFailed(battleID string) {
 	defer a.mu.Unlock()
 	if inst, ok := a.instances[battleID]; ok {
 		inst.State = StateFailed
+		inst.UpdatedAt = time.Now()
 	}
 }
 
@@ -133,6 +154,7 @@ func (a *Allocator) MarkFinished(battleID string) {
 	defer a.mu.Unlock()
 	if inst, ok := a.instances[battleID]; ok {
 		inst.State = StateFinished
+		inst.UpdatedAt = time.Now()
 	}
 }
 
@@ -185,6 +207,8 @@ func (a *Allocator) ListStale(readyTimeout, idleReapTimeout time.Duration) []str
 			if now.Sub(inst.ReadyAt) > idleReapTimeout {
 				stale = append(stale, battleID)
 			}
+		case StateActive:
+			continue
 		case StateFailed:
 			stale = append(stale, battleID)
 		}

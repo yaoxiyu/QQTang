@@ -4,7 +4,7 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const BattleEntryUseCaseScript = preload("res://app/front/battle/battle_entry_use_case.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const PHASE23_LOG_PREFIX := "[QQT_P23]"
+const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
 
 @onready var loading_root: Control = $LoadingRoot
 @onready var main_layout: VBoxContainer = $LoadingRoot/MainLayout
@@ -29,7 +29,7 @@ var _front_flow: Node = null
 var _room_client_gateway: RefCounted = null
 var _local_prepare_completed: bool = false
 var _transition_handled: bool = false
-var _battle_entry_context = null  # Phase23: BattleEntryContext if in battle entry flow
+var _battle_entry_context = null
 
 
 func _ready() -> void:
@@ -55,10 +55,9 @@ func _on_runtime_ready() -> void:
 	_room_client_gateway = _app_runtime.room_use_case.get("room_client_gateway") if _app_runtime.room_use_case != null else null
 	_connect_gateway_signals()
 
-	# Phase23: Check if this is a battle entry flow
 	if "current_battle_entry_context" in _app_runtime and _app_runtime.current_battle_entry_context != null:
 		_battle_entry_context = _app_runtime.current_battle_entry_context
-		_log_phase23("loading_scene_battle_entry_mode", _battle_entry_context.to_dict())
+		_log_battle_entry("loading_scene_battle_entry_mode", _battle_entry_context.to_dict())
 		_run_battle_entry_flow()
 		return
 
@@ -196,7 +195,7 @@ func _handle_loading_aborted(snapshot: MatchLoadingSnapshot) -> void:
 		_front_flow.enter_room()
 
 
-## Phase23: Battle entry flow — request ticket, update UI, transition to battle.
+## Battle entry flow: request ticket, update UI, transition to battle.
 func _run_battle_entry_flow() -> void:
 	if _battle_entry_context == null or _app_runtime == null:
 		_set_loading_status("Battle entry context missing")
@@ -206,7 +205,7 @@ func _run_battle_entry_flow() -> void:
 	loading_label.text = "Entering Battle"
 
 	if not _battle_entry_context.is_valid():
-		_log_phase23("battle_entry_context_invalid", _battle_entry_context.to_dict())
+		_log_battle_entry("battle_entry_context_invalid", _battle_entry_context.to_dict())
 		_set_loading_status("Battle server not ready")
 		_abort_battle_entry("BATTLE_ENTRY_INVALID", "Battle entry context is invalid")
 		return
@@ -220,7 +219,7 @@ func _run_battle_entry_flow() -> void:
 	var ticket_result_raw = battle_entry_use_case.call("request_battle_ticket", _battle_entry_context)
 	var ticket_result: Dictionary = ticket_result_raw if ticket_result_raw is Dictionary else {"ok": false, "error_code": "INVALID_RESULT", "user_message": "Invalid ticket result"}
 	if not bool(ticket_result.get("ok", false)):
-		_log_phase23("battle_ticket_failed", ticket_result)
+		_log_battle_entry("battle_ticket_failed", ticket_result)
 		_set_loading_status("Battle ticket failed: %s" % String(ticket_result.get("user_message", "")))
 		_abort_battle_entry(
 			String(ticket_result.get("error_code", "BATTLE_TICKET_FAILED")),
@@ -229,7 +228,7 @@ func _run_battle_entry_flow() -> void:
 		return
 
 	_set_loading_status("Battle ticket acquired. Connecting to battle DS...")
-	_log_phase23("battle_entry_ticket_acquired", {
+	_log_battle_entry("battle_entry_ticket_acquired", {
 		"ticket_id": _battle_entry_context.battle_ticket_id,
 		"battle_id": _battle_entry_context.battle_id,
 	})
@@ -258,5 +257,5 @@ func _set_loading_status(text: String) -> void:
 		timeout_hint.text = text
 
 
-func _log_phase23(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[loading_scene] %s %s" % [PHASE23_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.loading.scene")
+func _log_battle_entry(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[loading_scene] %s %s" % [BATTLE_ENTRY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.loading.scene")
