@@ -24,6 +24,17 @@ var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var locked: bool = false
 
+# Phase23: Battle handoff state (populated from authoritative server snapshot)
+var room_lifecycle_state: String = "idle"
+var current_assignment_id: String = ""
+var current_battle_id: String = ""
+var current_match_id: String = ""
+var battle_allocation_state: String = ""
+var battle_server_host: String = ""
+var battle_server_port: int = 0
+var room_return_policy: String = "return_to_source_room"
+var match_active: bool = false
+
 
 func _init(p_room_id: String = "") -> void:
 	room_id = p_room_id

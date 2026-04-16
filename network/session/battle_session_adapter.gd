@@ -389,7 +389,15 @@ func _start_host_runtime(config: BattleStartConfig, options: Dictionary = {}) ->
 
 
 func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
+	# Phase23: Preserve an existing DS transport across the second call
+	# (triggered by JOIN_BATTLE_ACCEPTED with the canonical config).
+	var preserved_transport: IBattleTransport = null
+	if transport != null and transport.is_transport_connected() and network_mode == BattleNetworkMode.CLIENT:
+		preserved_transport = transport
+		transport = null  # prevent shutdown_battle from destroying it
 	shutdown_battle()
+	if preserved_transport != null:
+		transport = preserved_transport
 	_ensure_bootstrap_client_runtime()
 	start_config = config.duplicate_deep() if config != null else null
 	if start_config == null:
@@ -424,7 +432,27 @@ func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) 
 	current_context.rollback_controller = prediction_controller.rollback_controller
 	current_context.visual_sync_controller = visual_sync_controller
 	adapter_configured.emit()
-	
+
+	# Phase23: Bring up ENet transport to the DS if not already connected.
+	if transport == null and not String(start_config.authority_host).is_empty() and int(start_config.authority_port) > 0:
+		network_host = String(start_config.authority_host)
+		network_port = int(start_config.authority_port)
+		_initialize_transport({})
+
+	# Phase23: If transport is already connected and we have a DS-issued config,
+	# respond with MATCH_LOADING_READY so the DS can commit the match.
+	if transport != null and transport.is_transport_connected() \
+			and String(start_config.session_mode) == "network_client" \
+			and String(start_config.topology) == "dedicated_server" \
+			and not String(start_config.match_id).is_empty() \
+			and int(start_config.server_match_revision) > 0:
+		transport.send_to_peer(1, {
+			"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+			"match_id": String(start_config.match_id),
+			"revision": int(start_config.server_match_revision),
+			"sender_peer_id": _bootstrap_local_peer_id,
+		})
+
 	# Phase17: Inject resume checkpoint if pending
 	_inject_pending_resume_snapshot()
 	
@@ -444,15 +472,17 @@ func _inject_pending_resume_snapshot() -> void:
 func _advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
 	if _bootstrap_client_runtime == null:
 		return
-	var app_runtime = get_parent().get_parent() if get_parent() != null and get_parent().get_parent() != null else null
-	if app_runtime == null or not app_runtime.has_method("apply_canonical_start_config"):
-		app_runtime = null
-	var room_runtime = app_runtime.client_room_runtime if app_runtime != null and app_runtime.client_room_runtime != null else null
-	if room_runtime == null or not room_runtime.has_method("send_battle_input"):
-		return
+	# Phase23: send input directly to the DS over ENet.
 	var input_message := _bootstrap_client_runtime.build_local_input_message(local_input)
-	if not input_message.is_empty():
-		room_runtime.send_battle_input(input_message)
+	if not input_message.is_empty() and transport != null and transport.is_transport_connected():
+		transport.send_to_peer(1, input_message)
+	# Drain DS -> client messages (STATE_SUMMARY / CHECKPOINT / INPUT_ACK / ...).
+	if transport != null:
+		transport.poll()
+		var incoming := transport.consume_incoming()
+		if not incoming.is_empty():
+			_ensure_runtime_message_router()
+			_runtime_message_router.route_messages(incoming)
 	_emit_client_runtime_tick()
 
 
@@ -982,6 +1012,19 @@ func _connect_transport_bridge_signals() -> void:
 
 func _on_transport_connected() -> void:
 	network_transport_connected.emit()
+	# Phase23: once the DS socket is up, announce battle entry.
+	if network_mode == BattleNetworkMode.CLIENT and transport != null and start_config != null:
+		# Adopt the ENet-assigned peer ID as our local identity for DS communication.
+		var transport_peer_id := transport.get_local_peer_id() if transport.has_method("get_local_peer_id") else 0
+		if transport_peer_id > 0 and _bootstrap_local_peer_id <= 0:
+			_bootstrap_local_peer_id = transport_peer_id
+		var battle_id := String(start_config.battle_id)
+		if not battle_id.is_empty():
+			transport.send_to_peer(1, {
+				"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
+				"battle_id": battle_id,
+				"sender_peer_id": _bootstrap_local_peer_id if _bootstrap_local_peer_id > 0 else transport_peer_id,
+			})
 
 
 func _on_transport_disconnected() -> void:
@@ -1015,8 +1058,11 @@ func _on_bootstrap_join_battle_accepted(message: Dictionary) -> void:
 	if not bool(validation.get("ok", false)):
 		network_log_event.emit("Client rejected config: %s" % str(validation.get("errors", [])))
 		return
+	# Phase23: Prefer the DS-issued local_peer_id; fall back to transport-derived value.
+	var resolved_peer_id := int(config.local_peer_id) if int(config.local_peer_id) > 0 else _bootstrap_local_peer_id
 	_start_runtime_session(BattleNetworkMode.CLIENT, config, {
-		"local_peer_id": _bootstrap_local_peer_id,
+		"local_peer_id": resolved_peer_id,
+		"controlled_peer_id": int(config.controlled_peer_id) if int(config.controlled_peer_id) > 0 else resolved_peer_id,
 	})
 
 

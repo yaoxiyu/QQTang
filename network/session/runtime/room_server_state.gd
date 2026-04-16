@@ -45,6 +45,7 @@ var match_active: bool = false
 var room_lifecycle_state: String = "idle"  # idle/gathering/queueing/assignment_pending/allocating_battle/battle_ready/in_battle_frozen/awaiting_return/destroying/destroyed
 var current_assignment_id: String = ""
 var current_battle_id: String = ""
+var current_match_id: String = ""
 var battle_allocation_state: String = ""  # ""/allocating/battle_ready/battle_active/finalizing/finalized
 var battle_server_host: String = ""
 var battle_server_port: int = 0
@@ -92,6 +93,7 @@ func reset() -> void:
 	room_lifecycle_state = "idle"
 	current_assignment_id = ""
 	current_battle_id = ""
+	current_match_id = ""
 	battle_allocation_state = ""
 	battle_server_host = ""
 	battle_server_port = 0
@@ -382,6 +384,7 @@ func build_snapshot() -> RoomSnapshot:
 	snapshot.room_lifecycle_state = room_lifecycle_state
 	snapshot.current_assignment_id = current_assignment_id
 	snapshot.current_battle_id = current_battle_id
+	snapshot.current_match_id = current_match_id
 	snapshot.battle_allocation_state = battle_allocation_state
 	snapshot.battle_server_host = battle_server_host
 	snapshot.battle_server_port = battle_server_port
@@ -472,7 +475,7 @@ func can_enter_match_queue(peer_id: int = 0) -> bool:
 		return false
 	if peer_id > 0 and peer_id != owner_peer_id:
 		return false
-	if room_queue_state == "queueing":
+	if room_queue_state != "idle" and room_queue_state != "cancelled":
 		return false
 	if members.size() != required_party_size:
 		return false
@@ -482,6 +485,24 @@ func can_enter_match_queue(peer_id: int = 0) -> bool:
 		if not bool(ready_map.get(member_peer_id, false)):
 			return false
 	return true
+
+
+func diagnose_enter_match_queue(peer_id: int = 0) -> Dictionary:
+	var ready_detail: Dictionary = {}
+	for member_peer_id in members.keys():
+		ready_detail[member_peer_id] = bool(ready_map.get(member_peer_id, false))
+	return {
+		"peer_id": peer_id,
+		"is_match_room": is_match_room(),
+		"room_kind": room_kind,
+		"owner_peer_id": owner_peer_id,
+		"is_owner": peer_id == owner_peer_id,
+		"room_queue_state": room_queue_state,
+		"members_size": members.size(),
+		"required_party_size": required_party_size,
+		"selected_match_mode_ids": selected_match_mode_ids,
+		"ready_map": ready_detail,
+	}
 
 
 func can_update_match_room_config(peer_id: int) -> bool:

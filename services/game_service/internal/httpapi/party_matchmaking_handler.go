@@ -104,6 +104,9 @@ func partyStatusResponse(status queue.PartyQueueStatus) map[string]any {
 		response["captain_account_id"] = status.CaptainAccountID
 		response["captain_deadline_unix_sec"] = status.CaptainDeadlineUnixSec
 		response["commit_deadline_unix_sec"] = status.CommitDeadlineUnixSec
+		response["battle_id"] = status.BattleID
+		response["match_id"] = status.MatchID
+		response["allocation_state"] = status.AllocationState
 	}
 	return response
 }

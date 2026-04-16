@@ -207,6 +207,7 @@ func request_update_match_room_config(match_format_id: String, selected_mode_ids
 
 
 func request_enter_match_queue() -> void:
+	LogNetScript.info("request_enter_match_queue sending ROOM_ENTER_MATCH_QUEUE", "", 0, "net.client_room_runtime")
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_ENTER_MATCH_QUEUE,
 	})

@@ -52,6 +52,9 @@ type PartyQueueStatus struct {
 	CaptainAccountID       string   `json:"captain_account_id,omitempty"`
 	CaptainDeadlineUnixSec int64    `json:"captain_deadline_unix_sec,omitempty"`
 	CommitDeadlineUnixSec  int64    `json:"commit_deadline_unix_sec,omitempty"`
+	BattleID               string   `json:"battle_id,omitempty"`
+	MatchID                string   `json:"match_id,omitempty"`
+	AllocationState        string   `json:"allocation_state,omitempty"`
 }
 
 type QueueStatus struct {

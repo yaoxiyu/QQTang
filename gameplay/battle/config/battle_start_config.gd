@@ -15,6 +15,7 @@ var protocol_version: int = DEFAULT_PROTOCOL_VERSION
 var gameplay_rule_version: int = DEFAULT_GAMEPLAY_RULE_VERSION
 var build_mode: String = BUILD_MODE_CANDIDATE
 var room_id: String = ""
+var battle_id: String = ""
 var match_id: String = ""
 var map_id: String = ""
 var map_version: int = DEFAULT_MAP_VERSION
@@ -50,6 +51,7 @@ func to_dict() -> Dictionary:
 		"gameplay_rule_version": gameplay_rule_version,
 		"build_mode": build_mode,
 		"room_id": room_id,
+		"battle_id": battle_id,
 		"match_id": match_id,
 		"map_id": map_id,
 		"map_version": map_version,
@@ -85,6 +87,7 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.gameplay_rule_version = int(data.get("gameplay_rule_version", DEFAULT_GAMEPLAY_RULE_VERSION))
 	config.build_mode = String(data.get("build_mode", BUILD_MODE_CANDIDATE))
 	config.room_id = String(data.get("room_id", ""))
+	config.battle_id = String(data.get("battle_id", ""))
 	config.match_id = String(data.get("match_id", ""))
 	config.map_id = String(data.get("map_id", ""))
 	config.map_version = int(data.get("map_version", DEFAULT_MAP_VERSION))

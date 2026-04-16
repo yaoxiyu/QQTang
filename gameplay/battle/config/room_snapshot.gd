@@ -28,6 +28,7 @@ var match_active: bool = false
 var room_lifecycle_state: String = "idle"
 var current_assignment_id: String = ""
 var current_battle_id: String = ""
+var current_match_id: String = ""
 var battle_allocation_state: String = ""
 var battle_server_host: String = ""
 var battle_server_port: int = 0
@@ -68,6 +69,7 @@ func to_dict() -> Dictionary:
 		"room_lifecycle_state": room_lifecycle_state,
 		"current_assignment_id": current_assignment_id,
 		"current_battle_id": current_battle_id,
+		"current_match_id": current_match_id,
 		"battle_allocation_state": battle_allocation_state,
 		"battle_server_host": battle_server_host,
 		"battle_server_port": battle_server_port,
@@ -102,6 +104,7 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.room_lifecycle_state = String(data.get("room_lifecycle_state", "idle"))
 	snapshot.current_assignment_id = String(data.get("current_assignment_id", ""))
 	snapshot.current_battle_id = String(data.get("current_battle_id", ""))
+	snapshot.current_match_id = String(data.get("current_match_id", ""))
 	snapshot.battle_allocation_state = String(data.get("battle_allocation_state", ""))
 	snapshot.battle_server_host = String(data.get("battle_server_host", ""))
 	snapshot.battle_server_port = int(data.get("battle_server_port", 0))

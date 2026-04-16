@@ -48,19 +48,14 @@ func route_message(message: Dictionary) -> void:
 			_route_resume_room_message(message)
 		TransportMessageTypesScript.ROOM_UPDATE_PROFILE, \
 		TransportMessageTypesScript.ROOM_UPDATE_SELECTION, \
+		TransportMessageTypesScript.ROOM_UPDATE_MATCH_ROOM_CONFIG, \
+		TransportMessageTypesScript.ROOM_ENTER_MATCH_QUEUE, \
+		TransportMessageTypesScript.ROOM_CANCEL_MATCH_QUEUE, \
 		TransportMessageTypesScript.ROOM_TOGGLE_READY, \
 		TransportMessageTypesScript.ROOM_START_REQUEST, \
 		TransportMessageTypesScript.ROOM_LEAVE, \
 		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
 			_route_bound_room_message(message)
-		TransportMessageTypesScript.INPUT_FRAME:
-			# Phase23: battle input no longer routed through room registry
-			# Kept temporarily for backward compat during transition
-			_route_battle_message(message)
-		TransportMessageTypesScript.MATCH_LOADING_READY:
-			# Phase23: loading messages no longer routed through room registry
-			# Kept temporarily for backward compat during transition
-			_route_loading_message(message)
 		_:
 			pass
 
@@ -225,45 +220,21 @@ func _route_resume_room_message(message: Dictionary) -> void:
 
 func _route_bound_room_message(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	var room_id := String(peer_room_bindings.get(peer_id, ""))
 	if room_id.is_empty():
+		_log_directory_event("route_bound_no_binding", {"peer_id": peer_id, "message_type": message_type})
 		return
 	var runtime = room_runtimes.get(room_id, null)
 	if runtime == null:
+		_log_directory_event("route_bound_no_runtime", {"peer_id": peer_id, "room_id": room_id, "message_type": message_type})
 		peer_room_bindings.erase(peer_id)
 		return
+	_log_directory_event("route_bound_dispatching", {"peer_id": peer_id, "room_id": room_id, "message_type": message_type})
 	runtime.handle_room_message(message)
 	if not runtime.has_peer(peer_id):
 		peer_room_bindings.erase(peer_id)
 	_reconcile_runtime_bindings(room_id, runtime)
-
-
-## Phase23 compat: battle input routing kept for transition period
-func _route_battle_message(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	var room_id := String(peer_room_bindings.get(peer_id, ""))
-	if room_id.is_empty():
-		return
-	var runtime = room_runtimes.get(room_id, null)
-	if runtime == null:
-		peer_room_bindings.erase(peer_id)
-		return
-	if runtime.has_method("handle_battle_message"):
-		runtime.handle_battle_message(message)
-
-
-## Phase23 compat: loading routing kept for transition period
-func _route_loading_message(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	var room_id := String(peer_room_bindings.get(peer_id, ""))
-	if room_id.is_empty():
-		return
-	var runtime = room_runtimes.get(room_id, null)
-	if runtime == null:
-		peer_room_bindings.erase(peer_id)
-		return
-	if runtime.has_method("handle_loading_message"):
-		runtime.handle_loading_message(message)
 
 
 func _create_room_runtime():
@@ -292,7 +263,13 @@ func _on_runtime_send_to_peer(peer_id: int, message: Dictionary, _runtime) -> vo
 
 
 func _on_runtime_broadcast_message(message: Dictionary, runtime) -> void:
-	broadcast_message.emit(message)
+	# Phase23: Only send to members of this room, not all connected peers
+	var room_state = runtime.get_room_state() if runtime != null and runtime.has_method("get_room_state") else null
+	if room_state != null and room_state.members != null:
+		for peer_id in room_state.members.keys():
+			send_to_peer.emit(int(peer_id), message)
+	else:
+		broadcast_message.emit(message)
 	var room_id: String = runtime.get_room_id() if runtime != null else ""
 	_reconcile_runtime_bindings(room_id, runtime)
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))

@@ -18,8 +18,9 @@ param(
     [int]$DSMPortRangeStart = 19010,
     [int]$DSMPortRangeEnd = 19050,
     [string]$BattleTicketSecret = "dev_battle_ticket_secret",
-    [int]$RoomServicePort = 9100,
-    [string]$RoomServiceHost = "127.0.0.1"
+    [int]$RoomServicePort = 9000,
+    [string]$RoomServiceHost = "127.0.0.1",
+    [string]$LogDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -101,25 +102,34 @@ function Start-ServiceWindow {
         [string]$Title,
         [string]$WorkDir,
         [hashtable]$Env,
-        [string]$Command
+        [string]$Command,
+        [string]$LogPath = ""
     )
 
-    $envLines = @()
+    # Write a temp .ps1 script file instead of passing everything via -Command.
+    # This avoids all nested double-quote escaping issues on Windows.
+    $lines = @()
+    $lines += "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title)"
     foreach ($key in $Env.Keys) {
-        $envLines += "`$env:$key = $(Quote-PS ([string]$Env[$key]))"
+        $lines += "`$env:$key = $(Quote-PS ([string]$Env[$key]))"
     }
-    $script = @(
-        "`$Host.UI.RawUI.WindowTitle = $(Quote-PS $Title)"
-        $envLines
-        "Set-Location -LiteralPath $(Quote-PS $WorkDir)"
-        $Command
-    ) -join "; "
+    $lines += "Set-Location -LiteralPath $(Quote-PS $WorkDir)"
+    if (-not [string]::IsNullOrWhiteSpace($LogPath)) {
+        # Go writes logs to stderr. Use cmd.exe to merge stderr into stdout at OS level,
+        # then Tee-Object writes to both console and log file.
+        $lines += "cmd.exe /c `"$Command 2>&1`" | Tee-Object -FilePath $(Quote-PS $LogPath)"
+    } else {
+        $lines += $Command
+    }
 
+    $guid = [guid]::NewGuid().ToString("N").Substring(0, 8)
+    $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) "qqtang_svc_$guid.ps1"
+    $lines | Set-Content -LiteralPath $tempScript -Encoding UTF8
 
     return Start-Process -FilePath $PowerShellExe -ArgumentList @(
         "-NoExit",
         "-ExecutionPolicy", "Bypass",
-        "-Command", $script
+        "-File", $tempScript
     ) -PassThru
 }
 
@@ -128,6 +138,17 @@ $accountRoot = Join-Path $root "services\account_service"
 $gameRoot = Join-Path $root "services\game_service"
 $accountCompose = Join-Path $accountRoot "docker-compose.dev.yml"
 $gameCompose = Join-Path $gameRoot "docker-compose.dev.yml"
+
+if ([string]::IsNullOrWhiteSpace($LogDir)) {
+    $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $LogDir = Join-Path $root (Join-Path 'logs' "services_$timestamp")
+}
+New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+$accountLogPath = Join-Path $LogDir "account_service.log"
+$gameLogPath = Join-Path $LogDir "game_service.log"
+$dsmLogPath = Join-Path $LogDir "ds_manager_service.log"
+$roomLogPath = Join-Path $LogDir "room_service.log"
+Write-Host "Service logs will be written under: $LogDir"
 
 if (-not $SkipDb) {
     docker compose -f $accountCompose up -d
@@ -140,8 +161,8 @@ if (-not $SkipDb) {
 }
 
 if (-not $SkipMigration) {
-    Apply-Migration `
-        -MigrationPath (Join-Path $accountRoot "migrations\0001_account_auth_init.sql") `
+    Apply-MigrationsInDirectory `
+        -MigrationDir (Join-Path $accountRoot "migrations") `
         -Container "qqtang_account_pg" `
         -User "qqtang" `
         -Password "qqtang_dev_pass" `
@@ -202,24 +223,37 @@ $dsmEnv["DSM_PORT_RANGE_START"] = [string]$DSMPortRangeStart
 $dsmEnv["DSM_PORT_RANGE_END"] = [string]$DSMPortRangeEnd
 $dsmEnv["DSM_READY_TIMEOUT_SEC"] = "15"
 $dsmEnv["DSM_IDLE_REAP_TIMEOUT_SEC"] = "300"
+# Phase23: DS Godot processes inherit parent env; they need game_service coords to fetch manifests.
+$dsmEnv["GAME_SERVICE_HOST"] = ($GameListenAddr -split ":")[0]
+$dsmEnv["GAME_SERVICE_PORT"] = ($GameListenAddr -split ":")[1]
+$dsmEnv["GAME_INTERNAL_SHARED_SECRET"] = $InternalSharedSecret
+$dsmEnv["GAME_INTERNAL_AUTH_KEY_ID"] = "primary"
 
 $processes = @()
-$processes += Start-ServiceWindow -Title "QQTang account_service : $AccountListenAddr" -WorkDir $accountRoot -Env $accountEnv -Command "go run ./cmd/account_service"
-$processes += Start-ServiceWindow -Title "QQTang game_service : $GameListenAddr" -WorkDir $gameRoot -Env $gameEnv -Command "go run ./cmd/game_service"
-$processes += Start-ServiceWindow -Title "QQTang ds_manager_service : $DSManagerListenAddr" -WorkDir $dsmRoot -Env $dsmEnv -Command "go run ./cmd/ds_manager_service"
+$processes += Start-ServiceWindow -Title "QQTang account_service : $AccountListenAddr" -WorkDir $accountRoot -Env $accountEnv -Command "go run ./cmd/account_service" -LogPath $accountLogPath
+$processes += Start-ServiceWindow -Title "QQTang game_service : $GameListenAddr" -WorkDir $gameRoot -Env $gameEnv -Command "go run ./cmd/game_service" -LogPath $gameLogPath
+$processes += Start-ServiceWindow -Title "QQTang ds_manager_service : $DSManagerListenAddr" -WorkDir $dsmRoot -Env $dsmEnv -Command "go run ./cmd/ds_manager_service" -LogPath $dsmLogPath
 
 # Phase23: room_service (Godot headless)
-$roomServiceCmd = "& $(Quote-PS $GodotExecutable) --headless --path $(Quote-PS $root) 'res://scenes/network/room_service_scene.tscn' -- --qqt-room-port $RoomServicePort --qqt-room-host $RoomServiceHost --qqt-room-ticket-secret $(Quote-PS $RoomTicketSecret)"
-$processes += Start-ServiceWindow -Title "QQTang room_service : ${RoomServiceHost}:${RoomServicePort}" -WorkDir $root -Env @{} -Command $roomServiceCmd
+$roomServiceEnv = @{
+    "GAME_SERVICE_HOST" = ($GameListenAddr -split ":")[0]
+    "GAME_SERVICE_PORT" = ($GameListenAddr -split ":")[1]
+    "GAME_INTERNAL_SHARED_SECRET" = $InternalSharedSecret
+    "GAME_INTERNAL_AUTH_KEY_ID" = "primary"
+}
+# Godot headless supports --log-file for its own logging; combine with Tee-Object to capture stdout too.
+$roomServiceCmd = "& $(Quote-PS $GodotExecutable) --headless --log-file $(Quote-PS $roomLogPath) --path $(Quote-PS $root) 'res://scenes/network/room_service_scene.tscn' -- --qqt-room-port $RoomServicePort --qqt-room-host $RoomServiceHost --qqt-room-ticket-secret $(Quote-PS $RoomTicketSecret)"
+$processes += Start-ServiceWindow -Title "QQTang room_service : ${RoomServiceHost}:${RoomServicePort}" -WorkDir $root -Env $roomServiceEnv -Command $roomServiceCmd
 
 Write-Host "Started QQTang dev services:"
-Write-Host "  account_service:    http://$AccountListenAddr pid=$($processes[0].Id)"
-Write-Host "  game_service:       http://$GameListenAddr pid=$($processes[1].Id)"
-Write-Host "  ds_manager_service: http://$DSManagerListenAddr pid=$($processes[2].Id)"
-Write-Host "  room_service:       ${RoomServiceHost}:${RoomServicePort} pid=$($processes[3].Id)"
+Write-Host "  account_service:    http://$AccountListenAddr pid=$($processes[0].Id) log=$accountLogPath"
+Write-Host "  game_service:       http://$GameListenAddr pid=$($processes[1].Id) log=$gameLogPath"
+Write-Host "  ds_manager_service: http://$DSManagerListenAddr pid=$($processes[2].Id) log=$dsmLogPath"
+Write-Host "  room_service:       ${RoomServiceHost}:${RoomServicePort} pid=$($processes[3].Id) log=$roomLogPath"
 Write-Host "  account postgres:   127.0.0.1:$AccountPostgresPort"
 Write-Host "  game postgres:      127.0.0.1:$GamePostgresPort"
 Write-Host ""
+Write-Host "All service logs are in: $LogDir"
 Write-Host "Close the spawned PowerShell windows to stop the Go services."
 
 Pause

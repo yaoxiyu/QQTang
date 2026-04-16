@@ -96,18 +96,6 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	_body_sprite.frame = 0
 	_body_sprite.frame_progress = 0.0
 	_body_sprite.play(animation_name)
-	LogPresentationScript.debug(
-		"apply_actor_state entity_id=%d pose_state=%s animation=%s alive=%s moving=%s" % [
-			int(view_state.get("entity_id", -1)),
-			pose_state,
-			animation_name,
-			str(alive),
-			str(anim_is_moving),
-		],
-		"",
-		0,
-		"presentation.pose.body"
-	)
 	if DEBUG_REMOTE_ANIM_LOG and not is_local_player:
 		LogPresentationScript.debug(
 			"[qq_remote_anim][body] entity=%d animation=%s anim_moving=%s anim_dir=(%d,%d) move_state=%d facing=%d" % [

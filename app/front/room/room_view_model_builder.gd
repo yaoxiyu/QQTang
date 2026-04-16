@@ -394,6 +394,11 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count: int, is_match_room: bool) -> bool:
 	if snapshot == null or not is_host or not is_match_room:
 		return false
+	var queue_state := String(snapshot.room_queue_state)
+	if queue_state != "idle" and queue_state != "cancelled":
+		return false
+	if not bool(snapshot.all_ready):
+		return false
 	return true
 
 
@@ -402,6 +407,8 @@ func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -
 		return "Room context is not ready"
 	if String(snapshot.room_queue_state) == "queueing":
 		return "匹配中"
+	if String(snapshot.room_queue_state) == "assigned":
+		return "已匹配，等待分配"
 	if snapshot.selected_match_mode_ids.is_empty():
 		return "请选择匹配模式"
 	var required_party_size := int(snapshot.required_party_size)

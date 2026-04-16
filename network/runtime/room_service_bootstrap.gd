@@ -9,7 +9,7 @@ const ServerRoomRegistryScript = preload("res://network/session/runtime/server_r
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 
-@export var listen_port: int = 9100
+@export var listen_port: int = 9000
 @export var max_clients: int = 32
 @export var authority_host: String = "127.0.0.1"
 @export var room_ticket_secret: String = "dev_room_ticket_secret"

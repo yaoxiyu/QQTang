@@ -3,8 +3,10 @@ package queue
 import (
 	"context"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	mathrand "math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +27,33 @@ var (
 	ErrAssignmentRevisionStale = errors.New("MATCHMAKING_ASSIGNMENT_REVISION_STALE")
 )
 
+// BattleAllocator allocates a DS instance for a battle.
+// Implemented by battlealloc.Service; defined here to avoid circular imports.
+type BattleAllocator interface {
+	AllocateBattle(ctx context.Context, input BattleAllocateInput) (BattleAllocateResult, error)
+}
+
+type BattleAllocateInput struct {
+	AssignmentID        string
+	BattleID            string
+	MatchID             string
+	SourceRoomID        string
+	SourceRoomKind      string
+	ModeID              string
+	RuleSetID           string
+	MapID               string
+	ExpectedMemberCount int
+	HostHint            string
+}
+
+type BattleAllocateResult struct {
+	BattleID        string
+	DSInstanceID    string
+	ServerHost      string
+	ServerPort      int
+	AllocationState string
+}
+
 type Service struct {
 	queueRepo              *storage.QueueRepository
 	partyQueueRepo         *storage.PartyQueueRepository
@@ -32,6 +61,7 @@ type Service struct {
 	assignmentRepo         *storage.AssignmentRepository
 	txPool                 *pgxpool.Pool
 	ratingRepo             *storage.RatingRepository
+	battleAllocator        BattleAllocator
 	heartbeatTTL           time.Duration
 	defaultSeasonID        string
 	defaultMapID           string
@@ -83,6 +113,10 @@ func (s *Service) ConfigureRatingRepository(ratingRepo *storage.RatingRepository
 func (s *Service) ConfigurePartyQueueRepositories(partyQueueRepo *storage.PartyQueueRepository, partyQueueMemberRepo *storage.PartyQueueMemberRepository) {
 	s.partyQueueRepo = partyQueueRepo
 	s.partyQueueMemberRepo = partyQueueMemberRepo
+}
+
+func (s *Service) ConfigureBattleAllocator(allocator BattleAllocator) {
+	s.battleAllocator = allocator
 }
 
 func (s *Service) EnterQueue(ctx context.Context, input EnterQueueInput) (QueueStatus, error) {
@@ -272,6 +306,14 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 		return PartyQueueStatus{}, ErrAssignmentExpired
 	}
 	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+	// Prefer BattleServerHost/Port (populated after DS allocation) over
+	// the default ServerHost/Port placeholder.
+	resolvedHost := assignment.ServerHost
+	resolvedPort := assignment.ServerPort
+	if assignment.BattleServerHost != "" && assignment.BattleServerPort > 0 {
+		resolvedHost = assignment.BattleServerHost
+		resolvedPort = assignment.BattleServerPort
+	}
 	return PartyQueueStatus{
 		QueueState:             entry.State,
 		QueueEntryID:           entry.PartyQueueEntryID,
@@ -289,14 +331,17 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 		ExpiresAtUnixSec:       now.Unix() + int64(s.heartbeatTTL.Seconds()),
 		RoomID:                 assignment.RoomID,
 		RoomKind:               assignment.RoomKind,
-		ServerHost:             assignment.ServerHost,
-		ServerPort:             assignment.ServerPort,
+		ServerHost:             resolvedHost,
+		ServerPort:             resolvedPort,
 		ModeID:                 assignment.ModeID,
 		RuleSetID:              assignment.RuleSetID,
 		MapID:                  assignment.MapID,
 		CaptainAccountID:       assignment.CaptainAccountID,
 		CaptainDeadlineUnixSec: assignment.CaptainDeadlineUnixSec,
 		CommitDeadlineUnixSec:  assignment.CommitDeadlineUnixSec,
+		BattleID:               assignment.BattleID,
+		MatchID:                assignment.MatchID,
+		AllocationState:        assignment.AllocationState,
 	}, nil
 }
 
@@ -493,26 +538,80 @@ func (s *Service) tryFormAssignment(ctx context.Context, entry storage.QueueEntr
 	return err
 }
 
+// pendingBattleAlloc holds the data needed to allocate a DS after the
+// assignment transaction commits.
+type pendingBattleAlloc struct {
+	AssignmentID        string
+	BattleID            string
+	MatchID             string
+	SourceRoomID        string
+	SourceRoomKind      string
+	ModeID              string
+	RuleSetID           string
+	MapID               string
+	ExpectedMemberCount int
+}
+
 func (s *Service) tryFormPartyAssignment(ctx context.Context, entry storage.PartyQueueEntry) error {
 	if s.assignmentRepo == nil || s.partyQueueRepo == nil || s.partyQueueMemberRepo == nil {
 		return nil
 	}
+
+	var pending *pendingBattleAlloc
+
 	if s.txPool == nil {
-		return s.tryFormPartyAssignmentWithRepos(ctx, entry, s.partyQueueRepo, s.partyQueueMemberRepo, s.assignmentRepo, false)
+		p, err := s.tryFormPartyAssignmentWithRepos(ctx, entry, s.partyQueueRepo, s.partyQueueMemberRepo, s.assignmentRepo, false)
+		if err != nil {
+			return err
+		}
+		pending = p
+	} else {
+		err := storage.WithTx(ctx, s.txPool, func(tx pgx.Tx) error {
+			txPartyRepo := storage.NewPartyQueueRepository(tx)
+			txMemberRepo := storage.NewPartyQueueMemberRepository(tx)
+			txAssignmentRepo := storage.NewAssignmentRepository(tx)
+			p, err := s.tryFormPartyAssignmentWithRepos(ctx, entry, txPartyRepo, txMemberRepo, txAssignmentRepo, true)
+			if err != nil {
+				return err
+			}
+			pending = p
+			return nil
+		})
+		if errors.Is(err, storage.ErrConcurrentStateChanged) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
 	}
-	err := storage.WithTx(ctx, s.txPool, func(tx pgx.Tx) error {
-		txPartyRepo := storage.NewPartyQueueRepository(tx)
-		txMemberRepo := storage.NewPartyQueueMemberRepository(tx)
-		txAssignmentRepo := storage.NewAssignmentRepository(tx)
-		return s.tryFormPartyAssignmentWithRepos(ctx, entry, txPartyRepo, txMemberRepo, txAssignmentRepo, true)
-	})
-	if errors.Is(err, storage.ErrConcurrentStateChanged) {
-		return nil
+
+	// After tx commits, allocate DS if an assignment was formed
+	if pending != nil && s.battleAllocator != nil {
+		result, err := s.battleAllocator.AllocateBattle(ctx, BattleAllocateInput{
+			AssignmentID:        pending.AssignmentID,
+			BattleID:            pending.BattleID,
+			MatchID:             pending.MatchID,
+			SourceRoomID:        pending.SourceRoomID,
+			SourceRoomKind:      pending.SourceRoomKind,
+			ModeID:              pending.ModeID,
+			RuleSetID:           pending.RuleSetID,
+			MapID:               pending.MapID,
+			ExpectedMemberCount: pending.ExpectedMemberCount,
+		})
+		if err != nil {
+			// DS allocation failed — log but don't fail the queue entry.
+			// The assignment is still valid; room_service will detect
+			// BattleServerHost == "" and can retry or show error.
+			_ = err
+		} else {
+			_ = result
+		}
 	}
-	return err
+
+	return nil
 }
 
-func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry storage.PartyQueueEntry, partyRepo *storage.PartyQueueRepository, memberRepo *storage.PartyQueueMemberRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
+func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry storage.PartyQueueEntry, partyRepo *storage.PartyQueueRepository, memberRepo *storage.PartyQueueMemberRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) (*pendingBattleAlloc, error) {
 	const candidateLimit = 32
 	now := time.Now().UTC()
 	minHeartbeatUnixSec := now.Add(-s.heartbeatTTL).Unix()
@@ -524,34 +623,34 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		queuedEntries, err = partyRepo.FindQueuedByKey(ctx, entry.QueueKey, candidateLimit, minHeartbeatUnixSec)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 	requiredPartySize := requiredPartySizeFromMatchFormat(entry.MatchFormatID)
 	selected := selectCompatibleParties(queuedEntries, requiredPartySize)
 	if len(selected) != 2 {
-		return nil
+		return nil, nil
 	}
 	finalModeID := firstModeIntersection(selected[0].SelectedModeIDs, selected[1].SelectedModeIDs)
 	if finalModeID == "" {
-		return nil
+		return nil, nil
 	}
 	finalMapID, finalRuleSetID := resolveMapAndRuleForMode(s.defaultMapID, finalModeID)
 
 	assignmentID, err := opaqueID("assign")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	roomID, err := opaqueID("room")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	matchID, err := opaqueID("match")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	battleID, err := opaqueID("battle")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	expectedMemberCount := requiredPartySize * 2
 	assignmentRecord := storage.Assignment{
@@ -583,12 +682,12 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 		RoomReturnPolicy: "return_to_source_room",
 	}
 	if err := assignmentRepo.Insert(ctx, assignmentRecord); err != nil {
-		return err
+		return nil, err
 	}
 	for partyIndex, party := range selected {
 		members, err := memberRepo.ListByEntryID(ctx, party.PartyQueueEntryID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		for _, queuedMember := range members {
 			role := "join"
@@ -610,14 +709,22 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 				RoomReturnState: "pending",
 			}
 			if err := assignmentRepo.InsertMember(ctx, member); err != nil {
-				return err
+				return nil, err
 			}
 		}
 		if err := partyRepo.UpdateStatusIfCurrentState(ctx, party.PartyQueueEntryID, "queued", "assigned", "", assignmentID, 1, now.Unix()); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &pendingBattleAlloc{
+		AssignmentID:        assignmentID,
+		BattleID:            battleID,
+		MatchID:             matchID,
+		ModeID:              finalModeID,
+		RuleSetID:           finalRuleSetID,
+		MapID:               finalMapID,
+		ExpectedMemberCount: expectedMemberCount,
+	}, nil
 }
 
 func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.QueueEntry, queueRepo *storage.QueueRepository, assignmentRepo *storage.AssignmentRepository, lockCandidates bool) error {
@@ -808,17 +915,35 @@ func firstModeIntersection(left []string, right []string) string {
 }
 
 func resolveMapAndRuleForMode(defaultMapID string, modeID string) (string, string) {
-	switch modeID {
-	case "mode_score_team":
-		return "map_breakable_center_lane", "ruleset_score_team"
-	case "mode_classic":
-		return "map_classic_square", "ruleset_classic"
-	default:
+	type mapEntry struct {
+		mapID     string
+		ruleSetID string
+	}
+	// Catalog of maps per mode — mirrors the Godot MapResource .tres files.
+	catalog := map[string][]mapEntry{
+		"mode_classic": {
+			{mapID: "map_classic_square", ruleSetID: "ruleset_classic"},
+		},
+		"mode_score_team": {
+			{mapID: "map_breakable_center_lane", ruleSetID: "ruleset_score_team"},
+		},
+	}
+	entries, ok := catalog[modeID]
+	if !ok || len(entries) == 0 {
 		if defaultMapID == "" {
 			defaultMapID = "map_classic_square"
 		}
 		return defaultMapID, "ruleset_classic"
 	}
+	if len(entries) == 1 {
+		return entries[0].mapID, entries[0].ruleSetID
+	}
+	// Cryptographically seeded random pick among eligible maps.
+	var seed [8]byte
+	_, _ = rand.Read(seed[:])
+	rng := mathrand.New(mathrand.NewSource(int64(binary.LittleEndian.Uint64(seed[:]))))
+	picked := entries[rng.Intn(len(entries))]
+	return picked.mapID, picked.ruleSetID
 }
 
 func (s *Service) resolveRatingSnapshot(ctx context.Context, seasonID string, accountID string) (int, error) {

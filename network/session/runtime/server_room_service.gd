@@ -13,7 +13,7 @@ const MemberSessionPayloadBuilderScript = preload("res://network/session/runtime
 const RoomSelectionPolicyScript = preload("res://network/session/runtime/room_selection_policy.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH: int = 24
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ROOM_SERVICE_LOG_TAG := "net.room_service"
 
 signal room_snapshot_updated(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
@@ -27,6 +27,8 @@ var room_ticket_verifier: RefCounted = RoomTicketVerifierScript.new()
 var room_resume_validator: RefCounted = RoomResumeValidatorScript.new()
 var member_session_payload_builder: RefCounted = MemberSessionPayloadBuilderScript.new()
 var game_service_party_queue_client: RefCounted = null
+var _queue_poll_interval_msec: int = 2000
+var _last_queue_poll_msec: int = 0
 
 
 func configure_room_ticket_verifier(secret: String, allow_unsigned_dev_ticket: bool = false) -> void:
@@ -158,7 +160,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		return
 	var ticket_claim = ticket_validation.claim
 	if not _is_matchmade_ticket_compatible(ticket_claim):
-		_log_online_room_service("create_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
+		_log_room_service("create_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
 			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
@@ -217,6 +219,11 @@ func _handle_create_request(message: Dictionary) -> void:
 		requested_room_display_name = requested_room_display_name.substr(0, MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH)
 	room_state.ensure_room(requested_room_id, peer_id, requested_room_kind, requested_room_display_name)
 	_apply_ticket_claim_to_room_state(ticket_claim)
+	# Initialize default match modes for match rooms so enter_queue works without explicit config
+	if room_state.is_match_room():
+		var default_modes := _get_eligible_match_mode_ids(room_state.queue_type, room_state.match_format_id)
+		if not default_modes.is_empty():
+			room_state.selected_match_mode_ids = default_modes
 	var resolved_selection := _resolve_selection_from_map(
 		room_ticket_verifier.resolve_requested_map_id(message, ticket_claim),
 		room_ticket_verifier.resolve_requested_rule_set_id(message, ticket_claim),
@@ -230,7 +237,7 @@ func _handle_create_request(message: Dictionary) -> void:
 			"user_message": "Map selection is invalid",
 		})
 		return
-	_log_online_room_service("create_request_selection_resolved", _with_service_debug_payload(_build_online_service_context(ticket_claim, message), {
+	_log_room_service("create_request_selection_resolved", _with_service_debug_payload(_build_online_service_context(ticket_claim, message), {
 		"visibility": requested_room_kind,
 		"default_map_id": String(resolved_selection.get("map_id", "")),
 		"derived_mode_id": String(resolved_selection.get("mode_id", "")),
@@ -264,7 +271,7 @@ func _handle_create_request(message: Dictionary) -> void:
 		"room_display_name": room_state.room_display_name,
 	})
 	_emit_assignment_commit_if_needed(ticket_claim)
-	_log_online_room_service("create_request_accepted", _build_online_service_context(ticket_claim, message))
+	_log_room_service("create_request_accepted", _build_online_service_context(ticket_claim, message))
 	
 	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
 	if binding != null:
@@ -284,7 +291,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		return
 	var ticket_claim = ticket_validation.claim
 	if not _is_matchmade_ticket_compatible(ticket_claim):
-		_log_online_room_service("join_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
+		_log_room_service("join_request_matchmade_ticket_incompatible", _build_online_service_context(ticket_claim, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
 			"error": "MATCHMAKING_ASSIGNMENT_REVISION_STALE",
@@ -370,7 +377,7 @@ func _handle_join_request(message: Dictionary) -> void:
 	
 	_broadcast_snapshot()
 	_maybe_auto_start_match()
-	_log_online_room_service("join_request_accepted", _build_online_service_context(ticket_claim, message))
+	_log_room_service("join_request_accepted", _build_online_service_context(ticket_claim, message))
 
 
 func _handle_update_profile(message: Dictionary) -> void:
@@ -433,7 +440,7 @@ func _handle_update_selection(message: Dictionary) -> void:
 		})
 		return
 	if room_state.is_matchmade_room:
-		_log_online_room_service("update_selection_rejected_locked", _build_online_service_context(null, message))
+		_log_room_service("update_selection_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_SELECTION_LOCKED",
@@ -467,7 +474,7 @@ func _handle_update_selection(message: Dictionary) -> void:
 		String(resolved_selection.get("rule_set_id", "")),
 		String(resolved_selection.get("mode_id", ""))
 	)
-	_log_online_room_service("room_selection_changed", _with_service_debug_payload(_build_online_service_context(null, message), {
+	_log_room_service("room_selection_changed", _with_service_debug_payload(_build_online_service_context(null, message), {
 		"old_map_id": old_map_id,
 		"new_map_id": String(resolved_selection.get("map_id", "")),
 		"derived_mode_id": String(resolved_selection.get("mode_id", "")),
@@ -507,12 +514,21 @@ func _handle_update_match_room_config(message: Dictionary) -> void:
 
 func _handle_enter_match_queue(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
+	_log_room_service("enter_match_queue_received", {
+		"peer_id": peer_id,
+		"room_id": room_state.room_id if room_state != null else "",
+		"can_enter": room_state.can_enter_match_queue(peer_id) if room_state != null else false,
+	})
 	if not room_state.can_enter_match_queue(peer_id):
+		var diag := room_state.diagnose_enter_match_queue(peer_id) if room_state != null and room_state.has_method("diagnose_enter_match_queue") else {}
+		_log_room_service("enter_match_queue_forbidden", diag)
 		_send_match_queue_status(peer_id, "MATCH_ROOM_QUEUE_FORBIDDEN", "Match room is not ready to enter queue")
 		_broadcast_snapshot()
 		return
 	var request := _build_party_queue_request()
+	_log_room_service("enter_match_queue_backend_request", request)
 	var result := _enter_party_queue_backend(request)
+	_log_room_service("enter_match_queue_backend_result", result)
 	if not bool(result.get("ok", false)):
 		_send_match_queue_status(
 			peer_id,
@@ -526,8 +542,12 @@ func _handle_enter_match_queue(message: Dictionary) -> void:
 	room_state.room_queue_status_text = String(result.get("queue_status_text", "Queueing"))
 	room_state.room_queue_error_code = ""
 	room_state.room_queue_error_message = ""
+	_last_queue_poll_msec = Time.get_ticks_msec()
 	_broadcast_snapshot()
 	_broadcast_match_queue_status()
+	# If game_service already assigned on enter, handle immediately
+	if String(result.get("queue_state", "")) == "assigned" and not String(result.get("assignment_id", "")).is_empty():
+		_apply_queue_assignment(result)
 
 
 func _handle_cancel_match_queue(message: Dictionary) -> void:
@@ -552,10 +572,70 @@ func _handle_cancel_match_queue(message: Dictionary) -> void:
 	_broadcast_match_queue_status()
 
 
+func poll_queue_status() -> void:
+	if room_state == null or room_state.room_queue_state != "queueing":
+		return
+	if room_state.room_queue_entry_id.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	if now - _last_queue_poll_msec < _queue_poll_interval_msec:
+		return
+	_last_queue_poll_msec = now
+	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("get_party_queue_status"):
+		return
+	var result = game_service_party_queue_client.get_party_queue_status(room_state.room_id, room_state.room_queue_entry_id)
+	if not (result is Dictionary) or not bool(result.get("ok", false)):
+		_log_room_service("queue_poll_failed", result if result is Dictionary else {"error": "invalid_result"})
+		return
+	var queue_state := String(result.get("queue_state", ""))
+	_log_room_service("queue_poll_result", {"queue_state": queue_state, "assignment_id": String(result.get("assignment_id", ""))})
+	if queue_state == "assigned" and not String(result.get("assignment_id", "")).is_empty():
+		_apply_queue_assignment(result)
+	elif queue_state == "expired" or queue_state == "cancelled":
+		_cancel_match_queue_locally(queue_state)
+		_broadcast_snapshot()
+		_broadcast_match_queue_status()
+
+
+func _apply_queue_assignment(result: Dictionary) -> void:
+	var assignment_id := String(result.get("assignment_id", ""))
+	if assignment_id.is_empty():
+		return
+	_log_room_service("queue_assignment_received", {
+		"assignment_id": assignment_id,
+		"room_id": String(result.get("room_id", "")),
+		"server_host": String(result.get("server_host", "")),
+		"server_port": int(result.get("server_port", 0)),
+		"map_id": String(result.get("map_id", "")),
+		"mode_id": String(result.get("mode_id", "")),
+		"rule_set_id": String(result.get("rule_set_id", "")),
+	})
+	room_state.room_queue_state = "assigned"
+	room_state.room_queue_status_text = String(result.get("queue_status_text", "Match found"))
+	room_state.room_queue_error_code = ""
+	room_state.room_queue_error_message = ""
+	_broadcast_snapshot()
+	_broadcast_match_queue_status()
+	assignment_commit_requested.emit({
+		"assignment_id": assignment_id,
+		"room_id": String(result.get("room_id", "")),
+		"room_kind": String(result.get("room_kind", "")),
+		"server_host": String(result.get("server_host", "")),
+		"server_port": int(result.get("server_port", 0)),
+		"map_id": String(result.get("map_id", "")),
+		"mode_id": String(result.get("mode_id", "")),
+		"rule_set_id": String(result.get("rule_set_id", "")),
+		"captain_account_id": String(result.get("captain_account_id", "")),
+		"battle_id": String(result.get("battle_id", "")),
+		"match_id": String(result.get("match_id", "")),
+		"allocation_state": String(result.get("allocation_state", "")),
+	})
+
+
 func _handle_toggle_ready(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if room_state.is_matchmade_room:
-		_log_online_room_service("toggle_ready_rejected_locked", _build_online_service_context(null, message))
+		_log_room_service("toggle_ready_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_READY_LOCKED",
@@ -577,7 +657,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if room_state.is_matchmade_room:
-		_log_online_room_service("start_request_rejected_locked", _build_online_service_context(null, message))
+		_log_room_service("start_request_rejected_locked", _build_online_service_context(null, message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_START_LOCKED",
@@ -585,7 +665,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if room_state.match_active:
-		_log_online_room_service("start_blocked_match_active", _build_start_gate_debug_context(message))
+		_log_room_service("start_blocked_match_active", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "MATCH_ALREADY_ACTIVE",
@@ -593,7 +673,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if room_state.get_distinct_team_ids().size() < 2:
-		_log_online_room_service("start_blocked_team_count", _build_start_gate_debug_context(message))
+		_log_room_service("start_blocked_team_count", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_TEAM_INVALID",
@@ -601,7 +681,7 @@ func _handle_start_request(message: Dictionary) -> void:
 		})
 		return
 	if peer_id != room_state.owner_peer_id or not room_state.can_start():
-		_log_online_room_service("start_blocked_room_not_ready", _build_start_gate_debug_context(message))
+		_log_room_service("start_blocked_room_not_ready", _build_start_gate_debug_context(message))
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
 			"error": "ROOM_START_FORBIDDEN",
@@ -788,7 +868,7 @@ func _cancel_match_queue_locally(reason: String) -> void:
 	room_state.room_queue_status_text = "Queue cancelled"
 	room_state.room_queue_error_code = ""
 	room_state.room_queue_error_message = ""
-	_log_online_room_service("match_queue_cancelled_locally", {
+	_log_room_service("match_queue_cancelled_locally", {
 		"room_id": room_state.room_id,
 		"reason": reason,
 	})
@@ -853,7 +933,7 @@ func _emit_assignment_commit_if_needed(ticket_claim) -> void:
 		"assignment_revision": int(ticket_claim.assignment_revision),
 		"room_id": String(ticket_claim.room_id),
 	})
-	_log_online_room_service("assignment_commit_emitted", {
+	_log_room_service("assignment_commit_emitted", {
 		"assignment_id": String(ticket_claim.assignment_id),
 		"assignment_revision": int(ticket_claim.assignment_revision),
 		"account_id": String(ticket_claim.account_id),
@@ -866,18 +946,18 @@ func _maybe_auto_start_match() -> void:
 	if room_state == null or not room_state.is_matchmade_room:
 		return
 	if room_state.match_active:
-		_log_online_room_service("auto_start_skipped_match_active", _build_online_service_context())
+		_log_room_service("auto_start_skipped_match_active", _build_online_service_context())
 		return
 	if room_state.expected_member_count <= 0:
-		_log_online_room_service("auto_start_skipped_missing_expected_count", _build_online_service_context())
+		_log_room_service("auto_start_skipped_missing_expected_count", _build_online_service_context())
 		return
 	if room_state.members.size() != room_state.expected_member_count:
-		_log_online_room_service("auto_start_waiting_members", _build_online_service_context())
+		_log_room_service("auto_start_waiting_members", _build_online_service_context())
 		return
 	if not room_state.can_start():
-		_log_online_room_service("auto_start_blocked_can_start_false", _build_start_gate_debug_context())
+		_log_room_service("auto_start_blocked_can_start_false", _build_start_gate_debug_context())
 		return
-	_log_online_room_service("auto_start_triggered", _build_online_service_context())
+	_log_room_service("auto_start_triggered", _build_online_service_context())
 	start_match_requested.emit(room_state.build_snapshot())
 
 
@@ -966,7 +1046,7 @@ func _send_member_session(peer_id: int, binding: RoomMemberBindingState) -> void
 
 
 func _reject_with_ticket_error(peer_id: int, message_type: String, validation_result) -> void:
-	_log_online_room_service("ticket_validation_rejected", {
+	_log_room_service("ticket_validation_rejected", {
 		"peer_id": peer_id,
 		"message_type": message_type,
 		"error_code": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
@@ -994,8 +1074,8 @@ func _build_online_service_context(ticket_claim = null, message: Dictionary = {}
 	}
 
 
-func _log_online_room_service(event_name: String, payload: Dictionary) -> void:
-	LogNetScript.debug("%s[server_room_service] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.room_service")
+func _log_room_service(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("[server_room_service] %s %s" % [event_name, JSON.stringify(payload)], "", 0, ROOM_SERVICE_LOG_TAG)
 
 
 func _with_service_debug_payload(base_payload: Dictionary, extra_payload: Dictionary) -> Dictionary:

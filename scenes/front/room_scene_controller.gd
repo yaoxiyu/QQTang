@@ -10,7 +10,7 @@ const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_ca
 const RoomScenePresenterScript = preload("res://app/front/room/room_scene_presenter.gd")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const PHASE21_LOG_PREFIX := "[QQT_P21]"
+const ROOM_SCENE_LOG_TAG := "front.room.scene"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
 @onready var room_root: Control = get_node_or_null("RoomRoot")
@@ -595,9 +595,12 @@ func _on_start_button_pressed() -> void:
 
 
 func _on_enter_queue_button_pressed() -> void:
+	_log_room("enter_queue_button_pressed", {})
 	if _room_use_case == null:
+		_log_room("enter_queue_button_pressed_no_use_case", {})
 		return
 	var result := _room_use_case.enter_match_queue()
+	_log_room("enter_queue_result", result)
 	if not bool(result.get("ok", false)):
 		_set_room_feedback(String(result.get("user_message", "Failed to enter queue")))
 
@@ -676,7 +679,7 @@ func _on_selection_changed() -> void:
 	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
 	var map_id := _selected_metadata(map_selector)
 	var binding := _resolve_map_binding(map_id)
-	_log_phase21("room_selection_change_requested", {
+	_log_room("room_selection_change_requested", {
 		"old_map_id": String(snapshot.selected_map_id) if snapshot != null else "",
 		"new_map_id": map_id,
 		"derived_mode_id": String(binding.get("bound_mode_id", _selected_metadata(game_mode_selector))),
@@ -841,8 +844,8 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 	return binding
 
 
-func _log_phase21(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[room_scene] %s %s" % [PHASE21_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.room.scene")
+func _log_room(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("[room_scene] %s %s" % [event_name, JSON.stringify(payload)], "", 0, ROOM_SCENE_LOG_TAG)
 
 
 func _try_consume_pending_room_action() -> void:

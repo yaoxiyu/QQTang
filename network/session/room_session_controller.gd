@@ -62,6 +62,17 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.max_players = max_players
 	snapshot.owner_peer_id = owner_peer_id
 	snapshot.all_ready = _are_all_members_ready()
+	snapshot.match_active = room_session.match_active
+	# Phase23: Battle handoff fields
+	snapshot.room_lifecycle_state = room_session.room_lifecycle_state
+	snapshot.current_assignment_id = room_session.current_assignment_id
+	snapshot.current_battle_id = room_session.current_battle_id
+	snapshot.current_match_id = room_session.current_match_id
+	snapshot.battle_allocation_state = room_session.battle_allocation_state
+	snapshot.battle_server_host = room_session.battle_server_host
+	snapshot.battle_server_port = room_session.battle_server_port
+	snapshot.room_return_policy = room_session.room_return_policy
+	snapshot.battle_entry_ready = room_session.battle_allocation_state == "battle_ready"
 
 	var slot_map := room_session.build_peer_slots()
 	for peer_id in room_session.peers:
@@ -354,6 +365,26 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"team_id": member.team_id,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
+	# Phase23: For matchmade rooms with an assignment, the server overrides
+	# map/mode/rule via the assignment payload. set_selection blanks them for
+	# match rooms, so re-apply the snapshot values when an assignment exists.
+	if not snapshot.current_assignment_id.is_empty():
+		if not snapshot.selected_map_id.is_empty():
+			room_session.selected_map_id = snapshot.selected_map_id
+		if not snapshot.mode_id.is_empty():
+			room_session.selected_mode_id = snapshot.mode_id
+		if not snapshot.rule_set_id.is_empty():
+			room_session.selected_rule_set_id = snapshot.rule_set_id
+	# Phase23: Battle handoff fields
+	room_session.room_lifecycle_state = snapshot.room_lifecycle_state
+	room_session.current_assignment_id = snapshot.current_assignment_id
+	room_session.current_battle_id = snapshot.current_battle_id
+	room_session.current_match_id = snapshot.current_match_id
+	room_session.battle_allocation_state = snapshot.battle_allocation_state
+	room_session.battle_server_host = snapshot.battle_server_host
+	room_session.battle_server_port = snapshot.battle_server_port
+	room_session.room_return_policy = snapshot.room_return_policy
+	room_session.match_active = snapshot.match_active
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "authoritative_snapshot")
 	_sync_runtime_context()
@@ -634,18 +665,25 @@ func _sync_runtime_context() -> void:
 
 func _resolve_map_id() -> String:
 	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		# Match rooms with an assignment have a server-assigned map
+		if not room_session.current_assignment_id.is_empty() and not room_session.selected_map_id.is_empty():
+			return room_session.selected_map_id
 		return ""
 	return room_session.selected_map_id if not room_session.selected_map_id.is_empty() else MapCatalogScript.get_default_map_id()
 
 
 func _resolve_rule_set_id() -> String:
 	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		if not room_session.current_assignment_id.is_empty() and not room_session.selected_rule_set_id.is_empty():
+			return room_session.selected_rule_set_id
 		return ""
 	return room_session.selected_rule_set_id if not room_session.selected_rule_set_id.is_empty() else RuleSetCatalogScript.get_default_rule_id()
 
 
 func _resolve_mode_id() -> String:
 	if room_session != null and (room_session.room_kind == "casual_match_room" or room_session.room_kind == "ranked_match_room"):
+		if not room_session.current_assignment_id.is_empty() and not room_session.selected_mode_id.is_empty():
+			return room_session.selected_mode_id
 		return ""
 	return room_session.selected_mode_id if not room_session.selected_mode_id.is_empty() else ModeCatalogScript.get_default_mode_id()
 

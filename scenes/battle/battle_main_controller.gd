@@ -701,6 +701,7 @@ func _build_start_config_from_battle_entry(ctx: BattleEntryContext) -> BattleSta
 	config.topology = "dedicated_server"
 	config.authority_host = ctx.battle_server_host
 	config.authority_port = ctx.battle_server_port
+	config.battle_id = ctx.battle_id
 	config.match_id = ctx.match_id
 	config.map_id = ctx.map_id
 	config.mode_id = ctx.mode_id

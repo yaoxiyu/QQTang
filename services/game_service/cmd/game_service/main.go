@@ -62,6 +62,7 @@ func main() {
 	queueService.ConfigurePartyQueueRepositories(partyQueueRepo, partyQueueMemberRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
 	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL)
+	queueService.ConfigureBattleAllocator(newQueueBattleAllocatorAdapter(battleAllocService))
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)
 
@@ -101,4 +102,39 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("listen: %v", err)
 	}
+}
+
+// queueBattleAllocatorAdapter bridges queue.BattleAllocator and
+// battlealloc.Service, keeping the queue package free of battlealloc imports.
+type queueBattleAllocatorAdapter struct {
+	inner *battlealloc.Service
+}
+
+func newQueueBattleAllocatorAdapter(inner *battlealloc.Service) *queueBattleAllocatorAdapter {
+	return &queueBattleAllocatorAdapter{inner: inner}
+}
+
+func (a *queueBattleAllocatorAdapter) AllocateBattle(ctx context.Context, input queue.BattleAllocateInput) (queue.BattleAllocateResult, error) {
+	result, err := a.inner.AllocateBattle(ctx, battlealloc.AllocateInput{
+		AssignmentID:        input.AssignmentID,
+		BattleID:            input.BattleID,
+		MatchID:             input.MatchID,
+		SourceRoomID:        input.SourceRoomID,
+		SourceRoomKind:      input.SourceRoomKind,
+		ModeID:              input.ModeID,
+		RuleSetID:           input.RuleSetID,
+		MapID:               input.MapID,
+		ExpectedMemberCount: input.ExpectedMemberCount,
+		HostHint:            input.HostHint,
+	})
+	if err != nil {
+		return queue.BattleAllocateResult{}, err
+	}
+	return queue.BattleAllocateResult{
+		BattleID:        result.BattleID,
+		DSInstanceID:    result.DSInstanceID,
+		ServerHost:      result.ServerHost,
+		ServerPort:      result.ServerPort,
+		AllocationState: result.AllocationState,
+	}, nil
 }

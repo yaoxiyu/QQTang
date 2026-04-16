@@ -26,8 +26,7 @@ var source_server_port: int = 0
 
 
 func is_valid() -> bool:
-	return not assignment_id.is_empty() \
-		and not battle_id.is_empty() \
+	return not battle_id.is_empty() \
 		and not battle_server_host.is_empty() \
 		and battle_server_port > 0
 
