@@ -105,7 +105,8 @@ $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTan
 $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang game_service : $($cfg.Game.ListenAddr)" -WorkDir $gameRoot -Env $gameEnv -Command 'go run ./cmd/game_service' -LogPath (Join-Path $LogDir 'game_service.log')
 $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang ds_manager_service : $($cfg.DSM.ListenAddr)" -WorkDir $dsmRoot -Env $dsmEnv -Command 'go run ./cmd/ds_manager_service' -LogPath (Join-Path $LogDir 'ds_manager_service.log')
 
-$roomCmd = "& $(Quote-QQTPS $GodotExecutable) --headless --log-file $(Quote-QQTPS (Join-Path $LogDir 'room_service.log')) --path $(Quote-QQTPS $root) 'res://scenes/network/room_service_scene.tscn' -- --qqt-room-port $($cfg.Room.Port) --qqt-room-host $($cfg.Room.Host) --qqt-room-ticket-secret $(Quote-QQTPS $roomTicketSecret)"
+$roomScript = Join-Path $root 'network\scripts\run-room-service.ps1'
+$roomCmd = "powershell -ExecutionPolicy Bypass -File $(Quote-QQTPS $roomScript) -Profile $Profile -ProjectPath $(Quote-QQTPS $root) -GodotExecutable $(Quote-QQTPS $GodotExecutable) -LogFile $(Quote-QQTPS (Join-Path $LogDir 'room_service.log')) -RoomHost $(Quote-QQTPS $cfg.Room.Host) -RoomPort $($cfg.Room.Port) -RoomTicketSecret $(Quote-QQTPS $roomTicketSecret)"
 $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang room_service : $($cfg.Room.Host):$($cfg.Room.Port)" -WorkDir $root -Env $roomEnv -Command $roomCmd
 
 Write-Host "Started QQTang services (profile=$Profile)"

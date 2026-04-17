@@ -8,6 +8,7 @@
 - `db-migrate.ps1`：写入 SQL 迁移（兼容新库和已有库升级流程）。
 - `run-services.ps1`：一键启动 account/game/ds_manager/room 全部服务。
 - `start-clients.ps1`：一键启动多个客户端（支持参数化实例数量）。
+- `network/scripts/run-room-service.ps1`：room_service 单服务启动脚本（支持 `.env` / `.env.test`）。
 
 ## Profile 约定
 - 所有工具脚本统一支持 `-Profile dev|test`，默认 `dev`。
