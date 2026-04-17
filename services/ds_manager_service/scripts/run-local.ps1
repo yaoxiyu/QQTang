@@ -1,25 +1,10 @@
 param(
-    [string]$EnvFile = ''
+    [string]$EnvFile = '',
+    [ValidateSet('dev', 'test')]
+    [string]$Profile = 'dev'
 )
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$serviceRoot = Split-Path -Parent $scriptDir
-$envFilePath = if ([string]::IsNullOrWhiteSpace($EnvFile)) { Join-Path $serviceRoot '.env' } else { $EnvFile }
+$runDev = Join-Path $scriptDir 'run-dev.ps1'
 
-if (Test-Path $envFilePath) {
-    Get-Content -LiteralPath $envFilePath | ForEach-Object {
-        if ($_ -match '^\s*#' -or $_ -notmatch '=') {
-            return
-        }
-        $parts = $_.Split('=', 2)
-        [Environment]::SetEnvironmentVariable($parts[0], $parts[1])
-    }
-}
-
-Push-Location $serviceRoot
-try {
-    go run ./cmd/ds_manager_service
-}
-finally {
-    Pop-Location
-}
+& $runDev -Profile $Profile -EnvFile $EnvFile

@@ -30,6 +30,7 @@ func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config:
 		remote_member.player_name = DEFAULT_REMOTE_NAME
 		remote_member.ready = true
 		remote_member.slot_index = 1
+		remote_member.team_id = 2
 		remote_member.character_id = _resolve_debug_remote_character_id()
 		remote_member.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
 		remote_member.bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
@@ -63,6 +64,7 @@ func ensure_manual_local_loop_room(room_controller: Node, local_peer_id: int, re
 		remote_member.player_name = DEFAULT_REMOTE_NAME
 		remote_member.ready = true
 		remote_member.slot_index = 1
+		remote_member.team_id = 2
 		remote_member.character_id = _resolve_debug_remote_character_id()
 		remote_member.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
 		remote_member.bubble_style_id = BubbleCatalogScript.get_default_bubble_id()

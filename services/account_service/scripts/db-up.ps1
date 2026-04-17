@@ -1,24 +1,10 @@
 param(
-    [ValidateSet("dev", "test")]
-    [string]$Target = "dev",
+    [ValidateSet('dev', 'test')]
+    [string]$Target = 'dev',
     [switch]$Recreate
 )
 
-$ErrorActionPreference = "Stop"
+$serviceRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Resolve-Path (Join-Path $serviceRoot '..\..')
 
-$root = Split-Path -Parent $PSScriptRoot
-if ($Target -eq "dev") {
-    $composeFile = Join-Path $root "docker-compose.dev.yml"
-}
-else {
-    $composeFile = Join-Path $root "docker-compose.test.yml"
-}
-
-if ($Recreate) {
-    docker compose -f $composeFile down -v
-}
-
-docker compose -f $composeFile up -d
-docker compose -f $composeFile ps
-
-Pause
+& (Join-Path $projectRoot 'tools\db-up.ps1') -Profile $Target -ProjectPath $projectRoot -AccountOnly -Recreate:$Recreate

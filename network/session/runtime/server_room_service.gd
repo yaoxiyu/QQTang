@@ -11,6 +11,10 @@ const RoomTicketVerifierScript = preload("res://network/session/auth/room_ticket
 const RoomResumeValidatorScript = preload("res://network/session/runtime/room_resume_validator.gd")
 const MemberSessionPayloadBuilderScript = preload("res://network/session/runtime/member_session_payload_builder.gd")
 const RoomSelectionPolicyScript = preload("res://network/session/runtime/room_selection_policy.gd")
+const ServerRoomMemberServiceScript = preload("res://network/session/runtime/server_room_member_service.gd")
+const ServerRoomMessageDispatcherScript = preload("res://network/session/runtime/server_room_message_dispatcher.gd")
+const ServerRoomResumeServiceScript = preload("res://network/session/runtime/server_room_resume_service.gd")
+const ServerRoomBattleHandoffServiceScript = preload("res://network/session/runtime/server_room_battle_handoff_service.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const MAX_PUBLIC_ROOM_DISPLAY_NAME_LENGTH: int = 24
 const ROOM_SERVICE_LOG_TAG := "net.room_service"
@@ -29,6 +33,21 @@ var member_session_payload_builder: RefCounted = MemberSessionPayloadBuilderScri
 var game_service_party_queue_client: RefCounted = null
 var _queue_poll_interval_msec: int = 2000
 var _last_queue_poll_msec: int = 0
+var _member_service: RefCounted = null
+var _message_dispatcher: RefCounted = null
+var _resume_service: RefCounted = null
+var _battle_handoff_service: RefCounted = null
+
+
+func _ensure_sub_services() -> void:
+	if _member_service == null:
+		_member_service = ServerRoomMemberServiceScript.new()
+	if _message_dispatcher == null:
+		_message_dispatcher = ServerRoomMessageDispatcherScript.new()
+	if _resume_service == null:
+		_resume_service = ServerRoomResumeServiceScript.new()
+	if _battle_handoff_service == null:
+		_battle_handoff_service = ServerRoomBattleHandoffServiceScript.new()
 
 
 func configure_room_ticket_verifier(secret: String, allow_unsigned_dev_ticket: bool = false) -> void:
@@ -43,114 +62,38 @@ func configure_party_queue_client(client: RefCounted) -> void:
 
 
 func handle_peer_disconnected(peer_id: int) -> void:
-	if room_state == null:
-		return
-	if room_state.is_match_room() and room_state.room_queue_state == "queueing":
-		_cancel_party_queue_backend()
-		_cancel_match_queue_locally("member_disconnected")
-	var binding := room_state.get_member_binding_by_transport_peer(peer_id)
-	if binding != null and not room_state.match_active:
-		room_state.mark_member_disconnected_by_transport_peer(
-			peer_id,
-			Time.get_ticks_msec() + 20000,
-			""
-		)
-		_broadcast_snapshot()
-		return
-	if not room_state.members.has(peer_id):
-		return
-	room_state.remove_member(peer_id)
-	if room_state.members.is_empty():
-		room_state.reset()
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_member_service.handle_peer_disconnected(self, peer_id)
 
 
 func handle_match_finished() -> void:
-	if room_state == null:
-		return
-	_restore_after_battle_return()
-	_broadcast_snapshot()
-	if room_state.is_match_room():
-		_broadcast_match_queue_status()
+	_ensure_sub_services()
+	_battle_handoff_service.handle_match_finished(self)
 
 
 func handle_loading_started() -> void:
-	if room_state == null:
-		return
-	room_state.match_active = true
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_battle_handoff_service.handle_loading_started(self)
 
 
 func handle_loading_aborted() -> void:
-	if room_state == null:
-		return
-	room_state.match_active = false
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_battle_handoff_service.handle_loading_aborted(self)
 
 
 func handle_match_committed() -> void:
-	if room_state == null:
-		return
-	room_state.match_active = true
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_battle_handoff_service.handle_match_committed(self)
 
 
 func poll_idle_resume_expired() -> void:
-	if room_state == null or room_state.match_active:
-		return
-	var current_time := Time.get_ticks_msec()
-	var expired_peer_ids: Array[int] = []
-	for member_id in room_state.member_bindings_by_member_id.keys():
-		var binding = room_state.member_bindings_by_member_id[member_id]
-		if binding == null:
-			continue
-		if String(binding.connection_state) != "disconnected":
-			continue
-		if int(binding.disconnect_deadline_msec) <= 0 or current_time <= int(binding.disconnect_deadline_msec):
-			continue
-		var peer_id := int(binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id)
-		if peer_id > 0:
-			expired_peer_ids.append(peer_id)
-	if expired_peer_ids.is_empty():
-		return
-	for peer_id in expired_peer_ids:
-		room_state.remove_member(peer_id)
-	if room_state.members.is_empty():
-		room_state.reset()
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_resume_service.poll_idle_resume_expired(self)
 
 
 func handle_message(message: Dictionary) -> void:
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
-	match message_type:
-		TransportMessageTypesScript.ROOM_CREATE_REQUEST:
-			_handle_create_request(message)
-		TransportMessageTypesScript.ROOM_JOIN_REQUEST:
-			_handle_join_request(message)
-		TransportMessageTypesScript.ROOM_UPDATE_PROFILE:
-			_handle_update_profile(message)
-		TransportMessageTypesScript.ROOM_UPDATE_SELECTION:
-			_handle_update_selection(message)
-		TransportMessageTypesScript.ROOM_UPDATE_MATCH_ROOM_CONFIG:
-			_handle_update_match_room_config(message)
-		TransportMessageTypesScript.ROOM_ENTER_MATCH_QUEUE:
-			_handle_enter_match_queue(message)
-		TransportMessageTypesScript.ROOM_CANCEL_MATCH_QUEUE:
-			_handle_cancel_match_queue(message)
-		TransportMessageTypesScript.ROOM_BATTLE_RETURN:
-			_handle_battle_return(message)
-		TransportMessageTypesScript.ROOM_TOGGLE_READY:
-			_handle_toggle_ready(message)
-		TransportMessageTypesScript.ROOM_START_REQUEST:
-			_handle_start_request(message)
-		TransportMessageTypesScript.ROOM_LEAVE:
-			_handle_leave_request(message)
-		TransportMessageTypesScript.ROOM_REMATCH_REQUEST:
-			_handle_rematch_request(message)
-		TransportMessageTypesScript.ROOM_RESUME_REQUEST:
-			_handle_resume_request(message)
-		_:
-			pass
+	_ensure_sub_services()
+	_message_dispatcher.dispatch_message(self, message)
 
 
 func _handle_create_request(message: Dictionary) -> void:
@@ -384,53 +327,8 @@ func _handle_join_request(message: Dictionary) -> void:
 
 
 func _handle_update_profile(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	var loadout_result := RoomSelectionPolicyScript.resolve_request_loadout(message)
-	var team_id := int(message.get("team_id", 1))
-	if room_state.match_active:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_MEMBER_PROFILE_FORBIDDEN",
-			"user_message": "Profile cannot be changed during an active match",
-		})
-		return
-	if not bool(loadout_result.get("ok", false)):
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": String(loadout_result.get("error", "ROOM_MEMBER_PROFILE_INVALID")),
-			"user_message": String(loadout_result.get("user_message", "Character selection is invalid")),
-		})
-		return
-	if room_state.is_matchmade_room:
-		var current_profile: Dictionary = room_state.members.get(peer_id, {})
-		team_id = int(current_profile.get("team_id", team_id))
-	if team_id < 1 or team_id > room_state.max_players:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_MEMBER_PROFILE_INVALID",
-			"user_message": "Team selection is invalid",
-		})
-		return
-	if bool(room_state.ready_map.get(peer_id, false)):
-		var profile: Dictionary = room_state.members.get(peer_id, {})
-		var current_team_id := int(profile.get("team_id", team_id))
-		if team_id != current_team_id:
-			send_to_peer.emit(peer_id, {
-				"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-				"error": "ROOM_MEMBER_PROFILE_FORBIDDEN",
-				"user_message": "Team cannot be changed after ready",
-			})
-			return
-	room_state.update_profile(
-		peer_id,
-		String(message.get("player_name", "Player%d" % peer_id)),
-		String(loadout_result.get("character_id", "")),
-		String(loadout_result.get("character_skin_id", "")),
-		String(loadout_result.get("bubble_style_id", "")),
-		String(loadout_result.get("bubble_skin_id", "")),
-		team_id
-	)
-	_broadcast_snapshot()
+	_ensure_sub_services()
+	_member_service.handle_update_profile(self, message)
 
 
 func _handle_update_selection(message: Dictionary) -> void:
@@ -576,339 +474,78 @@ func _handle_cancel_match_queue(message: Dictionary) -> void:
 
 
 func _handle_battle_return(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	_log_room_service("battle_return_received", {
-		"peer_id": peer_id,
-		"room_id": room_state.room_id if room_state != null else "",
-		"queue_state": room_state.room_queue_state if room_state != null else "",
-		"match_active": bool(room_state.match_active) if room_state != null else false,
-		"battle_id": room_state.current_battle_id if room_state != null else "",
-	})
-	_restore_after_battle_return()
-	_broadcast_snapshot()
-	if room_state.is_match_room():
-		_broadcast_match_queue_status()
+	_ensure_sub_services()
+	_battle_handoff_service.handle_battle_return(self, message)
 
 
 func poll_queue_status() -> void:
-	if room_state == null or room_state.room_queue_state != "queueing":
-		return
-	if room_state.room_queue_entry_id.is_empty():
-		return
-	var now := Time.get_ticks_msec()
-	if now - _last_queue_poll_msec < _queue_poll_interval_msec:
-		return
-	_last_queue_poll_msec = now
-	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("get_party_queue_status"):
-		return
-	var result = game_service_party_queue_client.get_party_queue_status(room_state.room_id, room_state.room_queue_entry_id)
-	if not (result is Dictionary) or not bool(result.get("ok", false)):
-		_log_room_service("queue_poll_failed", result if result is Dictionary else {"error": "invalid_result"})
-		return
-	var queue_state := String(result.get("queue_state", ""))
-	_log_room_service("queue_poll_result", {"queue_state": queue_state, "assignment_id": String(result.get("assignment_id", ""))})
-	if queue_state == "assigned" and not String(result.get("assignment_id", "")).is_empty():
-		_apply_queue_assignment(result)
-	elif queue_state == "expired" or queue_state == "cancelled":
-		_cancel_match_queue_locally(queue_state)
-		_broadcast_snapshot()
-		_broadcast_match_queue_status()
+	_ensure_sub_services()
+	_battle_handoff_service.poll_queue_status(self)
 
 
 func _restore_after_battle_return() -> void:
-	if room_state == null:
-		return
-	room_state.match_active = false
-	room_state.reset_ready_state()
-	room_state.room_queue_state = "idle"
-	room_state.room_queue_entry_id = ""
-	room_state.room_queue_status_text = ""
-	room_state.room_queue_error_code = ""
-	room_state.room_queue_error_message = ""
-	room_state.room_lifecycle_state = "idle"
-	room_state.current_assignment_id = ""
-	room_state.current_battle_id = ""
-	room_state.current_match_id = ""
-	room_state.battle_allocation_state = ""
-	room_state.battle_server_host = ""
-	room_state.battle_server_port = 0
+	_ensure_sub_services()
+	_battle_handoff_service.restore_after_battle_return(self)
 
 
 func _apply_queue_assignment(result: Dictionary) -> void:
-	var assignment_id := String(result.get("assignment_id", ""))
-	if assignment_id.is_empty():
-		return
-	_log_room_service("queue_assignment_received", {
-		"assignment_id": assignment_id,
-		"room_id": String(result.get("room_id", "")),
-		"server_host": String(result.get("server_host", "")),
-		"server_port": int(result.get("server_port", 0)),
-		"map_id": String(result.get("map_id", "")),
-		"mode_id": String(result.get("mode_id", "")),
-		"rule_set_id": String(result.get("rule_set_id", "")),
-	})
-	room_state.room_queue_state = "assigned"
-	room_state.room_queue_status_text = String(result.get("queue_status_text", "Match found"))
-	room_state.room_queue_error_code = ""
-	room_state.room_queue_error_message = ""
-	_broadcast_snapshot()
-	_broadcast_match_queue_status()
-	assignment_commit_requested.emit({
-		"assignment_id": assignment_id,
-		"room_id": String(result.get("room_id", "")),
-		"room_kind": String(result.get("room_kind", "")),
-		"server_host": String(result.get("server_host", "")),
-		"server_port": int(result.get("server_port", 0)),
-		"map_id": String(result.get("map_id", "")),
-		"mode_id": String(result.get("mode_id", "")),
-		"rule_set_id": String(result.get("rule_set_id", "")),
-		"captain_account_id": String(result.get("captain_account_id", "")),
-		"battle_id": String(result.get("battle_id", "")),
-		"match_id": String(result.get("match_id", "")),
-		"allocation_state": String(result.get("allocation_state", "")),
-	})
+	_ensure_sub_services()
+	_battle_handoff_service.apply_queue_assignment(self, result)
 
 
 func _handle_toggle_ready(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	if room_state.is_matchmade_room:
-		_log_room_service("toggle_ready_rejected_locked", _build_online_service_context(null, message))
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_READY_LOCKED",
-			"user_message": "Matchmade room readiness is automatic",
-		})
-		return
-	room_state.toggle_ready(peer_id)
-	_broadcast_snapshot()
-	_maybe_auto_start_match()
+	_ensure_sub_services()
+	_member_service.handle_toggle_ready(self, message)
 
 
 func _handle_start_request(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	if room_state.is_match_room():
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "MATCH_ROOM_START_FORBIDDEN",
-			"user_message": "Match rooms must enter matchmaking queue",
-		})
-		return
-	if room_state.is_matchmade_room:
-		_log_room_service("start_request_rejected_locked", _build_online_service_context(null, message))
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_START_LOCKED",
-			"user_message": "Matchmade room starts automatically",
-		})
-		return
-	if room_state.match_active:
-		_log_room_service("start_blocked_match_active", _build_start_gate_debug_context(message))
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "MATCH_ALREADY_ACTIVE",
-			"user_message": "A match is already active",
-		})
-		return
-	if room_state.get_distinct_team_ids().size() < 2:
-		_log_room_service("start_blocked_team_count", _build_start_gate_debug_context(message))
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_TEAM_INVALID",
-			"user_message": "At least two teams are required to start",
-		})
-		return
-	if peer_id != room_state.owner_peer_id or not room_state.can_start():
-		_log_room_service("start_blocked_room_not_ready", _build_start_gate_debug_context(message))
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.JOIN_BATTLE_REJECTED,
-			"error": "ROOM_START_FORBIDDEN",
-			"user_message": "Room is not ready to start",
-		})
-		return
-	start_match_requested.emit(room_state.build_snapshot())
+	_ensure_sub_services()
+	_member_service.handle_start_request(self, message)
 
 
 func _handle_leave_request(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	if peer_id <= 0:
-		return
-	var had_member := room_state != null and room_state.members.has(peer_id)
-	if had_member:
-		if room_state.is_match_room() and room_state.room_queue_state == "queueing":
-			_cancel_party_queue_backend()
-			_cancel_match_queue_locally("member_left")
-		room_state.remove_member(peer_id)
-		if room_state.members.is_empty():
-			room_state.reset()
-		_broadcast_snapshot()
-	send_to_peer.emit(peer_id, {
-		"message_type": TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED,
-		"room_id": room_state.room_id,
-		"had_member": had_member,
-	})
+	_ensure_sub_services()
+	_member_service.handle_leave_request(self, message)
 
 
 func _handle_rematch_request(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	if room_state.is_matchmade_room:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
-			"error": "MATCHMADE_REMATCH_FORBIDDEN",
-			"user_message": "Matchmade rooms return to lobby after settlement",
-		})
-		return
-	if peer_id != room_state.owner_peer_id:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
-			"error": "REMATCH_FORBIDDEN",
-			"user_message": "Only the host can request a rematch",
-		})
-		return
-	if room_state.room_id.is_empty():
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
-			"error": "ROOM_NOT_FOUND",
-			"user_message": "Room does not exist",
-		})
-		return
-	if room_state.match_active:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
-			"error": "MATCH_ALREADY_ACTIVE",
-			"user_message": "A match is already active",
-		})
-		return
-	if room_state.members.size() < room_state.min_start_players:
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_REMATCH_REJECTED,
-			"error": "ROOM_NOT_READY",
-			"user_message": "Room is not ready for rematch (member count too low)",
-		})
-		return
-	# Rematch follows the same formal start pipeline and only pre-fills readiness.
-	for member_peer_id in room_state.members.keys():
-		room_state.set_ready(member_peer_id, true)
-	room_state.match_active = true
-	_broadcast_snapshot()
-	start_match_requested.emit(room_state.build_snapshot())
+	_ensure_sub_services()
+	_member_service.handle_rematch_request(self, message)
 
 
 func _broadcast_snapshot() -> void:
-	var snapshot := room_state.build_snapshot()
-	room_snapshot_updated.emit(snapshot)
-	broadcast_message.emit({
-		"message_type": TransportMessageTypesScript.ROOM_SNAPSHOT,
-		"snapshot": snapshot.to_dict(),
-	})
+	_ensure_sub_services()
+	_message_dispatcher.broadcast_snapshot(self)
 
 
 func _broadcast_match_queue_status() -> void:
-	broadcast_message.emit({
-		"message_type": TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS,
-		"room_id": room_state.room_id,
-		"queue_type": room_state.queue_type,
-		"match_format_id": room_state.match_format_id,
-		"selected_match_mode_ids": room_state.selected_match_mode_ids.duplicate(),
-		"required_party_size": room_state.required_party_size,
-		"queue_state": room_state.room_queue_state,
-		"queue_entry_id": room_state.room_queue_entry_id,
-		"queue_status_text": room_state.room_queue_status_text,
-		"error_code": room_state.room_queue_error_code,
-		"user_message": room_state.room_queue_error_message,
-	})
+	_ensure_sub_services()
+	_message_dispatcher.broadcast_match_queue_status(self)
 
 
 func _send_match_queue_status(peer_id: int, error_code: String = "", user_message: String = "") -> void:
-	if not error_code.is_empty():
-		room_state.room_queue_error_code = error_code
-		room_state.room_queue_error_message = user_message
-	send_to_peer.emit(peer_id, {
-		"message_type": TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS,
-		"room_id": room_state.room_id,
-		"queue_type": room_state.queue_type,
-		"match_format_id": room_state.match_format_id,
-		"selected_match_mode_ids": room_state.selected_match_mode_ids.duplicate(),
-		"required_party_size": room_state.required_party_size,
-		"queue_state": room_state.room_queue_state,
-		"queue_entry_id": room_state.room_queue_entry_id,
-		"queue_status_text": room_state.room_queue_status_text,
-		"error_code": error_code,
-		"user_message": user_message,
-	})
+	_ensure_sub_services()
+	_message_dispatcher.send_match_queue_status(self, peer_id, error_code, user_message)
 
 
 func _build_party_queue_request() -> Dictionary:
-	var members: Array[Dictionary] = []
-	var seat_index := 0
-	for binding in room_state._get_sorted_member_bindings():
-		if binding == null:
-			continue
-		members.append({
-			"account_id": String(binding.account_id),
-			"profile_id": String(binding.profile_id),
-			"device_session_id": String(binding.device_session_id),
-			"seat_index": seat_index,
-		})
-		seat_index += 1
-	if members.is_empty():
-		for peer_id in room_state.get_sorted_peer_ids():
-			var profile: Dictionary = room_state.members.get(peer_id, {})
-			members.append({
-				"account_id": String(profile.get("account_id", "")),
-				"profile_id": String(profile.get("profile_id", "")),
-				"device_session_id": String(profile.get("device_session_id", "")),
-				"seat_index": seat_index,
-			})
-			seat_index += 1
-	return {
-		"party_room_id": room_state.room_id,
-		"queue_type": room_state.queue_type,
-		"match_format_id": room_state.match_format_id,
-		"selected_mode_ids": room_state.selected_match_mode_ids.duplicate(),
-		"members": members,
-	}
+	_ensure_sub_services()
+	return _battle_handoff_service.build_party_queue_request(self)
 
 
 func _enter_party_queue_backend(request: Dictionary) -> Dictionary:
-	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("enter_party_queue"):
-		return {
-			"ok": false,
-			"error_code": "PARTY_QUEUE_CLIENT_MISSING",
-			"user_message": "Party queue service is not configured",
-		}
-	var result = game_service_party_queue_client.enter_party_queue(request)
-	if result is Dictionary:
-		return result
-	return {
-		"ok": false,
-		"error_code": "PARTY_QUEUE_RESULT_INVALID",
-		"user_message": "Party queue service returned invalid result",
-	}
+	_ensure_sub_services()
+	return _battle_handoff_service.enter_party_queue_backend(self, request)
 
 
 func _cancel_party_queue_backend() -> Dictionary:
-	if game_service_party_queue_client == null or not game_service_party_queue_client.has_method("cancel_party_queue"):
-		return {"ok": true}
-	var result = game_service_party_queue_client.cancel_party_queue(room_state.room_id, room_state.room_queue_entry_id)
-	if result is Dictionary:
-		return result
-	return {
-		"ok": false,
-		"error_code": "PARTY_QUEUE_CANCEL_RESULT_INVALID",
-		"user_message": "Party queue cancel returned invalid result",
-	}
+	_ensure_sub_services()
+	return _battle_handoff_service.cancel_party_queue_backend(self)
 
 
 func _cancel_match_queue_locally(reason: String) -> void:
-	room_state.room_queue_state = "cancelled"
-	room_state.room_queue_entry_id = ""
-	room_state.room_queue_status_text = "Queue cancelled"
-	room_state.room_queue_error_code = ""
-	room_state.room_queue_error_message = ""
-	_log_room_service("match_queue_cancelled_locally", {
-		"room_id": room_state.room_id,
-		"reason": reason,
-	})
+	_ensure_sub_services()
+	_battle_handoff_service.cancel_match_queue_locally(self, reason)
 
 
 func _apply_ticket_claim_to_room_state(ticket_claim) -> void:
@@ -980,120 +617,25 @@ func _emit_assignment_commit_if_needed(ticket_claim) -> void:
 
 
 func _maybe_auto_start_match() -> void:
-	if room_state == null or not room_state.is_matchmade_room:
-		return
-	if room_state.match_active:
-		_log_room_service("auto_start_skipped_match_active", _build_online_service_context())
-		return
-	if room_state.expected_member_count <= 0:
-		_log_room_service("auto_start_skipped_missing_expected_count", _build_online_service_context())
-		return
-	if room_state.members.size() != room_state.expected_member_count:
-		_log_room_service("auto_start_waiting_members", _build_online_service_context())
-		return
-	if not room_state.can_start():
-		_log_room_service("auto_start_blocked_can_start_false", _build_start_gate_debug_context())
-		return
-	_log_room_service("auto_start_triggered", _build_online_service_context())
-	start_match_requested.emit(room_state.build_snapshot())
+	_ensure_sub_services()
+	_battle_handoff_service.maybe_auto_start_match(self)
 
 
 # Phase17: Resume request handling
 
 func _handle_resume_request(message: Dictionary) -> void:
-	var peer_id := int(message.get("sender_peer_id", 0))
-	if peer_id <= 0:
-		return
-	var ticket_validation = room_ticket_verifier.verify_resume_ticket(message) if room_ticket_verifier != null else null
-	if ticket_validation == null or not bool(ticket_validation.ok):
-		_reject_with_ticket_error(peer_id, TransportMessageTypesScript.ROOM_RESUME_REJECTED, ticket_validation)
-		return
-	var ticket_claim = ticket_validation.claim
-	
-	var validation: Dictionary = room_resume_validator.validate(room_state, message, ticket_claim)
-	if not bool(validation.get("ok", false)):
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
-			"error": String(validation.get("error", "RECONNECT_TOKEN_INVALID")),
-			"user_message": String(validation.get("user_message", "Resume request is invalid")),
-		})
-		return
-	var binding: RoomMemberBindingState = validation.get("binding", null)
-	var member_id := String(validation.get("member_id", ""))
-	var reconnect_token := String(validation.get("reconnect_token", ""))
-	var requested_match_id := String(validation.get("match_id", ""))
-	
-	# Mark as resuming
-	binding.connection_state = "resuming"
-	
-	# If no active match, return to room
-	if not room_state.match_active:
-		var previous_peer_id := binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id
-		room_state.bind_transport_to_member(member_id, peer_id)
-		binding.connection_state = "connected"
-		binding.match_peer_id = peer_id
-		binding.disconnect_deadline_msec = 0
-		binding.device_session_id = ticket_claim.device_session_id
-		binding.ticket_id = ticket_claim.ticket_id
-		binding.auth_claim_version = 1
-		binding.display_name_source = "profile"
-		if previous_peer_id > 0 and previous_peer_id != peer_id:
-			room_state.members.erase(previous_peer_id)
-			room_state.ready_map.erase(previous_peer_id)
-			if room_state.owner_peer_id == previous_peer_id:
-				room_state.owner_peer_id = peer_id
-		var profile: Dictionary = room_state.members.get(peer_id, {})
-		profile["peer_id"] = peer_id
-		profile["player_name"] = binding.player_name
-		profile["character_id"] = binding.character_id
-		profile["character_skin_id"] = binding.character_skin_id
-		profile["bubble_style_id"] = binding.bubble_style_id
-		profile["bubble_skin_id"] = binding.bubble_skin_id
-		profile["team_id"] = binding.team_id
-		profile["ready"] = binding.ready
-		room_state.members[peer_id] = profile
-		room_state.ready_map[peer_id] = binding.ready
-		send_to_peer.emit(peer_id, {
-			"message_type": TransportMessageTypesScript.ROOM_JOIN_ACCEPTED,
-			"room_id": room_state.room_id,
-			"owner_peer_id": room_state.owner_peer_id,
-		})
-		_broadcast_snapshot()
-		return
-	
-	# Active match exists - emit signal for ServerRoomRuntime to handle match resume
-	# Transport rebinding is finalized by ServerMatchResumeCoordinator only after
-	# it can build a valid battle resume payload.
-	resume_request_received.emit({
-		"sender_peer_id": peer_id,
-		"member_id": member_id,
-		"reconnect_token": reconnect_token,
-		"match_id": requested_match_id,
-		"ticket_claim": ticket_claim.to_dict(),
-	})
+	_ensure_sub_services()
+	_resume_service.handle_resume_request(self, message)
 
 
 func _send_member_session(peer_id: int, binding: RoomMemberBindingState) -> void:
-	var token := String(binding.reconnect_token)
-	var payload: Dictionary = member_session_payload_builder.build(room_state, binding, token)
-	if payload.is_empty():
-		return
-	send_to_peer.emit(peer_id, payload)
-	binding.clear_reconnect_token_plaintext()
+	_ensure_sub_services()
+	_resume_service.send_member_session(self, peer_id, binding)
 
 
 func _reject_with_ticket_error(peer_id: int, message_type: String, validation_result) -> void:
-	_log_room_service("ticket_validation_rejected", {
-		"peer_id": peer_id,
-		"message_type": message_type,
-		"error_code": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
-		"user_message": String(validation_result.user_message if validation_result != null else "Room ticket validation failed"),
-	})
-	send_to_peer.emit(peer_id, {
-		"message_type": message_type,
-		"error": String(validation_result.error_code if validation_result != null else "ROOM_TICKET_INVALID"),
-		"user_message": String(validation_result.user_message if validation_result != null else "Room ticket validation failed"),
-	})
+	_ensure_sub_services()
+	_message_dispatcher.reject_with_ticket_error(self, peer_id, message_type, validation_result)
 
 
 func _build_online_service_context(ticket_claim = null, message: Dictionary = {}) -> Dictionary:

@@ -280,6 +280,20 @@ func TestInternalAuthMiddlewareRejectsMissingSignature(t *testing.T) {
 	}
 }
 
+func TestInternalAuthMiddlewareRejectsLegacySharedSecretOnly(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/internal/v1/assignments/assign_a/grant", nil)
+	req.Header.Set("X-Internal-Secret", "internal_secret")
+	resp := httptest.NewRecorder()
+	handler := withInternalAuth(auth.NewInternalAuth("primary", "internal_secret", time.Minute), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("handler must not be called")
+	}))
+
+	handler.ServeHTTP(resp, req)
+	if resp.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 when only X-Internal-Secret is provided, got %d body=%s", resp.Code, resp.Body.String())
+	}
+}
+
 func signedAccessToken(t *testing.T, secret string, claims auth.AccessTokenClaims) string {
 	t.Helper()
 	payload, err := json.Marshal(claims)

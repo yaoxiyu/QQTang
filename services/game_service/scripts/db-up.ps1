@@ -1,16 +1,10 @@
 param(
     [ValidateSet('dev', 'test')]
-    [string]$Target = 'test'
+    [string]$Target = 'dev',
+    [switch]$Recreate
 )
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$serviceRoot = Split-Path -Parent $scriptDir
-$composeFile = if ($Target -eq 'dev') { 'docker-compose.dev.yml' } else { 'docker-compose.test.yml' }
+$serviceRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Resolve-Path (Join-Path $serviceRoot '..\..')
 
-Push-Location $serviceRoot
-try {
-    docker compose -f $composeFile up -d
-}
-finally {
-    Pop-Location
-}
+& (Join-Path $projectRoot 'tools\db-up.ps1') -Profile $Target -ProjectPath $projectRoot -GameOnly -Recreate:$Recreate

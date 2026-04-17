@@ -4,7 +4,7 @@ const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LobbyRoomDirectoryBuilderScript = preload("res://app/front/lobby/lobby_room_directory_builder.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const LOBBY_SCENE_LOG_PREFIX := "[QQT_LOBBY_SCENE]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
@@ -290,7 +290,7 @@ func _on_create_custom_room_pressed() -> void:
 	var visibility := _selected_metadata(room_visibility_selector)
 	var default_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id()
 	var default_binding := MapSelectionCatalogScript.get_map_binding(default_map_id)
-	_log_phase15("custom_room_create_requested", {
+	_log_lobby_scene("custom_room_create_requested", {
 		"visibility": visibility,
 		"default_map_id": default_map_id,
 		"derived_mode_id": String(default_binding.get("bound_mode_id", "")),
@@ -345,7 +345,7 @@ func _on_connect_directory_pressed() -> void:
 		_set_directory_status("Directory flow is not available.")
 		return
 	_directory_connect_requested = true
-	_log_phase15("ui_connect_directory_pressed", {
+	_log_lobby_scene("ui_connect_directory_pressed", {
 		"host": host_input.text.strip_edges() if host_input != null else "",
 		"port": int(port_input.text.to_int()) if port_input != null else 0,
 	})
@@ -361,7 +361,7 @@ func _on_refresh_room_list_pressed() -> void:
 		_set_directory_status("Directory flow is not available.")
 		return
 	_directory_connect_requested = true
-	_log_phase15("ui_refresh_room_list_pressed", {
+	_log_lobby_scene("ui_refresh_room_list_pressed", {
 		"host": host_input.text.strip_edges() if host_input != null else "",
 		"port": int(port_input.text.to_int()) if port_input != null else 0,
 	})
@@ -381,7 +381,7 @@ func _on_join_selected_public_room_pressed() -> void:
 		return
 	var selected_index := int(public_room_list.get_selected_items()[0])
 	var room_id := String(public_room_list.get_item_metadata(selected_index))
-	_log_phase15("ui_join_selected_public_room_pressed", {
+	_log_lobby_scene("ui_join_selected_public_room_pressed", {
 		"room_id": room_id,
 		"selected_index": selected_index,
 	})
@@ -464,7 +464,7 @@ func _handle_room_entry_result(result: Dictionary) -> void:
 		_set_message("Room entry context is missing.")
 		_set_directory_status("Room entry context is missing.")
 		return
-	_log_phase15("room_entry_context_ready", {
+	_log_lobby_scene("room_entry_context_ready", {
 		"entry_kind": String(entry_context.entry_kind),
 		"room_kind": String(entry_context.room_kind),
 		"target_room_id": String(entry_context.target_room_id),
@@ -589,8 +589,8 @@ func _refresh_directory_list() -> void:
 	_set_directory_status("Loaded %d custom room(s)." % rendered_count)
 
 
-func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[lobby_scene] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.scene")
+func _log_lobby_scene(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[lobby_scene] %s %s" % [LOBBY_SCENE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.scene")
 
 
 func _log_online_lobby(event_name: String, payload: Dictionary) -> void:

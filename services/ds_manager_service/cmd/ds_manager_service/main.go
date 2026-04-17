@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"qqtang/services/ds_manager_service/internal/allocator"
+	"qqtang/services/ds_manager_service/internal/auth"
 	"qqtang/services/ds_manager_service/internal/config"
 	"qqtang/services/ds_manager_service/internal/httpapi"
 	"qqtang/services/ds_manager_service/internal/process"
@@ -37,10 +38,12 @@ func main() {
 	readyHandler := httpapi.NewReadyHandler(alloc)
 	activeHandler := httpapi.NewActiveHandler(alloc)
 	reapHandler := httpapi.NewReapHandler(alloc, runner)
+	internalAuth := auth.NewInternalAuth(cfg.InternalAuthKeyID, cfg.InternalSharedSecret, time.Duration(cfg.InternalAuthMaxSkewSec)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		Allocator:       alloc,
 		ProcessRunner:   runner,
+		InternalAuth:    internalAuth,
 		AllocateHandler: allocateHandler,
 		ReadyHandler:    readyHandler,
 		ActiveHandler:   activeHandler,

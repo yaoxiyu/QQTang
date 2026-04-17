@@ -1,7 +1,7 @@
 class_name LobbyUseCase
 extends RefCounted
 
-const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const LOBBY_FLOW_LOG_PREFIX := "[QQT_LOBBY]"
 
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
@@ -93,7 +93,7 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 func start_practice(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
 	if practice_room_factory == null:
 		return _fail("PRACTICE_ROOM_FACTORY_MISSING", "Practice room factory is not configured")
-	_log_phase15("start_practice", {
+	_log_lobby_flow("start_practice", {
 		"preferred_map_id": map_id,
 		"preferred_rule_id": rule_id,
 		"preferred_mode_id": mode_id,
@@ -121,7 +121,7 @@ func create_private_room(host: String, port: int) -> Dictionary:
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
-	_log_phase15("create_private_room", {
+	_log_lobby_flow("create_private_room", {
 		"host": normalized_host,
 		"port": normalized_port,
 	})
@@ -148,14 +148,14 @@ func create_ranked_match_room(host: String, port: int) -> Dictionary:
 func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 	var normalized_room_id := room_id.strip_edges()
 	if normalized_room_id.is_empty():
-		_log_phase15("join_private_room_failed", {
+		_log_lobby_flow("join_private_room_failed", {
 			"reason": "ROOM_ID_REQUIRED",
 		})
 		return _fail("ROOM_ID_REQUIRED", "Room id is required")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
-	_log_phase15("join_private_room", {
+	_log_lobby_flow("join_private_room", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"room_id": normalized_room_id,
@@ -177,14 +177,14 @@ func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 func create_public_room(host: String, port: int, room_display_name: String) -> Dictionary:
 	var normalized_room_display_name := room_display_name.strip_edges()
 	if normalized_room_display_name.is_empty():
-		_log_phase15("create_public_room_failed", {
+		_log_lobby_flow("create_public_room_failed", {
 			"reason": "ROOM_DISPLAY_NAME_REQUIRED",
 		})
 		return _fail("ROOM_DISPLAY_NAME_REQUIRED", "Public room name is required")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
-	_log_phase15("create_public_room", {
+	_log_lobby_flow("create_public_room", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"room_display_name": normalized_room_display_name,
@@ -205,14 +205,14 @@ func create_public_room(host: String, port: int, room_display_name: String) -> D
 func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
 	var normalized_room_id := room_id.strip_edges()
 	if normalized_room_id.is_empty():
-		_log_phase15("join_public_room_failed", {
+		_log_lobby_flow("join_public_room_failed", {
 			"reason": "ROOM_ID_REQUIRED",
 		})
 		return _fail("ROOM_ID_REQUIRED", "Room id is required")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
-	_log_phase15("join_public_room", {
+	_log_lobby_flow("join_public_room", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"room_id": normalized_room_id,
@@ -312,9 +312,11 @@ func resume_recent_room() -> Dictionary:
 	if front_settings_state.reconnect_room_id.strip_edges().is_empty():
 		return _fail("RECONNECT_ROOM_MISSING", "No reconnect room is available")
 	if front_settings_state.reconnect_member_id.strip_edges().is_empty():
-		return _fail("RECONNECT_MEMBER_MISSING", "Reconnect member session is missing")
+		_clear_stale_reconnect_state("RECONNECT_MEMBER_MISSING", "Reconnect member session is missing")
+		return _fail("RECONNECT_MEMBER_MISSING", "Reconnect credential unavailable, stale reconnect state cleared")
 	if front_settings_state.reconnect_token.strip_edges().is_empty():
-		return _fail("RECONNECT_TOKEN_MISSING", "Reconnect token is missing")
+		_clear_stale_reconnect_state("RECONNECT_TOKEN_MISSING", "Reconnect token is missing")
+		return _fail("RECONNECT_TOKEN_MISSING", "Reconnect credential unavailable, stale reconnect state cleared")
 	
 	var entry_context := _build_online_entry_context(
 		FrontEntryKindScript.ONLINE_JOIN,
@@ -332,7 +334,7 @@ func resume_recent_room() -> Dictionary:
 	entry_context.reconnect_token = front_settings_state.reconnect_token
 	entry_context.reconnect_match_id = front_settings_state.reconnect_match_id
 	
-	_log_phase15("resume_recent_room", {
+	_log_lobby_flow("resume_recent_room", {
 		"room_id": front_settings_state.reconnect_room_id,
 		"room_kind": front_settings_state.reconnect_room_kind,
 		"member_id": front_settings_state.reconnect_member_id,
@@ -374,7 +376,7 @@ func _create_match_room(host: String, port: int, room_kind: String, queue_type: 
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_update_last_server(normalized_host, normalized_port)
-	_log_phase15("create_match_room", {
+	_log_lobby_flow("create_match_room", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"room_kind": room_kind,
@@ -411,7 +413,7 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 	request.requested_match_id = entry_context.reconnect_match_id if purpose == "resume" else ""
 	var loadout_result = LoadoutNormalizerScript.apply_to_ticket_request(request, player_profile_state)
 	if loadout_result != null and not loadout_result.changed_fields.is_empty():
-		_log_phase15("ticket_loadout_normalized", {
+		_log_lobby_flow("ticket_loadout_normalized", {
 			"purpose": purpose,
 			"changed_fields": loadout_result.changed_fields,
 		})
@@ -510,6 +512,21 @@ func _update_last_server(host: String, port: int) -> void:
 	front_settings_state.last_server_port = port
 
 
+func _clear_stale_reconnect_state(reason: String, detail: String) -> void:
+	if front_settings_state == null:
+		return
+	_log_lobby_flow("clear_stale_reconnect_state", {
+		"reason": reason,
+		"detail": detail,
+		"room_id": String(front_settings_state.reconnect_room_id),
+		"member_id": String(front_settings_state.reconnect_member_id),
+		"reconnect_state": String(front_settings_state.reconnect_state),
+	})
+	front_settings_state.clear_reconnect_ticket()
+	if app_runtime != null and app_runtime.front_settings_repository != null and app_runtime.front_settings_repository.has_method("save_settings"):
+		app_runtime.front_settings_repository.save_settings(front_settings_state)
+
+
 func _fail(error_code: String, user_message: String) -> Dictionary:
 	return {
 		"ok": false,
@@ -519,8 +536,8 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 	}
 
 
-func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[lobby_use_case] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.use_case")
+func _log_lobby_flow(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[lobby_use_case] %s %s" % [LOBBY_FLOW_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.use_case")
 
 
 func _has_object_property(target: Object, property_name: String) -> bool:

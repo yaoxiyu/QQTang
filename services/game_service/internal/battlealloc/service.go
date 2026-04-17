@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"qqtang/services/game_service/internal/internalhttp"
 	"qqtang/services/game_service/internal/storage"
 )
 
@@ -23,14 +24,18 @@ type Service struct {
 	assignmentRepo     *storage.AssignmentRepository
 	battleInstanceRepo *storage.BattleInstanceRepository
 	dsManagerURL       string
+	internalAuthKeyID  string
+	internalSecret     string
 	httpClient         *http.Client
 }
 
-func NewService(assignmentRepo *storage.AssignmentRepository, battleInstanceRepo *storage.BattleInstanceRepository, dsManagerURL string) *Service {
+func NewService(assignmentRepo *storage.AssignmentRepository, battleInstanceRepo *storage.BattleInstanceRepository, dsManagerURL string, internalAuthKeyID string, internalSecret string) *Service {
 	return &Service{
 		assignmentRepo:     assignmentRepo,
 		battleInstanceRepo: battleInstanceRepo,
 		dsManagerURL:       dsManagerURL,
+		internalAuthKeyID:  internalAuthKeyID,
+		internalSecret:     internalSecret,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -154,9 +159,9 @@ type dsAllocateResponse struct {
 func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) (dsAllocateResponse, error) {
 	body, err := json.Marshal(map[string]any{
 		"battle_id":             input.BattleID,
-		"assignment_id":        input.AssignmentID,
-		"match_id":             input.MatchID,
-		"host_hint":            input.HostHint,
+		"assignment_id":         input.AssignmentID,
+		"match_id":              input.MatchID,
+		"host_hint":             input.HostHint,
 		"expected_member_count": input.ExpectedMemberCount,
 	})
 	if err != nil {
@@ -169,6 +174,9 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 		return dsAllocateResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, body, time.Now().UTC()); err != nil {
+		return dsAllocateResponse{}, fmt.Errorf("sign ds_manager request failed: %w", err)
+	}
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {

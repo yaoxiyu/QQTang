@@ -4,12 +4,14 @@ import (
 	"net/http"
 
 	"qqtang/services/ds_manager_service/internal/allocator"
+	"qqtang/services/ds_manager_service/internal/auth"
 	"qqtang/services/ds_manager_service/internal/process"
 )
 
 type RouterDeps struct {
 	Allocator       *allocator.Allocator
 	ProcessRunner   *process.GodotProcessRunner
+	InternalAuth    *auth.InternalAuth
 	AllocateHandler *AllocateHandler
 	ReapHandler     *ReapHandler
 	ReadyHandler    *ReadyHandler
@@ -24,10 +26,10 @@ func NewRouter(deps RouterDeps) http.Handler {
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	})
 
-	mux.HandleFunc("POST /internal/v1/battles/allocate", deps.AllocateHandler.Handle)
-	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/ready", deps.ReadyHandler.Handle)
-	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/active", deps.ActiveHandler.Handle)
-	mux.HandleFunc("POST /internal/v1/battles/{battle_id}/reap", deps.ReapHandler.Handle)
+	mux.Handle("POST /internal/v1/battles/allocate", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.AllocateHandler.Handle)))
+	mux.Handle("POST /internal/v1/battles/{battle_id}/ready", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ReadyHandler.Handle)))
+	mux.Handle("POST /internal/v1/battles/{battle_id}/active", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ActiveHandler.Handle)))
+	mux.Handle("POST /internal/v1/battles/{battle_id}/reap", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ReapHandler.Handle)))
 
 	return mux
 }

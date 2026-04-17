@@ -9,7 +9,10 @@ import (
 )
 
 type Config struct {
-	HTTPListenAddr string
+	HTTPListenAddr         string
+	InternalAuthKeyID      string
+	InternalSharedSecret   string
+	InternalAuthMaxSkewSec int
 
 	// Godot battle DS process settings
 	GodotExecutable    string
@@ -32,8 +35,15 @@ type Config struct {
 
 func LoadFromEnv() (*Config, error) {
 	cfg := &Config{}
+	var err error
 
 	cfg.HTTPListenAddr = configx.Env("DSM_HTTP_ADDR", "127.0.0.1:18090")
+	cfg.InternalAuthKeyID = configx.Env("DSM_INTERNAL_AUTH_KEY_ID", "primary")
+	cfg.InternalSharedSecret = configx.Env("DSM_INTERNAL_AUTH_SHARED_SECRET", os.Getenv("DSM_INTERNAL_SHARED_SECRET"))
+	cfg.InternalAuthMaxSkewSec, err = configx.RequiredPositiveInt("DSM_INTERNAL_AUTH_MAX_SKEW_SECONDS", 60)
+	if err != nil {
+		return nil, fmt.Errorf("DSM_INTERNAL_AUTH_MAX_SKEW_SECONDS: %w", err)
+	}
 
 	cfg.GodotExecutable = configx.Env("DSM_GODOT_EXECUTABLE", "godot4")
 	cfg.ProjectRoot = configx.Env("DSM_PROJECT_ROOT", "")
@@ -42,8 +52,6 @@ func LoadFromEnv() (*Config, error) {
 	cfg.BattleLogDir = configx.Env("DSM_BATTLE_LOG_DIR", "")
 
 	cfg.DSHost = configx.Env("DSM_DS_HOST", "127.0.0.1")
-
-	var err error
 
 	cfg.PortRangeStart, err = configx.RequiredPositiveInt("DSM_PORT_RANGE_START", 19010)
 	if err != nil {
@@ -71,6 +79,9 @@ func LoadFromEnv() (*Config, error) {
 
 	if cfg.BattleLogDir == "" {
 		cfg.BattleLogDir = defaultBattleLogDir(cfg.ProjectRoot)
+	}
+	if cfg.InternalSharedSecret == "" {
+		return nil, fmt.Errorf("DSM_INTERNAL_AUTH_SHARED_SECRET is required")
 	}
 
 	return cfg, nil

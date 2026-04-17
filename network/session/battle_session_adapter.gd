@@ -15,6 +15,7 @@ const RuntimeMessageRouterScript = preload("res://network/session/runtime/runtim
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 
 signal adapter_configured()
 signal battle_session_started(config)
@@ -1050,11 +1051,21 @@ func _on_transport_connected() -> void:
 			_bootstrap_local_peer_id = transport_peer_id
 		var battle_id := String(start_config.battle_id)
 		if not battle_id.is_empty():
-			transport.send_to_peer(1, {
+			var request_payload := {
 				"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
 				"battle_id": battle_id,
 				"sender_peer_id": _bootstrap_local_peer_id if _bootstrap_local_peer_id > 0 else transport_peer_id,
-			})
+			}
+			var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
+			if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
+				var entry_context = app_runtime.current_battle_entry_context
+				request_payload["battle_ticket"] = String(entry_context.battle_ticket)
+				request_payload["battle_ticket_id"] = String(entry_context.battle_ticket_id)
+				request_payload["assignment_id"] = String(entry_context.assignment_id)
+				request_payload["match_id"] = String(entry_context.match_id)
+			if app_runtime != null and "auth_session_state" in app_runtime and app_runtime.auth_session_state != null:
+				request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
+			transport.send_to_peer(1, request_payload)
 
 
 func _on_transport_disconnected() -> void:

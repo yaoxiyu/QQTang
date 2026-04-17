@@ -8,7 +8,7 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const PHASE21_LOG_PREFIX := "[QQT_P21]"
+const PRACTICE_ROOM_LOG_PREFIX := "[QQT_PRACTICE]"
 
 var room_session_controller: Node = null
 
@@ -107,4 +107,4 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 
 func _log_practice(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[practice_room_factory] %s %s" % [PHASE21_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.practice")
+	LogFrontScript.debug("%s[practice_room_factory] %s %s" % [PRACTICE_ROOM_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.practice")

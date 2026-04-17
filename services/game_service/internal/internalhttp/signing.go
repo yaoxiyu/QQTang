@@ -2,8 +2,13 @@ package internalhttp
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 const (
@@ -19,6 +24,26 @@ func BodySHA256Hex(body []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func SignRequest(req *http.Request, keyID string, sharedSecret string, body []byte, now time.Time) error {
+	if req == nil || keyID == "" || sharedSecret == "" {
+		return fmt.Errorf("internal request signing requires request, key id, and shared secret")
+	}
+	nonce, err := randomNonce()
+	if err != nil {
+		return err
+	}
+	timestamp := strconv.FormatInt(now.UTC().Unix(), 10)
+	bodyHash := BodySHA256Hex(body)
+	signature := Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, sharedSecret)
+
+	req.Header.Set(HeaderKeyID, keyID)
+	req.Header.Set(HeaderTimestamp, timestamp)
+	req.Header.Set(HeaderNonce, nonce)
+	req.Header.Set(HeaderBodySHA256, bodyHash)
+	req.Header.Set(HeaderSignature, signature)
+	return nil
+}
+
 func Sign(method string, pathAndQuery string, timestamp string, nonce string, bodyHash string, sharedSecret string) string {
 	mac := hmac.New(sha256.New, []byte(sharedSecret))
 	_, _ = mac.Write([]byte(canonicalString(method, pathAndQuery, timestamp, nonce, bodyHash)))
@@ -31,4 +56,12 @@ func SignatureEqual(a string, b string) bool {
 
 func canonicalString(method string, pathAndQuery string, timestamp string, nonce string, bodyHash string) string {
 	return method + "\n" + pathAndQuery + "\n" + timestamp + "\n" + nonce + "\n" + bodyHash
+}
+
+func randomNonce() (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
 }

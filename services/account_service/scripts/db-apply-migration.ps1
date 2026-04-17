@@ -1,31 +1,14 @@
 param(
-    [ValidateSet("dev", "test")]
-    [string]$Target = "dev",
-    [string]$Migration = "0001_account_auth_init.sql"
+    [ValidateSet('dev', 'test')]
+    [string]$Target = 'dev',
+    [string]$Migration = ''
 )
 
-$ErrorActionPreference = "Stop"
-
-$root = Split-Path -Parent $PSScriptRoot
-$migrationPath = Join-Path (Join-Path $root "migrations") $Migration
-
-if (-not (Test-Path $migrationPath)) {
-    throw "Migration file not found: $migrationPath"
+if (-not [string]::IsNullOrWhiteSpace($Migration)) {
+    Write-Host '[notice] -Migration is no longer used; all pending migrations are applied in order.' -ForegroundColor Yellow
 }
 
-if ($Target -eq "dev") {
-    $container = "qqtang_account_pg"
-    $database = "qqtang_account_dev"
-    $user = "qqtang"
-    $password = "qqtang_dev_pass"
-}
-else {
-    $container = "qqtang_account_pg_test"
-    $database = "qqtang_account_test"
-    $user = "qqtang_test"
-    $password = "qqtang_test_pass"
-}
+$serviceRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Resolve-Path (Join-Path $serviceRoot '..\..')
 
-Get-Content -Raw $migrationPath | docker exec -e PGPASSWORD=$password -i $container psql -v ON_ERROR_STOP=1 -U $user -d $database
-
-Pause
+& (Join-Path $projectRoot 'tools\db-migrate.ps1') -Profile $Target -ProjectPath $projectRoot -Service account

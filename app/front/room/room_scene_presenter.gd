@@ -53,7 +53,6 @@ func present(view_model: Dictionary, scene_controller: Node) -> void:
 	_set_button_text(scene_controller, "enter_queue_button", "开始匹配")
 	_set_button_text(scene_controller, "cancel_queue_button", "取消匹配")
 	_set_button_text(scene_controller, "add_opponent_button", "Add Opponent")
-	_render_member_list(scene_controller, view_model.get("members", []))
 	# Battle allocation status.
 	_set_text(scene_controller, "battle_allocation_label", _build_battle_allocation_text(view_model))
 
@@ -63,35 +62,6 @@ func _build_room_meta_text(view_model: Dictionary) -> String:
 		String(view_model.get("room_kind_text", "")),
 		String(view_model.get("topology_text", "")),
 	]
-
-
-func _render_member_list(scene_controller: Node, members_data) -> void:
-	if not scene_controller.get("member_list"):
-		return
-	var member_list = scene_controller.get("member_list")
-	if member_list == null:
-		return
-	for child in member_list.get_children():
-		child.queue_free()
-	for entry in members_data:
-		if not (entry is Dictionary):
-			continue
-		var label := Label.new()
-		var owner_suffix := " [Host]" if bool(entry.get("is_owner", false)) else ""
-		var local_suffix := " [You]" if bool(entry.get("is_local_player", false)) else ""
-		var team_suffix := " | Team %d" % int(entry.get("team_id", 1))
-		var ready_suffix := " Ready" if bool(entry.get("ready", false)) else " Not Ready"
-		var connection_state := String(entry.get("connection_state", "connected"))
-		var connection_suffix := "" if connection_state.is_empty() or connection_state == "connected" else " [%s]" % connection_state
-		label.text = "%s%s%s%s%s%s" % [
-			String(entry.get("player_name", "")),
-			owner_suffix,
-			local_suffix,
-			team_suffix,
-			ready_suffix,
-			connection_suffix,
-		]
-		member_list.add_child(label)
 
 
 func _set_text(scene_controller: Node, property_name: String, text: String) -> void:

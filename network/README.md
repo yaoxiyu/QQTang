@@ -11,3 +11,14 @@
 ## 维护规则
 - 新增正式联机逻辑优先进入本层。
 - 不把正式实现继续写回 `gameplay/network/` 的 legacy wrapper。
+
+## Compatibility Policy
+- 禁写目录: `res://gameplay/network/session/`
+- 禁写文件:
+`res://network/runtime/dedicated_server_bootstrap.gd`
+`res://network/session/runtime/server_room_runtime.gd`
+- 这些路径仅允许:
+class_name 兼容声明
+extends 转发到正式实现
+deprecation 注释
+- 新逻辑必须写入正式路径（如 `network/session/runtime/*`、`network/runtime/*_bootstrap.gd`）。

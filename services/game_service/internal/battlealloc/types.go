@@ -15,10 +15,10 @@ type AllocateInput struct {
 }
 
 type AllocateResult struct {
-	BattleID       string
-	DSInstanceID   string
-	ServerHost     string
-	ServerPort     int
+	BattleID        string
+	DSInstanceID    string
+	ServerHost      string
+	ServerPort      int
 	AllocationState string
 }
 
@@ -37,6 +37,16 @@ type ManualRoomMember struct {
 	AccountID      string
 	ProfileID      string
 	AssignedTeamID int
+}
+
+type ManualRoomBattleResult struct {
+	AssignmentID    string
+	BattleID        string
+	MatchID         string
+	DSInstanceID    string
+	ServerHost      string
+	ServerPort      int
+	AllocationState string
 }
 
 type BattleManifest struct {

@@ -68,8 +68,13 @@ func _test_reconnect_ticket_serialization_round_trip() -> bool:
 	settings.reconnect_match_id = "match_abc"
 	settings.reconnect_host = "10.0.0.1"
 	settings.reconnect_port = 8000
+	settings.reconnect_token = "should_not_persist"
 
-	var restored := FrontSettingsStateScript.from_dict(settings.to_dict())
+	var serialized := settings.to_dict()
+	if serialized.has("reconnect_token"):
+		print("FAIL: reconnect_token must not be serialized")
+		return false
+	var restored := FrontSettingsStateScript.from_dict(serialized)
 	if restored.reconnect_room_id != settings.reconnect_room_id:
 		print("FAIL: round_trip reconnect_room_id mismatch")
 		return false
@@ -90,5 +95,8 @@ func _test_reconnect_ticket_serialization_round_trip() -> bool:
 		return false
 	if restored.reconnect_port != settings.reconnect_port:
 		print("FAIL: round_trip reconnect_port mismatch")
+		return false
+	if not restored.reconnect_token.is_empty():
+		print("FAIL: reconnect_token should not be restored from serialized settings")
 		return false
 	return true

@@ -1,7 +1,7 @@
 class_name LobbyDirectoryUseCase
 extends RefCounted
 
-const PHASE15_LOG_PREFIX := "[QQT_P15]"
+const LOBBY_DIRECTORY_LOG_PREFIX := "[QQT_LOBBY_DIR]"
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 var client_room_runtime: Node = null
@@ -15,14 +15,14 @@ func configure(p_client_room_runtime: Node, p_front_settings_state: FrontSetting
 
 func connect_directory(host: String, port: int) -> Dictionary:
 	if client_room_runtime == null:
-		_log_phase15("directory_connect_failed", {
+		_log_directory("directory_connect_failed", {
 			"reason": "ROOM_RUNTIME_MISSING",
 		})
 		return _fail("ROOM_RUNTIME_MISSING", "Room runtime is not available")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_store_last_server(normalized_host, normalized_port)
-	_log_phase15("directory_connect_requested", {
+	_log_directory("directory_connect_requested", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"already_connected": client_room_runtime.has_method("is_connected_to") and client_room_runtime.is_connected_to(normalized_host, normalized_port),
@@ -40,14 +40,14 @@ func connect_directory(host: String, port: int) -> Dictionary:
 
 func refresh_directory(host: String, port: int) -> Dictionary:
 	if client_room_runtime == null:
-		_log_phase15("directory_refresh_failed", {
+		_log_directory("directory_refresh_failed", {
 			"reason": "ROOM_RUNTIME_MISSING",
 		})
 		return _fail("ROOM_RUNTIME_MISSING", "Room runtime is not available")
 	var normalized_host := _normalize_host(host)
 	var normalized_port := _normalize_port(port)
 	_store_last_server(normalized_host, normalized_port)
-	_log_phase15("directory_refresh_requested", {
+	_log_directory("directory_refresh_requested", {
 		"host": normalized_host,
 		"port": normalized_port,
 		"is_transport_connected": client_room_runtime.has_method("is_transport_connected") and client_room_runtime.is_transport_connected(),
@@ -63,11 +63,11 @@ func refresh_directory(host: String, port: int) -> Dictionary:
 
 func disconnect_directory() -> Dictionary:
 	if client_room_runtime == null:
-		_log_phase15("directory_disconnect_failed", {
+		_log_directory("directory_disconnect_failed", {
 			"reason": "ROOM_RUNTIME_MISSING",
 		})
 		return _fail("ROOM_RUNTIME_MISSING", "Room runtime is not available")
-	_log_phase15("directory_disconnect_requested", {})
+	_log_directory("directory_disconnect_requested", {})
 	if client_room_runtime.has_method("unsubscribe_room_directory"):
 		client_room_runtime.unsubscribe_room_directory()
 	return _ok(false, "")
@@ -115,5 +115,5 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 	}
 
 
-func _log_phase15(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[lobby_directory] %s %s" % [PHASE15_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.directory")
+func _log_directory(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("%s[lobby_directory] %s %s" % [LOBBY_DIRECTORY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.directory")

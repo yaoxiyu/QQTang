@@ -61,25 +61,25 @@ func main() {
 	queueService.ConfigureRatingRepository(ratingRepo)
 	queueService.ConfigurePartyQueueRepositories(partyQueueRepo, partyQueueMemberRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
-	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL)
+	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL, cfg.InternalAuthKeyID, cfg.InternalSharedSecret)
+	manualRoomService := battlealloc.NewManualRoomService(store.Pool, assignmentRepo, battleAllocService)
 	queueService.ConfigureBattleAllocator(newQueueBattleAllocatorAdapter(battleAllocService))
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
-		JWTAuth:                   jwtAuth,
-		InternalAuth:              internalAuth,
-		InternalSharedSecret:      cfg.InternalSharedSecret,
-		MatchmakingHandler:        httpapi.NewMatchmakingHandler(queueService),
-		PartyMatchmakingHandler:   httpapi.NewPartyMatchmakingHandler(queueService),
-		CareerHandler:             httpapi.NewCareerHandler(careerService),
-		SettlementHandler:         httpapi.NewSettlementHandler(finalizeService),
-		InternalAssignmentHandler: httpapi.NewInternalAssignmentHandler(assignmentService),
-		InternalFinalizeHandler:   httpapi.NewInternalFinalizeHandler(finalizeService),
+		JWTAuth:                         jwtAuth,
+		InternalAuth:                    internalAuth,
+		MatchmakingHandler:              httpapi.NewMatchmakingHandler(queueService),
+		PartyMatchmakingHandler:         httpapi.NewPartyMatchmakingHandler(queueService),
+		CareerHandler:                   httpapi.NewCareerHandler(careerService),
+		SettlementHandler:               httpapi.NewSettlementHandler(finalizeService),
+		InternalAssignmentHandler:       httpapi.NewInternalAssignmentHandler(assignmentService),
+		InternalFinalizeHandler:         httpapi.NewInternalFinalizeHandler(finalizeService),
 		InternalBattleManifestHandler:   httpapi.NewInternalBattleManifestHandler(battleAllocService),
 		InternalBattleReadyHandler:      httpapi.NewInternalBattleReadyHandler(battleAllocService),
-		InternalManualRoomBattleHandler: httpapi.NewInternalManualRoomBattleHandler(battleAllocService, assignmentRepo),
-		ReadinessCheck:            store.Ping,
+		InternalManualRoomBattleHandler: httpapi.NewInternalManualRoomBattleHandler(manualRoomService),
+		ReadinessCheck:                  store.Ping,
 	})
 
 	server := &http.Server{

@@ -5,6 +5,9 @@ const LEGACY_ROOT_NODE_NAME: String = "AppRuntimeRoot"
 const PENDING_RUNTIME_META_KEY: String = "_app_runtime_pending_instance"
 const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
 const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_state.gd")
+const AppRuntimeServicesScript = preload("res://app/flow/app_runtime_services.gd")
+const AppResumeStateStoreScript = preload("res://app/flow/app_resume_state_store.gd")
+const AppNavigationCoordinatorScript = preload("res://app/flow/app_navigation_coordinator.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
@@ -122,6 +125,7 @@ var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 # Phase17: Resume payload storage
 var current_resume_snapshot = null
 var current_loading_mode: String = "normal_start"
+var _resume_state_store: RefCounted = AppResumeStateStoreScript.new()
 
 
 static func get_existing(tree: SceneTree):
@@ -195,18 +199,8 @@ func request_initialize(reason: String = "manual") -> void:
 	_ensure_front_repositories()
 	_ensure_front_local_state()
 	_ensure_front_services()
-
-	if front_flow == null or not is_instance_valid(front_flow):
-		front_flow = FrontFlowControllerScript.new()
-		front_flow.name = "FrontFlowController"
-		add_child(front_flow)
-
-	if scene_flow == null or not is_instance_valid(scene_flow):
-		scene_flow = SceneFlowControllerScript.new()
-		scene_flow.name = "SceneFlowController"
-		add_child(scene_flow)
-
-	front_flow.configure(scene_flow)
+	_ensure_resume_state_store()
+	AppNavigationCoordinatorScript.ensure_navigation(self)
 
 	if room_session_controller == null or not is_instance_valid(room_session_controller):
 		room_session_controller = RoomSessionControllerScript.new()
@@ -249,11 +243,7 @@ func request_initialize(reason: String = "manual") -> void:
 		client_room_runtime.room_error.connect(_on_client_runtime_room_error)
 
 	_ensure_front_use_cases()
-
-	if scene_flow.current_scene_path.is_empty():
-		scene_flow.current_scene_path = SceneFlowControllerScript.BOOT_SCENE_PATH
-	if int(front_flow.current_state) != int(FrontFlowControllerScript.FlowState.BOOT):
-		front_flow.current_state = FrontFlowControllerScript.FlowState.BOOT
+	AppNavigationCoordinatorScript.ensure_boot_state(self)
 	_initialization_in_progress = false
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.READY, reason)
 	if not _ready_emitted:
@@ -335,9 +325,7 @@ func clear_battle_payload() -> void:
 	current_battle_entry_context = null
 	battle_context.clear_battle_payload()
 	# Phase17: Clear resume payload
-	current_resume_snapshot = null
-	current_loading_mode = "normal_start"
-	front_context.clear_resume_payload()
+	clear_resume_payload()
 	if battle_session_adapter != null:
 		battle_session_adapter.setup_from_start_config(null)
 
@@ -354,17 +342,19 @@ func apply_canonical_start_config(config) -> void:
 # Phase17: Apply match resume payload
 func apply_match_resume_payload(config, resume_snapshot) -> void:
 	apply_canonical_start_config(config)
-	current_resume_snapshot = resume_snapshot
-	current_loading_mode = "resume_match"
-	front_context.current_resume_snapshot = current_resume_snapshot
-	front_context.current_loading_mode = current_loading_mode
+	_ensure_resume_state_store()
+	_resume_state_store.apply_match_resume_payload(resume_snapshot)
+	_sync_resume_fields_from_store()
+	_sync_front_context_from_fields()
 
 
 # Phase17: Clear resume payload
 func clear_resume_payload() -> void:
-	current_resume_snapshot = null
-	current_loading_mode = "normal_start"
-	front_context.clear_resume_payload()
+	_ensure_resume_state_store()
+	_resume_state_store.clear_resume_payload()
+	_sync_resume_fields_from_store()
+	if front_context != null and front_context.has_method("clear_resume_payload"):
+		front_context.clear_resume_payload()
 
 
 func set_local_peer_id(peer_id: int) -> void:
@@ -514,176 +504,27 @@ func _ensure_root_nodes() -> void:
 
 
 func _ensure_runtime_config() -> void:
-	if runtime_config == null:
-		runtime_config = AppRuntimeConfigScript.new()
+	AppRuntimeServicesScript.ensure_runtime_config(self)
 
 
 func _ensure_runtime_contexts() -> void:
-	if front_context == null:
-		front_context = FrontRuntimeContextScript.new()
-	if battle_context == null:
-		battle_context = BattleRuntimeContextScript.new()
-	_sync_front_context_from_fields()
-	_sync_battle_context_from_fields()
+	AppRuntimeServicesScript.ensure_runtime_contexts(self)
 
 
 func _ensure_front_local_state() -> void:
-	if auth_session_state == null:
-		auth_session_state = AuthSessionStateScript.new()
-	if player_profile_state == null:
-		player_profile_state = PlayerProfileStateScript.new()
-	if front_settings_state == null:
-		front_settings_state = FrontSettingsStateScript.new()
-
-	if auth_session_repository != null and auth_session_repository.has_method("load_session"):
-		auth_session_state = auth_session_repository.load_session()
-		if auth_session_state == null:
-			auth_session_state = AuthSessionStateScript.new()
-	if profile_repository != null and profile_repository.has_method("load_profile"):
-		player_profile_state = profile_repository.load_profile()
-		if player_profile_state == null:
-			player_profile_state = PlayerProfileStateScript.new()
-	if front_settings_repository != null and front_settings_repository.has_method("load_settings"):
-		front_settings_state = front_settings_repository.load_settings()
-		if front_settings_state == null:
-			front_settings_state = FrontSettingsStateScript.new()
-	_sync_front_context_from_fields()
+	AppRuntimeServicesScript.ensure_front_local_state(self)
 
 
 func _ensure_front_repositories() -> void:
-	if auth_session_repository == null:
-		auth_session_repository = LocalAuthSessionRepositoryScript.new()
-	elif not (auth_session_repository is AuthSessionRepositoryScript):
-		auth_session_repository = LocalAuthSessionRepositoryScript.new()
-
-	if profile_repository == null:
-		profile_repository = LocalProfileRepositoryScript.new()
-	elif not (profile_repository is ProfileRepositoryScript):
-		profile_repository = LocalProfileRepositoryScript.new()
-
-	if front_settings_repository == null:
-		front_settings_repository = LocalFrontSettingsRepositoryScript.new()
-	elif not (front_settings_repository is FrontSettingsRepositoryScript):
-		front_settings_repository = LocalFrontSettingsRepositoryScript.new()
+	AppRuntimeServicesScript.ensure_front_repositories(self)
 
 
 func _ensure_front_services() -> void:
-	if auth_gateway == null:
-		auth_gateway = HttpAuthGatewayScript.new()
-	if runtime_config != null and bool(runtime_config.enable_pass_through_auth_fallback):
-		auth_gateway = PassThroughAuthGatewayScript.new()
-	if profile_gateway == null:
-		profile_gateway = HttpProfileGatewayScript.new()
-	if room_ticket_gateway == null:
-		room_ticket_gateway = HttpRoomTicketGatewayScript.new()
-	if career_gateway == null:
-		career_gateway = HttpCareerGatewayScript.new()
-	if settlement_gateway == null:
-		settlement_gateway = HttpSettlementGatewayScript.new()
-	if practice_room_factory == null:
-		practice_room_factory = PracticeRoomFactoryScript.new()
+	AppRuntimeServicesScript.ensure_front_services(self)
 
 
 func _ensure_front_use_cases() -> void:
-	if login_use_case == null:
-		login_use_case = LoginUseCaseScript.new()
-	if login_use_case != null and login_use_case.has_method("configure"):
-		login_use_case.configure(
-			auth_gateway,
-			auth_session_state,
-			auth_session_repository,
-			profile_gateway,
-			profile_repository,
-			front_settings_repository,
-			player_profile_state,
-			front_settings_state
-		)
-
-	if lobby_use_case == null:
-		lobby_use_case = LobbyUseCaseScript.new()
-	if lobby_use_case != null and lobby_use_case.has_method("configure"):
-		lobby_use_case.configure(
-			self,
-			auth_session_state,
-			player_profile_state,
-			front_settings_state,
-			practice_room_factory,
-			auth_session_repository,
-			logout_use_case,
-			profile_gateway,
-			room_ticket_gateway
-		)
-
-	if lobby_directory_use_case == null:
-		lobby_directory_use_case = LobbyDirectoryUseCaseScript.new()
-	if lobby_directory_use_case != null and lobby_directory_use_case.has_method("configure"):
-		lobby_directory_use_case.configure(
-			client_room_runtime,
-			front_settings_state
-		)
-
-	if career_use_case == null:
-		career_use_case = CareerUseCaseScript.new()
-	if career_use_case != null and career_use_case.has_method("configure"):
-		career_use_case.configure(
-			auth_session_state,
-			front_settings_state,
-			career_gateway
-		)
-
-	if room_use_case == null:
-		room_use_case = RoomUseCaseScript.new()
-	if room_use_case != null and room_use_case.has_method("configure"):
-		room_use_case.configure(self)
-
-	if current_room_entry_context == null:
-		current_room_entry_context = RoomEntryContextScript.new()
-	_sync_front_context_from_fields()
-
-	if loading_use_case == null:
-		loading_use_case = LoadingUseCaseScript.new()
-	if loading_use_case != null and loading_use_case.has_method("configure"):
-		var gateway = null
-		if room_use_case != null:
-			gateway = room_use_case.get("room_client_gateway")
-		loading_use_case.configure(self, gateway)
-
-	if settlement_sync_use_case == null:
-		settlement_sync_use_case = SettlementSyncUseCaseScript.new()
-	if settlement_sync_use_case != null and settlement_sync_use_case.has_method("configure"):
-		settlement_sync_use_case.configure(
-			auth_session_state,
-			front_settings_state,
-			settlement_gateway
-		)
-
-	if auth_session_restore_use_case == null:
-		var restore_script = _try_load_script("res://app/front/auth/auth_session_restore_use_case.gd")
-		if restore_script != null:
-			auth_session_restore_use_case = restore_script.new()
-	if auth_session_restore_use_case != null and auth_session_restore_use_case.has_method("configure"):
-		auth_session_restore_use_case.configure(self)
-
-	if register_use_case == null:
-		var register_script = _try_load_script("res://app/front/auth/register_use_case.gd")
-		if register_script != null:
-			register_use_case = register_script.new()
-	if register_use_case != null and register_use_case.has_method("configure"):
-		register_use_case.configure(self)
-
-	if refresh_session_use_case == null:
-		var refresh_script = _try_load_script("res://app/front/auth/refresh_session_use_case.gd")
-		if refresh_script != null:
-			refresh_session_use_case = refresh_script.new()
-	if refresh_session_use_case != null and refresh_session_use_case.has_method("configure"):
-		refresh_session_use_case.configure(self)
-
-	if logout_use_case == null:
-		var logout_script = _try_load_script("res://app/front/auth/logout_use_case.gd")
-		if logout_script != null:
-			logout_use_case = logout_script.new()
-	if logout_use_case != null and logout_use_case.has_method("configure"):
-		logout_use_case.configure(self)
+	AppRuntimeServicesScript.ensure_front_use_cases(self)
 
 
 func _get_battle_root_child_names() -> Array:
@@ -715,16 +556,34 @@ func _update_current_battle_content_manifest() -> void:
 	battle_context.current_battle_content_manifest = current_battle_content_manifest.duplicate(true)
 
 
+func _ensure_resume_state_store() -> void:
+	if _resume_state_store == null:
+		_resume_state_store = AppResumeStateStoreScript.new()
+	if _resume_state_store != null and _resume_state_store.has_method("set_state"):
+		_resume_state_store.set_state(current_resume_snapshot, current_loading_mode)
+
+
+func _sync_resume_fields_from_store() -> void:
+	if _resume_state_store == null:
+		return
+	current_resume_snapshot = _resume_state_store.current_resume_snapshot
+	current_loading_mode = _resume_state_store.current_loading_mode
+
+
 func _sync_front_context_from_fields() -> void:
 	if front_context == null:
 		return
+	_ensure_resume_state_store()
 	front_context.auth_session_state = auth_session_state
 	front_context.player_profile_state = player_profile_state
 	front_context.front_settings_state = front_settings_state
 	front_context.current_room_entry_context = current_room_entry_context
 	front_context.pending_room_action = pending_room_action
-	front_context.current_loading_mode = current_loading_mode
-	front_context.current_resume_snapshot = current_resume_snapshot
+	if _resume_state_store != null and _resume_state_store.has_method("sync_front_context"):
+		_resume_state_store.sync_front_context(front_context)
+	else:
+		front_context.current_loading_mode = current_loading_mode
+		front_context.current_resume_snapshot = current_resume_snapshot
 
 
 func _sync_battle_context_from_fields() -> void:

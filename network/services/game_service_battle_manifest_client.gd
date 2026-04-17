@@ -4,6 +4,7 @@ extends RefCounted
 const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
+const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
 
 const MANIFEST_PATH_PREFIX := "/internal/v1/battles/"
 const READY_PATH_PREFIX := "/internal/v1/battles/"
@@ -45,7 +46,7 @@ func _send_request(method: int, path: String, payload: Variant) -> Dictionary:
 		return _fail("MANIFEST_URL_MISSING", "Game service url is missing")
 	if _auth_signer == null or service_token.is_empty():
 		return _fail("MANIFEST_TOKEN_MISSING", "Game service token is missing")
-	var parsed_url := _parse_url(base_url + path)
+	var parsed_url := HttpRequestHelperScript.parse_url(base_url + path)
 	if parsed_url.is_empty():
 		return _fail("MANIFEST_URL_INVALID", "Game service url is invalid")
 
@@ -108,23 +109,3 @@ func _normalize(value: Variant) -> Dictionary:
 		result["user_message"] = ""
 	return result
 
-
-func _parse_url(url: String) -> Dictionary:
-	var normalized := url.strip_edges()
-	if not normalized.begins_with("http://"):
-		return {}
-	var without_scheme := normalized.substr(7)
-	var slash_index := without_scheme.find("/")
-	var host_port := without_scheme
-	var path := "/"
-	if slash_index >= 0:
-		host_port = without_scheme.substr(0, slash_index)
-		path = without_scheme.substr(slash_index, without_scheme.length() - slash_index)
-	var colon_index := host_port.rfind(":")
-	if colon_index <= 0 or colon_index >= host_port.length() - 1:
-		return {}
-	return {
-		"host": host_port.substr(0, colon_index),
-		"port": int(host_port.substr(colon_index + 1, host_port.length() - colon_index - 1)),
-		"path": path,
-	}

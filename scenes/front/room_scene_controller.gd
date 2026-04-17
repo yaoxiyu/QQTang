@@ -6,10 +6,12 @@ const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubb
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
-const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const RoomScenePresenterScript = preload("res://app/front/room/room_scene_presenter.gd")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const RoomSceneEventRouterScript = preload("res://scenes/front/room_scene_event_router.gd")
+const RoomSceneViewBinderScript = preload("res://scenes/front/room_scene_view_binder.gd")
+const RoomSceneMemberListPresenterScript = preload("res://scenes/front/room_scene_member_list_presenter.gd")
 const ROOM_SCENE_LOG_TAG := "front.room.scene"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
@@ -73,6 +75,9 @@ var _front_flow: Node = null
 var _room_use_case: RoomUseCase = null
 var _room_scene_presenter: RoomScenePresenter = RoomScenePresenterScript.new()
 var _room_view_model_builder: RoomViewModelBuilder = RoomViewModelBuilderScript.new()
+var _room_scene_event_router: RefCounted = RoomSceneEventRouterScript.new()
+var _room_scene_view_binder: RefCounted = RoomSceneViewBinderScript.new()
+var _room_scene_member_list_presenter: RefCounted = RoomSceneMemberListPresenterScript.new()
 var _suppress_selection_callbacks: bool = false
 
 
@@ -307,42 +312,9 @@ func _populate_match_mode_multi_select(queue_type: String, match_format_id: Stri
 
 
 func _connect_ui_signals() -> void:
-	if back_to_lobby_button != null and not back_to_lobby_button.pressed.is_connected(_on_back_to_lobby_pressed):
-		back_to_lobby_button.pressed.connect(_on_back_to_lobby_pressed)
-	if leave_room_button != null and not leave_room_button.pressed.is_connected(_on_leave_room_pressed):
-		leave_room_button.pressed.connect(_on_leave_room_pressed)
-	if ready_button != null and not ready_button.pressed.is_connected(_on_ready_button_pressed):
-		ready_button.pressed.connect(_on_ready_button_pressed)
-	if start_button != null and not start_button.pressed.is_connected(_on_start_button_pressed):
-		start_button.pressed.connect(_on_start_button_pressed)
-	if enter_queue_button != null and not enter_queue_button.pressed.is_connected(_on_enter_queue_button_pressed):
-		enter_queue_button.pressed.connect(_on_enter_queue_button_pressed)
-	if cancel_queue_button != null and not cancel_queue_button.pressed.is_connected(_on_cancel_queue_button_pressed):
-		cancel_queue_button.pressed.connect(_on_cancel_queue_button_pressed)
-	if copy_invite_code_button != null and not copy_invite_code_button.pressed.is_connected(_on_copy_invite_code_button_pressed):
-		copy_invite_code_button.pressed.connect(_on_copy_invite_code_button_pressed)
-	if add_opponent_button != null and not add_opponent_button.pressed.is_connected(_on_add_opponent_pressed):
-		add_opponent_button.pressed.connect(_on_add_opponent_pressed)
-	if player_name_input != null and not player_name_input.text_submitted.is_connected(_on_profile_changed):
-		player_name_input.text_submitted.connect(func(_text: String) -> void: _on_profile_changed())
-	if team_selector != null and not team_selector.item_selected.is_connected(_on_profile_selector_changed):
-		team_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
-	if character_selector != null and not character_selector.item_selected.is_connected(_on_profile_selector_changed):
-		character_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
-	if character_skin_selector != null and not character_skin_selector.item_selected.is_connected(_on_profile_selector_changed):
-		character_skin_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
-	if bubble_selector != null and not bubble_selector.item_selected.is_connected(_on_profile_selector_changed):
-		bubble_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
-	if bubble_skin_selector != null and not bubble_skin_selector.item_selected.is_connected(_on_profile_selector_changed):
-		bubble_skin_selector.item_selected.connect(func(_index: int) -> void: _on_profile_selector_changed())
-	if game_mode_selector != null and not game_mode_selector.item_selected.is_connected(_on_mode_selection_changed):
-		game_mode_selector.item_selected.connect(func(_index: int) -> void: _on_mode_selection_changed())
-	if map_selector != null and not map_selector.item_selected.is_connected(_on_selection_changed):
-		map_selector.item_selected.connect(func(_index: int) -> void: _on_selection_changed())
-	if match_format_selector != null and not match_format_selector.item_selected.is_connected(_on_match_format_changed):
-		match_format_selector.item_selected.connect(func(_index: int) -> void: _on_match_format_changed())
-	if match_mode_multi_select != null and not match_mode_multi_select.multi_selected.is_connected(_on_match_mode_multi_select_changed):
-		match_mode_multi_select.multi_selected.connect(func(_index: int, _selected: bool) -> void: _on_match_mode_multi_select_changed())
+	if _room_scene_event_router == null:
+		return
+	_room_scene_event_router.connect_ui_signals(self)
 
 
 func _connect_runtime_signals() -> void:
@@ -377,6 +349,7 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 		_app_runtime.current_room_entry_context
 	)
 	_room_scene_presenter.present(view_model, self)
+	_room_scene_member_list_presenter.present(view_model.get("members", []), member_list)
 	_suppress_selection_callbacks = true
 	_populate_team_selector(int(view_model.get("team_option_max", 2)))
 	_select_team_id(int(view_model.get("local_team_id", 1)))
@@ -398,138 +371,41 @@ func _refresh_room(snapshot: RoomSnapshot) -> void:
 
 
 func _update_preview(snapshot: RoomSnapshot) -> void:
-	if snapshot == null:
+	if _room_scene_view_binder == null:
 		return
-	if map_preview_label != null:
-		map_preview_label.text = "Map: %s" % snapshot.selected_map_id
-	if rule_preview_label != null:
-		rule_preview_label.text = "Rule: %s" % snapshot.rule_set_id
-	if mode_preview_label != null:
-		mode_preview_label.text = "Mode: %s" % snapshot.mode_id
 	var local_member := _resolve_local_member(snapshot)
-	if local_member != null:
-		if team_preview_label != null:
-			team_preview_label.text = "Team: %d" % local_member.team_id
-		if character_preview_label != null:
-			character_preview_label.text = "Character: %s" % local_member.character_id
-		if character_skin_preview_label != null:
-			character_skin_preview_label.text = "Character Skin: %s" % local_member.character_skin_id
-		if bubble_preview_label != null:
-			bubble_preview_label.text = "Bubble: %s" % local_member.bubble_style_id
-		if bubble_skin_preview_label != null:
-			bubble_skin_preview_label.text = "Bubble Skin: %s" % local_member.bubble_skin_id
-		if character_preview_viewport != null and character_preview_viewport.has_method("configure_preview"):
-			character_preview_viewport.configure_preview(
-				local_member.character_id,
-				local_member.character_skin_id
-			)
-	elif _app_runtime != null and _app_runtime.player_profile_state != null:
-		var profile = _app_runtime.player_profile_state
-		if team_preview_label != null:
-			team_preview_label.text = "Team: %d" % _selected_team_id()
-		if character_preview_label != null:
-			character_preview_label.text = "Character: %s" % String(profile.default_character_id)
-		if character_skin_preview_label != null:
-			character_skin_preview_label.text = "Character Skin: %s" % String(profile.default_character_skin_id)
-		if bubble_preview_label != null:
-			bubble_preview_label.text = "Bubble: %s" % String(profile.default_bubble_style_id)
-		if bubble_skin_preview_label != null:
-			bubble_skin_preview_label.text = "Bubble Skin: %s" % String(profile.default_bubble_skin_id)
-		if character_preview_viewport != null and character_preview_viewport.has_method("configure_preview"):
-			character_preview_viewport.configure_preview(
-				_resolve_preview_character_id(String(profile.default_character_id)),
-				_resolve_preview_character_skin_id(String(profile.default_character_skin_id))
-			)
+	_room_scene_view_binder.update_preview(
+		self,
+		snapshot,
+		_app_runtime,
+		local_member,
+		_selected_team_id()
+	)
 
 
 func _update_auth_binding_summary(snapshot: RoomSnapshot) -> void:
-	if auth_binding_label == null:
+	if _room_scene_view_binder == null:
 		return
-	var account_id := ""
-	var profile_id := ""
-	var member_id := ""
-	var device_session_id := ""
-	if _app_runtime != null and _app_runtime.current_room_entry_context != null:
-		account_id = String(_app_runtime.current_room_entry_context.account_id)
-		profile_id = String(_app_runtime.current_room_entry_context.profile_id)
-		member_id = String(_app_runtime.current_room_entry_context.reconnect_member_id)
-	if _app_runtime != null and _app_runtime.auth_session_state != null:
-		if account_id.is_empty():
-			account_id = String(_app_runtime.auth_session_state.account_id)
-		if profile_id.is_empty():
-			profile_id = String(_app_runtime.auth_session_state.profile_id)
-		device_session_id = String(_app_runtime.auth_session_state.device_session_id)
-	if member_id.is_empty() and _app_runtime != null and _app_runtime.front_settings_state != null:
-		member_id = String(_app_runtime.front_settings_state.reconnect_member_id)
 	var local_member := _resolve_local_member(snapshot)
-	if member_id.is_empty() and local_member != null:
-		member_id = "peer_%d" % int(local_member.peer_id)
-	auth_binding_label.text = "Identity Binding:\naccount=%s\nprofile=%s\nmember=%s\nsession=%s" % [
-		account_id if not account_id.is_empty() else "-",
-		profile_id if not profile_id.is_empty() else "-",
-		member_id if not member_id.is_empty() else "-",
-		device_session_id if not device_session_id.is_empty() else "-",
-	]
+	_room_scene_view_binder.update_auth_binding_summary(self, snapshot, _app_runtime, local_member)
 
 
 func _update_debug_text(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
-	if debug_label == null:
+	if _room_scene_view_binder == null:
 		return
-	var lines := PackedStringArray()
-	lines.append("Room: %s" % snapshot.room_id)
-	lines.append("Kind: %s" % String(view_model.get("room_kind_text", "")))
-	lines.append("Topology: %s" % String(view_model.get("topology_text", "")))
-	lines.append("Map: %s" % snapshot.selected_map_id)
-	lines.append("Rule: %s" % snapshot.rule_set_id)
-	lines.append("Mode: %s" % snapshot.mode_id)
-	lines.append("Owner: %s" % String(view_model.get("owner_text", "")))
-	lines.append("Blocker: %s" % String(view_model.get("blocker_text", "")))
-	debug_label.text = "\n".join(lines)
+	_room_scene_view_binder.update_debug_text(self, snapshot, view_model)
 
 
 func _apply_room_kind_visibility(view_model: Dictionary) -> void:
-	var room_kind := String(view_model.get("room_kind", ""))
-	var is_custom_room := bool(view_model.get("is_custom_room", room_kind == "practice" or room_kind == "private_room" or room_kind == "public_room"))
-	var is_match_room := bool(view_model.get("is_match_room", room_kind == "casual_match_room" or room_kind == "ranked_match_room"))
-	var is_assigned_room := bool(view_model.get("is_assigned_room", room_kind == "matchmade_room"))
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow", is_custom_room or is_assigned_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow", is_custom_room or is_assigned_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow", is_custom_room or is_assigned_room)
-	_set_node_visible("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow", is_custom_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow", is_match_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow", is_match_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow", is_match_room)
-	_set_node_visible("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow", is_match_room)
-	if start_button != null:
-		start_button.visible = is_custom_room
-	if enter_queue_button != null:
-		enter_queue_button.visible = is_match_room
-	if cancel_queue_button != null:
-		cancel_queue_button.visible = is_match_room
-	if ready_button != null:
-		ready_button.visible = is_custom_room or is_match_room
+	if _room_scene_view_binder == null:
+		return
+	_room_scene_view_binder.apply_room_kind_visibility(self, view_model)
 
 
 func _refresh_match_room_controls(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
-	if snapshot == null:
+	if _room_scene_view_binder == null:
 		return
-	if invite_code_value_label != null:
-		invite_code_value_label.text = String(view_model.get("invite_code_text", snapshot.room_id))
-	if queue_status_label != null:
-		queue_status_label.text = String(view_model.get("queue_status_text", snapshot.room_queue_status_text))
-	if queue_error_label != null:
-		queue_error_label.text = String(view_model.get("queue_error_text", snapshot.room_queue_error_message))
-	if enter_queue_button != null:
-		enter_queue_button.disabled = not bool(view_model.get("can_enter_queue", false))
-	if cancel_queue_button != null:
-		cancel_queue_button.disabled = not bool(view_model.get("can_cancel_queue", false))
-	_update_eligible_map_pool_hint(snapshot.queue_type, snapshot.match_format_id)
-
-
-func _set_node_visible(path: String, visible: bool) -> void:
-	var node := get_node_or_null(path)
-	if node is CanvasItem:
-		(node as CanvasItem).visible = visible
+	_room_scene_view_binder.refresh_match_room_controls(self, snapshot, view_model, _selected_match_mode_ids())
 
 
 func _resolve_local_member(snapshot: RoomSnapshot) -> RoomMemberState:
@@ -718,10 +594,9 @@ func _on_match_mode_multi_select_changed() -> void:
 
 
 func _set_room_feedback(message: String) -> void:
-	if blocker_label != null:
-		blocker_label.text = message
-	if debug_label != null:
-		debug_label.text = message
+	if _room_scene_view_binder == null:
+		return
+	_room_scene_view_binder.set_room_feedback(self, message)
 
 
 func _selected_metadata(selector: OptionButton) -> String:
@@ -764,14 +639,9 @@ func _selected_match_mode_ids() -> Array[String]:
 
 
 func _update_eligible_map_pool_hint(queue_type: String, match_format_id: String) -> void:
-	if eligible_map_pool_hint_label == null:
+	if _room_scene_view_binder == null:
 		return
-	var selected_mode_ids := _selected_match_mode_ids()
-	var count := MapSelectionCatalogScript.get_match_room_eligible_map_count(queue_type, match_format_id, selected_mode_ids)
-	if count <= 0:
-		eligible_map_pool_hint_label.text = "当前选择没有合法地图"
-	else:
-		eligible_map_pool_hint_label.text = "当前模式池可匹配 %d 张地图" % count
+	_room_scene_view_binder.update_eligible_map_pool_hint(self, queue_type, match_format_id, _selected_match_mode_ids())
 
 
 func _get_owned_ids(asset_type: String) -> Array[String]:
@@ -819,20 +689,6 @@ func _get_fallback_bubble_id() -> String:
 		if not entry_id.is_empty():
 			return entry_id
 	return "bubble_style_default"
-
-
-func _resolve_preview_character_id(character_id: String) -> String:
-	var trimmed := character_id.strip_edges()
-	if not trimmed.is_empty() and CharacterCatalogScript.has_character(trimmed):
-		return trimmed
-	return CharacterCatalogScript.get_default_character_id()
-
-
-func _resolve_preview_character_skin_id(character_skin_id: String) -> String:
-	var trimmed := character_skin_id.strip_edges()
-	if not trimmed.is_empty() and CharacterSkinCatalogScript.has_id(trimmed):
-		return trimmed
-	return CharacterSkinCatalogScript.get_default_skin_id()
 
 
 func _resolve_map_binding(map_id: String) -> Dictionary:

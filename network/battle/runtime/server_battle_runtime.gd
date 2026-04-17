@@ -11,6 +11,7 @@ const ServerMatchServiceScript = preload("res://network/session/runtime/server_m
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
+const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
@@ -122,6 +123,42 @@ func report_match_result(result: BattleResult) -> void:
 
 func set_member_bindings(bindings: Dictionary) -> void:
 	_member_bindings = bindings
+
+
+func resume_member(member_id: String, transport_peer_id: int, controlled_peer_id: int, requested_match_id: String) -> Dictionary:
+	_ensure_services()
+	if _match_service == null:
+		return {"ok": false, "error": "STATE_MISSING"}
+	if not _match_service.is_match_active():
+		return {"ok": false, "error": "MATCH_NOT_ACTIVE"}
+	var current_config := _match_service.get_current_config()
+	if current_config == null:
+		return {"ok": false, "error": "MATCH_NOT_ACTIVE"}
+	if not requested_match_id.strip_edges().is_empty() and String(current_config.match_id) != requested_match_id.strip_edges():
+		return {"ok": false, "error": "MATCH_ID_MISMATCH"}
+	var checkpoint_message := _match_service.build_resume_checkpoint_message()
+	if checkpoint_message.is_empty():
+		return {"ok": false, "error": "CHECKPOINT_BUILD_FAILED"}
+	var resume_snapshot := MatchResumeSnapshotScript.new()
+	resume_snapshot.room_id = battle_id
+	resume_snapshot.room_kind = "dedicated_server"
+	resume_snapshot.room_display_name = "Battle %s" % battle_id
+	resume_snapshot.match_id = String(current_config.match_id)
+	resume_snapshot.server_match_revision = int(current_config.server_match_revision)
+	resume_snapshot.member_id = member_id
+	resume_snapshot.controlled_peer_id = controlled_peer_id
+	resume_snapshot.transport_peer_id = transport_peer_id
+	resume_snapshot.resume_phase = "resuming"
+	resume_snapshot.resume_tick = int(checkpoint_message.get("tick", 0))
+	resume_snapshot.checkpoint_message = checkpoint_message
+	resume_snapshot.status_message = "Resuming active match"
+	var resume_config := _build_resume_candidate_config(current_config, transport_peer_id, controlled_peer_id)
+	send_to_peer.emit(transport_peer_id, {
+		"message_type": TransportMessageTypesScript.MATCH_RESUME_ACCEPTED,
+		"start_config": resume_config.to_dict() if resume_config != null else {},
+		"resume_snapshot": resume_snapshot.to_dict(),
+	})
+	return {"ok": true, "resume_snapshot": resume_snapshot}
 
 
 func _find_member_id_by_transport_peer(peer_id: int) -> String:
@@ -265,3 +302,15 @@ func _on_loading_committed(_config: BattleStartConfig, _snapshot: MatchLoadingSn
 
 func _log(event_name: String, payload: Dictionary) -> void:
 	LogNetScript.debug("%s[server_battle_runtime] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.online.server_battle_runtime")
+
+
+func _build_resume_candidate_config(config: BattleStartConfig, transport_peer_id: int, controlled_peer_id: int) -> BattleStartConfig:
+	if config == null:
+		return null
+	var resume_config := config.duplicate_deep()
+	resume_config.build_mode = BattleStartConfig.BUILD_MODE_CANDIDATE
+	resume_config.session_mode = "network_client"
+	resume_config.topology = "dedicated_server"
+	resume_config.local_peer_id = transport_peer_id
+	resume_config.controlled_peer_id = controlled_peer_id
+	return resume_config

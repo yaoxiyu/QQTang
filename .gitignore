@@ -27,6 +27,38 @@ content_source/csv/**/*.csv.import
 
 # Service env files (contain secrets)
 .env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local secrets / credentials
+secrets/
+**/secrets/
+*.secret
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Local runtime / packaging artifacts
+build/
+dist/
+out/
+release/
+artifacts/
+exports/
+*.pck
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.apk
+*.ipa
+*.x86_64
+*.exe
 
 # OS junk
 .DS_Store

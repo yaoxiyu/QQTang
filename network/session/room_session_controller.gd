@@ -9,7 +9,7 @@ const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_sta
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
 const RoomRuntimeContextScript = preload("res://network/session/runtime/room_runtime_context.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const PHASE21_LOG_PREFIX := "[QQT_P21]"
+const ROOM_SESSION_LOG_PREFIX := "[QQT_ROOM_SESSION]"
 signal room_snapshot_changed(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 signal room_flow_state_changed(previous_state: int, new_state: int, reason: String)
@@ -273,7 +273,7 @@ func request_update_selection(requester_peer_id: int, map_id: String, rule_set_i
 		}
 	var binding := _resolve_map_binding(map_id)
 	if binding.is_empty():
-		_log_phase21("selection_update_rejected_invalid_binding", {
+		_log_room_session("selection_update_rejected_invalid_binding", {
 			"requester_peer_id": requester_peer_id,
 			"requested_map_id": map_id,
 			"requested_rule_set_id": rule_set_id,
@@ -395,7 +395,7 @@ func request_begin_match(requester_peer_id: int) -> Dictionary:
 	var blocker := get_start_match_blocker(requester_peer_id)
 	if not blocker.is_empty():
 		blocker["ok"] = false
-		_log_phase21("start_match_blocked", {
+		_log_room_session("start_match_blocked", {
 			"requester_peer_id": requester_peer_id,
 			"error_code": String(blocker.get("error_code", "")),
 			"user_message": String(blocker.get("user_message", "")),
@@ -433,7 +433,7 @@ func set_room_selection(map_id: String, rule_set_id: String, mode_id: String) ->
 	if not binding.is_empty():
 		room_session.min_start_players = int(binding.get("required_team_count", room_session.min_start_players))
 		max_players = int(binding.get("max_player_count", max_players))
-	_log_phase21("room_selection_resolved", {
+	_log_room_session("room_selection_resolved", {
 		"old_map_id": old_map_id,
 		"new_map_id": resolved_map_id,
 		"derived_rule_set_id": resolved_rule_set_id,
@@ -743,5 +743,5 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 	return binding
 
 
-func _log_phase21(event_name: String, payload: Dictionary) -> void:
-	LogNetScript.debug("%s[room_session_controller] %s %s" % [PHASE21_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.room_session.controller")
+func _log_room_session(event_name: String, payload: Dictionary) -> void:
+	LogNetScript.debug("%s[room_session_controller] %s %s" % [ROOM_SESSION_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.room_session.controller")

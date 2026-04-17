@@ -7,15 +7,19 @@ extends Node
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const ServerBattleRuntimeScript = preload("res://network/battle/runtime/server_battle_runtime.gd")
 const GameServiceBattleManifestClientScript = preload("res://network/services/game_service_battle_manifest_client.gd")
+const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
+const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
 const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
+const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
 @export var authority_host: String = "127.0.0.1"
 @export var battle_ticket_secret: String = "dev_battle_ticket_secret"
+@export var resume_window_sec: float = 20.0
 
 var _transport: ENetBattleTransport = null
 var _battle_runtime: Node = null
@@ -29,15 +33,23 @@ var _match_id: String = ""
 var _manifest_client: GameServiceBattleManifestClient = null
 var _manifest: Dictionary = {}
 var _joined_peer_ids: Array[int] = []
+var _member_sessions_by_id: Dictionary = {}  # member_id -> session payload
+var _member_id_by_peer_id: Dictionary = {}   # transport_peer_id -> member_id
+var _used_battle_ticket_ids: Dictionary = {}
 var _loading_started: bool = false
 var _ds_manager_base_url: String = ""
 var _ds_instance_active_reported: bool = false
+var _ds_manager_auth_signer: InternalAuthSigner = null
+var _battle_ticket_verifier: BattleTicketVerifier = null
 
 
 func _ready() -> void:
 	LogSystemInitializerScript.initialize_dedicated_server()
 	_apply_command_line_overrides()
 	_ds_manager_base_url = _resolve_ds_manager_base_url()
+	_ds_manager_auth_signer = _build_ds_manager_auth_signer()
+	_battle_ticket_verifier = BattleTicketVerifierScript.new()
+	_battle_ticket_verifier.configure(battle_ticket_secret)
 
 	if _battle_id.is_empty() and _assignment_id.is_empty():
 		LogNetScript.warn("battle_ds started without --qqt-battle-id / --qqt-assignment-id, waiting for allocation", "", 0, "net.battle_ds_bootstrap")
@@ -93,6 +105,10 @@ func _apply_command_line_overrides() -> void:
 		var parsed_secret := String(parsed["--qqt-battle-ticket-secret"]).strip_edges()
 		if not parsed_secret.is_empty():
 			battle_ticket_secret = parsed_secret
+	if parsed.has("--qqt-resume-window-sec"):
+		var parsed_resume_window := float(String(parsed["--qqt-resume-window-sec"]).to_float())
+		if parsed_resume_window > 0.0:
+			resume_window_sec = parsed_resume_window
 
 
 func _process(_delta: float) -> void:
@@ -160,8 +176,47 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
-	# TODO: Validate battle-entry ticket here.
-	LogNetScript.info("battle_entry_request peer=%d battle_id=%s" % [peer_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
+	var validation := _validate_battle_entry_request(message)
+	if not bool(validation.get("ok", false)):
+		_reject_peer(peer_id, TransportMessageTypesScript.BATTLE_ENTRY_REJECTED, String(validation.get("error_code", "BATTLE_ENTRY_REJECTED")), String(validation.get("user_message", "Battle entry rejected")))
+		return
+	var claim = validation.get("claim", null)
+	var member_id := String(validation.get("member_id", ""))
+	var manifest_member: Dictionary = validation.get("manifest_member", {})
+	var ticket_id := String(claim.ticket_id) if claim != null else ""
+	if _used_battle_ticket_ids.has(ticket_id):
+		_reject_peer(peer_id, TransportMessageTypesScript.BATTLE_ENTRY_REJECTED, "BATTLE_TICKET_ALREADY_CONSUMED", "Battle ticket is already consumed")
+		return
+	var resume_token := ResumeTokenUtilsScript.generate_resume_token()
+	var existing_session: Dictionary = _member_sessions_by_id.get(member_id, {})
+	if not existing_session.is_empty() and String(existing_session.get("connection_state", "connected")) == "connected":
+		_reject_peer(peer_id, TransportMessageTypesScript.BATTLE_ENTRY_REJECTED, "BATTLE_MEMBER_ALREADY_CONNECTED", "Battle member is already connected")
+		return
+	var match_peer_id := int(existing_session.get("match_peer_id", peer_id))
+	if match_peer_id <= 0:
+		match_peer_id = peer_id
+	var slot_index := int(validation.get("slot_index", int(existing_session.get("slot_index", 0))))
+	var session := {
+		"member_id": member_id,
+		"account_id": String(claim.account_id) if claim != null else "",
+		"profile_id": String(claim.profile_id) if claim != null else "",
+		"ticket_id": ticket_id,
+		"device_session_id": String(claim.device_session_id) if claim != null else "",
+		"match_peer_id": match_peer_id,
+		"transport_peer_id": peer_id,
+		"slot_index": slot_index,
+		"assigned_team_id": int(manifest_member.get("assigned_team_id", 0)),
+		"connection_state": "connected",
+		"disconnect_deadline_msec": 0,
+		"resume_token_hash": ResumeTokenUtilsScript.hash_resume_token(resume_token),
+		"resume_issued_at_msec": Time.get_ticks_msec(),
+	}
+	_member_sessions_by_id[member_id] = session
+	_member_id_by_peer_id[peer_id] = member_id
+	_used_battle_ticket_ids[ticket_id] = true
+	_refresh_joined_peer_ids_from_sessions()
+	_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
+	LogNetScript.info("battle_entry_request accepted peer=%d member_id=%s battle_id=%s" % [peer_id, member_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
 	if not _joined_peer_ids.has(peer_id):
 		_joined_peer_ids.append(peer_id)
 	_send_to_peer(peer_id, {
@@ -169,6 +224,9 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 		"battle_id": _battle_id,
 		"assignment_id": _assignment_id,
 		"match_id": _match_id,
+		"member_id": member_id,
+		"resume_token": resume_token,
+		"resume_window_sec": resume_window_sec,
 	})
 	# Gate: once all expected peers have joined, begin match loading
 	var expected := int(_manifest.get("expected_member_count", 0))
@@ -181,13 +239,155 @@ func _handle_battle_resume_request(message: Dictionary) -> void:
 	var peer_id := int(message.get("sender_peer_id", 0))
 	if peer_id <= 0:
 		return
-	# TODO: Validate resume token and delegate to battle runtime.
-	LogNetScript.info("battle_resume_request peer=%d battle_id=%s" % [peer_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
-	_battle_runtime.handle_peer_disconnected(peer_id)
+	var validation := _validate_battle_resume_request(message)
+	if not bool(validation.get("ok", false)):
+		_reject_peer(peer_id, TransportMessageTypesScript.MATCH_RESUME_REJECTED, String(validation.get("error_code", "MATCH_RESUME_REJECTED")), String(validation.get("user_message", "Match resume rejected")))
+		return
+	var member_id := String(validation.get("member_id", ""))
+	var requested_match_id := String(message.get("match_id", "")).strip_edges()
+	var session: Dictionary = _member_sessions_by_id.get(member_id, {})
+	var controlled_peer_id := int(session.get("match_peer_id", 0))
+	if controlled_peer_id <= 0:
+		_reject_peer(peer_id, TransportMessageTypesScript.MATCH_RESUME_REJECTED, "BATTLE_RESUME_MEMBER_INVALID", "Match resume member is invalid")
+		return
+	var previous_transport_peer_id := int(session.get("transport_peer_id", 0))
+	if previous_transport_peer_id > 0 and _member_id_by_peer_id.get(previous_transport_peer_id, "") == member_id:
+		_member_id_by_peer_id.erase(previous_transport_peer_id)
+	session["transport_peer_id"] = peer_id
+	session["connection_state"] = "connected"
+	session["disconnect_deadline_msec"] = 0
+	_member_sessions_by_id[member_id] = session
+	_member_id_by_peer_id[peer_id] = member_id
+	_refresh_joined_peer_ids_from_sessions()
+	_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
+	var runtime_result: Dictionary = _battle_runtime.resume_member(member_id, peer_id, controlled_peer_id, requested_match_id)
+	if not bool(runtime_result.get("ok", false)):
+		session["connection_state"] = "disconnected"
+		_member_sessions_by_id[member_id] = session
+		_reject_peer(peer_id, TransportMessageTypesScript.MATCH_RESUME_REJECTED, String(runtime_result.get("error", "MATCH_RESUME_REJECTED")), "Match resume failed")
+		return
+	LogNetScript.info("battle_resume_request accepted peer=%d member_id=%s battle_id=%s" % [peer_id, member_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
 
 
 func _on_match_finished(_result) -> void:
 	LogNetScript.info("battle finished battle_id=%s, shutting down" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+
+
+func _validate_battle_entry_request(message: Dictionary) -> Dictionary:
+	if _battle_ticket_verifier == null:
+		return _plain_json_fail("BATTLE_TICKET_VERIFIER_MISSING", "Battle ticket verifier is not configured")
+	if _manifest.is_empty():
+		return _plain_json_fail("BATTLE_MANIFEST_MISSING", "Battle manifest is missing")
+	var verification := _battle_ticket_verifier.verify_entry_ticket(message, _battle_id, _manifest)
+	if not bool(verification.get("ok", false)):
+		return verification
+	var claim = verification.get("claim", null)
+	if claim == null:
+		return _plain_json_fail("BATTLE_TICKET_INVALID", "Battle ticket claim is missing")
+	var member_id := _member_identity_key(String(claim.account_id), String(claim.profile_id))
+	var match := _find_manifest_member(String(claim.account_id), String(claim.profile_id))
+	if match.is_empty():
+		return _plain_json_fail("BATTLE_MEMBER_MISMATCH", "Battle member identity is invalid")
+	var result := verification.duplicate(true)
+	result["member_id"] = member_id
+	result["manifest_member"] = match.get("member", {})
+	result["slot_index"] = int(match.get("slot_index", 0))
+	return result
+
+
+func _validate_battle_resume_request(message: Dictionary) -> Dictionary:
+	var requested_battle_id := String(message.get("battle_id", "")).strip_edges()
+	if requested_battle_id.is_empty():
+		requested_battle_id = _battle_id
+	if requested_battle_id != _battle_id:
+		return _plain_json_fail("BATTLE_ID_MISMATCH", "Battle id does not match")
+	var member_id := String(message.get("member_id", "")).strip_edges()
+	if member_id.is_empty():
+		return _plain_json_fail("BATTLE_RESUME_MEMBER_ID_MISSING", "Resume member id is required")
+	var resume_token := String(message.get("resume_token", "")).strip_edges()
+	if resume_token.is_empty():
+		return _plain_json_fail("BATTLE_RESUME_TOKEN_MISSING", "Resume token is required")
+	var session: Dictionary = _member_sessions_by_id.get(member_id, {})
+	if session.is_empty():
+		return _plain_json_fail("BATTLE_RESUME_MEMBER_NOT_FOUND", "Resume member is invalid")
+	var provided_account_id := String(message.get("account_id", "")).strip_edges()
+	if not provided_account_id.is_empty() and provided_account_id != String(session.get("account_id", "")):
+		return _plain_json_fail("BATTLE_RESUME_ACCOUNT_MISMATCH", "Resume account is invalid")
+	var provided_profile_id := String(message.get("profile_id", "")).strip_edges()
+	if not provided_profile_id.is_empty() and provided_profile_id != String(session.get("profile_id", "")):
+		return _plain_json_fail("BATTLE_RESUME_PROFILE_MISMATCH", "Resume profile is invalid")
+	if ResumeTokenUtilsScript.hash_resume_token(resume_token) != String(session.get("resume_token_hash", "")):
+		return _plain_json_fail("BATTLE_RESUME_TOKEN_INVALID", "Resume token is invalid")
+	var deadline_msec := int(session.get("disconnect_deadline_msec", 0))
+	if deadline_msec <= 0:
+		return _plain_json_fail("BATTLE_RESUME_WINDOW_INVALID", "Resume window is not active")
+	if Time.get_ticks_msec() > deadline_msec:
+		return _plain_json_fail("BATTLE_RESUME_WINDOW_EXPIRED", "Resume window has expired")
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"member_id": member_id,
+	}
+
+
+func _build_runtime_member_bindings() -> Dictionary:
+	var bindings: Dictionary = {}
+	for member_id in _member_sessions_by_id.keys():
+		var member_key := String(member_id)
+		var session: Dictionary = _member_sessions_by_id.get(member_key, {})
+		if session.is_empty():
+			continue
+		bindings[member_key] = {
+			"member_id": member_key,
+			"account_id": String(session.get("account_id", "")),
+			"profile_id": String(session.get("profile_id", "")),
+			"match_peer_id": int(session.get("match_peer_id", 0)),
+			"transport_peer_id": int(session.get("transport_peer_id", 0)),
+			"connection_state": String(session.get("connection_state", "connected")),
+			"disconnect_deadline_msec": int(session.get("disconnect_deadline_msec", 0)),
+			"resume_token_hash": String(session.get("resume_token_hash", "")),
+			"slot_index": int(session.get("slot_index", 0)),
+			"assigned_team_id": int(session.get("assigned_team_id", 0)),
+		}
+	return bindings
+
+
+func _refresh_joined_peer_ids_from_sessions() -> void:
+	var peers: Array[int] = []
+	for member_id in _member_sessions_by_id.keys():
+		var session: Dictionary = _member_sessions_by_id.get(String(member_id), {})
+		if String(session.get("connection_state", "")) != "connected":
+			continue
+		var peer_id := int(session.get("transport_peer_id", 0))
+		if peer_id > 0 and not peers.has(peer_id):
+			peers.append(peer_id)
+	peers.sort()
+	_joined_peer_ids = peers
+
+
+func _find_manifest_member(account_id: String, profile_id: String) -> Dictionary:
+	var members: Array = _manifest.get("members", [])
+	for idx in range(members.size()):
+		var member: Dictionary = members[idx] if members[idx] is Dictionary else {}
+		if String(member.get("account_id", "")) == account_id and String(member.get("profile_id", "")) == profile_id:
+			return {"member": member, "slot_index": idx}
+	return {}
+
+
+func _member_identity_key(account_id: String, profile_id: String) -> String:
+	return "%s:%s" % [account_id.strip_edges(), profile_id.strip_edges()]
+
+
+func _reject_peer(peer_id: int, message_type: String, error_code: String, user_message: String) -> void:
+	if peer_id <= 0:
+		return
+	_send_to_peer(peer_id, {
+		"message_type": message_type,
+		"error": error_code,
+		"user_message": user_message,
+	})
+	LogNetScript.warn("battle_request_rejected peer=%d type=%s code=%s" % [peer_id, message_type, error_code], "", 0, "net.battle_ds_bootstrap")
 
 
 # --- Manifest fetch + begin_loading ---
@@ -209,6 +409,11 @@ func _fetch_manifest() -> void:
 		LogNetScript.warn("battle_manifest fetch failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 		return
 	_manifest = result
+	_member_sessions_by_id.clear()
+	_member_id_by_peer_id.clear()
+	_used_battle_ticket_ids.clear()
+	_joined_peer_ids.clear()
+	_loading_started = false
 	LogNetScript.info("battle_manifest fetched ok: expected_member_count=%d map_id=%s mode_id=%s" % [int(_manifest.get("expected_member_count", 0)), String(_manifest.get("map_id", "")), String(_manifest.get("mode_id", ""))], "", 0, "net.battle_ds_bootstrap")
 	_report_battle_ready()
 
@@ -231,12 +436,18 @@ func _begin_battle_loading() -> void:
 	snapshot.current_assignment_id = _assignment_id
 	snapshot.current_battle_id = _battle_id
 	snapshot.current_match_id = _match_id
-	# Bind manifest members to transport peer IDs
+	# Bind manifest members to validated member sessions.
 	var manifest_members: Array = _manifest.get("members", [])
 	var member_bindings: Dictionary = {}
-	for idx in range(mini(manifest_members.size(), _joined_peer_ids.size())):
+	for idx in range(manifest_members.size()):
 		var m: Dictionary = manifest_members[idx] if manifest_members[idx] is Dictionary else {}
-		var transport_peer_id: int = _joined_peer_ids[idx]
+		var member_id := _member_identity_key(String(m.get("account_id", "")), String(m.get("profile_id", "")))
+		var session: Dictionary = _member_sessions_by_id.get(member_id, {})
+		if session.is_empty():
+			continue
+		var transport_peer_id: int = int(session.get("transport_peer_id", 0))
+		if transport_peer_id <= 0:
+			continue
 		var member := RoomMemberState.new()
 		member.peer_id = transport_peer_id
 		member.player_name = String(m.get("profile_id", "Player%d" % transport_peer_id))
@@ -247,11 +458,19 @@ func _begin_battle_loading() -> void:
 		member.is_owner = idx == 0
 		member.connection_state = "connected"
 		snapshot.members.append(member)
-		member_bindings[String(m.get("account_id", "member_%d" % idx))] = {
-			"match_peer_id": transport_peer_id,
+		member_bindings[member_id] = {
+			"member_id": member_id,
+			"account_id": String(m.get("account_id", "")),
+			"profile_id": String(m.get("profile_id", "")),
+			"match_peer_id": int(session.get("match_peer_id", transport_peer_id)),
 			"transport_peer_id": transport_peer_id,
 			"connection_state": "connected",
+			"disconnect_deadline_msec": int(session.get("disconnect_deadline_msec", 0)),
+			"resume_token_hash": String(session.get("resume_token_hash", "")),
+			"slot_index": idx,
+			"assigned_team_id": int(m.get("assigned_team_id", 0)),
 		}
+		_member_sessions_by_id[member_id]["slot_index"] = idx
 	snapshot.owner_peer_id = _joined_peer_ids[0] if not _joined_peer_ids.is_empty() else 0
 	# Inject member bindings for input validation / resume tracking
 	_battle_runtime.set_member_bindings(member_bindings)
@@ -304,6 +523,8 @@ func _send_plain_json_request(base_url: String, path: String, payload: Dictionar
 	var parsed_url := _parse_http_url(base_url.trim_suffix("/") + path)
 	if parsed_url.is_empty():
 		return _plain_json_fail("PLAIN_JSON_URL_INVALID", "Target url is invalid")
+	if _ds_manager_auth_signer == null:
+		return _plain_json_fail("PLAIN_JSON_AUTH_MISSING", "DSM internal auth signer is missing")
 	var client := HTTPClient.new()
 	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
 	if err != OK:
@@ -317,7 +538,8 @@ func _send_plain_json_request(base_url: String, path: String, payload: Dictionar
 	if client.get_status() != HTTPClient.STATUS_CONNECTED:
 		return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
 	var body := JSON.stringify(payload)
-	err = client.request(HTTPClient.METHOD_POST, String(parsed_url["path"]), ["Content-Type: application/json"], body)
+	var headers := _ds_manager_auth_signer.sign_headers("POST", String(parsed_url["path"]), body)
+	err = client.request(HTTPClient.METHOD_POST, String(parsed_url["path"]), headers, body)
 	if err != OK:
 		return _plain_json_fail("PLAIN_JSON_REQUEST_FAILED", "Failed to send request")
 	while client.get_status() == HTTPClient.STATUS_REQUESTING:
@@ -371,6 +593,17 @@ func _on_transport_peer_connected(peer_id: int) -> void:
 
 func _on_transport_peer_disconnected(peer_id: int) -> void:
 	LogNetScript.info("peer disconnected: %d" % peer_id, "", 0, "net.battle_ds_bootstrap")
+	var member_id := String(_member_id_by_peer_id.get(peer_id, ""))
+	if not member_id.is_empty():
+		var session: Dictionary = _member_sessions_by_id.get(member_id, {})
+		if not session.is_empty():
+			session["connection_state"] = "disconnected"
+			session["disconnect_deadline_msec"] = Time.get_ticks_msec() + int(resume_window_sec * 1000.0)
+			session["transport_peer_id"] = 0
+			_member_sessions_by_id[member_id] = session
+		_member_id_by_peer_id.erase(peer_id)
+		_refresh_joined_peer_ids_from_sessions()
+		_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
 	if _battle_runtime != null:
 		_battle_runtime.handle_peer_disconnected(peer_id)
 
@@ -382,6 +615,25 @@ func _on_transport_error(code: int, message: String) -> void:
 func _read_env(env_name: String, fallback: String) -> String:
 	var value := OS.get_environment(env_name).strip_edges()
 	return value if not value.is_empty() else fallback
+
+
+func _build_ds_manager_auth_signer() -> InternalAuthSigner:
+	var shared_secret := _read_env("DSM_INTERNAL_AUTH_SHARED_SECRET", "")
+	if shared_secret.is_empty():
+		shared_secret = _read_env("DSM_INTERNAL_SHARED_SECRET", "")
+	if shared_secret.is_empty():
+		shared_secret = _read_env("GAME_INTERNAL_AUTH_SHARED_SECRET", "")
+	if shared_secret.is_empty():
+		shared_secret = _read_env("GAME_INTERNAL_SHARED_SECRET", "")
+	if shared_secret.is_empty():
+		LogNetScript.warn("dsm internal auth secret missing; ready/active control reports disabled", "", 0, "net.battle_ds_bootstrap")
+		return null
+	var key_id := _read_env("DSM_INTERNAL_AUTH_KEY_ID", "")
+	if key_id.is_empty():
+		key_id = _read_env("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	var signer := InternalAuthSignerScript.new()
+	signer.configure(key_id, shared_secret)
+	return signer
 
 
 func _resolve_ds_manager_base_url() -> String:

@@ -9,6 +9,7 @@ extends RefCounted
 const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
 const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
 
 var app_runtime: Node = null
@@ -122,7 +123,7 @@ func _resolve_account_service_base_url() -> String:
 
 
 func _http_post_json(url: String, access_token: String, body: String) -> Dictionary:
-	var parsed := _parse_url(url)
+	var parsed := HttpRequestHelperScript.parse_url(url)
 	if parsed.is_empty():
 		return {"ok": false, "error_code": "INVALID_URL", "user_message": "Invalid URL: %s" % url, "data": {}}
 
@@ -171,27 +172,6 @@ func _http_post_json(url: String, access_token: String, body: String) -> Diction
 		return {"ok": false, "error_code": err_code, "user_message": err_msg, "data": response}
 
 	return {"ok": true, "error_code": "", "user_message": "", "data": response}
-
-
-func _parse_url(url: String) -> Dictionary:
-	var normalized := url.strip_edges()
-	if not normalized.begins_with("http://"):
-		return {}
-	var without_scheme := normalized.substr(7)
-	var slash_index := without_scheme.find("/")
-	var host_port := without_scheme
-	var path := "/"
-	if slash_index >= 0:
-		host_port = without_scheme.substr(0, slash_index)
-		path = without_scheme.substr(slash_index, without_scheme.length() - slash_index)
-	var colon_index := host_port.rfind(":")
-	if colon_index <= 0 or colon_index >= host_port.length() - 1:
-		return {}
-	return {
-		"host": host_port.substr(0, colon_index),
-		"port": int(host_port.substr(colon_index + 1, host_port.length() - colon_index - 1)),
-		"path": path,
-	}
 
 
 func _log_battle_entry(event_name: String, payload: Dictionary) -> void:

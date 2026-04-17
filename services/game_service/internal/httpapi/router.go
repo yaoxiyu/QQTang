@@ -10,19 +10,18 @@ import (
 )
 
 type RouterDeps struct {
-	JWTAuth                   *auth.JWTAuth
-	InternalAuth              *auth.InternalAuth
-	InternalSharedSecret      string
-	MatchmakingHandler        *MatchmakingHandler
-	PartyMatchmakingHandler   *PartyMatchmakingHandler
-	CareerHandler             *CareerHandler
-	SettlementHandler         *SettlementHandler
-	InternalAssignmentHandler *InternalAssignmentHandler
-	InternalFinalizeHandler   *InternalFinalizeHandler
-	InternalBattleManifestHandler *InternalBattleManifestHandler
-	InternalBattleReadyHandler    *InternalBattleReadyHandler
+	JWTAuth                         *auth.JWTAuth
+	InternalAuth                    *auth.InternalAuth
+	MatchmakingHandler              *MatchmakingHandler
+	PartyMatchmakingHandler         *PartyMatchmakingHandler
+	CareerHandler                   *CareerHandler
+	SettlementHandler               *SettlementHandler
+	InternalAssignmentHandler       *InternalAssignmentHandler
+	InternalFinalizeHandler         *InternalFinalizeHandler
+	InternalBattleManifestHandler   *InternalBattleManifestHandler
+	InternalBattleReadyHandler      *InternalBattleReadyHandler
 	InternalManualRoomBattleHandler *InternalManualRoomBattleHandler
-	ReadinessCheck            func(ctx context.Context) error
+	ReadinessCheck                  func(ctx context.Context) error
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
@@ -65,9 +64,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 		mux.Handle("POST /internal/v1/battles/manual-room/create", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalManualRoomBattleHandler.Create)))
 	}
 	if deps.PartyMatchmakingHandler != nil {
-		mux.Handle("POST /internal/v1/matchmaking/party-queue/enter", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.EnterPartyQueue)))
-		mux.Handle("POST /internal/v1/matchmaking/party-queue/cancel", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.CancelPartyQueue)))
-		mux.Handle("GET /internal/v1/matchmaking/party-queue/status", withInternalAuthOrSharedSecret(deps.InternalAuth, deps.InternalSharedSecret, http.HandlerFunc(deps.PartyMatchmakingHandler.GetPartyQueueStatus)))
+		mux.Handle("POST /internal/v1/matchmaking/party-queue/enter", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.PartyMatchmakingHandler.EnterPartyQueue)))
+		mux.Handle("POST /internal/v1/matchmaking/party-queue/cancel", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.PartyMatchmakingHandler.CancelPartyQueue)))
+		mux.Handle("GET /internal/v1/matchmaking/party-queue/status", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.PartyMatchmakingHandler.GetPartyQueueStatus)))
 	}
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {

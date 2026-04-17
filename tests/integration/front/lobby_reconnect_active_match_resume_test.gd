@@ -33,6 +33,7 @@ func _ready() -> void:
 	var ok := true
 	ok = _test_lobby_reconnect_to_active_match_enters_resume_loading() and ok
 	ok = _test_lobby_reconnect_without_member_session_fails() and ok
+	ok = _test_lobby_reconnect_without_token_clears_stale_state() and ok
 	if ok:
 		print("lobby_reconnect_active_match_resume_test: PASS")
 
@@ -84,6 +85,29 @@ func _test_lobby_reconnect_without_member_session_fails() -> bool:
 	var ok := true
 	ok = TestAssert.is_true(not bool(result.get("ok", true)), "resume without member id should fail", prefix) and ok
 	ok = TestAssert.is_true(String(result.get("error_code", "")) == "RECONNECT_MEMBER_MISSING", "missing member id should return RECONNECT_MEMBER_MISSING", prefix) and ok
+	ok = TestAssert.is_true(String(settings.reconnect_room_id) == "", "missing member id should clear stale reconnect room id", prefix) and ok
+	ok = TestAssert.is_true(String(settings.reconnect_token) == "", "missing member id should clear stale reconnect token", prefix) and ok
+	return ok
+
+
+func _test_lobby_reconnect_without_token_clears_stale_state() -> bool:
+	var settings := FrontSettingsStateScript.new()
+	settings.reconnect_room_id = "phase17_room"
+	settings.reconnect_host = "127.0.0.1"
+	settings.reconnect_port = 9000
+	settings.reconnect_room_kind = "private_room"
+	settings.reconnect_member_id = "member_a"
+	var use_case := LobbyUseCaseScript.new()
+	use_case.configure(null, null, null, settings, null)
+
+	var result := use_case.resume_recent_room()
+
+	var prefix := "lobby_reconnect_active_match_resume_test"
+	var ok := true
+	ok = TestAssert.is_true(not bool(result.get("ok", true)), "resume without token should fail", prefix) and ok
+	ok = TestAssert.is_true(String(result.get("error_code", "")) == "RECONNECT_TOKEN_MISSING", "missing token should return RECONNECT_TOKEN_MISSING", prefix) and ok
+	ok = TestAssert.is_true(String(settings.reconnect_room_id) == "", "missing token should clear stale reconnect room id", prefix) and ok
+	ok = TestAssert.is_true(String(settings.reconnect_member_id) == "", "missing token should clear stale reconnect member id", prefix) and ok
 	return ok
 
 

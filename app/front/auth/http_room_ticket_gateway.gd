@@ -3,6 +3,7 @@ extends "res://app/front/auth/room_ticket_gateway.gd"
 
 const HttpRoomTicketResultScript = preload("res://app/front/auth/room_ticket_result.gd")
 const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
 
 var service_base_url: String = ""
 
@@ -17,7 +18,7 @@ func issue_room_ticket(access_token: String, request):
 	if service_base_url.is_empty():
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_URL_MISSING", "Room ticket service url is missing")
 	var client := HTTPClient.new()
-	var parsed_url := _parse_url(service_base_url + "/api/v1/tickets/room-entry")
+	var parsed_url := HttpRequestHelperScript.parse_url(service_base_url + "/api/v1/tickets/room-entry")
 	if parsed_url.is_empty():
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_URL_INVALID", "Room ticket service url is invalid")
 	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
@@ -60,24 +61,3 @@ func issue_room_ticket(access_token: String, request):
 	if not bool(response.get("ok", false)):
 		return HttpRoomTicketResultScript.fail(String(response.get("error_code", "ROOM_TICKET_REQUEST_FAILED")), String(response.get("user_message", response.get("message", "Room ticket request failed"))))
 	return HttpRoomTicketResultScript.success_from_dict(response)
-
-
-func _parse_url(url: String) -> Dictionary:
-	var normalized := url.strip_edges()
-	if not normalized.begins_with("http://"):
-		return {}
-	var without_scheme := normalized.substr(7)
-	var slash_index := without_scheme.find("/")
-	var host_port := without_scheme
-	var path := "/"
-	if slash_index >= 0:
-		host_port = without_scheme.substr(0, slash_index)
-		path = without_scheme.substr(slash_index, without_scheme.length() - slash_index)
-	var colon_index := host_port.rfind(":")
-	if colon_index <= 0 or colon_index >= host_port.length() - 1:
-		return {}
-	return {
-		"host": host_port.substr(0, colon_index),
-		"port": int(host_port.substr(colon_index + 1, host_port.length() - colon_index - 1)),
-		"path": path,
-	}
