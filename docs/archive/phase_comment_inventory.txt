@@ -1,0 +1,135 @@
+.\network\battle\runtime\server_battle_runtime.gd:4:## Phase23: Battle-only runtime. Extracted from ServerRoomRuntime.
+.\network\battle\runtime\server_battle_runtime.gd:30:## Phase23: Battle manifest fields injected by bootstrap
+.\network\battle\runtime\server_battle_runtime.gd:35:## Phase23: Member bindings for input validation (injected from manifest)
+.\network\transport\transport_message_types.gd:40:# Phase16: Loading barrier & Rematch protocols
+.\network\transport\transport_message_types.gd:46:# Phase17: Active match reconnect / resume protocols
+.\network\transport\transport_message_types.gd:53:# Phase23: Battle-only entry protocols (battle_ds consumes these, not room_service)
+.\tests\unit\simulation\test_context.gd:2:# Retained for historical testing or Phase0 compatibility.
+.\scenes\front\loading_scene_controller.gd:172:	# Phase17: In resume mode, directly handle loading committed
+.\network\runtime\room_client_gateway.gd:11:# Phase17: Resume signals
+.\network\runtime\room_client_gateway.gd:188:# Phase17: Resume request
+.\network\runtime\room_client_gateway.gd:218:	# Phase17: Connect resume signals
+.\network\runtime\room_client_gateway.gd:238:	# Phase17: Disconnect resume signals
+.\network\runtime\room_client_gateway.gd:265:# Phase17: Resume signal callbacks
+.\scenes\battle\battle_main_controller.gd:234:	# Phase17: Consume resume payload if present
+.\scenes\battle\battle_main_controller.gd:315:	# Phase16: For DS rooms, set pending_room_action for rematch
+.\presentation\runtime\presentation_bridge.gd:2:# Retained for historical testing or Phase0 compatibility.
+.\network\runtime\network_bootstrap.gd:4:## Phase6 and later formal gameplay entry must continue through:
+.\network\runtime\client_room_runtime.gd:23:# Phase17: Resume signals
+.\network\runtime\client_room_runtime.gd:272:# Phase17: Resume request
+.\network\runtime\client_room_runtime.gd:405:		# Phase17: Resume protocol messages
+.\gameplay\simulation\runtime\simulation_runner_node.gd:2:# Retained for historical testing or Phase0 compatibility.
+.\network\session\runtime\client_session.gd:5:var controlled_peer_id: int = 0  # Phase17: Battle control identity
+.\network\session\runtime\client_session.gd:26:	# Phase17: Use controlled_peer_id for battle control identity
+.\network\session\runtime\client_session.gd:60:	# Phase17: Use controlled_peer_id for battle control identity
+.\network\session\runtime\client_runtime.gd:234:# Phase17: Inject resume checkpoint for battle recovery
+.\network\session\room_session_controller.gd:66:	# Phase23: Battle handoff fields
+.\network\session\room_session_controller.gd:368:	# Phase23: For matchmade rooms with an assignment, the server overrides
+.\network\session\room_session_controller.gd:378:	# Phase23: Battle handoff fields
+.\network\session\runtime\server_room_service.gd:26:signal resume_request_received(message: Dictionary)  # Phase17: For ServerRoomRuntime to handle match resume
+.\network\session\runtime\server_room_service.gd:150:	# Phase22: Reject create if room already exists (single-room-per-DS model)
+.\network\session\runtime\server_room_service.gd:271:	# Phase17: Reject normal join during active match
+.\network\session\runtime\server_room_service.gd:280:	# Phase22: Reject join when room is at capacity
+.\network\session\runtime\server_room_service.gd:624:# Phase17: Resume request handling
+.\network\session\runtime\server_room_runtime_compat_impl.gd:3:## DEPRECATED (Phase23): This is a compatibility wrapper.
+.\network\session\runtime\server_room_runtime_compat_impl.gd:32:var _resume_coordinator: ServerMatchResumeCoordinator = null  # Phase17
+.\network\session\runtime\server_room_runtime_compat_impl.gd:41:	# Phase17: Poll resume window expiration
+.\network\session\runtime\server_room_runtime_compat_impl.gd:114:	# Phase17: Validate battle input sender
+.\network\session\runtime\server_room_runtime_compat_impl.gd:159:	# Phase17: Active match disconnect - enter resume window instead of immediate abort
+.\network\session\runtime\server_room_runtime_compat_impl.gd:272:	# Phase17: Initialize resume coordinator
+.\network\session\runtime\server_room_runtime_compat_impl.gd:307:	# Phase17: Connect resume request signal
+.\network\session\runtime\server_room_runtime_compat_impl.gd:325:# Phase17: Connect resume coordinator signals
+.\network\session\runtime\server_room_runtime_compat_impl.gd:353:	# Phase17: Clear resume state on match finish
+.\network\session\runtime\server_room_runtime_compat_impl.gd:364:# Phase17: Handle resume timeout abort request
+.\network\session\runtime\server_room_runtime_compat_impl.gd:370:# Phase17: Handle resume request from ServerRoomService
+.\app\front\room\room_use_case.gd:489:	# Phase17: Connect resume signals
+.\app\front\room\room_use_case.gd:509:	# Phase17: Disconnect resume signals
+.\app\front\room\room_use_case.gd:527:	# Phase17: Check for resume flow
+.\app\front\room\room_use_case.gd:596:	# Phase16: Reconnect ticket extension
+.\app\front\room\room_use_case.gd:620:	# Phase16: Write match_id to reconnect ticket
+.\app\front\room\room_use_case.gd:653:# Phase17: Handle room member session received
+.\app\front\room\room_use_case.gd:686:# Phase17: Handle match resume accepted
+.\app\front\room\room_entry_context.gd:31:# Phase17: Resume flow fields
+.\app\front\room\room_entry_context.gd:101:	# Phase17: Resume flow fields
+.\network\session\battle_session_adapter.gd:81:# Phase17: Resume snapshot storage
+.\network\session\battle_session_adapter.gd:90:# Phase17: Apply resume snapshot for battle recovery
+.\network\session\battle_session_adapter.gd:393:	# Phase23: Preserve an existing DS transport across the second call
+.\network\session\battle_session_adapter.gd:437:	# Phase23: Bring up ENet transport to the DS if not already connected.
+.\network\session\battle_session_adapter.gd:443:	# Phase23: If transport is already connected and we have a DS-issued config,
+.\network\session\battle_session_adapter.gd:457:	# Phase17: Inject resume checkpoint if pending
+.\network\session\battle_session_adapter.gd:1046:	# Phase23: once the DS socket is up, announce battle entry.
+.\network\session\battle_session_adapter.gd:1102:	# Phase23: Prefer the DS-issued local_peer_id; fall back to transport-derived value.
+.\network\session\runtime\server_room_registry.gd:241:	# Phase23: Create RoomAuthorityRuntime instead of mixed ServerRoomRuntime
+.\network\session\runtime\server_room_registry.gd:266:	# Phase23: Only send to members of this room, not all connected peers
+.\gameplay\simulation\input\input_buffer.gd:4:# Phase0 compatibility: tick -> InputFrame
+.\gameplay\simulation\input\input_buffer.gd:7:# Phase2 sync model: peer_id -> (tick_id -> PlayerInputFrame)
+.\network\session\runtime\server_match_service.gd:125:# Phase17: Get current config for resume
+.\network\session\runtime\server_match_service.gd:146:# Phase17: Build resume checkpoint message
+.\network\session\runtime\server_match_service.gd:200:# Phase17: Abort match due to resume timeout
+.\tests\unit\simulation\gameplay_test_suite.gd:2:# Retained for historical testing or Phase0 compatibility.
+.\app\front\profile\front_settings_state.gd:18:# Phase16: Reconnect ticket extension
+.\app\front\profile\front_settings_state.gd:24:# Phase17: Member session resume ticket
+.\app\front\profile\front_settings_state.gd:89:	# Phase17: Member session fields
+.\app\front\loading\loading_view_state.gd:16:# Phase17: Resume mode fields
+.\app\front\loading\loading_use_case.gd:14:var _loading_mode: String = "normal_start"  # Phase17
+.\app\front\loading\loading_use_case.gd:26:	# Phase17: Determine loading mode from app_runtime
+.\app\front\loading\loading_use_case.gd:31:	# Phase17: In resume mode, don't require snapshot
+.\app\front\loading\loading_use_case.gd:77:	# Phase17: Set loading mode
+.\app\front\loading\loading_use_case.gd:80:	# Phase17: Resume mode specific view state
+.\app\front\loading\loading_use_case.gd:127:	# Phase17: In resume mode, skip loading ready submission
+.\network\session\runtime\room_authority_runtime.gd:4:## Phase23: Room-only runtime. Extracted from ServerRoomRuntime.
+.\network\session\runtime\room_authority_runtime.gd:161:## Phase23: Notify room that battle has finished (called by external orchestration)
+.\network\session\runtime\room_authority_runtime.gd:171:## Phase23: Freeze room when battle allocation begins
+.\network\session\runtime\room_authority_runtime.gd:182:## Phase23: Update battle endpoint when DS is ready
+.\network\session\runtime\room_authority_runtime.gd:193:## Phase23: Transition to in_battle_frozen when clients enter battle
+.\network\session\runtime\room_authority_runtime.gd:201:## Phase23: Restore room to idle after battle return
+.\network\session\runtime\room_session.gd:27:# Phase23: Battle handoff state (populated from authoritative server snapshot)
+.\presentation\battle\hud\settlement_controller.gd:136:## Phase23: Default post-battle action — return to source room instead of lobby.
+.\presentation\battle\hud\settlement_controller.gd:175:		# Phase23: reconnect return button to source room flow
+.\network\session\runtime\room_server_state.gd:44:# Phase23: Room lifecycle & battle handoff fields
+.\network\session\runtime\room_server_state.gd:54:# Phase22 compatibility (deprecated in Phase23 — do not use for new logic)
+.\network\session\runtime\room_server_state.gd:57:# Phase17: Stable member identity model
+.\network\session\runtime\room_server_state.gd:179:	# Phase17: Also create/update member binding
+.\network\session\runtime\room_server_state.gd:221:	# Phase17: Also remove member binding
+.\network\session\runtime\room_server_state.gd:429:		# Phase17: Get connection_state from member binding
+.\network\session\runtime\room_server_state.gd:541:# Phase17: Stable member identity methods
+.\app\front\lobby\lobby_view_state.gd:22:# Phase16: Reconnect ticket extension
+.\app\front\lobby\lobby_view_state.gd:28:# Phase17: Member session resume ticket
+.\app\front\lobby\lobby_use_case.gd:79:		# Phase17: Member session fields
+.\app\front\lobby\lobby_use_case.gd:308:# Phase17: Resume recent room with member session
+.\app\front\lobby\lobby_use_case.gd:331:	# Phase17: Enable resume flow
+.\network\session\runtime\room_runtime_context.gd:32:# Phase16: Loading barrier context
+.\tests\smoke\matchmaking\matchmaking_ranked_e2e_smoke_test.gd:3:# LEGACY: smoke coverage for pre-Phase22 client-direct matchmaking path.
+.\gameplay\battle\config\room_snapshot.gd:27:# Phase23: Room lifecycle & battle handoff
+.\gameplay\battle\runtime\battle_context.gd:4:# Runtime-only assembly context for Phase3 battle flow.
+.\tests\integration\network\active_match_resume_timeout_abort_test.gd:114:	var ticket := _make_ticket(peer_id, "create", "phase17_timeout_room", "")
+.\tests\integration\network\active_match_resume_timeout_abort_test.gd:118:		"room_id_hint": "phase17_timeout_room",
+.\tests\integration\network\active_match_resume_timeout_abort_test.gd:133:	var ticket := _make_ticket(peer_id, "join", "phase17_timeout_room", "")
+.\tests\integration\network\active_match_resume_timeout_abort_test.gd:137:		"room_id_hint": "phase17_timeout_room",
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:55:	var resume_ticket := _make_ticket(9, "resume", "phase17_room", String(fixture["match_id"]))
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:59:		"room_id": "phase17_room",
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:127:	var ticket := _make_ticket(peer_id, "create", "phase17_room", "")
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:131:		"room_id_hint": "phase17_room",
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:146:	var ticket := _make_ticket(peer_id, "join", "phase17_room", "")
+.\tests\integration\network\active_match_disconnect_no_immediate_abort_test.gd:150:		"room_id_hint": "phase17_room",
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:74:	settings.reconnect_room_id = "phase17_room"
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:95:	settings.reconnect_room_id = "phase17_room"
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:116:	config.room_id = "phase17_room"
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:117:	config.match_id = "phase17_match"
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:141:	snapshot.room_id = "phase17_room"
+.\tests\integration\front\lobby_reconnect_active_match_resume_test.gd:142:	snapshot.match_id = "phase17_match"
+.\tests\integration\front\lobby_match_assignment_to_room_test.gd:3:# LEGACY: covers pre-Phase22 client-direct matchmaking assignment only.
+.\tests\integration\front\lobby_matchmaking_queue_flow_test.gd:3:# LEGACY: covers pre-Phase22 client-direct matchmaking use case only.
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:41:		"room_id": "phase17_idle_room",
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:45:		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:46:		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:95:		"room_id": "phase17_idle_room",
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:99:		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:100:		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:137:		"room_id": "phase17_idle_room",
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:141:		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:142:		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:160:	var ticket := _make_ticket(peer_id, "create", "phase17_idle_room", "")
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:164:		"room_id_hint": "phase17_idle_room",
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:176:	var ticket := _make_ticket(peer_id, "join", "phase17_idle_room", "")
+.\tests\integration\front\idle_room_resume_returns_to_room_test.gd:180:		"room_id_hint": "phase17_idle_room",

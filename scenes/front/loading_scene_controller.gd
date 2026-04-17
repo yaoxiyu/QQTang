@@ -169,7 +169,7 @@ func _maybe_submit_local_ready() -> void:
 	if _app_runtime == null or _app_runtime.loading_use_case == null:
 		return
 	
-	# Phase17: In resume mode, directly handle loading committed
+	# LegacyMigration: In resume mode, directly handle loading committed
 	if "current_loading_mode" in _app_runtime and String(_app_runtime.current_loading_mode) == "resume_match":
 		_handle_loading_committed()
 		return

@@ -1,8 +1,8 @@
 class_name HttpSettlementGateway
 extends SettlementGateway
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
-const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 var service_base_url: String = ""
 
@@ -16,49 +16,31 @@ func fetch_match_summary(access_token: String, match_id: String) -> Dictionary:
 		return _fail("SETTLEMENT_URL_MISSING", "Settlement service url is missing")
 	if match_id.strip_edges().is_empty():
 		return _fail("SETTLEMENT_MATCH_ID_REQUIRED", "Match id is required")
-	var client := HTTPClient.new()
-	var parsed_url := HttpRequestHelperScript.parse_url(service_base_url + "/api/v1/settlement/matches/%s" % match_id.uri_encode())
-	if parsed_url.is_empty():
-		return _fail("SETTLEMENT_URL_INVALID", "Settlement service url is invalid")
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		return _fail("SETTLEMENT_CONNECT_FAILED", "Failed to connect settlement service")
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return _fail("SETTLEMENT_CONNECT_FAILED", "Failed to connect settlement service")
-	var headers := PackedStringArray([
+	var options := HttpRequestOptionsScript.new()
+	options.method = HTTPClient.METHOD_GET
+	options.url = service_base_url + "/api/v1/settlement/matches/%s" % match_id.uri_encode()
+	options.log_tag = "front.settlement.gateway"
+	options.headers = PackedStringArray([
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	err = client.request(HTTPClient.METHOD_GET, String(parsed_url["path"]), headers, "")
-	if err != OK:
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_URL_INVALID":
+		return _fail("SETTLEMENT_URL_INVALID", "Settlement service url is invalid")
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return _fail("SETTLEMENT_CONNECT_FAILED", "Failed to connect settlement service")
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return _fail("SETTLEMENT_REQUEST_FAILED", "Failed to send settlement request")
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"front",
-		"front.settlement.gateway",
-		"http_settlement_gateway",
-		{
-			"url": service_base_url + "/api/v1/settlement/matches/%s" % match_id.uri_encode(),
-			"method": HTTPClient.METHOD_GET,
-			"match_id": match_id,
-		}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	if text.strip_edges().is_empty():
 		return _fail("SETTLEMENT_EMPTY_RESPONSE", "Settlement service returned empty response")
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.data is Dictionary):
+	if not (response.body_json is Dictionary):
 		return _fail("SETTLEMENT_RESPONSE_INVALID", "Settlement service returned invalid response")
-	var response: Dictionary = json.data
-	if not response.has("user_message") and response.has("message"):
-		response["user_message"] = response.get("message", "")
-	return response
+	var response_body: Dictionary = response.body_json
+	if not response_body.has("user_message") and response_body.has("message"):
+		response_body["user_message"] = response_body.get("message", "")
+	response_body["status_code"] = response.status_code
+	return response_body
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:

@@ -1,8 +1,8 @@
 class_name HttpProfileGateway
 extends ProfileGateway
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
-const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 var service_base_url: String = ""
 
@@ -18,69 +18,48 @@ func fetch_my_profile(access_token: String) -> Dictionary:
 			"error_code": "PROFILE_HTTP_URL_MISSING",
 			"user_message": "Profile HTTP url is missing",
 		}
-	var client := HTTPClient.new()
-	var parsed_url := HttpRequestHelperScript.parse_url(service_base_url + "/api/v1/profile/me")
-	if parsed_url.is_empty():
+	var options := HttpRequestOptionsScript.new()
+	options.method = HTTPClient.METHOD_GET
+	options.url = service_base_url + "/api/v1/profile/me"
+	options.log_tag = "front.profile.gateway"
+	options.headers = PackedStringArray([
+		"Content-Type: application/json",
+		"Authorization: Bearer %s" % access_token,
+	])
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_URL_INVALID":
 		return {
 			"ok": false,
 			"error_code": "PROFILE_HTTP_URL_INVALID",
 			"user_message": "Profile HTTP url is invalid",
 		}
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
 		return {
 			"ok": false,
 			"error_code": "PROFILE_HTTP_CONNECT_FAILED",
 			"user_message": "Failed to connect profile service",
 		}
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return {
-			"ok": false,
-			"error_code": "PROFILE_HTTP_CONNECT_FAILED",
-			"user_message": "Failed to connect profile service",
-		}
-	var headers := PackedStringArray([
-		"Content-Type: application/json",
-		"Authorization: Bearer %s" % access_token,
-	])
-	err = client.request(HTTPClient.METHOD_GET, String(parsed_url["path"]), headers, "")
-	if err != OK:
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return {
 			"ok": false,
 			"error_code": "PROFILE_HTTP_REQUEST_FAILED",
 			"user_message": "Failed to send profile request",
 		}
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"front",
-		"front.profile.gateway",
-		"http_profile_gateway",
-		{
-			"url": service_base_url + "/api/v1/profile/me",
-			"method": HTTPClient.METHOD_GET,
-		}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	if text.strip_edges().is_empty():
 		return {
 			"ok": false,
 			"error_code": "PROFILE_HTTP_EMPTY_RESPONSE",
 			"user_message": "Profile service returned empty response",
 		}
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.data is Dictionary):
+	if not (response.body_json is Dictionary):
 		return {
 			"ok": false,
 			"error_code": "PROFILE_HTTP_RESPONSE_INVALID",
 			"user_message": "Profile service returned invalid response",
 		}
-	var response: Dictionary = json.data
-	if not response.has("user_message") and response.has("message"):
-		response["user_message"] = response.get("message", "")
-	return response
+	var response_body: Dictionary = response.body_json
+	if not response_body.has("user_message") and response_body.has("message"):
+		response_body["user_message"] = response_body.get("message", "")
+	response_body["status_code"] = response.status_code
+	return response_body

@@ -20,7 +20,7 @@ signal canonical_start_config_received(config: BattleStartConfig)
 signal battle_message_received(message: Dictionary)
 signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 
-# Phase17: Resume signals
+# LegacyMigration: Resume signals
 signal room_member_session_received(payload: Dictionary)
 signal match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot)
 
@@ -269,7 +269,7 @@ func request_rematch() -> void:
 	})
 
 
-# Phase17: Resume request
+# LegacyMigration: Resume request
 func request_resume_room(
 	room_id: String,
 	member_id: String,
@@ -402,7 +402,7 @@ func _route_message(message: Dictionary) -> void:
 			_apply_match_queue_status(message)
 		TransportMessageTypesScript.ROOM_MATCH_ASSIGNMENT_READY:
 			pass
-		# Phase17: Resume protocol messages
+		# LegacyMigration: Resume protocol messages
 		TransportMessageTypesScript.ROOM_MEMBER_SESSION:
 			room_member_session_received.emit(Dictionary(message).duplicate(true))
 		TransportMessageTypesScript.ROOM_RESUME_REJECTED:

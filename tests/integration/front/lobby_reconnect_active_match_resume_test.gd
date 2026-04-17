@@ -71,7 +71,7 @@ func _test_lobby_reconnect_to_active_match_enters_resume_loading() -> bool:
 
 func _test_lobby_reconnect_without_member_session_fails() -> bool:
 	var settings := FrontSettingsStateScript.new()
-	settings.reconnect_room_id = "phase17_room"
+	settings.reconnect_room_id = "LegacyMigration_room"
 	settings.reconnect_host = "127.0.0.1"
 	settings.reconnect_port = 9000
 	settings.reconnect_room_kind = "private_room"
@@ -92,7 +92,7 @@ func _test_lobby_reconnect_without_member_session_fails() -> bool:
 
 func _test_lobby_reconnect_without_token_clears_stale_state() -> bool:
 	var settings := FrontSettingsStateScript.new()
-	settings.reconnect_room_id = "phase17_room"
+	settings.reconnect_room_id = "LegacyMigration_room"
 	settings.reconnect_host = "127.0.0.1"
 	settings.reconnect_port = 9000
 	settings.reconnect_room_kind = "private_room"
@@ -113,8 +113,8 @@ func _test_lobby_reconnect_without_token_clears_stale_state() -> bool:
 
 func _build_resume_config() -> BattleStartConfig:
 	var config := BattleStartConfigScript.new()
-	config.room_id = "phase17_room"
-	config.match_id = "phase17_match"
+	config.room_id = "LegacyMigration_room"
+	config.match_id = "LegacyMigration_match"
 	config.map_id = "map_001"
 	config.map_content_hash = "hash"
 	config.mode_id = "mode_001"
@@ -138,8 +138,8 @@ func _build_resume_config() -> BattleStartConfig:
 
 func _build_resume_snapshot() -> MatchResumeSnapshot:
 	var snapshot := MatchResumeSnapshotScript.new()
-	snapshot.room_id = "phase17_room"
-	snapshot.match_id = "phase17_match"
+	snapshot.room_id = "LegacyMigration_room"
+	snapshot.match_id = "LegacyMigration_match"
 	snapshot.member_id = "member_2"
 	snapshot.transport_peer_id = 9
 	snapshot.controlled_peer_id = 3

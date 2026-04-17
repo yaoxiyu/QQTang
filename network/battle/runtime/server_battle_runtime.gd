@@ -1,7 +1,7 @@
 class_name ServerBattleRuntime
 extends Node
 
-## Phase23: Battle-only runtime. Extracted from ServerRoomRuntime.
+## LegacyMigration: Battle-only runtime. Extracted from ServerRoomRuntime.
 ## Handles match service, loading coordinator, finalize reporter,
 ## resume coordinator. Does NOT handle room create/join/leave/directory
 ## or party queue.
@@ -27,12 +27,12 @@ var _loading_coordinator: ServerMatchLoadingCoordinator = null
 var _match_finalize_reporter: ServerMatchFinalizeReporter = null
 var _resume_coordinator: ServerMatchResumeCoordinator = null
 
-## Phase23: Battle manifest fields injected by bootstrap
+## LegacyMigration: Battle manifest fields injected by bootstrap
 var battle_id: String = ""
 var assignment_id: String = ""
 var match_id: String = ""
 
-## Phase23: Member bindings for input validation (injected from manifest)
+## LegacyMigration: Member bindings for input validation (injected from manifest)
 var _member_bindings: Dictionary = {}  # member_id -> { match_peer_id, transport_peer_id, connection_state }
 
 

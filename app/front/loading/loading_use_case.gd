@@ -11,7 +11,7 @@ var _app_runtime: Node = null
 var _room_client_gateway: RefCounted = null
 var _current_snapshot: MatchLoadingSnapshot = null
 var _local_ready_submitted: bool = false
-var _loading_mode: String = "normal_start"  # Phase17
+var _loading_mode: String = "normal_start"  # LegacyMigration
 
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
@@ -23,12 +23,12 @@ func configure(app_runtime: Node, room_client_gateway: RefCounted) -> void:
 
 func begin_loading() -> Dictionary:
 	_local_ready_submitted = false
-	# Phase17: Determine loading mode from app_runtime
+	# LegacyMigration: Determine loading mode from app_runtime
 	_loading_mode = "normal_start"
 	if _app_runtime != null and "current_loading_mode" in _app_runtime:
 		_loading_mode = String(_app_runtime.current_loading_mode)
 	
-	# Phase17: In resume mode, don't require snapshot
+	# LegacyMigration: In resume mode, don't require snapshot
 	if _loading_mode == "resume_match":
 		_current_snapshot = null
 		return {
@@ -74,10 +74,10 @@ func build_view_state() -> LoadingViewState:
 	state.character_brief = String(ui_summary.get("character_brief", ""))
 	state.bubble_brief = String(ui_summary.get("bubble_brief", ""))
 	
-	# Phase17: Set loading mode
+	# LegacyMigration: Set loading mode
 	state.loading_mode = _loading_mode
 
-	# Phase17: Resume mode specific view state
+	# LegacyMigration: Resume mode specific view state
 	if _loading_mode == "resume_match":
 		state.loading_phase_text = "resume_prepare"
 		state.status_message = "Preparing resume payload..."
@@ -124,7 +124,7 @@ func submit_local_ready() -> Dictionary:
 			"duplicate": true,
 		}
 	
-	# Phase17: In resume mode, skip loading ready submission
+	# LegacyMigration: In resume mode, skip loading ready submission
 	if _loading_mode == "resume_match":
 		return {
 			"ok": true,

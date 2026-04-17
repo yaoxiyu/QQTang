@@ -20,6 +20,8 @@ tests/cli/appdata/
 tests/**/reports/
 tests/**/*.json.tmp
 tests/**/*.txt.tmp
+/tests/reports/tmp_*.log
+/tests/reports/tmp_*.err
 
 # Content CSV import noise
 content_source/csv/**/*.translation
@@ -31,6 +33,11 @@ content_source/csv/**/*.csv.import
 **/.env
 **/.env.*
 !**/.env.example
+services/*/.env
+services/*/.env.local
+services/*/.env.development
+services/*/.env.test
+services/*/.env.prod
 
 # Local secrets / credentials
 secrets/

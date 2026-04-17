@@ -1,10 +1,6 @@
 extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
-const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const RoomScenePresenterScript = preload("res://app/front/room/room_scene_presenter.gd")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
@@ -12,6 +8,9 @@ const LogFrontScript = preload("res://app/logging/log_front.gd")
 const RoomSceneEventRouterScript = preload("res://scenes/front/room_scene_event_router.gd")
 const RoomSceneViewBinderScript = preload("res://scenes/front/room_scene_view_binder.gd")
 const RoomSceneMemberListPresenterScript = preload("res://scenes/front/room_scene_member_list_presenter.gd")
+const RoomSceneSelectorPresenterScript = preload("res://scenes/front/room_scene_selector_presenter.gd")
+const RoomSceneSelectionSubmitterScript = preload("res://scenes/front/room_scene_selection_submitter.gd")
+const RoomSceneSnapshotCoordinatorScript = preload("res://scenes/front/room_scene_snapshot_coordinator.gd")
 const ROOM_SCENE_LOG_TAG := "front.room.scene"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
@@ -78,6 +77,9 @@ var _room_view_model_builder: RoomViewModelBuilder = RoomViewModelBuilderScript.
 var _room_scene_event_router: RefCounted = RoomSceneEventRouterScript.new()
 var _room_scene_view_binder: RefCounted = RoomSceneViewBinderScript.new()
 var _room_scene_member_list_presenter: RefCounted = RoomSceneMemberListPresenterScript.new()
+var _room_scene_selector_presenter: RefCounted = RoomSceneSelectorPresenterScript.new()
+var _room_scene_selection_submitter: RefCounted = RoomSceneSelectionSubmitterScript.new()
+var _room_scene_snapshot_coordinator: RefCounted = RoomSceneSnapshotCoordinatorScript.new()
 var _suppress_selection_callbacks: bool = false
 
 
@@ -161,154 +163,43 @@ func _exit_tree() -> void:
 
 
 func _populate_selectors() -> void:
-	_suppress_selection_callbacks = true
-	_populate_character_selector()
-	_populate_team_selector()
-	_populate_character_skin_selector()
-	_populate_bubble_selector()
-	_populate_bubble_skin_selector()
-	_populate_mode_selector()
-	_populate_map_selector()
-	_populate_match_format_selector("casual")
-	_populate_match_mode_multi_select("casual", "1v1")
-	_suppress_selection_callbacks = false
+	_room_scene_selector_presenter.populate_selectors(self)
 
 
 func _populate_character_selector() -> void:
-	if character_selector == null:
-		return
-	character_selector.clear()
-	var owned_ids := _get_owned_ids("character")
-	var added_count := 0
-	for entry in CharacterCatalogScript.get_character_entries():
-		var entry_id := String(entry.get("id", ""))
-		if not _should_include_owned_entry(owned_ids, entry_id):
-			continue
-		character_selector.add_item(String(entry.get("display_name", entry_id)))
-		character_selector.set_item_metadata(character_selector.item_count - 1, entry_id)
-		added_count += 1
-	if added_count == 0:
-		var fallback_id := _get_fallback_character_id()
-		character_selector.add_item(fallback_id)
-		character_selector.set_item_metadata(character_selector.item_count - 1, fallback_id)
+	_room_scene_selector_presenter.populate_character_selector(self)
 
 
 func _populate_team_selector(team_option_max: int = 2) -> void:
-	if team_selector == null:
-		return
-	team_selector.clear()
-	var max_team_id: int = max(2, team_option_max)
-	for team_id in range(1, max_team_id + 1):
-		team_selector.add_item("Team %d" % team_id)
-		team_selector.set_item_metadata(team_selector.item_count - 1, team_id)
+	_room_scene_selector_presenter.populate_team_selector(self, team_option_max)
 
 
 func _populate_character_skin_selector() -> void:
-	if character_skin_selector == null:
-		return
-	character_skin_selector.clear()
-	character_skin_selector.add_item("None")
-	character_skin_selector.set_item_metadata(0, "")
-	var owned_ids := _get_owned_ids("character_skin")
-	for skin_def in CharacterSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		if not _should_include_owned_entry(owned_ids, String(skin_def.skin_id)):
-			continue
-		character_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.skin_id))
-		character_skin_selector.set_item_metadata(character_skin_selector.item_count - 1, skin_def.skin_id)
+	_room_scene_selector_presenter.populate_character_skin_selector(self)
 
 
 func _populate_bubble_selector() -> void:
-	if bubble_selector == null:
-		return
-	bubble_selector.clear()
-	var owned_ids := _get_owned_ids("bubble")
-	var added_count := 0
-	for entry in BubbleCatalogScript.get_bubble_entries():
-		var entry_id := String(entry.get("id", ""))
-		if not _should_include_owned_entry(owned_ids, entry_id):
-			continue
-		bubble_selector.add_item(String(entry.get("display_name", entry_id)))
-		bubble_selector.set_item_metadata(bubble_selector.item_count - 1, entry_id)
-		added_count += 1
-	if added_count == 0:
-		var fallback_id := _get_fallback_bubble_id()
-		bubble_selector.add_item(fallback_id)
-		bubble_selector.set_item_metadata(bubble_selector.item_count - 1, fallback_id)
+	_room_scene_selector_presenter.populate_bubble_selector(self)
 
 
 func _populate_bubble_skin_selector() -> void:
-	if bubble_skin_selector == null:
-		return
-	bubble_skin_selector.clear()
-	bubble_skin_selector.add_item("None")
-	bubble_skin_selector.set_item_metadata(0, "")
-	var owned_ids := _get_owned_ids("bubble_skin")
-	for skin_def in BubbleSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		if not _should_include_owned_entry(owned_ids, String(skin_def.bubble_skin_id)):
-			continue
-		bubble_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.bubble_skin_id))
-		bubble_skin_selector.set_item_metadata(bubble_skin_selector.item_count - 1, skin_def.bubble_skin_id)
+	_room_scene_selector_presenter.populate_bubble_skin_selector(self)
 
 
 func _populate_map_selector(mode_id: String = "") -> void:
-	if map_selector == null:
-		return
-	var current_value := _selected_metadata(map_selector)
-	map_selector.clear()
-	var resolved_mode_id := mode_id
-	if resolved_mode_id.is_empty():
-		resolved_mode_id = _selected_metadata(game_mode_selector)
-	for entry in MapSelectionCatalogScript.get_custom_room_maps_by_mode(resolved_mode_id):
-		map_selector.add_item(String(entry.get("display_name", entry.get("map_id", ""))))
-		map_selector.set_item_metadata(map_selector.item_count - 1, String(entry.get("map_id", "")))
-	_select_metadata(map_selector, current_value)
+	_room_scene_selector_presenter.populate_map_selector(self, mode_id)
 
 
 func _populate_mode_selector() -> void:
-	if game_mode_selector == null:
-		return
-	var current_value := _selected_metadata(game_mode_selector)
-	game_mode_selector.clear()
-	for entry in MapSelectionCatalogScript.get_custom_room_mode_entries():
-		game_mode_selector.add_item(String(entry.get("display_name", entry.get("mode_id", ""))))
-		game_mode_selector.set_item_metadata(game_mode_selector.item_count - 1, String(entry.get("mode_id", "")))
-	_select_metadata(game_mode_selector, current_value)
+	_room_scene_selector_presenter.populate_mode_selector(self)
 
 
 func _populate_match_format_selector(queue_type: String) -> void:
-	if match_format_selector == null:
-		return
-	var current_value := _selected_metadata(match_format_selector)
-	match_format_selector.clear()
-	for entry in MapSelectionCatalogScript.get_match_room_format_entries(queue_type):
-		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
-		var display_name := String(entry.get("display_name", match_format_id))
-		var enabled := bool(entry.get("enabled", false))
-		if not enabled:
-			display_name += " (Locked)"
-		match_format_selector.add_item(display_name)
-		var index := match_format_selector.item_count - 1
-		match_format_selector.set_item_metadata(index, match_format_id)
-		match_format_selector.set_item_disabled(index, not enabled)
-	_select_metadata(match_format_selector, current_value if not current_value.is_empty() else "1v1")
+	_room_scene_selector_presenter.populate_match_format_selector(self, queue_type)
 
 
 func _populate_match_mode_multi_select(queue_type: String, match_format_id: String, selected_mode_ids: Array[String] = []) -> void:
-	if match_mode_multi_select == null:
-		return
-	match_mode_multi_select.clear()
-	for entry in MapSelectionCatalogScript.get_match_room_mode_entries(queue_type, match_format_id):
-		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
-		match_mode_multi_select.add_item(String(entry.get("display_name", mode_id)))
-		var index := match_mode_multi_select.item_count - 1
-		match_mode_multi_select.set_item_metadata(index, mode_id)
-		if selected_mode_ids.has(mode_id) or selected_mode_ids.is_empty():
-			match_mode_multi_select.select(index, false)
-	_update_eligible_map_pool_hint(queue_type, match_format_id)
+	_room_scene_selector_presenter.populate_match_mode_multi_select(self, queue_type, match_format_id, selected_mode_ids)
 
 
 func _connect_ui_signals() -> void:
@@ -327,105 +218,39 @@ func _connect_runtime_signals() -> void:
 
 
 func _apply_local_profile_defaults() -> void:
-	if _app_runtime == null or _app_runtime.player_profile_state == null:
-		return
-	var profile = _app_runtime.player_profile_state
-	if player_name_input != null:
-		player_name_input.text = profile.nickname
-	_select_metadata(character_selector, profile.default_character_id)
-	_select_team_id(1)
-	_select_metadata(character_skin_selector, profile.default_character_skin_id)
-	_select_metadata(bubble_selector, profile.default_bubble_style_id)
-	_select_metadata(bubble_skin_selector, profile.default_bubble_skin_id)
+	_room_scene_selection_submitter.apply_local_profile_defaults(self)
 
 
 func _refresh_room(snapshot: RoomSnapshot) -> void:
-	if snapshot == null or _app_runtime == null or _room_view_model_builder == null or _room_scene_presenter == null:
-		return
-	var view_model := _room_view_model_builder.build_view_model(
-		snapshot,
-		_room_controller.room_runtime_context if _room_controller != null else null,
-		_app_runtime.player_profile_state,
-		_app_runtime.current_room_entry_context
-	)
-	_room_scene_presenter.present(view_model, self)
-	_room_scene_member_list_presenter.present(view_model.get("members", []), member_list)
-	_suppress_selection_callbacks = true
-	_populate_team_selector(int(view_model.get("team_option_max", 2)))
-	_select_team_id(int(view_model.get("local_team_id", 1)))
-	if bool(view_model.get("is_match_room", false)):
-		_populate_match_format_selector(String(snapshot.queue_type))
-		_select_metadata(match_format_selector, String(snapshot.match_format_id))
-		_populate_match_mode_multi_select(String(snapshot.queue_type), String(snapshot.match_format_id), snapshot.selected_match_mode_ids)
-	else:
-		_populate_mode_selector()
-		_select_metadata(game_mode_selector, String(view_model.get("selected_mode_id", "")))
-		_populate_map_selector(String(view_model.get("selected_mode_id", "")))
-		_select_metadata(map_selector, String(view_model.get("selected_map_id", "")))
-	_suppress_selection_callbacks = false
-	_apply_room_kind_visibility(view_model)
-	_refresh_match_room_controls(snapshot, view_model)
-	_update_auth_binding_summary(snapshot)
-	_update_preview(snapshot)
-	_update_debug_text(snapshot, view_model)
+	_room_scene_snapshot_coordinator.refresh_room(self, snapshot)
 
 
 func _update_preview(snapshot: RoomSnapshot) -> void:
-	if _room_scene_view_binder == null:
-		return
-	var local_member := _resolve_local_member(snapshot)
-	_room_scene_view_binder.update_preview(
-		self,
-		snapshot,
-		_app_runtime,
-		local_member,
-		_selected_team_id()
-	)
+	_room_scene_snapshot_coordinator.update_preview(self, snapshot)
 
 
 func _update_auth_binding_summary(snapshot: RoomSnapshot) -> void:
-	if _room_scene_view_binder == null:
-		return
-	var local_member := _resolve_local_member(snapshot)
-	_room_scene_view_binder.update_auth_binding_summary(self, snapshot, _app_runtime, local_member)
+	_room_scene_snapshot_coordinator.update_auth_binding_summary(self, snapshot)
 
 
 func _update_debug_text(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
-	if _room_scene_view_binder == null:
-		return
-	_room_scene_view_binder.update_debug_text(self, snapshot, view_model)
+	_room_scene_snapshot_coordinator.update_debug_text(self, snapshot, view_model)
 
 
 func _apply_room_kind_visibility(view_model: Dictionary) -> void:
-	if _room_scene_view_binder == null:
-		return
-	_room_scene_view_binder.apply_room_kind_visibility(self, view_model)
+	_room_scene_snapshot_coordinator.apply_room_kind_visibility(self, view_model)
 
 
 func _refresh_match_room_controls(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
-	if _room_scene_view_binder == null:
-		return
-	_room_scene_view_binder.refresh_match_room_controls(self, snapshot, view_model, _selected_match_mode_ids())
+	_room_scene_snapshot_coordinator.refresh_match_room_controls(self, snapshot, view_model)
 
 
 func _resolve_local_member(snapshot: RoomSnapshot) -> RoomMemberState:
-	if snapshot == null or _app_runtime == null:
-		return null
-	for member in snapshot.members:
-		if member != null and member.peer_id == int(_app_runtime.local_peer_id):
-			return member
-	return null
+	return _room_scene_snapshot_coordinator.resolve_local_member(self, snapshot)
 
 
 func _on_room_snapshot_changed(snapshot: RoomSnapshot) -> void:
-	_refresh_room(snapshot)
-	# When battle_entry_ready becomes true, trigger battle entry flow.
-	if snapshot != null and snapshot.battle_entry_ready and _room_use_case != null and _front_flow != null:
-		var battle_ctx = _room_use_case.build_battle_entry_context(snapshot)
-		if battle_ctx != null and _app_runtime != null:
-			_app_runtime.current_battle_entry_context = battle_ctx
-			if _front_flow.has_method("request_battle_entry"):
-				_front_flow.request_battle_entry()
+	_room_scene_snapshot_coordinator.on_room_snapshot_changed(self, snapshot)
 
 
 func _on_start_match_requested(snapshot: RoomSnapshot) -> void:
@@ -514,83 +339,27 @@ func _on_add_opponent_pressed() -> void:
 
 
 func _on_profile_changed() -> void:
-	if _suppress_selection_callbacks or _room_use_case == null:
-		return
-	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
-	var local_member := _resolve_local_member(snapshot)
-	if local_member != null and local_member.ready and _selected_team_id() != local_member.team_id:
-		_select_team_id(local_member.team_id)
-		_set_room_feedback("Team cannot be changed after ready")
-		return
-	_room_use_case.update_local_profile(
-		player_name_input.text.strip_edges() if player_name_input != null else "",
-		_selected_metadata(character_selector),
-		_selected_metadata(character_skin_selector),
-		_selected_metadata(bubble_selector),
-		_selected_metadata(bubble_skin_selector),
-		_selected_team_id()
-	)
+	_room_scene_selection_submitter.on_profile_changed(self)
 
 
 func _on_profile_selector_changed() -> void:
-	if _suppress_selection_callbacks:
-		return
-	_on_profile_changed()
+	_room_scene_selection_submitter.on_profile_selector_changed(self)
 
 
 func _on_mode_selection_changed() -> void:
-	if _suppress_selection_callbacks:
-		return
-	_suppress_selection_callbacks = true
-	_populate_map_selector(_selected_metadata(game_mode_selector))
-	if map_selector != null and map_selector.item_count > 0:
-		map_selector.select(0)
-	_suppress_selection_callbacks = false
-	_on_selection_changed()
+	_room_scene_selection_submitter.on_mode_selection_changed(self)
 
 
 func _on_selection_changed() -> void:
-	if _suppress_selection_callbacks or _room_use_case == null:
-		return
-	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
-	var map_id := _selected_metadata(map_selector)
-	var binding := _resolve_map_binding(map_id)
-	_log_room("room_selection_change_requested", {
-		"old_map_id": String(snapshot.selected_map_id) if snapshot != null else "",
-		"new_map_id": map_id,
-		"derived_mode_id": String(binding.get("bound_mode_id", _selected_metadata(game_mode_selector))),
-		"derived_rule_set_id": String(binding.get("bound_rule_set_id", "")),
-	})
-	var result := _room_use_case.update_selection(
-		map_id,
-		String(binding.get("bound_rule_set_id", "")),
-		String(binding.get("bound_mode_id", _selected_metadata(game_mode_selector)))
-	)
-	if not bool(result.get("ok", false)):
-		_set_room_feedback(String(result.get("user_message", "Failed to update room selection")))
+	_room_scene_selection_submitter.on_selection_changed(self)
 
 
 func _on_match_format_changed() -> void:
-	if _suppress_selection_callbacks:
-		return
-	var snapshot: RoomSnapshot = _room_controller.build_room_snapshot() if _room_controller != null and _room_controller.has_method("build_room_snapshot") else null
-	var queue_type := String(snapshot.queue_type) if snapshot != null else "casual"
-	var match_format_id := _selected_metadata(match_format_selector)
-	_suppress_selection_callbacks = true
-	_populate_match_mode_multi_select(queue_type, match_format_id)
-	_suppress_selection_callbacks = false
-	_on_match_mode_multi_select_changed()
+	_room_scene_selection_submitter.on_match_format_changed(self)
 
 
 func _on_match_mode_multi_select_changed() -> void:
-	if _suppress_selection_callbacks or _room_use_case == null:
-		return
-	var result := _room_use_case.update_match_room_config(
-		_selected_metadata(match_format_selector),
-		_selected_match_mode_ids()
-	)
-	if not bool(result.get("ok", false)):
-		_set_room_feedback(String(result.get("user_message", "Failed to update match room config")))
+	_room_scene_selection_submitter.on_match_mode_multi_select_changed(self)
 
 
 func _set_room_feedback(message: String) -> void:
@@ -600,95 +369,27 @@ func _set_room_feedback(message: String) -> void:
 
 
 func _selected_metadata(selector: OptionButton) -> String:
-	if selector == null or selector.selected < 0:
-		return ""
-	return String(selector.get_item_metadata(selector.selected))
+	return _room_scene_selector_presenter.selected_metadata(selector)
 
 
 func _select_metadata(selector: OptionButton, value: String) -> void:
-	if selector == null:
-		return
-	for index in range(selector.item_count):
-		if String(selector.get_item_metadata(index)) == value:
-			selector.select(index)
-			return
+	_room_scene_selector_presenter.select_metadata(selector, value)
 
 
 func _selected_team_id() -> int:
-	if team_selector == null or team_selector.selected < 0:
-		return 1
-	return int(team_selector.get_item_metadata(team_selector.selected))
+	return _room_scene_selector_presenter.selected_team_id(self)
 
 
 func _select_team_id(team_id: int) -> void:
-	if team_selector == null:
-		return
-	for index in range(team_selector.item_count):
-		if int(team_selector.get_item_metadata(index)) == team_id:
-			team_selector.select(index)
-			return
+	_room_scene_selector_presenter.select_team_id(self, team_id)
 
 
 func _selected_match_mode_ids() -> Array[String]:
-	var result: Array[String] = []
-	if match_mode_multi_select == null:
-		return result
-	for index in match_mode_multi_select.get_selected_items():
-		result.append(String(match_mode_multi_select.get_item_metadata(index)))
-	return result
+	return _room_scene_selector_presenter.selected_match_mode_ids(self)
 
 
 func _update_eligible_map_pool_hint(queue_type: String, match_format_id: String) -> void:
-	if _room_scene_view_binder == null:
-		return
-	_room_scene_view_binder.update_eligible_map_pool_hint(self, queue_type, match_format_id, _selected_match_mode_ids())
-
-
-func _get_owned_ids(asset_type: String) -> Array[String]:
-	if _app_runtime == null or _app_runtime.player_profile_state == null:
-		return []
-	var profile = _app_runtime.player_profile_state
-	match asset_type:
-		"character":
-			return profile.owned_character_ids
-		"character_skin":
-			return profile.owned_character_skin_ids
-		"bubble":
-			return profile.owned_bubble_style_ids
-		"bubble_skin":
-			return profile.owned_bubble_skin_ids
-		_:
-			return []
-
-
-func _should_include_owned_entry(owned_ids: Array[String], entry_id: String) -> bool:
-	if owned_ids.is_empty():
-		return false
-	return owned_ids.has(entry_id)
-
-
-func _get_fallback_character_id() -> String:
-	if _app_runtime != null and _app_runtime.player_profile_state != null:
-		var preferred_id := String(_app_runtime.player_profile_state.default_character_id)
-		if not preferred_id.is_empty():
-			return preferred_id
-	for entry in CharacterCatalogScript.get_character_entries():
-		var entry_id := String(entry.get("id", ""))
-		if not entry_id.is_empty():
-			return entry_id
-	return "character_default"
-
-
-func _get_fallback_bubble_id() -> String:
-	if _app_runtime != null and _app_runtime.player_profile_state != null:
-		var preferred_id := String(_app_runtime.player_profile_state.default_bubble_style_id)
-		if not preferred_id.is_empty():
-			return preferred_id
-	for entry in BubbleCatalogScript.get_bubble_entries():
-		var entry_id := String(entry.get("id", ""))
-		if not entry_id.is_empty():
-			return entry_id
-	return "bubble_style_default"
+	_room_scene_selector_presenter.update_eligible_map_pool_hint(self, queue_type, match_format_id)
 
 
 func _resolve_map_binding(map_id: String) -> Dictionary:

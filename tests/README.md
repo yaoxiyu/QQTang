@@ -15,3 +15,6 @@
 ## 维护规则
 - 只保留类型化测试结构，不再继续按阶段拆测试目录。
 - 正式业务代码不能反向依赖测试目录。
+
+## 统一入口
+- `tests/scripts/run_cross_service_contract_suite.ps1`：跨服务契约与E2E统一入口。

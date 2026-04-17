@@ -111,11 +111,11 @@ func _start_active_match() -> Dictionary:
 
 
 func _create_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "create", "phase17_timeout_room", "")
+	var ticket := _make_ticket(peer_id, "create", "LegacyMigration_timeout_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_timeout_room",
+		"room_id_hint": "LegacyMigration_timeout_room",
 		"player_name": "Host",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"map_id": MapCatalogScript.get_default_map_id(),
@@ -130,11 +130,11 @@ func _create_message(peer_id: int) -> Dictionary:
 
 
 func _join_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "join", "phase17_timeout_room", "")
+	var ticket := _make_ticket(peer_id, "join", "LegacyMigration_timeout_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_timeout_room",
+		"room_id_hint": "LegacyMigration_timeout_room",
 		"player_name": "Client",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"room_ticket": ticket.get("token", ""),

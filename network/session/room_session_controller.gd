@@ -63,7 +63,7 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.owner_peer_id = owner_peer_id
 	snapshot.all_ready = _are_all_members_ready()
 	snapshot.match_active = room_session.match_active
-	# Phase23: Battle handoff fields
+	# LegacyMigration: Battle handoff fields
 	snapshot.room_lifecycle_state = room_session.room_lifecycle_state
 	snapshot.current_assignment_id = room_session.current_assignment_id
 	snapshot.current_battle_id = room_session.current_battle_id
@@ -365,7 +365,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"team_id": member.team_id,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
-	# Phase23: For matchmade rooms with an assignment, the server overrides
+	# LegacyMigration: For matchmade rooms with an assignment, the server overrides
 	# map/mode/rule via the assignment payload. set_selection blanks them for
 	# match rooms, so re-apply the snapshot values when an assignment exists.
 	if not snapshot.current_assignment_id.is_empty():
@@ -375,7 +375,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			room_session.selected_mode_id = snapshot.mode_id
 		if not snapshot.rule_set_id.is_empty():
 			room_session.selected_rule_set_id = snapshot.rule_set_id
-	# Phase23: Battle handoff fields
+	# LegacyMigration: Battle handoff fields
 	room_session.room_lifecycle_state = snapshot.room_lifecycle_state
 	room_session.current_assignment_id = snapshot.current_assignment_id
 	room_session.current_battle_id = snapshot.current_battle_id

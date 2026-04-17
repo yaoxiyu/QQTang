@@ -1,11 +1,12 @@
 class_name GameServicePartyQueueClient
 extends RefCounted
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const ResultScript = preload("res://network/services/game_service_party_queue_result.gd")
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 const ENTER_PATH := "/internal/v1/matchmaking/party-queue/enter"
 const CANCEL_PATH := "/internal/v1/matchmaking/party-queue/cancel"
@@ -56,48 +57,27 @@ func _send_json_request(method: int, path: String, payload: Variant) -> Dictiona
 		LogNetScript.warn("party_queue_client FAIL: parsed_url is empty for %s%s" % [base_url, path], "", 0, "net.party_queue")
 		return ResultScript.fail("PARTY_QUEUE_URL_INVALID", "Game service party queue url is invalid")
 
-	var client := HTTPClient.new()
-	LogNetScript.info("party_queue_client connecting to %s:%d" % [String(parsed_url["host"]), int(parsed_url["port"])], "", 0, "net.party_queue")
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		LogNetScript.warn("party_queue_client FAIL: connect_to_host err=%d" % err, "", 0, "net.party_queue")
-		return ResultScript.fail("PARTY_QUEUE_CONNECT_FAILED", "Failed to connect game service")
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		LogNetScript.warn("party_queue_client FAIL: status=%d after connect" % client.get_status(), "", 0, "net.party_queue")
-		return ResultScript.fail("PARTY_QUEUE_CONNECT_FAILED", "Failed to connect game service")
-
 	var body := "" if payload == null else JSON.stringify(payload)
 	var method_str := "POST" if method == HTTPClient.METHOD_POST else "GET"
 	var headers := _auth_signer.sign_headers(method_str, String(parsed_url["path"]), body)
+	var options := HttpRequestOptionsScript.new()
+	options.method = method
+	options.url = base_url + path
+	options.headers = headers
+	options.body_text = body
+	options.log_tag = "net.party_queue"
 	LogNetScript.info("party_queue_client sending %s body_len=%d" % [path, body.length()], "", 0, "net.party_queue")
-	err = client.request(method, String(parsed_url["path"]), headers, body)
-	if err != OK:
-		LogNetScript.warn("party_queue_client FAIL: request err=%d" % err, "", 0, "net.party_queue")
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		LogNetScript.warn("party_queue_client FAIL: connect failed", "", 0, "net.party_queue")
+		return ResultScript.fail("PARTY_QUEUE_CONNECT_FAILED", "Failed to connect game service")
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
+		LogNetScript.warn("party_queue_client FAIL: request failed", "", 0, "net.party_queue")
 		return ResultScript.fail("PARTY_QUEUE_REQUEST_FAILED", "Failed to send party queue request")
-
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"net",
-		"net.party_queue",
-		"game_service_party_queue_client",
-		{
-			"path": path,
-			"method": method,
-		}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	LogNetScript.info("party_queue_client response text=%s" % text.substr(0, 500), "", 0, "net.party_queue")
 	if text.strip_edges().is_empty():
 		return ResultScript.fail("PARTY_QUEUE_EMPTY_RESPONSE", "Game service returned empty party queue response")
-	var json := JSON.new()
-	if json.parse(text) != OK:
+	if not (response.body_json is Dictionary):
 		return ResultScript.fail("PARTY_QUEUE_RESPONSE_INVALID", "Game service returned invalid party queue response")
-	return ResultScript.normalize(json.data)
-
+	return ResultScript.normalize(response.body_json)

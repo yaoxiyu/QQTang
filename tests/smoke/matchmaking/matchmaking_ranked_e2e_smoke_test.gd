@@ -1,6 +1,6 @@
 extends Node
 
-# LEGACY: smoke coverage for pre-Phase22 client-direct matchmaking path.
+# LEGACY: smoke coverage for pre-LegacyMigration client-direct matchmaking path.
 const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
 const SettlementControllerScript = preload("res://presentation/battle/hud/settlement_controller.gd")
 const SettlementSyncUseCaseScript = preload("res://app/front/settlement/settlement_sync_use_case.gd")

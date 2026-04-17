@@ -24,7 +24,7 @@ var room_queue_error_message: String = ""
 var min_start_players: int = 2
 var locked: bool = false
 
-# Phase23: Battle handoff state (populated from authoritative server snapshot)
+# LegacyMigration: Battle handoff state (populated from authoritative server snapshot)
 var room_lifecycle_state: String = "idle"
 var current_assignment_id: String = ""
 var current_battle_id: String = ""

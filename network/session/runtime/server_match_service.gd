@@ -122,7 +122,7 @@ func is_match_active() -> bool:
 	return _active and _authority_runtime != null and _authority_runtime.is_match_running()
 
 
-# Phase17: Get current config for resume
+# LegacyMigration: Get current config for resume
 func get_current_config() -> BattleStartConfig:
 	return _current_config.duplicate_deep() if _current_config != null else null
 
@@ -143,7 +143,7 @@ func get_last_finished_room_id() -> String:
 	return _last_finished_room_id
 
 
-# Phase17: Build resume checkpoint message
+# LegacyMigration: Build resume checkpoint message
 func build_resume_checkpoint_message() -> Dictionary:
 	if not is_match_active() or _authority_runtime == null or _authority_runtime.server_session == null or _authority_runtime.server_session.active_match == null:
 		return {}
@@ -197,7 +197,7 @@ func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
 	return result
 
 
-# Phase17: Abort match due to resume timeout
+# LegacyMigration: Abort match due to resume timeout
 func abort_match_due_to_resume_timeout(member_id: String) -> BattleResult:
 	if not is_match_active():
 		return null

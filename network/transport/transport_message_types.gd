@@ -37,20 +37,20 @@ const MATCH_FINISHED := "MATCH_FINISHED"
 const PING := "PING"
 const PONG := "PONG"
 
-# Phase16: Loading barrier & Rematch protocols
+# LegacyMigration: Loading barrier & Rematch protocols
 const MATCH_LOADING_SNAPSHOT := "MATCH_LOADING_SNAPSHOT"
 const MATCH_LOADING_READY := "MATCH_LOADING_READY"
 const ROOM_REMATCH_REQUEST := "ROOM_REMATCH_REQUEST"
 const ROOM_REMATCH_REJECTED := "ROOM_REMATCH_REJECTED"
 
-# Phase17: Active match reconnect / resume protocols
+# LegacyMigration: Active match reconnect / resume protocols
 const ROOM_MEMBER_SESSION := "ROOM_MEMBER_SESSION"
 const ROOM_RESUME_REQUEST := "ROOM_RESUME_REQUEST"
 const ROOM_RESUME_REJECTED := "ROOM_RESUME_REJECTED"
 const MATCH_RESUME_ACCEPTED := "MATCH_RESUME_ACCEPTED"
 const MATCH_RESUME_REJECTED := "MATCH_RESUME_REJECTED"
 
-# Phase23: Battle-only entry protocols (battle_ds consumes these, not room_service)
+# LegacyMigration: Battle-only entry protocols (battle_ds consumes these, not room_service)
 const BATTLE_ENTRY_REQUEST := "BATTLE_ENTRY_REQUEST"
 const BATTLE_ENTRY_ACCEPTED := "BATTLE_ENTRY_ACCEPTED"
 const BATTLE_ENTRY_REJECTED := "BATTLE_ENTRY_REJECTED"

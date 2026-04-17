@@ -38,12 +38,12 @@ func _test_idle_room_resume_returns_to_room_snapshot() -> bool:
 	runtime.handle_room_message({
 		"message_type": TransportMessageTypesScript.ROOM_RESUME_REQUEST,
 		"sender_peer_id": 9,
-		"room_id": "phase17_idle_room",
+		"room_id": "LegacyMigration_idle_room",
 		"member_id": String(member_session.get("member_id", "")),
 		"reconnect_token": String(member_session.get("reconnect_token", "")),
 		"match_id": "",
-		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
-		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("token", ""),
+		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("ticket_id", ""),
 		"account_id": "account_3",
 		"profile_id": "profile_3",
 		"device_session_id": "dsess_9",
@@ -92,12 +92,12 @@ func _test_idle_room_resume_window_expiry_removes_member_session() -> bool:
 	runtime.handle_room_message({
 		"message_type": TransportMessageTypesScript.ROOM_RESUME_REQUEST,
 		"sender_peer_id": 9,
-		"room_id": "phase17_idle_room",
+		"room_id": "LegacyMigration_idle_room",
 		"member_id": String(member_session.get("member_id", "")),
 		"reconnect_token": String(member_session.get("reconnect_token", "")),
 		"match_id": "",
-		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
-		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("token", ""),
+		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("ticket_id", ""),
 		"account_id": "account_3",
 		"profile_id": "profile_3",
 		"device_session_id": "dsess_9",
@@ -134,12 +134,12 @@ func _test_manual_leave_invalidates_room_member_session() -> bool:
 	runtime.handle_room_message({
 		"message_type": TransportMessageTypesScript.ROOM_RESUME_REQUEST,
 		"sender_peer_id": 9,
-		"room_id": "phase17_idle_room",
+		"room_id": "LegacyMigration_idle_room",
 		"member_id": String(member_session.get("member_id", "")),
 		"reconnect_token": String(member_session.get("reconnect_token", "")),
 		"match_id": "",
-		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("token", ""),
-		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "phase17_idle_room")), "").get("ticket_id", ""),
+		"room_ticket": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("token", ""),
+		"room_ticket_id": _make_resume_ticket(9, String(member_session.get("room_id", "LegacyMigration_idle_room")), "").get("ticket_id", ""),
 		"account_id": "account_3",
 		"profile_id": "profile_3",
 		"device_session_id": "dsess_9",
@@ -157,11 +157,11 @@ func _test_manual_leave_invalidates_room_member_session() -> bool:
 
 
 func _create_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "create", "phase17_idle_room", "")
+	var ticket := _make_ticket(peer_id, "create", "LegacyMigration_idle_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_idle_room",
+		"room_id_hint": "LegacyMigration_idle_room",
 		"player_name": "Host",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"room_ticket": ticket.get("token", ""),
@@ -173,11 +173,11 @@ func _create_message(peer_id: int) -> Dictionary:
 
 
 func _join_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "join", "phase17_idle_room", "")
+	var ticket := _make_ticket(peer_id, "join", "LegacyMigration_idle_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_idle_room",
+		"room_id_hint": "LegacyMigration_idle_room",
 		"player_name": "Client",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"room_ticket": ticket.get("token", ""),

@@ -231,7 +231,7 @@ func shutdown_runtime() -> void:
 	_clear_pending_place_request()
 
 
-# Phase17: Inject resume checkpoint for battle recovery
+# LegacyMigration: Inject resume checkpoint for battle recovery
 func inject_resume_checkpoint_message(message: Dictionary) -> void:
 	if message.is_empty():
 		return

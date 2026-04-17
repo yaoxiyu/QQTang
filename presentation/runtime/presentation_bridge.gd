@@ -1,5 +1,5 @@
 # LEGACY / PROTOTYPE FILE
-# Retained for historical testing or Phase0 compatibility.
+# Retained for historical testing or LegacyMigration compatibility.
 # Not part of the production battle startup path.
 
 # 角色：

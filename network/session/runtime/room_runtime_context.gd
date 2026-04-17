@@ -29,7 +29,7 @@ var is_host: bool = false
 var local_player_id: int = 0
 var host_player_id: int = 0
 
-# Phase16: Loading barrier context
+# LegacyMigration: Loading barrier context
 var loading_phase: String = ""
 var loading_ready_peers: Array[int] = []
 var loading_expected_peers: Array[int] = []

@@ -7,7 +7,7 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
     $PSNativeCommandUseErrorActionPreference = $false
 }
 
-$reportDir = Join-Path $ProjectPath 'tests\reports\network'
+$reportDir = Join-Path $ProjectPath 'tests\reports\latest'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
 $cliAppData = Join-Path $ProjectPath 'tests\cli\appdata'
 New-Item -ItemType Directory -Force -Path $cliAppData | Out-Null
@@ -33,9 +33,16 @@ $startedAt = Get-Date
 $results = @()
 $passed = @()
 $failed = @()
+$total = $tests.Count
+$suiteWatch = [System.Diagnostics.Stopwatch]::StartNew()
+$index = 0
 
 foreach ($test in $tests) {
-    Write-Host "==> $test"
+    $index++
+    $beforePercent = [int]((($index - 1) / [double]$total) * 100)
+    Write-Progress -Activity 'Network Suite Running' -Status "[$index/$total] $test" -PercentComplete $beforePercent
+    $testWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host ("==> [{0}/{1}] {2} START {3}" -f $index, $total, (Get-Date -Format 'HH:mm:ss'), $test)
     $output = & $GodotExe --headless --path $ProjectPath --script 'res://tests/cli/run_test.gd' -- $test 2>&1
     $filteredOutput = $output | Where-Object {
         $_ -notmatch 'Failed to read the root certificate store' -and
@@ -85,9 +92,17 @@ foreach ($test in $tests) {
     else {
         $failed += $test
     }
+    $testWatch.Stop()
+    $afterPercent = [int](($index / [double]$total) * 100)
+    $elapsedSuite = [math]::Round($suiteWatch.Elapsed.TotalSeconds, 3)
+    $elapsedTest = [math]::Round($testWatch.Elapsed.TotalSeconds, 3)
+    Write-Progress -Activity 'Network Suite Running' -Status "[$index/$total] $test ($status)" -PercentComplete $afterPercent
+    Write-Host ("<== [{0}/{1}] {2} END {3} status={4} test_s={5} suite_s={6}" -f $index, $total, (Get-Date -Format 'HH:mm:ss'), $test, $status, $elapsedTest, $elapsedSuite)
 }
 
 $finishedAt = Get-Date
+$suiteWatch.Stop()
+Write-Progress -Activity 'Network Suite Running' -Completed
 $summary = [ordered]@{
     started_at = $startedAt.ToString('s')
     finished_at = $finishedAt.ToString('s')
@@ -98,21 +113,25 @@ $summary = [ordered]@{
     failed_count = $failed.Count
     passed = $passed
     failed = $failed
+    git_commit = (& git -C $ProjectPath rev-parse --short HEAD).Trim()
+    package_version = "workspace"
     results = $results
 }
 
 $textLines = @()
 $textLines += 'Network Suite Summary'
-$textLines += "Started: $($summary.started_at)"
-$textLines += "Finished: $($summary.finished_at)"
-$textLines += "DurationSeconds: $($summary.duration_seconds)"
-$textLines += "GodotExe: $($summary.godot_exe)"
-$textLines += "ProjectPath: $($summary.project_path)"
-$textLines += "Passed: $($summary.passed_count)"
+$textLines += "started_at: $($summary.started_at)"
+$textLines += "finished_at: $($summary.finished_at)"
+$textLines += "duration_seconds: $($summary.duration_seconds)"
+$textLines += "godot_exe: $($summary.godot_exe)"
+$textLines += "project_path: $($summary.project_path)"
+$textLines += "git_commit: $($summary.git_commit)"
+$textLines += "package_version: $($summary.package_version)"
+$textLines += "pass_count: $($summary.passed_count)"
 foreach ($test in $passed) {
     $textLines += "  PASS $test"
 }
-$textLines += "Failed: $($summary.failed_count)"
+$textLines += "fail_count: $($summary.failed_count)"
 foreach ($test in $failed) {
     $textLines += "  FAIL $test"
 }

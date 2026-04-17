@@ -1,10 +1,11 @@
 class_name GameServiceBattleAllocClient
 extends RefCounted
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 const MANUAL_ROOM_CREATE_PATH := "/internal/v1/battles/manual-room/create"
 const LOG_TAG := "net.battle_alloc"
@@ -36,41 +37,30 @@ func _send_json_request(method: int, path: String, payload: Variant) -> Dictiona
 	if parsed_url.is_empty():
 		return _fail("BATTLE_ALLOC_URL_INVALID", "Game service battle alloc url is invalid")
 
-	var client := HTTPClient.new()
-	LogNetScript.info("battle_alloc_client connecting to %s:%d" % [String(parsed_url["host"]), int(parsed_url["port"])], "", 0, LOG_TAG)
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		return _fail("BATTLE_ALLOC_CONNECT_FAILED", "Failed to connect game service")
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return _fail("BATTLE_ALLOC_CONNECT_FAILED", "Failed to connect game service")
-
 	var body := "" if payload == null else JSON.stringify(payload)
 	var method_str := "POST" if method == HTTPClient.METHOD_POST else "GET"
 	var headers := _auth_signer.sign_headers(method_str, String(parsed_url["path"]), body)
+	var options := HttpRequestOptionsScript.new()
+	options.method = method
+	options.url = base_url + path
+	options.headers = headers
+	options.body_text = body
+	options.log_tag = LOG_TAG
+	options.connect_timeout_ms = 5000
+	options.read_timeout_ms = 8000
 	LogNetScript.info("battle_alloc_client sending %s body_len=%d" % [path, body.length()], "", 0, LOG_TAG)
-	err = client.request(method, String(parsed_url["path"]), headers, body)
-	if err != OK:
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return _fail("BATTLE_ALLOC_CONNECT_FAILED", "Failed to connect game service")
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return _fail("BATTLE_ALLOC_REQUEST_FAILED", "Failed to send battle alloc request")
-
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client, "net", LOG_TAG, "game_service_battle_alloc_client",
-		{"path": path, "method": method}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	LogNetScript.info("battle_alloc_client response text=%s" % text.substr(0, 500), "", 0, LOG_TAG)
 	if text.strip_edges().is_empty():
 		return _fail("BATTLE_ALLOC_EMPTY_RESPONSE", "Game service returned empty response")
-	var json := JSON.new()
-	if json.parse(text) != OK:
+	if not (response.body_json is Dictionary):
 		return _fail("BATTLE_ALLOC_RESPONSE_INVALID", "Game service returned invalid response")
-	return _normalize(json.data)
+	return _normalize(response.body_json)
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:
@@ -91,4 +81,3 @@ func _normalize(value: Variant) -> Dictionary:
 	if not result.has("user_message"):
 		result["user_message"] = ""
 	return result
-

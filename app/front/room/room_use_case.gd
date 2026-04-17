@@ -1,4 +1,4 @@
-﻿class_name RoomUseCase
+class_name RoomUseCase
 extends RefCounted
 
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
@@ -486,7 +486,7 @@ func _connect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.connect(_on_gateway_canonical_start_config_received)
 	if not room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.connect(_on_gateway_match_loading_snapshot_received)
-	# Phase17: Connect resume signals
+	# LegacyMigration: Connect resume signals
 	if room_client_gateway.has_signal("room_member_session_received") and not room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
 		room_client_gateway.room_member_session_received.connect(_on_gateway_room_member_session_received)
 	if room_client_gateway.has_signal("match_resume_accepted") and not room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
@@ -506,7 +506,7 @@ func _disconnect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.disconnect(_on_gateway_canonical_start_config_received)
 	if room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.disconnect(_on_gateway_match_loading_snapshot_received)
-	# Phase17: Disconnect resume signals
+	# LegacyMigration: Disconnect resume signals
 	if room_client_gateway.has_signal("room_member_session_received") and room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
 		room_client_gateway.room_member_session_received.disconnect(_on_gateway_room_member_session_received)
 	if room_client_gateway.has_signal("match_resume_accepted") and room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
@@ -524,7 +524,7 @@ func _on_gateway_transport_connected() -> void:
 		})
 		return
 	
-	# Phase17: Check for resume flow
+	# LegacyMigration: Check for resume flow
 	if _pending_online_entry_context.use_resume_flow:
 		_log_room("transport_connected_dispatch_resume", {
 			"room_id": String(_pending_online_entry_context.target_room_id),
@@ -593,7 +593,7 @@ func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
 		return
 	app_runtime.front_settings_state.last_room_id = snapshot.room_id
 	app_runtime.front_settings_state.reconnect_room_id = snapshot.room_id
-	# Phase16: Reconnect ticket extension
+	# LegacyMigration: Reconnect ticket extension
 	app_runtime.front_settings_state.reconnect_room_kind = snapshot.room_kind
 	app_runtime.front_settings_state.reconnect_room_display_name = snapshot.room_display_name
 	app_runtime.front_settings_state.reconnect_topology = snapshot.topology
@@ -617,7 +617,7 @@ func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> v
 		return
 	if app_runtime.has_method("apply_canonical_start_config"):
 		app_runtime.apply_canonical_start_config(config)
-	# Phase16: Write match_id to reconnect ticket
+	# LegacyMigration: Write match_id to reconnect ticket
 	if app_runtime.front_settings_state != null and config != null and not config.match_id.is_empty():
 		app_runtime.front_settings_state.reconnect_match_id = config.match_id
 		app_runtime.front_settings_state.reconnect_state = "active_match"
@@ -650,7 +650,7 @@ func _on_gateway_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 		app_runtime.room_session_controller.set_last_error(snapshot.error_code, snapshot.user_message, {})
 
 
-# Phase17: Handle room member session received
+# LegacyMigration: Handle room member session received
 func _on_gateway_room_member_session_received(payload: Dictionary) -> void:
 	if app_runtime == null or app_runtime.front_settings_state == null:
 		return
@@ -683,7 +683,7 @@ func _on_gateway_room_member_session_received(payload: Dictionary) -> void:
 	_save_front_settings()
 
 
-# Phase17: Handle match resume accepted
+# LegacyMigration: Handle match resume accepted
 func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot) -> void:
 	if app_runtime == null:
 		return

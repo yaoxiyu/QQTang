@@ -1,4 +1,4 @@
-﻿extends Node2D
+extends Node2D
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
@@ -231,7 +231,7 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		]
 	)
 	
-	# Phase17: Consume resume payload if present
+	# LegacyMigration: Consume resume payload if present
 	if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
 		battle_hud.match_message_panel.apply_message("Resumed active match")
 
@@ -312,7 +312,7 @@ func _on_settlement_rematch_requested() -> void:
 func _request_post_shutdown_action(action: String) -> void:
 	if _post_shutdown_action != "":
 		return
-	# Phase16: For DS rooms, set pending_room_action for rematch
+	# LegacyMigration: For DS rooms, set pending_room_action for rematch
 	if action == "rematch" and _app_runtime != null:
 		var entry_context = _app_runtime.current_room_entry_context
 		if entry_context != null and String(entry_context.topology) == "dedicated_server":

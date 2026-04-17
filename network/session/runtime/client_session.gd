@@ -2,7 +2,7 @@ class_name ClientSession
 extends Node
 
 var local_peer_id: int = 0
-var controlled_peer_id: int = 0  # Phase17: Battle control identity
+var controlled_peer_id: int = 0  # LegacyMigration: Battle control identity
 var last_confirmed_tick: int = 0
 var latest_snapshot_tick: int = 0
 var latest_checksum: int = 0
@@ -23,7 +23,7 @@ func configure(peer_id: int, p_controlled_peer_id: int = 0, ring_capacity: int =
 
 
 func send_input(frame: PlayerInputFrame, prediction_frame: PlayerInputFrame = null) -> void:
-	# Phase17: Use controlled_peer_id for battle control identity
+	# LegacyMigration: Use controlled_peer_id for battle control identity
 	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.sanitize()
 	if prediction_frame != null:
@@ -57,7 +57,7 @@ func on_snapshot(snapshot: Dictionary) -> void:
 
 func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place: bool = false) -> PlayerInputFrame:
 	var frame := PlayerInputFrame.new()
-	# Phase17: Use controlled_peer_id for battle control identity
+	# LegacyMigration: Use controlled_peer_id for battle control identity
 	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.tick_id = tick_id
 	frame.seq = tick_id

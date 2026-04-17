@@ -52,11 +52,11 @@ func _test_resume_accept_uses_new_transport_and_old_control_peer() -> bool:
 	var member_session := _find_member_session(sent, 3)
 	ok = TestAssert.is_true(not member_session.is_empty(), "peer should receive member session", prefix) and ok
 	runtime.handle_peer_disconnected(3)
-	var resume_ticket := _make_ticket(9, "resume", "phase17_room", String(fixture["match_id"]))
+	var resume_ticket := _make_ticket(9, "resume", "LegacyMigration_room", String(fixture["match_id"]))
 	runtime.handle_room_message({
 		"message_type": TransportMessageTypesScript.ROOM_RESUME_REQUEST,
 		"sender_peer_id": 9,
-		"room_id": "phase17_room",
+		"room_id": "LegacyMigration_room",
 		"member_id": String(member_session.get("member_id", "")),
 		"reconnect_token": String(member_session.get("reconnect_token", "")),
 		"match_id": String(fixture["match_id"]),
@@ -124,11 +124,11 @@ func _start_active_match() -> Dictionary:
 
 
 func _create_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "create", "phase17_room", "")
+	var ticket := _make_ticket(peer_id, "create", "LegacyMigration_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_CREATE_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_room",
+		"room_id_hint": "LegacyMigration_room",
 		"player_name": "Host",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"map_id": MapCatalogScript.get_default_map_id(),
@@ -143,11 +143,11 @@ func _create_message(peer_id: int) -> Dictionary:
 
 
 func _join_message(peer_id: int) -> Dictionary:
-	var ticket := _make_ticket(peer_id, "join", "phase17_room", "")
+	var ticket := _make_ticket(peer_id, "join", "LegacyMigration_room", "")
 	return {
 		"message_type": TransportMessageTypesScript.ROOM_JOIN_REQUEST,
 		"sender_peer_id": peer_id,
-		"room_id_hint": "phase17_room",
+		"room_id_hint": "LegacyMigration_room",
 		"player_name": "Client",
 		"character_id": CharacterCatalogScript.get_default_character_id(),
 		"room_ticket": ticket.get("token", ""),

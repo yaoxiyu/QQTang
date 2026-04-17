@@ -76,7 +76,7 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.reconnect_room_display_name = front_settings_state.reconnect_room_display_name
 		view_state.reconnect_topology = front_settings_state.reconnect_topology
 		view_state.reconnect_match_id = front_settings_state.reconnect_match_id
-		# Phase17: Member session fields
+		# LegacyMigration: Member session fields
 		view_state.reconnect_member_id = front_settings_state.reconnect_member_id
 		view_state.reconnect_token = front_settings_state.reconnect_token
 		view_state.reconnect_state = front_settings_state.reconnect_state
@@ -305,7 +305,7 @@ func refresh_profile() -> Dictionary:
 	}
 
 
-# Phase17: Resume recent room with member session
+# LegacyMigration: Resume recent room with member session
 func resume_recent_room() -> Dictionary:
 	if front_settings_state == null:
 		return _fail("RECONNECT_STATE_MISSING", "Reconnect state is not available")
@@ -328,7 +328,7 @@ func resume_recent_room() -> Dictionary:
 		false,
 		front_settings_state.reconnect_room_display_name
 	)
-	# Phase17: Enable resume flow
+	# LegacyMigration: Enable resume flow
 	entry_context.use_resume_flow = true
 	entry_context.reconnect_member_id = front_settings_state.reconnect_member_id
 	entry_context.reconnect_token = front_settings_state.reconnect_token

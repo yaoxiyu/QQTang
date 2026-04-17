@@ -1,4 +1,4 @@
-﻿class_name ServerRoomService
+class_name ServerRoomService
 extends Node
 
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -23,7 +23,7 @@ signal room_snapshot_updated(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
-signal resume_request_received(message: Dictionary)  # Phase17: For ServerRoomRuntime to handle match resume
+signal resume_request_received(message: Dictionary)  # LegacyMigration: For ServerRoomRuntime to handle match resume
 signal assignment_commit_requested(payload: Dictionary)
 
 var room_state: RoomServerState = RoomServerStateScript.new()
@@ -147,7 +147,7 @@ func _handle_create_request(message: Dictionary) -> void:
 			})
 			return
 	
-	# Phase22: Reject create if room already exists (single-room-per-DS model)
+	# LegacyMigration: Reject create if room already exists (single-room-per-DS model)
 	if not room_state.room_id.is_empty():
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_CREATE_REJECTED,
@@ -268,7 +268,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		})
 		return
 	
-	# Phase17: Reject normal join during active match
+	# LegacyMigration: Reject normal join during active match
 	if room_state.match_active:
 		send_to_peer.emit(peer_id, {
 			"message_type": TransportMessageTypesScript.ROOM_JOIN_REJECTED,
@@ -277,7 +277,7 @@ func _handle_join_request(message: Dictionary) -> void:
 		})
 		return
 	
-	# Phase22: Reject join when room is at capacity
+	# LegacyMigration: Reject join when room is at capacity
 	if room_state.is_match_room():
 		if room_state.members.size() >= room_state.required_party_size:
 			send_to_peer.emit(peer_id, {
@@ -621,7 +621,7 @@ func _maybe_auto_start_match() -> void:
 	_battle_handoff_service.maybe_auto_start_match(self)
 
 
-# Phase17: Resume request handling
+# LegacyMigration: Resume request handling
 
 func _handle_resume_request(message: Dictionary) -> void:
 	_ensure_sub_services()

@@ -1,10 +1,10 @@
 class_name InputBuffer
 extends RefCounted
 
-# Phase0 compatibility: tick -> InputFrame
+# LegacyMigration compatibility: tick -> InputFrame
 var frames: Dictionary = {}
 
-# Phase2 sync model: peer_id -> (tick_id -> PlayerInputFrame)
+# LegacyMigration sync model: peer_id -> (tick_id -> PlayerInputFrame)
 var frames_by_peer: Dictionary = {}
 var last_ack_tick_by_peer: Dictionary = {}
 var last_input_by_peer: Dictionary = {}

@@ -1,10 +1,11 @@
 class_name GameServiceBattleManifestClient
 extends RefCounted
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 const MANIFEST_PATH_PREFIX := "/internal/v1/battles/"
 const READY_PATH_PREFIX := "/internal/v1/battles/"
@@ -50,44 +51,33 @@ func _send_request(method: int, path: String, payload: Variant) -> Dictionary:
 	if parsed_url.is_empty():
 		return _fail("MANIFEST_URL_INVALID", "Game service url is invalid")
 
-	var client := HTTPClient.new()
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		return _fail("MANIFEST_CONNECT_FAILED", "Failed to connect game service")
-	var deadline_ms := Time.get_ticks_msec() + 5000
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		if Time.get_ticks_msec() > deadline_ms:
-			return _fail("MANIFEST_CONNECT_TIMEOUT", "Game service connect timeout")
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return _fail("MANIFEST_CONNECT_FAILED", "Failed to connect game service")
-
 	var body := "" if payload == null else JSON.stringify(payload)
 	var method_str := "POST" if method == HTTPClient.METHOD_POST else "GET"
 	var headers := _auth_signer.sign_headers(method_str, String(parsed_url["path"]), body)
-	err = client.request(method, String(parsed_url["path"]), headers, body)
-	if err != OK:
+	var options := HttpRequestOptionsScript.new()
+	options.method = method
+	options.url = base_url + path
+	options.headers = headers
+	options.body_text = body
+	options.log_tag = LOG_TAG
+	options.connect_timeout_ms = 5000
+	options.read_timeout_ms = 5000
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return _fail("MANIFEST_CONNECT_TIMEOUT", "Game service connect timeout")
+	if response.error_code == "HTTP_CONNECT_FAILED":
+		return _fail("MANIFEST_CONNECT_FAILED", "Failed to connect game service")
+	if response.error_code == "HTTP_REQUEST_TIMEOUT":
+		return _fail("MANIFEST_REQUEST_TIMEOUT", "Request timeout")
+	if response.error_code == "HTTP_REQUEST_FAILED":
 		return _fail("MANIFEST_REQUEST_FAILED", "Failed to send request")
-
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		if Time.get_ticks_msec() > deadline_ms:
-			return _fail("MANIFEST_REQUEST_TIMEOUT", "Request timeout")
-		client.poll()
-		OS.delay_msec(10)
-
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client, "net", LOG_TAG, "game_service_battle_manifest_client",
-		{"path": path, "method": method}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	LogNetScript.info("battle_manifest_client response text=%s" % text.substr(0, 500), "", 0, LOG_TAG)
 	if text.strip_edges().is_empty():
 		return _fail("MANIFEST_EMPTY_RESPONSE", "Game service returned empty response")
-	var json := JSON.new()
-	if json.parse(text) != OK:
+	if not (response.body_json is Dictionary):
 		return _fail("MANIFEST_RESPONSE_INVALID", "Game service returned invalid response")
-	return _normalize(json.data)
+	return _normalize(response.body_json)
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:
@@ -108,4 +98,3 @@ func _normalize(value: Variant) -> Dictionary:
 	if not result.has("user_message"):
 		result["user_message"] = ""
 	return result
-

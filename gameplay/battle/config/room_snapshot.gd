@@ -24,7 +24,7 @@ var all_ready: bool = false
 var max_players: int = 0
 var match_active: bool = false
 
-# Phase23: Room lifecycle & battle handoff
+# LegacyMigration: Room lifecycle & battle handoff
 var room_lifecycle_state: String = "idle"
 var current_assignment_id: String = ""
 var current_battle_id: String = ""

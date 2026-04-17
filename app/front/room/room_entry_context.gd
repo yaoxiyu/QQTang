@@ -28,7 +28,7 @@ var is_prequeue_match_room: bool = false
 var auto_ready_on_join: bool = false
 var return_to_lobby_after_settlement: bool = false
 
-# Phase17: Resume flow fields
+# LegacyMigration: Resume flow fields
 var use_resume_flow: bool = false
 var reconnect_member_id: String = ""
 var reconnect_token: String = ""
@@ -98,7 +98,7 @@ func duplicate_deep() -> RoomEntryContext:
 	copy.is_prequeue_match_room = is_prequeue_match_room
 	copy.auto_ready_on_join = auto_ready_on_join
 	copy.return_to_lobby_after_settlement = return_to_lobby_after_settlement
-	# Phase17: Resume flow fields
+	# LegacyMigration: Resume flow fields
 	copy.use_resume_flow = use_resume_flow
 	copy.reconnect_member_id = reconnect_member_id
 	copy.reconnect_token = reconnect_token

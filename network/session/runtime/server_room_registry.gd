@@ -238,7 +238,7 @@ func _route_bound_room_message(message: Dictionary) -> void:
 
 
 func _create_room_runtime():
-	# Phase23: Create RoomAuthorityRuntime instead of mixed ServerRoomRuntime
+	# LegacyMigration: Create RoomAuthorityRuntime instead of mixed ServerRoomRuntime
 	var runtime = RoomAuthorityRuntimeScript.new()
 	runtime.name = "RoomAuthorityRuntime_%d" % int(Time.get_ticks_usec() % 1000000)
 	add_child(runtime)
@@ -263,7 +263,7 @@ func _on_runtime_send_to_peer(peer_id: int, message: Dictionary, _runtime) -> vo
 
 
 func _on_runtime_broadcast_message(message: Dictionary, runtime) -> void:
-	# Phase23: Only send to members of this room, not all connected peers
+	# LegacyMigration: Only send to members of this room, not all connected peers
 	var room_state = runtime.get_room_state() if runtime != null and runtime.has_method("get_room_state") else null
 	if room_state != null and room_state.members != null:
 		for peer_id in room_state.members.keys():

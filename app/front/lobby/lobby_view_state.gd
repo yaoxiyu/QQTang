@@ -19,13 +19,13 @@ var reconnect_room_id: String = ""
 var reconnect_host: String = ""
 var reconnect_port: int = 0
 
-# Phase16: Reconnect ticket extension
+# LegacyMigration: Reconnect ticket extension
 var reconnect_room_kind: String = ""
 var reconnect_room_display_name: String = ""
 var reconnect_topology: String = ""
 var reconnect_match_id: String = ""
 
-# Phase17: Member session resume ticket
+# LegacyMigration: Member session resume ticket
 var reconnect_member_id: String = ""
 var reconnect_token: String = ""
 var reconnect_state: String = ""

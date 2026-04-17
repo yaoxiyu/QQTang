@@ -41,7 +41,7 @@ var members: Dictionary = {}
 var ready_map: Dictionary = {}
 var match_active: bool = false
 
-# Phase23: Room lifecycle & battle handoff fields
+# LegacyMigration: Room lifecycle & battle handoff fields
 var room_lifecycle_state: String = "idle"  # idle/gathering/queueing/assignment_pending/allocating_battle/battle_ready/in_battle_frozen/awaiting_return/destroying/destroyed
 var current_assignment_id: String = ""
 var current_battle_id: String = ""
@@ -51,10 +51,10 @@ var battle_server_host: String = ""
 var battle_server_port: int = 0
 var room_return_policy: String = "return_to_source_room"
 
-# Phase22 compatibility (deprecated in Phase23 — do not use for new logic)
+# LegacyMigration compatibility (deprecated in LegacyMigration — do not use for new logic)
 # is_matchmade_room, locked_map_id, locked_rule_set_id, locked_mode_id retained above
 
-# Phase17: Stable member identity model
+# LegacyMigration: Stable member identity model
 var member_bindings_by_member_id: Dictionary = {}
 var member_id_by_transport_peer_id: Dictionary = {}
 var next_member_sequence: int = 1
@@ -176,7 +176,7 @@ func upsert_member(
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
 	
-	# Phase17: Also create/update member binding
+	# LegacyMigration: Also create/update member binding
 	var binding := get_member_binding_by_transport_peer(peer_id)
 	if binding == null:
 		create_member_binding(
@@ -218,7 +218,7 @@ func remove_member(peer_id: int) -> void:
 	members.erase(peer_id)
 	ready_map.erase(peer_id)
 	
-	# Phase17: Also remove member binding
+	# LegacyMigration: Also remove member binding
 	var binding := get_member_binding_by_transport_peer(peer_id)
 	if binding == null:
 		binding = get_member_binding_by_match_peer(peer_id)
@@ -426,7 +426,7 @@ func build_snapshot() -> RoomSnapshot:
 		member.is_owner = peer_id == owner_peer_id
 		member.is_local_player = false
 		
-		# Phase17: Get connection_state from member binding
+		# LegacyMigration: Get connection_state from member binding
 		var binding := get_member_binding_by_transport_peer(peer_id)
 		if binding != null:
 			member.connection_state = binding.connection_state
@@ -538,7 +538,7 @@ func _get_sorted_member_bindings() -> Array[RoomMemberBindingState]:
 	return bindings
 
 
-# Phase17: Stable member identity methods
+# LegacyMigration: Stable member identity methods
 
 func allocate_member_id() -> String:
 	var member_id := "member_%d" % next_member_sequence

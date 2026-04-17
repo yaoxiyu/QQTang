@@ -1,51 +1,67 @@
 # Architecture Debt Register
 
-> 目的：集中登记当前“已识别但未关闭”的架构债务。  
-> 适用范围：`app/`、`network/`、`scenes/`、`services/` 及相关文档层。  
-> 约束：所有新发现且影响中长期演进的架构债务，必须先登记再排期。
+## DEBT-001 app_runtime_root orchestration overload
+- Risk level: P1
+- Status: in_progress
+- Related dirs: `app/flow/`
+- Forbidden new-logic dirs: `app/flow/app_runtime_root.gd`
+- Planned phase: milestone-2026-q2-runtime
+- Done definition: root stays as orchestrator only, delegated modules own init/context/network/registry, root size <= 450 lines
+- Owner: front-runtime
+- Last updated: 2026-04-17
+- Linked tests/docs: `tests/contracts/runtime/runtime_initialization_contract_test.gd`, `tests/contracts/runtime/runtime_context_objects_contract_test.gd`
 
----
+## DEBT-002 room scene controller mixed concerns
+- Risk level: P1
+- Status: in_progress
+- Related dirs: `scenes/front/`, `app/front/room/`
+- Forbidden new-logic dirs: `scenes/front/room_scene_controller.gd`
+- Planned phase: milestone-2026-q2-front-room
+- Done definition: selector, submit, snapshot logic moved to dedicated collaborators, controller <= 420 lines
+- Owner: front-runtime
+- Last updated: 2026-04-17
+- Linked tests/docs: `tests/integration/front/room_to_loading_to_battle_flow_test.gd`, `docs/architecture/front_flow.md`
 
-## 字段规范
+## DEBT-003 HTTP lifecycle not fully unified
+- Risk level: P1
+- Status: in_progress
+- Related dirs: `app/infra/http/`, `app/front/`, `network/services/`, `network/session/runtime/`
+- Forbidden new-logic dirs: direct `HTTPClient` lifecycle in gateways and service clients
+- Planned phase: milestone-2026-q2-http
+- Done definition: all high-frequency clients call shared executor, log fields contain method/url/status/error/log_tag
+- Owner: network-runtime
+- Last updated: 2026-04-17
+- Linked tests/docs: `tests/unit/front/http/http_url_parser_test.gd`, `tests/unit/infra/http/http_request_executor_test.gd`
 
-- 风险级别：`P0` / `P1` / `P2` / `P3`
-- 当前状态：`open` / `in_progress` / `blocked` / `resolved` / `archived`
-- 计划处理阶段：建议格式 `P2-xx` / `P3-xx` / `milestone-xxxx`
-- owner：团队名或责任人（允许 `TBD`，但不得长期空置）
+## DEBT-004 legacy compatibility path naming ambiguity
+- Risk level: P2
+- Status: in_progress
+- Related dirs: `network/session/runtime/`
+- Forbidden new-logic dirs: `network/session/runtime/server_room_runtime_compat_impl.gd`
+- Planned phase: milestone-2026-q2-runtime-bridge
+- Done definition: compat path reduced to forwarding shell <= 100 lines, new logic only in named bridge/runtime files
+- Owner: network-runtime
+- Last updated: 2026-04-17
+- Linked tests/docs: `tests/contracts/path/legacy_runtime_bridge_guard_test.gd`, `tests/contracts/path/canonical_path_contract_test.gd`
 
----
+## DEBT-005 cross-service contract coverage gap
+- Risk level: P1
+- Status: open
+- Related dirs: `tests/contracts/`, `tests/integration/e2e/`, `services/game_service/`, `services/ds_manager_service/`
+- Forbidden new-logic dirs: ad-hoc local debug scripts as sole verification source
+- Planned phase: milestone-2026-q2-contracts
+- Done definition: internal auth, manual room alloc transaction, invalid entry ticket, resume window, ds lifecycle are all covered by committed suites
+- Owner: architecture
+- Last updated: 2026-04-17
+- Linked tests/docs: `tests/contracts/ds_manager/dsm_internal_auth_contract_test.go`, `tests/integration/e2e/ds_control_plane_e2e_test.go`
 
-## 新增模板
-
-## DEBT-001 标题
-
-- 风险级别：
-- 当前状态：
-- 相关目录：
-- 禁止新增逻辑目录：
-- 计划处理阶段：
-- 完成定义：
-- owner：
-
----
-
-## 当前债务清单
-
-## DEBT-001（示例）待补齐 owner 的历史债务条目
-
-- 风险级别：P2
-- 当前状态：open
-- 相关目录：`docs/`
-- 禁止新增逻辑目录：`docs/archive/`
-- 计划处理阶段：P2-xx
-- 完成定义：完成首批真实架构债务录入（不少于 5 条），并在每周回归时更新状态字段
-- owner：TBD
-
----
-
-## 维护流程
-
-1. 发现架构债务时，先在本文件登记，再进入任务排期。  
-2. 进入开发后更新“当前状态”为 `in_progress`，并补充影响范围。  
-3. 关闭时将“当前状态”改为 `resolved`，补充关闭日期和关联 PR/提交说明。  
-4. 若债务策略变更或不再成立，改为 `archived` 并写明原因。  
+## DEBT-006 release hygiene and evidence governance
+- Risk level: P1
+- Status: in_progress
+- Related dirs: `.gitignore`, `tests/reports/`, `tools/release/`, `services/`
+- Forbidden new-logic dirs: checked-in local `.env`, root-level mixed latest/archive reports
+- Planned phase: milestone-2026-q2-release
+- Done definition: release sanity check script blocks dirty artifacts, reports split into latest/archive, local env and logs excluded
+- Owner: build-and-release
+- Last updated: 2026-04-17
+- Linked tests/docs: `tools/release/release_sanity_check.py`, `tests/reports/latest/network_suite_latest.txt`

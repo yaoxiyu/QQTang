@@ -1,8 +1,8 @@
 class_name HttpMatchmakingGateway
 extends MatchmakingGateway
 
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
-const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 
 var service_base_url: String = ""
 
@@ -47,49 +47,32 @@ func get_queue_status(access_token: String, queue_entry_id: String = ""):
 func _send_json_request(method: int, path: String, access_token: String, payload: Variant):
 	if service_base_url.is_empty():
 		return _fail("MATCHMAKING_URL_MISSING", "Matchmaking service url is missing")
-	var client := HTTPClient.new()
-	var parsed_url := HttpRequestHelperScript.parse_url(service_base_url + path)
-	if parsed_url.is_empty():
-		return _fail("MATCHMAKING_URL_INVALID", "Matchmaking service url is invalid")
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		return _fail("MATCHMAKING_CONNECT_FAILED", "Failed to connect matchmaking service")
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return _fail("MATCHMAKING_CONNECT_FAILED", "Failed to connect matchmaking service")
-	var headers := PackedStringArray([
+	var options := HttpRequestOptionsScript.new()
+	options.method = method
+	options.url = service_base_url + path
+	options.log_tag = "front.matchmaking.gateway"
+	options.headers = PackedStringArray([
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	var body := "" if payload == null else JSON.stringify(payload)
-	err = client.request(method, String(parsed_url["path"]), headers, body)
-	if err != OK:
+	options.body_text = "" if payload == null else JSON.stringify(payload)
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_URL_INVALID":
+		return _fail("MATCHMAKING_URL_INVALID", "Matchmaking service url is invalid")
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return _fail("MATCHMAKING_CONNECT_FAILED", "Failed to connect matchmaking service")
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return _fail("MATCHMAKING_REQUEST_FAILED", "Failed to send matchmaking request")
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"front",
-		"front.matchmaking.gateway",
-		"http_matchmaking_gateway",
-		{
-			"url": service_base_url + path,
-			"method": method,
-		}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	if text.strip_edges().is_empty():
 		return _fail("MATCHMAKING_EMPTY_RESPONSE", "Matchmaking service returned empty response")
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.data is Dictionary):
+	if not (response.body_json is Dictionary):
 		return _fail("MATCHMAKING_RESPONSE_INVALID", "Matchmaking service returned invalid response")
-	var response: Dictionary = json.data
-	if not response.has("user_message") and response.has("message"):
-		response["user_message"] = response.get("message", "")
-	return response
+	var response_body: Dictionary = response.body_json
+	if not response_body.has("user_message") and response_body.has("message"):
+		response_body["user_message"] = response_body.get("message", "")
+	response_body["status_code"] = response.status_code
+	return response_body
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:

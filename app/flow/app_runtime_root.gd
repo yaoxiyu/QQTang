@@ -8,44 +8,15 @@ const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_st
 const AppRuntimeServicesScript = preload("res://app/flow/app_runtime_services.gd")
 const AppResumeStateStoreScript = preload("res://app/flow/app_resume_state_store.gd")
 const AppNavigationCoordinatorScript = preload("res://app/flow/app_navigation_coordinator.gd")
-const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
-const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
-const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
-const AuthSessionRepositoryScript = preload("res://app/front/auth/auth_session_repository.gd")
-const LocalAuthSessionRepositoryScript = preload("res://app/front/auth/local_auth_session_repository.gd")
-const HttpAuthGatewayScript = preload("res://app/front/auth/http_auth_gateway.gd")
-const HttpRoomTicketGatewayScript = preload("res://app/front/auth/http_room_ticket_gateway.gd")
-const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
-const PassThroughAuthGatewayScript = preload("res://app/front/auth/pass_through_auth_gateway.gd")
-const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
-const LobbyDirectoryUseCaseScript = preload("res://app/front/lobby/lobby_directory_use_case.gd")
-const PracticeRoomFactoryScript = preload("res://app/front/lobby/practice_room_factory.gd")
-const CareerUseCaseScript = preload("res://app/front/career/career_use_case.gd")
-const HttpCareerGatewayScript = preload("res://app/front/career/http_career_gateway.gd")
-const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
-const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
-const HttpProfileGatewayScript = preload("res://app/front/profile/http_profile_gateway.gd")
-const LocalFrontSettingsRepositoryScript = preload("res://app/front/profile/local_front_settings_repository.gd")
-const LocalProfileRepositoryScript = preload("res://app/front/profile/local_profile_repository.gd")
-const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
-const ProfileRepositoryScript = preload("res://app/front/profile/profile_repository.gd")
-const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
-const RoomUseCaseScript = preload("res://app/front/room/room_use_case.gd")
-const SettlementSyncUseCaseScript = preload("res://app/front/settlement/settlement_sync_use_case.gd")
-const HttpSettlementGatewayScript = preload("res://app/front/settlement/http_settlement_gateway.gd")
-const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
-const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
-const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
+const AppRuntimeInitializerScript = preload("res://app/flow/app_runtime_initializer.gd")
+const AppRuntimeContextSyncScript = preload("res://app/flow/app_runtime_context_sync.gd")
+const AppBattleModuleRegistryScript = preload("res://app/flow/app_battle_module_registry.gd")
+const AppRuntimeNetworkBridgeScript = preload("res://app/flow/app_runtime_network_bridge.gd")
 const DebugToolsScript = preload("res://app/debug/runtime_debug_tools.gd")
-const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
-const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
 const NetworkErrorRouterScript = preload("res://network/runtime/network_error_router.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnostics.gd")
-const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
-const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
-const LoadingUseCaseScript = preload("res://app/front/loading/loading_use_case.gd")
 const FrontRuntimeContextScript = preload("res://app/flow/front_runtime_context.gd")
 const BattleRuntimeContextScript = preload("res://app/flow/battle_runtime_context.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -122,7 +93,7 @@ var current_settlement_controller: Node = null
 var current_settlement_popup_summary: Dictionary = {}
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 
-# Phase17: Resume payload storage
+# Resume payload storage for room and battle return flow.
 var current_resume_snapshot = null
 var current_loading_mode: String = "normal_start"
 var _resume_state_store: RefCounted = AppResumeStateStoreScript.new()
@@ -193,57 +164,16 @@ func request_initialize(reason: String = "manual") -> void:
 	name = ROOT_NODE_NAME
 	_initialization_in_progress = true
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.INITIALIZING, reason)
-	_ensure_root_nodes()
-	_ensure_runtime_contexts()
-	_ensure_runtime_config()
-	_ensure_front_repositories()
-	_ensure_front_local_state()
-	_ensure_front_services()
-	_ensure_resume_state_store()
-	AppNavigationCoordinatorScript.ensure_navigation(self)
-
-	if room_session_controller == null or not is_instance_valid(room_session_controller):
-		room_session_controller = RoomSessionControllerScript.new()
-		room_session_controller.name = "RoomSessionController"
-		session_root.add_child(room_session_controller)
-	elif room_session_controller.get_parent() != session_root:
-		_reparent_to(room_session_controller, session_root)
-	if room_session_controller != null and room_session_controller.has_method("set_local_player_id"):
-		room_session_controller.set_local_player_id(local_peer_id)
-	if practice_room_factory != null and practice_room_factory.has_method("configure"):
-		practice_room_factory.configure(room_session_controller)
-
-	if match_start_coordinator == null or not is_instance_valid(match_start_coordinator):
-		match_start_coordinator = MatchStartCoordinatorScript.new()
-		match_start_coordinator.name = "MatchStartCoordinator"
-		session_root.add_child(match_start_coordinator)
-	elif match_start_coordinator.get_parent() != session_root:
-		_reparent_to(match_start_coordinator, session_root)
-
-	if battle_session_adapter == null or not is_instance_valid(battle_session_adapter):
-		battle_session_adapter = BattleSessionAdapterScript.new()
-		battle_session_adapter.name = "BattleSessionAdapter"
-		session_root.add_child(battle_session_adapter)
-	elif battle_session_adapter.get_parent() != session_root:
-		_reparent_to(battle_session_adapter, session_root)
-
-	if client_room_runtime == null or not is_instance_valid(client_room_runtime):
-		client_room_runtime = ClientRoomRuntimeScript.new()
-		client_room_runtime.name = "ClientRoomRuntime"
-		session_root.add_child(client_room_runtime)
-	elif client_room_runtime.get_parent() != session_root:
-		_reparent_to(client_room_runtime, session_root)
-	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.battle_message_received.is_connected(_on_client_runtime_battle_message_received):
-		client_room_runtime.battle_message_received.connect(_on_client_runtime_battle_message_received)
-	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.transport_connected.is_connected(_on_client_runtime_transport_connected):
-		client_room_runtime.transport_connected.connect(_on_client_runtime_transport_connected)
-	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.transport_disconnected.is_connected(_on_client_runtime_transport_disconnected):
-		client_room_runtime.transport_disconnected.connect(_on_client_runtime_transport_disconnected)
-	if client_room_runtime != null and battle_session_adapter != null and not client_room_runtime.room_error.is_connected(_on_client_runtime_room_error):
-		client_room_runtime.room_error.connect(_on_client_runtime_room_error)
-
-	_ensure_front_use_cases()
-	AppNavigationCoordinatorScript.ensure_boot_state(self)
+	var init_result := AppRuntimeInitializerScript.request_initialize(self)
+	if not bool(init_result.get("ok", false)):
+		_initialization_in_progress = false
+		_set_runtime_state(RuntimeLifecycleStateScript.Value.NONE, "initialize_failed")
+		_on_network_error_routed({
+			"error_code": String(init_result.get("error_code", "RUNTIME_INIT_FAILED")),
+			"user_message": String(init_result.get("user_message", "Runtime initialization failed")),
+			"message": String(init_result.get("user_message", "Runtime initialization failed")),
+		})
+		return
 	_initialization_in_progress = false
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.READY, reason)
 	if not _ready_emitted:
@@ -312,20 +242,7 @@ func build_and_store_start_config(snapshot):
 
 func clear_battle_payload() -> void:
 	_log_online_runtime("clear_battle_payload", debug_dump_online_runtime_state())
-	current_start_config = null
-	current_battle_content_manifest = {}
-	current_battle_scene = null
-	current_battle_bootstrap = null
-	current_presentation_bridge = null
-	current_battle_hud_controller = null
-	current_battle_camera_controller = null
-	current_settlement_controller = null
-	current_settlement_popup_summary = {}
-	# Clear battle entry context.
-	current_battle_entry_context = null
-	battle_context.clear_battle_payload()
-	# Phase17: Clear resume payload
-	clear_resume_payload()
+	AppBattleModuleRegistryScript.clear_battle_payload(self)
 	if battle_session_adapter != null:
 		battle_session_adapter.setup_from_start_config(null)
 
@@ -339,7 +256,7 @@ func apply_canonical_start_config(config) -> void:
 	_log_online_runtime("apply_canonical_start_config", debug_dump_online_runtime_state())
 
 
-# Phase17: Apply match resume payload
+# Apply match resume payload.
 func apply_match_resume_payload(config, resume_snapshot) -> void:
 	apply_canonical_start_config(config)
 	_ensure_resume_state_store()
@@ -348,13 +265,9 @@ func apply_match_resume_payload(config, resume_snapshot) -> void:
 	_sync_front_context_from_fields()
 
 
-# Phase17: Clear resume payload
+# Clear resume payload.
 func clear_resume_payload() -> void:
-	_ensure_resume_state_store()
-	_resume_state_store.clear_resume_payload()
-	_sync_resume_fields_from_store()
-	if front_context != null and front_context.has_method("clear_resume_payload"):
-		front_context.clear_resume_payload()
+	AppBattleModuleRegistryScript.clear_resume_payload(self)
 
 
 func set_local_peer_id(peer_id: int) -> void:
@@ -373,28 +286,20 @@ func register_battle_modules(
 	camera_controller: Node,
 	settlement_controller: Node
 ) -> void:
-	current_battle_scene = battle_scene
-	current_battle_bootstrap = bootstrap
-	current_presentation_bridge = bridge
-	current_battle_hud_controller = hud
-	current_battle_camera_controller = camera_controller
-	current_settlement_controller = settlement_controller
-	_sync_battle_context_from_fields()
-	if battle_scene != null and battle_root != null and battle_scene.get_parent() != battle_root:
-		_reparent_to(battle_scene, battle_root)
+	AppBattleModuleRegistryScript.register_modules(
+		self,
+		battle_scene,
+		bootstrap,
+		bridge,
+		hud,
+		camera_controller,
+		settlement_controller
+	)
 	_log_online_runtime("register_battle_modules", debug_dump_online_runtime_state())
 
 
 func unregister_battle_modules(battle_scene: Node) -> void:
-	if battle_scene != null and current_battle_scene != battle_scene:
-		return
-	current_battle_scene = null
-	current_battle_bootstrap = null
-	current_presentation_bridge = null
-	current_battle_hud_controller = null
-	current_battle_camera_controller = null
-	current_settlement_controller = null
-	_sync_battle_context_from_fields()
+	AppBattleModuleRegistryScript.unregister_modules(self, battle_scene)
 	_log_online_runtime("unregister_battle_modules", debug_dump_online_runtime_state())
 
 
@@ -450,31 +355,23 @@ func debug_dump_runtime_structure() -> Dictionary:
 
 
 func _on_network_error_routed(payload: Dictionary) -> void:
-	last_runtime_error = payload.duplicate(true)
-	_last_runtime_error_code = String(last_runtime_error.get("error_code", ""))
-	_last_runtime_error_message = String(last_runtime_error.get("user_message", last_runtime_error.get("message", "")))
-	if not _last_runtime_error_code.is_empty() or not _last_runtime_error_message.is_empty():
-		runtime_error.emit(_last_runtime_error_code, _last_runtime_error_message)
+	AppRuntimeNetworkBridgeScript.on_network_error_routed(self, payload)
 
 
 func _on_client_runtime_battle_message_received(message: Dictionary) -> void:
-	if battle_session_adapter != null and battle_session_adapter.has_method("ingest_dedicated_server_message"):
-		battle_session_adapter.ingest_dedicated_server_message(message)
+	AppRuntimeNetworkBridgeScript.on_client_runtime_battle_message_received(self, message)
 
 
 func _on_client_runtime_transport_connected() -> void:
-	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_connected"):
-		battle_session_adapter.notify_dedicated_server_transport_connected()
+	AppRuntimeNetworkBridgeScript.on_client_runtime_transport_connected(self)
 
 
 func _on_client_runtime_transport_disconnected() -> void:
-	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_disconnected"):
-		battle_session_adapter.notify_dedicated_server_transport_disconnected()
+	AppRuntimeNetworkBridgeScript.on_client_runtime_transport_disconnected(self)
 
 
 func _on_client_runtime_room_error(error_code: String, user_message: String) -> void:
-	if battle_session_adapter != null and battle_session_adapter.has_method("notify_dedicated_server_transport_error"):
-		battle_session_adapter.notify_dedicated_server_transport_error(error_code, user_message)
+	AppRuntimeNetworkBridgeScript.on_client_runtime_room_error(self, error_code, user_message)
 
 
 func _ensure_root_nodes() -> void:
@@ -571,34 +468,11 @@ func _sync_resume_fields_from_store() -> void:
 
 
 func _sync_front_context_from_fields() -> void:
-	if front_context == null:
-		return
-	_ensure_resume_state_store()
-	front_context.auth_session_state = auth_session_state
-	front_context.player_profile_state = player_profile_state
-	front_context.front_settings_state = front_settings_state
-	front_context.current_room_entry_context = current_room_entry_context
-	front_context.pending_room_action = pending_room_action
-	if _resume_state_store != null and _resume_state_store.has_method("sync_front_context"):
-		_resume_state_store.sync_front_context(front_context)
-	else:
-		front_context.current_loading_mode = current_loading_mode
-		front_context.current_resume_snapshot = current_resume_snapshot
+	AppRuntimeContextSyncScript.sync_front_context(self)
 
 
 func _sync_battle_context_from_fields() -> void:
-	if battle_context == null:
-		return
-	battle_context.current_room_snapshot = current_room_snapshot
-	battle_context.current_start_config = current_start_config
-	battle_context.current_battle_content_manifest = current_battle_content_manifest.duplicate(true)
-	battle_context.current_battle_scene = current_battle_scene
-	battle_context.current_battle_bootstrap = current_battle_bootstrap
-	battle_context.current_presentation_bridge = current_presentation_bridge
-	battle_context.current_battle_hud_controller = current_battle_hud_controller
-	battle_context.current_battle_camera_controller = current_battle_camera_controller
-	battle_context.current_settlement_controller = current_settlement_controller
-	battle_context.current_settlement_popup_summary = current_settlement_popup_summary.duplicate(true)
+	AppRuntimeContextSyncScript.sync_battle_context(self)
 
 
 func _exit_tree() -> void:

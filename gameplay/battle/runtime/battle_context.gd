@@ -1,7 +1,7 @@
 class_name BattleContext
 extends RefCounted
 
-# Runtime-only assembly context for Phase3 battle flow.
+# Runtime-only assembly context for LegacyMigration battle flow.
 # This object is not a serializable config payload.
 var battle_start_config: BattleStartConfig = null
 var battle_content_manifest: Dictionary = {}

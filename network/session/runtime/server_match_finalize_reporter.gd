@@ -4,7 +4,8 @@ extends RefCounted
 const FINALIZE_PATH := "/internal/v1/matches/finalize"
 const ASSIGNMENT_COMMIT_PATH_TEMPLATE := "/internal/v1/assignments/%s/commit"
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var game_service_host: String = "127.0.0.1"
@@ -231,66 +232,48 @@ func _send_internal_post_once(path: String, payload: Dictionary) -> Dictionary:
 			"error_code": "MATCH_FINALIZE_SECRET_MISSING",
 			"user_message": "GAME_INTERNAL_SHARED_SECRET is missing",
 		}
-	var client := HTTPClient.new()
-	var err := client.connect_to_host(game_service_host, game_service_port)
-	if err != OK:
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_CONNECT_FAILED",
-			"user_message": "Failed to connect game service",
-		}
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_CONNECT_FAILED",
-			"user_message": "Failed to connect game service",
-		}
-	var headers := PackedStringArray([
+	var options := HttpRequestOptionsScript.new()
+	options.method = HTTPClient.METHOD_POST
+	options.url = "http://%s:%d%s" % [game_service_host, game_service_port, path]
+	options.headers = PackedStringArray([
 		"Content-Type: application/json",
 		"X-Internal-Secret: %s" % internal_shared_secret,
 	])
-	err = client.request(HTTPClient.METHOD_POST, path, headers, JSON.stringify(payload))
-	if err != OK:
+	options.body_text = JSON.stringify(payload)
+	options.log_tag = "net.online.finalize"
+	options.connect_timeout_ms = 5000
+	options.read_timeout_ms = 8000
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return {
+			"ok": false,
+			"error_code": "MATCH_FINALIZE_CONNECT_FAILED",
+			"user_message": "Failed to connect game service",
+		}
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return {
 			"ok": false,
 			"error_code": "MATCH_FINALIZE_REQUEST_FAILED",
 			"user_message": "Failed to send finalize request",
 		}
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"net",
-		"net.online.finalize",
-		"server_match_finalize_reporter",
-		{
-			"path": path,
-			"match_id": String(payload.get("match_id", "")),
-			"assignment_id": String(payload.get("assignment_id", "")),
-		}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	if text.strip_edges().is_empty():
 		return {
 			"ok": false,
 			"error_code": "MATCH_FINALIZE_EMPTY_RESPONSE",
 			"user_message": "Game service returned empty finalize response",
 		}
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.data is Dictionary):
+	if not (response.body_json is Dictionary):
 		return {
 			"ok": false,
 			"error_code": "MATCH_FINALIZE_RESPONSE_INVALID",
 			"user_message": "Game service returned invalid finalize response",
 		}
-	var response: Dictionary = json.data
-	if not response.has("user_message") and response.has("message"):
-		response["user_message"] = response.get("message", "")
-	return response
+	var body: Dictionary = response.body_json
+	if not body.has("user_message") and body.has("message"):
+		body["user_message"] = body.get("message", "")
+	body["status_code"] = response.status_code
+	return body
 
 
 func _is_terminal_internal_error(error_code: String) -> bool:

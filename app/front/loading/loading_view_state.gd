@@ -13,7 +13,7 @@ var waiting_summary_text: String = ""
 var status_message: String = ""
 var is_commit_ready: bool = false
 
-# Phase17: Resume mode fields
+# LegacyMigration: Resume mode fields
 var loading_mode: String = "normal_start"
 var resume_hint_text: String = ""
 var resume_match_id: String = ""

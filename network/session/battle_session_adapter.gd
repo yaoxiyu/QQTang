@@ -78,7 +78,7 @@ var _bootstrap_coordinator = null
 var _bootstrap_local_peer_id: int = 0
 var _runtime_message_router: RuntimeMessageRouter = null
 
-# Phase17: Resume snapshot storage
+# LegacyMigration: Resume snapshot storage
 var pending_resume_snapshot = null
 
 
@@ -87,7 +87,7 @@ func setup_from_start_config(config: BattleStartConfig) -> void:
 	_lifecycle_state = BattleLifecycleState.IDLE if start_config != null else BattleLifecycleState.STOPPED
 
 
-# Phase17: Apply resume snapshot for battle recovery
+# LegacyMigration: Apply resume snapshot for battle recovery
 func apply_resume_snapshot(snapshot) -> void:
 	pending_resume_snapshot = snapshot
 	if pending_resume_snapshot == null:
@@ -390,7 +390,7 @@ func _start_host_runtime(config: BattleStartConfig, options: Dictionary = {}) ->
 
 
 func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) -> bool:
-	# Phase23: Preserve an existing DS transport across the second call
+	# LegacyMigration: Preserve an existing DS transport across the second call
 	# (triggered by JOIN_BATTLE_ACCEPTED with the canonical config).
 	var preserved_transport: IBattleTransport = null
 	if transport != null and transport.is_transport_connected() and network_mode == BattleNetworkMode.CLIENT:
@@ -434,13 +434,13 @@ func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) 
 	current_context.visual_sync_controller = visual_sync_controller
 	adapter_configured.emit()
 
-	# Phase23: Bring up ENet transport to the DS if not already connected.
+	# LegacyMigration: Bring up ENet transport to the DS if not already connected.
 	if transport == null and not String(start_config.authority_host).is_empty() and int(start_config.authority_port) > 0:
 		network_host = String(start_config.authority_host)
 		network_port = int(start_config.authority_port)
 		_initialize_transport({})
 
-	# Phase23: If transport is already connected and we have a DS-issued config,
+	# LegacyMigration: If transport is already connected and we have a DS-issued config,
 	# respond with MATCH_LOADING_READY so the DS can commit the match.
 	if transport != null and transport.is_transport_connected() \
 			and String(start_config.session_mode) == "network_client" \
@@ -454,7 +454,7 @@ func _start_client_runtime(config: BattleStartConfig, options: Dictionary = {}) 
 			"sender_peer_id": _bootstrap_local_peer_id,
 		})
 
-	# Phase17: Inject resume checkpoint if pending
+	# LegacyMigration: Inject resume checkpoint if pending
 	_inject_pending_resume_snapshot()
 	
 	return true
@@ -1043,7 +1043,7 @@ func _connect_transport_bridge_signals() -> void:
 
 func _on_transport_connected() -> void:
 	network_transport_connected.emit()
-	# Phase23: once the DS socket is up, announce battle entry.
+	# LegacyMigration: once the DS socket is up, announce battle entry.
 	if network_mode == BattleNetworkMode.CLIENT and transport != null and start_config != null:
 		# Adopt the ENet-assigned peer ID as our local identity for DS communication.
 		var transport_peer_id := transport.get_local_peer_id() if transport.has_method("get_local_peer_id") else 0
@@ -1099,7 +1099,7 @@ func _on_bootstrap_join_battle_accepted(message: Dictionary) -> void:
 	if not bool(validation.get("ok", false)):
 		network_log_event.emit("Client rejected config: %s" % str(validation.get("errors", [])))
 		return
-	# Phase23: Prefer the DS-issued local_peer_id; fall back to transport-derived value.
+	# LegacyMigration: Prefer the DS-issued local_peer_id; fall back to transport-derived value.
 	var resolved_peer_id := int(config.local_peer_id) if int(config.local_peer_id) > 0 else _bootstrap_local_peer_id
 	var started := _start_runtime_session(BattleNetworkMode.CLIENT, config, {
 		"local_peer_id": resolved_peer_id,

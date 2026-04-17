@@ -1,7 +1,7 @@
 class_name RoomAuthorityRuntime
 extends Node
 
-## Phase23: Room-only runtime. Extracted from ServerRoomRuntime.
+## LegacyMigration: Room-only runtime. Extracted from ServerRoomRuntime.
 ## Handles room create/join/leave/resume, snapshot broadcast, directory entry,
 ## party queue client. Does NOT handle battle input, match service, loading,
 ## finalize, or resume coordinator.
@@ -158,7 +158,7 @@ func can_route_resume_request(member_id: String, reconnect_token: String) -> boo
 	return binding != null and binding.is_reconnect_token_valid(normalized_token)
 
 
-## Phase23: Notify room that battle has finished (called by external orchestration)
+## LegacyMigration: Notify room that battle has finished (called by external orchestration)
 func notify_battle_finished() -> void:
 	if _room_service != null and _room_service.has_method("handle_match_finished"):
 		_room_service.handle_match_finished()
@@ -168,7 +168,7 @@ func notify_battle_finished() -> void:
 		_room_service.room_state.current_battle_id = ""
 
 
-## Phase23: Freeze room when battle allocation begins
+## LegacyMigration: Freeze room when battle allocation begins
 func freeze_for_battle(assignment_id: String, battle_id: String, allocation_state: String = "allocating_battle") -> void:
 	if _room_service == null or _room_service.room_state == null:
 		return
@@ -179,7 +179,7 @@ func freeze_for_battle(assignment_id: String, battle_id: String, allocation_stat
 	rs.battle_allocation_state = "allocating"
 
 
-## Phase23: Update battle endpoint when DS is ready
+## LegacyMigration: Update battle endpoint when DS is ready
 func set_battle_ready(battle_server_host: String, battle_server_port: int) -> void:
 	if _room_service == null or _room_service.room_state == null:
 		return
@@ -190,7 +190,7 @@ func set_battle_ready(battle_server_host: String, battle_server_port: int) -> vo
 	rs.battle_server_port = battle_server_port
 
 
-## Phase23: Transition to in_battle_frozen when clients enter battle
+## LegacyMigration: Transition to in_battle_frozen when clients enter battle
 func enter_battle_frozen() -> void:
 	if _room_service == null or _room_service.room_state == null:
 		return
@@ -198,7 +198,7 @@ func enter_battle_frozen() -> void:
 	_room_service.room_state.match_active = true
 
 
-## Phase23: Restore room to idle after battle return
+## LegacyMigration: Restore room to idle after battle return
 func restore_after_battle() -> void:
 	if _room_service == null or _room_service.room_state == null:
 		return
