@@ -1,13 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ClientSessionScript = preload("res://network/session/runtime/client_session.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_input_frame_uses_controlled_peer_id() and ok
-	if ok:
-		print("client_session_controlled_peer_test: PASS")
 
 
 func _test_input_frame_uses_controlled_peer_id() -> bool:
@@ -29,3 +27,4 @@ func _test_input_frame_uses_controlled_peer_id() -> bool:
 		return false
 	session.queue_free()
 	return true
+

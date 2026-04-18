@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var snapshot_service := SnapshotService.new()
 	var snapshot_buffer := SnapshotBuffer.new(16)
 	var local_input_buffer := InputRingBuffer.new(16)
@@ -40,7 +40,6 @@ func _ready() -> void:
 	predicted_world.dispose()
 	authority_world.dispose()
 
-	print("test_force_resync_window: PASS")
 
 
 func _build_world(seed: int) -> SimWorld:
@@ -66,6 +65,6 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_force_resync_window: FAIL - %s" % message)
+	assert_true(condition, message)
+
 

@@ -1,13 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
 const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const BATTLE_TICKET_SECRET := "dev_battle_ticket_secret"
 
-signal test_finished
 
 
 class BattleBootstrapProbe:
@@ -31,13 +29,10 @@ class BattleBootstrapProbe:
 		return {}
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_invalid_battle_entry_ticket_is_rejected() and ok
 	ok = _test_invalid_resume_token_is_rejected() and ok
-	if ok:
-		print("battle_ds_invalid_ticket_reject_test: PASS")
-	test_finished.emit()
 
 
 func _test_invalid_battle_entry_ticket_is_rejected() -> bool:
@@ -54,9 +49,9 @@ func _test_invalid_battle_entry_ticket_is_rejected() -> bool:
 	var rejected: Dictionary = bootstrap.latest_for_peer(11, TransportMessageTypesScript.BATTLE_ENTRY_REJECTED)
 	var prefix := "battle_ds_invalid_ticket_reject_test"
 	var ok := true
-	ok = TestAssert.is_true(not rejected.is_empty(), "invalid battle entry ticket should be rejected", prefix) and ok
+	ok = qqt_check(not rejected.is_empty(), "invalid battle entry ticket should be rejected", prefix) and ok
 	if not rejected.is_empty():
-		ok = TestAssert.is_true(String(rejected.get("error", "")) == "BATTLE_TICKET_INVALID", "invalid battle entry should return BATTLE_TICKET_INVALID", prefix) and ok
+		ok = qqt_check(String(rejected.get("error", "")) == "BATTLE_TICKET_INVALID", "invalid battle entry should return BATTLE_TICKET_INVALID", prefix) and ok
 	bootstrap.queue_free()
 	return ok
 
@@ -85,9 +80,9 @@ func _test_invalid_resume_token_is_rejected() -> bool:
 	var rejected: Dictionary = bootstrap.latest_for_peer(19, TransportMessageTypesScript.MATCH_RESUME_REJECTED)
 	var prefix := "battle_ds_invalid_ticket_reject_test"
 	var ok := true
-	ok = TestAssert.is_true(not rejected.is_empty(), "invalid resume token should be rejected", prefix) and ok
+	ok = qqt_check(not rejected.is_empty(), "invalid resume token should be rejected", prefix) and ok
 	if not rejected.is_empty():
-		ok = TestAssert.is_true(String(rejected.get("error", "")) == "BATTLE_RESUME_TOKEN_INVALID", "invalid resume should return BATTLE_RESUME_TOKEN_INVALID", prefix) and ok
+		ok = qqt_check(String(rejected.get("error", "")) == "BATTLE_RESUME_TOKEN_INVALID", "invalid resume should return BATTLE_RESUME_TOKEN_INVALID", prefix) and ok
 	bootstrap.queue_free()
 	return ok
 
@@ -112,3 +107,4 @@ func _new_bootstrap() -> BattleBootstrapProbe:
 	bootstrap._battle_ticket_verifier = BattleTicketVerifierScript.new()
 	bootstrap._battle_ticket_verifier.configure(BATTLE_TICKET_SECRET)
 	return bootstrap
+

@@ -1,17 +1,15 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_to_dict_from_dict_round_trip() and ok
 	ok = _test_from_dict_tolerates_missing_fields() and ok
 	ok = _test_duplicate_deep_is_independent() and ok
 	ok = _test_is_committed() and ok
 	ok = _test_is_aborted() and ok
-	if ok:
-		print("match_loading_snapshot_test: PASS")
 
 
 func _test_to_dict_from_dict_round_trip() -> bool:
@@ -151,3 +149,4 @@ func _test_is_aborted() -> bool:
 		print("FAIL: aborted error_code mismatch")
 		return false
 	return true
+

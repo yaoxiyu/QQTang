@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var server := ServerSession.new()
 	var client_a := ClientSession.new()
 	var client_b := ClientSession.new()
@@ -58,7 +58,6 @@ func _ready() -> void:
 	client_a.free()
 	client_b.free()
 
-	print("test_server_client_authoritative_loop: PASS")
 
 
 func _apply_server_messages(server: ServerSession, client_a: ClientSession, client_b: ClientSession) -> void:
@@ -83,6 +82,6 @@ func _apply_server_messages(server: ServerSession, client_a: ClientSession, clie
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_server_client_authoritative_loop: FAIL - %s" % message)
+	assert_true(condition, message)
+
 

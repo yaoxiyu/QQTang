@@ -1,15 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const BootstrapScript = preload("res://network/runtime/battle_dedicated_server_bootstrap.gd")
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
 const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const BATTLE_TICKET_SECRET := "dev_battle_ticket_secret"
 var _bootstrap_nodes: Array = []
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_entry_validate_success() and ok
 	ok = _test_entry_validate_rejects_member_mismatch() and ok
@@ -19,29 +18,27 @@ func _ready() -> void:
 	ok = _test_resume_validate_window_expired() and ok
 	ok = _test_resume_validate_success() and ok
 	_cleanup_bootstraps()
-	if ok:
-		print("battle_dedicated_server_bootstrap_auth_test: PASS")
 
 
 func _test_entry_validate_success() -> bool:
 	var bootstrap = _create_bootstrap()
 	var message := _build_ticket_message("battle_001", "account_1", "profile_1", int(Time.get_unix_time_from_system()) + 60)
 	var result: Dictionary = bootstrap._validate_battle_entry_request(message)
-	return TestAssert.is_true(bool(result.get("ok", false)), "battle entry validation should pass for valid member", "battle_ds_bootstrap_auth_test")
+	return qqt_check(bool(result.get("ok", false)), "battle entry validation should pass for valid member", "battle_ds_bootstrap_auth_test")
 
 
 func _test_entry_validate_rejects_member_mismatch() -> bool:
 	var bootstrap = _create_bootstrap()
 	var message := _build_ticket_message("battle_001", "account_9", "profile_9", int(Time.get_unix_time_from_system()) + 60)
 	var result: Dictionary = bootstrap._validate_battle_entry_request(message)
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_MEMBER_MISMATCH", "unknown member should be rejected", "battle_ds_bootstrap_auth_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_MEMBER_MISMATCH", "unknown member should be rejected", "battle_ds_bootstrap_auth_test")
 
 
 func _test_resume_validate_missing_token() -> bool:
 	var bootstrap = _create_bootstrap()
 	bootstrap._member_sessions_by_id["account_1:profile_1"] = _build_session("account_1", "profile_1", "token_abc", Time.get_ticks_msec() + 10000)
 	var result: Dictionary = bootstrap._validate_battle_resume_request({"battle_id": "battle_001", "member_id": "account_1:profile_1"})
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_RESUME_TOKEN_MISSING", "missing resume token should reject", "battle_ds_bootstrap_auth_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_RESUME_TOKEN_MISSING", "missing resume token should reject", "battle_ds_bootstrap_auth_test")
 
 
 func _test_resume_validate_battle_mismatch() -> bool:
@@ -52,7 +49,7 @@ func _test_resume_validate_battle_mismatch() -> bool:
 		"member_id": "account_1:profile_1",
 		"resume_token": "token_abc",
 	})
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle mismatch should reject", "battle_ds_bootstrap_auth_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle mismatch should reject", "battle_ds_bootstrap_auth_test")
 
 
 func _test_resume_validate_member_mismatch() -> bool:
@@ -64,7 +61,7 @@ func _test_resume_validate_member_mismatch() -> bool:
 		"resume_token": "token_abc",
 		"account_id": "account_2",
 	})
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_RESUME_ACCOUNT_MISMATCH", "account mismatch should reject", "battle_ds_bootstrap_auth_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_RESUME_ACCOUNT_MISMATCH", "account mismatch should reject", "battle_ds_bootstrap_auth_test")
 
 
 func _test_resume_validate_window_expired() -> bool:
@@ -75,7 +72,7 @@ func _test_resume_validate_window_expired() -> bool:
 		"member_id": "account_1:profile_1",
 		"resume_token": "token_abc",
 	})
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_RESUME_WINDOW_EXPIRED", "expired resume window should reject", "battle_ds_bootstrap_auth_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_RESUME_WINDOW_EXPIRED", "expired resume window should reject", "battle_ds_bootstrap_auth_test")
 
 
 func _test_resume_validate_success() -> bool:
@@ -87,7 +84,7 @@ func _test_resume_validate_success() -> bool:
 		"resume_token": "token_abc",
 		"profile_id": "profile_1",
 	})
-	return TestAssert.is_true(bool(result.get("ok", false)), "valid resume request should pass", "battle_ds_bootstrap_auth_test")
+	return qqt_check(bool(result.get("ok", false)), "valid resume request should pass", "battle_ds_bootstrap_auth_test")
 
 
 func _create_bootstrap():
@@ -159,3 +156,4 @@ func _cleanup_bootstraps() -> void:
 		if bootstrap != null and is_instance_valid(bootstrap):
 			bootstrap.free()
 	_bootstrap_nodes.clear()
+

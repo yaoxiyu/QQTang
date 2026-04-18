@@ -1,6 +1,6 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-func _ready() -> void:
+func test_main() -> void:
 	var buffer := InputBuffer.new()
 
 	var frame := InputFrame.new()
@@ -21,8 +21,7 @@ func _ready() -> void:
 	buffer.clear_before_tick(10)
 	_assert(not (9 in buffer.frames), "old frame should be removed")
 
-	print("test_input_layer: PASS")
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_input_layer: FAIL - %s" % message)
+	assert_true(condition, message)
+

@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const NetworkSimRunnerScript = preload("res://tests/integration/network/network_sim_runner.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var runner = NetworkSimRunnerScript.new()
 	add_child(runner)
 	runner.setup({
@@ -37,10 +37,9 @@ func _ready() -> void:
 
 	runner.free()
 
-	print("test_network_sim_runner: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_network_sim_runner: FAIL - %s" % message)
+	assert_true(condition, message)
+
 

@@ -16,12 +16,10 @@ logs/
 .claude/
 
 # Test runtime artifacts
+tests/**/reports/*
+!tests/**/reports/.gitkeep
+!tests/**/reports/raw/.gitkeep
 tests/cli/appdata/
-tests/**/reports/
-tests/**/*.json.tmp
-tests/**/*.txt.tmp
-/tests/reports/tmp_*.log
-/tests/reports/tmp_*.err
 
 # Content CSV import noise
 content_source/csv/**/*.translation

@@ -8,8 +8,9 @@ const ENetBattleTransportScript = preload("res://network/transport/enet_battle_t
 const ServerBattleRuntimeScript = preload("res://network/battle/runtime/server_battle_runtime.gd")
 const GameServiceBattleManifestClientScript = preload("res://network/services/game_service_battle_manifest_client.gd")
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
+const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
+const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
@@ -40,6 +41,7 @@ var _loading_started: bool = false
 var _ds_manager_base_url: String = ""
 var _ds_instance_active_reported: bool = false
 var _ds_manager_auth_signer: InternalAuthSigner = null
+var _ds_manager_http_client = null
 var _battle_ticket_verifier: BattleTicketVerifier = null
 
 
@@ -48,6 +50,7 @@ func _ready() -> void:
 	_apply_command_line_overrides()
 	_ds_manager_base_url = _resolve_ds_manager_base_url()
 	_ds_manager_auth_signer = _build_ds_manager_auth_signer()
+	_ds_manager_http_client = _build_ds_manager_http_client(_ds_manager_base_url)
 	_battle_ticket_verifier = BattleTicketVerifierScript.new()
 	_battle_ticket_verifier.configure(battle_ticket_secret)
 
@@ -401,8 +404,9 @@ func _fetch_manifest() -> void:
 	var game_port := int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
 	if game_port <= 0:
 		game_port = 18081
-	var secret := _read_env("GAME_INTERNAL_SHARED_SECRET", "")
-	var key_id := _read_env("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+	var secret := String(secret_config.get("shared_secret", ""))
+	var key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
 	_manifest_client.configure("http://%s:%d" % [game_host, game_port], secret, key_id)
 	var result := _manifest_client.fetch_manifest(_battle_id)
 	if not bool(result.get("ok", false)):
@@ -520,53 +524,26 @@ func _report_ds_instance_active() -> void:
 
 
 func _send_plain_json_request(base_url: String, path: String, payload: Dictionary) -> Dictionary:
-	var parsed_url := _parse_http_url(base_url.trim_suffix("/") + path)
-	if parsed_url.is_empty():
+	if base_url.strip_edges().is_empty():
 		return _plain_json_fail("PLAIN_JSON_URL_INVALID", "Target url is invalid")
-	if _ds_manager_auth_signer == null:
+	if _ds_manager_auth_signer == null or _ds_manager_http_client == null:
 		return _plain_json_fail("PLAIN_JSON_AUTH_MISSING", "DSM internal auth signer is missing")
-	var client := HTTPClient.new()
-	var err := client.connect_to_host(String(parsed_url["host"]), int(parsed_url["port"]))
-	if err != OK:
-		return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
-	var deadline_ms := Time.get_ticks_msec() + 5000
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		if Time.get_ticks_msec() > deadline_ms:
-			return _plain_json_fail("PLAIN_JSON_CONNECT_TIMEOUT", "Target service connect timeout")
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
-	var body := JSON.stringify(payload)
-	var headers := _ds_manager_auth_signer.sign_headers("POST", String(parsed_url["path"]), body)
-	err = client.request(HTTPClient.METHOD_POST, String(parsed_url["path"]), headers, body)
-	if err != OK:
-		return _plain_json_fail("PLAIN_JSON_REQUEST_FAILED", "Failed to send request")
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		if Time.get_ticks_msec() > deadline_ms:
-			return _plain_json_fail("PLAIN_JSON_REQUEST_TIMEOUT", "Target service request timeout")
-		client.poll()
-		OS.delay_msec(10)
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client, "net", "net.battle_ds_bootstrap", "battle_dedicated_server_bootstrap",
-		{"path": path, "method": HTTPClient.METHOD_POST}
-	)
-	var text := chunks.get_string_from_utf8()
-	if text.strip_edges().is_empty():
-		return _plain_json_fail("PLAIN_JSON_EMPTY_RESPONSE", "Target service returned empty response")
-	var json := JSON.new()
-	if json.parse(text) != OK:
-		return _plain_json_fail("PLAIN_JSON_RESPONSE_INVALID", "Target service returned invalid response")
-	if not (json.data is Dictionary):
-		return _plain_json_fail("PLAIN_JSON_RESPONSE_INVALID", "Target service returned invalid response type")
-	var result: Dictionary = (json.data as Dictionary).duplicate(true)
-	if not result.has("ok"):
-		result["ok"] = result.get("error_code", "") == ""
-	if not result.has("error_code"):
-		result["error_code"] = ""
-	if not result.has("user_message"):
-		result["user_message"] = String(result.get("message", ""))
-	return result
+	var result: Dictionary = _ds_manager_http_client.post_json(path, payload)
+	if bool(result.get("ok", false)):
+		return result
+	match String(result.get("error_code", "")):
+		"INTERNAL_JSON_URL_INVALID", "INTERNAL_JSON_URL_MISSING":
+			return _plain_json_fail("PLAIN_JSON_URL_INVALID", "Target url is invalid")
+		"INTERNAL_JSON_CONNECT_FAILED":
+			return _plain_json_fail("PLAIN_JSON_CONNECT_FAILED", "Failed to connect target service")
+		"INTERNAL_JSON_REQUEST_FAILED":
+			return _plain_json_fail("PLAIN_JSON_REQUEST_FAILED", "Failed to send request")
+		"INTERNAL_JSON_EMPTY_RESPONSE":
+			return _plain_json_fail("PLAIN_JSON_EMPTY_RESPONSE", "Target service returned empty response")
+		"INTERNAL_JSON_RESPONSE_INVALID":
+			return _plain_json_fail("PLAIN_JSON_RESPONSE_INVALID", "Target service returned invalid response")
+		_:
+			return result
 
 
 func _plain_json_fail(error_code: String, user_message: String) -> Dictionary:
@@ -618,22 +595,43 @@ func _read_env(env_name: String, fallback: String) -> String:
 
 
 func _build_ds_manager_auth_signer() -> InternalAuthSigner:
-	var shared_secret := _read_env("DSM_INTERNAL_AUTH_SHARED_SECRET", "")
-	if shared_secret.is_empty():
-		shared_secret = _read_env("DSM_INTERNAL_SHARED_SECRET", "")
-	if shared_secret.is_empty():
-		shared_secret = _read_env("GAME_INTERNAL_AUTH_SHARED_SECRET", "")
-	if shared_secret.is_empty():
-		shared_secret = _read_env("GAME_INTERNAL_SHARED_SECRET", "")
+	var auth := _resolve_ds_manager_auth()
+	var shared_secret := String(auth.get("shared_secret", ""))
 	if shared_secret.is_empty():
 		LogNetScript.warn("dsm internal auth secret missing; ready/active control reports disabled", "", 0, "net.battle_ds_bootstrap")
 		return null
-	var key_id := _read_env("DSM_INTERNAL_AUTH_KEY_ID", "")
-	if key_id.is_empty():
-		key_id = _read_env("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	var key_id := String(auth.get("key_id", "primary"))
 	var signer := InternalAuthSignerScript.new()
 	signer.configure(key_id, shared_secret)
 	return signer
+
+
+func _build_ds_manager_http_client(base_url: String):
+	if base_url.strip_edges().is_empty():
+		return null
+	var auth := _resolve_ds_manager_auth()
+	var shared_secret := String(auth.get("shared_secret", ""))
+	if shared_secret.is_empty():
+		return null
+	var key_id := String(auth.get("key_id", "primary"))
+	var client := InternalJsonServiceClientScript.new()
+	client.configure(base_url, key_id, shared_secret, "net.battle_ds_bootstrap")
+	return client
+
+
+func _resolve_ds_manager_auth() -> Dictionary:
+	var shared_secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("DSM_INTERNAL_AUTH_SHARED_SECRET", "DSM_INTERNAL_SHARED_SECRET")
+	var shared_secret := String(shared_secret_config.get("shared_secret", ""))
+	if shared_secret.is_empty():
+		var game_auth_secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+		shared_secret = String(game_auth_secret_config.get("shared_secret", ""))
+	var key_id := _read_env("DSM_INTERNAL_AUTH_KEY_ID", "")
+	if key_id.is_empty():
+		key_id = InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	return {
+		"shared_secret": shared_secret,
+		"key_id": key_id,
+	}
 
 
 func _resolve_ds_manager_base_url() -> String:

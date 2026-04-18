@@ -1,18 +1,16 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	await _test_get_existing_does_not_create_runtime()
 	await _test_scene_tree_keeps_single_app_root()
-	test_finished.emit()
 
 
 func _test_get_existing_does_not_create_runtime() -> void:
@@ -52,6 +50,6 @@ func _count_app_roots() -> int:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

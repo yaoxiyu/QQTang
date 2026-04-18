@@ -1,14 +1,14 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_return_recovery.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_practice_return_keeps_local_player_startable()
 
 
@@ -37,6 +37,6 @@ func _test_practice_return_keeps_local_player_startable() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

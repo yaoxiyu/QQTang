@@ -1,11 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -31,14 +30,13 @@ func _ready() -> void:
 
 	var prefix := "logout_clears_resume_state_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "logout should succeed", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.auth_session_state.account_id) == "", "logout should clear account id", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.auth_session_state.refresh_token) == "", "logout should clear refresh token", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.front_settings_state.reconnect_room_id) == "", "logout should clear reconnect room id", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.front_settings_state.reconnect_member_id) == "", "logout should clear reconnect member id", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.front_settings_state.reconnect_token) == "", "logout should clear reconnect token", prefix) and ok
-	ok = TestAssert.is_true(runtime.current_room_entry_context == null, "logout should clear current room entry context", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "logout should succeed", prefix) and ok
+	ok = qqt_check(String(runtime.auth_session_state.account_id) == "", "logout should clear account id", prefix) and ok
+	ok = qqt_check(String(runtime.auth_session_state.refresh_token) == "", "logout should clear refresh token", prefix) and ok
+	ok = qqt_check(String(runtime.front_settings_state.reconnect_room_id) == "", "logout should clear reconnect room id", prefix) and ok
+	ok = qqt_check(String(runtime.front_settings_state.reconnect_member_id) == "", "logout should clear reconnect member id", prefix) and ok
+	ok = qqt_check(String(runtime.front_settings_state.reconnect_token) == "", "logout should clear reconnect token", prefix) and ok
+	ok = qqt_check(runtime.current_room_entry_context == null, "logout should clear current room entry context", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("logout_clears_resume_state_test: PASS")
+

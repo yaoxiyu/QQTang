@@ -1,20 +1,17 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_idle_room_resume_returns_to_room_snapshot() and ok
 	ok = _test_manual_leave_invalidates_room_member_session() and ok
 	ok = _test_idle_room_resume_window_expiry_removes_member_session() and ok
-	if ok:
-		print("idle_room_resume_returns_to_room_test: PASS")
 
 
 func _test_idle_room_resume_returns_to_room_snapshot() -> bool:
@@ -54,18 +51,18 @@ func _test_idle_room_resume_returns_to_room_snapshot() -> bool:
 	var accepted := _find_message_to_peer(sent, 9, TransportMessageTypesScript.ROOM_JOIN_ACCEPTED)
 	var resume_rejected := _find_message_to_peer(sent, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
 	var match_resume := _find_message_to_peer(sent, 9, TransportMessageTypesScript.MATCH_RESUME_ACCEPTED)
-	ok = TestAssert.is_true(not accepted.is_empty(), "idle resume should receive ROOM_JOIN_ACCEPTED", prefix) and ok
-	ok = TestAssert.is_true(resume_rejected.is_empty(), "idle resume should not be rejected", prefix) and ok
-	ok = TestAssert.is_true(match_resume.is_empty(), "idle resume should not enter active match resume", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "idle resume should receive ROOM_JOIN_ACCEPTED", prefix) and ok
+	ok = qqt_check(resume_rejected.is_empty(), "idle resume should not be rejected", prefix) and ok
+	ok = qqt_check(match_resume.is_empty(), "idle resume should not enter active match resume", prefix) and ok
 
 	var snapshot := _latest_room_snapshot(broadcasts)
-	ok = TestAssert.is_true(snapshot != null, "idle resume should broadcast room snapshot", prefix) and ok
+	ok = qqt_check(snapshot != null, "idle resume should broadcast room snapshot", prefix) and ok
 	if snapshot != null:
 		var resumed_member := _find_member(snapshot, 9)
-		ok = TestAssert.is_true(resumed_member != null, "room snapshot should show resumed transport peer", prefix) and ok
+		ok = qqt_check(resumed_member != null, "room snapshot should show resumed transport peer", prefix) and ok
 		if resumed_member != null:
-			ok = TestAssert.is_true(resumed_member.connection_state == "connected", "resumed member should be connected", prefix) and ok
-		ok = TestAssert.is_true(not snapshot.match_active, "idle resume should stay in room state", prefix) and ok
+			ok = qqt_check(resumed_member.connection_state == "connected", "resumed member should be connected", prefix) and ok
+		ok = qqt_check(not snapshot.match_active, "idle resume should stay in room state", prefix) and ok
 
 	runtime.free()
 	return ok
@@ -106,9 +103,9 @@ func _test_idle_room_resume_window_expiry_removes_member_session() -> bool:
 	var rejected := _find_message_to_peer(sent, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
 	var prefix := "idle_room_resume_returns_to_room_test"
 	var ok := true
-	ok = TestAssert.is_true(not rejected.is_empty(), "expired idle resume session should be rejected", prefix) and ok
+	ok = qqt_check(not rejected.is_empty(), "expired idle resume session should be rejected", prefix) and ok
 	if not rejected.is_empty():
-		ok = TestAssert.is_true(String(rejected.get("error", "")) == "MEMBER_NOT_FOUND", "expired idle session should be removed", prefix) and ok
+		ok = qqt_check(String(rejected.get("error", "")) == "MEMBER_NOT_FOUND", "expired idle session should be removed", prefix) and ok
 
 	runtime.free()
 	return ok
@@ -148,9 +145,9 @@ func _test_manual_leave_invalidates_room_member_session() -> bool:
 	var rejected := _find_message_to_peer(sent, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
 	var prefix := "idle_room_resume_returns_to_room_test"
 	var ok := true
-	ok = TestAssert.is_true(not rejected.is_empty(), "manual leave should invalidate member resume session", prefix) and ok
+	ok = qqt_check(not rejected.is_empty(), "manual leave should invalidate member resume session", prefix) and ok
 	if not rejected.is_empty():
-		ok = TestAssert.is_true(String(rejected.get("error", "")) == "MEMBER_NOT_FOUND", "manual leave resume should fail with MEMBER_NOT_FOUND", prefix) and ok
+		ok = qqt_check(String(rejected.get("error", "")) == "MEMBER_NOT_FOUND", "manual leave resume should fail with MEMBER_NOT_FOUND", prefix) and ok
 
 	runtime.free()
 	return ok
@@ -259,3 +256,4 @@ func _sign_ticket(encoded_payload: String) -> String:
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

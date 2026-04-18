@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var snapshot_buffer := SnapshotBuffer.new(3)
 	for tick_id in [1, 2, 3, 4, 5]:
 		var snapshot := WorldSnapshot.new()
@@ -14,9 +14,8 @@ func _ready() -> void:
 	_assert(snapshot_buffer.get_snapshot(3) != null, "recent snapshot should be retained")
 	_assert(snapshot_buffer.get_snapshot(5) != null, "latest snapshot should be retained")
 
-	print("test_snapshot_buffer_eviction: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_snapshot_buffer_eviction: FAIL - %s" % message)
+	assert_true(condition, message)
+

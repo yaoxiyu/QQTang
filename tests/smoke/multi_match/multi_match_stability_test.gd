@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_smoke_test.gd"
 
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
@@ -6,13 +6,14 @@ const MatchStartCoordinatorScript = preload("res://network/session/match_start_c
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_run_two_matches_in_sequence()
 	_test_run_five_matches_in_sequence()
 	_test_run_ten_matches_in_sequence()
@@ -255,12 +256,13 @@ func _make_member(peer_id: int, ready: bool) -> RoomMemberState:
 	member.player_name = "Player%d" % peer_id
 	member.ready = ready
 	member.slot_index = peer_id - 1
-	member.character_id = "hero_%d" % peer_id
+	member.character_id = CharacterCatalogScript.get_default_character_id()
+	member.team_id = max(1, peer_id)
 	return member
 
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

@@ -10,6 +10,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const GameServicePartyQueueClientScript = preload("res://network/services/game_service_party_queue_client.gd")
 const GameServiceBattleAllocClientScript = preload("res://network/services/game_service_battle_alloc_client.gd")
+const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ROOM_AUTHORITY_LOG_TAG := "net.room_authority_runtime"
@@ -48,7 +49,8 @@ func configure(next_authority_host: String, next_authority_port: int, next_room_
 	game_service_port = int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
 	if game_service_port <= 0:
 		game_service_port = 18081
-	game_internal_shared_secret = _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
+	var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+	game_internal_shared_secret = String(secret_config.get("shared_secret", game_internal_shared_secret))
 	_ensure_services()
 	if _room_service != null and _room_service.has_method("configure_room_ticket_verifier"):
 		_room_service.configure_room_ticket_verifier(room_ticket_secret)
@@ -228,8 +230,9 @@ func _ensure_services() -> void:
 		var resolved_game_port := int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
 		if resolved_game_port <= 0:
 			resolved_game_port = 18081
-		var resolved_secret := _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
-		var resolved_key_id := _read_env("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+		var resolved_secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+		var resolved_secret := String(resolved_secret_config.get("shared_secret", game_internal_shared_secret))
+		var resolved_key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
 		_party_queue_client.configure("http://%s:%d" % [resolved_game_host, resolved_game_port], resolved_secret, resolved_key_id)
 		if _room_service != null and _room_service.has_method("configure_party_queue_client"):
 			_room_service.configure_party_queue_client(_party_queue_client)
@@ -239,8 +242,9 @@ func _ensure_services() -> void:
 		var alloc_game_port := int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
 		if alloc_game_port <= 0:
 			alloc_game_port = 18081
-		var alloc_secret := _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
-		var alloc_key_id := _read_env("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+		var alloc_secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+		var alloc_secret := String(alloc_secret_config.get("shared_secret", game_internal_shared_secret))
+		var alloc_key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
 		_battle_alloc_client.configure("http://%s:%d" % [alloc_game_host, alloc_game_port], alloc_secret, alloc_key_id)
 
 
@@ -255,6 +259,8 @@ func _connect_room_service_signals() -> void:
 		_room_service.start_match_requested.connect(_on_start_match_requested)
 	if _room_service.has_signal("assignment_commit_requested") and not _room_service.assignment_commit_requested.is_connected(_on_assignment_commit_requested):
 		_room_service.assignment_commit_requested.connect(_on_assignment_commit_requested)
+	if _room_service.has_signal("resume_request_received") and not _room_service.resume_request_received.is_connected(_on_resume_request_received):
+		_room_service.resume_request_received.connect(_on_resume_request_received)
 
 
 func _on_start_match_requested(_snapshot: RoomSnapshot) -> void:
@@ -312,6 +318,51 @@ func _on_assignment_commit_requested(payload: Dictionary) -> void:
 		"server_port": server_port,
 	})
 	_broadcast_snapshot()
+
+
+func _on_resume_request_received(payload: Dictionary) -> void:
+	if _room_service == null or _room_service.room_state == null:
+		return
+	var peer_id := int(payload.get("sender_peer_id", 0))
+	var member_id := String(payload.get("member_id", "")).strip_edges()
+	if peer_id <= 0 or member_id.is_empty():
+		return
+	var binding := _room_service.room_state.get_member_binding_by_member_id(member_id)
+	if binding == null:
+		send_to_peer.emit(peer_id, {
+			"message_type": TransportMessageTypesScript.ROOM_RESUME_REJECTED,
+			"error": "RECONNECT_TOKEN_INVALID",
+			"user_message": "Resume request is invalid",
+		})
+		return
+	var previous_peer_id := int(binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id)
+	_room_service.room_state.bind_transport_to_member(member_id, peer_id)
+	binding.connection_state = "connected"
+	binding.match_peer_id = peer_id
+	binding.disconnect_deadline_msec = 0
+	if previous_peer_id > 0 and previous_peer_id != peer_id:
+		_room_service.room_state.members.erase(previous_peer_id)
+		_room_service.room_state.ready_map.erase(previous_peer_id)
+		if _room_service.room_state.owner_peer_id == previous_peer_id:
+			_room_service.room_state.owner_peer_id = peer_id
+	var profile: Dictionary = _room_service.room_state.members.get(peer_id, {})
+	profile["peer_id"] = peer_id
+	profile["player_name"] = binding.player_name
+	profile["character_id"] = binding.character_id
+	profile["character_skin_id"] = binding.character_skin_id
+	profile["bubble_style_id"] = binding.bubble_style_id
+	profile["bubble_skin_id"] = binding.bubble_skin_id
+	profile["team_id"] = binding.team_id
+	profile["ready"] = binding.ready
+	_room_service.room_state.members[peer_id] = profile
+	_room_service.room_state.ready_map[peer_id] = binding.ready
+	send_to_peer.emit(peer_id, {
+		"message_type": TransportMessageTypesScript.ROOM_JOIN_ACCEPTED,
+		"room_id": _room_service.room_state.room_id,
+		"owner_peer_id": _room_service.room_state.owner_peer_id,
+	})
+	if _room_service.has_method("_broadcast_snapshot"):
+		_room_service._broadcast_snapshot()
 
 
 func _request_battle_ds_allocation(

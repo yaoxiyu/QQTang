@@ -1,12 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeRoomTicketGateway:
@@ -26,30 +24,27 @@ class FakeRoomTicketGateway:
 		return result
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime : Node = _build_runtime()
 	var result: Dictionary = runtime.lobby_use_case.create_casual_match_room("127.0.0.1", 9000)
 	var entry = result.get("entry_context", null)
 	var prefix := "lobby_create_casual_match_room_test"
 	var ok := true
-	ok = TestAssert.is_true(runtime.matchmaking_use_case == null, "formal runtime should not create legacy matchmaking use case", prefix) and ok
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "casual match room create should succeed", prefix) and ok
-	ok = TestAssert.is_true(entry != null, "entry context should exist", prefix) and ok
+	ok = qqt_check(runtime.matchmaking_use_case == null, "formal runtime should not create legacy matchmaking use case", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "casual match room create should succeed", prefix) and ok
+	ok = qqt_check(entry != null, "entry context should exist", prefix) and ok
 	if entry != null:
-		ok = TestAssert.is_true(String(entry.entry_kind) == FrontEntryKindScript.ONLINE_CREATE, "casual match room should use online create", prefix) and ok
-		ok = TestAssert.is_true(String(entry.room_kind) == FrontRoomKindScript.CASUAL_MATCH_ROOM, "room kind should be casual match room", prefix) and ok
-		ok = TestAssert.is_true(String(entry.topology) == FrontTopologyScript.DEDICATED_SERVER, "match room should use dedicated server", prefix) and ok
-		ok = TestAssert.is_true(String(entry.queue_type) == "casual", "queue type should be casual", prefix) and ok
-		ok = TestAssert.is_true(String(entry.match_format_id) == "1v1", "default match format should be 1v1", prefix) and ok
-		ok = TestAssert.is_true(bool(entry.is_prequeue_match_room), "entry should be marked as prequeue match room", prefix) and ok
+		ok = qqt_check(String(entry.entry_kind) == FrontEntryKindScript.ONLINE_CREATE, "casual match room should use online create", prefix) and ok
+		ok = qqt_check(String(entry.room_kind) == FrontRoomKindScript.CASUAL_MATCH_ROOM, "room kind should be casual match room", prefix) and ok
+		ok = qqt_check(String(entry.topology) == FrontTopologyScript.DEDICATED_SERVER, "match room should use dedicated server", prefix) and ok
+		ok = qqt_check(String(entry.queue_type) == "casual", "queue type should be casual", prefix) and ok
+		ok = qqt_check(String(entry.match_format_id) == "1v1", "default match format should be 1v1", prefix) and ok
+		ok = qqt_check(bool(entry.is_prequeue_match_room), "entry should be marked as prequeue match room", prefix) and ok
 	runtime.queue_free()
-	if ok:
-		print("lobby_create_casual_match_room_test: PASS")
-	test_finished.emit()
 
 
 func _build_runtime():
@@ -71,3 +66,5 @@ func _build_runtime():
 		runtime.room_ticket_gateway
 	)
 	return runtime
+
+

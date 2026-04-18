@@ -1,14 +1,13 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	_test_bubble_placement_uses_foot_cell()
 	_test_item_pickup_uses_foot_cell_before_boundary_cross()
 	_test_players_by_cell_and_death_removal_follow_foot_cell()
 
-	print("test_foot_cell_interaction: PASS")
 
 
 func _test_bubble_placement_uses_foot_cell() -> void:
@@ -122,5 +121,5 @@ func _has_event(events: Array, event_type: int) -> bool:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_foot_cell_interaction: FAIL - %s" % message)
+	assert_true(condition, message)
+

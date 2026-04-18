@@ -1,8 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const RoomResumeValidatorScript = preload("res://network/session/runtime/room_resume_validator.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class MockTicketClaim:
@@ -10,20 +9,18 @@ class MockTicketClaim:
 	var profile_id: String = ""
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_validate_accepts_matching_resume() and ok
 	ok = _test_validate_rejects_invalid_token() and ok
 	ok = _test_validate_rejects_account_mismatch() and ok
-	if ok:
-		print("room_resume_validator_test: PASS")
 
 
 func _test_validate_accepts_matching_resume() -> bool:
 	var fixture := _create_fixture()
 	var validator := RoomResumeValidatorScript.new()
 	var result := validator.validate(fixture["state"], fixture["message"], fixture["claim"])
-	return TestAssert.is_true(bool(result.get("ok", false)), "matching resume should validate", "room_resume_validator_test")
+	return qqt_check(bool(result.get("ok", false)), "matching resume should validate", "room_resume_validator_test")
 
 
 func _test_validate_rejects_invalid_token() -> bool:
@@ -32,7 +29,7 @@ func _test_validate_rejects_invalid_token() -> bool:
 	message["reconnect_token"] = "wrong_token"
 	var validator := RoomResumeValidatorScript.new()
 	var result := validator.validate(fixture["state"], message, fixture["claim"])
-	return TestAssert.is_true(String(result.get("error", "")) == "RECONNECT_TOKEN_INVALID", "invalid token should reject", "room_resume_validator_test")
+	return qqt_check(String(result.get("error", "")) == "RECONNECT_TOKEN_INVALID", "invalid token should reject", "room_resume_validator_test")
 
 
 func _test_validate_rejects_account_mismatch() -> bool:
@@ -41,7 +38,7 @@ func _test_validate_rejects_account_mismatch() -> bool:
 	claim.account_id = "other_account"
 	var validator := RoomResumeValidatorScript.new()
 	var result := validator.validate(fixture["state"], fixture["message"], claim)
-	return TestAssert.is_true(String(result.get("error", "")) == "ROOM_TICKET_ACCOUNT_MISMATCH", "account mismatch should reject", "room_resume_validator_test")
+	return qqt_check(String(result.get("error", "")) == "ROOM_TICKET_ACCOUNT_MISMATCH", "account mismatch should reject", "room_resume_validator_test")
 
 
 func _create_fixture() -> Dictionary:
@@ -62,3 +59,4 @@ func _create_fixture() -> Dictionary:
 			"match_id": "",
 		},
 	}
+

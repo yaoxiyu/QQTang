@@ -1,12 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
-
-signal test_finished
 
 
-func _ready() -> void:
+
+func test_main() -> void:
 	var service := ServerRoomServiceScript.new()
 	add_child(service)
 	var sent_messages: Array[Dictionary] = []
@@ -29,11 +27,9 @@ func _ready() -> void:
 	var latest : Dictionary = sent_messages.back().get("message", {}) if not sent_messages.is_empty() else {}
 	var prefix := "match_room_config_guard_test"
 	var ok := true
-	ok = TestAssert.is_true(String(service.room_state.match_format_id) == "2v2", "queueing room should keep previous format", prefix) and ok
-	ok = TestAssert.is_true(service.room_state.selected_match_mode_ids == ["mode_classic"], "queueing room should keep previous mode pool", prefix) and ok
-	ok = TestAssert.is_true(String(latest.get("message_type", "")) == "ROOM_MATCH_QUEUE_STATUS", "config guard should send queue status", prefix) and ok
-	ok = TestAssert.is_true(String(latest.get("error_code", "")) == "MATCH_ROOM_CONFIG_FORBIDDEN", "config guard should reject while queueing", prefix) and ok
+	ok = qqt_check(String(service.room_state.match_format_id) == "2v2", "queueing room should keep previous format", prefix) and ok
+	ok = qqt_check(service.room_state.selected_match_mode_ids == ["mode_classic"], "queueing room should keep previous mode pool", prefix) and ok
+	ok = qqt_check(String(latest.get("message_type", "")) == "ROOM_MATCH_QUEUE_STATUS", "config guard should send queue status", prefix) and ok
+	ok = qqt_check(String(latest.get("error_code", "")) == "MATCH_ROOM_CONFIG_FORBIDDEN", "config guard should reject while queueing", prefix) and ok
 	service.queue_free()
-	if ok:
-		print("match_room_config_guard_test: PASS")
-	test_finished.emit()
+

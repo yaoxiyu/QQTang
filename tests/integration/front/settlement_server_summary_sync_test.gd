@@ -1,11 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const SettlementControllerScript = preload("res://presentation/battle/hud/settlement_controller.gd")
 const SettlementSyncUseCaseScript = preload("res://app/front/settlement/settlement_sync_use_case.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeSettlementGateway:
@@ -41,7 +40,7 @@ class FakeSettlementGateway:
 		}
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var controller = _build_controller()
 	add_child(controller)
 	await get_tree().process_frame
@@ -67,12 +66,10 @@ func _ready() -> void:
 	var dump: Dictionary = controller.debug_dump_settlement_state()
 	var prefix := "settlement_server_summary_sync_test"
 	var ok := true
-	ok = TestAssert.is_true(String(dump.get("server_sync_text", "")) == "Server Sync: Synced", "server sync label should update", prefix) and ok
-	ok = TestAssert.is_true(String(dump.get("rating_delta_text", "")) == "Rating: +12 -> 1012", "rating label should refresh after server summary", prefix) and ok
-	ok = TestAssert.is_true(String(dump.get("reward_summary_text", "")).find("season_point 12") >= 0, "reward summary should include reward delta", prefix) and ok
-	ok = TestAssert.is_true(bool(dump.get("return_to_lobby_mode", false)), "matchmade settlement should switch to lobby return mode", prefix) and ok
-	if ok:
-		print("settlement_server_summary_sync_test: PASS")
+	ok = qqt_check(String(dump.get("server_sync_text", "")) == "Server Sync: Synced", "server sync label should update", prefix) and ok
+	ok = qqt_check(String(dump.get("rating_delta_text", "")) == "Rating: +12 -> 1012", "rating label should refresh after server summary", prefix) and ok
+	ok = qqt_check(String(dump.get("reward_summary_text", "")).find("season_point 12") >= 0, "reward summary should include reward delta", prefix) and ok
+	ok = qqt_check(bool(dump.get("return_to_lobby_mode", false)), "matchmade settlement should switch to lobby return mode", prefix) and ok
 
 
 func _build_controller() -> Control:
@@ -132,3 +129,4 @@ func _build_controller() -> Control:
 	rematch_button.name = "RematchButton"
 	action_row.add_child(rematch_button)
 	return controller
+

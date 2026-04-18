@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const CharacterAnimationSetCatalogScript = preload("res://content/character_animation_sets/catalog/character_animation_set_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
@@ -31,11 +31,11 @@ const REQUIRED_ANIMATIONS := [
 ]
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_required_files_exist()
 	_test_huoying_animation_set_contract()
 	_test_huoying_presentation_contract()
@@ -68,6 +68,6 @@ func _test_huoying_presentation_contract() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

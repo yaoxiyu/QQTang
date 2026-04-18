@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	mathrand "math/rand"
 	"strconv"
 	"strings"
@@ -306,14 +307,8 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 		return PartyQueueStatus{}, ErrAssignmentExpired
 	}
 	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
-	// Prefer BattleServerHost/Port (populated after DS allocation) over
-	// the default ServerHost/Port placeholder.
-	resolvedHost := assignment.ServerHost
-	resolvedPort := assignment.ServerPort
-	if assignment.BattleServerHost != "" && assignment.BattleServerPort > 0 {
-		resolvedHost = assignment.BattleServerHost
-		resolvedPort = assignment.BattleServerPort
-	}
+	resolvedHost, resolvedPort := resolveAssignmentServerEndpoint(assignment)
+	assignmentStatusText := resolveAssignmentStatusText(assignment, "Waiting for room ticket")
 	return PartyQueueStatus{
 		QueueState:             entry.State,
 		QueueEntryID:           entry.PartyQueueEntryID,
@@ -325,7 +320,7 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 		AssignmentID:           assignment.AssignmentID,
 		AssignmentRevision:     assignment.AssignmentRevision,
 		QueueStatusText:        "Match found",
-		AssignmentStatusText:   "Waiting for room ticket",
+		AssignmentStatusText:   assignmentStatusText,
 		EnqueueUnixSec:         entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec:   now.Unix(),
 		ExpiresAtUnixSec:       now.Unix() + int64(s.heartbeatTTL.Seconds()),
@@ -408,12 +403,8 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 		return QueueStatus{}, ErrAssignmentRevisionStale
 	}
 	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
-	resolvedHost := assignment.ServerHost
-	resolvedPort := assignment.ServerPort
-	if assignment.BattleServerHost != "" && assignment.BattleServerPort > 0 {
-		resolvedHost = assignment.BattleServerHost
-		resolvedPort = assignment.BattleServerPort
-	}
+	resolvedHost, resolvedPort := resolveAssignmentServerEndpoint(assignment)
+	assignmentStatusText := resolveAssignmentStatusText(assignment, "Waiting for ticket request")
 	return QueueStatus{
 		QueueState:             entry.State,
 		QueueEntryID:           entry.QueueEntryID,
@@ -421,7 +412,7 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 		AssignmentID:           assignment.AssignmentID,
 		AssignmentRevision:     assignment.AssignmentRevision,
 		QueueStatusText:        "Match found",
-		AssignmentStatusText:   "Waiting for ticket request",
+		AssignmentStatusText:   assignmentStatusText,
 		EnqueueUnixSec:         entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec:   now.Unix(),
 		ExpiresAtUnixSec:       now.Unix() + int64(s.heartbeatTTL.Seconds()),
@@ -605,12 +596,31 @@ func (s *Service) tryFormPartyAssignment(ctx context.Context, entry storage.Part
 			ExpectedMemberCount: pending.ExpectedMemberCount,
 		})
 		if err != nil {
-			// DS allocation failed — log but don't fail the queue entry.
-			// The assignment is still valid; room_service will detect
-			// BattleServerHost == "" and can retry or show error.
-			_ = err
-		} else {
-			_ = result
+			if s.assignmentRepo != nil {
+				markErr := s.assignmentRepo.MarkAllocationFailed(
+					ctx,
+					pending.AssignmentID,
+					pending.BattleID,
+					deriveAllocationErrorCode(err),
+					normalizeAllocationError(err),
+				)
+				if markErr != nil {
+					return fmt.Errorf("mark allocation failed state: %w", markErr)
+				}
+			}
+		} else if s.assignmentRepo != nil {
+			updateErr := s.assignmentRepo.UpdateAllocationState(
+				ctx,
+				pending.AssignmentID,
+				"allocated",
+				result.BattleID,
+				result.DSInstanceID,
+				result.ServerHost,
+				result.ServerPort,
+			)
+			if updateErr != nil {
+				return fmt.Errorf("update allocation state allocated: %w", updateErr)
+			}
 		}
 	}
 
@@ -1012,6 +1022,70 @@ func absInt(value int) int {
 		return -value
 	}
 	return value
+}
+
+func resolveAssignmentServerEndpoint(assignment storage.Assignment) (string, int) {
+	switch normalizeAllocationState(assignment.AllocationState) {
+	case "pending_allocate", "allocating", "alloc_failed":
+		return "", 0
+	}
+	if assignment.BattleServerHost != "" && assignment.BattleServerPort > 0 {
+		return assignment.BattleServerHost, assignment.BattleServerPort
+	}
+	return assignment.ServerHost, assignment.ServerPort
+}
+
+func resolveAssignmentStatusText(assignment storage.Assignment, defaultText string) string {
+	switch normalizeAllocationState(assignment.AllocationState) {
+	case "pending_allocate", "allocating":
+		return "Battle allocation in progress"
+	case "alloc_failed":
+		return "Battle allocation failed"
+	default:
+		return defaultText
+	}
+}
+
+func normalizeAllocationState(state string) string {
+	normalized := strings.TrimSpace(state)
+	if normalized == "" {
+		return "assigned"
+	}
+	if normalized == "allocation_failed" {
+		return "alloc_failed"
+	}
+	if normalized == "starting" {
+		return "allocated"
+	}
+	return normalized
+}
+
+func deriveAllocationErrorCode(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := strings.ToUpper(err.Error())
+	switch {
+	case strings.Contains(message, "TIMEOUT"):
+		return "MATCHMAKING_ALLOCATION_TIMEOUT"
+	case strings.Contains(message, "UNAVAILABLE"):
+		return "MATCHMAKING_ALLOCATION_UNAVAILABLE"
+	case strings.Contains(message, "CONFLICT"):
+		return "MATCHMAKING_ALLOCATION_CONFLICT"
+	default:
+		return "MATCHMAKING_ALLOCATION_FAILED"
+	}
+}
+
+func normalizeAllocationError(err error) string {
+	if err == nil {
+		return ""
+	}
+	message := strings.TrimSpace(err.Error())
+	if len(message) > 512 {
+		return message[:512]
+	}
+	return message
 }
 
 func (s *Service) reElectCaptainForStatusIfNeeded(ctx context.Context, assignment storage.Assignment, entry storage.QueueEntry, now time.Time) (storage.Assignment, storage.QueueEntry, error) {

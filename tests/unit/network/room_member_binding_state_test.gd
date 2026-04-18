@@ -1,13 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomMemberBindingStateScript = preload("res://network/session/runtime/room_member_binding_state.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_round_trip_preserves_resume_fields() and ok
-	if ok:
-		print("room_member_binding_state_test: PASS")
 
 
 func _test_round_trip_preserves_resume_fields() -> bool:
@@ -76,3 +74,4 @@ func _test_round_trip_preserves_resume_fields() -> bool:
 		print("FAIL: disconnect_deadline_msec mismatch")
 		return false
 	return true
+

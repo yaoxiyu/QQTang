@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	_assert(
 		RailConstraint.resolve_from_neighbors(true, true, false, false) == RailConstraint.Type.HORIZONTAL_RAIL,
 		"up and down blocked resolve to horizontal rail"
@@ -29,9 +29,8 @@ func _ready() -> void:
 		"vertical rail requires center before horizontal turn"
 	)
 
-	print("test_rail_constraint: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_rail_constraint: FAIL - %s" % message)
+	assert_true(condition, message)
+

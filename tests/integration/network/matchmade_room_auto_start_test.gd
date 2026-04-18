@@ -1,11 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const RoomTicketClaimScript = preload("res://network/session/auth/room_ticket_claim.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var service = ServerRoomServiceScript.new()
 	var started_snapshots: Array = []
 	service.start_match_requested.connect(func(snapshot): started_snapshots.append(snapshot))
@@ -28,7 +27,6 @@ func _ready() -> void:
 	service._maybe_auto_start_match()
 
 	var ok := true
-	ok = TestAssert.is_true(started_snapshots.size() == 1, "full matchmade room should auto start exactly once", "matchmade_room_auto_start_test") and ok
-	ok = TestAssert.is_true(service.room_state.is_matchmade_room, "room should stay in matchmade mode", "matchmade_room_auto_start_test") and ok
-	if ok:
-		print("matchmade_room_auto_start_test: PASS")
+	ok = qqt_check(started_snapshots.size() == 1, "full matchmade room should auto start exactly once", "matchmade_room_auto_start_test") and ok
+	ok = qqt_check(service.room_state.is_matchmade_room, "room should stay in matchmade mode", "matchmade_room_auto_start_test") and ok
+

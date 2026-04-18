@@ -1,14 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const BattleExplosionConfigBuilder = preload("res://gameplay/battle/config/battle_explosion_config_builder.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_bubble_chain_resolves_in_same_tick() and ok
-	if ok:
-		print("explosion_chain_reaction_test: PASS")
 
 
 func _test_bubble_chain_resolves_in_same_tick() -> bool:
@@ -27,10 +24,10 @@ func _test_bubble_chain_resolves_in_same_tick() -> bool:
 
 	var prefix := "explosion_chain_reaction_test"
 	var ok := true
-	ok = TestAssert.is_true(world.state.bubbles.get_bubble(bubble_a) != null and not world.state.bubbles.get_bubble(bubble_a).alive, "source bubble should explode", prefix) and ok
-	ok = TestAssert.is_true(world.state.bubbles.get_bubble(bubble_b) != null and not world.state.bubbles.get_bubble(bubble_b).alive, "chained bubble should also explode in same tick", prefix) and ok
-	ok = TestAssert.is_true(exploded_bubble_ids.size() == 2, "same tick chain should emit two BUBBLE_EXPLODED events", prefix) and ok
-	ok = TestAssert.is_true(exploded_bubble_ids.count(bubble_a) == 1 and exploded_bubble_ids.count(bubble_b) == 1, "each chained bubble should explode exactly once", prefix) and ok
+	ok = qqt_check(world.state.bubbles.get_bubble(bubble_a) != null and not world.state.bubbles.get_bubble(bubble_a).alive, "source bubble should explode", prefix) and ok
+	ok = qqt_check(world.state.bubbles.get_bubble(bubble_b) != null and not world.state.bubbles.get_bubble(bubble_b).alive, "chained bubble should also explode in same tick", prefix) and ok
+	ok = qqt_check(exploded_bubble_ids.size() == 2, "same tick chain should emit two BUBBLE_EXPLODED events", prefix) and ok
+	ok = qqt_check(exploded_bubble_ids.count(bubble_a) == 1 and exploded_bubble_ids.count(bubble_b) == 1, "each chained bubble should explode exactly once", prefix) and ok
 	world.dispose()
 	return ok
 
@@ -45,3 +42,4 @@ func _make_world() -> SimWorld:
 		"#######",
 	])})
 	return world
+

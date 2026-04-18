@@ -1,16 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_reconnect_ticket_stores_public_room_kind() and ok
 	ok = _test_lobby_view_state_carries_reconnect_kind() and ok
 	ok = _test_reconnect_ticket_serialization_round_trip() and ok
-	if ok:
-		print("lobby_reconnect_public_room_test: PASS")
 
 
 func _test_reconnect_ticket_stores_public_room_kind() -> bool:
@@ -100,3 +98,4 @@ func _test_reconnect_ticket_serialization_round_trip() -> bool:
 		print("FAIL: reconnect_token should not be restored from serialized settings")
 		return false
 	return true
+

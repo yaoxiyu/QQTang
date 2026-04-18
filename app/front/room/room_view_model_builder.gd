@@ -397,6 +397,13 @@ func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count:
 	var queue_state := String(snapshot.room_queue_state)
 	if queue_state != "idle" and queue_state != "cancelled":
 		return false
+	if snapshot.selected_match_mode_ids.is_empty():
+		return false
+	var required_party_size := int(snapshot.required_party_size)
+	if required_party_size <= 0:
+		required_party_size = 1
+	if member_count != required_party_size:
+		return false
 	if not bool(snapshot.all_ready):
 		return false
 	return true

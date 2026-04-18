@@ -1,9 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeRoomTicketGateway:
@@ -25,11 +23,11 @@ class FakeRoomTicketGateway:
 		return result
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -66,18 +64,17 @@ func run_all() -> void:
 
 	var prefix := "room_resume_with_auth_and_member_ticket_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(resume_result.get("ok", false)), "resume_recent_room should succeed", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and bool(entry_context.use_resume_flow), "entry context should enable resume flow", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and String(entry_context.reconnect_member_id) == "member_alpha", "entry context should keep member id", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and String(entry_context.room_ticket) == "ticket_resume_alpha", "entry context should include resume ticket", prefix) and ok
-	ok = TestAssert.is_true(bool(room_result.get("pending", false)), "resume room should enter pending flow", prefix) and ok
-	ok = TestAssert.is_true(runtime.room_use_case._pending_connection_config != null, "pending config should exist", prefix) and ok
+	ok = qqt_check(bool(resume_result.get("ok", false)), "resume_recent_room should succeed", prefix) and ok
+	ok = qqt_check(entry_context != null and bool(entry_context.use_resume_flow), "entry context should enable resume flow", prefix) and ok
+	ok = qqt_check(entry_context != null and String(entry_context.reconnect_member_id) == "member_alpha", "entry context should keep member id", prefix) and ok
+	ok = qqt_check(entry_context != null and String(entry_context.room_ticket) == "ticket_resume_alpha", "entry context should include resume ticket", prefix) and ok
+	ok = qqt_check(bool(room_result.get("pending", false)), "resume room should enter pending flow", prefix) and ok
+	ok = qqt_check(runtime.room_use_case._pending_connection_config != null, "pending config should exist", prefix) and ok
 	if runtime.room_use_case._pending_connection_config != null:
-		ok = TestAssert.is_true(String(runtime.room_use_case._pending_connection_config.room_ticket) == "ticket_resume_alpha", "pending config should carry resume ticket", prefix) and ok
-		ok = TestAssert.is_true(String(runtime.room_use_case._pending_connection_config.account_id) == "account_alpha", "pending config should carry account id", prefix) and ok
-		ok = TestAssert.is_true(String(runtime.room_use_case._pending_connection_config.device_session_id) == "dsess_alpha", "pending config should carry device session", prefix) and ok
+		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.room_ticket) == "ticket_resume_alpha", "pending config should carry resume ticket", prefix) and ok
+		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.account_id) == "account_alpha", "pending config should carry account id", prefix) and ok
+		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.device_session_id) == "dsess_alpha", "pending config should carry device session", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("room_resume_with_auth_and_member_ticket_test: PASS")
-	test_finished.emit()
+
+

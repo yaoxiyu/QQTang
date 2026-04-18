@@ -1,19 +1,16 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const BATTLE_TICKET_SECRET := "dev_battle_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_verify_success() and ok
 	ok = _test_verify_rejects_missing_token() and ok
 	ok = _test_verify_rejects_battle_mismatch() and ok
 	ok = _test_verify_rejects_expired_token() and ok
-	if ok:
-		print("battle_ticket_verifier_test: PASS")
 
 
 func _test_verify_success() -> bool:
@@ -21,14 +18,14 @@ func _test_verify_success() -> bool:
 	verifier.configure(BATTLE_TICKET_SECRET)
 	var message := _build_message("assign_001", "battle_001", "account_1", "profile_1", int(Time.get_unix_time_from_system()) + 60)
 	var result := verifier.verify_entry_ticket(message, "battle_001", _build_manifest())
-	return TestAssert.is_true(bool(result.get("ok", false)), "valid battle ticket should pass", "battle_ticket_verifier_test")
+	return qqt_check(bool(result.get("ok", false)), "valid battle ticket should pass", "battle_ticket_verifier_test")
 
 
 func _test_verify_rejects_missing_token() -> bool:
 	var verifier = BattleTicketVerifierScript.new()
 	verifier.configure(BATTLE_TICKET_SECRET)
 	var result := verifier.verify_entry_ticket({}, "battle_001", _build_manifest())
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_TICKET_MISSING", "missing battle ticket should reject", "battle_ticket_verifier_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_TICKET_MISSING", "missing battle ticket should reject", "battle_ticket_verifier_test")
 
 
 func _test_verify_rejects_battle_mismatch() -> bool:
@@ -36,7 +33,7 @@ func _test_verify_rejects_battle_mismatch() -> bool:
 	verifier.configure(BATTLE_TICKET_SECRET)
 	var message := _build_message("assign_001", "battle_002", "account_1", "profile_1", int(Time.get_unix_time_from_system()) + 60)
 	var result := verifier.verify_entry_ticket(message, "battle_001", _build_manifest())
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle id mismatch should reject", "battle_ticket_verifier_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle id mismatch should reject", "battle_ticket_verifier_test")
 
 
 func _test_verify_rejects_expired_token() -> bool:
@@ -44,7 +41,7 @@ func _test_verify_rejects_expired_token() -> bool:
 	verifier.configure(BATTLE_TICKET_SECRET)
 	var message := _build_message("assign_001", "battle_001", "account_1", "profile_1", int(Time.get_unix_time_from_system()) - 1)
 	var result := verifier.verify_entry_ticket(message, "battle_001", _build_manifest())
-	return TestAssert.is_true(String(result.get("error_code", "")) == "BATTLE_TICKET_EXPIRED", "expired battle ticket should reject", "battle_ticket_verifier_test")
+	return qqt_check(String(result.get("error_code", "")) == "BATTLE_TICKET_EXPIRED", "expired battle ticket should reject", "battle_ticket_verifier_test")
 
 
 func _build_manifest() -> Dictionary:
@@ -93,3 +90,4 @@ func _build_message(assignment_id: String, battle_id: String, account_id: String
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

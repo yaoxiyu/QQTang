@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const PredictionControllerScript = preload("res://gameplay/network/prediction/prediction_controller.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var predicted_world := _build_world(8080)
 	var snapshot_service := SnapshotService.new()
 	var local_input_buffer := InputRingBuffer.new(16)
@@ -62,7 +62,6 @@ func _ready() -> void:
 	authority_world.dispose()
 	expected_world.dispose()
 
-	print("test_prediction_controller: PASS")
 
 
 func _build_world(seed: int) -> SimWorld:
@@ -88,6 +87,6 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_prediction_controller: FAIL - %s" % message)
+	assert_true(condition, message)
+
 

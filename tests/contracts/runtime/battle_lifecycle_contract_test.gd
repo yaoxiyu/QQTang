@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
@@ -9,11 +9,11 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_battle_session_adapter_lifecycle_transitions()
 	_test_shutdown_resets_runtime_metrics_and_debug_state()
 	_test_app_root_dump_reports_battle_lifecycle()
@@ -133,7 +133,7 @@ func _make_config() -> BattleStartConfig:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+
+

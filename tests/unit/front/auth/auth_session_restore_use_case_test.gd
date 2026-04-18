@@ -1,8 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const RefreshSessionResultScript = preload("res://app/front/auth/refresh_session_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeAuthGateway:
@@ -56,7 +55,7 @@ class FakeProfileGateway:
 		}
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -75,12 +74,11 @@ func _ready() -> void:
 
 	var prefix := "auth_session_restore_use_case_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "restore should succeed", prefix) and ok
-	ok = TestAssert.is_true(String(result.get("next_route", "")) == "lobby", "restore should route to lobby", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.auth_session_state.access_token) == "access_restore", "restore should refresh access token", prefix) and ok
-	ok = TestAssert.is_true(runtime.player_profile_state.owned_character_ids == ["character_default"], "restore should sync owned characters", prefix) and ok
-	ok = TestAssert.is_true(int(runtime.player_profile_state.profile_version) == 5, "restore should sync profile version", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "restore should succeed", prefix) and ok
+	ok = qqt_check(String(result.get("next_route", "")) == "lobby", "restore should route to lobby", prefix) and ok
+	ok = qqt_check(String(runtime.auth_session_state.access_token) == "access_restore", "restore should refresh access token", prefix) and ok
+	ok = qqt_check(runtime.player_profile_state.owned_character_ids == ["character_default"], "restore should sync owned characters", prefix) and ok
+	ok = qqt_check(int(runtime.player_profile_state.profile_version) == 5, "restore should sync profile version", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("auth_session_restore_use_case_test: PASS")
+

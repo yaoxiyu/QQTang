@@ -1,22 +1,19 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_active_match_disconnect_enters_resume_window() and ok
 	ok = _test_resume_accept_uses_new_transport_and_old_control_peer() and ok
-	if ok:
-		print("active_match_disconnect_no_immediate_abort_test: PASS")
 
 
 func _test_active_match_disconnect_enters_resume_window() -> bool:
@@ -26,17 +23,17 @@ func _test_active_match_disconnect_enters_resume_window() -> bool:
 	var prefix := "active_match_disconnect_no_immediate_abort_test"
 	var ok := true
 
-	ok = TestAssert.is_true(runtime.is_match_active(), "match should be active before disconnect", prefix) and ok
+	ok = qqt_check(runtime.is_match_active(), "match should be active before disconnect", prefix) and ok
 	runtime.handle_peer_disconnected(3)
-	ok = TestAssert.is_true(runtime.is_match_active(), "active match disconnect should not immediately abort", prefix) and ok
+	ok = qqt_check(runtime.is_match_active(), "active match disconnect should not immediately abort", prefix) and ok
 
 	var snapshot := _latest_room_snapshot(broadcasts)
-	ok = TestAssert.is_true(snapshot != null, "disconnect should broadcast a room snapshot", prefix) and ok
+	ok = qqt_check(snapshot != null, "disconnect should broadcast a room snapshot", prefix) and ok
 	if snapshot != null:
 		var member := _find_member(snapshot, 3)
-		ok = TestAssert.is_true(member != null, "disconnected member should remain in snapshot", prefix) and ok
+		ok = qqt_check(member != null, "disconnected member should remain in snapshot", prefix) and ok
 		if member != null:
-			ok = TestAssert.is_true(member.connection_state == "disconnected", "member connection_state should be disconnected", prefix) and ok
+			ok = qqt_check(member.connection_state == "disconnected", "member connection_state should be disconnected", prefix) and ok
 
 	runtime.queue_free()
 	return ok
@@ -50,7 +47,7 @@ func _test_resume_accept_uses_new_transport_and_old_control_peer() -> bool:
 	var ok := true
 
 	var member_session := _find_member_session(sent, 3)
-	ok = TestAssert.is_true(not member_session.is_empty(), "peer should receive member session", prefix) and ok
+	ok = qqt_check(not member_session.is_empty(), "peer should receive member session", prefix) and ok
 	runtime.handle_peer_disconnected(3)
 	var resume_ticket := _make_ticket(9, "resume", "LegacyMigration_room", String(fixture["match_id"]))
 	runtime.handle_room_message({
@@ -68,14 +65,14 @@ func _test_resume_accept_uses_new_transport_and_old_control_peer() -> bool:
 	})
 
 	var accepted := _find_message_to_peer(sent, 9, TransportMessageTypesScript.MATCH_RESUME_ACCEPTED)
-	ok = TestAssert.is_true(not accepted.is_empty(), "resume request should receive MATCH_RESUME_ACCEPTED", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "resume request should receive MATCH_RESUME_ACCEPTED", prefix) and ok
 	if not accepted.is_empty():
 		var start_config: Dictionary = accepted.get("start_config", {})
 		var resume_snapshot: Dictionary = accepted.get("resume_snapshot", {})
-		ok = TestAssert.is_true(int(start_config.get("local_peer_id", 0)) == 9, "resume config local_peer_id should be new transport peer", prefix) and ok
-		ok = TestAssert.is_true(int(start_config.get("controlled_peer_id", 0)) == 3, "resume config controlled_peer_id should stay on original battle peer", prefix) and ok
-		ok = TestAssert.is_true(int(resume_snapshot.get("controlled_peer_id", 0)) == 3, "resume snapshot should preserve controlled peer", prefix) and ok
-		ok = TestAssert.is_true(not Dictionary(resume_snapshot.get("checkpoint_message", {})).is_empty(), "resume snapshot should include checkpoint payload", prefix) and ok
+		ok = qqt_check(int(start_config.get("local_peer_id", 0)) == 9, "resume config local_peer_id should be new transport peer", prefix) and ok
+		ok = qqt_check(int(start_config.get("controlled_peer_id", 0)) == 3, "resume config controlled_peer_id should stay on original battle peer", prefix) and ok
+		ok = qqt_check(int(resume_snapshot.get("controlled_peer_id", 0)) == 3, "resume snapshot should preserve controlled peer", prefix) and ok
+		ok = qqt_check(not Dictionary(resume_snapshot.get("checkpoint_message", {})).is_empty(), "resume snapshot should include checkpoint payload", prefix) and ok
 
 	runtime.queue_free()
 	return ok
@@ -237,3 +234,4 @@ func _sign_ticket(encoded_payload: String) -> String:
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

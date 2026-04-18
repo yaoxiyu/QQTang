@@ -1,23 +1,18 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
-
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+
+func test_main() -> void:
+	call_deferred("_main_body")
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var ok := await _test_lobby_renders_public_room_directory_without_auto_connect()
-	if ok:
-		print("lobby_public_room_directory_flow_test: PASS")
-	test_finished.emit()
 
 
 func _test_lobby_renders_public_room_directory_without_auto_connect() -> bool:
@@ -39,15 +34,15 @@ func _test_lobby_renders_public_room_directory_without_auto_connect() -> bool:
 
 	var prefix := "lobby_public_room_directory_flow_test"
 	var ok := true
-	ok = TestAssert.is_true(runtime.client_room_runtime._connecting == false, "entering lobby should not auto-connect directory transport", prefix) and ok
-	ok = TestAssert.is_true(runtime.client_room_runtime._directory_subscribed == false, "entering lobby should not auto-subscribe directory", prefix) and ok
-	ok = TestAssert.is_true(lobby_scene.public_room_list != null and lobby_scene.public_room_list.item_count == 1, "lobby should render one public room entry", prefix) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(runtime.client_room_runtime._connecting == false, "entering lobby should not auto-connect directory transport", prefix) and ok
+	ok = qqt_check(runtime.client_room_runtime._directory_subscribed == false, "entering lobby should not auto-subscribe directory", prefix) and ok
+	ok = qqt_check(lobby_scene.public_room_list != null and lobby_scene.public_room_list.item_count == 1, "lobby should render one public room entry", prefix) and ok
+	ok = qqt_check(
 		String(lobby_scene.public_room_list.get_item_metadata(0)) == "ROOM-PUBLIC-1",
 		"public room list metadata should keep room id",
 		prefix
 	) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(
 		String(lobby_scene.directory_status_label.text).contains("Loaded 1 public room"),
 		"directory status should report loaded public rooms",
 		prefix

@@ -1,16 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
-
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -28,11 +26,10 @@ func run_all() -> void:
 
 	var prefix := "rejected_resume_after_logout_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(logout_result.get("ok", false)), "logout should succeed", prefix) and ok
-	ok = TestAssert.is_true(not bool(resume_result.get("ok", true)), "resume should fail after logout", prefix) and ok
-	ok = TestAssert.is_true(String(resume_result.get("error_code", "")) == "RECONNECT_ROOM_MISSING", "resume should fail because reconnect state was cleared", prefix) and ok
+	ok = qqt_check(bool(logout_result.get("ok", false)), "logout should succeed", prefix) and ok
+	ok = qqt_check(not bool(resume_result.get("ok", true)), "resume should fail after logout", prefix) and ok
+	ok = qqt_check(String(resume_result.get("error_code", "")) == "RECONNECT_ROOM_MISSING", "resume should fail because reconnect state was cleared", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("rejected_resume_after_logout_test: PASS")
-	test_finished.emit()
+
+

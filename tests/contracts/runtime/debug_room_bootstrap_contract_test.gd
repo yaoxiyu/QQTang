@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
@@ -9,11 +9,11 @@ const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
 const ROOM_SCENE_CONTROLLER_PATH := "res://scenes/front/room_scene_controller.gd"
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_debug_on_bootstraps_local_loop_room()
 	_test_debug_off_does_not_bootstrap_remote_member()
 	_test_manual_local_loop_room_supports_explicit_single_player_start()
@@ -145,6 +145,6 @@ func _find_member(snapshot, peer_id: int):
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

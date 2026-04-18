@@ -1,8 +1,8 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 var world: SimWorld
 
-func _ready() -> void:
+func test_main() -> void:
 	world = SimWorld.new()
 	world.bootstrap(SimConfig.new(), {"grid": BuiltinMapFactory.build_basic_map()})
 
@@ -15,13 +15,11 @@ func _ready() -> void:
 	var victim := world.state.players.get_player(victim_id)
 	_assert(attacker != null and victim != null, "players should exist")
 
-	# 将 victim 放到攻击者右侧一格，确保爆炸可命中
-	victim.cell_x = attacker.cell_x + 1
+	# 将 victim 放到攻击者右侧一格，确保爆炸可命中	victim.cell_x = attacker.cell_x + 1
 	victim.cell_y = attacker.cell_y
 	world.state.players.update_player(victim)
 	world.state.indexes.rebuild_from_state(world.state)
 
-	# 攻击者放泡
 	var place_frame := InputFrame.new()
 	place_frame.tick = world.state.match_state.tick + 1
 	var place_cmd := PlayerCommand.new()
@@ -50,7 +48,6 @@ func _ready() -> void:
 	_assert(killed, "player killed event should be emitted")
 	_assert(world.state.match_state.phase == MatchState.Phase.ENDED, "match should end after one survivor")
 
-	print("test_system_flow: PASS")
 
 func _has_event(events: Array, event_type: int) -> bool:
 	for event in events:
@@ -59,5 +56,5 @@ func _has_event(events: Array, event_type: int) -> bool:
 	return false
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_system_flow: FAIL - %s" % message)
+	assert_true(condition, message)
+

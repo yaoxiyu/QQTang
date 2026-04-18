@@ -18,421 +18,432 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="MainLayout" type="VBoxContainer" parent="RoomRoot" unique_id=1871591409]
-layout_mode = 0
-offset_left = 48.0
-offset_top = 36.0
-offset_right = 1020.0
-offset_bottom = 684.0
-theme_override_constants/separation = 16
+[node name="RoomScroll" type="ScrollContainer" parent="RoomRoot" unique_id=250086039]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+follow_focus = true
 
-[node name="TopBar" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=355980414]
+[node name="MainLayout" type="VBoxContainer" parent="RoomRoot/RoomScroll" unique_id=1871591409]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="BackToLobbyButton" type="Button" parent="RoomRoot/MainLayout/TopBar" unique_id=1012332809]
+[node name="TopBar" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=355980414]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BackToLobbyButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/TopBar" unique_id=1012332809]
 custom_minimum_size = Vector2(96, 44)
 layout_mode = 2
 text = "Back"
 
-[node name="TitleLabel" type="Label" parent="RoomRoot/MainLayout/TopBar" unique_id=948189458]
+[node name="TitleLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/TopBar" unique_id=948189458]
 layout_mode = 2
 text = "QQTang Room"
 
-[node name="TopBarSpacer" type="Control" parent="RoomRoot/MainLayout/TopBar" unique_id=394879549]
+[node name="TopBarSpacer" type="Control" parent="RoomRoot/RoomScroll/MainLayout/TopBar" unique_id=394879549]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RoomMetaLabel" type="Label" parent="RoomRoot/MainLayout/TopBar" unique_id=2123714362]
+[node name="RoomMetaLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/TopBar" unique_id=2123714362]
 custom_minimum_size = Vector2(260, 0)
 layout_mode = 2
 horizontal_alignment = 2
 
-[node name="SummaryCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1101008515]
+[node name="SummaryCard" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=1101008515]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="SummaryVBox" type="VBoxContainer" parent="RoomRoot/MainLayout/SummaryCard" unique_id=1673156833]
+[node name="SummaryVBox" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard" unique_id=1673156833]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="RoomKindLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=560789466]
+[node name="RoomKindLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=560789466]
 layout_mode = 2
 
-[node name="RoomDisplayNameLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=481305152]
+[node name="RoomDisplayNameLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=481305152]
 layout_mode = 2
 autowrap_mode = 2
 
-[node name="RoomIdRow" type="HBoxContainer" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=352480011]
+[node name="RoomIdRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=352480011]
 layout_mode = 2
 
-[node name="RoomIdValueLabel" type="LineEdit" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow" unique_id=1163507156]
+[node name="RoomIdValueLabel" type="LineEdit" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow" unique_id=1163507156]
 layout_mode = 2
 size_flags_horizontal = 3
 editable = false
 select_all_on_focus = true
 
-[node name="ConnectionStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=140237068]
+[node name="ConnectionStatusLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=140237068]
 layout_mode = 2
 
-[node name="LifecycleStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=634236997]
+[node name="LifecycleStatusLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=634236997]
 layout_mode = 2
 text = "Lifecycle: IN_ROOM"
 autowrap_mode = 3
 
-[node name="AuthBindingLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=901602496]
+[node name="AuthBindingLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=901602496]
 layout_mode = 2
 text = "Identity Binding: -"
 autowrap_mode = 2
 
-[node name="OwnerLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1526305193]
+[node name="OwnerLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=1526305193]
 layout_mode = 2
 
-[node name="BlockerLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=780472982]
+[node name="BlockerLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=780472982]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="PendingActionStatusLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=2093751148]
+[node name="PendingActionStatusLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=2093751148]
 layout_mode = 2
 text = "Pending Action: -"
 autowrap_mode = 3
 
-[node name="ReconnectWindowLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1531977655]
+[node name="ReconnectWindowLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=1531977655]
 layout_mode = 2
 text = "Reconnect Window: -"
 autowrap_mode = 3
 
-[node name="ActiveMatchResumeLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=655663464]
+[node name="ActiveMatchResumeLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=655663464]
 layout_mode = 2
 text = "Active Match Resume: -"
 autowrap_mode = 3
 
-[node name="RoomServiceEndpointLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1629577792]
+[node name="RoomServiceEndpointLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=1629577792]
 layout_mode = 2
 text = "Room Service Endpoint: -"
 autowrap_mode = 2
 
-[node name="BattleAssignmentLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=578085822]
+[node name="BattleAssignmentLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=578085822]
 layout_mode = 2
 text = "Battle Assignment: -"
 autowrap_mode = 2
 
-[node name="BattleEndpointLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=1113552038]
+[node name="BattleEndpointLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=1113552038]
 layout_mode = 2
 text = "Battle Endpoint: -"
 autowrap_mode = 2
 
-[node name="ReturnPolicyLabel" type="Label" parent="RoomRoot/MainLayout/SummaryCard/SummaryVBox" unique_id=135612625]
+[node name="ReturnPolicyLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox" unique_id=135612625]
 layout_mode = 2
 text = "Return Policy: return_to_source_room"
 autowrap_mode = 2
 
-[node name="LocalLoadoutCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=355255835]
+[node name="LocalLoadoutCard" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=355255835]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="LocalLoadoutVBox" type="VBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard" unique_id=1463991410]
+[node name="LocalLoadoutVBox" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard" unique_id=1463991410]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PlayerNameRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=2014579626]
+[node name="PlayerNameRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=2014579626]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="PlayerNameLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow" unique_id=864433977]
+[node name="PlayerNameLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow" unique_id=864433977]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Player Name"
 
-[node name="PlayerNameInput" type="LineEdit" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow" unique_id=1245757637]
+[node name="PlayerNameInput" type="LineEdit" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow" unique_id=1245757637]
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Player1"
 
-[node name="TeamRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1242409935]
+[node name="TeamRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1242409935]
 layout_mode = 2
 
-[node name="TeamLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1175612843]
+[node name="TeamLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1175612843]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Team"
 
-[node name="TeamSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1943633966]
+[node name="TeamSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow" unique_id=1943633966]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CharacterRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1078189335]
+[node name="CharacterRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1078189335]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="CharacterLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow" unique_id=1802107542]
+[node name="CharacterLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow" unique_id=1802107542]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Character"
 
-[node name="CharacterSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow" unique_id=421623656]
+[node name="CharacterSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow" unique_id=421623656]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="CharacterSkinRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=2080254586]
+[node name="CharacterSkinRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=2080254586]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow" unique_id=168821064]
+[node name="CharacterSkinLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow" unique_id=168821064]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Character Skin"
 
-[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow" unique_id=281872261]
+[node name="CharacterSkinSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow" unique_id=281872261]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BubbleRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1455382183]
+[node name="BubbleRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=1455382183]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="BubbleLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow" unique_id=1008246540]
+[node name="BubbleLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow" unique_id=1008246540]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Bubble"
 
-[node name="BubbleSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow" unique_id=1557916784]
+[node name="BubbleSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow" unique_id=1557916784]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="BubbleSkinRow" type="HBoxContainer" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=875408836]
+[node name="BubbleSkinRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox" unique_id=875408836]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow" unique_id=1690344430]
+[node name="BubbleSkinLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow" unique_id=1690344430]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Bubble Skin"
 
-[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow" unique_id=393280920]
+[node name="BubbleSkinSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow" unique_id=393280920]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RoomSelectionCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=442865594]
+[node name="RoomSelectionCard" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=442865594]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RoomSelectionVBox" type="VBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard" unique_id=266707419]
+[node name="RoomSelectionVBox" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard" unique_id=266707419]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="MapRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1420102462]
+[node name="MapRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1420102462]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="MapLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow" unique_id=404647551]
+[node name="MapLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow" unique_id=404647551]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Map"
 
-[node name="MapSelector" type="OptionButton" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow" unique_id=589947758]
+[node name="MapSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow" unique_id=589947758]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RuleRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=2075725838]
+[node name="RuleRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=2075725838]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="RuleLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=551064071]
+[node name="RuleLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=551064071]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Rule"
 
-[node name="RuleValueLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=615274748]
+[node name="RuleValueLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow" unique_id=615274748]
 layout_mode = 2
 
-[node name="ModeRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1168006238]
+[node name="ModeRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1168006238]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="GameModeLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow" unique_id=1267611511]
+[node name="GameModeLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow" unique_id=1267611511]
 custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 text = "Mode"
 
-[node name="GameModeSelector" type="OptionButton" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow" unique_id=721784724]
+[node name="GameModeSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow" unique_id=721784724]
 custom_minimum_size = Vector2(180, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MatchFormatRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=212404316]
+[node name="MatchFormatRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=212404316]
 layout_mode = 2
 
-[node name="MatchFormatLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=301372241]
+[node name="MatchFormatLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=301372241]
 layout_mode = 2
 
-[node name="MatchFormatSelector" type="OptionButton" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=1629720085]
+[node name="MatchFormatSelector" type="OptionButton" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow" unique_id=1629720085]
 layout_mode = 2
 
-[node name="MatchModeRow" type="VBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1876673512]
+[node name="MatchModeRow" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1876673512]
 layout_mode = 2
 
-[node name="MatchModeLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1474312521]
+[node name="MatchModeLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1474312521]
 layout_mode = 2
 
-[node name="MatchModeMultiSelect" type="ItemList" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=719655817]
+[node name="MatchModeMultiSelect" type="ItemList" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=719655817]
 layout_mode = 2
 select_mode = 1
 allow_reselect = true
 
-[node name="EligibleMapPoolHintLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1809312294]
+[node name="EligibleMapPoolHintLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow" unique_id=1809312294]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="InviteRow" type="HBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1322086230]
+[node name="InviteRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=1322086230]
 layout_mode = 2
 
-[node name="InviteCodeLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=2024142766]
+[node name="InviteCodeLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=2024142766]
 layout_mode = 2
 
-[node name="InviteCodeValueLabel" type="LineEdit" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=1539701790]
+[node name="InviteCodeValueLabel" type="LineEdit" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=1539701790]
 layout_mode = 2
 editable = false
 
-[node name="CopyInviteCodeButton" type="Button" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=320840306]
+[node name="CopyInviteCodeButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow" unique_id=320840306]
 layout_mode = 2
 text = "复制邀请码"
 
-[node name="QueueStatusRow" type="VBoxContainer" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=2001734952]
+[node name="QueueStatusRow" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox" unique_id=2001734952]
 layout_mode = 2
 
-[node name="QueueStatusLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1392619934]
+[node name="QueueStatusLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1392619934]
 layout_mode = 2
 
-[node name="QueueErrorLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=444087796]
+[node name="QueueErrorLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=444087796]
 layout_mode = 2
 
-[node name="BattleAllocationStatusLabel" type="Label" parent="RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1956393451]
+[node name="BattleAllocationStatusLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow" unique_id=1956393451]
 layout_mode = 2
 text = "Battle Allocation: idle"
 
-[node name="MemberCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=2068653707]
+[node name="MemberCard" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=2068653707]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="MemberVBox" type="VBoxContainer" parent="RoomRoot/MainLayout/MemberCard" unique_id=400798338]
+[node name="MemberVBox" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/MemberCard" unique_id=400798338]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MemberTitleLabel" type="Label" parent="RoomRoot/MainLayout/MemberCard/MemberVBox" unique_id=232006159]
+[node name="MemberTitleLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/MemberCard/MemberVBox" unique_id=232006159]
 layout_mode = 2
 text = "Members"
 
-[node name="MemberList" type="VBoxContainer" parent="RoomRoot/MainLayout/MemberCard/MemberVBox" unique_id=996760114]
+[node name="MemberList" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/MemberCard/MemberVBox" unique_id=996760114]
 layout_mode = 2
 
-[node name="PreviewCard" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=454643609]
+[node name="PreviewCard" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=454643609]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="PreviewVBox" type="VBoxContainer" parent="RoomRoot/MainLayout/PreviewCard" unique_id=1766913185]
+[node name="PreviewVBox" type="VBoxContainer" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard" unique_id=1766913185]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="MapPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1610457715]
+[node name="MapPreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1610457715]
 layout_mode = 2
 text = "Map:"
 
-[node name="RulePreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1071477023]
+[node name="RulePreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1071477023]
 layout_mode = 2
 text = "Rule:"
 
-[node name="ModePreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=715664864]
+[node name="ModePreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=715664864]
 layout_mode = 2
 text = "Mode:"
 
-[node name="TeamPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=420797555]
+[node name="TeamPreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=420797555]
 layout_mode = 2
 text = "Team: -"
 
-[node name="CharacterPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1736853671]
+[node name="CharacterPreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1736853671]
 layout_mode = 2
 text = "Character:"
 
-[node name="CharacterPreviewViewport" type="SubViewportContainer" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1675097275]
+[node name="CharacterPreviewViewport" type="SubViewportContainer" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1675097275]
 custom_minimum_size = Vector2(180, 180)
 layout_mode = 2
 script = ExtResource("3_xxaqq")
 metadata/_custom_type_script = "uid://dk0j54lci1uh7"
 
-[node name="PreviewViewport" type="SubViewport" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport" unique_id=1325659001]
+[node name="PreviewViewport" type="SubViewport" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport" unique_id=1325659001]
 disable_3d = true
 transparent_bg = true
 handle_input_locally = false
 size = Vector2i(180, 180)
 render_target_update_mode = 4
 
-[node name="PreviewRoot" type="Node2D" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport/PreviewViewport" unique_id=1034659224]
+[node name="PreviewRoot" type="Node2D" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport/PreviewViewport" unique_id=1034659224]
 
-[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=2062597413]
+[node name="CharacterSkinPreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=2062597413]
 layout_mode = 2
 text = "Character Skin:"
 
-[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1425951186]
+[node name="CharacterSkinIcon" type="TextureRect" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1425951186]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 expand_mode = 3
 stretch_mode = 3
 
-[node name="BubblePreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=999402915]
+[node name="BubblePreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=999402915]
 layout_mode = 2
 text = "Bubble:"
 
-[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=1405270488]
+[node name="BubbleSkinPreviewLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=1405270488]
 layout_mode = 2
 text = "Bubble Skin:"
 
-[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/MainLayout/PreviewCard/PreviewVBox" unique_id=319758517]
+[node name="BubbleSkinIcon" type="TextureRect" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox" unique_id=319758517]
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 expand_mode = 3
 stretch_mode = 3
 
-[node name="ActionRow" type="HBoxContainer" parent="RoomRoot/MainLayout" unique_id=1552396179]
+[node name="ActionRow" type="HBoxContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=1552396179]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="LeaveRoomButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=1873197572]
+[node name="LeaveRoomButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=1873197572]
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = "Leave Room"
 
-[node name="ReadyButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=1016399693]
+[node name="ReadyButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=1016399693]
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = "Ready"
 
-[node name="StartButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=1044852766]
+[node name="StartButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=1044852766]
 custom_minimum_size = Vector2(160, 44)
 layout_mode = 2
 text = "Start Match"
 
-[node name="EnterQueueButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=976223268]
+[node name="EnterQueueButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=976223268]
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = "开始匹配"
 
-[node name="CancelQueueButton" type="Button" parent="RoomRoot/MainLayout/ActionRow" unique_id=1907269394]
+[node name="CancelQueueButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=1907269394]
 custom_minimum_size = Vector2(140, 44)
 layout_mode = 2
 text = "取消匹配"
 
-[node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/MainLayout" unique_id=1167495730]
+[node name="AddOpponentButton" type="Button" parent="RoomRoot/RoomScroll/MainLayout/ActionRow" unique_id=1639615740]
+visible = false
+custom_minimum_size = Vector2(170, 44)
+layout_mode = 2
+text = "Add Opponent"
+
+[node name="RoomDebugPanel" type="PanelContainer" parent="RoomRoot/RoomScroll/MainLayout" unique_id=1167495730]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="DebugLabel" type="Label" parent="RoomRoot/MainLayout/RoomDebugPanel" unique_id=1217322492]
+[node name="DebugLabel" type="Label" parent="RoomRoot/RoomScroll/MainLayout/RoomDebugPanel" unique_id=1217322492]
 layout_mode = 2
 text = "Room debug info"
 autowrap_mode = 3

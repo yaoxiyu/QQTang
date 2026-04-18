@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const LEGACY_SESSION_PREFIX := "res://gameplay/network/session/"
 const SCAN_ROOTS := [
@@ -17,13 +17,9 @@ const EXCLUDED_PREFIXES := [
 ]
 
 
-func _ready() -> void:
-	run_all()
-
-
-func run_all() -> void:
+func test_business_code_does_not_reference_legacy_wrapper_paths() -> void:
 	var violations := _find_legacy_session_references()
-	_assert_true(violations.is_empty(), "business code does not reference legacy gameplay/network/session wrappers\n%s" % "\n".join(violations))
+	assert_true(violations.is_empty(), "business code does not reference legacy gameplay/network/session wrappers\n%s" % "\n".join(violations))
 
 
 func _find_legacy_session_references() -> Array[String]:
@@ -67,9 +63,3 @@ func _read_text(path: String) -> String:
 	file.close()
 	return text
 
-
-func _assert_true(condition: bool, message: String) -> void:
-	if condition:
-		print("[PASS] %s" % message)
-		return
-	push_error("[FAIL] %s" % message)

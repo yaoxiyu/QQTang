@@ -1,4 +1,4 @@
-﻿extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const LoadingUseCaseScript = preload("res://app/front/loading/loading_use_case.gd")
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
@@ -14,20 +14,18 @@ class MockGateway:
 
 
 class MockRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 	var current_start_config = null
 	var current_battle_content_manifest: Dictionary = {}
 	var current_room_snapshot = null
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_loading_use_case_submits_ready_once() and ok
 	ok = _test_begin_loading_preserves_preconsumed_gateway_snapshot() and ok
 	ok = _test_consume_snapshot_committed() and ok
 	ok = _test_consume_snapshot_aborted() and ok
-	if ok:
-		print("online_loading_barrier_waits_for_commit_test: PASS")
 
 
 func _test_loading_use_case_submits_ready_once() -> bool:
@@ -160,3 +158,4 @@ func _test_consume_snapshot_aborted() -> bool:
 		return false
 	runtime.free()
 	return true
+

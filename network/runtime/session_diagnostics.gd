@@ -44,6 +44,44 @@ func build_runtime_dump(app_runtime: Node) -> Dictionary:
 	}
 
 
+func build_app_runtime_structure_dump(app_runtime: Node) -> Dictionary:
+	if app_runtime == null:
+		return {}
+	var battle_root = app_runtime.battle_root if app_runtime != null else null
+	var battle_session_adapter = app_runtime.battle_session_adapter if app_runtime != null else null
+	return {
+		"root_name": app_runtime.name,
+		"runtime_state": app_runtime.runtime_lifecycle_state,
+		"runtime_state_name": app_runtime.get_runtime_state_name() if app_runtime.has_method("get_runtime_state_name") else "",
+		"runtime_ready": app_runtime.is_runtime_ready() if app_runtime.has_method("is_runtime_ready") else false,
+		"runtime_initialization_requested": bool(app_runtime._initialization_requested),
+		"runtime_initialization_in_progress": bool(app_runtime._initialization_in_progress),
+		"has_session_root": app_runtime.session_root != null,
+		"has_battle_root": battle_root != null,
+		"has_debug_tools": app_runtime.debug_tools != null,
+		"has_runtime_config": app_runtime.runtime_config != null,
+		"runtime_config": app_runtime.runtime_config.to_dict() if app_runtime.runtime_config != null else {},
+		"has_active_battle_scene": app_runtime.current_battle_scene != null,
+		"has_active_battle_bootstrap": app_runtime.current_battle_bootstrap != null,
+		"has_active_presentation_bridge": app_runtime.current_presentation_bridge != null,
+		"has_active_battle_hud": app_runtime.current_battle_hud_controller != null,
+		"has_active_battle_camera": app_runtime.current_battle_camera_controller != null,
+		"has_active_settlement": app_runtime.current_settlement_controller != null,
+		"current_battle_content_manifest": app_runtime.current_battle_content_manifest.duplicate(true),
+		"battle_root_children": battle_root.get_child_count() if battle_root != null else 0,
+		"battle_root_child_names": _get_child_names(battle_root),
+		"battle_root_has_scene": battle_root != null and app_runtime.current_battle_scene != null and app_runtime.current_battle_scene.get_parent() == battle_root,
+		"battle_root_has_multiple_scenes": battle_root != null and battle_root.get_child_count() > 1,
+		"current_scene_path": app_runtime.scene_flow.current_scene_path if app_runtime.scene_flow != null else "",
+		"battle_lifecycle_state": battle_session_adapter.get_lifecycle_state() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state") else -1,
+		"battle_lifecycle_state_name": battle_session_adapter.get_lifecycle_state_name() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state_name") else "UNKNOWN",
+		"battle_is_active": battle_session_adapter.is_battle_active() if battle_session_adapter != null and battle_session_adapter.has_method("is_battle_active") else false,
+		"battle_shutdown_complete": battle_session_adapter.is_shutdown_complete() if battle_session_adapter != null and battle_session_adapter.has_method("is_shutdown_complete") else false,
+		"last_runtime_error": app_runtime.last_runtime_error.duplicate(true),
+		"diagnostics": build_runtime_dump(app_runtime),
+	}
+
+
 func build_room_debug_lines(app_runtime: Node, front_flow_state_name: String) -> PackedStringArray:
 	var dump := build_runtime_dump(app_runtime)
 	var lines := PackedStringArray([
@@ -93,4 +131,12 @@ func _resolve_match_id(app_runtime: Node, room_runtime_context: RoomRuntimeConte
 		return room_runtime_context.pending_match_id
 	return ""
 
+
+func _get_child_names(node: Node) -> Array:
+	if node == null:
+		return []
+	var names: Array = []
+	for child in node.get_children():
+		names.append(child.name)
+	return names
 

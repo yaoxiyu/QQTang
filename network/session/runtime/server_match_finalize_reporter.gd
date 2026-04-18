@@ -4,13 +4,15 @@ extends RefCounted
 const FINALIZE_PATH := "/internal/v1/matches/finalize"
 const ASSIGNMENT_COMMIT_PATH_TEMPLATE := "/internal/v1/assignments/%s/commit"
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
-const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
+const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
+const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081
-var internal_shared_secret: String = ""
+var internal_auth_key_id: String = "primary"
+var internal_auth_shared_secret: String = ""
+var _internal_client = null
 var last_finalize_status: Dictionary = {}
 var last_assignment_commit_status: Dictionary = {}
 var retry_delays_msec: Array[int] = [500, 1500, 3000]
@@ -19,17 +21,29 @@ var retry_delays_msec: Array[int] = [500, 1500, 3000]
 func configure(
 	p_game_service_host: String = "",
 	p_game_service_port: int = 0,
-	p_internal_shared_secret: String = ""
+	p_internal_auth_shared_secret: String = "",
+	p_internal_auth_key_id: String = "primary"
 ) -> void:
 	game_service_host = p_game_service_host.strip_edges() if not p_game_service_host.strip_edges().is_empty() else _read_env("GAME_SERVICE_HOST", "127.0.0.1")
 	game_service_port = p_game_service_port if p_game_service_port > 0 else int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
 	if game_service_port <= 0:
 		game_service_port = 18081
-	internal_shared_secret = p_internal_shared_secret if not p_internal_shared_secret.strip_edges().is_empty() else _read_env("GAME_INTERNAL_SHARED_SECRET", "")
+	internal_auth_key_id = p_internal_auth_key_id.strip_edges() if not p_internal_auth_key_id.strip_edges().is_empty() else InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+	if internal_auth_key_id.is_empty():
+		internal_auth_key_id = "primary"
+	if not p_internal_auth_shared_secret.strip_edges().is_empty():
+		internal_auth_shared_secret = p_internal_auth_shared_secret.strip_edges()
+	else:
+		var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+		internal_auth_shared_secret = String(secret_config.get("shared_secret", ""))
+	_internal_client = null
+	if not internal_auth_shared_secret.is_empty():
+		_internal_client = InternalJsonServiceClientScript.new()
+		_internal_client.configure("http://%s:%d" % [game_service_host, game_service_port], internal_auth_key_id, internal_auth_shared_secret, "net.online.finalize")
 	_log_finalize("configure", {
 		"game_service_host": game_service_host,
 		"game_service_port": game_service_port,
-		"has_internal_secret": not internal_shared_secret.is_empty(),
+		"has_internal_auth_secret": not internal_auth_shared_secret.is_empty(),
 	})
 
 
@@ -226,54 +240,28 @@ func _send_internal_post_with_retry(path: String, payload: Dictionary) -> Dictio
 
 
 func _send_internal_post_once(path: String, payload: Dictionary) -> Dictionary:
-	if internal_shared_secret.strip_edges().is_empty():
+	if _internal_client == null or internal_auth_shared_secret.is_empty():
 		return {
 			"ok": false,
 			"error_code": "MATCH_FINALIZE_SECRET_MISSING",
-			"user_message": "GAME_INTERNAL_SHARED_SECRET is missing",
+			"user_message": "GAME_INTERNAL_AUTH_SHARED_SECRET is missing",
 		}
-	var options := HttpRequestOptionsScript.new()
-	options.method = HTTPClient.METHOD_POST
-	options.url = "http://%s:%d%s" % [game_service_host, game_service_port, path]
-	options.headers = PackedStringArray([
-		"Content-Type: application/json",
-		"X-Internal-Secret: %s" % internal_shared_secret,
-	])
-	options.body_text = JSON.stringify(payload)
-	options.log_tag = "net.online.finalize"
-	options.connect_timeout_ms = 5000
-	options.read_timeout_ms = 8000
-	var response = HttpRequestExecutorScript.execute(options)
-	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_CONNECT_FAILED",
-			"user_message": "Failed to connect game service",
-		}
-	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_REQUEST_FAILED",
-			"user_message": "Failed to send finalize request",
-		}
-	var text := String(response.body_text)
-	if text.strip_edges().is_empty():
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_EMPTY_RESPONSE",
-			"user_message": "Game service returned empty finalize response",
-		}
-	if not (response.body_json is Dictionary):
-		return {
-			"ok": false,
-			"error_code": "MATCH_FINALIZE_RESPONSE_INVALID",
-			"user_message": "Game service returned invalid finalize response",
-		}
-	var body: Dictionary = response.body_json
-	if not body.has("user_message") and body.has("message"):
-		body["user_message"] = body.get("message", "")
-	body["status_code"] = response.status_code
-	return body
+	var response: Dictionary = _internal_client.post_json(path, payload)
+	if bool(response.get("ok", false)):
+		return response
+	match String(response.get("error_code", "")):
+		"INTERNAL_JSON_URL_INVALID", "INTERNAL_JSON_URL_MISSING":
+			return {"ok": false, "error_code": "MATCH_FINALIZE_URL_INVALID", "user_message": "Finalize request url is invalid"}
+		"INTERNAL_JSON_CONNECT_FAILED":
+			return {"ok": false, "error_code": "MATCH_FINALIZE_CONNECT_FAILED", "user_message": "Failed to connect game service"}
+		"INTERNAL_JSON_REQUEST_FAILED":
+			return {"ok": false, "error_code": "MATCH_FINALIZE_REQUEST_FAILED", "user_message": "Failed to send finalize request"}
+		"INTERNAL_JSON_EMPTY_RESPONSE":
+			return {"ok": false, "error_code": "MATCH_FINALIZE_EMPTY_RESPONSE", "user_message": "Game service returned empty finalize response"}
+		"INTERNAL_JSON_RESPONSE_INVALID":
+			return {"ok": false, "error_code": "MATCH_FINALIZE_RESPONSE_INVALID", "user_message": "Game service returned invalid finalize response"}
+		_:
+			return response
 
 
 func _is_terminal_internal_error(error_code: String) -> bool:

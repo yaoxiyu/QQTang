@@ -36,6 +36,8 @@ type Assignment struct {
 	BattleServerHost    string
 	BattleServerPort    int
 	AllocationState     string
+	AllocationErrorCode string
+	AllocationLastError string
 	RoomReturnPolicy    string
 	AllocationStartedAt *time.Time
 	BattleReadyAt       *time.Time
@@ -78,11 +80,11 @@ func (r *AssignmentRepository) Insert(ctx context.Context, assignment Assignment
 			assignment_revision, expected_member_count, state, captain_deadline_unix_sec,
 			commit_deadline_unix_sec, created_at, updated_at,
 			source_room_id, source_room_kind, battle_id, ds_instance_id,
-			battle_server_host, battle_server_port, allocation_state, room_return_policy,
+			battle_server_host, battle_server_port, allocation_state, allocation_error_code, allocation_last_error, room_return_policy,
 			allocation_started_at, battle_ready_at, battle_finished_at, return_completed_at
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-			$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32
+			$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34
 		)
 	`, assignment.AssignmentID, assignment.QueueKey, assignment.QueueType, assignment.SeasonID, assignment.RoomID,
 		assignment.RoomKind, assignment.MatchID, assignment.ModeID, assignment.RuleSetID, assignment.MapID,
@@ -90,7 +92,7 @@ func (r *AssignmentRepository) Insert(ctx context.Context, assignment Assignment
 		assignment.ExpectedMemberCount, assignment.State, assignment.CaptainDeadlineUnixSec,
 		assignment.CommitDeadlineUnixSec, assignment.CreatedAt, assignment.UpdatedAt,
 		assignment.SourceRoomID, assignment.SourceRoomKind, assignment.BattleID, assignment.DSInstanceID,
-		assignment.BattleServerHost, assignment.BattleServerPort, assignment.AllocationState, assignment.RoomReturnPolicy,
+		assignment.BattleServerHost, assignment.BattleServerPort, assignment.AllocationState, assignment.AllocationErrorCode, assignment.AllocationLastError, assignment.RoomReturnPolicy,
 		assignment.AllocationStartedAt, assignment.BattleReadyAt, assignment.BattleFinishedAt, assignment.ReturnCompletedAt)
 	return err
 }
@@ -119,7 +121,7 @@ func (r *AssignmentRepository) FindByID(ctx context.Context, assignmentID string
 		       map_id, server_host, server_port, captain_account_id, assignment_revision, expected_member_count,
 		       state, captain_deadline_unix_sec, commit_deadline_unix_sec, finalized_at, created_at, updated_at,
 		       source_room_id, source_room_kind, battle_id, ds_instance_id,
-		       battle_server_host, battle_server_port, allocation_state, room_return_policy,
+		       battle_server_host, battle_server_port, allocation_state, allocation_error_code, allocation_last_error, room_return_policy,
 		       allocation_started_at, battle_ready_at, battle_finished_at, return_completed_at
 		FROM matchmaking_assignments
 		WHERE assignment_id = $1
@@ -129,7 +131,7 @@ func (r *AssignmentRepository) FindByID(ctx context.Context, assignmentID string
 		&record.CaptainAccountID, &record.AssignmentRevision, &record.ExpectedMemberCount, &record.State,
 		&record.CaptainDeadlineUnixSec, &record.CommitDeadlineUnixSec, &finalizedAt, &record.CreatedAt, &record.UpdatedAt,
 		&record.SourceRoomID, &record.SourceRoomKind, &record.BattleID, &record.DSInstanceID,
-		&record.BattleServerHost, &record.BattleServerPort, &record.AllocationState, &record.RoomReturnPolicy,
+		&record.BattleServerHost, &record.BattleServerPort, &record.AllocationState, &record.AllocationErrorCode, &record.AllocationLastError, &record.RoomReturnPolicy,
 		&allocationStartedAt, &battleReadyAt, &battleFinishedAt, &returnCompletedAt,
 	)
 	if err != nil {
@@ -276,6 +278,13 @@ func (r *AssignmentRepository) MarkFinalized(ctx context.Context, assignmentID s
 
 // UpdateAllocationState updates allocation state and battle DS connection info.
 func (r *AssignmentRepository) UpdateAllocationState(ctx context.Context, assignmentID string, allocationState string, battleID string, dsInstanceID string, battleServerHost string, battleServerPort int) error {
+	normalizedState := allocationState
+	if normalizedState == "allocation_failed" {
+		normalizedState = "alloc_failed"
+	}
+	if normalizedState == "starting" {
+		normalizedState = "allocated"
+	}
 	_, err := r.db.Exec(ctx, `
 		UPDATE matchmaking_assignments
 		SET allocation_state = $2,
@@ -283,12 +292,30 @@ func (r *AssignmentRepository) UpdateAllocationState(ctx context.Context, assign
 		    ds_instance_id = $4,
 		    battle_server_host = $5,
 		    battle_server_port = $6,
+		    allocation_error_code = '',
+		    allocation_last_error = '',
 		    allocation_started_at = CASE WHEN $2 = 'allocating' THEN NOW() ELSE allocation_started_at END,
 		    battle_ready_at = CASE WHEN $2 = 'battle_ready' THEN NOW() ELSE battle_ready_at END,
 		    battle_finished_at = CASE WHEN $2 = 'battle_finished' THEN NOW() ELSE battle_finished_at END,
 		    updated_at = NOW()
 		WHERE assignment_id = $1
-	`, assignmentID, allocationState, battleID, dsInstanceID, battleServerHost, battleServerPort)
+	`, assignmentID, normalizedState, battleID, dsInstanceID, battleServerHost, battleServerPort)
+	return err
+}
+
+func (r *AssignmentRepository) MarkAllocationFailed(ctx context.Context, assignmentID string, battleID string, errorCode string, lastError string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE matchmaking_assignments
+		SET allocation_state = 'alloc_failed',
+		    battle_id = $2,
+		    ds_instance_id = '',
+		    battle_server_host = '',
+		    battle_server_port = 0,
+		    allocation_error_code = $3,
+		    allocation_last_error = $4,
+		    updated_at = NOW()
+		WHERE assignment_id = $1
+	`, assignmentID, battleID, errorCode, lastError)
 	return err
 }
 
@@ -301,7 +328,7 @@ func (r *AssignmentRepository) FindByBattleID(ctx context.Context, battleID stri
 		       map_id, server_host, server_port, captain_account_id, assignment_revision, expected_member_count,
 		       state, captain_deadline_unix_sec, commit_deadline_unix_sec, finalized_at, created_at, updated_at,
 		       source_room_id, source_room_kind, battle_id, ds_instance_id,
-		       battle_server_host, battle_server_port, allocation_state, room_return_policy,
+		       battle_server_host, battle_server_port, allocation_state, allocation_error_code, allocation_last_error, room_return_policy,
 		       allocation_started_at, battle_ready_at, battle_finished_at, return_completed_at
 		FROM matchmaking_assignments
 		WHERE battle_id = $1
@@ -311,7 +338,7 @@ func (r *AssignmentRepository) FindByBattleID(ctx context.Context, battleID stri
 		&record.CaptainAccountID, &record.AssignmentRevision, &record.ExpectedMemberCount, &record.State,
 		&record.CaptainDeadlineUnixSec, &record.CommitDeadlineUnixSec, &finalizedAt, &record.CreatedAt, &record.UpdatedAt,
 		&record.SourceRoomID, &record.SourceRoomKind, &record.BattleID, &record.DSInstanceID,
-		&record.BattleServerHost, &record.BattleServerPort, &record.AllocationState, &record.RoomReturnPolicy,
+		&record.BattleServerHost, &record.BattleServerPort, &record.AllocationState, &record.AllocationErrorCode, &record.AllocationLastError, &record.RoomReturnPolicy,
 		&allocationStartedAt, &battleReadyAt, &battleFinishedAt, &returnCompletedAt,
 	)
 	if err != nil {

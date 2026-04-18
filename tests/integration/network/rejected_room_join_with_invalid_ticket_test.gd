@@ -1,21 +1,19 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
 	runtime.configure("127.0.0.1", 9000, ROOM_TICKET_SECRET)
@@ -31,11 +29,8 @@ func run_all() -> void:
 	runtime.handle_room_message(join_message)
 
 	var rejected := _find_message(sent, 3, TransportMessageTypesScript.ROOM_JOIN_REJECTED)
-	var ok := TestAssert.is_true(String(rejected.get("error", "")) == "ROOM_TICKET_SIGNATURE_INVALID", "invalid ticket should reject room join", "rejected_room_join_with_invalid_ticket_test")
+	var ok := qqt_check(String(rejected.get("error", "")) == "ROOM_TICKET_SIGNATURE_INVALID", "invalid ticket should reject room join", "rejected_room_join_with_invalid_ticket_test")
 	runtime.queue_free()
-	if ok:
-		print("rejected_room_join_with_invalid_ticket_test: PASS")
-	test_finished.emit()
 
 
 func _build_create_message(peer_id: int) -> Dictionary:
@@ -117,3 +112,5 @@ func _find_message(sent: Array[Dictionary], peer_id: int, message_type: String) 
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+
+

@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const BattlePlayerActorViewScript = preload("res://presentation/battle/actors/player_actor_view.gd")
 const BattlePlayerVisualProfileScript = preload("res://presentation/battle/actors/battle_player_visual_profile.gd")
@@ -7,11 +7,11 @@ const CharacterAnimationSetLoaderScript = preload("res://content/character_anima
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_player_actor_binds_character_animation_set()
 	_test_remote_player_actor_uses_move_state_for_run_animation()
 	_test_remote_player_actor_uses_authoritative_anim_direction()
@@ -171,6 +171,6 @@ func _test_actor_snaps_large_respawn_teleport() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

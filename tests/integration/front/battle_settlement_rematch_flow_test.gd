@@ -1,16 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_rematch_request_from_non_owner_rejected() and ok
 	ok = _test_rematch_request_from_owner_succeeds() and ok
 	ok = _test_rematch_rejected_when_match_active() and ok
-	if ok:
-		print("battle_settlement_rematch_flow_test: PASS")
 
 
 func _test_rematch_request_from_non_owner_rejected() -> bool:
@@ -118,3 +116,4 @@ func _test_rematch_rejected_when_match_active() -> bool:
 		return false
 	service.free()
 	return true
+

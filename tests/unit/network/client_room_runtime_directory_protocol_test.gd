@@ -1,11 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 var _received_directory_snapshot = null
 
@@ -23,17 +21,14 @@ class FakeDirectoryTransport extends ENetBattleTransport:
 		})
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	call_deferred("_main_body")
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var ok := true
 	ok = _test_directory_requests_are_forwarded_to_transport() and ok
 	ok = _test_directory_snapshot_message_is_parsed_and_emitted() and ok
-	if ok:
-		print("client_room_runtime_directory_protocol_test: PASS")
-	test_finished.emit()
 
 
 func _test_directory_requests_are_forwarded_to_transport() -> bool:
@@ -51,23 +46,23 @@ func _test_directory_requests_are_forwarded_to_transport() -> bool:
 
 	var prefix := "client_room_runtime_directory_protocol_test"
 	var ok := true
-	ok = TestAssert.is_true(transport.sent_messages.size() == 3, "directory protocol should send three messages", prefix) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(transport.sent_messages.size() == 3, "directory protocol should send three messages", prefix) and ok
+	ok = qqt_check(
 		String(transport.sent_messages[0].get("message", {}).get("message_type", "")) == TransportMessageTypesScript.ROOM_DIRECTORY_REQUEST,
 		"request should send ROOM_DIRECTORY_REQUEST",
 		prefix
 	) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(
 		String(transport.sent_messages[1].get("message", {}).get("message_type", "")) == TransportMessageTypesScript.ROOM_DIRECTORY_SUBSCRIBE,
 		"subscribe should send ROOM_DIRECTORY_SUBSCRIBE",
 		prefix
 	) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(
 		String(transport.sent_messages[2].get("message", {}).get("message_type", "")) == TransportMessageTypesScript.ROOM_DIRECTORY_UNSUBSCRIBE,
 		"unsubscribe should send ROOM_DIRECTORY_UNSUBSCRIBE",
 		prefix
 	) and ok
-	ok = TestAssert.is_true(runtime._directory_subscribed == false, "unsubscribe should clear subscribed flag", prefix) and ok
+	ok = qqt_check(runtime._directory_subscribed == false, "unsubscribe should clear subscribed flag", prefix) and ok
 
 	runtime.queue_free()
 	return ok
@@ -107,11 +102,13 @@ func _test_directory_snapshot_message_is_parsed_and_emitted() -> bool:
 
 	var prefix := "client_room_runtime_directory_protocol_test"
 	var ok := true
-	ok = TestAssert.is_true(_received_directory_snapshot != null, "snapshot signal should emit parsed snapshot", prefix) and ok
+	ok = qqt_check(_received_directory_snapshot != null, "snapshot signal should emit parsed snapshot", prefix) and ok
 	if _received_directory_snapshot != null:
-		ok = TestAssert.is_true(int(_received_directory_snapshot.revision) == 5, "parsed snapshot should preserve revision", prefix) and ok
-		ok = TestAssert.is_true(_received_directory_snapshot.entries.size() == 1, "parsed snapshot should preserve entries", prefix) and ok
-		ok = TestAssert.is_true(String(_received_directory_snapshot.entries[0].room_display_name) == "Directory Room", "parsed snapshot should preserve display name", prefix) and ok
+		ok = qqt_check(int(_received_directory_snapshot.revision) == 5, "parsed snapshot should preserve revision", prefix) and ok
+		ok = qqt_check(_received_directory_snapshot.entries.size() == 1, "parsed snapshot should preserve entries", prefix) and ok
+		ok = qqt_check(String(_received_directory_snapshot.entries[0].room_display_name) == "Directory Room", "parsed snapshot should preserve display name", prefix) and ok
 
 	runtime.queue_free()
 	return ok
+
+

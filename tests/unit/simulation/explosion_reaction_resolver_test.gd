@@ -1,18 +1,15 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const BattleExplosionConfigBuilder = preload("res://gameplay/battle/config/battle_explosion_config_builder.gd")
 const ExplosionReactionResolver = preload("res://gameplay/simulation/explosion/explosion_reaction_resolver.gd")
 const ExplosionHitTypes = preload("res://gameplay/simulation/explosion/explosion_hit_types.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_rule_builders_resolve_profiles() and ok
 	ok = _test_unknown_rule_falls_back_to_defaults() and ok
 	ok = _test_resolver_reads_runtime_config() and ok
-	if ok:
-		print("explosion_reaction_resolver_test: PASS")
 
 
 func _test_rule_builders_resolve_profiles() -> bool:
@@ -22,11 +19,11 @@ func _test_rule_builders_resolve_profiles() -> bool:
 	var quick_match := builder.build_for_rule("ruleset_quick_match")
 	var prefix := "explosion_reaction_resolver_test"
 	var ok := true
-	ok = TestAssert.is_true(String(classic.get("player_profile_id", "")) == "player_trap_default", "classic should resolve player trap profile", prefix) and ok
-	ok = TestAssert.is_true(String(score_team.get("player_profile_id", "")) == "player_trap_default", "score_team should resolve player trap profile", prefix) and ok
-	ok = TestAssert.is_true(String(classic.get("bubble_profile_id", "")) == "bubble_chain_immediate", "classic should resolve bubble chain profile", prefix) and ok
-	ok = TestAssert.is_true(String(quick_match.get("item_profile_id", "")) == "item_destroy_default", "quick_match should resolve item destroy profile", prefix) and ok
-	ok = TestAssert.is_true(int(classic.get("player_profile", {}).get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.TRAP_JELLY, "classic player profile should decode to trap reaction", prefix) and ok
+	ok = qqt_check(String(classic.get("player_profile_id", "")) == "player_trap_default", "classic should resolve player trap profile", prefix) and ok
+	ok = qqt_check(String(score_team.get("player_profile_id", "")) == "player_trap_default", "score_team should resolve player trap profile", prefix) and ok
+	ok = qqt_check(String(classic.get("bubble_profile_id", "")) == "bubble_chain_immediate", "classic should resolve bubble chain profile", prefix) and ok
+	ok = qqt_check(String(quick_match.get("item_profile_id", "")) == "item_destroy_default", "quick_match should resolve item destroy profile", prefix) and ok
+	ok = qqt_check(int(classic.get("player_profile", {}).get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.TRAP_JELLY, "classic player profile should decode to trap reaction", prefix) and ok
 	return ok
 
 
@@ -35,9 +32,9 @@ func _test_unknown_rule_falls_back_to_defaults() -> bool:
 	var built := builder.build_for_rule("missing_rule")
 	var prefix := "explosion_reaction_resolver_test"
 	var ok := true
-	ok = TestAssert.is_true(String(built.get("player_profile_id", "")) == "player_kill_default", "missing rule should fall back to default player profile", prefix) and ok
-	ok = TestAssert.is_true(String(built.get("bubble_profile_id", "")) == "bubble_chain_immediate", "missing rule should fall back to default bubble profile", prefix) and ok
-	ok = TestAssert.is_true(String(built.get("breakable_block_profile_id", "")) == "breakable_destroy_stop", "missing rule should fall back to default breakable profile", prefix) and ok
+	ok = qqt_check(String(built.get("player_profile_id", "")) == "player_kill_default", "missing rule should fall back to default player profile", prefix) and ok
+	ok = qqt_check(String(built.get("bubble_profile_id", "")) == "bubble_chain_immediate", "missing rule should fall back to default bubble profile", prefix) and ok
+	ok = qqt_check(String(built.get("breakable_block_profile_id", "")) == "breakable_destroy_stop", "missing rule should fall back to default breakable profile", prefix) and ok
 	return ok
 
 
@@ -60,10 +57,10 @@ func _test_resolver_reads_runtime_config() -> bool:
 	var block_result := ExplosionReactionResolver.resolve_breakable_block_reaction(_make_ctx(world), 1, 1)
 	var prefix := "explosion_reaction_resolver_test"
 	var ok := true
-	ok = TestAssert.is_true(int(player_result.get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.IGNORE, "resolver should read player ignore reaction from runtime config", prefix) and ok
-	ok = TestAssert.is_true(int(item_result.get("reaction", -1)) == ExplosionHitTypes.ItemReaction.TRANSFORM, "resolver should read item transform reaction from runtime config", prefix) and ok
-	ok = TestAssert.is_true(int(item_result.get("transform_item_type", -1)) == 3, "resolver should expose transform item type", prefix) and ok
-	ok = TestAssert.is_true(int(block_result.get("reaction", -1)) == ExplosionHitTypes.BlockReaction.IGNORE, "resolver should read breakable ignore reaction from runtime config", prefix) and ok
+	ok = qqt_check(int(player_result.get("reaction", -1)) == ExplosionHitTypes.PlayerReaction.IGNORE, "resolver should read player ignore reaction from runtime config", prefix) and ok
+	ok = qqt_check(int(item_result.get("reaction", -1)) == ExplosionHitTypes.ItemReaction.TRANSFORM, "resolver should read item transform reaction from runtime config", prefix) and ok
+	ok = qqt_check(int(item_result.get("transform_item_type", -1)) == 3, "resolver should expose transform item type", prefix) and ok
+	ok = qqt_check(int(block_result.get("reaction", -1)) == ExplosionHitTypes.BlockReaction.IGNORE, "resolver should read breakable ignore reaction from runtime config", prefix) and ok
 	world.dispose()
 	return ok
 
@@ -89,3 +86,4 @@ func _make_ctx(world: SimWorld) -> SimContext:
 	ctx.rng = world.rng
 	ctx.tick = world.state.match_state.tick
 	return ctx
+

@@ -65,7 +65,7 @@ func mapError(err error) (int, string) {
 		return http.StatusConflict, err.Error()
 	case assignment.ErrAssignmentNotFound, assignment.ErrAssignmentMemberNotFound:
 		return http.StatusNotFound, err.Error()
-	case assignment.ErrAssignmentExpired, assignment.ErrAssignmentGrantForbidden:
+	case assignment.ErrAssignmentExpired, assignment.ErrAssignmentGrantForbidden, assignment.ErrAssignmentAllocFailed:
 		return http.StatusConflict, err.Error()
 	case assignment.ErrAssignmentRevisionStale:
 		return http.StatusConflict, err.Error()

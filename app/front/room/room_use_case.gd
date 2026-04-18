@@ -6,24 +6,22 @@ const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.
 const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const RoomClientGatewayScript = preload("res://network/runtime/room_client_gateway.gd")
-const ClientConnectionConfigScript = preload("res://network/runtime/client_connection_config.gd")
-const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
-const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
-const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
-const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
+const RoomSelectionPolicyScript = preload("res://app/front/room/room_selection_policy.gd")
+const RoomConnectionOrchestratorScript = preload("res://app/front/room/room_connection_orchestrator.gd")
+const RoomBattleEntryBuilderScript = preload("res://app/front/room/room_battle_entry_builder.gd")
+const RoomReconnectCoordinatorScript = preload("res://app/front/room/room_reconnect_coordinator.gd")
+const RoomUseCaseRuntimeStateScript = preload("res://app/front/room/room_use_case_runtime_state.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ROOM_USE_CASE_LOG_TAG := "front.room.flow"
 const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
-const PENDING_CONNECTION_WATCHDOG_GRACE_SEC := 1.0
 
 var app_runtime: Node = null
 var room_client_gateway: RoomClientGateway = null
+var _connection_orchestrator: RefCounted = RoomConnectionOrchestratorScript.new()
 var _pending_online_entry_context: RoomEntryContext = null
 var _pending_connection_config: ClientConnectionConfig = null
 var _await_room_before_enter: bool = false
-var _pending_connection_watchdog_token: int = 0
-
 
 func configure(p_app_runtime: Node) -> void:
 	app_runtime = p_app_runtime
@@ -38,7 +36,6 @@ func configure(p_app_runtime: Node) -> void:
 	room_client_gateway.bind_runtime(app_runtime, app_runtime.client_room_runtime if app_runtime != null else null)
 	_connect_gateway_signals()
 
-
 func dispose() -> void:
 	_disconnect_gateway_signals()
 	if room_client_gateway != null and room_client_gateway.has_method("unbind_runtime"):
@@ -52,9 +49,9 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 	if app_runtime == null:
 		_log_room_anomaly("enter_room_without_runtime", {})
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
-	if _is_matchmade_room(entry_context):
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime, entry_context):
 		# Only force lobby return if room_return_policy is not return_to_source_room.
-		if not _has_source_room_return_policy(entry_context):
+		if not RoomUseCaseRuntimeStateScript.has_source_room_return_policy(app_runtime, entry_context):
 			entry_context.return_target = FrontReturnTargetScript.LOBBY
 			entry_context.return_to_lobby_after_settlement = true
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
@@ -72,9 +69,8 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 			"room_display_name": String(connection_config.room_display_name),
 		})
 		if room_client_gateway != null:
-			_pending_online_entry_context = entry_context.duplicate_deep()
-			_pending_connection_config = connection_config.duplicate_deep()
-			_await_room_before_enter = true
+			_connection_orchestrator.begin_pending_connection(entry_context, connection_config)
+			_sync_pending_state_from_orchestrator()
 			_schedule_pending_connection_watchdog(_pending_connection_config)
 			if _has_ready_transport_for(connection_config):
 				_log_room("enter_room_reusing_connected_transport", {
@@ -87,7 +83,7 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 			else:
 				room_client_gateway.connect_to_server(connection_config)
 		else:
-			_log_room_anomaly("enter_room_missing_gateway", _build_entry_context_context(entry_context))
+			_log_room_anomaly("enter_room_missing_gateway", RoomUseCaseRuntimeStateScript.build_entry_context_context(entry_context))
 		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("enter_room"):
@@ -99,7 +95,7 @@ func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
 	# matchmade_room no longer forces lobby return; room_return_policy governs this.
-	if _is_matchmade_room():
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		var return_policy := ""
 		if app_runtime.current_room_snapshot != null:
 			return_policy = String(app_runtime.current_room_snapshot.room_return_policy)
@@ -107,8 +103,8 @@ func leave_room() -> Dictionary:
 			if app_runtime.current_room_entry_context != null:
 				app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
 				app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
-	if room_client_gateway != null and _is_online_room():
-		if _is_match_room() and _get_current_room_queue_state() == "queueing" and room_client_gateway.has_method("request_cancel_match_queue"):
+	if room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
+		if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime) and RoomUseCaseRuntimeStateScript.get_current_room_queue_state(app_runtime) == "queueing" and room_client_gateway.has_method("request_cancel_match_queue"):
 			room_client_gateway.request_cancel_match_queue()
 		if room_client_gateway.has_method("request_leave_room_and_disconnect"):
 			room_client_gateway.request_leave_room_and_disconnect()
@@ -140,7 +136,7 @@ func update_local_profile(
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
 	var effective_team_id := team_id
-	if _is_matchmade_room():
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		effective_team_id = _resolve_locked_team_id(team_id)
 	var result: Dictionary = app_runtime.room_session_controller.request_update_member_profile(
 		int(app_runtime.local_peer_id),
@@ -151,7 +147,7 @@ func update_local_profile(
 		bubble_skin_id,
 		effective_team_id
 	)
-	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
+	if bool(result.get("ok", false)) and room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, effective_team_id)
 	return result
 
@@ -159,9 +155,9 @@ func update_local_profile(
 func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
-	if _is_match_room():
+	if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("MATCH_ROOM_SELECTION_FORBIDDEN", "Match room selection is controlled by match format and mode pool")
-	if _is_matchmade_room():
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		return _fail("MATCHMADE_SELECTION_LOCKED", "Matchmade room selection is locked")
 	var result: Dictionary = app_runtime.room_session_controller.request_update_selection(
 		int(app_runtime.local_peer_id),
@@ -169,7 +165,7 @@ func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dicti
 		rule_id,
 		mode_id
 	)
-	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
+	if bool(result.get("ok", false)) and room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		room_client_gateway.request_update_selection(map_id, rule_id, mode_id)
 	return result
 
@@ -177,10 +173,10 @@ func update_selection(map_id: String, rule_id: String, mode_id: String) -> Dicti
 func toggle_ready() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
-	if _is_matchmade_room():
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		return _fail("MATCHMADE_READY_LOCKED", "Matchmade room readiness is automatic")
 	var result: Dictionary = app_runtime.room_session_controller.request_toggle_ready(int(app_runtime.local_peer_id))
-	if bool(result.get("ok", false)) and room_client_gateway != null and _is_online_room():
+	if bool(result.get("ok", false)) and room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		room_client_gateway.request_toggle_ready()
 	return result
 
@@ -188,9 +184,9 @@ func toggle_ready() -> Dictionary:
 func start_match() -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return _fail("ROOM_CONTROLLER_MISSING", "Room controller is not available")
-	if _is_match_room():
+	if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("MATCH_ROOM_START_FORBIDDEN", "Match rooms must enter matchmaking queue")
-	if room_client_gateway != null and _is_online_room():
+	if room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		var blocker: Dictionary = app_runtime.room_session_controller.get_start_match_blocker(int(app_runtime.local_peer_id))
 		if not blocker.is_empty():
 			blocker["ok"] = false
@@ -206,9 +202,9 @@ func start_match() -> Dictionary:
 
 
 func update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> Dictionary:
-	if not _is_match_room():
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("NOT_MATCH_ROOM", "Match room config can only be updated in match rooms")
-	if room_client_gateway == null or not _is_online_room():
+	if room_client_gateway == null or not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_update_match_room_config"):
 		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
@@ -218,14 +214,14 @@ func update_match_room_config(match_format_id: String, selected_mode_ids: Array[
 
 func enter_match_queue() -> Dictionary:
 	_log_room("enter_match_queue_called", {
-		"is_match_room": _is_match_room(),
-		"is_online_room": _is_online_room(),
+		"is_match_room": RoomUseCaseRuntimeStateScript.is_match_room(app_runtime),
+		"is_online_room": RoomUseCaseRuntimeStateScript.is_online_room(app_runtime),
 		"has_gateway": room_client_gateway != null,
 		"has_method": room_client_gateway.has_method("request_enter_match_queue") if room_client_gateway != null else false,
 	})
-	if not _is_match_room():
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("NOT_MATCH_ROOM", "Queue can only be entered from match rooms")
-	if room_client_gateway == null or not _is_online_room():
+	if room_client_gateway == null or not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_enter_match_queue"):
 		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
@@ -235,9 +231,9 @@ func enter_match_queue() -> Dictionary:
 
 
 func cancel_match_queue() -> Dictionary:
-	if not _is_match_room():
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("NOT_MATCH_ROOM", "Queue can only be cancelled from match rooms")
-	if room_client_gateway == null or not _is_online_room():
+	if room_client_gateway == null or not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_cancel_match_queue"):
 		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
@@ -248,9 +244,9 @@ func cancel_match_queue() -> Dictionary:
 func request_rematch() -> Dictionary:
 	if app_runtime == null or room_client_gateway == null:
 		return _fail("ROOM_USE_CASE_MISSING", "App runtime or gateway is not configured")
-	if _is_matchmade_room():
+	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		return _fail("MATCHMADE_REMATCH_FORBIDDEN", "Matchmade rooms return to lobby after settlement")
-	if not _is_online_room():
+	if not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return _fail("NOT_ONLINE_ROOM", "Rematch is only supported in online rooms")
 	room_client_gateway.request_rematch()
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
@@ -259,49 +255,25 @@ func request_rematch() -> Dictionary:
 func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return
+	_sync_pending_state_from_orchestrator()
 	if app_runtime.current_room_entry_context == null and _pending_online_entry_context == null:
 		return
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = snapshot.duplicate_deep() if snapshot != null else null
 	_update_reconnect_state(snapshot)
 
-
-## Public method: build connection config for room_service only.
 func build_room_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
 	return _build_connection_config(entry_context)
 
 
-## Build BattleEntryContext from authoritative RoomSnapshot fields.
-## Returns null if the snapshot doesn't have battle_entry_ready or required fields.
 func build_battle_entry_context(snapshot: RoomSnapshot = null):
 	var target_snapshot := snapshot
 	if target_snapshot == null and app_runtime != null:
 		target_snapshot = app_runtime.current_room_snapshot
-	if target_snapshot == null:
+	var room_entry_context = app_runtime.current_room_entry_context if app_runtime != null else null
+	var ctx = RoomBattleEntryBuilderScript.build(target_snapshot, room_entry_context)
+	if ctx == null:
 		return null
-	if not target_snapshot.battle_entry_ready:
-		return null
-	if target_snapshot.current_battle_id.is_empty():
-		return null
-	if target_snapshot.battle_server_host.is_empty() or target_snapshot.battle_server_port <= 0:
-		return null
-
-	var ctx := BattleEntryContextScript.new()
-	ctx.assignment_id = target_snapshot.current_assignment_id
-	ctx.battle_id = target_snapshot.current_battle_id
-	ctx.match_id = target_snapshot.current_match_id
-	ctx.map_id = target_snapshot.selected_map_id
-	ctx.rule_set_id = target_snapshot.rule_set_id
-	ctx.mode_id = target_snapshot.mode_id
-	ctx.battle_server_host = target_snapshot.battle_server_host
-	ctx.battle_server_port = target_snapshot.battle_server_port
-	ctx.room_return_policy = target_snapshot.room_return_policy
-	ctx.source_room_id = target_snapshot.room_id
-	ctx.source_room_kind = target_snapshot.room_kind
-	if app_runtime != null and app_runtime.current_room_entry_context != null:
-		ctx.source_server_host = app_runtime.current_room_entry_context.server_host
-		ctx.source_server_port = app_runtime.current_room_entry_context.server_port
-
 	_log_room("battle_entry_context_built", {
 		"assignment_id": ctx.assignment_id,
 		"battle_id": ctx.battle_id,
@@ -313,37 +285,17 @@ func build_battle_entry_context(snapshot: RoomSnapshot = null):
 
 
 func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:
-	var config := ClientConnectionConfigScript.new()
-	config.server_host = entry_context.server_host
-	config.server_port = entry_context.server_port
-	config.room_id_hint = entry_context.target_room_id
-	config.room_kind = entry_context.room_kind
-	config.room_display_name = entry_context.room_display_name
-	config.room_ticket = entry_context.room_ticket
-	config.room_ticket_id = entry_context.room_ticket_id
-	config.account_id = entry_context.account_id
-	config.profile_id = entry_context.profile_id
-	if app_runtime != null and app_runtime.auth_session_state != null:
-		config.device_session_id = app_runtime.auth_session_state.device_session_id
-	if app_runtime != null and app_runtime.player_profile_state != null:
-		config.player_name = app_runtime.player_profile_state.nickname
-		var loadout_result = LoadoutNormalizerScript.apply_to_connection_config(config, app_runtime.player_profile_state)
-		if loadout_result != null and not loadout_result.changed_fields.is_empty():
-			_log_room("connection_loadout_normalized", {
-				"entry_kind": String(entry_context.entry_kind),
-				"room_kind": String(entry_context.room_kind),
-				"changed_fields": loadout_result.changed_fields,
-			})
-	if FrontRoomKindScript.is_match_room(String(entry_context.room_kind)):
-		config.selected_map_id = ""
-		config.selected_rule_set_id = ""
-		config.selected_mode_id = ""
-	else:
-		var default_selection := _resolve_default_selection(entry_context)
-		config.selected_map_id = String(default_selection.get("map_id", ""))
-		config.selected_rule_set_id = String(default_selection.get("rule_set_id", ""))
-		config.selected_mode_id = String(default_selection.get("mode_id", _get_preferred_mode_id()))
-	_sanitize_connection_profile(config, not FrontRoomKindScript.is_match_room(String(entry_context.room_kind)))
+	var result := RoomConnectionOrchestratorScript.build_connection_config(app_runtime, entry_context)
+	var config = result.get("config", null)
+	var changed_fields: Array = result.get("changed_fields", [])
+	if not changed_fields.is_empty():
+		_log_room("connection_loadout_normalized", {
+			"entry_kind": String(entry_context.entry_kind),
+			"room_kind": String(entry_context.room_kind),
+			"changed_fields": changed_fields,
+		})
+	if config == null:
+		return null
 	_log_room("connection_selection_resolved", {
 		"entry_kind": String(entry_context.entry_kind),
 		"room_kind": String(entry_context.room_kind),
@@ -365,112 +317,19 @@ func _build_connection_config(entry_context: RoomEntryContext) -> ClientConnecti
 	return config
 
 
-func _sanitize_connection_profile(config: ClientConnectionConfig, should_sanitize_selection: bool = true) -> void:
-	if config == null:
-		return
-	if not should_sanitize_selection:
-		return
-	if config.selected_map_id.is_empty():
-		config.selected_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
-	var binding := MapSelectionCatalogScript.get_map_binding(config.selected_map_id)
-	if not binding.is_empty():
-		config.selected_rule_set_id = String(binding.get("bound_rule_set_id", config.selected_rule_set_id))
-		config.selected_mode_id = String(binding.get("bound_mode_id", config.selected_mode_id))
-	if not ModeCatalogScript.has_mode(config.selected_mode_id):
-		config.selected_mode_id = ModeCatalogScript.get_default_mode_id()
-
-
 func _has_ready_transport_for(connection_config: ClientConnectionConfig) -> bool:
-	if connection_config == null or app_runtime == null or app_runtime.client_room_runtime == null:
-		return false
-	var client_room_runtime = app_runtime.client_room_runtime
-	return client_room_runtime.has_method("is_connected_to") \
-		and client_room_runtime.is_connected_to(String(connection_config.server_host), int(connection_config.server_port)) \
-		and client_room_runtime.has_method("is_transport_connected") \
-		and client_room_runtime.is_transport_connected()
-
-
-func _is_online_room() -> bool:
-	if app_runtime == null:
-		return false
-	if app_runtime.current_room_entry_context != null and String(app_runtime.current_room_entry_context.topology) == FrontTopologyScript.DEDICATED_SERVER:
-		return true
-	if app_runtime.current_room_snapshot != null and String(app_runtime.current_room_snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER:
-		return true
-	if app_runtime.room_session_controller != null and app_runtime.room_session_controller.room_runtime_context != null:
-		return String(app_runtime.room_session_controller.room_runtime_context.topology) == FrontTopologyScript.DEDICATED_SERVER
-	return false
-
-
-func _is_matchmade_room(entry_context: RoomEntryContext = null) -> bool:
-	var target = entry_context
-	if target == null and app_runtime != null:
-		target = app_runtime.current_room_entry_context
-	if target != null and String(target.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
-		return true
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		return String(app_runtime.current_room_snapshot.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM
-	return false
-
-
-func _is_match_room(entry_context: RoomEntryContext = null) -> bool:
-	var target = entry_context
-	if target == null and app_runtime != null:
-		target = app_runtime.current_room_entry_context
-	if target != null and FrontRoomKindScript.is_match_room(String(target.room_kind)):
-		return true
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		return FrontRoomKindScript.is_match_room(String(app_runtime.current_room_snapshot.room_kind))
-	return false
-
-
-func _is_custom_room(entry_context: RoomEntryContext = null) -> bool:
-	var target = entry_context
-	if target == null and app_runtime != null:
-		target = app_runtime.current_room_entry_context
-	if target != null and FrontRoomKindScript.is_custom_room(String(target.room_kind)):
-		return true
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		return FrontRoomKindScript.is_custom_room(String(app_runtime.current_room_snapshot.room_kind))
-	return false
-
-
-func _is_assigned_room(entry_context: RoomEntryContext = null) -> bool:
-	return _is_matchmade_room(entry_context)
-
-
-func _has_source_room_return_policy(_entry_context: RoomEntryContext = null) -> bool:
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		if String(app_runtime.current_room_snapshot.room_return_policy) == "return_to_source_room":
-			return true
-	return false
-
-
-func _get_current_room_queue_state() -> String:
-	if app_runtime == null or app_runtime.current_room_snapshot == null:
-		return ""
-	for property in app_runtime.current_room_snapshot.get_property_list():
-		if String(property.get("name", "")) == "room_queue_state":
-			return String(app_runtime.current_room_snapshot.get("room_queue_state"))
-	return ""
-
-
-func _get_preferred_mode_id() -> String:
-	if app_runtime != null and app_runtime.player_profile_state != null:
-		return String(app_runtime.player_profile_state.preferred_mode_id)
-	return ""
+	return RoomConnectionOrchestratorScript.has_ready_transport_for(app_runtime, connection_config)
 
 
 func _resolve_locked_team_id(fallback_team_id: int) -> int:
 	if app_runtime == null:
 		return fallback_team_id
-	if app_runtime.current_room_snapshot != null:
-		for member in app_runtime.current_room_snapshot.members:
-			if member != null and member.peer_id == int(app_runtime.local_peer_id) and int(member.team_id) > 0:
-				return int(member.team_id)
-	if app_runtime.current_room_entry_context != null and int(app_runtime.current_room_entry_context.assigned_team_id) > 0:
-		return int(app_runtime.current_room_entry_context.assigned_team_id)
-	return fallback_team_id
+	return RoomSelectionPolicyScript.resolve_locked_team_id(
+		app_runtime.current_room_snapshot,
+		app_runtime.current_room_entry_context,
+		int(app_runtime.local_peer_id),
+		fallback_team_id
+	)
 
 
 func _connect_gateway_signals() -> void:
@@ -486,7 +345,6 @@ func _connect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.connect(_on_gateway_canonical_start_config_received)
 	if not room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.connect(_on_gateway_match_loading_snapshot_received)
-	# LegacyMigration: Connect resume signals
 	if room_client_gateway.has_signal("room_member_session_received") and not room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
 		room_client_gateway.room_member_session_received.connect(_on_gateway_room_member_session_received)
 	if room_client_gateway.has_signal("match_resume_accepted") and not room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
@@ -506,7 +364,6 @@ func _disconnect_gateway_signals() -> void:
 		room_client_gateway.canonical_start_config_received.disconnect(_on_gateway_canonical_start_config_received)
 	if room_client_gateway.match_loading_snapshot_received.is_connected(_on_gateway_match_loading_snapshot_received):
 		room_client_gateway.match_loading_snapshot_received.disconnect(_on_gateway_match_loading_snapshot_received)
-	# LegacyMigration: Disconnect resume signals
 	if room_client_gateway.has_signal("room_member_session_received") and room_client_gateway.room_member_session_received.is_connected(_on_gateway_room_member_session_received):
 		room_client_gateway.room_member_session_received.disconnect(_on_gateway_room_member_session_received)
 	if room_client_gateway.has_signal("match_resume_accepted") and room_client_gateway.match_resume_accepted.is_connected(_on_gateway_match_resume_accepted):
@@ -517,47 +374,20 @@ func _on_gateway_transport_connected() -> void:
 	if room_client_gateway == null:
 		_log_room_anomaly("transport_connected_without_gateway", {})
 		return
+	_sync_pending_state_from_orchestrator()
 	if _pending_online_entry_context == null or _pending_connection_config == null:
 		_log_room_anomaly("transport_connected_without_pending_entry", {
 			"has_pending_entry": _pending_online_entry_context != null,
 			"has_pending_config": _pending_connection_config != null,
 		})
 		return
-	
-	# LegacyMigration: Check for resume flow
-	if _pending_online_entry_context.use_resume_flow:
-		_log_room("transport_connected_dispatch_resume", {
-			"room_id": String(_pending_online_entry_context.target_room_id),
-			"member_id": String(_pending_online_entry_context.reconnect_member_id),
-			"match_id": String(_pending_online_entry_context.reconnect_match_id),
-		})
-		room_client_gateway.request_resume_room(
-			_pending_connection_config,
-			_pending_online_entry_context.reconnect_member_id,
-			_pending_online_entry_context.reconnect_token,
-			_pending_online_entry_context.reconnect_match_id
-		)
+	if _connection_orchestrator.dispatch_transport_connected(room_client_gateway, self):
 		return
-	
-	match String(_pending_online_entry_context.entry_kind):
-		FrontEntryKindScript.ONLINE_CREATE:
-			_log_room("transport_connected_dispatch_create", {
-				"room_kind": String(_pending_connection_config.room_kind),
-				"room_display_name": String(_pending_connection_config.room_display_name),
-			})
-			room_client_gateway.request_create_room(_pending_connection_config)
-		FrontEntryKindScript.ONLINE_JOIN:
-			_log_room("transport_connected_dispatch_join", {
-				"room_kind": String(_pending_connection_config.room_kind),
-				"room_id_hint": String(_pending_connection_config.room_id_hint),
-			})
-			room_client_gateway.request_join_room(_pending_connection_config)
-		_:
-			_log_room_anomaly("transport_connected_with_unknown_entry_kind", {
-				"entry_kind": String(_pending_online_entry_context.entry_kind),
-				"topology": String(_pending_online_entry_context.topology),
-				"room_id_hint": String(_pending_connection_config.room_id_hint),
-			})
+	_log_room_anomaly("transport_connected_with_unknown_entry_kind", {
+		"entry_kind": String(_pending_online_entry_context.entry_kind),
+		"topology": String(_pending_online_entry_context.topology),
+		"room_id_hint": String(_pending_connection_config.room_id_hint),
+	})
 
 
 func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
@@ -565,9 +395,9 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 		_log_room_anomaly("received_null_room_snapshot", _build_pending_connection_context())
 		return
 	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.room_id.is_empty():
-		_log_room_anomaly("received_snapshot_without_room_id", _build_snapshot_context(snapshot))
+		_log_room_anomaly("received_snapshot_without_room_id", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
 	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.members.is_empty():
-		_log_room_anomaly("received_snapshot_without_members", _build_snapshot_context(snapshot))
+		_log_room_anomaly("received_snapshot_without_members", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
 	on_authoritative_snapshot(snapshot)
 	_log_room("authoritative_room_snapshot_received", {
 		"room_id": String(snapshot.room_id),
@@ -578,38 +408,14 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	})
 	if _await_room_before_enter:
 		if app_runtime == null or app_runtime.front_flow == null or not app_runtime.front_flow.has_method("enter_room"):
-			_log_room_anomaly("awaiting_room_but_front_flow_missing", _build_snapshot_context(snapshot))
+			_log_room_anomaly("awaiting_room_but_front_flow_missing", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
 		else:
 			app_runtime.front_flow.enter_room()
 	_clear_pending_online_entry_state()
 
 
 func _update_reconnect_state(snapshot: RoomSnapshot) -> void:
-	if app_runtime == null or app_runtime.front_settings_state == null or snapshot == null:
-		return
-	if String(snapshot.topology) != FrontTopologyScript.DEDICATED_SERVER:
-		return
-	if snapshot.room_id.is_empty():
-		return
-	app_runtime.front_settings_state.last_room_id = snapshot.room_id
-	app_runtime.front_settings_state.reconnect_room_id = snapshot.room_id
-	# LegacyMigration: Reconnect ticket extension
-	app_runtime.front_settings_state.reconnect_room_kind = snapshot.room_kind
-	app_runtime.front_settings_state.reconnect_room_display_name = snapshot.room_display_name
-	app_runtime.front_settings_state.reconnect_topology = snapshot.topology
-	var server_host := ""
-	var server_port := 0
-	if app_runtime.current_room_entry_context != null:
-		server_host = String(app_runtime.current_room_entry_context.server_host)
-		server_port = int(app_runtime.current_room_entry_context.server_port)
-	if server_host.strip_edges().is_empty():
-		server_host = String(app_runtime.front_settings_state.last_server_host)
-	if server_port <= 0:
-		server_port = int(app_runtime.front_settings_state.last_server_port)
-	app_runtime.front_settings_state.reconnect_host = server_host
-	app_runtime.front_settings_state.reconnect_port = server_port
-	app_runtime.front_settings_state.reconnect_state = "active_match" if bool(snapshot.match_active) else "room_only"
-	_save_front_settings()
+	RoomReconnectCoordinatorScript.apply_authoritative_snapshot(app_runtime, snapshot)
 
 
 func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> void:
@@ -617,11 +423,7 @@ func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> v
 		return
 	if app_runtime.has_method("apply_canonical_start_config"):
 		app_runtime.apply_canonical_start_config(config)
-	# LegacyMigration: Write match_id to reconnect ticket
-	if app_runtime.front_settings_state != null and config != null and not config.match_id.is_empty():
-		app_runtime.front_settings_state.reconnect_match_id = config.match_id
-		app_runtime.front_settings_state.reconnect_state = "active_match"
-		_save_front_settings()
+	RoomReconnectCoordinatorScript.apply_canonical_start_config(app_runtime, config)
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
 		app_runtime.front_flow.request_start_match()
 
@@ -650,59 +452,14 @@ func _on_gateway_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 		app_runtime.room_session_controller.set_last_error(snapshot.error_code, snapshot.user_message, {})
 
 
-# LegacyMigration: Handle room member session received
 func _on_gateway_room_member_session_received(payload: Dictionary) -> void:
-	if app_runtime == null or app_runtime.front_settings_state == null:
-		return
-	
-	var room_id := String(payload.get("room_id", ""))
-	var room_kind := String(payload.get("room_kind", ""))
-	var room_display_name := String(payload.get("room_display_name", ""))
-	var member_id := String(payload.get("member_id", ""))
-	var reconnect_token := String(payload.get("reconnect_token", ""))
-	
-	_log_room("room_member_session_received", {
-		"room_id": room_id,
-		"room_kind": room_kind,
-		"member_id": member_id,
-	})
-	
-	# Write to front_settings_state for reconnect capability
-	app_runtime.front_settings_state.reconnect_room_id = room_id
-	app_runtime.front_settings_state.reconnect_room_kind = room_kind
-	app_runtime.front_settings_state.reconnect_room_display_name = room_display_name
-	app_runtime.front_settings_state.reconnect_member_id = member_id
-	app_runtime.front_settings_state.reconnect_token = reconnect_token
-	app_runtime.front_settings_state.reconnect_state = "room_only"
-	
-	# Preserve host/port from current entry context
-	if app_runtime.current_room_entry_context != null:
-		app_runtime.front_settings_state.reconnect_host = app_runtime.current_room_entry_context.server_host
-		app_runtime.front_settings_state.reconnect_port = app_runtime.current_room_entry_context.server_port
-		app_runtime.front_settings_state.reconnect_topology = app_runtime.current_room_entry_context.topology
-	_save_front_settings()
+	RoomReconnectCoordinatorScript.apply_room_member_session(app_runtime, payload, self)
 
 
-# LegacyMigration: Handle match resume accepted
 func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot) -> void:
 	if app_runtime == null:
 		return
-	
-	_log_room("match_resume_accepted", {
-		"match_id": config.match_id if config != null else "",
-		"controlled_peer_id": snapshot.controlled_peer_id if snapshot != null else 0,
-	})
-	
-	# Apply resume payload to app_runtime
-	if app_runtime.has_method("apply_match_resume_payload"):
-		app_runtime.apply_match_resume_payload(config, snapshot)
-	
-	# Update reconnect state
-	if app_runtime.front_settings_state != null:
-		app_runtime.front_settings_state.reconnect_state = "active_match"
-		_save_front_settings()
-	
-	# Trigger loading scene in resume mode
+	RoomReconnectCoordinatorScript.apply_match_resume_accepted(app_runtime, config, snapshot, self)
 	if app_runtime.front_flow != null:
 		if app_runtime.front_flow.has_method("request_resume_match"):
 			app_runtime.front_flow.request_resume_match()
@@ -711,6 +468,7 @@ func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: Matc
 
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
+	_sync_pending_state_from_orchestrator()
 	_log_room_anomaly("gateway_room_error", {
 		"error_code": error_code,
 		"user_message": user_message,
@@ -736,71 +494,22 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 	}
 
 
-func _save_front_settings() -> void:
-	if app_runtime == null or not ("front_settings_repository" in app_runtime) or not ("front_settings_state" in app_runtime):
-		return
-	if app_runtime.front_settings_repository == null or app_runtime.front_settings_state == null:
-		return
-	if app_runtime.front_settings_repository.has_method("save_settings"):
-		app_runtime.front_settings_repository.save_settings(app_runtime.front_settings_state)
-
-
 func _should_clear_pending_reconnect_ticket(error_code: String) -> bool:
-	if _pending_online_entry_context == null or not _pending_online_entry_context.use_resume_flow:
-		return false
-	return [
-		"ROOM_NOT_FOUND",
-		"MEMBER_NOT_FOUND",
-		"RECONNECT_TOKEN_INVALID",
-		"RESUME_WINDOW_EXPIRED",
-		"MATCH_NOT_ACTIVE",
-		"MATCH_ID_MISMATCH",
-		"ROOM_TICKET_ACCOUNT_MISMATCH",
-		"ROOM_TICKET_PROFILE_MISMATCH",
-		"ROOM_TICKET_EXPIRED",
-		"ROOM_TICKET_ID_MISMATCH",
-		"ROOM_TICKET_TARGET_INVALID",
-	].has(error_code)
+	return RoomReconnectCoordinatorScript.should_clear_pending_reconnect_ticket(_pending_online_entry_context, error_code)
 
 
 func _clear_reconnect_ticket_after_rejected_resume(error_code: String) -> void:
-	if app_runtime == null or app_runtime.front_settings_state == null:
-		return
-	if not app_runtime.front_settings_state.has_method("clear_reconnect_ticket"):
-		return
-	_log_room("clear_reconnect_ticket_after_rejected_resume", {
-		"error_code": error_code,
-		"room_id": String(app_runtime.front_settings_state.reconnect_room_id),
-		"member_id": String(app_runtime.front_settings_state.reconnect_member_id),
-		"match_id": String(app_runtime.front_settings_state.reconnect_match_id),
-	})
-	app_runtime.front_settings_state.clear_reconnect_ticket()
-	_save_front_settings()
+	RoomReconnectCoordinatorScript.clear_reconnect_ticket_after_rejected_resume(app_runtime, error_code, self)
 
 
 func _schedule_pending_connection_watchdog(connection_config: ClientConnectionConfig) -> void:
-	_pending_connection_watchdog_token += 1
-	var token := _pending_connection_watchdog_token
-	if connection_config == null or app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
+	if connection_config == null:
 		return
-	var timeout_sec: float = max(float(connection_config.connect_timeout_sec), 0.5) + PENDING_CONNECTION_WATCHDOG_GRACE_SEC
-	_await_pending_connection_watchdog(token, timeout_sec)
+	_connection_orchestrator.schedule_pending_connection_watchdog(app_runtime, _on_pending_connection_timeout)
 
 
-func _await_pending_connection_watchdog(token: int, timeout_sec: float) -> void:
-	if app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
-		return
-	var deadline_msec := Time.get_ticks_msec() + int(timeout_sec * 1000.0)
-	while Time.get_ticks_msec() < deadline_msec:
-		await app_runtime.get_tree().process_frame
-		if token != _pending_connection_watchdog_token:
-			return
-		if app_runtime == null or not is_instance_valid(app_runtime) or not app_runtime.is_inside_tree():
-			return
-	if token != _pending_connection_watchdog_token:
-		return
-	if not _await_room_before_enter or _pending_online_entry_context == null or _pending_connection_config == null:
-		return
+func _on_pending_connection_timeout(timeout_sec: float) -> void:
+	_sync_pending_state_from_orchestrator()
 	var user_message := "Connection timed out while entering room"
 	var timeout_details := _build_pending_connection_context()
 	timeout_details["timeout_sec"] = timeout_sec
@@ -817,10 +526,14 @@ func _await_pending_connection_watchdog(token: int, timeout_sec: float) -> void:
 
 
 func _clear_pending_online_entry_state() -> void:
-	_pending_connection_watchdog_token += 1
-	_pending_online_entry_context = null
-	_pending_connection_config = null
-	_await_room_before_enter = false
+	_connection_orchestrator.clear_pending_connection()
+	_sync_pending_state_from_orchestrator()
+
+
+func _sync_pending_state_from_orchestrator() -> void:
+	_pending_online_entry_context = _connection_orchestrator.pending_online_entry_context
+	_pending_connection_config = _connection_orchestrator.pending_connection_config
+	_await_room_before_enter = bool(_connection_orchestrator.await_room_before_enter)
 
 
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
@@ -831,58 +544,6 @@ func _log_room(event_name: String, details: Dictionary) -> void:
 	LogFrontScript.debug("[room_use_case] %s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_USE_CASE_LOG_TAG)
 
 
-func _build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:
-	if entry_context == null:
-		return {}
-	return {
-		"entry_kind": String(entry_context.entry_kind),
-		"room_kind": String(entry_context.room_kind),
-		"topology": String(entry_context.topology),
-		"server_host": String(entry_context.server_host),
-		"server_port": int(entry_context.server_port),
-		"target_room_id": String(entry_context.target_room_id),
-	}
-
-
 func _build_pending_connection_context() -> Dictionary:
-	return {
-		"await_room_before_enter": _await_room_before_enter,
-		"pending_entry_kind": String(_pending_online_entry_context.entry_kind) if _pending_online_entry_context != null else "",
-		"pending_topology": String(_pending_online_entry_context.topology) if _pending_online_entry_context != null else "",
-		"pending_server_host": String(_pending_connection_config.server_host) if _pending_connection_config != null else "",
-		"pending_server_port": int(_pending_connection_config.server_port) if _pending_connection_config != null else 0,
-		"pending_room_id_hint": String(_pending_connection_config.room_id_hint) if _pending_connection_config != null else "",
-	}
-
-
-func _build_snapshot_context(snapshot: RoomSnapshot) -> Dictionary:
-	var context := _build_pending_connection_context()
-	context["snapshot_room_id"] = String(snapshot.room_id) if snapshot != null else ""
-	context["snapshot_topology"] = String(snapshot.topology) if snapshot != null else ""
-	context["snapshot_member_count"] = snapshot.members.size() if snapshot != null else -1
-	return context
-
-
-func _resolve_default_selection(entry_context: RoomEntryContext) -> Dictionary:
-	if entry_context != null and String(entry_context.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
-		return {
-			"map_id": String(entry_context.locked_map_id),
-			"rule_set_id": String(entry_context.locked_rule_set_id),
-			"mode_id": String(entry_context.locked_mode_id),
-		}
-	var preferred_map_id := ""
-	if app_runtime != null and app_runtime.player_profile_state != null:
-		preferred_map_id = String(app_runtime.player_profile_state.preferred_map_id)
-	var resolved_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id(preferred_map_id)
-	var binding := MapSelectionCatalogScript.get_map_binding(resolved_map_id)
-	if binding.is_empty():
-		return {
-			"map_id": resolved_map_id,
-			"rule_set_id": "",
-			"mode_id": "",
-		}
-	return {
-		"map_id": resolved_map_id,
-		"rule_set_id": String(binding.get("bound_rule_set_id", "")),
-		"mode_id": String(binding.get("bound_mode_id", "")),
-	}
+	_sync_pending_state_from_orchestrator()
+	return _connection_orchestrator.build_pending_connection_context()

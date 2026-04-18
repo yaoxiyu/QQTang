@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const BattleExplosionConfigBuilder = preload("res://gameplay/battle/config/battle_explosion_config_builder.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var run_a := _run_chain_case(20260407)
 	var run_b := _run_chain_case(20260407)
 
@@ -11,7 +11,6 @@ func _ready() -> void:
 	_assert(run_a["exploded_ids"] == run_b["exploded_ids"], "exploded bubble ordering should match across identical chain runs")
 	_assert(run_a["final_checksum"] == run_b["final_checksum"], "final checksum should match across identical chain runs")
 
-	print("explosion_chain_determinism_test: PASS")
 
 
 func _run_chain_case(seed: int) -> Dictionary:
@@ -51,5 +50,5 @@ func _run_chain_case(seed: int) -> Dictionary:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("explosion_chain_determinism_test: FAIL - %s" % message)
+	assert_true(condition, message)
+

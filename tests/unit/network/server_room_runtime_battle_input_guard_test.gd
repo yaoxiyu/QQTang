@@ -1,9 +1,8 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 
@@ -12,21 +11,19 @@ class MockMatchService:
 
 	var ingested_messages: Array[Dictionary] = []
 
-	func _ready() -> void:
+	func test_main() -> void:
 		pass
 
 	func ingest_runtime_message(message: Dictionary) -> void:
 		ingested_messages.append(message.duplicate(true))
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_rejects_unknown_transport_peer() and ok
 	ok = _test_rejects_mismatched_control_peer() and ok
 	ok = _test_accepts_bound_control_peer() and ok
 	ok = _test_match_broadcast_targets_connected_bound_transports_only() and ok
-	if ok:
-		print("server_room_runtime_battle_input_guard_test: PASS")
 
 
 func _test_rejects_unknown_transport_peer() -> bool:
@@ -36,7 +33,7 @@ func _test_rejects_unknown_transport_peer() -> bool:
 
 	runtime.handle_battle_message(_input_message(99, 3))
 
-	var ok := TestAssert.is_true(
+	var ok := qqt_check(
 		match_service.ingested_messages.is_empty(),
 		"unknown transport peer input should be rejected",
 		"server_room_runtime_battle_input_guard_test"
@@ -52,7 +49,7 @@ func _test_rejects_mismatched_control_peer() -> bool:
 
 	runtime.handle_battle_message(_input_message(9, 2))
 
-	var ok := TestAssert.is_true(
+	var ok := qqt_check(
 		match_service.ingested_messages.is_empty(),
 		"bound transport should not control another match peer",
 		"server_room_runtime_battle_input_guard_test"
@@ -68,7 +65,7 @@ func _test_accepts_bound_control_peer() -> bool:
 
 	runtime.handle_battle_message(_input_message(9, 3))
 
-	var ok := TestAssert.is_true(
+	var ok := qqt_check(
 		match_service.ingested_messages.size() == 1,
 		"bound transport should control its original match peer",
 		"server_room_runtime_battle_input_guard_test"
@@ -104,7 +101,7 @@ func _test_match_broadcast_targets_connected_bound_transports_only() -> bool:
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
 	})
 
-	var ok := TestAssert.is_true(
+	var ok := qqt_check(
 		sent_peer_ids == [2, 9],
 		"match authority broadcast should target connected room bindings, not raw transport peers",
 		"server_room_runtime_battle_input_guard_test"
@@ -155,3 +152,4 @@ func _input_message(sender_transport_peer_id: int, frame_peer_id: int) -> Dictio
 			"action_place": false,
 		},
 	}
+

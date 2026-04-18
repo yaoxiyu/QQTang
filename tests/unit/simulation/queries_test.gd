@@ -1,6 +1,6 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-func _ready() -> void:
+func test_main() -> void:
 	var state := SimState.new()
 	state.initialize_default()
 	state.grid = BuiltinMapFactory.build_basic_map()
@@ -19,8 +19,7 @@ func _ready() -> void:
 	_assert(queries.get_player(player_id) != null, "player query should return player")
 	_assert(queries.get_bubble_at(2, 1) == bubble_id, "bubble index query should match")
 
-	print("test_queries: PASS")
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_queries: FAIL - %s" % message)
+	assert_true(condition, message)
+

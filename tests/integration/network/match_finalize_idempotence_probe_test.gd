@@ -1,10 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var payload := {
 		"match_id": "match_probe",
@@ -29,6 +28,5 @@ func _ready() -> void:
 
 	var hash_first := reporter._build_result_hash(payload)
 	var hash_second := reporter._build_result_hash(payload)
-	var ok := TestAssert.is_true(hash_first == hash_second and hash_first.begins_with("sha256:"), "duplicate finalize payload should keep same result hash", "match_finalize_idempotence_probe_test")
-	if ok:
-		print("match_finalize_idempotence_probe_test: PASS")
+	var ok := qqt_check(hash_first == hash_second and hash_first.begins_with("sha256:"), "duplicate finalize payload should keep same result hash", "match_finalize_idempotence_probe_test")
+

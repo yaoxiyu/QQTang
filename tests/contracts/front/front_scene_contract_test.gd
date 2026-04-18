@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
 
@@ -26,21 +26,21 @@ const FORMAL_FRONT_SCENES := {
 	],
 	"res://scenes/front/room_scene.tscn": [
 		"RoomRoot",
-		"RoomRoot/MainLayout/TopBar/BackToLobbyButton",
-		"RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel",
-		"RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector",
-		"RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList",
-		"RoomRoot/MainLayout/ActionRow/ReadyButton",
-		"RoomRoot/MainLayout/ActionRow/StartButton",
+		"RoomRoot/RoomScroll/MainLayout/TopBar/BackToLobbyButton",
+		"RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel",
+		"RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector",
+		"RoomRoot/RoomScroll/MainLayout/MemberCard/MemberVBox/MemberList",
+		"RoomRoot/RoomScroll/MainLayout/ActionRow/ReadyButton",
+		"RoomRoot/RoomScroll/MainLayout/ActionRow/StartButton",
 	],
 }
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_scene_flow_uses_formal_front_paths()
 	_test_front_scenes_load_and_expose_required_nodes()
 
@@ -78,6 +78,6 @@ func _test_front_scenes_load_and_expose_required_nodes() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+
