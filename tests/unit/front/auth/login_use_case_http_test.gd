@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const LoginUseCaseScript = preload("res://app/front/auth/login_use_case.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
@@ -6,7 +6,6 @@ const LoginResultScript = preload("res://app/front/auth/login_result.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeAuthGateway:
@@ -84,7 +83,7 @@ class FakeFrontSettingsRepository:
 		return true
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var use_case := LoginUseCaseScript.new()
 	var auth_session := AuthSessionStateScript.new()
 	var auth_session_repository := FakeAuthSessionRepository.new()
@@ -112,15 +111,14 @@ func _ready() -> void:
 
 	var prefix := "login_use_case_http_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "login should succeed", prefix) and ok
-	ok = TestAssert.is_true(String(auth_session.account_id) == "account_http", "login should write account id", prefix) and ok
-	ok = TestAssert.is_true(String(auth_session.profile_id) == "profile_http", "login should write profile id", prefix) and ok
-	ok = TestAssert.is_true(String(auth_session.device_session_id) == "dsess_http", "login should write device session", prefix) and ok
-	ok = TestAssert.is_true(String(player_profile.nickname) == "HttpUser", "login should sync profile nickname", prefix) and ok
-	ok = TestAssert.is_true(player_profile.owned_character_ids == ["character_default"], "login should sync owned characters", prefix) and ok
-	ok = TestAssert.is_true(auth_session_repository.last_saved != null, "login should persist auth session", prefix) and ok
-	ok = TestAssert.is_true(profile_repository.last_saved != null, "login should persist profile cache", prefix) and ok
-	ok = TestAssert.is_true(front_settings_repository.save_count == 1, "login should persist front settings", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "login should succeed", prefix) and ok
+	ok = qqt_check(String(auth_session.account_id) == "account_http", "login should write account id", prefix) and ok
+	ok = qqt_check(String(auth_session.profile_id) == "profile_http", "login should write profile id", prefix) and ok
+	ok = qqt_check(String(auth_session.device_session_id) == "dsess_http", "login should write device session", prefix) and ok
+	ok = qqt_check(String(player_profile.nickname) == "HttpUser", "login should sync profile nickname", prefix) and ok
+	ok = qqt_check(player_profile.owned_character_ids == ["character_default"], "login should sync owned characters", prefix) and ok
+	ok = qqt_check(auth_session_repository.last_saved != null, "login should persist auth session", prefix) and ok
+	ok = qqt_check(profile_repository.last_saved != null, "login should persist profile cache", prefix) and ok
+	ok = qqt_check(front_settings_repository.save_count == 1, "login should persist front settings", prefix) and ok
 
-	if ok:
-		print("login_use_case_http_test: PASS")
+

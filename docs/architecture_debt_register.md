@@ -2,36 +2,47 @@
 
 ## DEBT-001 app_runtime_root orchestration overload
 - Risk level: P1
-- Status: in_progress
+- Status: closed
 - Related dirs: `app/flow/`
 - Forbidden new-logic dirs: `app/flow/app_runtime_root.gd`
 - Planned phase: milestone-2026-q2-runtime
 - Done definition: root stays as orchestrator only, delegated modules own init/context/network/registry, root size <= 450 lines
 - Owner: front-runtime
-- Last updated: 2026-04-17
-- Linked tests/docs: `tests/contracts/runtime/runtime_initialization_contract_test.gd`, `tests/contracts/runtime/runtime_context_objects_contract_test.gd`
+- Last updated: 2026-04-19
+- Linked tests/docs: `tests/contracts/runtime/runtime_initialization_contract_test.gd`, `tests/contracts/runtime/runtime_context_objects_contract_test.gd`, `tests/contracts/runtime/app_runtime_root_boundary_contract_test.gd`
 
 ## DEBT-002 room scene controller mixed concerns
 - Risk level: P1
-- Status: in_progress
+- Status: closed
 - Related dirs: `scenes/front/`, `app/front/room/`
 - Forbidden new-logic dirs: `scenes/front/room_scene_controller.gd`
 - Planned phase: milestone-2026-q2-front-room
 - Done definition: selector, submit, snapshot logic moved to dedicated collaborators, controller <= 420 lines
 - Owner: front-runtime
-- Last updated: 2026-04-17
-- Linked tests/docs: `tests/integration/front/room_to_loading_to_battle_flow_test.gd`, `docs/architecture/front_flow.md`
+- Last updated: 2026-04-19
+- Linked tests/docs: `tests/integration/front/room_to_loading_to_battle_flow_test.gd`, `tests/contracts/runtime/room_scene_controller_boundary_contract_test.gd`, `docs/architecture/front_flow.md`
 
 ## DEBT-003 HTTP lifecycle not fully unified
 - Risk level: P1
-- Status: in_progress
+- Status: closed
 - Related dirs: `app/infra/http/`, `app/front/`, `network/services/`, `network/session/runtime/`
 - Forbidden new-logic dirs: direct `HTTPClient` lifecycle in gateways and service clients
 - Planned phase: milestone-2026-q2-http
 - Done definition: all high-frequency clients call shared executor, log fields contain method/url/status/error/log_tag
 - Owner: network-runtime
-- Last updated: 2026-04-17
-- Linked tests/docs: `tests/unit/front/http/http_url_parser_test.gd`, `tests/unit/infra/http/http_request_executor_test.gd`
+- Last updated: 2026-04-19
+- Linked tests/docs: `tests/unit/front/http/http_url_parser_test.gd`, `tests/unit/infra/http/http_request_executor_test.gd`, `tests/contracts/path/no_direct_httpclient_in_runtime_contract_test.gd`
+
+## DEBT-003A internal auth protocol fork
+- Risk level: P1
+- Status: closed
+- Related dirs: `network/session/runtime/`, `app/infra/http/`, `network/services/`
+- Forbidden new-logic dirs: legacy `X-Internal-Secret` header paths
+- Planned phase: milestone-2026-q2-http
+- Done definition: internal client only emits formal HMAC headers, legacy env fallback exists only at single compat read point
+- Owner: network-runtime
+- Last updated: 2026-04-19
+- Linked tests/docs: `tests/unit/network/internal_auth_signer_test.gd`, `tests/unit/network/server_match_finalize_reporter_test.gd`, `tests/contracts/runtime/internal_finalize_auth_contract_test.gd`
 
 ## DEBT-004 legacy compatibility path naming ambiguity
 - Risk level: P2
@@ -61,7 +72,7 @@
 - Related dirs: `.gitignore`, `tests/reports/`, `tools/release/`, `services/`
 - Forbidden new-logic dirs: checked-in local `.env`, root-level mixed latest/archive reports
 - Planned phase: milestone-2026-q2-release
-- Done definition: release sanity check script blocks dirty artifacts, reports split into latest/archive, local env and logs excluded
+- Done definition: release sanity check script blocks `.godot/`, raw xml, legacy runner refs, legacy Node test style, local env and logs excluded
 - Owner: build-and-release
-- Last updated: 2026-04-17
-- Linked tests/docs: `tools/release/release_sanity_check.py`, `tests/reports/latest/network_suite_latest.txt`
+- Last updated: 2026-04-19
+- Linked tests/docs: `tools/release/release_sanity_check.py`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`

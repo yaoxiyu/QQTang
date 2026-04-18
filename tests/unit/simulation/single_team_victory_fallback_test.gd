@@ -1,13 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const BattleStateToViewMapperScript = preload("res://presentation/battle/bridge/state_to_view_mapper.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := _test_single_team_match_ends_as_victory()
-	if ok:
-		print("single_team_victory_fallback_test: PASS")
 
 
 func _test_single_team_match_ends_as_victory() -> bool:
@@ -38,9 +35,9 @@ func _test_single_team_match_ends_as_victory() -> bool:
 	var views := mapper.build_player_views(world)
 	var prefix := "single_team_victory_fallback_test"
 	var ok := true
-	ok = TestAssert.is_true(world.state.match_state.phase == MatchState.Phase.ENDED, "single-team match should end immediately", prefix) and ok
-	ok = TestAssert.is_true(world.state.match_state.winner_team_id == 1, "single participating team should be winner", prefix) and ok
-	ok = TestAssert.is_true(_all_views_have_pose(views, "victory"), "single-team settlement should display victory pose", prefix) and ok
+	ok = qqt_check(world.state.match_state.phase == MatchState.Phase.ENDED, "single-team match should end immediately", prefix) and ok
+	ok = qqt_check(world.state.match_state.winner_team_id == 1, "single participating team should be winner", prefix) and ok
+	ok = qqt_check(_all_views_have_pose(views, "victory"), "single-team settlement should display victory pose", prefix) and ok
 	world.dispose()
 	return ok
 
@@ -52,3 +49,4 @@ func _all_views_have_pose(views: Array[Dictionary], pose_state: String) -> bool:
 		if String(view.get("pose_state", "")) != pose_state:
 			return false
 	return true
+

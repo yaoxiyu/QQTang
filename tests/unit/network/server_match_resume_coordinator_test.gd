@@ -1,11 +1,10 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class MockMatchService:
@@ -15,7 +14,7 @@ class MockMatchService:
 	var config: BattleStartConfig = null
 	var checkpoint: Dictionary = {}
 
-	func _ready() -> void:
+	func test_main() -> void:
 		pass
 
 	func is_match_active() -> bool:
@@ -28,7 +27,7 @@ class MockMatchService:
 		return checkpoint.duplicate(true)
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_member_disconnect_creates_resume_window() and ok
 	ok = _test_member_disconnect_skips_when_match_inactive() and ok
@@ -40,8 +39,6 @@ func _ready() -> void:
 	ok = _test_poll_expired_triggers_abort() and ok
 	ok = _test_poll_expired_skips_active_window() and ok
 	ok = _test_match_committed_freezes_and_clears_resume_state() and ok
-	if ok:
-		print("server_match_resume_coordinator_test: PASS")
 
 
 func _test_member_disconnect_creates_resume_window() -> bool:
@@ -54,10 +51,10 @@ func _test_member_disconnect_creates_resume_window() -> bool:
 
 	var prefix := "server_match_resume_coordinator_test"
 	var ok := true
-	ok = TestAssert.is_true(binding.disconnect_deadline_msec > Time.get_ticks_msec(), "disconnect should open a future resume window", prefix) and ok
-	ok = TestAssert.is_true(binding.connection_state == "disconnected", "binding should become disconnected", prefix) and ok
-	ok = TestAssert.is_true(binding.transport_peer_id == 0, "transport mapping should be cleared while disconnected", prefix) and ok
-	ok = TestAssert.is_true(binding.match_peer_id == 2, "match peer id should remain stable", prefix) and ok
+	ok = qqt_check(binding.disconnect_deadline_msec > Time.get_ticks_msec(), "disconnect should open a future resume window", prefix) and ok
+	ok = qqt_check(binding.connection_state == "disconnected", "binding should become disconnected", prefix) and ok
+	ok = qqt_check(binding.transport_peer_id == 0, "transport mapping should be cleared while disconnected", prefix) and ok
+	ok = qqt_check(binding.match_peer_id == 2, "match peer id should remain stable", prefix) and ok
 	return ok
 
 
@@ -71,7 +68,7 @@ func _test_member_disconnect_skips_when_match_inactive() -> bool:
 
 	coordinator.on_member_disconnected(binding.member_id)
 
-	return TestAssert.is_true(
+	return qqt_check(
 		binding.disconnect_deadline_msec == 0 and binding.connection_state == "connected",
 		"inactive match should not open a resume window",
 		"server_match_resume_coordinator_test"
@@ -93,23 +90,23 @@ func _test_try_resume_success_sends_candidate_config() -> bool:
 
 	var prefix := "server_match_resume_coordinator_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "valid resume request should succeed", prefix) and ok
-	ok = TestAssert.is_true(sent_messages.size() == 1, "resume should send one accept message", prefix) and ok
-	ok = TestAssert.is_true(state.get_member_binding_by_transport_peer(9) == binding, "new transport should bind to original member", prefix) and ok
-	ok = TestAssert.is_true(binding.match_peer_id == 2, "controlled match peer should stay original", prefix) and ok
-	ok = TestAssert.is_true(binding.transport_peer_id == 9, "transport peer should update to reconnect peer", prefix) and ok
-	ok = TestAssert.is_true(binding.connection_state == "connected", "binding should be connected after resume", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "valid resume request should succeed", prefix) and ok
+	ok = qqt_check(sent_messages.size() == 1, "resume should send one accept message", prefix) and ok
+	ok = qqt_check(state.get_member_binding_by_transport_peer(9) == binding, "new transport should bind to original member", prefix) and ok
+	ok = qqt_check(binding.match_peer_id == 2, "controlled match peer should stay original", prefix) and ok
+	ok = qqt_check(binding.transport_peer_id == 9, "transport peer should update to reconnect peer", prefix) and ok
+	ok = qqt_check(binding.connection_state == "connected", "binding should be connected after resume", prefix) and ok
 	if sent_messages.size() == 1:
 		var message: Dictionary = sent_messages[0]["message"]
 		var start_config: Dictionary = message.get("start_config", {})
 		var resume_snapshot: Dictionary = message.get("resume_snapshot", {})
-		ok = TestAssert.is_true(int(sent_messages[0]["peer_id"]) == 9, "accept should be sent to reconnect transport", prefix) and ok
-		ok = TestAssert.is_true(message.get("message_type", "") == TransportMessageTypesScript.MATCH_RESUME_ACCEPTED, "message should be MATCH_RESUME_ACCEPTED", prefix) and ok
-		ok = TestAssert.is_true(int(start_config.get("local_peer_id", 0)) == 9, "candidate config local peer should be reconnect transport", prefix) and ok
-		ok = TestAssert.is_true(int(start_config.get("controlled_peer_id", 0)) == 2, "candidate config controlled peer should be original match peer", prefix) and ok
-		ok = TestAssert.is_true(int(resume_snapshot.get("transport_peer_id", 0)) == 9, "resume snapshot transport peer should be reconnect transport", prefix) and ok
-		ok = TestAssert.is_true(int(resume_snapshot.get("controlled_peer_id", 0)) == 2, "resume snapshot controlled peer should be original match peer", prefix) and ok
-		ok = TestAssert.is_true(int(resume_snapshot.get("resume_tick", 0)) == 100, "resume snapshot should carry checkpoint tick", prefix) and ok
+		ok = qqt_check(int(sent_messages[0]["peer_id"]) == 9, "accept should be sent to reconnect transport", prefix) and ok
+		ok = qqt_check(message.get("message_type", "") == TransportMessageTypesScript.MATCH_RESUME_ACCEPTED, "message should be MATCH_RESUME_ACCEPTED", prefix) and ok
+		ok = qqt_check(int(start_config.get("local_peer_id", 0)) == 9, "candidate config local peer should be reconnect transport", prefix) and ok
+		ok = qqt_check(int(start_config.get("controlled_peer_id", 0)) == 2, "candidate config controlled peer should be original match peer", prefix) and ok
+		ok = qqt_check(int(resume_snapshot.get("transport_peer_id", 0)) == 9, "resume snapshot transport peer should be reconnect transport", prefix) and ok
+		ok = qqt_check(int(resume_snapshot.get("controlled_peer_id", 0)) == 2, "resume snapshot controlled peer should be original match peer", prefix) and ok
+		ok = qqt_check(int(resume_snapshot.get("resume_tick", 0)) == 100, "resume snapshot should carry checkpoint tick", prefix) and ok
 	return ok
 
 
@@ -173,10 +170,10 @@ func _test_poll_expired_triggers_abort() -> bool:
 
 	var prefix := "server_match_resume_coordinator_test"
 	var ok := true
-	ok = TestAssert.is_true(aborts.size() == 1, "expired resume window should request abort", prefix) and ok
+	ok = qqt_check(aborts.size() == 1, "expired resume window should request abort", prefix) and ok
 	if aborts.size() == 1:
-		ok = TestAssert.is_true(aborts[0]["reason"] == "peer_resume_timeout", "abort reason should be peer_resume_timeout", prefix) and ok
-		ok = TestAssert.is_true(aborts[0]["member_id"] == binding.member_id, "abort member id should match binding", prefix) and ok
+		ok = qqt_check(aborts[0]["reason"] == "peer_resume_timeout", "abort reason should be peer_resume_timeout", prefix) and ok
+		ok = qqt_check(aborts[0]["member_id"] == binding.member_id, "abort member id should match binding", prefix) and ok
 	return ok
 
 
@@ -190,7 +187,7 @@ func _test_poll_expired_skips_active_window() -> bool:
 
 	coordinator.poll_expired()
 
-	return TestAssert.is_true(aborts.is_empty(), "active resume window should not request abort", "server_match_resume_coordinator_test")
+	return qqt_check(aborts.is_empty(), "active resume window should not request abort", "server_match_resume_coordinator_test")
 
 
 func _test_match_committed_freezes_and_clears_resume_state() -> bool:
@@ -204,16 +201,16 @@ func _test_match_committed_freezes_and_clears_resume_state() -> bool:
 
 	var prefix := "server_match_resume_coordinator_test"
 	var ok := true
-	ok = TestAssert.is_true(binding.disconnect_deadline_msec == 0, "commit should clear stale resume deadline", prefix) and ok
-	ok = TestAssert.is_true(binding.last_match_id == "", "commit should clear stale match id", prefix) and ok
+	ok = qqt_check(binding.disconnect_deadline_msec == 0, "commit should clear stale resume deadline", prefix) and ok
+	ok = qqt_check(binding.last_match_id == "", "commit should clear stale match id", prefix) and ok
 	return ok
 
 
 func _expect_error(result: Dictionary, expected_error: String) -> bool:
 	var prefix := "server_match_resume_coordinator_test"
 	var ok := true
-	ok = TestAssert.is_true(not bool(result.get("ok", true)), "result should fail with %s" % expected_error, prefix) and ok
-	ok = TestAssert.is_true(String(result.get("error", "")) == expected_error, "error should be %s" % expected_error, prefix) and ok
+	ok = qqt_check(not bool(result.get("ok", true)), "result should fail with %s" % expected_error, prefix) and ok
+	ok = qqt_check(String(result.get("error", "")) == expected_error, "error should be %s" % expected_error, prefix) and ok
 	return ok
 
 
@@ -278,3 +275,4 @@ func _build_checkpoint() -> Dictionary:
 		"rng_state": 12345,
 		"checksum": 999,
 	}
+

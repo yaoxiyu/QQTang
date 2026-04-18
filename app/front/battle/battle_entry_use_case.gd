@@ -6,10 +6,11 @@ extends RefCounted
 ## 2. Request battle ticket from account_service
 ## 3. Supply context for battle_ds connection and scene transition
 
-const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
+const RoomBattleEntryBuilderScript = preload("res://app/front/room/room_battle_entry_builder.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
+const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
+const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
 const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
 
 var app_runtime: Node = null
@@ -20,31 +21,10 @@ func configure(p_app_runtime: Node) -> void:
 
 
 func build_battle_entry_context(snapshot: RoomSnapshot):
-	if snapshot == null:
+	var room_entry_context = app_runtime.current_room_entry_context if app_runtime != null else null
+	var ctx = RoomBattleEntryBuilderScript.build(snapshot, room_entry_context)
+	if ctx == null:
 		return null
-	if not snapshot.battle_entry_ready:
-		return null
-	if snapshot.current_assignment_id.is_empty() or snapshot.current_battle_id.is_empty():
-		return null
-	if snapshot.battle_server_host.is_empty() or snapshot.battle_server_port <= 0:
-		return null
-
-	var ctx = BattleEntryContextScript.new()
-	ctx.assignment_id = snapshot.current_assignment_id
-	ctx.battle_id = snapshot.current_battle_id
-	ctx.map_id = snapshot.selected_map_id
-	ctx.rule_set_id = snapshot.rule_set_id
-	ctx.mode_id = snapshot.mode_id
-	ctx.battle_server_host = snapshot.battle_server_host
-	ctx.battle_server_port = snapshot.battle_server_port
-	ctx.room_return_policy = snapshot.room_return_policy
-
-	# Populate source room info for return flow
-	ctx.source_room_id = snapshot.room_id
-	ctx.source_room_kind = snapshot.room_kind
-	if app_runtime != null and app_runtime.current_room_entry_context != null:
-		ctx.source_server_host = app_runtime.current_room_entry_context.server_host
-		ctx.source_server_port = app_runtime.current_room_entry_context.server_port
 
 	_log_battle_entry("battle_entry_context_built", ctx.to_dict())
 	return ctx
@@ -126,52 +106,35 @@ func _http_post_json(url: String, access_token: String, body: String) -> Diction
 	var parsed := HttpRequestHelperScript.parse_url(url)
 	if parsed.is_empty():
 		return {"ok": false, "error_code": "INVALID_URL", "user_message": "Invalid URL: %s" % url, "data": {}}
-
-	var client := HTTPClient.new()
-	var err := client.connect_to_host(String(parsed["host"]), int(parsed["port"]))
-	if err != OK:
-		return {"ok": false, "error_code": "CONNECT_FAILED", "user_message": "Failed to connect to account service", "data": {}}
-
-	while client.get_status() == HTTPClient.STATUS_CONNECTING or client.get_status() == HTTPClient.STATUS_RESOLVING:
-		client.poll()
-		OS.delay_msec(10)
-	if client.get_status() != HTTPClient.STATUS_CONNECTED:
-		return {"ok": false, "error_code": "CONNECT_FAILED", "user_message": "Failed to connect to account service", "data": {}}
-
-	var headers := PackedStringArray([
+	var options := HttpRequestOptionsScript.new()
+	options.method = HTTPClient.METHOD_POST
+	options.url = url
+	options.headers = PackedStringArray([
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	err = client.request(HTTPClient.METHOD_POST, String(parsed["path"]), headers, body)
-	if err != OK:
+	options.body_text = body
+	options.log_tag = "front.battle.entry_use_case"
+	options.connect_timeout_ms = 5000
+	options.read_timeout_ms = 8000
+	var response = HttpRequestExecutorScript.execute(options)
+	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
+		return {"ok": false, "error_code": "CONNECT_FAILED", "user_message": "Failed to connect to account service", "data": {}}
+	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":
 		return {"ok": false, "error_code": "REQUEST_FAILED", "user_message": "Failed to send battle ticket request", "data": {}}
-
-	while client.get_status() == HTTPClient.STATUS_REQUESTING:
-		client.poll()
-		OS.delay_msec(10)
-
-	var chunks := HttpResponseReaderScript.read_body_bytes(
-		client,
-		"front",
-		"front.battle.entry_use_case",
-		"battle_entry_use_case",
-		{"url": url, "method": HTTPClient.METHOD_POST}
-	)
-	var text := chunks.get_string_from_utf8()
+	var text := String(response.body_text)
 	if text.strip_edges().is_empty():
 		return {"ok": false, "error_code": "EMPTY_RESPONSE", "user_message": "Account service returned empty response", "data": {}}
-
-	var json := JSON.new()
-	if json.parse(text) != OK or not (json.data is Dictionary):
+	if not (response.body_json is Dictionary):
 		return {"ok": false, "error_code": "INVALID_RESPONSE", "user_message": "Account service returned invalid response", "data": {}}
 
-	var response: Dictionary = json.data
-	if not bool(response.get("ok", false)):
-		var err_code := String(response.get("error_code", "BATTLE_TICKET_REQUEST_FAILED"))
-		var err_msg := String(response.get("user_message", response.get("message", "Battle ticket request failed")))
-		return {"ok": false, "error_code": err_code, "user_message": err_msg, "data": response}
+	var data: Dictionary = response.body_json
+	if not bool(data.get("ok", false)):
+		var err_code := String(data.get("error_code", "BATTLE_TICKET_REQUEST_FAILED"))
+		var err_msg := String(data.get("user_message", data.get("message", "Battle ticket request failed")))
+		return {"ok": false, "error_code": err_code, "user_message": err_msg, "data": data}
 
-	return {"ok": true, "error_code": "", "user_message": "", "data": response}
+	return {"ok": true, "error_code": "", "user_message": "", "data": data}
 
 
 func _log_battle_entry(event_name: String, payload: Dictionary) -> void:

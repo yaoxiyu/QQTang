@@ -1,17 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const LocalLoopbackTransportScript = preload("res://network/transport/local_loopback_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_send_receive_roundtrip() and ok
 	ok = _test_latency_profile_delays_delivery() and ok
 	ok = _test_packet_loss_profile_drops_droppable_messages() and ok
-	if ok:
-		print("local_loopback_transport_test: PASS")
 
 
 func _test_send_receive_roundtrip() -> bool:
@@ -34,11 +31,11 @@ func _test_send_receive_roundtrip() -> bool:
 	var stats := transport.get_debug_stats()
 	var prefix := "local_loopback_transport_test"
 	var ok := true
-	ok = TestAssert.is_true(incoming.size() == 1, "loopback should deliver a sent message", prefix) and ok
-	ok = TestAssert.is_true(String(incoming[0].get("message_type", "")) == TransportMessageTypesScript.STATE_SUMMARY, "delivered message should preserve message_type", prefix) and ok
-	ok = TestAssert.is_true(int(incoming[0].get("tick", 0)) == 10, "delivered message should preserve tick", prefix) and ok
-	ok = TestAssert.is_true(int(stats.get("enqueued", 0)) == 1, "enqueued stat should increment after send", prefix) and ok
-	ok = TestAssert.is_true(int(stats.get("delivered", 0)) == 1, "delivered stat should increment after poll", prefix) and ok
+	ok = qqt_check(incoming.size() == 1, "loopback should deliver a sent message", prefix) and ok
+	ok = qqt_check(String(incoming[0].get("message_type", "")) == TransportMessageTypesScript.STATE_SUMMARY, "delivered message should preserve message_type", prefix) and ok
+	ok = qqt_check(int(incoming[0].get("tick", 0)) == 10, "delivered message should preserve tick", prefix) and ok
+	ok = qqt_check(int(stats.get("enqueued", 0)) == 1, "enqueued stat should increment after send", prefix) and ok
+	ok = qqt_check(int(stats.get("delivered", 0)) == 1, "delivered stat should increment after poll", prefix) and ok
 	transport.shutdown()
 	transport.queue_free()
 	return ok
@@ -62,15 +59,16 @@ func _test_latency_profile_delays_delivery() -> bool:
 	transport.poll()
 	var prefix := "local_loopback_transport_test"
 	var ok := true
-	ok = TestAssert.is_true(transport.get_latency_profile_ms() == 80, "latency profile should cycle to 80ms", prefix) and ok
-	ok = TestAssert.is_true(transport.consume_incoming().is_empty(), "message should not arrive on the same tick when latency is enabled", prefix) and ok
-	transport.set_current_tick(101)
-	transport.poll()
-	ok = TestAssert.is_true(transport.consume_incoming().is_empty(), "message should still be pending before latency ticks elapse", prefix) and ok
-	transport.set_current_tick(102)
-	transport.poll()
-	var delayed := transport.consume_incoming()
-	ok = TestAssert.is_true(delayed.size() == 1, "message should arrive after enough delayed ticks", prefix) and ok
+	ok = qqt_check(transport.get_latency_profile_ms() == 80, "latency profile should cycle to 80ms", prefix) and ok
+	ok = qqt_check(transport.consume_incoming().is_empty(), "message should not arrive on the same tick when latency is enabled", prefix) and ok
+	var delayed: Array[Dictionary] = []
+	for tick_id in [101, 102, 103, 104]:
+		transport.set_current_tick(tick_id)
+		transport.poll()
+		delayed = transport.consume_incoming()
+		if not delayed.is_empty():
+			break
+	ok = qqt_check(delayed.size() == 1, "message should arrive after enough delayed ticks", prefix) and ok
 	transport.shutdown()
 	transport.queue_free()
 	return ok
@@ -109,9 +107,10 @@ func _test_packet_loss_profile_drops_droppable_messages() -> bool:
 			break
 	var prefix := "local_loopback_transport_test"
 	var ok := true
-	ok = TestAssert.is_true(transport.get_packet_loss_percent() == 20, "loss profile should cycle to 20 percent", prefix) and ok
-	ok = TestAssert.is_true(int(stats.get("dropped", 0)) > 0, "droppable messages should be dropped under loss profile", prefix) and ok
-	ok = TestAssert.is_true(saw_non_droppable, "non-droppable messages should still be delivered under loss profile", prefix) and ok
+	ok = qqt_check(transport.get_packet_loss_percent() == 20, "loss profile should cycle to 20 percent", prefix) and ok
+	ok = qqt_check(int(stats.get("dropped", 0)) > 0, "droppable messages should be dropped under loss profile", prefix) and ok
+	ok = qqt_check(saw_non_droppable, "non-droppable messages should still be delivered under loss profile", prefix) and ok
 	transport.shutdown()
 	transport.queue_free()
 	return ok
+

@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
@@ -7,23 +7,21 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_state.gd")
 
-signal test_finished
 
 var _runtime_disposing_seen: bool = false
 var _runtime_disposed_seen: bool = false
 var _runtime_last_state_seen: int = RuntimeLifecycleStateScript.Value.NONE
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_battle_root_unregister_clears_runtime_references()
 	_test_battle_session_shutdown_clears_runtime_metrics()
 	_test_battle_root_stays_single_scene_across_re_registration()
 	await _test_runtime_exit_tree_reports_disposed_lifecycle()
-	test_finished.emit()
 
 
 func _test_battle_root_unregister_clears_runtime_references() -> void:
@@ -176,9 +174,7 @@ func _make_config() -> BattleStartConfig:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
 
 
 func _on_runtime_disposing_observed(runtime: Node) -> void:
@@ -189,3 +185,5 @@ func _on_runtime_disposing_observed(runtime: Node) -> void:
 func _on_runtime_disposed_observed(runtime: Node) -> void:
 	_runtime_disposed_seen = true
 	_runtime_last_state_seen = int(runtime.runtime_lifecycle_state)
+
+

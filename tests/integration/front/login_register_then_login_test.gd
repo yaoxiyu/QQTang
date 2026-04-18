@@ -1,17 +1,15 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
 const RegisterRequestScript = preload("res://app/front/auth/register_request.gd")
 const LoginResultScript = preload("res://app/front/auth/login_result.gd")
 const RegisterResultScript = preload("res://app/front/auth/register_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeAuthGateway:
-	extends RefCounted
+	extends "res://app/front/auth/auth_gateway.gd"
 
 	var accounts: Dictionary = {}
 
@@ -95,11 +93,11 @@ class FakeProfileGateway:
 		return token.substr(marker + 1)
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -137,12 +135,11 @@ func run_all() -> void:
 
 	var prefix := "login_register_then_login_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(register_result.get("ok", false)), "register should succeed", prefix) and ok
-	ok = TestAssert.is_true(bool(login_result.get("ok", false)), "login should succeed after register", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.auth_session_state.account_id) == "account_demo", "login should write account id", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.player_profile_state.nickname) == "DemoUser", "login should sync registered nickname", prefix) and ok
+	ok = qqt_check(bool(register_result.get("ok", false)), "register should succeed", prefix) and ok
+	ok = qqt_check(bool(login_result.get("ok", false)), "login should succeed after register", prefix) and ok
+	ok = qqt_check(String(runtime.auth_session_state.account_id) == "account_demo", "login should write account id", prefix) and ok
+	ok = qqt_check(String(runtime.player_profile_state.nickname) == "DemoUser", "login should sync registered nickname", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("login_register_then_login_test: PASS")
-	test_finished.emit()
+
+

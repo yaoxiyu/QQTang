@@ -5,7 +5,6 @@ const LEGACY_ROOT_NODE_NAME: String = "AppRuntimeRoot"
 const PENDING_RUNTIME_META_KEY: String = "_app_runtime_pending_instance"
 const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
 const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_state.gd")
-const AppRuntimeServicesScript = preload("res://app/flow/app_runtime_services.gd")
 const AppResumeStateStoreScript = preload("res://app/flow/app_resume_state_store.gd")
 const AppNavigationCoordinatorScript = preload("res://app/flow/app_navigation_coordinator.gd")
 const AppRuntimeInitializerScript = preload("res://app/flow/app_runtime_initializer.gd")
@@ -320,38 +319,9 @@ func debug_dump_online_runtime_state() -> Dictionary:
 
 
 func debug_dump_runtime_structure() -> Dictionary:
-	var diagnostics_dump: Dictionary = session_diagnostics.build_runtime_dump(self) if session_diagnostics != null else {}
-	return {
-		"root_name": name,
-		"runtime_state": runtime_lifecycle_state,
-		"runtime_state_name": get_runtime_state_name(),
-		"runtime_ready": is_runtime_ready(),
-		"runtime_initialization_requested": _initialization_requested,
-		"runtime_initialization_in_progress": _initialization_in_progress,
-		"has_session_root": session_root != null,
-		"has_battle_root": battle_root != null,
-		"has_debug_tools": debug_tools != null,
-		"has_runtime_config": runtime_config != null,
-		"runtime_config": runtime_config.to_dict() if runtime_config != null else {},
-		"has_active_battle_scene": current_battle_scene != null,
-		"has_active_battle_bootstrap": current_battle_bootstrap != null,
-		"has_active_presentation_bridge": current_presentation_bridge != null,
-		"has_active_battle_hud": current_battle_hud_controller != null,
-		"has_active_battle_camera": current_battle_camera_controller != null,
-		"has_active_settlement": current_settlement_controller != null,
-		"current_battle_content_manifest": current_battle_content_manifest.duplicate(true),
-		"battle_root_children": battle_root.get_child_count() if battle_root != null else 0,
-		"battle_root_child_names": _get_battle_root_child_names(),
-		"battle_root_has_scene": battle_root != null and current_battle_scene != null and current_battle_scene.get_parent() == battle_root,
-		"battle_root_has_multiple_scenes": battle_root != null and battle_root.get_child_count() > 1,
-		"current_scene_path": scene_flow.current_scene_path if scene_flow != null else "",
-		"battle_lifecycle_state": battle_session_adapter.get_lifecycle_state() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state") else -1,
-		"battle_lifecycle_state_name": battle_session_adapter.get_lifecycle_state_name() if battle_session_adapter != null and battle_session_adapter.has_method("get_lifecycle_state_name") else "UNKNOWN",
-		"battle_is_active": battle_session_adapter.is_battle_active() if battle_session_adapter != null and battle_session_adapter.has_method("is_battle_active") else false,
-		"battle_shutdown_complete": battle_session_adapter.is_shutdown_complete() if battle_session_adapter != null and battle_session_adapter.has_method("is_shutdown_complete") else false,
-		"last_runtime_error": last_runtime_error.duplicate(true),
-		"diagnostics": diagnostics_dump,
-	}
+	if session_diagnostics == null:
+		return {}
+	return session_diagnostics.build_app_runtime_structure_dump(self)
 
 
 func _on_network_error_routed(payload: Dictionary) -> void:
@@ -398,39 +368,6 @@ func _ensure_root_nodes() -> void:
 			debug_tools = DebugToolsScript.new()
 			debug_tools.name = "DebugTools"
 			add_child(debug_tools)
-
-
-func _ensure_runtime_config() -> void:
-	AppRuntimeServicesScript.ensure_runtime_config(self)
-
-
-func _ensure_runtime_contexts() -> void:
-	AppRuntimeServicesScript.ensure_runtime_contexts(self)
-
-
-func _ensure_front_local_state() -> void:
-	AppRuntimeServicesScript.ensure_front_local_state(self)
-
-
-func _ensure_front_repositories() -> void:
-	AppRuntimeServicesScript.ensure_front_repositories(self)
-
-
-func _ensure_front_services() -> void:
-	AppRuntimeServicesScript.ensure_front_services(self)
-
-
-func _ensure_front_use_cases() -> void:
-	AppRuntimeServicesScript.ensure_front_use_cases(self)
-
-
-func _get_battle_root_child_names() -> Array:
-	if battle_root == null:
-		return []
-	var names: Array = []
-	for child in battle_root.get_children():
-		names.append(child.name)
-	return names
 
 
 func _reparent_to(node: Node, new_parent: Node) -> void:

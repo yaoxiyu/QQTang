@@ -1,7 +1,6 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const SubmitterScript = preload("res://scenes/front/room_scene_selection_submitter.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 class FakeUseCase:
 	extends RefCounted
@@ -11,7 +10,7 @@ class FakeUseCase:
 		return {"ok": true}
 
 class FakeController:
-	extends Node
+	extends "res://tests/gut/base/qqt_unit_test.gd"
 	var _suppress_selection_callbacks: bool = false
 	var _room_use_case = FakeUseCase.new()
 	var match_format_selector: OptionButton = null
@@ -23,13 +22,10 @@ class FakeController:
 		pass
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var prefix := "room_scene_selection_submitter_test"
 	var submitter = SubmitterScript.new()
 	var controller := FakeController.new()
 	submitter.on_match_mode_multi_select_changed(controller)
-	var ok := TestAssert.is_true(controller._room_use_case.called, "submitter should call use case on mode multi-select change", prefix)
-	if ok:
-		print("%s: PASS" % prefix)
-	else:
-		push_error("%s: FAIL" % prefix)
+	var ok := qqt_check(controller._room_use_case.called, "submitter should call use case on mode multi-select change", prefix)
+

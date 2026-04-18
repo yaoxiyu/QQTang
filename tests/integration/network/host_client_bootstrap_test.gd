@@ -1,6 +1,5 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const RuntimeMessageRouterScript = preload("res://network/session/runtime/runtime_message_router.gd")
 const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
@@ -13,12 +12,10 @@ const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_ca
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_join_accepted_starts_client_runtime() and ok
 	ok = _test_invalid_config_is_rejected_before_client_runtime_starts() and ok
-	if ok:
-		print("host_client_bootstrap_test: PASS")
 
 
 func _test_join_accepted_starts_client_runtime() -> bool:
@@ -47,15 +44,15 @@ func _test_join_accepted_starts_client_runtime() -> bool:
 	authority.configure(1)
 	var prefix := "host_client_bootstrap_test"
 	var ok := true
-	ok = TestAssert.is_true(authority.start_match(config), "authority runtime should start with a valid start config", prefix) and ok
+	ok = qqt_check(authority.start_match(config), "authority runtime should start with a valid start config", prefix) and ok
 	router.route_messages([{
 		"message_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
 		"msg_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
 		"start_config": config.to_dict(),
 	}])
-	ok = TestAssert.is_true(bool(accepted_state.get("value", false)), "client should accept JOIN_BATTLE_ACCEPTED config", prefix) and ok
-	ok = TestAssert.is_true(client.is_active(), "client runtime should become active after accepted config", prefix) and ok
-	ok = TestAssert.is_true(client.start_config != null and client.start_config.match_id == config.match_id, "client runtime should keep the accepted match_id", prefix) and ok
+	ok = qqt_check(bool(accepted_state.get("value", false)), "client should accept JOIN_BATTLE_ACCEPTED config", prefix) and ok
+	ok = qqt_check(client.is_active(), "client runtime should become active after accepted config", prefix) and ok
+	ok = qqt_check(client.start_config != null and client.start_config.match_id == config.match_id, "client runtime should keep the accepted match_id", prefix) and ok
 	_cleanup_nodes([authority, client, router, coordinator])
 	return ok
 
@@ -88,8 +85,8 @@ func _test_invalid_config_is_rejected_before_client_runtime_starts() -> bool:
 	}])
 	var prefix := "host_client_bootstrap_test"
 	var ok := true
-	ok = TestAssert.is_true(not client.is_active(), "client runtime should stay inactive when config validation fails", prefix) and ok
-	ok = TestAssert.is_true(rejected_errors.size() > 0, "invalid config should produce visible validation errors", prefix) and ok
+	ok = qqt_check(not client.is_active(), "client runtime should stay inactive when config validation fails", prefix) and ok
+	ok = qqt_check(rejected_errors.size() > 0, "invalid config should produce visible validation errors", prefix) and ok
 	_cleanup_nodes([client, router, coordinator])
 	return ok
 
@@ -113,6 +110,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	host.ready = true
 	host.slot_index = 0
 	host.character_id = character_id
+	host.team_id = 1
 	snapshot.members.append(host)
 
 	var client := RoomMemberState.new()
@@ -121,6 +119,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.ready = true
 	client.slot_index = 1
 	client.character_id = character_id
+	client.team_id = 2
 	snapshot.members.append(client)
 	return snapshot
 
@@ -133,3 +132,4 @@ func _cleanup_nodes(nodes: Array) -> void:
 			node.shutdown_runtime()
 		if is_instance_valid(node):
 			node.queue_free()
+

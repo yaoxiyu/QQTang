@@ -1,12 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const BATTLE_TICKET_SECRET := "dev_battle_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var verifier := BattleTicketVerifierScript.new()
 	verifier.configure(BATTLE_TICKET_SECRET)
 	var now := int(Time.get_unix_time_from_system())
@@ -16,28 +15,24 @@ func _ready() -> void:
 
 	var bad_signature := _build_message("battle_001", "account_1", "profile_1", now + 60, "bad_signature")
 	var r1 := verifier.verify_entry_ticket(bad_signature, "battle_001", manifest)
-	ok = TestAssert.is_true(String(r1.get("error_code", "")) == "BATTLE_TICKET_SIGNATURE_INVALID", "signature mismatch should be rejected", prefix) and ok
+	ok = qqt_check(String(r1.get("error_code", "")) == "BATTLE_TICKET_SIGNATURE_INVALID", "signature mismatch should be rejected", prefix) and ok
 
 	var expired := _build_message("battle_001", "account_1", "profile_1", now - 1)
 	var r2 := verifier.verify_entry_ticket(expired, "battle_001", manifest)
-	ok = TestAssert.is_true(String(r2.get("error_code", "")) == "BATTLE_TICKET_EXPIRED", "expired ticket should be rejected", prefix) and ok
+	ok = qqt_check(String(r2.get("error_code", "")) == "BATTLE_TICKET_EXPIRED", "expired ticket should be rejected", prefix) and ok
 
 	var battle_mismatch := _build_message("battle_999", "account_1", "profile_1", now + 60)
 	var r3 := verifier.verify_entry_ticket(battle_mismatch, "battle_001", manifest)
-	ok = TestAssert.is_true(String(r3.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle id mismatch should be rejected", prefix) and ok
+	ok = qqt_check(String(r3.get("error_code", "")) == "BATTLE_ID_MISMATCH", "battle id mismatch should be rejected", prefix) and ok
 
 	var member_mismatch := _build_message("battle_001", "account_unknown", "profile_unknown", now + 60)
 	var r4 := verifier.verify_entry_ticket(member_mismatch, "battle_001", manifest)
-	ok = TestAssert.is_true(String(r4.get("error_code", "")) == "BATTLE_MEMBER_MISMATCH", "member mismatch should be rejected", prefix) and ok
+	ok = qqt_check(String(r4.get("error_code", "")) == "BATTLE_MEMBER_MISMATCH", "member mismatch should be rejected", prefix) and ok
 
 	var lock_mismatch := _build_message("battle_001", "account_1", "profile_1", now + 60, "", "map_other", "rule_001", "mode_001")
 	var r5 := verifier.verify_entry_ticket(lock_mismatch, "battle_001", manifest)
-	ok = TestAssert.is_true(String(r5.get("error_code", "")) == "BATTLE_LOCK_MISMATCH", "map-rule-mode lock mismatch should be rejected", prefix) and ok
+	ok = qqt_check(String(r5.get("error_code", "")) == "BATTLE_LOCK_MISMATCH", "map-rule-mode lock mismatch should be rejected", prefix) and ok
 
-	if ok:
-		print("battle_entry_invalid_ticket_e2e_test: PASS")
-	else:
-		push_error("battle_entry_invalid_ticket_e2e_test: FAIL")
 
 
 func _build_manifest() -> Dictionary:
@@ -97,3 +92,4 @@ func _build_message(
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

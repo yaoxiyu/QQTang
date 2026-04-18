@@ -1,7 +1,6 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ContextSyncScript = preload("res://app/flow/app_runtime_context_sync.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 class FakeFrontContext:
 	extends RefCounted
@@ -27,7 +26,7 @@ class FakeBattleContext:
 	var current_settlement_popup_summary: Dictionary = {}
 
 class FakeRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_unit_test.gd"
 	var front_context = FakeFrontContext.new()
 	var battle_context = FakeBattleContext.new()
 	var auth_session_state = {"token": "a"}
@@ -53,17 +52,15 @@ class FakeRuntime:
 		pass
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var prefix := "app_runtime_context_sync_test"
-	var runtime := FakeRuntime.new()
+	var runtime := qqt_add_child(FakeRuntime.new())
 	ContextSyncScript.sync_front_context(runtime)
 	ContextSyncScript.sync_battle_context(runtime)
 	var ok := true
-	ok = TestAssert.is_true(runtime.front_context.pending_room_action == "rematch", "front context should mirror pending action", prefix) and ok
-	ok = TestAssert.is_true(runtime.front_context.current_loading_mode == "resume", "front context should mirror loading mode", prefix) and ok
-	ok = TestAssert.is_true(runtime.battle_context.current_start_config.get("match_id", "") == "m1", "battle context should mirror start config", prefix) and ok
-	ok = TestAssert.is_true(runtime.battle_context.current_settlement_popup_summary.get("summary", false), "battle context should mirror settlement summary", prefix) and ok
-	if ok:
-		print("%s: PASS" % prefix)
-	else:
-		push_error("%s: FAIL" % prefix)
+	ok = qqt_check(runtime.front_context.pending_room_action == "rematch", "front context should mirror pending action", prefix) and ok
+	ok = qqt_check(runtime.front_context.current_loading_mode == "resume", "front context should mirror loading mode", prefix) and ok
+	ok = qqt_check(runtime.battle_context.current_start_config.get("match_id", "") == "m1", "battle context should mirror start config", prefix) and ok
+	ok = qqt_check(runtime.battle_context.current_settlement_popup_summary.get("summary", false), "battle context should mirror settlement summary", prefix) and ok
+	qqt_detach_and_free(runtime)
+	await qqt_wait_frames()

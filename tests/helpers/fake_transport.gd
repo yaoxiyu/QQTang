@@ -1,5 +1,5 @@
 class_name FakeTransport
-extends RefCounted
+extends Node
 
 var latency_ticks: int = 0
 var jitter_ticks: int = 0

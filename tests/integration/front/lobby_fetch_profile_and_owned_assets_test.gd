@@ -1,9 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeProfileGateway:
@@ -34,11 +32,11 @@ class FakeProfileGateway:
 		}
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -59,14 +57,13 @@ func run_all() -> void:
 
 	var prefix := "lobby_fetch_profile_and_owned_assets_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.get("ok", false)), "refresh_profile should succeed", prefix) and ok
-	ok = TestAssert.is_true(runtime.player_profile_state.owned_character_ids == ["hero_001"], "refresh_profile should sync owned characters", prefix) and ok
-	ok = TestAssert.is_true(runtime.player_profile_state.owned_character_skin_ids == ["skin_001"], "refresh_profile should sync owned skins", prefix) and ok
-	ok = TestAssert.is_true(runtime.player_profile_state.owned_bubble_style_ids == ["bubble_normal"], "refresh_profile should sync owned bubbles", prefix) and ok
-	ok = TestAssert.is_true(runtime.player_profile_state.owned_bubble_skin_ids == ["bubble_skin_001"], "refresh_profile should sync owned bubble skins", prefix) and ok
-	ok = TestAssert.is_true(String(runtime.player_profile_state.profile_source) == "cloud_cache", "refresh_profile should mark cloud cache source", prefix) and ok
+	ok = qqt_check(bool(result.get("ok", false)), "refresh_profile should succeed", prefix) and ok
+	ok = qqt_check(runtime.player_profile_state.owned_character_ids == ["hero_001"], "refresh_profile should sync owned characters", prefix) and ok
+	ok = qqt_check(runtime.player_profile_state.owned_character_skin_ids == ["skin_001"], "refresh_profile should sync owned skins", prefix) and ok
+	ok = qqt_check(runtime.player_profile_state.owned_bubble_style_ids == ["bubble_normal"], "refresh_profile should sync owned bubbles", prefix) and ok
+	ok = qqt_check(runtime.player_profile_state.owned_bubble_skin_ids == ["bubble_skin_001"], "refresh_profile should sync owned bubble skins", prefix) and ok
+	ok = qqt_check(String(runtime.player_profile_state.profile_source) == "cloud_cache", "refresh_profile should mark cloud cache source", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("lobby_fetch_profile_and_owned_assets_test: PASS")
-	test_finished.emit()
+
+

@@ -1,15 +1,14 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const LoginSceneScript = preload("res://scenes/front/login_scene.tscn")
 const LobbySceneScript = preload("res://scenes/front/lobby_scene.tscn")
 const RoomSceneScript = preload("res://scenes/front/room_scene.tscn")
 const LoadingSceneScript = preload("res://scenes/front/loading_scene.tscn")
 
-signal test_finished
 
 
 class RedirectProbe:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 
 	var _scenes_to_test: Array = []
 	var _host: Node = null
@@ -25,8 +24,6 @@ class RedirectProbe:
 			{"name": "LoadingScene", "scene": LoadingSceneScript},
 		]
 		await _run_scene_redirects()
-		if _host != null:
-			_host.test_finished.emit()
 
 	func _run_scene_redirects() -> void:
 		for entry in _scenes_to_test:
@@ -81,14 +78,14 @@ class RedirectProbe:
 
 	func _assert_true(condition: bool, message: String) -> void:
 		if condition:
-			print("[PASS] %s" % message)
 			return
-		push_error("[FAIL] %s" % message)
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var probe := RedirectProbe.new()
 	probe.name = "RedirectProbe"
 	probe._host = self
 	get_tree().root.add_child.call_deferred(probe)
 	probe.start()
+
+

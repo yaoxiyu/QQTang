@@ -131,12 +131,34 @@ func _fetch_and_apply_profile() -> Dictionary:
 		}
 	var result = profile_gateway.fetch_my_profile(auth_session_state.access_token)
 	if result == null:
+		if bool(auth_session_state.validation_bypassed):
+			player_profile_state.profile_id = auth_session_state.profile_id
+			player_profile_state.account_id = auth_session_state.account_id
+			player_profile_state.nickname = auth_session_state.display_name
+			player_profile_state.profile_source = "pass_through"
+			player_profile_state.last_sync_msec = Time.get_ticks_msec()
+			return {
+				"ok": true,
+				"error_code": "",
+				"user_message": "",
+			}
 		return {
 			"ok": false,
 			"error_code": "PROFILE_FETCH_RESULT_MISSING",
 			"user_message": "Profile fetch result is missing",
 		}
 	if not bool(result.get("ok", false)):
+		if bool(auth_session_state.validation_bypassed):
+			player_profile_state.profile_id = auth_session_state.profile_id
+			player_profile_state.account_id = auth_session_state.account_id
+			player_profile_state.nickname = auth_session_state.display_name
+			player_profile_state.profile_source = "pass_through"
+			player_profile_state.last_sync_msec = Time.get_ticks_msec()
+			return {
+				"ok": true,
+				"error_code": "",
+				"user_message": "",
+			}
 		return {
 			"ok": false,
 			"error_code": String(result.get("error_code", "PROFILE_FETCH_FAILED")),

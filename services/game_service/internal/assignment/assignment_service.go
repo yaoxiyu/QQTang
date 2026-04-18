@@ -13,6 +13,7 @@ var (
 	ErrAssignmentNotFound       = errors.New("MATCHMAKING_ASSIGNMENT_NOT_FOUND")
 	ErrAssignmentMemberNotFound = errors.New("MATCHMAKING_ASSIGNMENT_MEMBER_NOT_FOUND")
 	ErrAssignmentExpired        = errors.New("MATCHMAKING_ASSIGNMENT_EXPIRED")
+	ErrAssignmentAllocFailed    = errors.New("MATCHMAKING_ASSIGNMENT_ALLOC_FAILED")
 	ErrAssignmentGrantForbidden = errors.New("MATCHMAKING_ASSIGNMENT_GRANT_FORBIDDEN")
 	ErrAssignmentRevisionStale  = errors.New("MATCHMAKING_ASSIGNMENT_REVISION_STALE")
 )
@@ -54,6 +55,9 @@ func (s *Service) GetGrant(ctx context.Context, assignmentID string, accountID s
 	}
 	if assignmentRecord.CommitDeadlineUnixSec < time.Now().UTC().Unix() || assignmentRecord.State == "finalized" {
 		return GrantResult{}, ErrAssignmentExpired
+	}
+	if assignmentRecord.AllocationState == "alloc_failed" || assignmentRecord.AllocationState == "allocation_failed" {
+		return GrantResult{}, ErrAssignmentAllocFailed
 	}
 	assignmentRecord, member, err = s.reElectCaptainIfNeeded(ctx, assignmentRecord, member)
 	if err != nil {
@@ -127,6 +131,9 @@ func (s *Service) CommitRoom(ctx context.Context, input CommitInput) (CommitResu
 	now := time.Now().UTC().Unix()
 	if assignmentRecord.CommitDeadlineUnixSec < now || assignmentRecord.State == "finalized" {
 		return CommitResult{}, ErrAssignmentExpired
+	}
+	if assignmentRecord.AllocationState == "alloc_failed" || assignmentRecord.AllocationState == "allocation_failed" {
+		return CommitResult{}, ErrAssignmentAllocFailed
 	}
 	if assignmentRecord.State != "committed" {
 		if err := s.repo.MarkCommitted(ctx, assignmentRecord.AssignmentID, input.AccountID); err != nil {

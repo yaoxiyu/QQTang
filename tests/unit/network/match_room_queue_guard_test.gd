@@ -1,9 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakePartyQueueClient:
@@ -24,7 +22,7 @@ class FakePartyQueueClient:
 		return {"ok": true}
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var service := ServerRoomServiceScript.new()
 	add_child(service)
 	var client := FakePartyQueueClient.new()
@@ -37,28 +35,26 @@ func _ready() -> void:
 
 	var prefix := "match_room_queue_guard_test"
 	var ok := true
-	ok = TestAssert.is_true(not service.room_state.can_enter_match_queue(1), "2v2 room with one member cannot queue", prefix) and ok
+	ok = qqt_check(not service.room_state.can_enter_match_queue(1), "2v2 room with one member cannot queue", prefix) and ok
 
 	service.room_state.upsert_member(2, "Guest", "character_default", "", "bubble_style_default", "", 1, "account_2", "profile_2", "dsess_2")
 	service.room_state.set_ready(1, true)
-	ok = TestAssert.is_true(not service.room_state.can_enter_match_queue(1), "not-ready guest should block queue", prefix) and ok
+	ok = qqt_check(not service.room_state.can_enter_match_queue(1), "not-ready guest should block queue", prefix) and ok
 	service.room_state.set_ready(2, true)
-	ok = TestAssert.is_true(service.room_state.can_enter_match_queue(1), "full ready party should allow queue", prefix) and ok
+	ok = qqt_check(service.room_state.can_enter_match_queue(1), "full ready party should allow queue", prefix) and ok
 
 	service.handle_message({
 		"message_type": "ROOM_ENTER_MATCH_QUEUE",
 		"sender_peer_id": 1,
 	})
-	ok = TestAssert.is_true(String(service.room_state.room_queue_state) == "queueing", "enter queue should set queueing state", prefix) and ok
-	ok = TestAssert.is_true(String(service.room_state.room_queue_entry_id) == "party_queue_alpha", "enter queue should store queue entry id", prefix) and ok
+	ok = qqt_check(String(service.room_state.room_queue_state) == "queueing", "enter queue should set queueing state", prefix) and ok
+	ok = qqt_check(String(service.room_state.room_queue_entry_id) == "party_queue_alpha", "enter queue should store queue entry id", prefix) and ok
 
 	service.handle_message({
 		"message_type": "ROOM_LEAVE",
 		"sender_peer_id": 2,
 	})
-	ok = TestAssert.is_true(client.cancel_count == 1, "leaving while queueing should cancel backend party queue", prefix) and ok
-	ok = TestAssert.is_true(String(service.room_state.room_queue_state) == "cancelled", "leaving while queueing should mark local queue cancelled", prefix) and ok
+	ok = qqt_check(client.cancel_count == 1, "leaving while queueing should cancel backend party queue", prefix) and ok
+	ok = qqt_check(String(service.room_state.room_queue_state) == "cancelled", "leaving while queueing should mark local queue cancelled", prefix) and ok
 	service.queue_free()
-	if ok:
-		print("match_room_queue_guard_test: PASS")
-	test_finished.emit()
+

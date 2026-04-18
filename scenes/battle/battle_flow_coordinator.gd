@@ -1,0 +1,434 @@
+extends RefCounted
+
+const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
+const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/battle_runtime_config_builder.gd")
+const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
+const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
+const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
+const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+
+var _content_manifest_builder = BattleContentManifestBuilderScript.new()
+var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
+var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
+
+
+func consume_authoritative_tick(
+	app_runtime: Node,
+	battle_context: BattleContext,
+	presentation_bridge: Node,
+	battle_hud: Node,
+	tick_result: Dictionary,
+	metrics: Dictionary
+) -> void:
+	if battle_context == null or battle_context.sim_world == null:
+		return
+	var local_player_entity_id := resolve_local_player_entity_id(app_runtime, battle_context)
+	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
+	battle_hud.set_local_player_entity_id(local_player_entity_id)
+	presentation_bridge.consume_tick_result(tick_result, battle_context.sim_world, tick_result.get("events", []))
+	battle_hud.consume_battle_state(battle_context.sim_world)
+	battle_hud.consume_network_metrics(metrics)
+
+
+func initialize_battle_context(
+	app_runtime: Node,
+	battle_context: BattleContext,
+	session_adapter: Node,
+	battle_bootstrap: Node,
+	presentation_bridge: Node,
+	battle_hud: Node,
+	battle_camera_controller: Node,
+	map_theme_environment_controller: Node,
+	map_root: Node
+) -> void:
+	if battle_context == null:
+		return
+	if app_runtime != null and app_runtime.current_start_config == null and battle_context.battle_start_config != null:
+		app_runtime.apply_canonical_start_config(battle_context.battle_start_config)
+	var resolved_manifest: Dictionary = {}
+	if app_runtime != null and not app_runtime.current_battle_content_manifest.is_empty():
+		resolved_manifest = app_runtime.current_battle_content_manifest.duplicate(true)
+	elif battle_context.battle_start_config != null:
+		resolved_manifest = _content_manifest_builder.build_for_start_config(battle_context.battle_start_config)
+	battle_context.battle_content_manifest = resolved_manifest
+	battle_bootstrap.bind_context(battle_context)
+	if app_runtime != null and app_runtime.room_session_controller != null and app_runtime.room_session_controller.has_method("mark_match_started"):
+		var match_id: String = app_runtime.current_start_config.match_id if app_runtime.current_start_config != null else ""
+		app_runtime.room_session_controller.mark_match_started(match_id)
+	battle_camera_controller.configure_from_world(battle_context.sim_world, presentation_bridge.cell_size)
+	apply_content_style_overrides(app_runtime, presentation_bridge)
+	apply_player_visual_profiles(app_runtime, presentation_bridge)
+	apply_map_theme(app_runtime, presentation_bridge, map_theme_environment_controller, map_root)
+	presentation_bridge.consume_tick_result({}, battle_context.sim_world, [])
+	var local_player_entity_id := resolve_local_player_entity_id(app_runtime, battle_context)
+	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
+	battle_hud.set_local_player_entity_id(local_player_entity_id)
+	apply_battle_metadata(app_runtime, battle_context, battle_hud, null, null, null, null, null, null)
+	battle_hud.consume_battle_state(battle_context.sim_world)
+	if session_adapter != null:
+		battle_hud.consume_network_metrics(session_adapter.build_runtime_metrics_snapshot())
+	battle_hud.match_message_panel.apply_message(
+		"J Latency  K Loss  L ForceRollback  I DropRate %d%%  O RemoteDebug %s" % [
+			ItemSpawnSystemScript.get_debug_drop_rate_percent(),
+			"On" if session_adapter != null and session_adapter.use_remote_debug_inputs else "Off"
+		]
+	)
+
+
+func apply_battle_metadata(
+	app_runtime: Node,
+	battle_context: BattleContext,
+	battle_hud: Node,
+	battle_meta_panel: Node,
+	battle_meta_map_label: Label,
+	battle_meta_rule_label: Label,
+	battle_meta_match_label: Label,
+	battle_meta_character_label: Label,
+	battle_meta_bubble_label: Label
+) -> void:
+	if battle_hud == null:
+		return
+	var resolved_start_config: BattleStartConfig = null
+	if battle_context != null and battle_context.battle_start_config != null:
+		resolved_start_config = battle_context.battle_start_config
+	elif app_runtime != null and app_runtime.current_start_config != null:
+		resolved_start_config = app_runtime.current_start_config
+	if resolved_start_config == null:
+		return
+	var manifest: Dictionary = {}
+	if battle_context != null and not battle_context.battle_content_manifest.is_empty():
+		manifest = battle_context.battle_content_manifest
+	elif app_runtime != null and not app_runtime.current_battle_content_manifest.is_empty():
+		manifest = app_runtime.current_battle_content_manifest
+	if manifest.is_empty():
+		manifest = _content_manifest_builder.build_for_start_config(resolved_start_config)
+		if battle_context != null:
+			battle_context.battle_content_manifest = manifest.duplicate(true)
+	var ui_summary: Dictionary = manifest.get("ui_summary", {})
+	var local_character_display_name := _resolve_local_character_display_name(app_runtime, manifest, resolved_start_config)
+	var local_bubble_display_name := _resolve_local_bubble_display_name(app_runtime, manifest, resolved_start_config)
+	var mode_display_name := String(ui_summary.get("mode_display_name", resolved_start_config.mode_id))
+	var match_meta_text := "模式: %s | Match: %s | Profile: %s" % [
+		mode_display_name,
+		String(resolved_start_config.match_id),
+		String(ui_summary.get("item_profile_id", resolved_start_config.item_spawn_profile_id)),
+	]
+	var item_brief := String(ui_summary.get("item_brief", ""))
+	if not item_brief.is_empty():
+		match_meta_text = "%s | %s" % [match_meta_text, item_brief]
+	battle_hud.set_extended_battle_metadata(
+		String(ui_summary.get("map_display_name", resolved_start_config.map_id)),
+		String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id)),
+		match_meta_text,
+		local_character_display_name,
+		local_bubble_display_name
+	)
+	var resolved_map_display_name := String(ui_summary.get("map_display_name", resolved_start_config.map_id))
+	var resolved_rule_display_name := String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id))
+	if battle_meta_panel != null:
+		battle_meta_panel.apply_extended_metadata(
+			resolved_map_display_name,
+			resolved_rule_display_name,
+			match_meta_text,
+			local_character_display_name,
+			local_bubble_display_name
+		)
+	if battle_meta_map_label != null:
+		battle_meta_map_label.text = "地图: %s" % resolved_map_display_name
+	if battle_meta_rule_label != null:
+		battle_meta_rule_label.text = "规则: %s" % resolved_rule_display_name
+	if battle_meta_match_label != null:
+		battle_meta_match_label.text = match_meta_text
+	if battle_meta_character_label != null:
+		battle_meta_character_label.text = "角色: %s" % local_character_display_name
+	if battle_meta_bubble_label != null:
+		battle_meta_bubble_label.text = "泡泡: %s" % local_bubble_display_name
+
+
+func apply_content_style_overrides(app_runtime: Node, presentation_bridge: Node) -> void:
+	if presentation_bridge == null or app_runtime == null or app_runtime.current_start_config == null:
+		return
+	var player_style_by_slot: Dictionary = {}
+	var bubble_style_by_slot: Dictionary = {}
+	var bubble_color_by_slot: Dictionary = {}
+	for loadout in app_runtime.current_start_config.character_loadouts:
+		var peer_id := int(loadout.get("peer_id", -1))
+		var slot_index := _find_slot_index_for_peer(app_runtime, peer_id)
+		if slot_index < 0:
+			continue
+		player_style_by_slot[slot_index] = _resolve_character_color(String(loadout.get("character_id", "")), slot_index)
+	for loadout in app_runtime.current_start_config.player_bubble_loadouts:
+		var peer_id := int(loadout.get("peer_id", -1))
+		var slot_index := _find_slot_index_for_peer(app_runtime, peer_id)
+		if slot_index < 0:
+			continue
+		var bubble_style_id := String(loadout.get("bubble_style_id", ""))
+		bubble_style_by_slot[slot_index] = bubble_style_id
+		bubble_color_by_slot[slot_index] = _resolve_bubble_color(bubble_style_id, slot_index)
+	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
+
+
+func apply_player_visual_profiles(app_runtime: Node, presentation_bridge: Node) -> void:
+	if presentation_bridge == null or app_runtime == null:
+		return
+	var start_config: BattleStartConfig = app_runtime.current_start_config
+	if start_config == null:
+		return
+	var room_snapshot := _resolve_battle_room_snapshot(app_runtime, start_config)
+	if room_snapshot == null:
+		return
+	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	if runtime_config == null:
+		return
+	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
+	LogFrontScript.debug(
+		"%s[battle_scene] player_visual_profiles_applied room_id=%s room_members=%d start_players=%d profiles=%d" % [
+			ONLINE_LOG_PREFIX,
+			String(room_snapshot.room_id),
+			room_snapshot.member_count(),
+			start_config.player_slots.size(),
+			player_visual_profiles.size(),
+		],
+		"",
+		0,
+		"front.battle.scene"
+	)
+	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
+
+
+func apply_map_theme(app_runtime: Node, presentation_bridge: Node, map_theme_environment_controller: Node, map_root: Node) -> void:
+	if app_runtime == null:
+		return
+	var start_config: BattleStartConfig = app_runtime.current_start_config
+	if start_config == null:
+		return
+	var room_snapshot := _resolve_battle_room_snapshot(app_runtime, start_config)
+	if room_snapshot == null:
+		return
+	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var map_runtime_layout := MapLoaderScript.load_runtime_layout(String(room_selection_state.map_id))
+	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	if runtime_config == null or runtime_config.map_theme == null:
+		return
+	if presentation_bridge != null and map_runtime_layout != null:
+		presentation_bridge.configure_map_presentation(map_runtime_layout, runtime_config.map_theme)
+	if map_theme_environment_controller != null:
+		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
+	if map_root != null:
+		map_root.apply_map_theme(runtime_config.map_theme)
+
+
+func resolve_local_player_entity_id(app_runtime: Node, battle_context: BattleContext) -> int:
+	if battle_context == null or battle_context.sim_world == null or app_runtime == null or app_runtime.current_start_config == null:
+		return -1
+	var controlled_peer_id := int(app_runtime.current_start_config.controlled_peer_id)
+	if controlled_peer_id <= 0:
+		controlled_peer_id = app_runtime.local_peer_id
+	for player_entry in app_runtime.current_start_config.players:
+		if int(player_entry.get("peer_id", -1)) != controlled_peer_id:
+			continue
+		var slot_index: int = int(player_entry.get("slot_index", -1))
+		for player_id in battle_context.sim_world.state.players.active_ids:
+			var player: PlayerState = battle_context.sim_world.state.players.get_player(player_id)
+			if player != null and player.player_slot == slot_index:
+				return player.entity_id
+	return -1
+
+
+func build_start_config_from_battle_entry(ctx: BattleEntryContext) -> BattleStartConfig:
+	var config := BattleStartConfig.new()
+	config.session_mode = "network_client"
+	config.topology = "dedicated_server"
+	config.authority_host = ctx.battle_server_host
+	config.authority_port = ctx.battle_server_port
+	config.battle_id = ctx.battle_id
+	config.match_id = ctx.match_id
+	config.map_id = ctx.map_id
+	config.mode_id = ctx.mode_id
+	config.rule_set_id = ctx.rule_set_id
+	config.room_id = ctx.source_room_id
+	config.build_mode = BattleStartConfig.BUILD_MODE_CANONICAL
+	return config
+
+
+func _resolve_battle_room_snapshot(app_runtime: Node, start_config: BattleStartConfig) -> RoomSnapshot:
+	if start_config == null:
+		return null
+	var current_snapshot: RoomSnapshot = app_runtime.current_room_snapshot if app_runtime != null else null
+	if _snapshot_covers_start_config_players(current_snapshot, start_config):
+		return current_snapshot
+	return _build_fallback_room_snapshot_from_start_config(start_config)
+
+
+func _snapshot_covers_start_config_players(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> bool:
+	if snapshot == null or start_config == null:
+		return false
+	var member_peer_ids: Dictionary = {}
+	for member in snapshot.members:
+		if member == null:
+			continue
+		member_peer_ids[int(member.peer_id)] = true
+	for player_entry in start_config.player_slots:
+		var peer_id := int(player_entry.get("peer_id", -1))
+		if peer_id <= 0 or not member_peer_ids.has(peer_id):
+			return false
+	return true
+
+
+func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartConfig) -> RoomSnapshot:
+	if start_config == null:
+		return null
+	var snapshot := RoomSnapshot.new()
+	snapshot.selected_map_id = String(start_config.map_id)
+	snapshot.rule_set_id = String(start_config.rule_set_id)
+	for player_entry in start_config.player_slots:
+		var peer_id := int(player_entry.get("peer_id", -1))
+		if peer_id <= 0:
+			continue
+		var member := RoomMemberState.new()
+		member.peer_id = peer_id
+		member.player_name = String(player_entry.get("player_name", player_entry.get("display_name", "Player%d" % peer_id)))
+		member.ready = true
+		member.slot_index = int(player_entry.get("slot_index", -1))
+		member.character_id = _resolve_character_id_from_start_config(start_config, peer_id)
+		member.bubble_style_id = _resolve_bubble_style_id_from_start_config(start_config, peer_id)
+		snapshot.members.append(member)
+	return snapshot
+
+
+func _resolve_character_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	for loadout in start_config.character_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("character_id", ""))
+	return ""
+
+
+func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	for loadout in start_config.player_bubble_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("bubble_style_id", ""))
+	return ""
+
+
+func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> RoomSelectionState:
+	var state := RoomSelectionStateScript.new()
+	state.mode_id = String(start_config.mode_id)
+	state.map_id = String(snapshot.selected_map_id)
+	state.rule_set_id = String(snapshot.rule_set_id)
+	for member in snapshot.sorted_members():
+		state.players[member.peer_id] = {
+			"peer_id": member.peer_id,
+			"character_id": member.character_id,
+			"character_skin_id": _resolve_character_skin_id(member.character_skin_id),
+			"bubble_style_id": _resolve_bubble_style_id(member.bubble_style_id),
+			"bubble_skin_id": _resolve_bubble_skin_id(member.bubble_skin_id),
+			"ready": member.ready,
+		}
+	return state
+
+
+func _resolve_character_skin_id(character_skin_id: String) -> String:
+	if character_skin_id.is_empty():
+		return ""
+	if CharacterSkinCatalogScript.has_id(character_skin_id):
+		return character_skin_id
+	return ""
+
+
+func _resolve_bubble_style_id(bubble_style_id: String) -> String:
+	if BubbleCatalogScript.has_bubble(bubble_style_id):
+		return bubble_style_id
+	return BubbleCatalogScript.get_default_bubble_id()
+
+
+func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
+	if bubble_skin_id.is_empty():
+		return ""
+	if BubbleSkinCatalogScript.has_id(bubble_skin_id):
+		return bubble_skin_id
+	return ""
+
+
+func _find_slot_index_for_peer(app_runtime: Node, peer_id: int) -> int:
+	if app_runtime == null or app_runtime.current_start_config == null:
+		return -1
+	for player_entry in app_runtime.current_start_config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == peer_id:
+			return int(player_entry.get("slot_index", -1))
+	return -1
+
+
+func _resolve_character_color(character_id: String, slot_index: int) -> Color:
+	return _resolve_stable_style_color(
+		character_id,
+		[
+			Color(0.20, 0.70, 1.0, 1.0),
+			Color(1.0, 0.45, 0.25, 1.0),
+			Color(0.35, 0.90, 0.50, 1.0),
+			Color(1.0, 0.85, 0.30, 1.0),
+		],
+		slot_index
+	)
+
+
+func _resolve_bubble_color(bubble_style_id: String, slot_index: int) -> Color:
+	return _resolve_stable_style_color(
+		bubble_style_id,
+		[
+			Color(0.28, 0.52, 1.0, 1.0),
+			Color(1.0, 0.62, 0.18, 1.0),
+			Color(0.40, 0.92, 0.56, 1.0),
+			Color(1.0, 0.86, 0.30, 1.0),
+		],
+		slot_index
+	)
+
+
+func _resolve_local_character_display_name(app_runtime: Node, manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
+	var local_peer_id := _resolve_local_peer_id(app_runtime, resolved_start_config)
+	for entry in manifest.get("characters", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			return String(entry.get("display_name", entry.get("character_id", "")))
+	if not resolved_start_config.character_loadouts.is_empty():
+		return String(resolved_start_config.character_loadouts[0].get("display_name", resolved_start_config.character_loadouts[0].get("character_id", "")))
+	return ""
+
+
+func _resolve_local_bubble_display_name(app_runtime: Node, manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
+	var local_peer_id := _resolve_local_peer_id(app_runtime, resolved_start_config)
+	for entry in manifest.get("bubbles", []):
+		if int(entry.get("peer_id", -1)) == local_peer_id:
+			return String(entry.get("display_name", entry.get("bubble_style_id", "")))
+	if not resolved_start_config.player_bubble_loadouts.is_empty():
+		return String(resolved_start_config.player_bubble_loadouts[0].get("bubble_style_id", ""))
+	return ""
+
+
+func _resolve_local_peer_id(app_runtime: Node, resolved_start_config: BattleStartConfig) -> int:
+	var local_peer_id := int(resolved_start_config.controlled_peer_id)
+	if local_peer_id <= 0:
+		local_peer_id = int(resolved_start_config.local_peer_id)
+	if local_peer_id <= 0 and app_runtime != null:
+		local_peer_id = int(app_runtime.local_peer_id)
+	return local_peer_id
+
+
+func _resolve_stable_style_color(resource_id: String, palette: Array[Color], slot_index: int) -> Color:
+	if palette.is_empty():
+		return Color.WHITE
+	if resource_id.is_empty():
+		return palette[slot_index % palette.size()]
+	var hash_value := 0
+	for i in range(resource_id.length()):
+		hash_value = int((hash_value * 33 + resource_id.unicode_at(i)) % 2147483647)
+	return palette[hash_value % palette.size()]

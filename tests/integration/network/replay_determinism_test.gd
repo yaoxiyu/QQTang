@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var script := _build_replay_script()
 	var run_a := _run_replay(script, 20260325)
 	var run_b := _run_replay(script, 20260325)
@@ -10,7 +10,6 @@ func _ready() -> void:
 	_assert(run_a["final_checksum"] == run_b["final_checksum"], "final checksum should match across replay runs")
 	_assert(run_a["final_tick"] == run_b["final_tick"], "final tick should match across replay runs")
 
-	print("test_replay_determinism: PASS")
 
 
 func _run_replay(script: Array[Dictionary], seed: int) -> Dictionary:
@@ -59,5 +58,5 @@ func _command(move_x: int, move_y: int, place_bubble: bool) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_replay_determinism: FAIL - %s" % message)
+	assert_true(condition, message)
+

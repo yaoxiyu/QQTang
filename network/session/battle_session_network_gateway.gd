@@ -1,0 +1,462 @@
+class_name BattleSessionNetworkGateway
+extends RefCounted
+
+const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const BattleSessionBootstrapScript = preload("res://network/session/battle_session_bootstrap.gd")
+const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+
+var _adapter = null
+
+
+func configure(adapter) -> void:
+	_adapter = adapter
+
+
+func ingest_dedicated_server_message(message) -> void:
+	if _adapter == null or _adapter._bootstrap_client_runtime == null or message.is_empty():
+		return
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter._bootstrap_client_runtime.ingest_network_message(message)
+	_emit_client_runtime_tick()
+	if String(message.get("message_type", message.get("msg_type", ""))) == TransportMessageTypesScript.MATCH_FINISHED and _adapter.current_context != null:
+		_adapter._finished_emitted = true
+		_adapter._lifecycle_state = _adapter.BattleLifecycleState.FINISHING
+
+
+func start_client_runtime(config, options: Dictionary = {}) -> bool:
+	var preserved_transport = null
+	if _adapter.transport != null and _adapter.transport.is_transport_connected() and _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT:
+		preserved_transport = _adapter.transport
+		_adapter.transport = null
+	_adapter.shutdown_battle()
+	if preserved_transport != null:
+		_adapter.transport = preserved_transport
+	_adapter._ensure_bootstrap_client_runtime()
+	_adapter.start_config = config.duplicate_deep() if config != null else null
+	if _adapter.start_config == null:
+		return false
+	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
+	_adapter._bootstrap_local_peer_id = int(options.get("local_peer_id", int(_adapter.start_config.local_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
+	var controlled_peer_id := int(options.get("controlled_peer_id", int(_adapter.start_config.controlled_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
+	_adapter._bootstrap_client_runtime.configure(_adapter._bootstrap_local_peer_id)
+	_adapter._bootstrap_client_runtime.configure_controlled_peer(controlled_peer_id)
+	var client_started: bool = _adapter._bootstrap_client_runtime.start_match(_adapter.start_config)
+	_adapter.client_session = _adapter._bootstrap_client_runtime.client_session
+	_adapter.prediction_controller = _adapter._bootstrap_client_runtime.prediction_controller
+	if not client_started or _adapter.client_session == null or _adapter.prediction_controller == null:
+		return false
+	_adapter._local_peer_id = _adapter._bootstrap_local_peer_id
+	_adapter._finished_emitted = false
+	_adapter._correction_count = 0
+	_adapter._last_correction_summary = ""
+	_adapter._last_resync_tick = -1
+	if not _adapter.prediction_controller.prediction_corrected.is_connected(_adapter._on_prediction_corrected):
+		_adapter.prediction_controller.prediction_corrected.connect(_adapter._on_prediction_corrected)
+	if not _adapter.prediction_controller.full_visual_resync.is_connected(_adapter._on_full_visual_resync):
+		_adapter.prediction_controller.full_visual_resync.connect(_adapter._on_full_visual_resync)
+	_adapter.visual_sync_controller = VisualSyncController.new()
+	_adapter.add_child(_adapter.visual_sync_controller)
+	_adapter.current_context = BattleContext.new()
+	_adapter.current_context.battle_start_config = _adapter.start_config.duplicate_deep()
+	_adapter.current_context.sim_world = _adapter.prediction_controller.predicted_sim_world
+	_adapter.current_context.tick_runner = _adapter.prediction_controller.predicted_sim_world.tick_runner if _adapter.prediction_controller.predicted_sim_world != null else null
+	_adapter.current_context.client_session = _adapter.client_session
+	_adapter.current_context.prediction_controller = _adapter.prediction_controller
+	_adapter.current_context.rollback_controller = _adapter.prediction_controller.rollback_controller
+	_adapter.current_context.visual_sync_controller = _adapter.visual_sync_controller
+	_adapter.adapter_configured.emit()
+	if _adapter.transport == null and not String(_adapter.start_config.authority_host).is_empty() and int(_adapter.start_config.authority_port) > 0:
+		_adapter.network_host = String(_adapter.start_config.authority_host)
+		_adapter.network_port = int(_adapter.start_config.authority_port)
+		initialize_transport({})
+	if _adapter.transport != null and _adapter.transport.is_transport_connected() \
+			and String(_adapter.start_config.session_mode) == "network_client" \
+			and String(_adapter.start_config.topology) == "dedicated_server" \
+			and not String(_adapter.start_config.match_id).is_empty() \
+			and int(_adapter.start_config.server_match_revision) > 0:
+		_adapter.transport.send_to_peer(1, {
+			"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+			"match_id": String(_adapter.start_config.match_id),
+			"revision": int(_adapter.start_config.server_match_revision),
+			"sender_peer_id": _adapter._bootstrap_local_peer_id,
+		})
+	_inject_pending_resume_snapshot()
+	return true
+
+
+func advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
+	if _adapter._bootstrap_client_runtime == null:
+		_adapter.network_log_event.emit("client_tick_skip reason=no_client_runtime mode=%d transport=%s" % [_adapter.network_mode, str(_adapter.transport != null)])
+		return
+	var input_message: Dictionary = _adapter._bootstrap_client_runtime.build_local_input_message(local_input)
+	if not input_message.is_empty() and _adapter.transport != null and _adapter.transport.is_transport_connected():
+		_adapter.transport.send_to_peer(1, input_message)
+	if _adapter.transport != null:
+		_adapter.transport.poll()
+		var incoming: Array = _adapter.transport.consume_incoming()
+		var connected: bool = _adapter.transport.is_transport_connected()
+		var local_peer: int = _adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else -1
+		var remote_peers: Array = _adapter.transport.get_remote_peer_ids() if _adapter.transport.has_method("get_remote_peer_ids") else []
+		if incoming.is_empty():
+			_adapter.network_log_event.emit("client_tick_poll incoming=0 connected=%s local_peer=%d remote_peers=%s predicted_tick=%d ack_tick=%d" % [
+				str(connected),
+				local_peer,
+				str(remote_peers),
+				_adapter.prediction_controller.predicted_until_tick if _adapter.prediction_controller != null else -1,
+				_adapter.client_session.last_confirmed_tick if _adapter.client_session != null else -1,
+			])
+		else:
+			_adapter.network_log_event.emit("client_tick_poll incoming=%d types=%s connected=%s local_peer=%d remote_peers=%s predicted_tick=%d ack_tick=%d" % [
+				incoming.size(),
+				str(_describe_message_types(incoming)),
+				str(connected),
+				local_peer,
+				str(remote_peers),
+				_adapter.prediction_controller.predicted_until_tick if _adapter.prediction_controller != null else -1,
+				_adapter.client_session.last_confirmed_tick if _adapter.client_session != null else -1,
+			])
+		if not incoming.is_empty():
+			route_messages(incoming)
+	_emit_client_runtime_tick()
+
+
+func inject_pending_resume_snapshot() -> void:
+	_inject_pending_resume_snapshot()
+
+
+func initialize_transport(debug_profile: Dictionary = {}) -> void:
+	if _adapter == null:
+		return
+	shutdown_transport()
+	_adapter.transport = BattleSessionBootstrapScript.create_transport(_adapter.network_mode)
+	if _adapter.transport == null:
+		return
+	_adapter.add_child(_adapter.transport)
+	_connect_transport_bridge_signals()
+	var transport_config := BattleSessionBootstrapScript.build_transport_config(
+		_adapter.network_mode,
+		_adapter.start_config,
+		_adapter._local_peer_id,
+		_adapter.network_host,
+		_adapter.network_port,
+		_adapter.network_max_clients,
+		debug_profile
+	)
+	_adapter.transport.initialize(transport_config)
+
+
+func shutdown_transport() -> void:
+	if _adapter == null or _adapter.transport == null or not is_instance_valid(_adapter.transport):
+		if _adapter != null:
+			_adapter.transport = null
+		return
+	_adapter.transport.shutdown()
+	if _adapter.transport.get_parent() == _adapter:
+		_adapter.remove_child(_adapter.transport)
+	_adapter.transport.free()
+	_adapter.transport = null
+
+
+func configure_host(local_peer_id: int = 1) -> void:
+	_adapter._ensure_bootstrap_authority_runtime()
+	_adapter.network_mode = _adapter.BattleNetworkMode.HOST
+	_adapter._bootstrap_local_peer_id = local_peer_id
+	_adapter._bootstrap_authority_runtime.configure(local_peer_id)
+
+
+func configure_client(local_peer_id: int = 0) -> void:
+	_adapter._ensure_bootstrap_client_runtime()
+	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
+	_adapter._bootstrap_local_peer_id = local_peer_id
+
+
+func set_local_peer_id(local_peer_id: int) -> void:
+	_adapter._bootstrap_local_peer_id = local_peer_id
+
+
+func notify_dedicated_server_transport_connected() -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter.network_transport_connected.emit()
+
+
+func notify_dedicated_server_transport_disconnected() -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter.network_transport_disconnected.emit()
+	_adapter.network_transport_error.emit(ERR_CONNECTION_ERROR, "Dedicated server transport disconnected")
+
+
+func notify_dedicated_server_transport_error(error_code: String, user_message: String) -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter.network_transport_error.emit(ERR_CONNECTION_ERROR, "%s: %s" % [error_code, user_message])
+
+
+func start_host_match(config) -> bool:
+	return _adapter._start_runtime_session(_adapter.BattleNetworkMode.HOST, config, {
+		"local_peer_id": _adapter._bootstrap_local_peer_id,
+	})
+
+
+func build_start_config(snapshot):
+	_adapter._ensure_bootstrap_coordinator()
+	return _adapter._bootstrap_coordinator.build_start_config(snapshot)
+
+
+func route_messages(messages: Array) -> void:
+	_adapter._ensure_runtime_message_router()
+	_adapter._runtime_message_router.route_messages(messages)
+
+
+func build_host_tick_messages(local_input: Dictionary = {}) -> Array:
+	if _adapter._bootstrap_authority_runtime == null:
+		return []
+	return _adapter._bootstrap_authority_runtime.advance_authoritative_tick(local_input)
+
+
+func build_client_input_message(local_input: Dictionary = {}) -> Dictionary:
+	if _adapter._bootstrap_client_runtime == null:
+		return {}
+	return _adapter._bootstrap_client_runtime.build_local_input_message(local_input)
+
+
+func is_host_match_running() -> bool:
+	return _adapter._bootstrap_authority_runtime != null and _adapter._bootstrap_authority_runtime.is_match_running()
+
+
+func is_client_active() -> bool:
+	return _adapter._bootstrap_client_runtime != null and _adapter._bootstrap_client_runtime.is_active()
+
+
+func build_client_metrics() -> Dictionary:
+	if _adapter._bootstrap_client_runtime == null:
+		return {}
+	return _adapter._bootstrap_client_runtime.build_metrics()
+
+
+func shutdown_bootstrap() -> void:
+	if _adapter._battle_session_bootstrap != null:
+		_adapter._battle_session_bootstrap.shutdown()
+		if is_instance_valid(_adapter._battle_session_bootstrap):
+			_adapter._battle_session_bootstrap.queue_free()
+	_adapter._battle_session_bootstrap = null
+	_adapter._bootstrap_authority_runtime = null
+	_adapter._bootstrap_client_runtime = null
+	_adapter._bootstrap_coordinator = null
+	_adapter._runtime_message_router = null
+	shutdown_transport()
+	_adapter.start_config = null
+	_adapter._bootstrap_local_peer_id = 0
+
+
+func start_host_transport(port: int, max_clients: int) -> void:
+	_adapter._ensure_bootstrap_authority_runtime()
+	_adapter.network_port = port
+	_adapter.network_max_clients = max_clients
+	_adapter.network_mode = _adapter.BattleNetworkMode.HOST
+	initialize_transport({})
+
+
+func start_client_transport(host: String, port: int, connect_timeout_seconds: float = 5.0) -> void:
+	_adapter._ensure_bootstrap_client_runtime()
+	_adapter.network_host = host
+	_adapter.network_port = port
+	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
+	initialize_transport({
+		"connect_timeout_seconds": connect_timeout_seconds,
+	})
+
+
+func poll_transport() -> void:
+	if _adapter.transport == null:
+		return
+	_adapter.transport.poll()
+	route_messages(_adapter.transport.consume_incoming())
+
+
+func transport_connected() -> bool:
+	return _adapter.transport != null and _adapter.transport.is_transport_connected()
+
+
+func transport_remote_peer_ids() -> Array:
+	if _adapter.transport == null:
+		return []
+	return _adapter.transport.get_remote_peer_ids()
+
+
+func transport_local_peer_id() -> int:
+	if _adapter.transport == null:
+		return 0
+	return _adapter.transport.get_local_peer_id()
+
+
+func send_to_peer(peer_id: int, message: Dictionary) -> void:
+	if _adapter.transport == null:
+		return
+	_adapter.transport.send_to_peer(peer_id, message)
+
+
+func broadcast(message: Dictionary) -> void:
+	if _adapter.transport == null:
+		return
+	_adapter.transport.broadcast(message)
+
+
+func on_bootstrap_join_battle_request(message) -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.HOST:
+		return
+	_adapter.network_log_event.emit("Host received join request from peer %d" % int(message.get("sender_peer_id", -1)))
+
+
+func on_bootstrap_join_battle_accepted(message) -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter._ensure_bootstrap_coordinator()
+	var config := BattleStartConfig.from_dict(message.get("start_config", {}))
+	var validation: Dictionary = _adapter._bootstrap_coordinator.validate_start_config(config)
+	if not bool(validation.get("ok", false)):
+		_adapter.network_log_event.emit("Client rejected config: %s" % str(validation.get("errors", [])))
+		return
+	var resolved_peer_id: int = int(config.local_peer_id) if int(config.local_peer_id) > 0 else _adapter._bootstrap_local_peer_id
+	var started: bool = _adapter._start_runtime_session(_adapter.BattleNetworkMode.CLIENT, config, {
+		"local_peer_id": resolved_peer_id,
+		"controlled_peer_id": int(config.controlled_peer_id) if int(config.controlled_peer_id) > 0 else resolved_peer_id,
+	})
+	if started and _adapter.current_context != null:
+		_adapter.network_log_event.emit("client_runtime_rebound local_peer=%d controlled_peer=%d match_id=%s" % [
+			_adapter._bootstrap_local_peer_id,
+			_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+			String(config.match_id),
+		])
+		_adapter.battle_context_created.emit(_adapter.current_context)
+
+
+func on_bootstrap_join_battle_rejected(message) -> void:
+	_adapter.network_log_event.emit("Join rejected: %s" % str(message))
+
+
+func on_bootstrap_input_frame_message(message) -> void:
+	if (_adapter.network_mode == _adapter.BattleNetworkMode.HOST or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_authority_runtime != null:
+		_adapter._bootstrap_authority_runtime.ingest_network_message(message)
+
+
+func on_bootstrap_client_runtime_message(message) -> void:
+	if (_adapter.network_mode == _adapter.BattleNetworkMode.CLIENT or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_client_runtime != null:
+		_adapter.network_log_event.emit("client_runtime_ingest type=%s tick=%d local_peer=%d controlled_peer=%d" % [
+			String(message.get("message_type", message.get("msg_type", ""))),
+			int(message.get("tick", message.get("ack_tick", 0))),
+			_adapter._bootstrap_local_peer_id,
+			_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+		])
+		_adapter._bootstrap_client_runtime.ingest_network_message(message)
+
+
+func on_bootstrap_match_start_message(message) -> void:
+	_adapter.network_log_event.emit("client_match_start_received match_id=%s local_peer=%d controlled_peer=%d" % [
+		String(message.get("match_id", "")),
+		_adapter._bootstrap_local_peer_id,
+		_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+	])
+
+
+func on_bootstrap_match_finished_message(message) -> void:
+	if (_adapter.network_mode == _adapter.BattleNetworkMode.CLIENT or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_client_runtime != null:
+		_adapter._bootstrap_client_runtime.ingest_network_message(message)
+
+
+func on_bootstrap_unhandled_message(message) -> void:
+	if not message.is_empty():
+		_adapter.network_log_event.emit("Unhandled message %s" % str(message.get("message_type", message.get("msg_type", "unknown"))))
+
+
+func _connect_transport_bridge_signals() -> void:
+	if _adapter.transport == null:
+		return
+	if not _adapter.transport.connected.is_connected(_on_transport_connected):
+		_adapter.transport.connected.connect(_on_transport_connected)
+	if not _adapter.transport.disconnected.is_connected(_on_transport_disconnected):
+		_adapter.transport.disconnected.connect(_on_transport_disconnected)
+	if not _adapter.transport.peer_connected.is_connected(_on_transport_peer_connected):
+		_adapter.transport.peer_connected.connect(_on_transport_peer_connected)
+	if not _adapter.transport.peer_disconnected.is_connected(_on_transport_peer_disconnected):
+		_adapter.transport.peer_disconnected.connect(_on_transport_peer_disconnected)
+	if not _adapter.transport.transport_error.is_connected(_on_transport_error):
+		_adapter.transport.transport_error.connect(_on_transport_error)
+
+
+func _inject_pending_resume_snapshot() -> void:
+	if _adapter.pending_resume_snapshot == null or _adapter._bootstrap_client_runtime == null:
+		return
+	if _adapter.pending_resume_snapshot.checkpoint_message.is_empty():
+		_adapter.pending_resume_snapshot = null
+		return
+	_adapter._bootstrap_client_runtime.inject_resume_checkpoint_message(_adapter.pending_resume_snapshot.checkpoint_message)
+	_adapter.pending_resume_snapshot = null
+
+
+func _describe_message_types(messages: Array) -> Array:
+	var result: Array = []
+	for message in messages:
+		if not (message is Dictionary):
+			result.append("<invalid>")
+			continue
+		result.append(String((message as Dictionary).get("message_type", (message as Dictionary).get("msg_type", ""))))
+	return result
+
+
+func _emit_client_runtime_tick() -> void:
+	if _adapter.current_context == null or _adapter.prediction_controller == null or _adapter.current_context.sim_world == null:
+		return
+	_adapter.current_context.sim_world = _adapter.prediction_controller.predicted_sim_world
+	_adapter.current_context.tick_runner = _adapter.prediction_controller.predicted_sim_world.tick_runner if _adapter.prediction_controller.predicted_sim_world != null else null
+	var world = _adapter.current_context.sim_world
+	var authoritative_events: Array = _adapter._bootstrap_client_runtime.consume_pending_authoritative_events() if _adapter._bootstrap_client_runtime != null and _adapter._bootstrap_client_runtime.has_method("consume_pending_authoritative_events") else []
+	var tick_result := {
+		"tick": world.state.match_state.tick if world != null else 0,
+		"events": authoritative_events,
+		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
+	}
+	_adapter.authoritative_tick_completed.emit(_adapter.current_context, tick_result, _adapter._build_runtime_metrics())
+
+
+func _on_transport_connected() -> void:
+	_adapter.network_transport_connected.emit()
+	if _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT and _adapter.transport != null and _adapter.start_config != null:
+		var transport_peer_id: int = _adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else 0
+		if transport_peer_id > 0 and _adapter._bootstrap_local_peer_id <= 0:
+			_adapter._bootstrap_local_peer_id = transport_peer_id
+		var battle_id := String(_adapter.start_config.battle_id)
+		if not battle_id.is_empty():
+			var request_payload := {
+				"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
+				"battle_id": battle_id,
+				"sender_peer_id": _adapter._bootstrap_local_peer_id if _adapter._bootstrap_local_peer_id > 0 else transport_peer_id,
+			}
+			var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
+			if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
+				var entry_context = app_runtime.current_battle_entry_context
+				request_payload["battle_ticket"] = String(entry_context.battle_ticket)
+				request_payload["battle_ticket_id"] = String(entry_context.battle_ticket_id)
+				request_payload["assignment_id"] = String(entry_context.assignment_id)
+				request_payload["match_id"] = String(entry_context.match_id)
+			if app_runtime != null and "auth_session_state" in app_runtime and app_runtime.auth_session_state != null:
+				request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
+			_adapter.transport.send_to_peer(1, request_payload)
+
+
+func _on_transport_disconnected() -> void:
+	_adapter.network_transport_disconnected.emit()
+
+
+func _on_transport_peer_connected(peer_id: int) -> void:
+	_adapter.network_transport_peer_connected.emit(peer_id)
+
+
+func _on_transport_peer_disconnected(peer_id: int) -> void:
+	_adapter.network_transport_peer_disconnected.emit(peer_id)
+
+
+func _on_transport_error(code: int, message: String) -> void:
+	_adapter.network_transport_error.emit(code, message)

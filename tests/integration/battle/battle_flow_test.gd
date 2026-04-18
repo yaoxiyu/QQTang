@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -7,15 +7,16 @@ const BattleSessionAdapterScript = preload("res://network/session/battle_session
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_battle_bootstrap_debug_dump_tracks_runtime()
 	_test_battle_bootstrap_does_not_bridge_settlement_flow()
 	_test_shutdown_battle_clears_runtime_without_mutating_room_state()
@@ -374,7 +375,8 @@ func _make_member(peer_id: int, ready: bool) -> RoomMemberState:
 
 
 func _make_adapter_config(match_id: String, seed: int) -> BattleStartConfig:
-	var metadata := MapLoaderScript.load_map_metadata("default_map")
+	var default_map_id := MapCatalogScript.get_default_map_id()
+	var metadata := MapLoaderScript.load_map_metadata(default_map_id)
 	var rule_metadata := RuleSetCatalogScript.get_rule_metadata("ruleset_classic")
 	var host_character_metadata := CharacterCatalogScript.get_character_metadata("hero_default")
 	var client_character_metadata := CharacterCatalogScript.get_character_metadata("hero_default")
@@ -385,7 +387,7 @@ func _make_adapter_config(match_id: String, seed: int) -> BattleStartConfig:
 	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
 	config.room_id = "battle_adapter_room"
 	config.match_id = match_id
-	config.map_id = "default_map"
+	config.map_id = default_map_id
 	config.map_version = int(metadata.get("version", 1))
 	config.map_content_hash = String(metadata.get("content_hash", ""))
 	config.rule_set_id = "ruleset_classic"
@@ -448,6 +450,6 @@ func _make_adapter_config(match_id: String, seed: int) -> BattleStartConfig:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

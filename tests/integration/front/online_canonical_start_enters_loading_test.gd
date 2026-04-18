@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
@@ -9,11 +9,11 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_online_canonical_start_drives_loading_flow()
 
 
@@ -66,6 +66,6 @@ func _test_online_canonical_start_drives_loading_flow() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

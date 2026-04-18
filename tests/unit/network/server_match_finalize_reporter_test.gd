@@ -1,10 +1,9 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeMatchService:
@@ -30,7 +29,7 @@ class FakeMatchService:
 
 
 class FakeRoomRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_unit_test.gd"
 
 	var state = null
 	var match_service = null
@@ -46,15 +45,7 @@ class FakeRoomRuntime:
 		return match_service
 
 
-func _ready() -> void:
-	var ok := true
-	ok = _test_finalize_payload_contains_member_results() and ok
-	ok = _test_result_hash_is_stable_for_same_payload() and ok
-	if ok:
-		print("server_match_finalize_reporter_test: PASS")
-
-
-func _test_finalize_payload_contains_member_results() -> bool:
+func test_finalize_payload_contains_member_results() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var state = RoomServerStateScript.new()
 	state.ensure_room("room_alpha", 1, "matchmade_room", "")
@@ -80,18 +71,14 @@ func _test_finalize_payload_contains_member_results() -> bool:
 	var runtime = FakeRoomRuntime.new(state, FakeMatchService.new(config, "match_alpha", "room_alpha"))
 	var payload: Dictionary = reporter._build_finalize_payload(runtime, result)
 	var members: Array = payload.get("member_results", [])
-
-	var prefix := "server_match_finalize_reporter_test.payload"
-	var ok := true
-	ok = TestAssert.is_true(String(payload.get("match_id", "")) == "match_alpha", "payload should include match id", prefix) and ok
-	ok = TestAssert.is_true(String(payload.get("assignment_id", "")) == "assign_alpha", "payload should include assignment id", prefix) and ok
-	ok = TestAssert.is_true(members.size() == 2, "payload should include 2 member results", prefix) and ok
-	ok = TestAssert.is_true(String(members[0].get("outcome", "")) == "win", "winner team member should be win", prefix) and ok
-	ok = TestAssert.is_true(String(members[1].get("outcome", "")) == "loss", "loser team member should be loss", prefix) and ok
-	return ok
+	assert_eq(String(payload.get("match_id", "")), "match_alpha", "payload should include match id")
+	assert_eq(String(payload.get("assignment_id", "")), "assign_alpha", "payload should include assignment id")
+	assert_eq(members.size(), 2, "payload should include 2 member results")
+	assert_eq(String(members[0].get("outcome", "")), "win", "winner team member should be win")
+	assert_eq(String(members[1].get("outcome", "")), "loss", "loser team member should be loss")
 
 
-func _test_result_hash_is_stable_for_same_payload() -> bool:
+func test_result_hash_is_stable_for_same_payload() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var payload := {
 		"match_id": "match_hash",
@@ -118,4 +105,15 @@ func _test_result_hash_is_stable_for_same_payload() -> bool:
 	var retried_payload: Dictionary = payload.duplicate(true)
 	retried_payload["finished_at"] = "2026-04-13T10:00:05Z"
 	var hash_b := reporter._build_result_hash(retried_payload)
-	return TestAssert.is_true(hash_a == hash_b, "retry payload should produce stable result hash", "server_match_finalize_reporter_test.hash")
+	assert_eq(hash_a, hash_b, "retry payload should produce stable result hash")
+
+
+func test_finalize_request_uses_internal_json_service_client() -> void:
+	var reporter = ServerMatchFinalizeReporterScript.new()
+	reporter.configure("127.0.0.1", 18081, "secret_wp6", "wp6_key")
+	assert_not_null(reporter._internal_client, "reporter should configure internal json client when secret is provided")
+	var missing_secret = ServerMatchFinalizeReporterScript.new()
+	missing_secret.configure("127.0.0.1", 18081, "", "wp6_key")
+	var response := missing_secret._send_internal_post_once("/internal/v1/matches/finalize", {"a": 1})
+	assert_eq(String(response.get("error_code", "")), "MATCH_FINALIZE_SECRET_MISSING", "missing secret should still map to finalize secret missing")
+

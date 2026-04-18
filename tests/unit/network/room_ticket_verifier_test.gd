@@ -1,21 +1,18 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const RoomTicketVerifierScript = preload("res://network/session/auth/room_ticket_verifier.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_verify_create_ticket_success() and ok
 	ok = _test_verify_rejects_invalid_signature() and ok
 	ok = _test_verify_rejects_target_mismatch() and ok
 	ok = _test_loadout_allowed_guard() and ok
-	if ok:
-		print("room_ticket_verifier_test: PASS")
 
 
 func _test_verify_create_ticket_success() -> bool:
@@ -26,10 +23,10 @@ func _test_verify_create_ticket_success() -> bool:
 
 	var prefix := "room_ticket_verifier_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(result.ok), "valid create ticket should pass", prefix) and ok
-	ok = TestAssert.is_true(result.claim != null, "valid create ticket should return claim", prefix) and ok
+	ok = qqt_check(bool(result.ok), "valid create ticket should pass", prefix) and ok
+	ok = qqt_check(result.claim != null, "valid create ticket should return claim", prefix) and ok
 	if result.claim != null:
-		ok = TestAssert.is_true(String(result.claim.account_id) == "account_2", "claim should preserve account id", prefix) and ok
+		ok = qqt_check(String(result.claim.account_id) == "account_2", "claim should preserve account id", prefix) and ok
 	return ok
 
 
@@ -39,7 +36,7 @@ func _test_verify_rejects_invalid_signature() -> bool:
 	var message := _build_message(2, "create", "", "private_room", "")
 	message["room_ticket"] = String(message.get("room_ticket", "")) + "_tampered"
 	var result = verifier.verify_create_ticket(message)
-	return TestAssert.is_true(not bool(result.ok) and String(result.error_code) == "ROOM_TICKET_SIGNATURE_INVALID", "invalid signature should be rejected", "room_ticket_verifier_test")
+	return qqt_check(not bool(result.ok) and String(result.error_code) == "ROOM_TICKET_SIGNATURE_INVALID", "invalid signature should be rejected", "room_ticket_verifier_test")
 
 
 func _test_verify_rejects_target_mismatch() -> bool:
@@ -48,7 +45,7 @@ func _test_verify_rejects_target_mismatch() -> bool:
 	var message := _build_message(2, "join", "room_good", "", "")
 	message["room_id_hint"] = "room_bad"
 	var result = verifier.verify_join_ticket(message)
-	return TestAssert.is_true(not bool(result.ok) and String(result.error_code) == "ROOM_TICKET_TARGET_INVALID", "mismatched room target should be rejected", "room_ticket_verifier_test")
+	return qqt_check(not bool(result.ok) and String(result.error_code) == "ROOM_TICKET_TARGET_INVALID", "mismatched room target should be rejected", "room_ticket_verifier_test")
 
 
 func _test_loadout_allowed_guard() -> bool:
@@ -57,8 +54,8 @@ func _test_loadout_allowed_guard() -> bool:
 	var message := _build_message(2, "create", "", "private_room", "")
 	var result = verifier.verify_create_ticket(message)
 	if not bool(result.ok) or result.claim == null:
-		return TestAssert.is_true(false, "setup create ticket should verify", "room_ticket_verifier_test")
-	return TestAssert.is_true(
+		return qqt_check(false, "setup create ticket should verify", "room_ticket_verifier_test")
+	return qqt_check(
 		not verifier.is_loadout_allowed(result.claim, "character_not_owned", "", BubbleCatalogScript.get_default_bubble_id(), ""),
 		"unowned loadout should fail verifier guard",
 		"room_ticket_verifier_test"
@@ -99,3 +96,4 @@ func _build_message(peer_id: int, purpose: String, room_id: String, room_kind: S
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

@@ -1,10 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomTicketClaimScript = preload("res://network/session/auth/room_ticket_claim.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var source := {
 		"ticket_id": "ticket_alpha",
 		"account_id": "account_alpha",
@@ -29,11 +28,10 @@ func _ready() -> void:
 
 	var prefix := "room_ticket_claim_test"
 	var ok := true
-	ok = TestAssert.is_true(String(restored.ticket_id) == "ticket_alpha", "from_dict should restore ticket id", prefix) and ok
-	ok = TestAssert.is_true(String(restored.account_id) == "account_alpha", "from_dict should restore account id", prefix) and ok
-	ok = TestAssert.is_true(String(restored.requested_match_id) == "match_alpha", "from_dict should restore requested match id", prefix) and ok
-	ok = TestAssert.is_true(restored.allowed_character_ids == ["character_default"], "from_dict should restore allowed characters", prefix) and ok
-	ok = TestAssert.is_true(String(restored.signature) == "sig_alpha", "to_dict/from_dict should preserve signature", prefix) and ok
+	ok = qqt_check(String(restored.ticket_id) == "ticket_alpha", "from_dict should restore ticket id", prefix) and ok
+	ok = qqt_check(String(restored.account_id) == "account_alpha", "from_dict should restore account id", prefix) and ok
+	ok = qqt_check(String(restored.requested_match_id) == "match_alpha", "from_dict should restore requested match id", prefix) and ok
+	ok = qqt_check(restored.allowed_character_ids == ["character_default"], "from_dict should restore allowed characters", prefix) and ok
+	ok = qqt_check(String(restored.signature) == "sig_alpha", "to_dict/from_dict should preserve signature", prefix) and ok
 
-	if ok:
-		print("room_ticket_claim_test: PASS")
+

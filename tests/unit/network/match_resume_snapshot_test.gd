@@ -1,13 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_round_trip_preserves_checkpoint_payload() and ok
-	if ok:
-		print("match_resume_snapshot_test: PASS")
 
 
 func _test_round_trip_preserves_checkpoint_payload() -> bool:
@@ -49,3 +47,4 @@ func _test_round_trip_preserves_checkpoint_payload() -> bool:
 		print("FAIL: player_summary mismatch")
 		return false
 	return true
+

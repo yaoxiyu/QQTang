@@ -80,11 +80,6 @@ func _validate_ds_contract(config: BattleStartConfig, errors: Array) -> void:
 		errors.append("dedicated_server topology requires authority_host")
 	if int(config.authority_port) <= 0:
 		errors.append("dedicated_server topology requires authority_port")
-	for player_entry in config.player_slots:
-		var peer_id := int(player_entry.get("peer_id", -1))
-		if peer_id == dedicated_server_peer_id:
-			errors.append("dedicated_server topology must not include server peer in player_slots: %d" % dedicated_server_peer_id)
-			break
 	if String(config.build_mode) == BattleStartConfigScript.BUILD_MODE_CANDIDATE:
 		if String(config.session_mode) != "network_client" and String(config.session_mode) != "online_room":
 			errors.append("dedicated_server candidate config requires session_mode=network_client or online_room")

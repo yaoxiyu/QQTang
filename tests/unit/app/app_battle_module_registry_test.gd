@@ -1,7 +1,6 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RegistryScript = preload("res://app/flow/app_battle_module_registry.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 class FakeBattleContext:
 	extends RefCounted
@@ -10,7 +9,7 @@ class FakeBattleContext:
 		cleared = true
 
 class FakeRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_unit_test.gd"
 	var current_battle_scene = null
 	var current_battle_bootstrap = null
 	var current_presentation_bridge = null
@@ -30,6 +29,7 @@ class FakeRuntime:
 
 	func _init() -> void:
 		battle_root.name = "BattleRoot"
+		add_child(battle_root)
 
 	func _sync_battle_context_from_fields() -> void:
 		synced += 1
@@ -46,18 +46,22 @@ class FakeRuntime:
 		resume_synced += 1
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var prefix := "app_battle_module_registry_test"
-	var runtime := FakeRuntime.new()
-	var scene := Node.new()
-	RegistryScript.register_modules(runtime, scene, Node.new(), Node.new(), Node.new(), Node.new(), Node.new())
+	var runtime := qqt_add_child(FakeRuntime.new())
+	var scene := qqt_add_child(Node.new())
+	var bootstrap := qqt_add_child(Node.new())
+	var bridge := qqt_add_child(Node.new())
+	var hud := qqt_add_child(Node.new())
+	var camera := qqt_add_child(Node.new())
+	var settlement := qqt_add_child(Node.new())
+	RegistryScript.register_modules(runtime, scene, bootstrap, bridge, hud, camera, settlement)
 	RegistryScript.unregister_modules(runtime, scene)
 	RegistryScript.clear_battle_payload(runtime)
 	var ok := true
-	ok = TestAssert.is_true(runtime.current_battle_scene == null, "unregister should clear current battle scene", prefix) and ok
-	ok = TestAssert.is_true(runtime.battle_context.cleared, "clear should reset battle context payload", prefix) and ok
-	ok = TestAssert.is_true(runtime.synced > 0, "register and unregister should sync battle context", prefix) and ok
-	if ok:
-		print("%s: PASS" % prefix)
-	else:
-		push_error("%s: FAIL" % prefix)
+	ok = qqt_check(runtime.current_battle_scene == null, "unregister should clear current battle scene", prefix) and ok
+	ok = qqt_check(runtime.battle_context.cleared, "clear should reset battle context payload", prefix) and ok
+	ok = qqt_check(runtime.synced > 0, "register and unregister should sync battle context", prefix) and ok
+	for node in [settlement, camera, hud, bridge, bootstrap, scene, runtime]:
+		qqt_detach_and_free(node)
+	await qqt_wait_frames()

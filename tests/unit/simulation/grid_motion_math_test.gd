@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	_assert(GridMotionMath.to_abs_x(0, 0) == 500, "cell center converts to abs x")
 	_assert(GridMotionMath.to_abs_y(2, -500) == 2000, "cell plus offset converts to abs y")
 
@@ -27,9 +27,8 @@ func _ready() -> void:
 	_assert(player.cell_x == 1 and player.offset_x == -500, "repeated write remains deterministic")
 	_assert(player.cell_y == 2 and player.offset_y == 0, "repeated write keeps y deterministic")
 
-	print("test_grid_motion_math: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_grid_motion_math: FAIL - %s" % message)
+	assert_true(condition, message)
+

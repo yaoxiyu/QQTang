@@ -1,6 +1,5 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
@@ -15,10 +14,8 @@ var _host_result: BattleResult = null
 var _client_result: BattleResult = null
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := _test_authority_client_match_flow_reaches_consistent_end()
-	if ok:
-		print("network_match_flow_test: PASS")
 
 
 func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
@@ -46,9 +43,9 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 
 	var prefix := "network_match_flow_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(coordinator.validate_start_config(config).get("ok", false)), "start config should validate before network flow test begins", prefix) and ok
-	ok = TestAssert.is_true(authority.start_match(config), "authority runtime should start", prefix) and ok
-	ok = TestAssert.is_true(client.start_match(config), "client runtime should start", prefix) and ok
+	ok = qqt_check(bool(coordinator.validate_start_config(config).get("ok", false)), "start config should validate before network flow test begins", prefix) and ok
+	ok = qqt_check(authority.start_match(config), "authority runtime should start", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start", prefix) and ok
 
 	var checkpoint_seen := false
 	var summary_seen := false
@@ -59,7 +56,7 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 			"action_place": false,
 		}
 		var input_message := client.build_local_input_message(local_input)
-		ok = TestAssert.is_true(not input_message.is_empty(), "client should emit an input frame while match is active", prefix) and ok
+		ok = qqt_check(not input_message.is_empty(), "client should emit an input frame while match is active", prefix) and ok
 		authority.ingest_network_message(input_message)
 		var outgoing := authority.advance_authoritative_tick({})
 		for message in outgoing:
@@ -73,16 +70,16 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 			break
 
 	var metrics := client.build_metrics()
-	ok = TestAssert.is_true(summary_seen, "authority should emit state summaries during match flow", prefix) and ok
-	ok = TestAssert.is_true(checkpoint_seen, "authority should emit at least one checkpoint during match flow", prefix) and ok
-	ok = TestAssert.is_true(int(metrics.get("ack_tick", 0)) >= 5, "client should receive input acknowledgements through match end", prefix) and ok
-	ok = TestAssert.is_true(int(metrics.get("snapshot_tick", 0)) >= 5, "client should receive authoritative snapshots through match end", prefix) and ok
-	ok = TestAssert.is_true(_host_result != null, "host should produce a battle result", prefix) and ok
-	ok = TestAssert.is_true(_client_result != null, "client should receive the battle result", prefix) and ok
+	ok = qqt_check(summary_seen, "authority should emit state summaries during match flow", prefix) and ok
+	ok = qqt_check(checkpoint_seen, "authority should emit at least one checkpoint during match flow", prefix) and ok
+	ok = qqt_check(int(metrics.get("ack_tick", 0)) >= 5, "client should receive input acknowledgements through match end", prefix) and ok
+	ok = qqt_check(int(metrics.get("snapshot_tick", 0)) >= 5, "client should receive authoritative snapshots through match end", prefix) and ok
+	ok = qqt_check(_host_result != null, "host should produce a battle result", prefix) and ok
+	ok = qqt_check(_client_result != null, "client should receive the battle result", prefix) and ok
 	if _host_result != null and _client_result != null:
-		ok = TestAssert.is_true(_host_result.finish_tick == _client_result.finish_tick, "host and client should agree on finish_tick", prefix) and ok
-		ok = TestAssert.is_true(_host_result.finish_reason == _client_result.finish_reason, "host and client should agree on finish_reason", prefix) and ok
-		ok = TestAssert.is_true(_host_result.winner_peer_ids == _client_result.winner_peer_ids, "host and client should agree on winners", prefix) and ok
+		ok = qqt_check(_host_result.finish_tick == _client_result.finish_tick, "host and client should agree on finish_tick", prefix) and ok
+		ok = qqt_check(_host_result.finish_reason == _client_result.finish_reason, "host and client should agree on finish_reason", prefix) and ok
+		ok = qqt_check(_host_result.winner_peer_ids == _client_result.winner_peer_ids, "host and client should agree on winners", prefix) and ok
 
 	authority.shutdown_runtime()
 	client.shutdown_runtime()
@@ -114,6 +111,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	host.ready = true
 	host.slot_index = 0
 	host.character_id = "hero_1"
+	host.team_id = 1
 	snapshot.members.append(host)
 
 	var client := RoomMemberState.new()
@@ -122,5 +120,7 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.ready = true
 	client.slot_index = 1
 	client.character_id = "hero_2"
+	client.team_id = 2
 	snapshot.members.append(client)
 	return snapshot
+

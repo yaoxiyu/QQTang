@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var world := _build_world(4242)
 	var snapshot_service := SnapshotService.new()
 	var input_buffer := InputRingBuffer.new(16)
@@ -31,7 +31,6 @@ func _ready() -> void:
 	rollback.queue_free()
 	world.dispose()
 
-	print("test_remote_player_diff_no_local_rollback: PASS")
 
 
 func _build_world(seed: int) -> SimWorld:
@@ -42,5 +41,5 @@ func _build_world(seed: int) -> SimWorld:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_remote_player_diff_no_local_rollback: FAIL - %s" % message)
+	assert_true(condition, message)
+

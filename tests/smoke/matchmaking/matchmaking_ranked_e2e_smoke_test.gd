@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_smoke_test.gd"
 
 # LEGACY: smoke coverage for pre-LegacyMigration client-direct matchmaking path.
 const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
@@ -9,7 +9,6 @@ const PlayerProfileStateScript = preload("res://app/front/profile/player_profile
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const RoomTicketResultScript = preload("res://app/front/auth/room_ticket_result.gd")
 const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeMatchmakingGateway:
@@ -121,7 +120,7 @@ class FakeSettlementGateway:
 		}
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var auth = AuthSessionStateScript.new()
 	auth.access_token = "token_smoke"
 	var profile = PlayerProfileStateScript.new()
@@ -140,10 +139,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	var ok := true
-	ok = TestAssert.is_true(bool(matchmaking.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"]).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
-	ok = TestAssert.is_true(bool(matchmaking.poll_queue_status().get("ok", false)), "smoke queue assign should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(bool(matchmaking.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"]).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(bool(matchmaking.poll_queue_status().get("ok", false)), "smoke queue assign should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
 	var consume_result: Dictionary = matchmaking.consume_assignment_and_build_room_entry_context()
-	ok = TestAssert.is_true(bool(consume_result.get("ok", false)), "smoke assignment consumption should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(bool(consume_result.get("ok", false)), "smoke assignment consumption should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
 
 	var battle_result = BattleResultScript.new()
 	battle_result.local_outcome = "victory"
@@ -154,11 +153,9 @@ func _ready() -> void:
 	settlement_controller.apply_server_summary(popup_summary)
 
 	var dump: Dictionary = settlement_controller.debug_dump_settlement_state()
-	ok = TestAssert.is_true(bool(consume_result.get("entry_context", null).return_to_lobby_after_settlement), "smoke entry should return to lobby", "matchmaking_ranked_e2e_smoke_test") and ok
-	ok = TestAssert.is_true(String(dump.get("server_sync_text", "")) == "Server Sync: Synced", "smoke settlement should show synced summary", "matchmaking_ranked_e2e_smoke_test") and ok
-	ok = TestAssert.is_true(String(dump.get("career_summary_text", "")).find("Matches 1") >= 0, "smoke settlement should refresh career summary", "matchmaking_ranked_e2e_smoke_test") and ok
-	if ok:
-		print("matchmaking_ranked_e2e_smoke_test: PASS")
+	ok = qqt_check(bool(consume_result.get("entry_context", null).return_to_lobby_after_settlement), "smoke entry should return to lobby", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(String(dump.get("server_sync_text", "")) == "Server Sync: Synced", "smoke settlement should show synced summary", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(String(dump.get("career_summary_text", "")).find("Matches 1") >= 0, "smoke settlement should refresh career summary", "matchmaking_ranked_e2e_smoke_test") and ok
 
 
 func _build_controller() -> Control:

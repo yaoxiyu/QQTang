@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var map_data = BuiltinMapFactory.build_basic_map()
 	var world_a := _build_world(31415, map_data)
 	var world_b := _build_world(31415, map_data)
@@ -26,7 +26,6 @@ func _ready() -> void:
 	world_a.dispose()
 	world_b.dispose()
 
-	print("checksum_builder_test: PASS")
 
 
 func _build_world(seed: int, map_data) -> SimWorld:
@@ -61,5 +60,5 @@ func _command(move_x: int, move_y: int, place_bubble: bool) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("checksum_builder_test: FAIL - %s" % message)
+	assert_true(condition, message)
+

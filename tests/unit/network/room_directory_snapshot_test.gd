@@ -1,16 +1,13 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_snapshot_roundtrip_preserves_entries() and ok
 	ok = _test_duplicate_deep_returns_independent_copy() and ok
-	if ok:
-		print("room_directory_snapshot_test: PASS")
 
 
 func _test_snapshot_roundtrip_preserves_entries() -> bool:
@@ -23,12 +20,12 @@ func _test_snapshot_roundtrip_preserves_entries() -> bool:
 	var restored := RoomDirectorySnapshotScript.from_dict(snapshot.to_dict())
 	var prefix := "room_directory_snapshot_test"
 	var ok := true
-	ok = TestAssert.is_true(restored.revision == 7, "revision should survive roundtrip", prefix) and ok
-	ok = TestAssert.is_true(restored.server_host == "10.0.0.8", "server_host should survive roundtrip", prefix) and ok
-	ok = TestAssert.is_true(restored.server_port == 9900, "server_port should survive roundtrip", prefix) and ok
-	ok = TestAssert.is_true(restored.entries.size() == 2, "entries should survive roundtrip", prefix) and ok
-	ok = TestAssert.is_true(restored.entries[0].room_display_name == "Alpha", "entry display name should survive roundtrip", prefix) and ok
-	ok = TestAssert.is_true(restored.entries[1].joinable == false, "entry joinable flag should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.revision == 7, "revision should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.server_host == "10.0.0.8", "server_host should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.server_port == 9900, "server_port should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.entries.size() == 2, "entries should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.entries[0].room_display_name == "Alpha", "entry display name should survive roundtrip", prefix) and ok
+	ok = qqt_check(restored.entries[1].joinable == false, "entry joinable flag should survive roundtrip", prefix) and ok
 	return ok
 
 
@@ -39,7 +36,7 @@ func _test_duplicate_deep_returns_independent_copy() -> bool:
 	var duplicated := snapshot.duplicate_deep()
 	duplicated.entries[0].room_display_name = "Mutated"
 
-	return TestAssert.is_true(
+	return qqt_check(
 		snapshot.entries[0].room_display_name == "Gamma",
 		"duplicate_deep should not mutate original entry",
 		"room_directory_snapshot_test"
@@ -61,3 +58,4 @@ func _make_entry(room_id: String, room_display_name: String, joinable: bool):
 	entry.match_active = not joinable
 	entry.joinable = joinable
 	return entry
+

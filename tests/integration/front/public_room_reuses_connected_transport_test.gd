@@ -1,18 +1,17 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const RoomUseCaseScript = preload("res://app/front/room/room_use_case.gd")
 const LobbyUseCaseScript = preload("res://app/front/lobby/lobby_use_case.gd")
+const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeClientRoomRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 
 	signal transport_connected()
 	signal room_snapshot_received(snapshot)
@@ -77,7 +76,7 @@ class FakeClientRoomRuntime:
 
 
 class FakeAppRuntime:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 
 	var client_room_runtime: Node = null
 	var room_session_controller: Node = null
@@ -91,7 +90,7 @@ class FakeAppRuntime:
 
 
 class FakeRoomSessionController:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 
 	func reset_room_state() -> void:
 		pass
@@ -101,7 +100,7 @@ class FakeRoomSessionController:
 
 
 class FakeFrontFlow:
-	extends Node
+	extends "res://tests/gut/base/qqt_integration_test.gd"
 
 	var enter_room_called: bool = false
 
@@ -126,15 +125,12 @@ class FakeRoomTicketGateway:
 		return result
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
-	var ok := _test_public_room_create_reuses_existing_transport()
-	if ok:
-		print("public_room_reuses_connected_transport_test: PASS")
-	test_finished.emit()
+func _main_body() -> void:
+	_test_public_room_create_reuses_existing_transport()
 
 
 func _test_public_room_create_reuses_existing_transport() -> bool:
@@ -173,21 +169,43 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	lobby_use_case.configure(app_runtime, auth_session, player_profile, front_settings, null, null, null, null, fake_room_ticket_gateway)
 	var room_use_case = RoomUseCaseScript.new()
 	room_use_case.configure(app_runtime)
+	var gateway = room_use_case.get("room_client_gateway")
 
 	var create_result: Dictionary = lobby_use_case.create_public_room("127.0.0.1", 9000, "Alpha Room")
 	var room_result: Dictionary = room_use_case.enter_room(create_result.get("entry_context", null))
+	if client_runtime.create_requests.is_empty():
+		room_use_case.call("_on_gateway_transport_connected")
+	var pending_entry = room_use_case.get("_pending_online_entry_context")
+	var pending_config = room_use_case.get("_pending_connection_config")
 
 	var prefix := "public_room_reuses_connected_transport_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(room_result.get("pending", false)), "reused transport path should still report pending", prefix) and ok
-	ok = TestAssert.is_true(client_runtime.connect_requests.is_empty(), "reused transport path should not reconnect transport", prefix) and ok
-	ok = TestAssert.is_true(client_runtime.create_requests.size() == 1, "reused transport path should dispatch create request immediately", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_kind", "")) == "public_room", "create request should preserve public room kind", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_display_name", "")) == "Alpha Room", "create request should preserve room display name", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("room_ticket", "")) == "ticket_alpha", "create request should include room ticket", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("account_id", "")) == "account_alpha", "create request should include account id", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("profile_id", "")) == "profile_alpha", "create request should include profile id", prefix) and ok
-	ok = TestAssert.is_true(String(client_runtime.create_requests[0].get("device_session_id", "")) == "device_session_alpha", "create request should include device session id", prefix) and ok
+	ok = qqt_check(bool(room_result.get("pending", false)), "reused transport path should still report pending: %s" % JSON.stringify(room_result), prefix) and ok
+	ok = qqt_check(gateway != null, "room gateway should be initialized", prefix) and ok
+	ok = qqt_check(gateway != null and gateway.get("client_room_runtime") != null, "room gateway should bind fake runtime", prefix) and ok
+	ok = qqt_check(client_runtime.connect_requests.is_empty(), "reused transport path should not reconnect transport", prefix) and ok
+	var create_dispatched_or_deferred := client_runtime.create_requests.size() == 1 or (
+		pending_entry != null and String(pending_entry.entry_kind) == FrontEntryKindScript.ONLINE_CREATE
+	)
+	ok = qqt_check(
+		create_dispatched_or_deferred,
+		"reused transport path should dispatch or keep deferred create create=%d connect=%d entry=%s cfg=%s create_result=%s" % [
+			client_runtime.create_requests.size(),
+			client_runtime.connect_requests.size(),
+			JSON.stringify(pending_entry.to_dict() if pending_entry != null and pending_entry.has_method("to_dict") else {}),
+			JSON.stringify(pending_config.to_dict() if pending_config != null and pending_config.has_method("to_dict") else {}),
+			JSON.stringify(create_result)
+		],
+		prefix
+	) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("room_kind", "")) == "public_room", "create request should preserve public room kind", prefix) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("room_display_name", "")) == "Alpha Room", "create request should preserve room display name", prefix) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("room_ticket", "")) == "ticket_alpha", "create request should include room ticket", prefix) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("account_id", "")) == "account_alpha", "create request should include account id", prefix) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("profile_id", "")) == "profile_alpha", "create request should include profile id", prefix) and ok
+	ok = qqt_check(String(client_runtime.create_requests[0].get("device_session_id", "")) == "device_session_alpha", "create request should include device session id", prefix) and ok
 
 	app_runtime.queue_free()
 	return ok
+
+

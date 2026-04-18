@@ -12,7 +12,7 @@ func handle_peer_disconnected(room_service: Node, peer_id: int) -> void:
 		room_service._cancel_party_queue_backend()
 		room_service._cancel_match_queue_locally("member_disconnected")
 	var binding = room_service.room_state.get_member_binding_by_transport_peer(peer_id)
-	if binding != null and not room_service.room_state.match_active:
+	if binding != null:
 		room_service.room_state.mark_member_disconnected_by_transport_peer(
 			peer_id,
 			Time.get_ticks_msec() + 20000,
@@ -140,6 +140,12 @@ func handle_start_request(room_service: Node, message: Dictionary) -> void:
 			"user_message": "Room is not ready to start",
 		})
 		return
+	# Enter loading barrier as active match immediately to keep room state
+	# and directory visibility consistent during start->commit window.
+	room_service.room_state.match_active = true
+	if room_service.room_state.room_lifecycle_state == "idle":
+		room_service.room_state.room_lifecycle_state = "gathering"
+	room_service._broadcast_snapshot()
 	room_service.start_match_requested.emit(room_service.room_state.build_snapshot())
 
 

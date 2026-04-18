@@ -11,6 +11,7 @@ const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runti
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const GameServicePartyQueueClientScript = preload("res://network/services/game_service_party_queue_client.gd")
+const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
 const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -53,7 +54,8 @@ func configure(next_authority_host: String, next_authority_port: int, next_room_
 	game_service_port = int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
 	if game_service_port <= 0:
 		game_service_port = 18081
-	game_internal_shared_secret = _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
+	var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+	game_internal_shared_secret = String(secret_config.get("shared_secret", game_internal_shared_secret))
 	_ensure_services()
 	if _match_service != null:
 		_match_service.authority_host = authority_host
@@ -286,8 +288,10 @@ func _ensure_services() -> void:
 		var resolved_game_port := int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
 		if resolved_game_port <= 0:
 			resolved_game_port = 18081
-		var resolved_secret := _read_env("GAME_INTERNAL_SHARED_SECRET", game_internal_shared_secret)
-		_party_queue_client.configure("http://%s:%d" % [resolved_game_host, resolved_game_port], resolved_secret)
+		var resolved_secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
+		var resolved_secret := String(resolved_secret_config.get("shared_secret", game_internal_shared_secret))
+		var resolved_key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
+		_party_queue_client.configure("http://%s:%d" % [resolved_game_host, resolved_game_port], resolved_secret, resolved_key_id)
 		if _room_service != null and _room_service.has_method("configure_party_queue_client"):
 			_room_service.configure_party_queue_client(_party_queue_client)
 	if _match_service != null:

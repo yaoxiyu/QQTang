@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 # LEGACY: covers pre-LegacyMigration client-direct matchmaking assignment only.
 const MatchmakingUseCaseScript = preload("res://app/front/matchmaking/matchmaking_use_case.gd")
@@ -6,7 +6,6 @@ const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const RoomTicketResultScript = preload("res://app/front/auth/room_ticket_result.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
 class FakeMatchmakingGateway:
@@ -81,7 +80,7 @@ class FakeRoomTicketGateway:
 		})
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var auth = AuthSessionStateScript.new()
 	auth.access_token = "token_alpha"
 	var profile = PlayerProfileStateScript.new()
@@ -101,10 +100,9 @@ func _ready() -> void:
 
 	var prefix := "lobby_match_assignment_to_room_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(consume_result.get("ok", false)), "assignment consumption should succeed", prefix) and ok
+	ok = qqt_check(bool(consume_result.get("ok", false)), "assignment consumption should succeed", prefix) and ok
 	var entry_context = consume_result.get("entry_context", null)
-	ok = TestAssert.is_true(entry_context != null and entry_context.target_room_id == "room_alpha", "assignment should build room entry context", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and entry_context.return_to_lobby_after_settlement, "matchmade entry should return to lobby after settlement", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and entry_context.auto_ready_on_join, "matchmade entry should auto ready on join", prefix) and ok
-	if ok:
-		print("lobby_match_assignment_to_room_test: PASS")
+	ok = qqt_check(entry_context != null and entry_context.target_room_id == "room_alpha", "assignment should build room entry context", prefix) and ok
+	ok = qqt_check(entry_context != null and entry_context.return_to_lobby_after_settlement, "matchmade entry should return to lobby after settlement", prefix) and ok
+	ok = qqt_check(entry_context != null and entry_context.auto_ready_on_join, "matchmade entry should auto ready on join", prefix) and ok
+

@@ -15,58 +15,58 @@ const ROOM_SCENE_LOG_TAG := "front.room.scene"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
 @onready var room_root: Control = get_node_or_null("RoomRoot")
-@onready var main_layout: VBoxContainer = get_node_or_null("RoomRoot/MainLayout")
-@onready var title_label: Label = get_node_or_null("RoomRoot/MainLayout/TopBar/TitleLabel")
-@onready var back_to_lobby_button: Button = get_node_or_null("RoomRoot/MainLayout/TopBar/BackToLobbyButton")
-@onready var room_meta_label: Label = get_node_or_null("RoomRoot/MainLayout/TopBar/RoomMetaLabel")
-@onready var room_kind_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel")
-@onready var room_display_name_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomDisplayNameLabel")
-@onready var room_id_value_label: LineEdit = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel")
-@onready var connection_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel")
-@onready var auth_binding_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/AuthBindingLabel")
-@onready var owner_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/OwnerLabel")
-@onready var blocker_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/BlockerLabel")
-@onready var lifecycle_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/LifecycleStatusLabel")
-@onready var pending_action_status_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/PendingActionStatusLabel")
-@onready var reconnect_window_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ReconnectWindowLabel")
-@onready var active_match_resume_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/ActiveMatchResumeLabel")
-@onready var player_name_input: LineEdit = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput")
-@onready var team_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow/TeamSelector")
-@onready var character_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector")
-@onready var character_skin_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector")
-@onready var bubble_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector")
-@onready var bubble_skin_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow/BubbleSkinSelector")
-@onready var map_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector")
-@onready var rule_value_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleValueLabel")
-@onready var game_mode_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector")
-@onready var match_format_selector: OptionButton = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow/MatchFormatSelector")
-@onready var match_mode_multi_select: ItemList = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/MatchModeMultiSelect")
-@onready var eligible_map_pool_hint_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/EligibleMapPoolHintLabel")
-@onready var invite_code_value_label: LineEdit = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/InviteCodeValueLabel")
-@onready var copy_invite_code_button: Button = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/CopyInviteCodeButton")
-@onready var queue_status_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueStatusLabel")
-@onready var queue_error_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueErrorLabel")
-@onready var member_list: VBoxContainer = get_node_or_null("RoomRoot/MainLayout/MemberCard/MemberVBox/MemberList")
-@onready var map_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel")
-@onready var rule_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/RulePreviewLabel")
-@onready var mode_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/ModePreviewLabel")
-@onready var team_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/TeamPreviewLabel")
-@onready var character_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewLabel")
-@onready var character_preview_viewport = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport")
-@onready var character_skin_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterSkinPreviewLabel")
-@onready var character_skin_icon: TextureRect = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/CharacterSkinIcon")
-@onready var bubble_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubblePreviewLabel")
-@onready var bubble_skin_preview_label: Label = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubbleSkinPreviewLabel")
-@onready var bubble_skin_icon: TextureRect = get_node_or_null("RoomRoot/MainLayout/PreviewCard/PreviewVBox/BubbleSkinIcon")
-@onready var leave_room_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/LeaveRoomButton")
-@onready var ready_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/ReadyButton")
-@onready var start_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/StartButton")
-@onready var enter_queue_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/EnterQueueButton")
-@onready var cancel_queue_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/CancelQueueButton")
-@onready var add_opponent_button: Button = get_node_or_null("RoomRoot/MainLayout/ActionRow/AddOpponentButton")
-@onready var room_debug_panel: PanelContainer = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel")
-@onready var debug_label: Label = get_node_or_null("RoomRoot/MainLayout/RoomDebugPanel/DebugLabel")
-@onready var battle_allocation_label: Label = get_node_or_null("RoomRoot/MainLayout/SummaryCard/SummaryVBox/BattleAllocationLabel")
+@onready var main_layout: VBoxContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout")
+@onready var title_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/TitleLabel")
+@onready var back_to_lobby_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/BackToLobbyButton")
+@onready var room_meta_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/RoomMetaLabel")
+@onready var room_kind_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel")
+@onready var room_display_name_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomDisplayNameLabel")
+@onready var room_id_value_label: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel")
+@onready var connection_status_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/ConnectionStatusLabel")
+@onready var auth_binding_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/AuthBindingLabel")
+@onready var owner_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/OwnerLabel")
+@onready var blocker_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/BlockerLabel")
+@onready var lifecycle_status_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/LifecycleStatusLabel")
+@onready var pending_action_status_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/PendingActionStatusLabel")
+@onready var reconnect_window_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/ReconnectWindowLabel")
+@onready var active_match_resume_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/ActiveMatchResumeLabel")
+@onready var player_name_input: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput")
+@onready var team_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow/TeamSelector")
+@onready var character_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector")
+@onready var character_skin_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector")
+@onready var bubble_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector")
+@onready var bubble_skin_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow/BubbleSkinSelector")
+@onready var map_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector")
+@onready var rule_value_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleValueLabel")
+@onready var game_mode_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector")
+@onready var match_format_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchFormatRow/MatchFormatSelector")
+@onready var match_mode_multi_select: ItemList = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/MatchModeMultiSelect")
+@onready var eligible_map_pool_hint_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MatchModeRow/EligibleMapPoolHintLabel")
+@onready var invite_code_value_label: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/InviteCodeValueLabel")
+@onready var copy_invite_code_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/InviteRow/CopyInviteCodeButton")
+@onready var queue_status_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueStatusLabel")
+@onready var queue_error_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/QueueStatusRow/QueueErrorLabel")
+@onready var member_list: VBoxContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/MemberCard/MemberVBox/MemberList")
+@onready var map_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/MapPreviewLabel")
+@onready var rule_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/RulePreviewLabel")
+@onready var mode_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/ModePreviewLabel")
+@onready var team_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/TeamPreviewLabel")
+@onready var character_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewLabel")
+@onready var character_preview_viewport = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport")
+@onready var character_skin_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterSkinPreviewLabel")
+@onready var character_skin_icon: TextureRect = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterSkinIcon")
+@onready var bubble_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubblePreviewLabel")
+@onready var bubble_skin_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubbleSkinPreviewLabel")
+@onready var bubble_skin_icon: TextureRect = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubbleSkinIcon")
+@onready var leave_room_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/LeaveRoomButton")
+@onready var ready_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/ReadyButton")
+@onready var start_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/StartButton")
+@onready var enter_queue_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/EnterQueueButton")
+@onready var cancel_queue_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/CancelQueueButton")
+@onready var add_opponent_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/AddOpponentButton")
+@onready var room_debug_panel: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomDebugPanel")
+@onready var debug_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomDebugPanel/DebugLabel")
+@onready var battle_allocation_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/BattleAllocationLabel")
 
 var _app_runtime: Node = null
 var _room_controller: Node = null
@@ -84,7 +84,6 @@ var _suppress_selection_callbacks: bool = false
 
 
 func _ready() -> void:
-	_ensure_scroll_layout()
 	_populate_selectors()
 	_connect_ui_signals()
 	_bind_runtime()
@@ -119,39 +118,6 @@ func _redirect_to_boot_if_missing() -> void:
 		_app_runtime.front_flow.enter_boot()
 		return
 	get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
-
-
-func _ensure_scroll_layout() -> void:
-	_ensure_action_buttons()
-	if room_root == null or main_layout == null:
-		return
-	if room_root.has_node("RoomScroll"):
-		return
-	var scroll := ScrollContainer.new()
-	scroll.name = "RoomScroll"
-	scroll.layout_mode = 3
-	scroll.anchors_preset = Control.PRESET_FULL_RECT
-	scroll.anchor_right = 1.0
-	scroll.anchor_bottom = 1.0
-	scroll.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	scroll.grow_vertical = Control.GROW_DIRECTION_BOTH
-	scroll.follow_focus = true
-	room_root.remove_child(main_layout)
-	room_root.add_child(scroll)
-	room_root.move_child(scroll, 0)
-	scroll.add_child(main_layout)
-
-
-func _ensure_action_buttons() -> void:
-	var action_row: HBoxContainer = get_node_or_null("RoomRoot/MainLayout/ActionRow")
-	if action_row == null:
-		return
-	if add_opponent_button == null:
-		add_opponent_button = Button.new()
-		add_opponent_button.name = "AddOpponentButton"
-		add_opponent_button.custom_minimum_size = Vector2(170, 44)
-		add_opponent_button.visible = false
-		action_row.add_child(add_opponent_button)
 
 
 func _exit_tree() -> void:

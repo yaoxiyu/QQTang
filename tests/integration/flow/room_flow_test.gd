@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -13,11 +13,11 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_app_root_runtime_structure()
 	_test_room_session_owner_transfer()
 	_test_room_session_debug_dump()
@@ -188,6 +188,6 @@ func _make_member(peer_id: int, player_name: String, ready: bool, slot_index: in
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

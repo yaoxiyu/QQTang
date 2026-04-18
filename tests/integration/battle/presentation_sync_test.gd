@@ -1,11 +1,11 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_actor_registry_add_update_remove()
 	_test_event_router_routes_explosion_event()
 	_test_map_view_applies_and_clears_grid_cache()
@@ -103,6 +103,6 @@ func _test_map_view_applies_and_clears_grid_cache() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

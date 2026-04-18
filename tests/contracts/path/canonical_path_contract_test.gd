@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
@@ -15,11 +15,11 @@ const FORMAL_SCENE_PATHS := [
 ]
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_battle_scene_path_uses_formal_battle_main()
 	_test_formal_scenes_do_not_reference_sandbox_or_legacy_wrappers()
 	_test_runtime_uses_canonical_scripts()
@@ -60,6 +60,6 @@ func _read_text(path: String) -> String:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

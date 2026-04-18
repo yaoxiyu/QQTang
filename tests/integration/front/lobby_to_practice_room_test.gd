@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
@@ -6,11 +6,11 @@ const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_lobby_can_enter_practice_room_without_debug_remote_members()
 
 
@@ -40,6 +40,6 @@ func _test_lobby_can_enter_practice_room_without_debug_remote_members() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

@@ -1,6 +1,5 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
-const TestAssertScript = preload("res://tests/helpers/test_assert.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const ClientRuntimeScript = preload("res://network/session/runtime/client_runtime.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -13,7 +12,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const BattleStateToViewMapperScript = preload("res://presentation/battle/bridge/state_to_view_mapper.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer()
 	ok = _test_dedicated_server_place_input_does_not_spawn_predicted_bubble_entities() and ok
 	ok = _test_dedicated_server_disables_authority_only_history_compare() and ok
@@ -21,8 +20,6 @@ func _ready() -> void:
 	ok = _test_dedicated_server_accepts_monotonic_sideband_restore() and ok
 	ok = _test_dedicated_server_applies_authoritative_walls_sideband_to_current_world() and ok
 	ok = _test_match_finished_rebinds_local_peer_context_for_client() and ok
-	if ok:
-		print("client_runtime_summary_snapshot_sync_test: PASS")
 
 
 func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -> bool:
@@ -33,7 +30,7 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for summary sideband sync test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for summary sideband sync test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -83,13 +80,13 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 	client.ingest_network_message(summary_message)
 
 	var buffered_snapshot := client.prediction_controller.snapshot_buffer.get_snapshot(1)
-	ok = TestAssertScript.is_true(buffered_snapshot != null, "summary should keep stale tick-1 snapshot in buffer", prefix) and ok
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(buffered_snapshot != null, "summary should keep stale tick-1 snapshot in buffer", prefix) and ok
+	ok = qqt_check(
 		buffered_snapshot != null and buffered_snapshot.bubbles.size() == stale_snapshot.bubbles.size(),
 		"summary should not mutate buffered bubbles for tick-1",
 		prefix
 	) and ok
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		int(_find_player_entry(buffered_snapshot.players, 1).get("bomb_available", -1)) == int(local_entry.get("bomb_available", -1)),
 		"summary should not mutate buffered local player fields for tick-1",
 		prefix
@@ -107,7 +104,7 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 		"items": summary_message["items"],
 		"checksum": int(summary_message.get("checksum", 0))
 	})
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		client.prediction_controller.rollback_controller.rollback_count > rollback_before
 			or client.prediction_controller.rollback_controller.force_resync_count > resync_before,
 		"checkpoint should still trigger divergence handling when local player fields differ after summary leaves history untouched",
@@ -134,7 +131,7 @@ func _test_dedicated_server_place_input_does_not_spawn_predicted_bubble_entities
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for dedicated place suppression test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for dedicated place suppression test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -149,13 +146,13 @@ func _test_dedicated_server_place_input_does_not_spawn_predicted_bubble_entities
 	var bubbles_after := world.state.bubbles.active_ids.size()
 	var input_frame : Dictionary = input_message.get("frame", {})
 
-	ok = TestAssertScript.is_true(not input_message.is_empty(), "client should emit an input message for place prediction", prefix) and ok
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(not input_message.is_empty(), "client should emit an input message for place prediction", prefix) and ok
+	ok = qqt_check(
 		bool(input_frame.get("action_place", false)),
 		"dedicated server client should still send authoritative place intent",
 		prefix
 	) and ok
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		bubbles_after == bubbles_before,
 		"dedicated server client should not spawn predicted bubble entities locally",
 		prefix
@@ -174,17 +171,17 @@ func _test_dedicated_server_disables_authority_only_history_compare() -> bool:
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for dedicated rollback compare test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for dedicated rollback compare test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
 
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		not client.prediction_controller.rollback_controller.compare_bubbles,
 		"dedicated server should disable historical bubble comparison in rollback",
 		prefix
 	) and ok
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		not client.prediction_controller.rollback_controller.compare_items,
 		"dedicated server should disable historical item comparison in rollback",
 		prefix
@@ -203,7 +200,7 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for dedicated sideband alignment test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for dedicated sideband alignment test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -267,7 +264,7 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 		"items": []
 	})
 
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		world.state.bubbles.active_ids.size() == 1,
 		"dedicated server should reject older sideband after a newer sideband has already been applied",
 		prefix
@@ -286,7 +283,7 @@ func _test_dedicated_server_accepts_monotonic_sideband_restore() -> bool:
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for dedicated monotonic sideband test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for dedicated monotonic sideband test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -323,7 +320,7 @@ func _test_dedicated_server_accepts_monotonic_sideband_restore() -> bool:
 		"items": []
 	})
 
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		world.state.bubbles.active_ids.size() == 1,
 		"dedicated server should accept newer authoritative sideband even when predicted world is far ahead",
 		prefix
@@ -342,7 +339,7 @@ func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_worl
 	client.configure(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for authoritative wall-sideband sync test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for authoritative wall-sideband sync test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -353,7 +350,7 @@ func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_worl
 		world.tick_runner.set_tick(20)
 
 	var breakable_cell := _find_breakable_cell(world)
-	ok = TestAssertScript.is_true(breakable_cell != Vector2i(-1, -1), "test map should provide at least one breakable cell", prefix) and ok
+	ok = qqt_check(breakable_cell != Vector2i(-1, -1), "test map should provide at least one breakable cell", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -376,7 +373,7 @@ func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_worl
 		"events": []
 	})
 	var after_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
-	ok = TestAssertScript.is_true(
+	ok = qqt_check(
 		before_tile_type == TileConstants.TileType.BREAKABLE_BLOCK and after_tile_type == TileConstants.TileType.EMPTY,
 		"dedicated server should apply authoritative wall sideband to the current world",
 		prefix
@@ -397,7 +394,7 @@ func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
 	client.configure_controlled_peer(2)
 	var prefix := "client_runtime_summary_snapshot_sync_test"
 	var ok := true
-	ok = TestAssertScript.is_true(client.start_match(config), "client runtime should start for match finished local context test", prefix) and ok
+	ok = qqt_check(client.start_match(config), "client runtime should start for match finished local context test", prefix) and ok
 	if not ok:
 		_cleanup_nodes([client])
 		return false
@@ -420,12 +417,12 @@ func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
 	})
 
 	var finished_result: BattleResult = finished_box["result"]
-	ok = TestAssertScript.is_true(finished_result != null, "client should emit battle_finished when MATCH_FINISHED arrives", prefix) and ok
-	ok = TestAssertScript.is_true(finished_result != null and finished_result.local_peer_id == 2, "client should rebind result local_peer_id to controlled peer", prefix) and ok
-	ok = TestAssertScript.is_true(finished_result != null and finished_result.is_local_victory(), "client local victory should remain true after result rebinding", prefix) and ok
+	ok = qqt_check(finished_result != null, "client should emit battle_finished when MATCH_FINISHED arrives", prefix) and ok
+	ok = qqt_check(finished_result != null and finished_result.local_peer_id == 2, "client should rebind result local_peer_id to controlled peer", prefix) and ok
+	ok = qqt_check(finished_result != null and finished_result.is_local_victory(), "client local victory should remain true after result rebinding", prefix) and ok
 	var predicted_world := client.prediction_controller.predicted_sim_world if client.prediction_controller != null else null
 	var player_views := BattleStateToViewMapperScript.new().build_player_views(predicted_world)
-	ok = TestAssertScript.is_true(_has_peer_pose(config, player_views, 2, "victory"), "winner remote actor should receive victory pose after MATCH_FINISHED", prefix) and ok
+	ok = qqt_check(_has_peer_pose(config, player_views, 2, "victory"), "winner remote actor should receive victory pose after MATCH_FINISHED", prefix) and ok
 
 	_cleanup_nodes([client])
 	return ok
@@ -508,3 +505,4 @@ func _find_breakable_cell(world: SimWorld) -> Vector2i:
 			if cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
 				return Vector2i(x, y)
 	return Vector2i(-1, -1)
+

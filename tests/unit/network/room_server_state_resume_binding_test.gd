@@ -1,13 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_disconnected_member_remains_in_snapshot() and ok
-	if ok:
-		print("room_server_state_resume_binding_test: PASS")
 
 
 func _test_disconnected_member_remains_in_snapshot() -> bool:
@@ -31,3 +29,4 @@ func _test_disconnected_member_remains_in_snapshot() -> bool:
 		print("FAIL: disconnected member state should be visible in snapshot")
 		return false
 	return true
+

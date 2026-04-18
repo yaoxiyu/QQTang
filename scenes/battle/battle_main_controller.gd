@@ -6,14 +6,8 @@ const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_sp
 const BattleExitRecoveryScript = preload("res://gameplay/battle/runtime/battle_exit_recovery.gd")
 const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_return_recovery.gd")
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
-const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
-const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/battle_runtime_config_builder.gd")
-const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
-const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
-const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
-const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const BattleFlowCoordinatorScript = preload("res://scenes/battle/battle_flow_coordinator.gd")
+const BattleResultTransitionControllerScript = preload("res://scenes/battle/battle_result_transition_controller.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -49,9 +43,8 @@ var _shutting_down: bool = false
 var _settlement_sync_token: int = 0
 var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
 var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
-var _content_manifest_builder = BattleContentManifestBuilderScript.new()
-var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
-var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
+var _battle_flow_coordinator = BattleFlowCoordinatorScript.new()
+var _battle_result_transition_controller = BattleResultTransitionControllerScript.new()
 var _pressed_direction_stack: Array[String] = []
 var _last_place_pressed: bool = false
 var _place_action_latched: bool = false
@@ -102,7 +95,7 @@ func _initialize_runtime() -> void:
 		# Build BattleStartConfig from BattleEntryContext (battle ticket flow).
 		var battle_entry_ctx = _app_runtime.current_battle_entry_context
 		if battle_entry_ctx != null and battle_entry_ctx.is_valid():
-			var config: BattleStartConfig = _build_start_config_from_battle_entry(battle_entry_ctx)
+			var config: BattleStartConfig = _battle_flow_coordinator.build_start_config_from_battle_entry(battle_entry_ctx)
 			_app_runtime.apply_canonical_start_config(config)
 		elif _session_adapter != null:
 			var adapter_config: BattleStartConfig = _session_adapter.get("start_config")
@@ -194,12 +187,6 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	_battle_context = context
 	if _app_runtime != null and _app_runtime.current_start_config == null and _battle_context.battle_start_config != null:
 		_app_runtime.apply_canonical_start_config(_battle_context.battle_start_config)
-	var resolved_manifest: Dictionary = {}
-	if _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
-		resolved_manifest = _app_runtime.current_battle_content_manifest.duplicate(true)
-	elif _battle_context != null and _battle_context.battle_start_config != null:
-		resolved_manifest = _content_manifest_builder.build_for_start_config(_battle_context.battle_start_config)
-	_battle_context.battle_content_manifest = resolved_manifest
 	_tick_accumulator = 0.0
 	_finished = false
 	_pending_settlement_result = null
@@ -207,66 +194,44 @@ func _on_battle_context_created(context: BattleContext) -> void:
 	_post_shutdown_action = ""
 	_scene_cleanup_queued = false
 	_shutting_down = false
-	battle_bootstrap.bind_context(_battle_context)
-	if _app_runtime != null and _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("mark_match_started"):
-		var match_id: String = _app_runtime.current_start_config.match_id if _app_runtime.current_start_config != null else ""
-		_app_runtime.room_session_controller.mark_match_started(match_id)
-	battle_camera_controller.configure_from_world(_battle_context.sim_world, presentation_bridge.cell_size)
-	_apply_content_style_overrides()
-	_apply_player_visual_profiles()
-	_apply_map_theme()
-	presentation_bridge.consume_tick_result({}, _battle_context.sim_world, [])
-	var local_player_entity_id := _resolve_local_player_entity_id()
-	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
-	battle_hud.set_local_player_entity_id(local_player_entity_id)
-	_apply_battle_metadata()
-	call_deferred("_apply_battle_metadata")
-	battle_hud.consume_battle_state(_battle_context.sim_world)
-	if _session_adapter != null:
-		battle_hud.consume_network_metrics(_session_adapter.build_runtime_metrics_snapshot())
-	battle_hud.match_message_panel.apply_message(
-		"J Latency  K Loss  L ForceRollback  I DropRate %d%%  O RemoteDebug %s" % [
-			ItemSpawnSystemScript.get_debug_drop_rate_percent(),
-			"On" if _session_adapter.use_remote_debug_inputs else "Off"
-		]
+	_battle_flow_coordinator.initialize_battle_context(
+		_app_runtime,
+		_battle_context,
+		_session_adapter,
+		battle_bootstrap,
+		presentation_bridge,
+		battle_hud,
+		battle_camera_controller,
+		map_theme_environment_controller,
+		map_root
 	)
-	
+	call_deferred("_apply_battle_metadata")
 	# LegacyMigration: Consume resume payload if present
 	if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
 		battle_hud.match_message_panel.apply_message("Resumed active match")
 
 
 func _on_authoritative_tick_completed(context: BattleContext, tick_result: Dictionary, metrics: Dictionary) -> void:
-	if context == null or context.sim_world == null:
-		return
-	var local_player_entity_id := _resolve_local_player_entity_id()
-	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
-	battle_hud.set_local_player_entity_id(local_player_entity_id)
-	presentation_bridge.consume_tick_result(tick_result, context.sim_world, tick_result.get("events", []))
+	_battle_flow_coordinator.consume_authoritative_tick(_app_runtime, context, presentation_bridge, battle_hud, tick_result, metrics)
 	_consume_battle_events(tick_result.get("events", []))
-	battle_hud.consume_battle_state(context.sim_world)
-	battle_hud.consume_network_metrics(metrics)
 
 
 func _on_battle_finished_authoritatively(result: BattleResult) -> void:
 	if _finished:
 		return
 	_finished = true
-	if _app_runtime != null and _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("mark_match_finished"):
-		var match_id: String = _app_runtime.current_start_config.match_id if _app_runtime != null and _app_runtime.current_start_config != null else ""
-		_app_runtime.room_session_controller.mark_match_finished(match_id)
-	_pending_settlement_result = result.duplicate_deep() if result != null else null
-	_settlement_delay_remaining = SETTLEMENT_SHOW_DELAY_SEC
-	_clear_runtime_settlement_summary()
-	var match_id := _resolve_current_match_id()
-	_log_online_flow("battle_finished_authoritatively", {
-		"match_id": match_id,
-		"finish_reason": result.finish_reason if result != null else "",
-		"local_outcome": result.local_outcome if result != null else "",
-		"return_to_lobby_after_settlement": _should_return_to_lobby_after_settlement(),
-	})
+	var transition := _battle_result_transition_controller.on_battle_finished_authoritatively(
+		_app_runtime,
+		result,
+		_settlement_sync_token,
+		SETTLEMENT_SHOW_DELAY_SEC,
+		Callable(self, "_log_online_flow")
+	)
+	_pending_settlement_result = transition.get("pending_settlement_result", null)
+	_settlement_delay_remaining = float(transition.get("settlement_delay_remaining", 0.0))
+	_settlement_sync_token = int(transition.get("settlement_sync_token", _settlement_sync_token))
+	var match_id := String(transition.get("match_id", ""))
 	if not match_id.is_empty():
-		_settlement_sync_token += 1
 		call_deferred("_fetch_server_settlement_summary_with_retry", match_id, _settlement_sync_token)
 	battle_hud.match_message_panel.apply_message("Battle resolved...")
 
@@ -302,7 +267,7 @@ func _on_transport_runtime_error(code: int, message: String) -> void:
 
 
 func _on_settlement_return_to_room_requested() -> void:
-	_request_post_shutdown_action("return_to_lobby" if _should_return_to_lobby_after_settlement() else "return_to_room")
+	_request_post_shutdown_action("return_to_lobby" if _battle_result_transition_controller.should_return_to_lobby_after_settlement(_app_runtime) else "return_to_room")
 
 
 func _on_settlement_rematch_requested() -> void:
@@ -310,38 +275,19 @@ func _on_settlement_rematch_requested() -> void:
 
 
 func _request_post_shutdown_action(action: String) -> void:
-	if _post_shutdown_action != "":
+	if not _post_shutdown_action.is_empty():
 		return
-	# LegacyMigration: For DS rooms, set pending_room_action for rematch
-	if action == "rematch" and _app_runtime != null:
-		var entry_context = _app_runtime.current_room_entry_context
-		if entry_context != null and String(entry_context.topology) == "dedicated_server":
-			_app_runtime.pending_room_action = "rematch"
-			if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
-				_app_runtime.room_session_controller.set_pending_room_action("rematch")
-	_post_shutdown_action = action
-	_log_online_flow("post_shutdown_action_requested", {
-		"action": action,
-		"match_id": _resolve_current_match_id(),
-	})
+	_post_shutdown_action = _battle_result_transition_controller.request_post_shutdown_action(action, _app_runtime, _post_shutdown_action, Callable(self, "_log_online_flow"))
 	_shutdown_active_battle()
-	_complete_post_shutdown_action()
-
-
-func _complete_return_to_room() -> void:
-	if _app_runtime == null:
-		return
-	_room_return_recovery.recover(_app_runtime, _post_shutdown_action)
-
-
-func _complete_return_to_lobby() -> void:
-	if _app_runtime == null:
-		return
-	if _app_runtime.room_use_case != null and _app_runtime.room_use_case.has_method("leave_room"):
-		_app_runtime.room_use_case.leave_room()
-		return
-	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_lobby"):
-		_app_runtime.front_flow.enter_lobby()
+	if _app_runtime != null:
+		_app_runtime.unregister_battle_modules(self)
+	_battle_result_transition_controller.complete_post_shutdown_action(
+		_post_shutdown_action,
+		_app_runtime,
+		_room_return_recovery,
+		Callable(self, "_queue_scene_cleanup")
+	)
+	_post_shutdown_action = ""
 
 
 func _consume_battle_events(events: Array) -> void:
@@ -352,7 +298,7 @@ func _consume_battle_events(events: Array) -> void:
 			SimEvent.EventType.PLAYER_KILLED:
 				battle_hud.on_player_killed_event(event)
 			SimEvent.EventType.ITEM_PICKED:
-				battle_hud.on_item_picked_event(event, _resolve_local_player_entity_id())
+				battle_hud.on_item_picked_event(event, _battle_flow_coordinator.resolve_local_player_entity_id(_app_runtime, _battle_context))
 			SimEvent.EventType.MATCH_ENDED:
 				var resolved_peer_id := -1
 				if _app_runtime != null and _app_runtime.current_start_config != null:
@@ -396,28 +342,13 @@ func _remove_direction(direction: String) -> void:
 
 
 func _show_pending_settlement() -> void:
-	if _pending_settlement_result == null:
-		return
-	if _app_runtime != null and _app_runtime.front_flow != null:
-		_app_runtime.front_flow.on_battle_finished(_pending_settlement_result)
-	if _should_return_to_lobby_after_settlement():
-		settlement_controller.set_return_button_mode_lobby()
-	else:
-		settlement_controller.set_return_button_mode_room()
-	settlement_controller.show_result(_pending_settlement_result)
-	_log_online_flow("settlement_opened", {
-		"match_id": _resolve_current_match_id(),
-		"return_mode": "lobby" if _should_return_to_lobby_after_settlement() else "room",
-		"has_cached_server_summary": _app_runtime != null and not _app_runtime.current_settlement_popup_summary.is_empty(),
-	})
-	if _app_runtime != null:
-		var popup_summary: Dictionary = _app_runtime.current_settlement_popup_summary.duplicate(true)
-		if not popup_summary.is_empty():
-			settlement_controller.apply_server_summary(popup_summary)
-	if _should_return_to_lobby_after_settlement():
-		battle_hud.match_message_panel.apply_message("Press Enter to return lobby")
-	else:
-		battle_hud.match_message_panel.apply_message("Press Enter to return room")
+	_battle_result_transition_controller.show_pending_settlement(
+		_app_runtime,
+		settlement_controller,
+		battle_hud,
+		_pending_settlement_result,
+		Callable(self, "_log_online_flow")
+	)
 	_pending_settlement_result = null
 	_settlement_delay_remaining = 0.0
 
@@ -443,101 +374,17 @@ func _shutdown_active_battle() -> void:
 	)
 
 
-func _complete_post_shutdown_action() -> void:
-	if _app_runtime != null:
-		_app_runtime.unregister_battle_modules(self)
-	match _post_shutdown_action:
-		"return_to_room":
-			_complete_return_to_room()
-		"return_to_lobby":
-			_complete_return_to_lobby()
-		"rematch":
-			_complete_return_to_room()
-		_:
-			pass
-	_post_shutdown_action = ""
-	_queue_scene_cleanup()
-
-
 func _fetch_server_settlement_summary_with_retry(match_id: String, token: int) -> void:
-	for attempt in range(SETTLEMENT_SYNC_RETRY_DELAYS_SEC.size() + 1):
-		if token != _settlement_sync_token:
-			return
-		var synced := _fetch_server_settlement_summary_once(match_id)
-		if synced:
-			return
-		if attempt >= SETTLEMENT_SYNC_RETRY_DELAYS_SEC.size():
-			return
-		var delay_sec := float(SETTLEMENT_SYNC_RETRY_DELAYS_SEC[attempt])
-		await get_tree().create_timer(delay_sec).timeout
-
-
-func _fetch_server_settlement_summary_once(match_id: String) -> bool:
-	if match_id.strip_edges().is_empty() or _app_runtime == null:
-		return true
-	if _app_runtime.settlement_sync_use_case == null or not _app_runtime.settlement_sync_use_case.has_method("fetch_match_summary"):
-		return true
-	_log_online_flow("settlement_summary_fetch_requested", {
-		"match_id": match_id,
-	})
-	var fetch_result: Dictionary = _app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
-	if not bool(fetch_result.get("ok", false)):
-		_log_online_flow("settlement_summary_fetch_failed", {
-			"match_id": match_id,
-			"error_code": String(fetch_result.get("error_code", "")),
-			"user_message": String(fetch_result.get("user_message", "")),
-		})
-		return false
-	var popup_result: Dictionary = _app_runtime.settlement_sync_use_case.apply_summary_to_popup(fetch_result.get("summary", null))
-	if not bool(popup_result.get("ok", false)):
-		_log_online_flow("settlement_popup_apply_failed", {
-			"match_id": match_id,
-			"error_code": String(popup_result.get("error_code", "")),
-			"user_message": String(popup_result.get("user_message", "")),
-		})
-		return false
-	var popup_summary: Dictionary = popup_result.get("popup_summary", {})
-	_app_runtime.current_settlement_popup_summary = popup_summary.duplicate(true)
-	if settlement_controller != null and settlement_controller.visible:
-		settlement_controller.apply_server_summary(popup_summary)
-	var synced := String(popup_summary.get("server_sync_state", "")).strip_edges().to_lower() != "pending"
-	_log_online_flow("settlement_summary_fetch_succeeded", {
-		"match_id": match_id,
-		"server_sync_state": String(popup_summary.get("server_sync_state", "")),
-		"rating_delta": int(popup_summary.get("rating_delta", 0)),
-		"season_point_delta": int(popup_summary.get("season_point_delta", 0)),
-		"synced": synced,
-	})
-	return synced
-
-
-func _resolve_current_match_id() -> String:
-	if _app_runtime != null and _app_runtime.current_start_config != null:
-		return String(_app_runtime.current_start_config.match_id)
-	return ""
-
-
-func _should_return_to_lobby_after_settlement() -> bool:
-	if _app_runtime == null:
-		return false
-	if _app_runtime.current_room_entry_context != null and bool(_app_runtime.current_room_entry_context.return_to_lobby_after_settlement):
-		return true
-	if _app_runtime.current_room_entry_context != null and String(_app_runtime.current_room_entry_context.room_kind) == "matchmade_room":
-		return true
-	if _app_runtime.current_room_snapshot != null and String(_app_runtime.current_room_snapshot.room_kind) == "matchmade_room":
-		return true
-	return false
-
-
-func _clear_runtime_settlement_summary() -> void:
-	if _app_runtime == null:
-		return
-	_app_runtime.current_settlement_popup_summary = {}
-	_settlement_sync_token += 1
-	_log_online_flow("settlement_summary_cleared", {
-		"match_id": _resolve_current_match_id(),
-		"settlement_sync_token": _settlement_sync_token,
-	})
+	await _battle_result_transition_controller.fetch_server_settlement_summary_with_retry(
+		self,
+		_app_runtime,
+		settlement_controller,
+		match_id,
+		token,
+		Callable(self, "_get_settlement_sync_token"),
+		Callable(self, "_log_online_flow"),
+		SETTLEMENT_SYNC_RETRY_DELAYS_SEC
+	)
 
 
 func _queue_scene_cleanup() -> void:
@@ -553,348 +400,18 @@ func _cleanup_detached_battle_scene() -> void:
 	queue_free()
 
 
-func _resolve_local_player_entity_id() -> int:
-	if _battle_context == null or _battle_context.sim_world == null or _app_runtime == null or _app_runtime.current_start_config == null:
-		return -1
-	var controlled_peer_id := int(_app_runtime.current_start_config.controlled_peer_id)
-	if controlled_peer_id <= 0:
-		controlled_peer_id = _app_runtime.local_peer_id
-	for player_entry in _app_runtime.current_start_config.players:
-		if int(player_entry.get("peer_id", -1)) != controlled_peer_id:
-			continue
-		var slot_index: int = int(player_entry.get("slot_index", -1))
-		for player_id in _battle_context.sim_world.state.players.active_ids:
-			var player: PlayerState = _battle_context.sim_world.state.players.get_player(player_id)
-			if player != null and player.player_slot == slot_index:
-				return player.entity_id
-	return -1
-
-
 func _apply_battle_metadata() -> void:
-	if battle_hud == null:
-		return
-	var resolved_start_config: BattleStartConfig = null
-	if _battle_context != null and _battle_context.battle_start_config != null:
-		resolved_start_config = _battle_context.battle_start_config
-	elif _app_runtime != null and _app_runtime.current_start_config != null:
-		resolved_start_config = _app_runtime.current_start_config
-	if resolved_start_config == null:
-		return
-	var manifest: Dictionary = {}
-	if _battle_context != null and not _battle_context.battle_content_manifest.is_empty():
-		manifest = _battle_context.battle_content_manifest
-	elif _app_runtime != null and not _app_runtime.current_battle_content_manifest.is_empty():
-		manifest = _app_runtime.current_battle_content_manifest
-	if manifest.is_empty():
-		manifest = _content_manifest_builder.build_for_start_config(resolved_start_config)
-		if _battle_context != null:
-			_battle_context.battle_content_manifest = manifest.duplicate(true)
-	var ui_summary: Dictionary = manifest.get("ui_summary", {})
-	var local_character_display_name := _resolve_local_character_display_name(manifest, resolved_start_config)
-	var local_bubble_display_name := _resolve_local_bubble_display_name(manifest, resolved_start_config)
-	var mode_display_name := String(ui_summary.get("mode_display_name", resolved_start_config.mode_id))
-	var match_meta_text := "模式: %s | Match: %s | Profile: %s" % [
-		mode_display_name,
-		String(resolved_start_config.match_id),
-		String(ui_summary.get("item_profile_id", resolved_start_config.item_spawn_profile_id)),
-	]
-	var item_brief := String(ui_summary.get("item_brief", ""))
-	if not item_brief.is_empty():
-		match_meta_text = "%s | %s" % [match_meta_text, item_brief]
-	battle_hud.set_extended_battle_metadata(
-		String(ui_summary.get("map_display_name", resolved_start_config.map_id)),
-		String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id)),
-		match_meta_text,
-		local_character_display_name,
-		local_bubble_display_name
+	_battle_flow_coordinator.apply_battle_metadata(
+		_app_runtime,
+		_battle_context,
+		battle_hud,
+		battle_meta_panel,
+		battle_meta_map_label,
+		battle_meta_rule_label,
+		battle_meta_match_label,
+		battle_meta_character_label,
+		battle_meta_bubble_label
 	)
-	var resolved_map_display_name := String(ui_summary.get("map_display_name", resolved_start_config.map_id))
-	var resolved_rule_display_name := String(ui_summary.get("rule_display_name", resolved_start_config.rule_set_id))
-	if battle_meta_panel != null:
-		battle_meta_panel.apply_extended_metadata(
-			resolved_map_display_name,
-			resolved_rule_display_name,
-			match_meta_text,
-			local_character_display_name,
-			local_bubble_display_name
-		)
-	if battle_meta_map_label != null:
-		battle_meta_map_label.text = "地图: %s" % resolved_map_display_name
-	if battle_meta_rule_label != null:
-		battle_meta_rule_label.text = "规则: %s" % resolved_rule_display_name
-	if battle_meta_match_label != null:
-		battle_meta_match_label.text = match_meta_text
-	if battle_meta_character_label != null:
-		battle_meta_character_label.text = "角色: %s" % local_character_display_name
-	if battle_meta_bubble_label != null:
-		battle_meta_bubble_label.text = "泡泡: %s" % local_bubble_display_name
-
-
-func _apply_content_style_overrides() -> void:
-	if presentation_bridge == null or _app_runtime == null or _app_runtime.current_start_config == null:
-		return
-	var player_style_by_slot: Dictionary = {}
-	var bubble_style_by_slot: Dictionary = {}
-	var bubble_color_by_slot: Dictionary = {}
-	for loadout in _app_runtime.current_start_config.character_loadouts:
-		var peer_id := int(loadout.get("peer_id", -1))
-		var slot_index := _find_slot_index_for_peer(peer_id)
-		if slot_index < 0:
-			continue
-		player_style_by_slot[slot_index] = _resolve_character_color(String(loadout.get("character_id", "")), slot_index)
-	for loadout in _app_runtime.current_start_config.player_bubble_loadouts:
-		var peer_id := int(loadout.get("peer_id", -1))
-		var slot_index := _find_slot_index_for_peer(peer_id)
-		if slot_index < 0:
-			continue
-		var bubble_style_id := String(loadout.get("bubble_style_id", ""))
-		bubble_style_by_slot[slot_index] = bubble_style_id
-		bubble_color_by_slot[slot_index] = _resolve_bubble_color(bubble_style_id, slot_index)
-	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
-
-
-func _apply_player_visual_profiles() -> void:
-	if presentation_bridge == null or _app_runtime == null:
-		return
-	var start_config: BattleStartConfig = _app_runtime.current_start_config
-	if start_config == null:
-		return
-	var room_snapshot := _resolve_battle_room_snapshot(start_config)
-	if room_snapshot == null:
-		return
-	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
-	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
-	if runtime_config == null:
-		return
-	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
-	LogFrontScript.debug(
-		"%s[battle_scene] player_visual_profiles_applied room_id=%s room_members=%d start_players=%d profiles=%d" % [
-			ONLINE_LOG_PREFIX,
-			String(room_snapshot.room_id),
-			room_snapshot.member_count(),
-			start_config.player_slots.size(),
-			player_visual_profiles.size(),
-		],
-		"",
-		0,
-		"front.battle.scene"
-	)
-	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
-
-
-func _apply_map_theme() -> void:
-	if _app_runtime == null:
-		return
-	var start_config: BattleStartConfig = _app_runtime.current_start_config
-	if start_config == null:
-		return
-	var room_snapshot := _resolve_battle_room_snapshot(start_config)
-	if room_snapshot == null:
-		return
-	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
-	var map_runtime_layout := MapLoaderScript.load_runtime_layout(String(room_selection_state.map_id))
-	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
-	if runtime_config == null or runtime_config.map_theme == null:
-		return
-	if presentation_bridge != null and map_runtime_layout != null:
-		presentation_bridge.configure_map_presentation(map_runtime_layout, runtime_config.map_theme)
-	if map_theme_environment_controller != null:
-		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
-	if map_root != null:
-		map_root.apply_map_theme(runtime_config.map_theme)
-
-
-func _resolve_battle_room_snapshot(start_config: BattleStartConfig) -> RoomSnapshot:
-	if start_config == null:
-		return null
-	var current_snapshot: RoomSnapshot = _app_runtime.current_room_snapshot if _app_runtime != null else null
-	if _snapshot_covers_start_config_players(current_snapshot, start_config):
-		return current_snapshot
-	return _build_fallback_room_snapshot_from_start_config(start_config)
-
-
-func _snapshot_covers_start_config_players(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> bool:
-	if snapshot == null or start_config == null:
-		return false
-	var member_peer_ids: Dictionary = {}
-	for member in snapshot.members:
-		if member == null:
-			continue
-		member_peer_ids[int(member.peer_id)] = true
-	for player_entry in start_config.player_slots:
-		var peer_id := int(player_entry.get("peer_id", -1))
-		if peer_id <= 0 or not member_peer_ids.has(peer_id):
-			return false
-	return true
-
-
-func _build_start_config_from_battle_entry(ctx: BattleEntryContext) -> BattleStartConfig:
-	var config := BattleStartConfig.new()
-	config.session_mode = "network_client"
-	config.topology = "dedicated_server"
-	config.authority_host = ctx.battle_server_host
-	config.authority_port = ctx.battle_server_port
-	config.battle_id = ctx.battle_id
-	config.match_id = ctx.match_id
-	config.map_id = ctx.map_id
-	config.mode_id = ctx.mode_id
-	config.rule_set_id = ctx.rule_set_id
-	config.room_id = ctx.source_room_id
-	config.build_mode = BattleStartConfig.BUILD_MODE_CANONICAL
-	return config
-
-
-func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartConfig) -> RoomSnapshot:
-	if start_config == null:
-		return null
-	var snapshot := RoomSnapshot.new()
-	snapshot.selected_map_id = String(start_config.map_id)
-	snapshot.rule_set_id = String(start_config.rule_set_id)
-	for player_entry in start_config.player_slots:
-		var peer_id := int(player_entry.get("peer_id", -1))
-		if peer_id <= 0:
-			continue
-		var member := RoomMemberState.new()
-		member.peer_id = peer_id
-		member.player_name = String(player_entry.get("player_name", player_entry.get("display_name", "Player%d" % peer_id)))
-		member.ready = true
-		member.slot_index = int(player_entry.get("slot_index", -1))
-		member.character_id = _resolve_character_id_from_start_config(start_config, peer_id)
-		member.bubble_style_id = _resolve_bubble_style_id_from_start_config(start_config, peer_id)
-		snapshot.members.append(member)
-	return snapshot
-
-
-func _resolve_character_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
-	if start_config == null:
-		return ""
-	for loadout in start_config.character_loadouts:
-		if int(loadout.get("peer_id", -1)) == peer_id:
-			return String(loadout.get("character_id", ""))
-	return ""
-
-
-func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
-	if start_config == null:
-		return ""
-	for loadout in start_config.player_bubble_loadouts:
-		if int(loadout.get("peer_id", -1)) == peer_id:
-			return String(loadout.get("bubble_style_id", ""))
-	return ""
-
-
-func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> RoomSelectionState:
-	var state := RoomSelectionStateScript.new()
-	state.mode_id = String(start_config.mode_id)
-	state.map_id = String(snapshot.selected_map_id)
-	state.rule_set_id = String(snapshot.rule_set_id)
-	for member in snapshot.sorted_members():
-		state.players[member.peer_id] = {
-			"peer_id": member.peer_id,
-			"character_id": member.character_id,
-			"character_skin_id": _resolve_character_skin_id(member.character_skin_id),
-			"bubble_style_id": _resolve_bubble_style_id(member.bubble_style_id),
-			"bubble_skin_id": _resolve_bubble_skin_id(member.bubble_skin_id),
-			"ready": member.ready,
-		}
-	return state
-
-
-func _resolve_character_skin_id(character_skin_id: String) -> String:
-	if character_skin_id.is_empty():
-		return ""
-	if CharacterSkinCatalogScript.has_id(character_skin_id):
-		return character_skin_id
-	return ""
-
-
-func _resolve_bubble_style_id(bubble_style_id: String) -> String:
-	if BubbleCatalogScript.has_bubble(bubble_style_id):
-		return bubble_style_id
-	return BubbleCatalogScript.get_default_bubble_id()
-
-
-func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
-	if bubble_skin_id.is_empty():
-		return ""
-	if BubbleSkinCatalogScript.has_id(bubble_skin_id):
-		return bubble_skin_id
-	return ""
-
-
-func _find_slot_index_for_peer(peer_id: int) -> int:
-	if _app_runtime == null or _app_runtime.current_start_config == null:
-		return -1
-	for player_entry in _app_runtime.current_start_config.player_slots:
-		if int(player_entry.get("peer_id", -1)) == peer_id:
-			return int(player_entry.get("slot_index", -1))
-	return -1
-
-
-func _resolve_character_color(character_id: String, slot_index: int) -> Color:
-	return _resolve_stable_style_color(
-		character_id,
-		[
-			Color(0.20, 0.70, 1.0, 1.0),
-			Color(1.0, 0.45, 0.25, 1.0),
-			Color(0.35, 0.90, 0.50, 1.0),
-			Color(1.0, 0.85, 0.30, 1.0),
-		],
-		slot_index
-	)
-
-
-func _resolve_bubble_color(bubble_style_id: String, slot_index: int) -> Color:
-	return _resolve_stable_style_color(
-		bubble_style_id,
-		[
-			Color(0.28, 0.52, 1.0, 1.0),
-			Color(1.0, 0.62, 0.18, 1.0),
-			Color(0.40, 0.92, 0.56, 1.0),
-			Color(1.0, 0.86, 0.30, 1.0),
-		],
-		slot_index
-	)
-
-
-func _resolve_local_character_display_name(manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
-	var local_peer_id := _resolve_local_peer_id(resolved_start_config)
-	for entry in manifest.get("characters", []):
-		if int(entry.get("peer_id", -1)) == local_peer_id:
-			return String(entry.get("display_name", entry.get("character_id", "")))
-	if not resolved_start_config.character_loadouts.is_empty():
-		return String(resolved_start_config.character_loadouts[0].get("display_name", resolved_start_config.character_loadouts[0].get("character_id", "")))
-	return ""
-
-
-func _resolve_local_bubble_display_name(manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
-	var local_peer_id := _resolve_local_peer_id(resolved_start_config)
-	for entry in manifest.get("bubbles", []):
-		if int(entry.get("peer_id", -1)) == local_peer_id:
-			return String(entry.get("display_name", entry.get("bubble_style_id", "")))
-	if not resolved_start_config.player_bubble_loadouts.is_empty():
-		return String(resolved_start_config.player_bubble_loadouts[0].get("bubble_style_id", ""))
-	return ""
-
-
-func _resolve_local_peer_id(resolved_start_config: BattleStartConfig) -> int:
-	var local_peer_id := int(resolved_start_config.controlled_peer_id)
-	if local_peer_id <= 0:
-		local_peer_id = int(resolved_start_config.local_peer_id)
-	if local_peer_id <= 0 and _app_runtime != null:
-		local_peer_id = int(_app_runtime.local_peer_id)
-	return local_peer_id
-
-
-func _resolve_stable_style_color(resource_id: String, palette: Array[Color], slot_index: int) -> Color:
-	if palette.is_empty():
-		return Color.WHITE
-	if resource_id.is_empty():
-		return palette[slot_index % palette.size()]
-	var hash_value := 0
-	for i in range(resource_id.length()):
-		hash_value = int((hash_value * 33 + resource_id.unicode_at(i)) % 2147483647)
-	return palette[hash_value % palette.size()]
 
 
 func _connect_session_signals() -> void:
@@ -933,3 +450,7 @@ func _disconnect_session_signals(include_stop_signal: bool) -> void:
 
 func _log_online_flow(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[battle_main] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.battle.online")
+
+
+func _get_settlement_sync_token() -> int:
+	return _settlement_sync_token

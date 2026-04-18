@@ -1,15 +1,15 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 
 
-func _ready() -> void:
-	run_all()
+func test_main() -> void:
+	_main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	_test_room_snapshot_carries_authoritative_mode_and_topology()
 	_test_battle_start_config_prefers_room_snapshot_mode()
 
@@ -53,6 +53,6 @@ func _test_battle_start_config_prefers_room_snapshot_mode() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var buffer := InputBuffer.new()
 	var held := PlayerInputFrame.new()
 	held.peer_id = 7
@@ -21,9 +21,8 @@ func _ready() -> void:
 	_assert(idle.move_x == 0 and idle.move_y == 0, "peer with no history should fallback to idle input")
 	_assert(idle.seq == 0, "idle input should use neutral sequence id")
 
-	print("test_input_buffer_missing_fallback: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_input_buffer_missing_fallback: FAIL - %s" % message)
+	assert_true(condition, message)
+

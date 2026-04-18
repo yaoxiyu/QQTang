@@ -1,6 +1,5 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
@@ -10,15 +9,13 @@ const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_sta
 const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_state.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_local_ready_member_cannot_change_team() and ok
 	ok = _test_local_single_team_start_is_blocked() and ok
 	ok = _test_start_config_rejects_single_team() and ok
 	ok = _test_server_ready_member_cannot_change_team() and ok
 	ok = _test_server_single_team_start_is_blocked() and ok
-	if ok:
-		print("room_team_start_guard_test: PASS")
 
 
 func _test_local_ready_member_cannot_change_team() -> bool:
@@ -37,10 +34,10 @@ func _test_local_ready_member_cannot_change_team() -> bool:
 	var view_model: Dictionary = RoomViewModelBuilderScript.new().build_view_model(snapshot, controller.room_runtime_context, null, null)
 	var prefix := "room_team_start_guard_test.local_ready_team"
 	var ok := true
-	ok = TestAssert.is_true(bool(host_profile_result.get("ok", false)), "host profile setup should pass", prefix) and ok
-	ok = TestAssert.is_true(not bool(result.get("ok", true)), "ready local member team change should be rejected", prefix) and ok
-	ok = TestAssert.is_true(host != null and host.team_id == 1, "ready local member team should remain unchanged", prefix) and ok
-	ok = TestAssert.is_true(not bool(view_model.get("can_edit_team", true)), "ready local member team selector should be disabled by view model", prefix) and ok
+	ok = qqt_check(bool(host_profile_result.get("ok", false)), "host profile setup should pass", prefix) and ok
+	ok = qqt_check(not bool(result.get("ok", true)), "ready local member team change should be rejected", prefix) and ok
+	ok = qqt_check(host != null and host.team_id == 1, "ready local member team should remain unchanged", prefix) and ok
+	ok = qqt_check(not bool(view_model.get("can_edit_team", true)), "ready local member team selector should be disabled by view model", prefix) and ok
 	controller.queue_free()
 	return ok
 
@@ -57,8 +54,8 @@ func _test_local_single_team_start_is_blocked() -> bool:
 	var blocker: Dictionary = controller.get_start_match_blocker(1)
 	var prefix := "room_team_start_guard_test.local_single_team_start"
 	var ok := true
-	ok = TestAssert.is_true(not controller.can_start_match(), "local same-team room should not be startable", prefix) and ok
-	ok = TestAssert.is_true(String(blocker.get("error_code", "")) == "ROOM_TEAM_INVALID", "local same-team blocker should report team invalid", prefix) and ok
+	ok = qqt_check(not controller.can_start_match(), "local same-team room should not be startable", prefix) and ok
+	ok = qqt_check(String(blocker.get("error_code", "")) == "ROOM_TEAM_INVALID", "local same-team blocker should report team invalid", prefix) and ok
 	controller.queue_free()
 	return ok
 
@@ -85,7 +82,7 @@ func _test_start_config_rejects_single_team() -> bool:
 	]
 	var validation := config.validate()
 	var prefix := "room_team_start_guard_test.config_single_team"
-	return TestAssert.is_true(
+	return qqt_check(
 		not bool(validation.get("ok", true)) and _errors_contain(validation, "at least two team_id"),
 		"BattleStartConfig should reject single-team player slots",
 		prefix
@@ -116,8 +113,8 @@ func _test_server_ready_member_cannot_change_team() -> bool:
 	var profile: Dictionary = service.room_state.members.get(1, {})
 	var prefix := "room_team_start_guard_test.server_ready_team"
 	var ok := true
-	ok = TestAssert.is_true(String(reject.get("error", "")) == "ROOM_MEMBER_PROFILE_FORBIDDEN", "server should reject ready member team change", prefix) and ok
-	ok = TestAssert.is_true(int(profile.get("team_id", 0)) == 1, "server team should remain unchanged", prefix) and ok
+	ok = qqt_check(String(reject.get("error", "")) == "ROOM_MEMBER_PROFILE_FORBIDDEN", "server should reject ready member team change", prefix) and ok
+	ok = qqt_check(int(profile.get("team_id", 0)) == 1, "server team should remain unchanged", prefix) and ok
 	service.queue_free()
 	return ok
 
@@ -143,8 +140,8 @@ func _test_server_single_team_start_is_blocked() -> bool:
 	var reject := _find_latest_message(directed, 1, TransportMessageTypesScript.JOIN_BATTLE_REJECTED)
 	var prefix := "room_team_start_guard_test.server_single_team_start"
 	var ok := true
-	ok = TestAssert.is_true(not service.room_state.can_start(), "server same-team room should not be startable", prefix) and ok
-	ok = TestAssert.is_true(String(reject.get("error", "")) == "ROOM_TEAM_INVALID", "server same-team start should be rejected", prefix) and ok
+	ok = qqt_check(not service.room_state.can_start(), "server same-team room should not be startable", prefix) and ok
+	ok = qqt_check(String(reject.get("error", "")) == "ROOM_TEAM_INVALID", "server same-team start should be rejected", prefix) and ok
 	service.queue_free()
 	return ok
 
@@ -185,3 +182,4 @@ func _errors_contain(validation: Dictionary, needle: String) -> bool:
 
 func _character_id() -> String:
 	return CharacterCatalogScript.get_default_character_id()
+

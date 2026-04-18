@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -8,17 +8,15 @@ const LobbySceneScript = preload("res://scenes/front/lobby_scene.tscn")
 const RoomSceneScript = preload("res://scenes/front/room_scene.tscn")
 const LoadingSceneScript = preload("res://scenes/front/loading_scene.tscn")
 
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	call_deferred("_main_body")
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	await _test_boot_waits_for_runtime_ready_before_entering_login_or_lobby()
 	await _test_front_scenes_consume_same_ready_runtime()
-	test_finished.emit()
 
 
 func _test_boot_waits_for_runtime_ready_before_entering_login_or_lobby() -> void:
@@ -98,6 +96,4 @@ func _count_app_roots() -> int:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)

@@ -1,4 +1,4 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -7,7 +7,7 @@ const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -48,9 +48,8 @@ func _ready() -> void:
 	_assert_true(String(runtime.front_settings_state.reconnect_token) == "", "leave_room clears reconnect token")
 
 	runtime.queue_free()
-	print("room_leave_resets_runtime_state_test: PASS")
 
 
 func _assert_true(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("room_leave_resets_runtime_state_test: FAIL - %s" % message)
+	assert_true(condition, message)
+

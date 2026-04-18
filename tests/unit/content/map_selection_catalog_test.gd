@@ -1,28 +1,23 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
-
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+
+func test_main() -> void:
+	call_deferred("_main_body")
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	MapCatalogScript.load_all()
 	var prefix := "map_selection_catalog_test"
 	var ok := true
-	ok = TestAssert.is_true(_has_ranked_map("1v1", "mode_classic", "map_classic_square", 2), "classic map should support 1v1 ranked variant", prefix) and ok
-	ok = TestAssert.is_true(_has_ranked_map("2v2", "mode_classic", "map_classic_square", 4), "classic map should keep 2v2 ranked variant", prefix) and ok
-	ok = TestAssert.is_true(not _format_enabled("4v4"), "4v4 should stay locked until a map has at least 8 spawn points", prefix) and ok
+	ok = qqt_check(_has_ranked_map("1v1", "mode_classic", "map_classic_square", 2), "classic map should support 1v1 ranked variant", prefix) and ok
+	ok = qqt_check(_has_ranked_map("2v2", "mode_classic", "map_classic_square", 4), "classic map should keep 2v2 ranked variant", prefix) and ok
+	ok = qqt_check(not _format_enabled("4v4"), "4v4 should stay locked until a map has at least 8 spawn points", prefix) and ok
 	var custom_binding := MapSelectionCatalogScript.get_map_binding("map_classic_square")
-	ok = TestAssert.is_true(int(custom_binding.get("max_player_count", 0)) == 4, "custom room binding should keep legacy map capacity", prefix) and ok
-	if ok:
-		print("map_selection_catalog_test: PASS")
-	test_finished.emit()
+	ok = qqt_check(int(custom_binding.get("max_player_count", 0)) == 4, "custom room binding should keep legacy map capacity", prefix) and ok
 
 
 func _format_enabled(match_format_id: String) -> bool:
@@ -37,3 +32,5 @@ func _has_ranked_map(match_format_id: String, mode_id: String, map_id: String, m
 		if String(entry.get("map_id", "")) == map_id and int(entry.get("max_player_count", 0)) == max_player_count:
 			return true
 	return false
+
+

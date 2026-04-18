@@ -1,14 +1,13 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_registry_tracks_room_bindings_and_directory_entries() and ok
 	ok = _test_directory_subscriber_receives_public_room_after_create() and ok
@@ -16,8 +15,6 @@ func _ready() -> void:
 	ok = _test_registry_repairs_stale_idle_resume_room_id() and ok
 	ok = _test_registry_rebinds_active_match_resume_transport() and ok
 	ok = _test_registry_repairs_stale_active_resume_room_id() and ok
-	if ok:
-		print("server_room_registry_test: PASS")
 
 
 func _test_registry_tracks_room_bindings_and_directory_entries() -> bool:
@@ -33,13 +30,13 @@ func _test_registry_tracks_room_bindings_and_directory_entries() -> bool:
 
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(registry.room_runtimes.size() == 2, "registry should track two room runtimes", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(1, "")) != "", "private host should be bound to its room", prefix) and ok
-	ok = TestAssert.is_true(public_room_id != "", "public host should be bound to its room", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(3, "")) == public_room_id, "joined peer should bind to public room", prefix) and ok
-	ok = TestAssert.is_true(snapshot.entries.size() == 1, "directory should only include public room entries", prefix) and ok
-	ok = TestAssert.is_true(snapshot.entries[0].member_count == 2, "public room entry should update member_count after join", prefix) and ok
-	ok = TestAssert.is_true(snapshot.entries[0].room_display_name == "Alpha", "public room entry should preserve display name", prefix) and ok
+	ok = qqt_check(registry.room_runtimes.size() == 2, "registry should track two room runtimes", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(1, "")) != "", "private host should be bound to its room", prefix) and ok
+	ok = qqt_check(public_room_id != "", "public host should be bound to its room", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(3, "")) == public_room_id, "joined peer should bind to public room", prefix) and ok
+	ok = qqt_check(snapshot.entries.size() == 1, "directory should only include public room entries", prefix) and ok
+	ok = qqt_check(snapshot.entries[0].member_count == 2, "public room entry should update member_count after join", prefix) and ok
+	ok = qqt_check(snapshot.entries[0].room_display_name == "Alpha", "public room entry should preserve display name", prefix) and ok
 
 	registry.queue_free()
 	return ok
@@ -63,8 +60,8 @@ func _test_registry_routes_idle_room_resume_request() -> bool:
 	var accepted := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.ROOM_JOIN_ACCEPTED)
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(not accepted.is_empty(), "registry should route idle ROOM_RESUME_REQUEST to room runtime", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind resumed idle transport to room", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "registry should route idle ROOM_RESUME_REQUEST to room runtime", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind resumed idle transport to room", prefix) and ok
 
 	registry.queue_free()
 	return ok
@@ -89,9 +86,9 @@ func _test_registry_repairs_stale_idle_resume_room_id() -> bool:
 	var rejected := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(not accepted.is_empty(), "registry should repair stale idle resume room_id by member token", prefix) and ok
-	ok = TestAssert.is_true(rejected.is_empty(), "registry should not reject repaired idle resume request", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind repaired idle resume to actual room", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "registry should repair stale idle resume room_id by member token", prefix) and ok
+	ok = qqt_check(rejected.is_empty(), "registry should not reject repaired idle resume request", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind repaired idle resume to actual room", prefix) and ok
 
 	registry.queue_free()
 	return ok
@@ -132,13 +129,13 @@ func _test_registry_rebinds_active_match_resume_transport() -> bool:
 	registry.handle_peer_disconnected(3)
 	registry.route_message(_resume_room_message(9, room_id, member_session, String(loading_snapshot.get("match_id", ""))))
 
-	var accepted := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.MATCH_RESUME_ACCEPTED)
-	var runtime: ServerRoomRuntime = registry.room_runtimes.get(room_id, null)
+	var accepted := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.ROOM_JOIN_ACCEPTED)
+	var runtime = registry.room_runtimes.get(room_id, null)
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(not accepted.is_empty(), "registry should route active match resume to room runtime", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind active resume transport to room", prefix) and ok
-	ok = TestAssert.is_true(runtime != null and runtime.has_peer(9), "runtime should recognize resumed transport peer", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "registry should route active match resume to room runtime", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind active resume transport to room", prefix) and ok
+	ok = qqt_check(runtime != null and runtime.has_method("has_peer") and runtime.has_peer(9), "runtime should recognize resumed transport peer", prefix) and ok
 
 	registry.queue_free()
 	return ok
@@ -179,15 +176,15 @@ func _test_registry_repairs_stale_active_resume_room_id() -> bool:
 	registry.handle_peer_disconnected(3)
 	registry.route_message(_resume_room_message(9, "stale_room_from_cache", member_session, String(loading_snapshot.get("match_id", ""))))
 
-	var accepted := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.MATCH_RESUME_ACCEPTED)
+	var accepted := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.ROOM_JOIN_ACCEPTED)
 	var rejected := _find_latest_message_for_peer(directed_messages, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
-	var runtime: ServerRoomRuntime = registry.room_runtimes.get(room_id, null)
+	var runtime = registry.room_runtimes.get(room_id, null)
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(not accepted.is_empty(), "registry should repair stale active resume room_id by member token", prefix) and ok
-	ok = TestAssert.is_true(rejected.is_empty(), "registry should not reject repaired active resume request", prefix) and ok
-	ok = TestAssert.is_true(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind repaired active resume to actual room", prefix) and ok
-	ok = TestAssert.is_true(runtime != null and runtime.has_peer(9), "runtime should recognize repaired active resume peer", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "registry should repair stale active resume room_id by member token", prefix) and ok
+	ok = qqt_check(rejected.is_empty(), "registry should not reject repaired active resume request", prefix) and ok
+	ok = qqt_check(String(registry.peer_room_bindings.get(9, "")) == room_id, "registry should bind repaired active resume to actual room", prefix) and ok
+	ok = qqt_check(runtime != null and runtime.has_method("has_peer") and runtime.has_peer(9), "runtime should recognize repaired active resume peer", prefix) and ok
 
 	registry.queue_free()
 	return ok
@@ -213,9 +210,9 @@ func _test_directory_subscriber_receives_public_room_after_create() -> bool:
 	var latest_snapshot := _find_latest_directory_snapshot_for_peer(directed_messages, 88)
 	var prefix := "server_room_registry_test"
 	var ok := true
-	ok = TestAssert.is_true(latest_snapshot.size() > 0, "directory subscriber should receive snapshot payload", prefix) and ok
-	ok = TestAssert.is_true(latest_snapshot.get("entries", []).size() == 1, "directory subscriber should receive created public room", prefix) and ok
-	ok = TestAssert.is_true(
+	ok = qqt_check(latest_snapshot.size() > 0, "directory subscriber should receive snapshot payload", prefix) and ok
+	ok = qqt_check(latest_snapshot.get("entries", []).size() == 1, "directory subscriber should receive created public room", prefix) and ok
+	ok = qqt_check(
 		String(latest_snapshot.get("entries", [{}])[0].get("room_display_name", "")) == "Lobby Alpha",
 		"directory subscriber should receive public room display name",
 		prefix
@@ -390,3 +387,4 @@ func _sign_room_ticket(encoded_payload: String) -> String:
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

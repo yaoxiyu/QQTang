@@ -1,11 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const BubblePlaceResolver = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var right_forward := _make_player(PlayerState.FacingDir.RIGHT)
 	GridMotionMath.write_player_abs_pos(
 		right_forward,
@@ -38,7 +38,6 @@ func _ready() -> void:
 	)
 	_assert(BubblePlaceResolver.resolve_place_cell(left_tie) == Vector2i(5, 4), "negative lateral tie should snap to previous row")
 
-	print("bubble_place_resolver_test: PASS")
 
 
 func _make_player(facing: int) -> PlayerState:
@@ -50,5 +49,5 @@ func _make_player(facing: int) -> PlayerState:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("bubble_place_resolver_test: FAIL - %s" % message)
+	assert_true(condition, message)
+

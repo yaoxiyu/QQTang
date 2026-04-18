@@ -52,8 +52,10 @@ func build_for_start_config(start_config: BattleStartConfig) -> Dictionary:
 
 
 func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_items") -> Dictionary:
-	var rule_config := RuleSetCatalogScript.get_rule_metadata(rule_set_id)
-	var profile_id := String(rule_config.get("item_drop_profile", ""))
+	var normalized_rule_key := rule_set_id.strip_edges().to_lower()
+	var resolved_rule_set_id := _normalize_rule_set_id(normalized_rule_key)
+	var rule_config := RuleSetCatalogScript.get_rule_metadata(resolved_rule_set_id)
+	var profile_id := _resolve_profile_id(normalized_rule_key, rule_config)
 	if profile_id.is_empty():
 		profile_id = fallback_profile_id
 	if profile_id.is_empty():
@@ -90,3 +92,33 @@ func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_
 		"enabled_items": enabled_items,
 		"items_by_type": items_by_type,
 	}
+
+
+func _normalize_rule_set_id(rule_set_id: String) -> String:
+	var normalized := rule_set_id.strip_edges().to_lower()
+	match normalized:
+		"classic":
+			return "ruleset_classic"
+		"classic_plus":
+			return "ruleset_classic_plus"
+		"quick_match":
+			return "ruleset_quick_match"
+		_:
+			if normalized.begins_with("ruleset_"):
+				return normalized
+			return "ruleset_%s" % normalized if not normalized.is_empty() else normalized
+
+
+func _resolve_profile_id(normalized_rule_key: String, rule_config: Dictionary) -> String:
+	var profile_id := String(rule_config.get("item_drop_profile", ""))
+	if not profile_id.is_empty():
+		return profile_id
+	match normalized_rule_key:
+		"classic_plus", "ruleset_classic_plus":
+			return "classic_plus_items"
+		"quick_match", "ruleset_quick_match":
+			return "quick_match_items"
+		"classic", "ruleset_classic":
+			return "default_items"
+		_:
+			return ""

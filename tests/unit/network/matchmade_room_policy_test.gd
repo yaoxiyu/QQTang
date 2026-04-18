@@ -1,18 +1,15 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const RoomTicketClaimScript = preload("res://network/session/auth/room_ticket_claim.gd")
 const RoomTicketVerifierScript = preload("res://network/session/auth/room_ticket_verifier.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_matchmade_selection_is_locked() and ok
 	ok = _test_matchmade_room_requires_expected_member_count() and ok
 	ok = _test_matchmade_ticket_claim_requires_assignment_locks() and ok
-	if ok:
-		print("matchmade_room_policy_test: PASS")
 
 
 func _test_matchmade_selection_is_locked() -> bool:
@@ -30,9 +27,9 @@ func _test_matchmade_selection_is_locked() -> bool:
 
 	var prefix := "matchmade_room_policy_test.selection"
 	var ok := true
-	ok = TestAssert.is_true(state.selected_map_id == locked_map, "matchmade room should keep locked map", prefix) and ok
-	ok = TestAssert.is_true(state.selected_rule_id == locked_rule, "matchmade room should keep locked rule", prefix) and ok
-	ok = TestAssert.is_true(state.selected_mode_id == locked_mode, "matchmade room should keep locked mode", prefix) and ok
+	ok = qqt_check(state.selected_map_id == locked_map, "matchmade room should keep locked map", prefix) and ok
+	ok = qqt_check(state.selected_rule_id == locked_rule, "matchmade room should keep locked rule", prefix) and ok
+	ok = qqt_check(state.selected_mode_id == locked_mode, "matchmade room should keep locked mode", prefix) and ok
 	return ok
 
 
@@ -46,11 +43,11 @@ func _test_matchmade_room_requires_expected_member_count() -> bool:
 
 	var prefix := "matchmade_room_policy_test.member_count"
 	var ok := true
-	ok = TestAssert.is_true(not state.can_start(), "single member must not start matchmade room", prefix) and ok
+	ok = qqt_check(not state.can_start(), "single member must not start matchmade room", prefix) and ok
 
 	state.upsert_member(2, "Beta", "", "", "", "", 2, "account_b", "profile_b")
 	state.set_ready(2, true)
-	ok = TestAssert.is_true(state.can_start(), "full ready roster should allow match start", prefix) and ok
+	ok = qqt_check(state.can_start(), "full ready roster should allow match start", prefix) and ok
 	return ok
 
 
@@ -71,10 +68,11 @@ func _test_matchmade_ticket_claim_requires_assignment_locks() -> bool:
 
 	var prefix := "matchmade_room_policy_test.ticket_claim"
 	var ok := true
-	ok = TestAssert.is_true(verifier._is_valid_matchmade_claim(claim), "complete matchmade claim should be valid", prefix) and ok
+	ok = qqt_check(verifier._is_valid_matchmade_claim(claim), "complete matchmade claim should be valid", prefix) and ok
 	claim.assignment_id = ""
-	ok = TestAssert.is_true(not verifier._is_valid_matchmade_claim(claim), "matchmade claim without assignment should be invalid", prefix) and ok
+	ok = qqt_check(not verifier._is_valid_matchmade_claim(claim), "matchmade claim without assignment should be invalid", prefix) and ok
 	claim.assignment_id = "assign_alpha"
 	claim.expected_member_count = 0
-	ok = TestAssert.is_true(not verifier._is_valid_matchmade_claim(claim), "matchmade claim without expected member count should be invalid", prefix) and ok
+	ok = qqt_check(not verifier._is_valid_matchmade_claim(claim), "matchmade claim without expected member count should be invalid", prefix) and ok
 	return ok
+

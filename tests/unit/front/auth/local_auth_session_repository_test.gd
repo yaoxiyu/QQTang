@@ -1,12 +1,11 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const LocalAuthSessionRepositoryScript = preload("res://app/front/auth/local_auth_session_repository.gd")
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const LocalFrontStorageSlotScript = preload("res://app/front/profile/local_front_storage_slot.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var repository = LocalAuthSessionRepositoryScript.new()
 	repository.clear_session()
 	_clear_device_secret()
@@ -29,17 +28,16 @@ func _ready() -> void:
 
 	var prefix := "local_auth_session_repository_test"
 	var ok := true
-	ok = TestAssert.is_true(save_ok, "save_session should succeed", prefix) and ok
-	ok = TestAssert.is_true(String(loaded.account_id) == "account_repo", "load_session should restore account id", prefix) and ok
-	ok = TestAssert.is_true(String(loaded.profile_id) == "profile_repo", "load_session should restore profile id", prefix) and ok
-	ok = TestAssert.is_true(String(loaded.device_session_id) == "dsess_repo", "load_session should restore device session", prefix) and ok
-	ok = TestAssert.is_true(String(cleared.account_id) == "", "clear_session should remove persisted session", prefix) and ok
+	ok = qqt_check(save_ok, "save_session should succeed", prefix) and ok
+	ok = qqt_check(String(loaded.account_id) == "account_repo", "load_session should restore account id", prefix) and ok
+	ok = qqt_check(String(loaded.profile_id) == "profile_repo", "load_session should restore profile id", prefix) and ok
+	ok = qqt_check(String(loaded.device_session_id) == "dsess_repo", "load_session should restore device session", prefix) and ok
+	ok = qqt_check(String(cleared.account_id) == "", "clear_session should remove persisted session", prefix) and ok
 
-	if ok:
-		print("local_auth_session_repository_test: PASS")
 
 
 func _clear_device_secret() -> void:
 	var save_path := LocalFrontStorageSlotScript.build_save_path("device_secret")
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(save_path)
+

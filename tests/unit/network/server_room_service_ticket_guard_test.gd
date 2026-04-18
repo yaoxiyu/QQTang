@@ -1,21 +1,18 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_create_rejects_missing_ticket() and ok
 	ok = _test_create_accepts_valid_ticket_and_writes_binding() and ok
 	ok = _test_resume_rejects_account_mismatch() and ok
-	if ok:
-		print("server_room_service_ticket_guard_test: PASS")
 
 
 func _test_create_rejects_missing_ticket() -> bool:
@@ -34,7 +31,7 @@ func _test_create_rejects_missing_ticket() -> bool:
 	})
 	var rejected := _find_message(sent, 2, TransportMessageTypesScript.ROOM_CREATE_REJECTED)
 	service.queue_free()
-	return TestAssert.is_true(String(rejected.get("error", "")) == "ROOM_TICKET_MISSING", "missing ticket should reject create", "server_room_service_ticket_guard_test")
+	return qqt_check(String(rejected.get("error", "")) == "ROOM_TICKET_MISSING", "missing ticket should reject create", "server_room_service_ticket_guard_test")
 
 
 func _test_create_accepts_valid_ticket_and_writes_binding() -> bool:
@@ -48,14 +45,14 @@ func _test_create_accepts_valid_ticket_and_writes_binding() -> bool:
 	var binding = service.room_state.get_member_binding_by_transport_peer(2)
 	var prefix := "server_room_service_ticket_guard_test"
 	var ok := true
-	ok = TestAssert.is_true(not accepted.is_empty(), "valid create ticket should be accepted", prefix) and ok
-	ok = TestAssert.is_true(binding != null, "accepted create should allocate member binding", prefix) and ok
+	ok = qqt_check(not accepted.is_empty(), "valid create ticket should be accepted", prefix) and ok
+	ok = qqt_check(binding != null, "accepted create should allocate member binding", prefix) and ok
 	if binding != null:
-		ok = TestAssert.is_true(String(binding.account_id) == "account_2", "binding should record account id", prefix) and ok
-		ok = TestAssert.is_true(String(binding.profile_id) == "profile_2", "binding should record profile id", prefix) and ok
-		ok = TestAssert.is_true(String(binding.device_session_id) == "dsess_2", "binding should record device session id", prefix) and ok
-		ok = TestAssert.is_true(String(binding.reconnect_token).is_empty(), "binding should not retain plaintext reconnect token after session send", prefix) and ok
-		ok = TestAssert.is_true(not String(binding.reconnect_token_hash).is_empty(), "binding should retain reconnect token hash", prefix) and ok
+		ok = qqt_check(String(binding.account_id) == "account_2", "binding should record account id", prefix) and ok
+		ok = qqt_check(String(binding.profile_id) == "profile_2", "binding should record profile id", prefix) and ok
+		ok = qqt_check(String(binding.device_session_id) == "dsess_2", "binding should record device session id", prefix) and ok
+		ok = qqt_check(String(binding.reconnect_token).is_empty(), "binding should not retain plaintext reconnect token after session send", prefix) and ok
+		ok = qqt_check(not String(binding.reconnect_token_hash).is_empty(), "binding should retain reconnect token hash", prefix) and ok
 	service.queue_free()
 	return ok
 
@@ -72,7 +69,7 @@ func _test_resume_rejects_account_mismatch() -> bool:
 	service.handle_message(_resume_message(9, String(member_session.get("member_id", "")), String(member_session.get("reconnect_token", "")), "room_2", "", "account_9", "profile_2"))
 	var rejected := _find_message(sent, 9, TransportMessageTypesScript.ROOM_RESUME_REJECTED)
 	service.queue_free()
-	return TestAssert.is_true(String(rejected.get("error", "")) == "ROOM_TICKET_ACCOUNT_MISMATCH", "resume should reject mismatched account id", "server_room_service_ticket_guard_test")
+	return qqt_check(String(rejected.get("error", "")) == "ROOM_TICKET_ACCOUNT_MISMATCH", "resume should reject mismatched account id", "server_room_service_ticket_guard_test")
 
 
 func _create_service():
@@ -159,3 +156,4 @@ func _find_message(sent: Array[Dictionary], peer_id: int, message_type: String) 
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

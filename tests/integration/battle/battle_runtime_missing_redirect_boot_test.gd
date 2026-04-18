@@ -1,15 +1,14 @@
-extends Node
+﻿extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const BattleSceneScript = preload("res://scenes/battle/battle_main.tscn")
 
-signal test_finished
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	call_deferred("_main_body")
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	await _ensure_no_app_root()
 	_assert_true(_count_app_roots() == 0, "battle redirect test starts with no runtime root")
 
@@ -28,7 +27,6 @@ func run_all() -> void:
 	_assert_true(_count_app_roots() == 1, "battle missing-runtime redirect lands on boot bootstrap path with a single AppRoot")
 
 	await _cleanup_tree()
-	test_finished.emit()
 
 
 func _ensure_no_app_root() -> void:
@@ -59,6 +57,6 @@ func _count_app_roots() -> int:
 
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
-		print("[PASS] %s" % message)
 		return
-	push_error("[FAIL] %s" % message)
+
+

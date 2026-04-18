@@ -1,11 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
-signal test_finished
 
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
-const LogManagerScript = preload("res://app/logging/log_manager.gd")
-const LogLevelConstantsScript = preload("res://app/logging/log_types.gd")
-const LogConfigScript = preload("res://app/logging/log_config.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const LogBattleScript = preload("res://app/logging/log_battle.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
@@ -13,13 +9,9 @@ const LogSyncScript = preload("res://app/logging/log_sync.gd")
 var _failed: bool = false
 
 
-func _ready() -> void:
+func test_main() -> void:
 	_run_tests()
-	if _failed:
-		push_error("log_system_test: FAIL")
-	else:
-		print("log_system_test: PASS")
-	test_finished.emit()
+	assert_false(_failed, "log_system_test has failures")
 
 
 func _run_tests() -> void:
@@ -127,4 +119,3 @@ func _assert(condition: bool, message: String) -> void:
 	if condition:
 		return
 	_failed = true
-	push_error("log_system_test: FAIL - %s" % message)

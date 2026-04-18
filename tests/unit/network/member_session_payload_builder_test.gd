@@ -1,16 +1,13 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const MemberSessionPayloadBuilderScript = preload("res://network/session/runtime/member_session_payload_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_build_member_session_payload() and ok
-	if ok:
-		print("member_session_payload_builder_test: PASS")
 
 
 func _test_build_member_session_payload() -> bool:
@@ -22,8 +19,9 @@ func _test_build_member_session_payload() -> bool:
 	var payload := builder.build(state, binding, token)
 	var prefix := "member_session_payload_builder_test"
 	var ok := true
-	ok = TestAssert.is_true(String(payload.get("message_type", "")) == TransportMessageTypesScript.ROOM_MEMBER_SESSION, "payload should be ROOM_MEMBER_SESSION", prefix) and ok
-	ok = TestAssert.is_true(String(payload.get("room_id", "")) == "room_payload", "payload should include room id", prefix) and ok
-	ok = TestAssert.is_true(String(payload.get("member_id", "")) == binding.member_id, "payload should include member id", prefix) and ok
-	ok = TestAssert.is_true(String(payload.get("reconnect_token", "")) == token, "payload should include plaintext token for client delivery", prefix) and ok
+	ok = qqt_check(String(payload.get("message_type", "")) == TransportMessageTypesScript.ROOM_MEMBER_SESSION, "payload should be ROOM_MEMBER_SESSION", prefix) and ok
+	ok = qqt_check(String(payload.get("room_id", "")) == "room_payload", "payload should include room id", prefix) and ok
+	ok = qqt_check(String(payload.get("member_id", "")) == binding.member_id, "payload should include member id", prefix) and ok
+	ok = qqt_check(String(payload.get("reconnect_token", "")) == token, "payload should include plaintext token for client delivery", prefix) and ok
 	return ok
+

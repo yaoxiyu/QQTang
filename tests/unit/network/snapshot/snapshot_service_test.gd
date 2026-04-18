@@ -1,7 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var map_data = BuiltinMapFactory.build_basic_map()
 	var world_a := _build_world(777, map_data)
 	_run_scripted_ticks(world_a, _make_scripted_inputs())
@@ -35,7 +35,6 @@ func _ready() -> void:
 	world_a.dispose()
 	world_b.dispose()
 
-	print("test_snapshot_service: PASS")
 
 
 func _build_world(seed: int, map_data) -> SimWorld:
@@ -93,5 +92,5 @@ func _command(move_x: int, move_y: int, place_bubble: bool) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_snapshot_service: FAIL - %s" % message)
+	assert_true(condition, message)
+

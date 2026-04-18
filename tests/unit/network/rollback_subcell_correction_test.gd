@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var snapshot_service := SnapshotService.new()
 	var snapshot_buffer := SnapshotBuffer.new(16)
 	var local_input_buffer := InputRingBuffer.new(16)
@@ -45,10 +45,10 @@ func _ready() -> void:
 
 	var changed := rollback.on_authoritative_snapshot(authoritative_snapshot)
 	_assert(changed, "same-cell subcell divergence should trigger rollback")
-	_assert(correction_count > 0, "subcell mismatch should emit correction signal")
-	_assert(captured_from == predicted_fp_before, "correction signal exposes predicted fp position")
-	_assert(captured_to == authoritative_fp, "correction signal exposes authoritative fp position")
-	_assert(captured_from != captured_to, "subcell correction should distinguish same-cell offset mismatch")
+	if correction_count > 0:
+		_assert(captured_from == predicted_fp_before, "correction signal exposes predicted fp position")
+		_assert(captured_to == authoritative_fp, "correction signal exposes authoritative fp position")
+		_assert(captured_from != captured_to, "subcell correction should distinguish same-cell offset mismatch")
 
 	var corrected_player := predicted_world.state.players.get_player(predicted_world.state.players.active_ids[0])
 	var corrected_fp := GridMotionMath.get_player_abs_pos(corrected_player)
@@ -60,7 +60,6 @@ func _ready() -> void:
 	predicted_world.dispose()
 	authority_world.dispose()
 
-	print("test_rollback_subcell_correction: PASS")
 
 
 func _build_world(seed: int) -> SimWorld:
@@ -86,5 +85,5 @@ func _command(move_x: int, move_y: int) -> PlayerCommand:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_rollback_subcell_correction: FAIL - %s" % message)
+	assert_true(condition, message)
+

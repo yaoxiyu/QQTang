@@ -104,7 +104,9 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 			BattleServerHost:       arguments[24].(string),
 			BattleServerPort:       arguments[25].(int),
 			AllocationState:        arguments[26].(string),
-			RoomReturnPolicy:       arguments[27].(string),
+			AllocationErrorCode:    arguments[27].(string),
+			AllocationLastError:    arguments[28].(string),
+			RoomReturnPolicy:       arguments[29].(string),
 		}
 		db.assignmentsByID[assignment.AssignmentID] = assignment
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
@@ -151,7 +153,29 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 		db.entriesByProfile[entry.ProfileID] = entry
 		db.entriesByID[entry.QueueEntryID] = entry
 		return pgconn.NewCommandTag("UPDATE 1"), nil
-	case strings.Contains(sql, "UPDATE matchmaking_assignments"):
+	case strings.Contains(sql, "UPDATE matchmaking_assignments") && strings.Contains(sql, "allocation_state = 'alloc_failed'"):
+		assignment := db.assignmentsByID[arguments[0].(string)]
+		assignment.AllocationState = "alloc_failed"
+		assignment.BattleID = arguments[1].(string)
+		assignment.DSInstanceID = ""
+		assignment.BattleServerHost = ""
+		assignment.BattleServerPort = 0
+		assignment.AllocationErrorCode = arguments[2].(string)
+		assignment.AllocationLastError = arguments[3].(string)
+		db.assignmentsByID[assignment.AssignmentID] = assignment
+		return pgconn.NewCommandTag("UPDATE 1"), nil
+	case strings.Contains(sql, "UPDATE matchmaking_assignments") && strings.Contains(sql, "allocation_state = $2"):
+		assignment := db.assignmentsByID[arguments[0].(string)]
+		assignment.AllocationState = arguments[1].(string)
+		assignment.BattleID = arguments[2].(string)
+		assignment.DSInstanceID = arguments[3].(string)
+		assignment.BattleServerHost = arguments[4].(string)
+		assignment.BattleServerPort = arguments[5].(int)
+		assignment.AllocationErrorCode = ""
+		assignment.AllocationLastError = ""
+		db.assignmentsByID[assignment.AssignmentID] = assignment
+		return pgconn.NewCommandTag("UPDATE 1"), nil
+	case strings.Contains(sql, "UPDATE matchmaking_assignments") && strings.Contains(sql, "captain_account_id"):
 		assignment := db.assignmentsByID[arguments[0].(string)]
 		assignment.CaptainAccountID = arguments[1].(string)
 		assignment.AssignmentRevision = arguments[2].(int)
@@ -285,6 +309,8 @@ func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.
 			assignment.BattleServerHost,
 			assignment.BattleServerPort,
 			assignment.AllocationState,
+			assignment.AllocationErrorCode,
+			assignment.AllocationLastError,
 			assignment.RoomReturnPolicy,
 			assignment.AllocationStartedAt,
 			assignment.BattleReadyAt,
@@ -976,5 +1002,135 @@ func TestGetStatusReelectsCaptainAfterDeadline(t *testing.T) {
 	}
 	if status.CaptainAccountID != "account_b" || status.TicketRole != "create" {
 		t.Fatalf("expected account_b to become captain create, got captain=%s role=%s", status.CaptainAccountID, status.TicketRole)
+	}
+}
+
+func TestGetStatusReflectsAllocationFailureState(t *testing.T) {
+	db := newFakeQueueDB()
+	now := time.Now().UTC()
+	assignment := storage.Assignment{
+		AssignmentID:           "assign_alloc_failed",
+		QueueKey:               BuildQueueKey("ranked", "ranked_mode", "rule_standard"),
+		QueueType:              "ranked",
+		SeasonID:               "season_s1",
+		RoomID:                 "room_alpha",
+		RoomKind:               "matchmade_room",
+		MatchID:                "match_alpha",
+		ModeID:                 "ranked_mode",
+		RuleSetID:              "rule_standard",
+		MapID:                  "map_classic_square",
+		ServerHost:             "127.0.0.1",
+		ServerPort:             9000,
+		BattleServerHost:       "10.1.1.8",
+		BattleServerPort:       9200,
+		CaptainAccountID:       "account_a",
+		AssignmentRevision:     1,
+		ExpectedMemberCount:    4,
+		State:                  "assigned",
+		AllocationState:        "alloc_failed",
+		CommitDeadlineUnixSec:  now.Add(5 * time.Minute).Unix(),
+		CaptainDeadlineUnixSec: now.Add(2 * time.Minute).Unix(),
+		CreatedAt:              now,
+		UpdatedAt:              now,
+	}
+	entry := storage.QueueEntry{
+		QueueEntryID:         "queue_alpha",
+		QueueType:            "ranked",
+		QueueKey:             assignment.QueueKey,
+		SeasonID:             assignment.SeasonID,
+		AccountID:            "account_a",
+		ProfileID:            "profile_a",
+		DeviceSessionID:      "device_a",
+		ModeID:               assignment.ModeID,
+		RuleSetID:            assignment.RuleSetID,
+		RatingSnapshot:       1000,
+		EnqueueUnixSec:       now.Unix(),
+		LastHeartbeatUnixSec: now.Unix(),
+		State:                "assigned",
+		AssignmentID:         assignment.AssignmentID,
+		AssignmentRevision:   assignment.AssignmentRevision,
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+	member := storage.AssignmentMember{
+		AssignmentID:   assignment.AssignmentID,
+		AccountID:      "account_a",
+		ProfileID:      "profile_a",
+		TicketRole:     "create",
+		AssignedTeamID: 1,
+		JoinState:      "assigned",
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	db.assignmentsByID[assignment.AssignmentID] = assignment
+	db.entriesByID[entry.QueueEntryID] = entry
+	db.entriesByProfile[entry.ProfileID] = entry
+	db.membersByKey[member.AssignmentID+":"+member.AccountID] = member
+
+	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	status, err := service.GetStatus(context.Background(), "profile_a", "queue_alpha")
+	if err != nil {
+		t.Fatalf("GetStatus returned error: %v", err)
+	}
+	if status.AssignmentStatusText != "Battle allocation failed" {
+		t.Fatalf("expected allocation failed status text, got %s", status.AssignmentStatusText)
+	}
+	if status.ServerHost != "" || status.ServerPort != 0 {
+		t.Fatalf("expected endpoint hidden for alloc_failed, got %s:%d", status.ServerHost, status.ServerPort)
+	}
+}
+
+func TestAssignmentAllocationStateRetryTransition(t *testing.T) {
+	db := newFakeQueueDB()
+	now := time.Now().UTC()
+	assignment := storage.Assignment{
+		AssignmentID:           "assign_retry",
+		QueueKey:               BuildQueueKey("ranked", "ranked_mode", "rule_standard"),
+		QueueType:              "ranked",
+		SeasonID:               "season_s1",
+		RoomID:                 "room_alpha",
+		RoomKind:               "matchmade_room",
+		MatchID:                "match_alpha",
+		ModeID:                 "ranked_mode",
+		RuleSetID:              "rule_standard",
+		MapID:                  "map_classic_square",
+		ServerHost:             "127.0.0.1",
+		ServerPort:             9000,
+		CaptainAccountID:       "account_a",
+		AssignmentRevision:     1,
+		ExpectedMemberCount:    4,
+		State:                  "assigned",
+		AllocationState:        "allocating",
+		CommitDeadlineUnixSec:  now.Add(5 * time.Minute).Unix(),
+		CaptainDeadlineUnixSec: now.Add(2 * time.Minute).Unix(),
+		CreatedAt:              now,
+		UpdatedAt:              now,
+	}
+	db.assignmentsByID[assignment.AssignmentID] = assignment
+	repo := storage.NewAssignmentRepository(db)
+
+	if err := repo.MarkAllocationFailed(context.Background(), assignment.AssignmentID, "battle_alpha", "MATCHMAKING_ALLOCATION_FAILED", "dial tcp timeout"); err != nil {
+		t.Fatalf("MarkAllocationFailed returned error: %v", err)
+	}
+	failed := db.assignmentsByID[assignment.AssignmentID]
+	if failed.AllocationState != "alloc_failed" {
+		t.Fatalf("expected alloc_failed, got %s", failed.AllocationState)
+	}
+	if failed.AllocationErrorCode == "" || failed.AllocationLastError == "" {
+		t.Fatalf("expected allocation failure context to be persisted")
+	}
+
+	if err := repo.UpdateAllocationState(context.Background(), assignment.AssignmentID, "allocated", "battle_alpha", "ds_001", "10.2.0.9", 9300); err != nil {
+		t.Fatalf("UpdateAllocationState returned error: %v", err)
+	}
+	retried := db.assignmentsByID[assignment.AssignmentID]
+	if retried.AllocationState != "allocated" {
+		t.Fatalf("expected allocated after retry, got %s", retried.AllocationState)
+	}
+	if retried.AllocationErrorCode != "" || retried.AllocationLastError != "" {
+		t.Fatalf("expected allocation error context to be cleared after retry success")
+	}
+	if retried.BattleServerHost != "10.2.0.9" || retried.BattleServerPort != 9300 {
+		t.Fatalf("expected retry endpoint persisted, got %s:%d", retried.BattleServerHost, retried.BattleServerPort)
 	}
 }

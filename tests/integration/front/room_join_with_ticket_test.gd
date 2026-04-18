@@ -1,9 +1,7 @@
-extends Node
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const TestAssert = preload("res://tests/helpers/test_assert.gd")
 
-signal test_finished
 
 
 class FakeRoomTicketGateway:
@@ -24,11 +22,11 @@ class FakeRoomTicketGateway:
 		return result
 
 
-func _ready() -> void:
-	call_deferred("run_all")
+func test_main() -> void:
+	await _main_body()
 
 
-func run_all() -> void:
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -58,16 +56,15 @@ func run_all() -> void:
 
 	var prefix := "room_join_with_ticket_test"
 	var ok := true
-	ok = TestAssert.is_true(bool(join_result.get("ok", false)), "join_private_room should succeed", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and String(entry_context.target_room_id) == "ROOM_JOIN_001", "entry context should keep target room id", prefix) and ok
-	ok = TestAssert.is_true(entry_context != null and String(entry_context.room_ticket) == "ticket_join_alpha", "entry context should include join ticket", prefix) and ok
-	ok = TestAssert.is_true(bool(room_result.get("pending", false)), "online join should enter pending room flow", prefix) and ok
-	ok = TestAssert.is_true(runtime.room_use_case._pending_connection_config != null, "pending connection config should exist", prefix) and ok
+	ok = qqt_check(bool(join_result.get("ok", false)), "join_private_room should succeed", prefix) and ok
+	ok = qqt_check(entry_context != null and String(entry_context.target_room_id) == "ROOM_JOIN_001", "entry context should keep target room id", prefix) and ok
+	ok = qqt_check(entry_context != null and String(entry_context.room_ticket) == "ticket_join_alpha", "entry context should include join ticket", prefix) and ok
+	ok = qqt_check(bool(room_result.get("pending", false)), "online join should enter pending room flow", prefix) and ok
+	ok = qqt_check(runtime.room_use_case._pending_connection_config != null, "pending connection config should exist", prefix) and ok
 	if runtime.room_use_case._pending_connection_config != null:
-		ok = TestAssert.is_true(String(runtime.room_use_case._pending_connection_config.room_id_hint) == "ROOM_JOIN_001", "pending config should preserve room id", prefix) and ok
-		ok = TestAssert.is_true(String(runtime.room_use_case._pending_connection_config.room_ticket) == "ticket_join_alpha", "pending config should carry join ticket", prefix) and ok
+		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.room_id_hint) == "ROOM_JOIN_001", "pending config should preserve room id", prefix) and ok
+		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.room_ticket) == "ticket_join_alpha", "pending config should carry join ticket", prefix) and ok
 
 	runtime.queue_free()
-	if ok:
-		print("room_join_with_ticket_test: PASS")
-	test_finished.emit()
+
+

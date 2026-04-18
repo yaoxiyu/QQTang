@@ -1,4 +1,4 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
@@ -6,7 +6,7 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var service := ServerRoomServiceScript.new()
 	add_child(service)
 	service.configure_room_ticket_verifier(ROOM_TICKET_SECRET)
@@ -54,12 +54,10 @@ func _ready() -> void:
 	_assert(int(leave_ack.get("peer_id", 0)) == 101, "leave ack targets leaving peer")
 	_assert(String(leave_ack.get("message", {}).get("message_type", "")) == "ROOM_LEAVE_ACCEPTED", "leave request returns leave ack")
 
-	print("room_server_service_lifecycle_test: PASS")
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("room_server_service_lifecycle_test: FAIL - %s" % message)
+	assert_true(condition, message)
 
 
 func _make_ticket(peer_id: int, purpose: String, room_id: String, room_kind: String, match_id: String) -> Dictionary:
@@ -95,3 +93,4 @@ func _make_ticket(peer_id: int, purpose: String, room_id: String, room_kind: Str
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+

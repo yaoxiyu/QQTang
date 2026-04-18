@@ -1,9 +1,9 @@
-extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 
 
-func _ready() -> void:
+func test_main() -> void:
 	_test_release_stops_without_auto_completion()
 	_test_hold_moves_across_cell_boundary()
 	_test_player_moved_only_when_foot_cell_changes()
@@ -11,7 +11,6 @@ func _ready() -> void:
 	_test_turn_gate_requires_center_alignment()
 	_test_center_pivot_turns_without_translation()
 
-	print("test_movement_system_continuous: PASS")
 
 
 func _test_release_stops_without_auto_completion() -> void:
@@ -171,5 +170,5 @@ func _has_event(events: Array, event_type: int) -> bool:
 
 
 func _assert(condition: bool, message: String) -> void:
-	if not condition:
-		push_error("test_movement_system_continuous: FAIL - %s" % message)
+	assert_true(condition, message)
+

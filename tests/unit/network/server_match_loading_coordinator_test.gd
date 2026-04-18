@@ -1,4 +1,4 @@
-﻿extends Node
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
@@ -35,15 +35,13 @@ class MockConfig:
 		return copy
 
 
-func _ready() -> void:
+func test_main() -> void:
 	var ok := true
 	ok = _test_begin_loading_success() and ok
 	ok = _test_ready_not_committed_before_all_ready() and ok
 	ok = _test_ready_committed_when_all_ready() and ok
 	ok = _test_peer_disconnect_aborts_loading() and ok
 	ok = _test_revision_mismatch_rejected() and ok
-	if ok:
-		print("server_match_loading_coordinator_test: PASS")
 
 
 func _test_begin_loading_success() -> bool:
@@ -209,3 +207,4 @@ func _mock_prepare_match(_snapshot, config) -> Dictionary:
 
 func _mock_commit_match(_config) -> Dictionary:
 	return {"ok": true}
+
