@@ -32,7 +32,7 @@ Historical reading note:
 - Network room session controller: `res://network/session/room_session_controller.gd`
 - Match start coordinator: `res://network/session/match_start_coordinator.gd`
 - Battle session adapter: `res://network/session/battle_session_adapter.gd`
-- Client room runtime: `res://network/runtime/client_room_runtime.gd`
+- Client room runtime: `res://network/runtime/room_client/client_room_runtime.gd`
 - Battle bootstrap: `res://gameplay/battle/runtime/battle_bootstrap.gd`
 - Presentation bridge: `res://presentation/battle/bridge/presentation_bridge.gd`
 

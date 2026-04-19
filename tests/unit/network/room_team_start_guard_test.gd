@@ -4,7 +4,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
-const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
+const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
 const BattleStartConfigScript = preload("res://gameplay/battle/config/battle_start_config.gd")
 const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_state.gd")
 

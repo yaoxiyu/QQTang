@@ -19,7 +19,7 @@ class FakeClientRoomRuntime:
 	signal canonical_start_config_received(config)
 
 	var connected_host: String = "127.0.0.1"
-	var connected_port: int = 9000
+	var connected_port: int = 9100
 	var connected: bool = true
 	var create_requests: Array[Dictionary] = []
 	var connect_requests: Array[Dictionary] = []
@@ -149,7 +149,7 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	player_profile.profile_id = "profile_alpha"
 	var front_settings := FrontSettingsStateScript.new()
 	front_settings.last_server_host = "127.0.0.1"
-	front_settings.last_server_port = 9000
+	front_settings.last_server_port = 9100
 
 	app_runtime.client_room_runtime = client_runtime
 	app_runtime.room_session_controller = room_controller
@@ -171,7 +171,7 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	room_use_case.configure(app_runtime)
 	var gateway = room_use_case.get("room_client_gateway")
 
-	var create_result: Dictionary = lobby_use_case.create_public_room("127.0.0.1", 9000, "Alpha Room")
+	var create_result: Dictionary = lobby_use_case.create_public_room("127.0.0.1", 9100, "Alpha Room")
 	var room_result: Dictionary = room_use_case.enter_room(create_result.get("entry_context", null))
 	if client_runtime.create_requests.is_empty():
 		room_use_case.call("_on_gateway_transport_connected")
@@ -207,5 +207,6 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 
 	app_runtime.queue_free()
 	return ok
+
 
 

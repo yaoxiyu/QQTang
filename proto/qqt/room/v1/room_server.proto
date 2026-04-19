@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package qqt.room.v1;
+
+import "qqt/room/v1/room_models.proto";
+
+option go_package = "qqt/proto/qqt/room/v1;roomv1";
+option csharp_namespace = "QQT.Room.V1";
+
+message OperationAccepted {
+  string request_id = 1;
+  string operation = 2;
+}
+
+message OperationRejected {
+  string request_id = 1;
+  string operation = 2;
+  OperationError error = 3;
+}
+
+message RoomSnapshotPush {
+  RoomSnapshot snapshot = 1;
+}
+
+message RoomDirectorySnapshotPush {
+  RoomDirectorySnapshot snapshot = 1;
+}
+
+message BattleEntryReadyPush {
+  BattleEntryState battle_entry = 1;
+}
+
+message ResumeRejected {
+  string request_id = 1;
+  OperationError error = 2;
+}
+
+message ServerNotice {
+  string level = 1;
+  string code = 2;
+  string message = 3;
+}
+
+message ServerEnvelope {
+  string protocol_version = 1;
+  string request_id = 2;
+  int64 sequence = 3;
+  int64 sent_at_unix_ms = 4;
+  oneof payload {
+    OperationAccepted operation_accepted = 10;
+    OperationRejected operation_rejected = 11;
+    RoomSnapshotPush room_snapshot_push = 12;
+    RoomDirectorySnapshotPush room_directory_snapshot_push = 13;
+    BattleEntryReadyPush battle_entry_ready_push = 14;
+    ResumeRejected resume_rejected = 15;
+    ServerNotice server_notice = 16;
+  }
+}

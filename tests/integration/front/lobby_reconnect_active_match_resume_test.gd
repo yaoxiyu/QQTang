@@ -70,7 +70,7 @@ func _test_lobby_reconnect_without_member_session_fails() -> bool:
 	var settings := FrontSettingsStateScript.new()
 	settings.reconnect_room_id = "LegacyMigration_room"
 	settings.reconnect_host = "127.0.0.1"
-	settings.reconnect_port = 9000
+	settings.reconnect_port = 9100
 	settings.reconnect_room_kind = "private_room"
 	settings.reconnect_token = "token_without_member"
 	var use_case := LobbyUseCaseScript.new()
@@ -91,7 +91,7 @@ func _test_lobby_reconnect_without_token_clears_stale_state() -> bool:
 	var settings := FrontSettingsStateScript.new()
 	settings.reconnect_room_id = "LegacyMigration_room"
 	settings.reconnect_host = "127.0.0.1"
-	settings.reconnect_port = 9000
+	settings.reconnect_port = 9100
 	settings.reconnect_room_kind = "private_room"
 	settings.reconnect_member_id = "member_a"
 	var use_case := LobbyUseCaseScript.new()
@@ -153,3 +153,4 @@ func _build_resume_snapshot() -> MatchResumeSnapshot:
 		"checksum": 2,
 	}
 	return snapshot
+

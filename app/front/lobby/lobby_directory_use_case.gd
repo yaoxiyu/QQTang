@@ -87,7 +87,7 @@ func _normalize_port(port: int) -> int:
 		return port
 	if front_settings_state != null and front_settings_state.last_server_port > 0:
 		return front_settings_state.last_server_port
-	return 9000
+	return 9100
 
 
 func _store_last_server(host: String, port: int) -> void:
@@ -117,3 +117,4 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 func _log_directory(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[lobby_directory] %s %s" % [LOBBY_DIRECTORY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.directory")
+

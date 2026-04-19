@@ -290,7 +290,7 @@ Baseline conclusion:
 
 File:
 
-- `res://network/runtime/client_room_runtime.gd`
+- `res://network/runtime/room_client/client_room_runtime.gd`
 
 Current supported request flow:
 
@@ -341,7 +341,7 @@ Current gap:
 
 File:
 
-- `res://network/session/runtime/server_room_service.gd`
+- `res://network/session/legacy/server_room_service.gd`
 
 Current confirmed behavior:
 

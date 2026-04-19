@@ -57,7 +57,7 @@ class FakeMatchmakingGateway:
 				"room_id": "room_smoke",
 				"room_kind": "matchmade_room",
 				"server_host": "127.0.0.1",
-				"server_port": 9000,
+				"server_port": 9100,
 				"mode_id": "mode_ranked",
 				"rule_set_id": "rule_standard",
 				"map_id": "map_arcade",
@@ -190,3 +190,4 @@ func _build_controller() -> Control:
 	rematch_button.name = "RematchButton"
 	action_row.add_child(rematch_button)
 	return controller
+

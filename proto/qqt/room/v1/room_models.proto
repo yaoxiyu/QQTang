@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package qqt.room.v1;
+
+option go_package = "qqt/proto/qqt/room/v1;roomv1";
+option csharp_namespace = "QQT.Room.V1";
+
+message RoomLoadout {
+  string character_id = 1;
+  string character_skin_id = 2;
+  string bubble_style_id = 3;
+  string bubble_skin_id = 4;
+}
+
+message RoomSelection {
+  string map_id = 1;
+  string rule_set_id = 2;
+  string mode_id = 3;
+  string match_format_id = 4;
+  repeated string selected_mode_ids = 5;
+}
+
+message RoomMember {
+  string member_id = 1;
+  string account_id = 2;
+  string profile_id = 3;
+  string player_name = 4;
+  int32 team_id = 5;
+  bool ready = 6;
+  RoomLoadout loadout = 7;
+  string connection_state = 8;
+}
+
+message BattleEntryState {
+  string assignment_id = 1;
+  string battle_id = 2;
+  string match_id = 3;
+  string server_host = 4;
+  int32 server_port = 5;
+  bool battle_entry_ready = 6;
+}
+
+message ResumeBinding {
+  string member_id = 1;
+  string reconnect_token = 2;
+  int64 reconnect_deadline_unix_ms = 3;
+}
+
+message RoomSnapshot {
+  string room_id = 1;
+  string room_kind = 2;
+  string room_display_name = 3;
+  string owner_member_id = 4;
+  string lifecycle_state = 5;
+  int64 snapshot_revision = 6;
+  RoomSelection selection = 7;
+  repeated RoomMember members = 8;
+  string queue_state = 9;
+  BattleEntryState battle_entry = 10;
+}
+
+message RoomDirectoryEntry {
+  string room_id = 1;
+  string room_display_name = 2;
+  string room_kind = 3;
+  string mode_id = 4;
+  string map_id = 5;
+  int32 member_count = 6;
+  int32 max_player_count = 7;
+  bool joinable = 8;
+}
+
+message RoomDirectorySnapshot {
+  int64 revision = 1;
+  string server_host = 2;
+  int32 server_port = 3;
+  repeated RoomDirectoryEntry entries = 4;
+}
+
+message OperationError {
+  string code = 1;
+  string user_message = 2;
+  string detail = 3;
+}

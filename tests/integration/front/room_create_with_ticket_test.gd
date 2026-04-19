@@ -49,7 +49,7 @@ func _main_body() -> void:
 		runtime.room_ticket_gateway
 	)
 
-	var create_result: Dictionary = runtime.lobby_use_case.create_private_room("127.0.0.1", 9000)
+	var create_result: Dictionary = runtime.lobby_use_case.create_private_room("127.0.0.1", 9100)
 	var entry_context = create_result.get("entry_context", null)
 	var room_result: Dictionary = runtime.room_use_case.enter_room(entry_context)
 
@@ -67,5 +67,6 @@ func _main_body() -> void:
 		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.device_session_id) == "dsess_alpha", "pending config should carry device session", prefix) and ok
 
 	runtime.queue_free()
+
 
 

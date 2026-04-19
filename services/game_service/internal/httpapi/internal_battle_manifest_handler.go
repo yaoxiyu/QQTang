@@ -32,21 +32,21 @@ func (h *InternalBattleManifestHandler) GetManifest(w http.ResponseWriter, r *ht
 	members := make([]map[string]any, 0, len(manifest.Members))
 	for _, m := range manifest.Members {
 		members = append(members, map[string]any{
-			"account_id":      m.AccountID,
-			"profile_id":      m.ProfileID,
+			"account_id":       m.AccountID,
+			"profile_id":       m.ProfileID,
 			"assigned_team_id": m.AssignedTeamID,
 		})
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, map[string]any{
 		"ok":                    true,
-		"assignment_id":        manifest.AssignmentID,
-		"battle_id":            manifest.BattleID,
-		"match_id":             manifest.MatchID,
-		"map_id":               manifest.MapID,
-		"rule_set_id":          manifest.RuleSetID,
-		"mode_id":              manifest.ModeID,
+		"assignment_id":         manifest.AssignmentID,
+		"battle_id":             manifest.BattleID,
+		"match_id":              manifest.MatchID,
+		"map_id":                manifest.MapID,
+		"rule_set_id":           manifest.RuleSetID,
+		"mode_id":               manifest.ModeID,
 		"expected_member_count": manifest.ExpectedMemberCount,
-		"members":              members,
+		"members":               members,
 	})
 }

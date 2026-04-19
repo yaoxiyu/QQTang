@@ -10,7 +10,7 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 var server_host: String = "127.0.0.1"
-var server_port: int = 9000
+var server_port: int = 9100
 var connect_timeout_sec: float = 5.0
 var room_id_hint: String = ""
 var room_kind: String = "private_room"
@@ -76,3 +76,4 @@ func duplicate_deep() -> ClientConnectionConfig:
 	duplicated.selected_rule_set_id = selected_rule_set_id
 	duplicated.selected_mode_id = selected_mode_id
 	return duplicated
+

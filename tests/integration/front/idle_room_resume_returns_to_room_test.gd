@@ -17,7 +17,7 @@ func test_main() -> void:
 func _test_idle_room_resume_returns_to_room_snapshot() -> bool:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000)
+	runtime.configure("127.0.0.1", 9100)
 
 	var sent: Array[Dictionary] = []
 	var broadcasts: Array[Dictionary] = []
@@ -71,7 +71,7 @@ func _test_idle_room_resume_returns_to_room_snapshot() -> bool:
 func _test_idle_room_resume_window_expiry_removes_member_session() -> bool:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000)
+	runtime.configure("127.0.0.1", 9100)
 
 	var sent: Array[Dictionary] = []
 	runtime.send_to_peer.connect(func(peer_id: int, message: Dictionary) -> void:
@@ -114,7 +114,7 @@ func _test_idle_room_resume_window_expiry_removes_member_session() -> bool:
 func _test_manual_leave_invalidates_room_member_session() -> bool:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000)
+	runtime.configure("127.0.0.1", 9100)
 
 	var sent: Array[Dictionary] = []
 	runtime.send_to_peer.connect(func(peer_id: int, message: Dictionary) -> void:
@@ -256,4 +256,5 @@ func _sign_ticket(encoded_payload: String) -> String:
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+
 

@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_integration_test.gd"
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
@@ -28,7 +28,7 @@ func _test_online_canonical_start_drives_loading_flow() -> void:
 	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
 	entry_context.return_target = FrontReturnTargetScript.LOBBY
 	entry_context.server_host = "127.0.0.1"
-	entry_context.server_port = 9000
+	entry_context.server_port = 9100
 	var enter_result: Dictionary = runtime.room_use_case.enter_room(entry_context)
 	_assert_true(bool(enter_result.get("ok", false)), "online room entry starts successfully")
 	_assert_true(bool(enter_result.get("pending", false)), "online create stays pending before authoritative room snapshot")
@@ -67,5 +67,6 @@ func _test_online_canonical_start_drives_loading_flow() -> void:
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
 		return
+
 
 

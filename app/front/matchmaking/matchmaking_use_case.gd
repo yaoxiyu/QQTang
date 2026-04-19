@@ -152,7 +152,7 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 	entry_context.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
 	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
 	entry_context.server_host = _normalize_host(_current_assignment_state.server_host)
-	entry_context.server_port = _normalize_port(_current_assignment_state.server_port, 9000)
+	entry_context.server_port = _normalize_port(_current_assignment_state.server_port, 9100)
 	entry_context.target_room_id = ticket_result.room_id
 	entry_context.room_display_name = "Matchmade Room"
 	entry_context.room_ticket = ticket_result.ticket
@@ -234,3 +234,4 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 func _log_matchmaking(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[matchmaking_use_case] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.matchmaking.use_case")
+

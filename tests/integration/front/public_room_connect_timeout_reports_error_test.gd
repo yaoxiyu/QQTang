@@ -25,7 +25,7 @@ func _test_public_room_connect_timeout_reports_error() -> bool:
 	entry_context.room_kind = FrontRoomKindScript.PUBLIC_ROOM
 	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
 	entry_context.server_host = "127.0.0.1"
-	entry_context.server_port = 9000
+	entry_context.server_port = 9100
 	entry_context.target_room_id = "ROOM_TIMEOUT_TEST"
 	var connection_config = runtime.room_use_case.build_room_connection_config(entry_context)
 	assert_not_null(connection_config, "room use case should build connection config from entry context")
@@ -60,5 +60,6 @@ func _test_public_room_connect_timeout_reports_error() -> bool:
 func _capture_room_error(error_code: String, user_message: String, captured_error: Dictionary) -> void:
 	captured_error["code"] = error_code
 	captured_error["message"] = user_message
+
 
 

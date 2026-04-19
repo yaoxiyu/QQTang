@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	HTTPListenAddr           string
+	GRPCListenAddr           string
 	PostgresDSN              string
 	JWTSharedSecret          string
 	InternalAuthKeyID        string
@@ -56,6 +57,7 @@ func LoadFromEnv() (*Config, error) {
 
 	cfg := &Config{
 		HTTPListenAddr:           configx.Env("GAME_HTTP_ADDR", "127.0.0.1:18081"),
+		GRPCListenAddr:           configx.Env("GAME_GRPC_ADDR", "127.0.0.1:19081"),
 		PostgresDSN:              os.Getenv("GAME_POSTGRES_DSN"),
 		JWTSharedSecret:          os.Getenv("GAME_JWT_SHARED_SECRET"),
 		InternalAuthKeyID:        configx.Env("GAME_INTERNAL_AUTH_KEY_ID", "primary"),
@@ -76,6 +78,9 @@ func LoadFromEnv() (*Config, error) {
 
 	if cfg.HTTPListenAddr == "" {
 		return nil, fmt.Errorf("GAME_HTTP_ADDR is required")
+	}
+	if cfg.GRPCListenAddr == "" {
+		return nil, fmt.Errorf("GAME_GRPC_ADDR is required")
 	}
 	if cfg.PostgresDSN == "" {
 		return nil, fmt.Errorf("GAME_POSTGRES_DSN is required")

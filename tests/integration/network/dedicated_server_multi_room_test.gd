@@ -5,7 +5,7 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
-const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
+const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 

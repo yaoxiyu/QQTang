@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package qqt.room.v1;
+
+import "qqt/room/v1/room_models.proto";
+
+option go_package = "qqt/proto/qqt/room/v1;roomv1";
+option csharp_namespace = "QQT.Room.V1";
+
+message CreateRoomRequest {
+  string room_id_hint = 1;
+  string room_kind = 2;
+  string room_display_name = 3;
+  string room_ticket = 4;
+  string room_ticket_id = 5;
+  string account_id = 6;
+  string profile_id = 7;
+  string device_session_id = 8;
+  string player_name = 9;
+  RoomLoadout loadout = 10;
+  RoomSelection selection = 11;
+}
+
+message JoinRoomRequest {
+  string room_id = 1;
+  string room_ticket = 2;
+  string room_ticket_id = 3;
+  string account_id = 4;
+  string profile_id = 5;
+  string device_session_id = 6;
+  string player_name = 7;
+  RoomLoadout loadout = 8;
+}
+
+message ResumeRoomRequest {
+  string room_id = 1;
+  string member_id = 2;
+  string reconnect_token = 3;
+  string match_id = 4;
+  string room_ticket = 5;
+  string room_ticket_id = 6;
+  string account_id = 7;
+  string profile_id = 8;
+  string device_session_id = 9;
+}
+
+message UpdateProfileRequest {
+  string player_name = 1;
+  int32 team_id = 2;
+  RoomLoadout loadout = 3;
+}
+
+message UpdateSelectionRequest {
+  RoomSelection selection = 1;
+}
+
+message UpdateMatchRoomConfigRequest {
+  string match_format_id = 1;
+  repeated string selected_mode_ids = 2;
+}
+
+message ToggleReadyRequest {
+  bool expected_ready = 1;
+}
+
+message StartManualRoomBattleRequest {}
+
+message EnterMatchQueueRequest {
+  string queue_type = 1;
+  string match_format_id = 2;
+}
+
+message CancelMatchQueueRequest {}
+
+message LeaveRoomRequest {}
+
+message SubscribeDirectoryRequest {}
+
+message UnsubscribeDirectoryRequest {}
+
+message AckBattleEntryRequest {
+  string assignment_id = 1;
+  string battle_id = 2;
+}
+
+message ClientEnvelope {
+  string protocol_version = 1;
+  string request_id = 2;
+  int64 sequence = 3;
+  int64 sent_at_unix_ms = 4;
+  oneof payload {
+    CreateRoomRequest create_room = 10;
+    JoinRoomRequest join_room = 11;
+    ResumeRoomRequest resume_room = 12;
+    UpdateProfileRequest update_profile = 13;
+    UpdateSelectionRequest update_selection = 14;
+    UpdateMatchRoomConfigRequest update_match_room_config = 15;
+    ToggleReadyRequest toggle_ready = 16;
+    StartManualRoomBattleRequest start_manual_room_battle = 17;
+    EnterMatchQueueRequest enter_match_queue = 18;
+    CancelMatchQueueRequest cancel_match_queue = 19;
+    LeaveRoomRequest leave_room = 20;
+    SubscribeDirectoryRequest subscribe_directory = 21;
+    UnsubscribeDirectoryRequest unsubscribe_directory = 22;
+    AckBattleEntryRequest ack_battle_entry = 23;
+  }
+}

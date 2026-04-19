@@ -134,7 +134,7 @@ Phase14 已选择并落地下面路线：
 - `res://scenes/front/login_scene_controller.gd`
 - `res://scenes/front/lobby_scene_controller.gd`
 - `res://scenes/front/room_scene_controller.gd`
-- `res://network/runtime/client_room_runtime.gd`
+- `res://network/runtime/room_client/client_room_runtime.gd`
 - `res://network/session/battle_session_adapter.gd`
 - `res://network/session/match_start_coordinator.gd`
 - `res://tests/contracts/runtime/...`

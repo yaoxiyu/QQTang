@@ -19,6 +19,7 @@ import (
 	"qqtang/services/game_service/internal/queue"
 	"qqtang/services/game_service/internal/rating"
 	"qqtang/services/game_service/internal/reward"
+	"qqtang/services/game_service/internal/rpcapi"
 	"qqtang/services/game_service/internal/storage"
 )
 
@@ -66,6 +67,13 @@ func main() {
 	queueService.ConfigureBattleAllocator(newQueueBattleAllocatorAdapter(battleAllocService))
 	careerService := career.NewService(careerRepo, ratingRepo)
 	finalizeService := finalize.NewService(store.Pool, ratingService, rewardService)
+	roomControlRPC := rpcapi.NewRoomControlService(queueService, manualRoomService, assignmentService)
+
+	grpcServer, grpcListener, err := rpcapi.ListenAndServe(cfg.GRPCListenAddr, roomControlRPC)
+	if err != nil {
+		log.Fatalf("start grpc server: %v", err)
+	}
+	log.Printf("game_service grpc listening on %s", grpcListener.Addr().String())
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		JWTAuth:                         jwtAuth,
@@ -96,6 +104,7 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
+		grpcServer.GracefulStop()
 	}()
 
 	log.Printf("game_service listening on %s", cfg.HTTPListenAddr)
