@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_smoke_test.gd"
+extends "res://tests/gut/base/qqt_smoke_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
@@ -9,7 +9,7 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_state.gd")
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
-const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
+const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 
@@ -67,13 +67,13 @@ func test_public_lobby_multi_room_smoke() -> void:
 	assert_not_null(public_entry, "public room directory entry should exist")
 
 	var room_result: Dictionary = runtime.room_use_case.enter_room(
-		runtime.lobby_use_case.join_public_room("127.0.0.1", 9000, public_room_id).get("entry_context", null)
+		runtime.lobby_use_case.join_public_room("127.0.0.1", 9100, public_room_id).get("entry_context", null)
 	)
 	runtime.room_use_case.call("_on_gateway_room_snapshot_received", _make_public_room_snapshot(map_id, rule_id, mode_id))
 	var start_config = runtime.match_start_coordinator.build_server_canonical_config(
 		_make_public_room_snapshot(map_id, rule_id, mode_id),
 		"127.0.0.1",
-		9000,
+		9100,
 		1
 	)
 	runtime.room_use_case.call("_on_gateway_canonical_start_config_received", start_config)
@@ -202,4 +202,5 @@ func _make_member(peer_id: int, player_name: String, ready: bool, is_owner: bool
 	member.is_local_player = peer_id == 1
 	member.connection_state = "connected"
 	return member
+
 

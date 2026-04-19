@@ -51,7 +51,7 @@ try {
     }
     $args += @(
         '--path', $root,
-        'res://scenes/network/room_service_scene.tscn',
+        'res://scenes/network/dedicated_server_scene.tscn',
         '--',
         '--qqt-room-port', [string]$RoomPort,
         '--qqt-room-host', $RoomHost,

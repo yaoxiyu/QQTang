@@ -1,28 +1,46 @@
 # Runtime Topology
 
-## 目的
-定义运行时拓扑、进程入口、生命周期归属与兼容层边界。  
-本文件只讲“运行时结构真相”，不展开前台业务细节。
+## Purpose
+Define runtime ownership, formal process entrypoints, and legacy compatibility boundaries.
 
-## 正式入口
-- 客户端主入口：`res://scenes/front/boot_scene.tscn`
-- 战斗场景入口：`res://scenes/battle/battle_main.tscn`
-- Room Service 入口：`res://scenes/network/room_service_scene.tscn`
-- Battle DS 入口：`res://scenes/network/dedicated_server_scene.tscn`
+## Formal Entrypoints
+- Client boot scene: `res://scenes/front/boot_scene.tscn`
+- Battle scene: `res://scenes/battle/battle_main.tscn`
+- Battle DS scene: `res://scenes/network/dedicated_server_scene.tscn`
+- Room Service process: `services/room_service/cmd/room_service/main.go`
 
-## Runtime Ownership
-- `AppRuntimeRoot` 当前是运行时组合根。
-- `BootSceneController` 是 runtime bootstrap owner。
-- `Login/Lobby/Room/Loading` 都是 runtime 消费者，不得隐式创建第二套 runtime。
-- 直接打开消费型前台场景且 runtime 缺失时，必须回到 boot。
+## Ownership
+- `AppRuntimeRoot` is the client runtime composition root.
+- `BootSceneController` is the runtime bootstrap owner.
+- `Login/Lobby/Room/Loading` are runtime consumers and must not create another runtime graph.
+- Opening a consumer scene without runtime must return to boot.
 
-## 网络运行时分层
-- `network/session/runtime/room_authority_runtime.gd`：房间权威（create/join/resume/snapshot）。
-- `network/battle/runtime/server_battle_runtime.gd`：战斗权威（match/loading/resume/finalize）。
-- `network/session/runtime/server_room_registry.gd`：目录与路由装配。
+## Room/Battle Split
+- Room authority (formal): Go Room Service in `services/room_service`.
+- Battle authority (formal): Godot Battle DS runtime.
+- Legacy Godot room authority remains compatibility-only:
+  - `network/runtime/legacy/room_service_bootstrap.gd`
+  - `network/session/legacy/server_room_service.gd`
+  - `network/session/legacy/server_room_registry.gd`
+  - `network/session/legacy/room_authority_runtime.gd`
 
-## Wrapper / Compatibility 约束
-- `res://gameplay/network/session/` 仅允许 legacy wrapper，不承载新逻辑。
-- `res://network/runtime/dedicated_server_bootstrap.gd` 仅兼容转发。
-- `res://network/session/runtime/server_room_runtime.gd` 仅兼容转发。
-- 新逻辑必须写入正式承载路径（`network/session/runtime/*`、`network/runtime/*_bootstrap.gd`）。
+## Client Room Protocol Stack
+- GDScript facade:
+  - `network/runtime/room_client/client_room_runtime.gd`
+  - `network/runtime/room_client/room_client_gateway.gd`
+- C# protocol layer:
+  - `network/client_net/room/RoomWsClient.cs`
+  - `network/client_net/room/RoomProtoCodec.cs`
+  - `network/client_net/room/RoomSnapshotMapper.cs`
+- Transport and wire format:
+  - WebSocket binary frames.
+  - Protobuf envelope payloads.
+
+## Compatibility Rules
+- Old paths under `network/runtime/*` and `network/session/runtime/*` are compatibility shells when marked deprecated.
+- New Room client/runtime logic must go to:
+  - `network/runtime/room_client/`
+  - `network/session/room/model/`
+  - `network/session/room/shared/`
+- New Room server logic must not be added to Godot legacy room server paths.
+

@@ -1,6 +1,6 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
+const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
 
 
 

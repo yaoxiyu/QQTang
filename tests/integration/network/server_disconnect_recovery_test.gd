@@ -3,7 +3,7 @@ extends "res://tests/gut/base/qqt_integration_test.gd"
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
-const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
+const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 

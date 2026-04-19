@@ -51,7 +51,7 @@ func _test_server_disconnect_before_commit_aborts_loading_and_reopens_room() -> 
 	var runtime := ServerRoomRuntimeScript.new()
 	var broadcasted := []
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000)
+	runtime.configure("127.0.0.1", 9100)
 	runtime.broadcast_message.connect(func(message): broadcasted.append(message))
 
 	var mode_id := ModeCatalogScript.get_default_mode_id()
@@ -213,4 +213,5 @@ func _make_room_ticket(payload: Dictionary) -> Dictionary:
 	var result := payload.duplicate(true)
 	result["token"] = token
 	return result
+
 

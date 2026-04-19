@@ -5,14 +5,14 @@ extends Node
 ## This file is kept only to avoid breaking existing references during migration.
 
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
-const ServerRoomServiceScript = preload("res://network/session/runtime/server_room_service.gd")
+const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
 const ServerMatchServiceScript = preload("res://network/session/runtime/server_match_service.gd")
 const ServerMatchLoadingCoordinatorScript = preload("res://network/session/runtime/server_match_loading_coordinator.gd")
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const GameServicePartyQueueClientScript = preload("res://network/services/game_service_party_queue_client.gd")
 const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
-const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
+const RoomDirectoryEntryScript = preload("res://network/session/room/model/room_directory_entry.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
@@ -20,7 +20,7 @@ signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)
 
 var authority_host: String = "127.0.0.1"
-var authority_port: int = 9000
+var authority_port: int = 9100
 var room_ticket_secret: String = "dev_room_ticket_secret"
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081
@@ -48,7 +48,7 @@ func _process(_delta: float) -> void:
 
 func configure(next_authority_host: String, next_authority_port: int, next_room_ticket_secret: String = "dev_room_ticket_secret") -> void:
 	authority_host = next_authority_host if not next_authority_host.strip_edges().is_empty() else "127.0.0.1"
-	authority_port = next_authority_port if next_authority_port > 0 else 9000
+	authority_port = next_authority_port if next_authority_port > 0 else 9100
 	room_ticket_secret = next_room_ticket_secret if not next_room_ticket_secret.strip_edges().is_empty() else "dev_room_ticket_secret"
 	game_service_host = _read_env("GAME_SERVICE_HOST", game_service_host)
 	game_service_port = int(_read_env("GAME_SERVICE_PORT", str(game_service_port)).to_int())
@@ -544,3 +544,4 @@ func _log_online_room_runtime(event_name: String, payload: Dictionary) -> void:
 func _read_env(name: String, fallback: String) -> String:
 	var value := OS.get_environment(name).strip_edges()
 	return value if not value.is_empty() else fallback
+

@@ -81,7 +81,7 @@ func _test_resume_accept_uses_new_transport_and_old_control_peer() -> bool:
 func _start_active_match() -> Dictionary:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000)
+	runtime.configure("127.0.0.1", 9100)
 
 	var sent: Array[Dictionary] = []
 	var broadcasts: Array[Dictionary] = []
@@ -234,4 +234,5 @@ func _sign_ticket(encoded_payload: String) -> String:
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+
 

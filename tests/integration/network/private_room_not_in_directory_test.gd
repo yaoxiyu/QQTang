@@ -2,7 +2,7 @@ extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const ServerRoomRegistryScript = preload("res://network/session/runtime/server_room_registry.gd")
+const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
 

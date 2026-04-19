@@ -16,7 +16,7 @@ func test_main() -> void:
 func _main_body() -> void:
 	var runtime := ServerRoomRuntimeScript.new()
 	add_child(runtime)
-	runtime.configure("127.0.0.1", 9000, ROOM_TICKET_SECRET)
+	runtime.configure("127.0.0.1", 9100, ROOM_TICKET_SECRET)
 
 	var sent: Array[Dictionary] = []
 	runtime.send_to_peer.connect(func(peer_id: int, message: Dictionary) -> void:
@@ -112,5 +112,6 @@ func _find_message(sent: Array[Dictionary], peer_id: int, message_type: String) 
 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
+
 
 

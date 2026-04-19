@@ -13,7 +13,7 @@ var default_character_skin_id: String = ""
 var default_bubble_style_id: String = ""
 var default_bubble_skin_id: String = ""
 var last_server_host: String = "127.0.0.1"
-var last_server_port: int = 9000
+var last_server_port: int = 9100
 var last_room_id: String = ""
 var reconnect_room_id: String = ""
 var reconnect_host: String = ""
@@ -93,3 +93,4 @@ func to_dict() -> Dictionary:
 		"assignment_id": assignment_id,
 		"assignment_status_text": assignment_status_text,
 	}
+

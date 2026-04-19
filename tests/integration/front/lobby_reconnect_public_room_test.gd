@@ -18,7 +18,7 @@ func _test_reconnect_ticket_stores_public_room_kind() -> bool:
 	settings.reconnect_room_display_name = "My Public Room"
 	settings.reconnect_topology = "dedicated_server"
 	settings.reconnect_host = "127.0.0.1"
-	settings.reconnect_port = 9000
+	settings.reconnect_port = 9100
 
 	var dict := settings.to_dict()
 	if dict["reconnect_room_kind"] != "public_room":
@@ -98,4 +98,5 @@ func _test_reconnect_ticket_serialization_round_trip() -> bool:
 		print("FAIL: reconnect_token should not be restored from serialized settings")
 		return false
 	return true
+
 

@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_integration_test.gd"
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
@@ -35,7 +35,7 @@ func test_pass_through_login_updates_runtime_state() -> void:
 	request.profile_id = "guest_profile"
 	request.nickname = "FrontTester"
 	request.server_host = "127.0.0.1"
-	request.server_port = 9000
+	request.server_port = 9100
 
 	var result: Dictionary = runtime.login_use_case.login(request)
 	assert_true(bool(result.get("ok", false)), "pass-through login succeeds: %s" % JSON.stringify(result))
@@ -61,4 +61,5 @@ func _should_boot_enter_lobby(runtime: Node) -> bool:
 		and bool(settings.auto_enter_lobby) \
 		and not String(profile.profile_id).strip_edges().is_empty() \
 		and not String(profile.nickname).strip_edges().is_empty()
+
 

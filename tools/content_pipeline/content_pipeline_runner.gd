@@ -16,6 +16,7 @@ const GenerateMapsScript = preload("res://tools/content_pipeline/generators/gene
 const GenerateMapThemesScript = preload("res://tools/content_pipeline/generators/generate_map_themes.gd")
 const GenerateTilePresentationsScript = preload("res://tools/content_pipeline/generators/generate_tile_presentations.gd")
 const GenerateRulesetsScript = preload("res://tools/content_pipeline/generators/generate_rulesets.gd")
+const GenerateRoomManifestScript = preload("res://tools/content_pipeline/generators/generate_room_manifest.gd")
 const LogContentScript = preload("res://app/logging/log_content.gd")
 
 
@@ -38,4 +39,5 @@ func run_all() -> void:
 	GenerateMapThemesScript.new().generate()
 	GenerateTilePresentationsScript.new().generate()
 	GenerateRulesetsScript.new().generate()
+	GenerateRoomManifestScript.new().generate()
 	LogContentScript.info("generation finished", "", 0, "content.pipeline")

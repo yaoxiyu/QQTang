@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_integration_test.gd"
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
@@ -34,7 +34,7 @@ func test_main() -> void:
 	runtime.room_use_case.on_authoritative_snapshot(snapshot)
 
 	_assert_true(String(runtime.front_settings_state.reconnect_room_id) == "ROOM-RESET", "authoritative room snapshot updates reconnect room id")
-	_assert_true(int(runtime.front_settings_state.reconnect_port) == 9000, "authoritative room snapshot preserves reconnect server port")
+	_assert_true(int(runtime.front_settings_state.reconnect_port) == 9100, "authoritative room snapshot preserves reconnect server port")
 
 	var result: Dictionary = runtime.room_use_case.leave_room()
 	_assert_true(bool(result.get("ok", false)), "leave_room succeeds")
@@ -52,4 +52,5 @@ func test_main() -> void:
 
 func _assert_true(condition: bool, message: String) -> void:
 	assert_true(condition, message)
+
 

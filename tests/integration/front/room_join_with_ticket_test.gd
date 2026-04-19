@@ -50,7 +50,7 @@ func _main_body() -> void:
 		runtime.room_ticket_gateway
 	)
 
-	var join_result: Dictionary = runtime.lobby_use_case.join_private_room("127.0.0.1", 9000, "ROOM_JOIN_001")
+	var join_result: Dictionary = runtime.lobby_use_case.join_private_room("127.0.0.1", 9100, "ROOM_JOIN_001")
 	var entry_context = join_result.get("entry_context", null)
 	var room_result: Dictionary = runtime.room_use_case.enter_room(entry_context)
 
@@ -66,5 +66,6 @@ func _main_body() -> void:
 		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.room_ticket) == "ticket_join_alpha", "pending config should carry join ticket", prefix) and ok
 
 	runtime.queue_free()
+
 
 

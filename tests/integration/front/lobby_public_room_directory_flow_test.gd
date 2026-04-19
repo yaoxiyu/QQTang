@@ -2,8 +2,8 @@ extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
-const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
-const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
+const RoomDirectoryEntryScript = preload("res://network/session/room/model/room_directory_entry.gd")
+const RoomDirectorySnapshotScript = preload("res://network/session/room/model/room_directory_snapshot.gd")
 
 
 
@@ -28,7 +28,7 @@ func _test_lobby_renders_public_room_directory_without_auto_connect() -> bool:
 	var snapshot := RoomDirectorySnapshotScript.new()
 	snapshot.revision = 1
 	snapshot.server_host = "127.0.0.1"
-	snapshot.server_port = 9000
+	snapshot.server_port = 9100
 	snapshot.entries = [_make_directory_entry()]
 	runtime.client_room_runtime.room_directory_snapshot_received.emit(snapshot)
 
@@ -72,3 +72,4 @@ func _make_directory_entry():
 	entry.match_active = false
 	entry.joinable = true
 	return entry
+

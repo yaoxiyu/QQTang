@@ -1,7 +1,7 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const RoomDirectoryEntryScript = preload("res://network/session/runtime/room_directory_entry.gd")
-const RoomDirectorySnapshotScript = preload("res://network/session/runtime/room_directory_snapshot.gd")
+const RoomDirectoryEntryScript = preload("res://network/session/room/model/room_directory_entry.gd")
+const RoomDirectorySnapshotScript = preload("res://network/session/room/model/room_directory_snapshot.gd")
 
 
 func test_main() -> void:

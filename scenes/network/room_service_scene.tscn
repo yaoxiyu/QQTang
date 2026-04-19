@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://rn101h80ejdc"]
-
-[ext_resource type="Script" uid="uid://ddr2og18nmf2w" path="res://network/runtime/room_service_bootstrap.gd" id="1_6r4ss"]
-
-[node name="RoomServiceScene" type="Node" unique_id=1684522933]
-script = ExtResource("1_6r4ss")

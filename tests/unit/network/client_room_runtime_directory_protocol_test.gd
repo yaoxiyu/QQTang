@@ -1,6 +1,6 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
-const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
+const ClientRoomRuntimeScript = preload("res://network/runtime/room_client/client_room_runtime.gd")
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
@@ -82,7 +82,7 @@ func _test_directory_snapshot_message_is_parsed_and_emitted() -> bool:
 		"snapshot": {
 			"revision": 5,
 			"server_host": "127.0.0.1",
-			"server_port": 9000,
+			"server_port": 9100,
 			"entries": [{
 				"room_id": "ROOM-DIR",
 				"room_display_name": "Directory Room",
@@ -110,5 +110,6 @@ func _test_directory_snapshot_message_is_parsed_and_emitted() -> bool:
 
 	runtime.queue_free()
 	return ok
+
 
 

@@ -3,7 +3,7 @@ extends RefCounted
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
-const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
+const ClientRoomRuntimeScript = preload("res://network/runtime/room_client/client_room_runtime.gd")
 
 
 static func ensure_components(runtime: Node) -> void:

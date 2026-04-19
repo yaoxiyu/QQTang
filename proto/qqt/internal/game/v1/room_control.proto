@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package qqt.internal.game.v1;
+
+option go_package = "qqt/proto/qqt/internal/game/v1;gamev1";
+
+message RoomContext {
+  string room_id = 1;
+  string room_kind = 2;
+  string assignment_id = 3;
+  string room_instance_id = 4;
+  string room_shard_id = 5;
+}
+
+message PartyMember {
+  string account_id = 1;
+  string profile_id = 2;
+  int32 team_id = 3;
+}
+
+message EnterPartyQueueRequest {
+  RoomContext context = 1;
+  string queue_type = 2;
+  string match_format_id = 3;
+  repeated string selected_mode_ids = 4;
+  repeated PartyMember members = 5;
+}
+
+message EnterPartyQueueResponse {
+  bool ok = 1;
+  string queue_entry_id = 2;
+  string queue_state = 3;
+  string error_code = 4;
+  string user_message = 5;
+}
+
+message CancelPartyQueueRequest {
+  RoomContext context = 1;
+  string queue_entry_id = 2;
+}
+
+message CancelPartyQueueResponse {
+  bool ok = 1;
+  string queue_state = 2;
+  string error_code = 3;
+  string user_message = 4;
+}
+
+message GetPartyQueueStatusRequest {
+  RoomContext context = 1;
+  string queue_entry_id = 2;
+}
+
+message GetPartyQueueStatusResponse {
+  bool ok = 1;
+  string queue_state = 2;
+  string assignment_id = 3;
+  string match_id = 4;
+  string battle_id = 5;
+  string server_host = 6;
+  int32 server_port = 7;
+  string error_code = 8;
+  string user_message = 9;
+}
+
+message CreateManualRoomBattleRequest {
+  RoomContext context = 1;
+  string mode_id = 2;
+  string rule_set_id = 3;
+  string map_id = 4;
+  repeated PartyMember members = 5;
+}
+
+message CreateManualRoomBattleResponse {
+  bool ok = 1;
+  string assignment_id = 2;
+  string match_id = 3;
+  string battle_id = 4;
+  string server_host = 5;
+  int32 server_port = 6;
+  string error_code = 7;
+  string user_message = 8;
+}
+
+message CommitAssignmentReadyRequest {
+  RoomContext context = 1;
+  string assignment_id = 2;
+  string match_id = 3;
+  string battle_id = 4;
+}
+
+message CommitAssignmentReadyResponse {
+  bool ok = 1;
+  string committed_state = 2;
+  string error_code = 3;
+  string user_message = 4;
+}
+
+service RoomControlService {
+  rpc EnterPartyQueue(EnterPartyQueueRequest) returns (EnterPartyQueueResponse);
+  rpc CancelPartyQueue(CancelPartyQueueRequest) returns (CancelPartyQueueResponse);
+  rpc GetPartyQueueStatus(GetPartyQueueStatusRequest) returns (GetPartyQueueStatusResponse);
+  rpc CreateManualRoomBattle(CreateManualRoomBattleRequest) returns (CreateManualRoomBattleResponse);
+  rpc CommitAssignmentReady(CommitAssignmentReadyRequest) returns (CommitAssignmentReadyResponse);
+}

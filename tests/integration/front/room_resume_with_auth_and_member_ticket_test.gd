@@ -38,7 +38,7 @@ func _main_body() -> void:
 	runtime.auth_session_state.device_session_id = "dsess_alpha"
 	runtime.front_settings_state.reconnect_room_id = "ROOM_RESUME_001"
 	runtime.front_settings_state.reconnect_host = "127.0.0.1"
-	runtime.front_settings_state.reconnect_port = 9000
+	runtime.front_settings_state.reconnect_port = 9100
 	runtime.front_settings_state.reconnect_room_kind = "private_room"
 	runtime.front_settings_state.reconnect_room_display_name = "Room Resume"
 	runtime.front_settings_state.reconnect_member_id = "member_alpha"
@@ -76,5 +76,6 @@ func _main_body() -> void:
 		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.device_session_id) == "dsess_alpha", "pending config should carry device session", prefix) and ok
 
 	runtime.queue_free()
+
 
 

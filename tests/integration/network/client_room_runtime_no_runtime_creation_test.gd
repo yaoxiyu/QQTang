@@ -1,7 +1,7 @@
 extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
-const ClientRoomRuntimeScript = preload("res://network/runtime/client_room_runtime.gd")
+const ClientRoomRuntimeScript = preload("res://network/runtime/room_client/client_room_runtime.gd")
 const ENetBattleTransportScript = preload("res://network/transport/enet_battle_transport.gd")
 
 

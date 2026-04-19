@@ -502,7 +502,7 @@ func _normalize_port(port: int) -> int:
 		return port
 	if front_settings_state != null and front_settings_state.last_server_port > 0:
 		return front_settings_state.last_server_port
-	return 9000
+	return 9100
 
 
 func _update_last_server(host: String, port: int) -> void:
@@ -547,3 +547,4 @@ func _has_object_property(target: Object, property_name: String) -> bool:
 		if String(entry.get("name", "")) == property_name:
 			return true
 	return false
+
