@@ -3,6 +3,7 @@ package roomapp
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"qqtang/services/room_service/internal/auth"
 	"qqtang/services/room_service/internal/domain"
 	"qqtang/services/room_service/internal/gameclient"
+	roomv1 "qqtang/services/room_service/internal/gen/qqt/room/v1"
 	"qqtang/services/room_service/internal/manifest"
 	"qqtang/services/room_service/internal/registry"
 )
@@ -22,6 +24,12 @@ var (
 	ErrRoomNotJoinable    = errors.New("room not joinable")
 	ErrMemberNotFound     = errors.New("member not found")
 	ErrReconnectForbidden = errors.New("reconnect token mismatch")
+	ErrNotRoomOwner       = errors.New("room owner required")
+	ErrMatchRoomOnly      = errors.New("match room required")
+	ErrMembersNotReady    = errors.New("all members must be ready")
+	ErrQueueStateInvalid  = errors.New("queue state does not allow enter queue")
+	ErrManualRoomOnly     = errors.New("manual room required")
+	ErrInvalidRoomKind    = errors.New("invalid room kind")
 )
 
 type Loadout struct {
@@ -78,6 +86,7 @@ type UpdateProfileInput struct {
 	RoomID     string
 	MemberID   string
 	PlayerName string
+	TeamID     int
 	Loadout    Loadout
 }
 
@@ -85,6 +94,36 @@ type UpdateSelectionInput struct {
 	RoomID    string
 	MemberID  string
 	Selection Selection
+}
+
+type UpdateMatchRoomConfigInput struct {
+	RoomID          string
+	MemberID        string
+	MatchFormatID   string
+	SelectedModeIDs []string
+}
+
+type EnterMatchQueueInput struct {
+	RoomID   string
+	MemberID string
+}
+
+type CancelMatchQueueInput struct {
+	RoomID   string
+	MemberID string
+}
+
+type StartManualRoomBattleInput struct {
+	RoomID   string
+	MemberID string
+}
+
+type AckBattleEntryInput struct {
+	RoomID       string
+	MemberID     string
+	AssignmentID string
+	BattleID     string
+	MatchID      string
 }
 
 type ToggleReadyInput struct {
@@ -96,6 +135,7 @@ type SnapshotProjection struct {
 	RoomID           string
 	RoomKind         string
 	RoomDisplayName  string
+	LifecycleState   string
 	SnapshotRevision int64
 	OwnerMemberID    string
 	Selection        domain.RoomSelection
@@ -147,6 +187,12 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 	if !s.verifier.Verify(input.RoomTicket) {
 		return nil, ErrInvalidTicket
 	}
+	normalizedRoomKind, err := normalizeRoomKind(input.RoomKind)
+	if err != nil {
+		return nil, err
+	}
+	input.RoomKind = normalizedRoomKind
+
 	resolvedLoadout, err := s.validateLoadout(input.Loadout)
 	if err != nil {
 		return nil, err
@@ -155,21 +201,20 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 	if err != nil {
 		return nil, err
 	}
-	if input.RoomKind == "" {
-		input.RoomKind = "private_room"
-	}
 
 	roomID := s.nextID("room")
 	memberID := s.nextID("member")
 	reconnectToken := s.nextID("reconnect")
 	member := domain.RoomMember{
-		MemberID:       memberID,
-		AccountID:      input.AccountID,
-		ProfileID:      input.ProfileID,
-		PlayerName:     input.PlayerName,
-		ConnectionID:   input.ConnectionID,
-		ReconnectToken: reconnectToken,
-		Ready:          false,
+		MemberID:        memberID,
+		AccountID:       input.AccountID,
+		ProfileID:       input.ProfileID,
+		PlayerName:      input.PlayerName,
+		TeamID:          1,
+		ConnectionState: "connected",
+		ConnectionID:    input.ConnectionID,
+		ReconnectToken:  reconnectToken,
+		Ready:           false,
 		Loadout: domain.RoomLoadout{
 			CharacterID:     resolvedLoadout.CharacterID,
 			CharacterSkinID: resolvedLoadout.CharacterSkinID,
@@ -182,12 +227,14 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 		RoomID:           roomID,
 		RoomKind:         input.RoomKind,
 		RoomDisplayName:  input.RoomDisplayName,
+		LifecycleState:   "idle",
 		SnapshotRevision: 1,
 		Selection: domain.RoomSelection{
-			MapID:         resolvedSelection.MapID,
-			RuleSetID:     resolvedSelection.RuleSetID,
-			ModeID:        resolvedSelection.ModeID,
-			MatchFormatID: resolvedSelection.MatchFormatID,
+			MapID:           resolvedSelection.MapID,
+			RuleSetID:       resolvedSelection.RuleSetID,
+			ModeID:          resolvedSelection.ModeID,
+			MatchFormatID:   resolvedSelection.MatchFormatID,
+			SelectedModeIDs: append([]string{}, resolvedSelection.SelectedModeIDs...),
 		},
 		Members: map[string]domain.RoomMember{
 			member.MemberID: member,
@@ -213,6 +260,7 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 	s.roomsByID[roomID] = agg
 	s.roomByMemberID[memberID] = roomID
 	s.roomOwnerByID[roomID] = memberID
+	s.syncDirectoryEntryLocked(agg)
 	s.mu.Unlock()
 
 	return s.snapshotProjectionLocked(agg), nil
@@ -240,13 +288,15 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 	memberID := s.nextID("member")
 	reconnectToken := s.nextID("reconnect")
 	room.Members[memberID] = domain.RoomMember{
-		MemberID:       memberID,
-		AccountID:      input.AccountID,
-		ProfileID:      input.ProfileID,
-		PlayerName:     input.PlayerName,
-		ConnectionID:   input.ConnectionID,
-		ReconnectToken: reconnectToken,
-		Ready:          false,
+		MemberID:        memberID,
+		AccountID:       input.AccountID,
+		ProfileID:       input.ProfileID,
+		PlayerName:      input.PlayerName,
+		TeamID:          1,
+		ConnectionState: "connected",
+		ConnectionID:    input.ConnectionID,
+		ReconnectToken:  reconnectToken,
+		Ready:           false,
 		Loadout: domain.RoomLoadout{
 			CharacterID:     resolvedLoadout.CharacterID,
 			CharacterSkinID: resolvedLoadout.CharacterSkinID,
@@ -261,6 +311,7 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 	}
 	room.SnapshotRevision++
 	s.roomByMemberID[memberID] = room.RoomID
+	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -284,7 +335,26 @@ func (s *Service) ResumeRoom(input ResumeRoomInput) (*SnapshotProjection, error)
 		return nil, ErrReconnectForbidden
 	}
 	member.ConnectionID = input.ConnectionID
+	member.ConnectionState = "connected"
 	room.Members[input.MemberID] = member
+	room.SnapshotRevision++
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) MarkDisconnected(roomID string, memberID string) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	room := s.roomsByID[roomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	member, ok := room.Members[memberID]
+	if !ok {
+		return nil, ErrMemberNotFound
+	}
+	member.ConnectionState = "disconnected"
+	member.ConnectionID = ""
+	room.Members[memberID] = member
 	room.SnapshotRevision++
 	return s.snapshotProjectionLocked(room), nil
 }
@@ -304,11 +374,13 @@ func (s *Service) LeaveRoom(input LeaveRoomInput) (*SnapshotProjection, error) {
 	delete(s.roomByMemberID, input.MemberID)
 
 	if len(room.Members) == 0 {
+		s.registry.RemoveRoomEntry(input.RoomID)
 		delete(s.roomsByID, input.RoomID)
 		delete(s.roomOwnerByID, input.RoomID)
 		return nil, nil
 	}
 	room.SnapshotRevision++
+	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -329,6 +401,9 @@ func (s *Service) UpdateProfile(input UpdateProfileInput) (*SnapshotProjection, 
 	}
 	if input.PlayerName != "" {
 		member.PlayerName = input.PlayerName
+	}
+	if input.TeamID > 0 {
+		member.TeamID = input.TeamID
 	}
 	member.Loadout = domain.RoomLoadout{
 		CharacterID:     resolvedLoadout.CharacterID,
@@ -360,12 +435,264 @@ func (s *Service) UpdateSelection(input UpdateSelectionInput) (*SnapshotProjecti
 		return nil, err
 	}
 	room.Selection = domain.RoomSelection{
-		MapID:         resolvedSelection.MapID,
-		RuleSetID:     resolvedSelection.RuleSetID,
-		ModeID:        resolvedSelection.ModeID,
-		MatchFormatID: resolvedSelection.MatchFormatID,
+		MapID:           resolvedSelection.MapID,
+		RuleSetID:       resolvedSelection.RuleSetID,
+		ModeID:          resolvedSelection.ModeID,
+		MatchFormatID:   resolvedSelection.MatchFormatID,
+		SelectedModeIDs: append([]string{}, resolvedSelection.SelectedModeIDs...),
 	}
 	room.MaxPlayerCount = mapEntry.MaxPlayerCount
+	room.SnapshotRevision++
+	s.syncDirectoryEntryLocked(room)
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) UpdateMatchRoomConfig(input UpdateMatchRoomConfigInput) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[input.RoomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if _, ok := room.Members[input.MemberID]; !ok {
+		return nil, ErrMemberNotFound
+	}
+	if !isMatchRoomKind(room.RoomKind) {
+		return nil, ErrMatchRoomOnly
+	}
+	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
+		return nil, ErrNotRoomOwner
+	}
+
+	selectedModeIDs := append([]string{}, input.SelectedModeIDs...)
+	if len(selectedModeIDs) == 0 && room.Selection.ModeID != "" {
+		selectedModeIDs = []string{room.Selection.ModeID}
+	}
+	if _, err := s.query.ValidateMatchRoomConfig(input.MatchFormatID, selectedModeIDs); err != nil {
+		return nil, ErrInvalidSelection
+	}
+
+	queueType := "casual"
+	if room.RoomKind == "ranked_match_room" {
+		queueType = "ranked"
+	}
+	mapPool, err := s.query.ResolveMapPool(input.MatchFormatID, selectedModeIDs, queueType)
+	if err != nil || len(mapPool) == 0 {
+		return nil, ErrInvalidSelection
+	}
+	mapEntry := mapPool[0]
+
+	room.Selection.MatchFormatID = input.MatchFormatID
+	room.Selection.SelectedModeIDs = selectedModeIDs
+	room.Selection.MapID = mapEntry.MapID
+	room.Selection.ModeID = mapEntry.ModeID
+	room.Selection.RuleSetID = mapEntry.RuleSetID
+	room.MaxPlayerCount = mapEntry.MaxPlayerCount
+	room.SnapshotRevision++
+	s.syncDirectoryEntryLocked(room)
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) EnterMatchQueue(input EnterMatchQueueInput) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[input.RoomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if _, ok := room.Members[input.MemberID]; !ok {
+		return nil, ErrMemberNotFound
+	}
+	if !isMatchRoomKind(room.RoomKind) {
+		return nil, ErrMatchRoomOnly
+	}
+	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
+		return nil, ErrNotRoomOwner
+	}
+	if !canEnterQueueFromState(room.Queue.QueueState) {
+		return nil, ErrQueueStateInvalid
+	}
+	if !allMembersReady(room.Members) {
+		return nil, ErrMembersNotReady
+	}
+	if s.game == nil {
+		return nil, fmt.Errorf("game client not configured")
+	}
+
+	queueType := queueTypeByRoomKind(room.RoomKind)
+	gameInput := gameclient.EnterPartyQueueInput{
+		RoomID:          room.RoomID,
+		RoomKind:        room.RoomKind,
+		QueueType:       queueType,
+		MatchFormatID:   room.Selection.MatchFormatID,
+		SelectedModeIDs: append([]string{}, room.Selection.SelectedModeIDs...),
+		Members:         buildPartyMembers(room.Members),
+	}
+	result, err := s.game.EnterPartyQueue(gameInput)
+	if err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
+	}
+
+	room.Queue.QueueType = queueType
+	room.Queue.QueueState = result.QueueState
+	room.Queue.QueueEntryID = result.QueueEntryID
+	room.Queue.StatusText = result.StatusText
+	room.Queue.ErrorCode = ""
+	room.Queue.UserMessage = ""
+	room.LifecycleState = "queueing"
+	room.SnapshotRevision++
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) CancelMatchQueue(input CancelMatchQueueInput) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[input.RoomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if _, ok := room.Members[input.MemberID]; !ok {
+		return nil, ErrMemberNotFound
+	}
+	if !isMatchRoomKind(room.RoomKind) {
+		return nil, ErrMatchRoomOnly
+	}
+	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
+		return nil, ErrNotRoomOwner
+	}
+	if room.Queue.QueueState != "queueing" {
+		return nil, ErrQueueStateInvalid
+	}
+	if s.game == nil {
+		return nil, fmt.Errorf("game client not configured")
+	}
+
+	result, err := s.game.CancelPartyQueue(gameclient.CancelPartyQueueInput{
+		RoomID:       room.RoomID,
+		RoomKind:     room.RoomKind,
+		QueueType:    room.Queue.QueueType,
+		QueueEntryID: room.Queue.QueueEntryID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
+	}
+
+	room.Queue.QueueState = result.QueueState
+	room.Queue.StatusText = result.StatusText
+	room.Queue.ErrorCode = ""
+	room.Queue.UserMessage = ""
+	room.LifecycleState = "idle"
+	room.SnapshotRevision++
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[input.RoomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if _, ok := room.Members[input.MemberID]; !ok {
+		return nil, ErrMemberNotFound
+	}
+	if !isManualRoomKind(room.RoomKind) {
+		return nil, ErrManualRoomOnly
+	}
+	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
+		return nil, ErrNotRoomOwner
+	}
+	if !allMembersReady(room.Members) {
+		return nil, ErrMembersNotReady
+	}
+	if s.game == nil {
+		return nil, fmt.Errorf("game client not configured")
+	}
+
+	result, err := s.game.CreateManualRoomBattle(gameclient.CreateManualRoomBattleInput{
+		RoomID:    room.RoomID,
+		RoomKind:  room.RoomKind,
+		MapID:     room.Selection.MapID,
+		ModeID:    room.Selection.ModeID,
+		RuleSetID: room.Selection.RuleSetID,
+		Members:   buildPartyMembers(room.Members),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
+	}
+
+	room.BattleHandoffState.AssignmentID = result.AssignmentID
+	room.BattleHandoffState.MatchID = result.MatchID
+	room.BattleHandoffState.BattleID = result.BattleID
+	room.BattleHandoffState.ServerHost = result.ServerHost
+	room.BattleHandoffState.ServerPort = result.ServerPort
+	room.BattleHandoffState.AllocationState = result.AllocationState
+	room.BattleHandoffState.Ready = result.Ready
+	room.LifecycleState = "battle_handoff"
+	room.SnapshotRevision++
+	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[input.RoomID]
+	if room == nil {
+		return nil, ErrRoomNotFound
+	}
+	if _, ok := room.Members[input.MemberID]; !ok {
+		return nil, ErrMemberNotFound
+	}
+	if s.game == nil {
+		return nil, fmt.Errorf("game client not configured")
+	}
+
+	handoff := room.BattleHandoffState
+	if handoff.AssignmentID == "" || handoff.AssignmentID != input.AssignmentID {
+		return nil, fmt.Errorf("assignment mismatch")
+	}
+	if handoff.BattleID != "" && input.BattleID != "" && handoff.BattleID != input.BattleID {
+		return nil, fmt.Errorf("battle mismatch")
+	}
+	if handoff.MatchID != "" && input.MatchID != "" && handoff.MatchID != input.MatchID {
+		return nil, fmt.Errorf("match mismatch")
+	}
+
+	result, err := s.game.CommitAssignmentReady(gameclient.CommitAssignmentReadyInput{
+		RoomID:       room.RoomID,
+		RoomKind:     room.RoomKind,
+		AssignmentID: input.AssignmentID,
+		BattleID:     input.BattleID,
+		MatchID:      input.MatchID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !result.OK {
+		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
+	}
+
+	room.BattleHandoffState.Ready = true
+	if result.CommittedState != "" {
+		room.BattleHandoffState.AllocationState = result.CommittedState
+	}
+	room.Queue.QueueState = "matched"
+	room.Queue.StatusText = "battle_entry_acknowledged"
+	room.LifecycleState = "battle_entry_acknowledged"
 	room.SnapshotRevision++
 	return s.snapshotProjectionLocked(room), nil
 }
@@ -395,6 +722,73 @@ func (s *Service) SnapshotProjection(roomID string) (*SnapshotProjection, error)
 		return nil, ErrRoomNotFound
 	}
 	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) ReconnectToken(roomID, memberID string) (string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	room := s.roomsByID[roomID]
+	if room == nil {
+		return "", ErrRoomNotFound
+	}
+	binding, ok := room.ResumeBindings[memberID]
+	if !ok {
+		return "", ErrMemberNotFound
+	}
+	return binding.ReconnectToken, nil
+}
+
+func (s *Service) ResolveRoomMemberByConnection(connectionID string) (string, string, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for roomID, room := range s.roomsByID {
+		for memberID, member := range room.Members {
+			if member.ConnectionID == connectionID {
+				return roomID, memberID, nil
+			}
+		}
+	}
+	return "", "", ErrMemberNotFound
+}
+
+func (s *Service) SetDirectorySubscribed(connectionID string, subscribed bool) {
+	if s == nil || s.registry == nil {
+		return
+	}
+	s.registry.SetDirectorySubscribed(connectionID, subscribed)
+}
+
+func (s *Service) DirectorySubscriberIDs() []string {
+	if s == nil || s.registry == nil {
+		return nil
+	}
+	return s.registry.DirectorySubscriberIDs()
+}
+
+func (s *Service) DirectorySnapshot(serverHost string, serverPort int32) *roomv1.RoomDirectorySnapshot {
+	result := &roomv1.RoomDirectorySnapshot{
+		ServerHost: serverHost,
+		ServerPort: serverPort,
+	}
+	if s == nil || s.registry == nil {
+		return result
+	}
+	snapshot := s.registry.DirectorySnapshot()
+	result.Revision = snapshot.Revision
+	result.Entries = make([]*roomv1.RoomDirectoryEntry, 0, len(snapshot.Entries))
+	for _, entry := range snapshot.Entries {
+		result.Entries = append(result.Entries, &roomv1.RoomDirectoryEntry{
+			RoomId:          entry.RoomID,
+			RoomDisplayName: entry.RoomDisplayName,
+			RoomKind:        entry.RoomKind,
+			ModeId:          entry.ModeID,
+			MapId:           entry.MapID,
+			MemberCount:     entry.MemberCount,
+			MaxPlayerCount:  entry.MaxPlayerCount,
+			Joinable:        entry.Joinable,
+		})
+	}
+	return result
 }
 
 func (s *Service) validateLoadout(loadout Loadout) (Loadout, error) {
@@ -443,7 +837,8 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 		resolved.MatchFormatID = mapEntry.MatchFormatIDs[0]
 	}
 
-	if roomKind == "casual_match_room" || roomKind == "ranked_match_room" || roomKind == "matchmade_room" {
+	switch domain.ParseRoomKindCategory(roomKind) {
+	case domain.RoomKindMatch, domain.RoomKindRanked:
 		if len(resolved.SelectedModeIDs) == 0 && resolved.ModeID != "" {
 			resolved.SelectedModeIDs = []string{resolved.ModeID}
 		}
@@ -451,7 +846,7 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 			return Selection{}, nil, ErrInvalidSelection
 		}
 		queueType := "casual"
-		if roomKind == "ranked_match_room" {
+		if domain.ParseRoomKindCategory(roomKind) == domain.RoomKindRanked {
 			queueType = "ranked"
 		}
 		mapPool, err := s.query.ResolveMapPool(resolved.MatchFormatID, resolved.SelectedModeIDs, queueType)
@@ -462,7 +857,7 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 		resolved.MapID = mapEntry.MapID
 		resolved.ModeID = mapEntry.ModeID
 		resolved.RuleSetID = mapEntry.RuleSetID
-	} else {
+	default:
 		validated, err := s.query.ValidateCustomRoomSelection(resolved.MapID, resolved.ModeID, resolved.RuleSetID)
 		if err != nil {
 			return Selection{}, nil, ErrInvalidSelection
@@ -482,12 +877,14 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 	}
 	members := make([]domain.RoomMember, 0, len(room.Members))
 	for _, member := range room.Members {
+		member.ReconnectToken = ""
 		members = append(members, member)
 	}
 	return &SnapshotProjection{
 		RoomID:           room.RoomID,
 		RoomKind:         room.RoomKind,
 		RoomDisplayName:  room.RoomDisplayName,
+		LifecycleState:   room.LifecycleState,
 		SnapshotRevision: room.SnapshotRevision,
 		OwnerMemberID:    s.roomOwnerByID[room.RoomID],
 		Selection:        room.Selection,
@@ -500,4 +897,94 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 func (s *Service) nextID(prefix string) string {
 	value := s.idCounter.Add(1)
 	return fmt.Sprintf("%s-%d-%d", prefix, time.Now().UnixNano(), value)
+}
+
+func isMatchRoomKind(roomKind string) bool {
+	kind := domain.ParseRoomKindCategory(roomKind)
+	return kind == domain.RoomKindMatch || kind == domain.RoomKindRanked
+}
+
+func isManualRoomKind(roomKind string) bool {
+	return domain.ParseRoomKindCategory(roomKind) == domain.RoomKindCustom
+}
+
+func isDirectoryVisibleRoomKind(roomKind string) bool {
+	return roomKind != "" && roomKind != "private_room"
+}
+
+func queueTypeByRoomKind(roomKind string) string {
+	if domain.ParseRoomKindCategory(roomKind) == domain.RoomKindRanked {
+		return "ranked"
+	}
+	return "casual"
+}
+
+func normalizeRoomKind(roomKind string) (string, error) {
+	switch domain.ParseRoomKindCategory(roomKind) {
+	case domain.RoomKindCustom:
+		return "custom_room", nil
+	case domain.RoomKindMatch:
+		return "casual_match_room", nil
+	case domain.RoomKindRanked:
+		return "ranked_match_room", nil
+	default:
+		if strings.TrimSpace(roomKind) == "" {
+			return "custom_room", nil
+		}
+		return "", ErrInvalidRoomKind
+	}
+}
+
+func canEnterQueueFromState(queueState string) bool {
+	return queueState == "" || queueState == "idle" || queueState == "cancelled" || queueState == "failed"
+}
+
+func allMembersReady(members map[string]domain.RoomMember) bool {
+	if len(members) == 0 {
+		return false
+	}
+	for _, member := range members {
+		if !member.Ready {
+			return false
+		}
+	}
+	return true
+}
+
+func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyMember {
+	result := make([]gameclient.PartyMember, 0, len(members))
+	for _, member := range members {
+		result = append(result, gameclient.PartyMember{
+			AccountID: member.AccountID,
+			ProfileID: member.ProfileID,
+			TeamID:    member.TeamID,
+		})
+	}
+	return result
+}
+
+func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
+	if s == nil || s.registry == nil || room == nil {
+		return
+	}
+	if !isDirectoryVisibleRoomKind(room.RoomKind) {
+		s.registry.RemoveRoomEntry(room.RoomID)
+		return
+	}
+	memberCount := len(room.Members)
+	joinable := memberCount < room.MaxPlayerCount &&
+		room.Queue.QueueState != "queueing" &&
+		room.Queue.QueueState != "matched" &&
+		room.LifecycleState != "battle_handoff" &&
+		room.LifecycleState != "battle_entry_acknowledged"
+	s.registry.UpsertRoomEntry(registry.DirectoryEntry{
+		RoomID:          room.RoomID,
+		RoomDisplayName: room.RoomDisplayName,
+		RoomKind:        room.RoomKind,
+		ModeID:          room.Selection.ModeID,
+		MapID:           room.Selection.MapID,
+		MemberCount:     int32(memberCount),
+		MaxPlayerCount:  int32(room.MaxPlayerCount),
+		Joinable:        joinable,
+	})
 }

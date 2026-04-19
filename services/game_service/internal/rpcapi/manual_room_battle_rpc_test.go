@@ -1,7 +1,11 @@
 package rpcapi
 
 import (
+	"context"
 	"testing"
+	"time"
+
+	gamev1 "qqtang/services/game_service/internal/gen/qqt/gamev1shim"
 
 	"qqtang/services/game_service/internal/battlealloc"
 )
@@ -21,25 +25,28 @@ func TestCreateManualRoomBattleRPC(t *testing.T) {
 	conn, cleanup := startTestRPCServer(t, NewRoomControlService(nil, fakeManual, nil))
 	defer cleanup()
 
-	resp := invokeRPC(t, conn, "/qqt.internal.game.v1.RoomControlService/CreateManualRoomBattle", map[string]any{
-		"source_room_id":        "room_manual_1",
-		"source_room_kind":      "private_room",
-		"mode_id":               "mode_classic",
-		"rule_set_id":           "ruleset_classic",
-		"map_id":                "map_arcade",
-		"expected_member_count": 2,
-		"members": []any{
-			map[string]any{"account_id": "acc_1", "profile_id": "pro_1", "assigned_team_id": 1},
-			map[string]any{"account_id": "acc_2", "profile_id": "pro_2", "assigned_team_id": 2},
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	resp, err := conn.CreateManualRoomBattle(ctx, &gamev1.CreateManualRoomBattleRequest{
+		Context:   &gamev1.RoomContext{RoomId: "room_manual_1", RoomKind: "private_room"},
+		ModeId:    "mode_classic",
+		RuleSetId: "ruleset_classic",
+		MapId:     "map_arcade",
+		Members: []*gamev1.PartyMember{
+			{AccountId: "acc_1", ProfileId: "pro_1", TeamId: 1},
+			{AccountId: "acc_2", ProfileId: "pro_2", TeamId: 2},
 		},
 	})
-	if resp["ok"] != true {
+	if err != nil {
+		t.Fatalf("create manual room battle rpc failed: %v", err)
+	}
+	if !resp.GetOk() {
 		t.Fatalf("create manual room battle should succeed: %#v", resp)
 	}
 	if fakeManual.lastInput.SourceRoomID != "room_manual_1" || len(fakeManual.lastInput.Members) != 2 {
 		t.Fatalf("manual room input should be forwarded to service")
 	}
-	if resp["assignment_id"] != "assign_manual_1" {
+	if resp.GetAssignmentId() != "assign_manual_1" {
 		t.Fatalf("assignment id mismatch: %#v", resp)
 	}
 }

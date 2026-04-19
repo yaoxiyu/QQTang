@@ -37,11 +37,17 @@ func TestResumeRoom(t *testing.T) {
 	}
 
 	snapshot, err := svc.ResumeRoom(ResumeRoomInput{
-		RoomID:         created.RoomID,
-		MemberID:       member.MemberID,
-		ReconnectToken: member.ReconnectToken,
-		ConnectionID:   "conn-resume",
-		RoomTicket:     "ticket-resume",
+		RoomID:   created.RoomID,
+		MemberID: member.MemberID,
+		ReconnectToken: func() string {
+			token, tokenErr := svc.ReconnectToken(created.RoomID, member.MemberID)
+			if tokenErr != nil {
+				t.Fatalf("fetch reconnect token failed: %v", tokenErr)
+			}
+			return token
+		}(),
+		ConnectionID: "conn-resume",
+		RoomTicket:   "ticket-resume",
 	})
 	if err != nil {
 		t.Fatalf("resume room failed: %v", err)

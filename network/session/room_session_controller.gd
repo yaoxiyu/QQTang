@@ -189,18 +189,20 @@ func can_start_match() -> bool:
 
 
 func can_request_start_match(requester_peer_id: int) -> bool:
-	if requester_peer_id != owner_peer_id:
+	var effective_peer_id := _resolve_effective_requester_peer_id(requester_peer_id)
+	if effective_peer_id != owner_peer_id:
 		return false
 	return can_start_match()
 
 
 func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
+	var effective_peer_id := _resolve_effective_requester_peer_id(requester_peer_id)
 	if not _can_interact_in_room():
 		return {
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Room is not ready for this action",
 		}
-	if requester_peer_id != owner_peer_id:
+	if effective_peer_id != owner_peer_id:
 		return {
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Only the host can start the match",
@@ -247,14 +249,15 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 
 
 func request_toggle_ready(peer_id: int) -> Dictionary:
-	if not _can_interact_in_room() or not room_session.peers.has(peer_id):
+	var effective_peer_id := _resolve_effective_requester_peer_id(peer_id)
+	if not _can_interact_in_room() or not room_session.peers.has(effective_peer_id):
 		return {
 			"ok": false,
 			"error_code": "ROOM_START_FORBIDDEN",
 			"user_message": "Room is not ready for ready toggle",
 		}
-	var local_ready := bool(room_session.ready_state.get(peer_id, false))
-	set_member_ready(peer_id, not local_ready)
+	var local_ready := bool(room_session.ready_state.get(effective_peer_id, false))
+	set_member_ready(effective_peer_id, not local_ready)
 	return {"ok": true}
 
 
@@ -301,7 +304,8 @@ func request_update_member_profile(
 	bubble_skin_id: String = "",
 	team_id: int = 1
 ) -> Dictionary:
-	if not _can_interact_in_room() or peer_id == 0 or not room_session.peers.has(peer_id):
+	var effective_peer_id := _resolve_effective_requester_peer_id(peer_id)
+	if not _can_interact_in_room() or effective_peer_id == 0 or not room_session.peers.has(effective_peer_id):
 		return {
 			"ok": false,
 			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
@@ -314,24 +318,35 @@ func request_update_member_profile(
 			"error_code": "ROOM_MEMBER_PROFILE_INVALID",
 			"user_message": "Character selection is invalid",
 		}
-	var current_profile: Dictionary = member_profiles.get(peer_id, {})
-	var current_team_id := int(current_profile.get("team_id", _resolve_member_slot_index(peer_id) + 1))
-	if bool(room_session.ready_state.get(peer_id, false)) and team_id != current_team_id:
+	var current_profile: Dictionary = member_profiles.get(effective_peer_id, {})
+	var current_team_id := int(current_profile.get("team_id", _resolve_member_slot_index(effective_peer_id) + 1))
+	if bool(room_session.ready_state.get(effective_peer_id, false)) and team_id != current_team_id:
 		return {
 			"ok": false,
 			"error_code": "ROOM_MEMBER_PROFILE_FORBIDDEN",
 			"user_message": "Team cannot be changed after ready",
 		}
-	var profile: Dictionary = member_profiles.get(peer_id, {})
-	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
+	var profile: Dictionary = member_profiles.get(effective_peer_id, {})
+	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % effective_peer_id
 	profile["character_id"] = trimmed_character_id
 	profile["character_skin_id"] = character_skin_id.strip_edges()
 	profile["bubble_style_id"] = bubble_style_id
 	profile["bubble_skin_id"] = bubble_skin_id.strip_edges()
 	profile["team_id"] = team_id
-	member_profiles[peer_id] = profile
+	member_profiles[effective_peer_id] = profile
 	_emit_snapshot_changed()
 	return {"ok": true}
+
+
+func _resolve_effective_requester_peer_id(requested_peer_id: int) -> int:
+	if requested_peer_id > 0 and room_session != null and room_session.peers.has(requested_peer_id):
+		return requested_peer_id
+	var local_peer_id := int(room_runtime_context.local_player_id) if room_runtime_context != null else 0
+	if local_peer_id > 0 and room_session != null and room_session.peers.has(local_peer_id):
+		return local_peer_id
+	if room_session != null and room_session.peers.size() == 1:
+		return int(room_session.peers[0])
+	return requested_peer_id
 
 
 func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
@@ -387,6 +402,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.match_active = snapshot.match_active
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")
 	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "authoritative_snapshot")
+	room_runtime_context.last_error = {}
 	_sync_runtime_context()
 	_emit_snapshot_changed()
 
@@ -689,7 +705,7 @@ func _resolve_mode_id() -> String:
 
 
 func _are_all_members_ready() -> bool:
-	if room_session.peers.size() < room_session.min_start_players:
+	if room_session.peers.is_empty():
 		return false
 
 	for peer_id in room_session.peers:

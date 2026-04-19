@@ -45,7 +45,7 @@ func main() {
 		gameclient.New(cfg.RoomGameServiceGRPCAddr),
 	)
 
-	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger)
+	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger, cfg.RoomAllowedOrigins...)
 	if err := wsServer.Start(); err != nil {
 		fatalf("start ws server: %v", err)
 	}

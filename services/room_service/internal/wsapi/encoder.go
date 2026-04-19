@@ -3,111 +3,160 @@ package wsapi
 import (
 	"time"
 
-	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 
 	"qqtang/services/room_service/internal/domain"
+	roomv1 "qqtang/services/room_service/internal/gen/qqt/room/v1"
 	"qqtang/services/room_service/internal/roomapp"
 )
 
 func EncodeOperationAccepted(conn *Connection, requestID, operation string) []byte {
-	msg := make([]byte, 0, 128)
-	msg = appendString(msg, 1, "room.v1")
-	msg = appendString(msg, 2, requestID)
-	msg = appendVarint(msg, 3, uint64(conn.NextSequence()))
-	msg = appendVarint(msg, 4, uint64(time.Now().UnixMilli()))
-
-	accepted := make([]byte, 0, 64)
-	accepted = appendString(accepted, 1, requestID)
-	accepted = appendString(accepted, 2, operation)
-	msg = appendBytes(msg, 10, accepted)
-	return msg
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_OperationAccepted{
+			OperationAccepted: &roomv1.OperationAccepted{
+				RequestId: requestID,
+				Operation: operation,
+			},
+		},
+	})
 }
 
 func EncodeOperationRejected(conn *Connection, requestID, operation, code, userMessage string) []byte {
-	msg := make([]byte, 0, 160)
-	msg = appendString(msg, 1, "room.v1")
-	msg = appendString(msg, 2, requestID)
-	msg = appendVarint(msg, 3, uint64(conn.NextSequence()))
-	msg = appendVarint(msg, 4, uint64(time.Now().UnixMilli()))
-
-	rejected := make([]byte, 0, 96)
-	rejected = appendString(rejected, 1, requestID)
-	rejected = appendString(rejected, 2, operation)
-	errMsg := make([]byte, 0, 48)
-	errMsg = appendString(errMsg, 1, code)
-	errMsg = appendString(errMsg, 2, userMessage)
-	rejected = appendBytes(rejected, 3, errMsg)
-
-	msg = appendBytes(msg, 11, rejected)
-	return msg
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_OperationRejected{
+			OperationRejected: &roomv1.OperationRejected{
+				RequestId: requestID,
+				Operation: operation,
+				Error: &roomv1.OperationError{
+					Code:        code,
+					UserMessage: userMessage,
+				},
+			},
+		},
+	})
 }
 
 func EncodeSnapshotPush(conn *Connection, requestID string, snapshot *roomapp.SnapshotProjection) []byte {
-	msg := make([]byte, 0, 512)
-	msg = appendString(msg, 1, "room.v1")
-	msg = appendString(msg, 2, requestID)
-	msg = appendVarint(msg, 3, uint64(conn.NextSequence()))
-	msg = appendVarint(msg, 4, uint64(time.Now().UnixMilli()))
-
-	push := make([]byte, 0, 400)
-	push = appendBytes(push, 1, encodeSnapshot(snapshot))
-	msg = appendBytes(msg, 12, push)
-	return msg
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_RoomSnapshotPush{
+			RoomSnapshotPush: &roomv1.RoomSnapshotPush{
+				Snapshot: encodeSnapshot(snapshot),
+			},
+		},
+	})
 }
 
-func encodeSnapshot(snapshot *roomapp.SnapshotProjection) []byte {
-	data := make([]byte, 0, 320)
+func EncodeDirectorySnapshotPush(conn *Connection, requestID string, snapshot *roomv1.RoomDirectorySnapshot) []byte {
 	if snapshot == nil {
-		return data
+		snapshot = &roomv1.RoomDirectorySnapshot{}
 	}
-	data = appendString(data, 1, snapshot.RoomID)
-	data = appendString(data, 2, snapshot.RoomKind)
-	data = appendString(data, 3, snapshot.RoomDisplayName)
-	data = appendString(data, 4, snapshot.OwnerMemberID)
-	data = appendVarint(data, 6, uint64(snapshot.SnapshotRevision))
-	data = appendBytes(data, 7, encodeSelection(snapshot.Selection))
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_RoomDirectorySnapshotPush{
+			RoomDirectorySnapshotPush: &roomv1.RoomDirectorySnapshotPush{
+				Snapshot: snapshot,
+			},
+		},
+	})
+}
+
+func EncodeBattleEntryReadyPush(conn *Connection, requestID string, handoff domain.BattleHandoff) []byte {
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_BattleEntryReadyPush{
+			BattleEntryReadyPush: &roomv1.BattleEntryReadyPush{
+				BattleEntry: encodeBattleEntry(handoff),
+			},
+		},
+	})
+}
+
+func EncodeServerNotice(conn *Connection, requestID, level, code, message string) []byte {
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_ServerNotice{
+			ServerNotice: &roomv1.ServerNotice{
+				Level:   level,
+				Code:    code,
+				Message: message,
+			},
+		},
+	})
+}
+
+func mustMarshalServerEnvelope(conn *Connection, requestID string, env *roomv1.ServerEnvelope) []byte {
+	if env == nil {
+		env = &roomv1.ServerEnvelope{}
+	}
+	env.ProtocolVersion = "room.v1"
+	env.RequestId = requestID
+	env.Sequence = conn.NextSequence()
+	env.SentAtUnixMs = time.Now().UnixMilli()
+	data, err := proto.Marshal(env)
+	if err != nil {
+		return []byte{}
+	}
+	return data
+}
+
+func encodeSnapshot(snapshot *roomapp.SnapshotProjection) *roomv1.RoomSnapshot {
+	if snapshot == nil {
+		return &roomv1.RoomSnapshot{}
+	}
+	result := &roomv1.RoomSnapshot{
+		RoomId:           snapshot.RoomID,
+		RoomKind:         snapshot.RoomKind,
+		RoomDisplayName:  snapshot.RoomDisplayName,
+		OwnerMemberId:    snapshot.OwnerMemberID,
+		LifecycleState:   snapshot.LifecycleState,
+		SnapshotRevision: snapshot.SnapshotRevision,
+		Selection:        encodeSelection(snapshot.Selection),
+		QueueState:       snapshot.QueueState.QueueState,
+		BattleEntry:      encodeBattleEntry(snapshot.BattleHandoff),
+	}
+	result.Members = make([]*roomv1.RoomMember, 0, len(snapshot.Members))
 	for _, member := range snapshot.Members {
-		data = appendBytes(data, 8, encodeMember(member))
+		result.Members = append(result.Members, encodeMember(member))
 	}
-	return data
+	return result
 }
 
-func encodeSelection(selection domain.RoomSelection) []byte {
-	data := make([]byte, 0, 96)
-	data = appendString(data, 1, selection.MapID)
-	data = appendString(data, 2, selection.RuleSetID)
-	data = appendString(data, 3, selection.ModeID)
-	data = appendString(data, 4, selection.MatchFormatID)
-	return data
-}
-
-func encodeMember(member domain.RoomMember) []byte {
-	data := make([]byte, 0, 128)
-	data = appendString(data, 1, member.MemberID)
-	data = appendString(data, 2, member.AccountID)
-	data = appendString(data, 3, member.ProfileID)
-	data = appendString(data, 4, member.PlayerName)
-	data = appendString(data, 7, member.ReconnectToken)
-	if member.Ready {
-		data = appendVarint(data, 6, 1)
+func encodeSelection(selection domain.RoomSelection) *roomv1.RoomSelection {
+	return &roomv1.RoomSelection{
+		MapId:           selection.MapID,
+		RuleSetId:       selection.RuleSetID,
+		ModeId:          selection.ModeID,
+		MatchFormatId:   selection.MatchFormatID,
+		SelectedModeIds: append([]string{}, selection.SelectedModeIDs...),
 	}
-	return data
 }
 
-func appendString(dst []byte, fieldNumber protowire.Number, value string) []byte {
-	if value == "" {
-		return dst
+func encodeMember(member domain.RoomMember) *roomv1.RoomMember {
+	return &roomv1.RoomMember{
+		MemberId:        member.MemberID,
+		AccountId:       member.AccountID,
+		ProfileId:       member.ProfileID,
+		PlayerName:      member.PlayerName,
+		TeamId:          int32(member.TeamID),
+		Ready:           member.Ready,
+		Loadout:         mapLoadout(member.Loadout),
+		ConnectionState: member.ConnectionState,
 	}
-	dst = protowire.AppendTag(dst, fieldNumber, protowire.BytesType)
-	return protowire.AppendString(dst, value)
 }
 
-func appendVarint(dst []byte, fieldNumber protowire.Number, value uint64) []byte {
-	dst = protowire.AppendTag(dst, fieldNumber, protowire.VarintType)
-	return protowire.AppendVarint(dst, value)
+func mapLoadout(loadout domain.RoomLoadout) *roomv1.RoomLoadout {
+	return &roomv1.RoomLoadout{
+		CharacterId:     loadout.CharacterID,
+		CharacterSkinId: loadout.CharacterSkinID,
+		BubbleStyleId:   loadout.BubbleStyleID,
+		BubbleSkinId:    loadout.BubbleSkinID,
+	}
 }
 
-func appendBytes(dst []byte, fieldNumber protowire.Number, value []byte) []byte {
-	dst = protowire.AppendTag(dst, fieldNumber, protowire.BytesType)
-	return protowire.AppendBytes(dst, value)
+func encodeBattleEntry(h domain.BattleHandoff) *roomv1.BattleEntryState {
+	return &roomv1.BattleEntryState{
+		AssignmentId:     h.AssignmentID,
+		BattleId:         h.BattleID,
+		MatchId:          h.MatchID,
+		ServerHost:       h.ServerHost,
+		ServerPort:       int32(h.ServerPort),
+		BattleEntryReady: h.Ready,
+	}
 }

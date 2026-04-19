@@ -19,7 +19,7 @@ func build_view_model(
 	var resolved_room_display_name := _resolve_room_display_name(safe_snapshot, safe_entry_context)
 
 	var local_peer_id := int(safe_context.local_player_id)
-	var is_host := local_peer_id != 0 and local_peer_id == int(safe_snapshot.owner_peer_id)
+	var is_host := _is_local_host(safe_snapshot, local_peer_id)
 	var is_practice := resolved_room_kind == "practice"
 	var is_custom_room := FrontRoomKind.is_custom_room(resolved_room_kind)
 	var is_match_room := FrontRoomKind.is_match_room(resolved_room_kind)
@@ -162,6 +162,10 @@ func _build_title_text(room_kind: String, room_display_name: String) -> String:
 			return "Casual Match Room"
 		"ranked_match_room":
 			return "Ranked Match Room"
+		"custom_room":
+			if not room_display_name.is_empty():
+				return "Custom Room - %s" % room_display_name
+			return "Custom Room"
 		"public_room":
 			if not room_display_name.is_empty():
 				return "Custom Room - %s" % room_display_name
@@ -221,6 +225,15 @@ func _resolve_local_team_id(members: Array[Dictionary]) -> int:
 	return 1
 
 
+func _is_local_host(snapshot: RoomSnapshot, local_peer_id: int) -> bool:
+	if snapshot == null:
+		return false
+	for member in snapshot.members:
+		if member != null and member.is_local_player and member.is_owner:
+			return true
+	return local_peer_id > 0 and local_peer_id == int(snapshot.owner_peer_id)
+
+
 func _build_blocker_text(
 	snapshot: RoomSnapshot,
 	room_runtime_context: RoomRuntimeContext,
@@ -233,7 +246,7 @@ func _build_blocker_text(
 ) -> String:
 	if snapshot == null:
 		return "Room context is not ready"
-	if room_runtime_context != null and not room_runtime_context.last_error.is_empty():
+	if room_runtime_context != null and not room_runtime_context.last_error.is_empty() and member_count <= 0:
 		return String(room_runtime_context.last_error.get("error_message", "Room connection failed"))
 	var resolved_topology := _resolve_topology(snapshot, room_runtime_context, room_entry_context)
 	if resolved_topology == "dedicated_server" and member_count <= 0:
@@ -307,6 +320,8 @@ func _format_room_kind(room_kind: String) -> String:
 			return "Casual Match Room"
 		"ranked_match_room":
 			return "Ranked Match Room"
+		"custom_room":
+			return "Custom Room"
 		"private_room":
 			return "Custom Room (Private)"
 		"public_room":
@@ -397,12 +412,7 @@ func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count:
 	var queue_state := String(snapshot.room_queue_state)
 	if queue_state != "idle" and queue_state != "cancelled":
 		return false
-	if snapshot.selected_match_mode_ids.is_empty():
-		return false
-	var required_party_size := int(snapshot.required_party_size)
-	if required_party_size <= 0:
-		required_party_size = 1
-	if member_count != required_party_size:
+	if snapshot.selected_match_mode_ids.is_empty() and String(snapshot.mode_id).is_empty():
 		return false
 	if not bool(snapshot.all_ready):
 		return false
@@ -416,13 +426,8 @@ func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -
 		return "匹配中"
 	if String(snapshot.room_queue_state) == "assigned":
 		return "已匹配，等待分配"
-	if snapshot.selected_match_mode_ids.is_empty():
+	if snapshot.selected_match_mode_ids.is_empty() and String(snapshot.mode_id).is_empty():
 		return "请选择匹配模式"
-	var required_party_size := int(snapshot.required_party_size)
-	if required_party_size <= 0:
-		required_party_size = 1
-	if member_count != required_party_size:
-		return "队伍人数需为 %d" % required_party_size
 	if not bool(snapshot.all_ready):
 		return "所有成员需要准备"
 	return ""
@@ -443,6 +448,8 @@ func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
 	var queue_type := String(snapshot.queue_type)
 	var match_format_id := String(snapshot.match_format_id)
 	var selected_mode_ids := snapshot.selected_match_mode_ids
+	if selected_mode_ids.is_empty() and not String(snapshot.mode_id).is_empty():
+		selected_mode_ids = [String(snapshot.mode_id)]
 	var count := MapSelectionCatalogScript.get_match_room_eligible_map_count(queue_type, match_format_id, selected_mode_ids)
 	if count <= 0:
 		if match_format_id == "4v4":

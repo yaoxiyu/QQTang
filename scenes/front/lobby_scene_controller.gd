@@ -577,7 +577,8 @@ func _refresh_directory_list() -> void:
 	var filtered_mode_id := _selected_metadata(custom_room_mode_filter_selector)
 	var rendered_count := 0
 	for view_model in view_models:
-		if String(view_model.get("room_kind", "")) != "public_room":
+		var room_kind := String(view_model.get("room_kind", ""))
+		if room_kind != "public_room" and room_kind != "custom_room":
 			continue
 		var mode_id := String(view_model.get("mode_id", ""))
 		if not filtered_mode_id.is_empty() and mode_id != filtered_mode_id:

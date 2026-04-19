@@ -14,16 +14,15 @@ $ErrorActionPreference = 'Stop'
 function Ensure-DatabaseExists {
     param($DbCfg)
 
-    $sql = @"
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '$($DbCfg.Database)') THEN
-        EXECUTE 'CREATE DATABASE "$($DbCfg.Database)"';
-    END IF;
-END
-$$;
-"@
-    Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database 'postgres' -Sql $sql
+    $sql = "SELECT 1 FROM pg_database WHERE datname = '$($DbCfg.Database)';"
+    $exists = $sql | docker exec -e PGPASSWORD=$($DbCfg.Password) -i $($DbCfg.Container) psql -v ON_ERROR_STOP=1 -U $($DbCfg.User) -d 'postgres' -t -A
+    if ($LASTEXITCODE -ne 0) { throw "failed to check db existence: $($DbCfg.Database)" }
+    if (($exists | Select-Object -Last 1).Trim() -eq '1') {
+        return
+    }
+
+    $createSql = "CREATE DATABASE ""$($DbCfg.Database)"";"
+    Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database 'postgres' -Sql $createSql
 }
 
 function Get-Scalar {
@@ -50,6 +49,26 @@ CREATE TABLE IF NOT EXISTS public.schema_migrations (
     Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database $DbCfg.Database -Sql $sql
 }
 
+function Get-QQTFileSha256 {
+    param([string]$Path)
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashBytes = $sha.ComputeHash($stream)
+        }
+        finally {
+            $sha.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    return ([System.BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant())
+}
+
 function Apply-MigrationsForService {
     param(
         [string]$ServiceName,
@@ -74,7 +93,7 @@ function Apply-MigrationsForService {
     if (($tableExists -eq 'f' -or $tableExists -eq 'false' -or [string]::IsNullOrWhiteSpace($tableExists)) -and $userTableCount -gt 0 -and -not $NoBaseline) {
         Write-Host "  baseline existing schema (legacy db without schema_migrations)"
         foreach ($file in $migrationFiles) {
-            $checksum = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $checksum = Get-QQTFileSha256 -Path $file.FullName
             $insertSql = "INSERT INTO public.schema_migrations(name, checksum) VALUES ('$($file.Name)', '$checksum') ON CONFLICT (name) DO NOTHING;"
             Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database $DbCfg.Database -Sql $insertSql
         }
@@ -101,7 +120,7 @@ function Apply-MigrationsForService {
         $sql = Get-Content -LiteralPath $file.FullName -Raw
         Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database $DbCfg.Database -Sql $sql
 
-        $checksum = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $checksum = Get-QQTFileSha256 -Path $file.FullName
         $insertSql = "INSERT INTO public.schema_migrations(name, checksum) VALUES ('$($file.Name)', '$checksum') ON CONFLICT (name) DO NOTHING;"
         Invoke-QQTPsql -Container $DbCfg.Container -User $DbCfg.User -Password $DbCfg.Password -Database $DbCfg.Database -Sql $insertSql
     }
@@ -125,3 +144,5 @@ if ($Service -eq 'all' -or $Service -eq 'game') {
 }
 
 Write-Host "[db-migrate] done ($Profile, service=$Service)"
+
+Pause

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	gamev1 "qqtang/services/game_service/internal/gen/qqt/gamev1shim"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"qqtang/services/game_service/internal/assignment"
 	"qqtang/services/game_service/internal/battlealloc"
@@ -66,7 +67,7 @@ func (f *fakeAssignmentService) CommitRoom(_ context.Context, input assignment.C
 	return f.result, f.err
 }
 
-func startTestRPCServer(t *testing.T, svc *RoomControlService) (*grpc.ClientConn, func()) {
+func startTestRPCServer(t *testing.T, svc *RoomControlService) (gamev1.RoomControlServiceClient, func()) {
 	t.Helper()
 	grpcServer := grpc.NewServer()
 	RegisterRoomControlService(grpcServer, svc)
@@ -92,20 +93,5 @@ func startTestRPCServer(t *testing.T, svc *RoomControlService) (*grpc.ClientConn
 		grpcServer.Stop()
 		_ = ln.Close()
 	}
-	return conn, cleanup
-}
-
-func invokeRPC(t *testing.T, conn *grpc.ClientConn, method string, request map[string]any) map[string]any {
-	t.Helper()
-	req, err := structpb.NewStruct(request)
-	if err != nil {
-		t.Fatalf("build request struct: %v", err)
-	}
-	var resp structpb.Struct
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := conn.Invoke(ctx, method, req, &resp); err != nil {
-		t.Fatalf("invoke %s: %v", method, err)
-	}
-	return resp.AsMap()
+	return gamev1.NewRoomControlServiceClient(conn), cleanup
 }

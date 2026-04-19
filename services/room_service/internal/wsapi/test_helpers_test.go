@@ -10,9 +10,11 @@ import (
 
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 
 	"qqtang/services/room_service/internal/auth"
 	"qqtang/services/room_service/internal/gameclient"
+	roomv1 "qqtang/services/room_service/internal/gen/qqt/room/v1"
 	"qqtang/services/room_service/internal/manifest"
 	"qqtang/services/room_service/internal/registry"
 	"qqtang/services/room_service/internal/roomapp"
@@ -131,8 +133,12 @@ func (s *testSocket) ReadBinary(t *testing.T) []byte {
 }
 
 func encodeClientEnvelopeCreate(requestID string) []byte {
+	return encodeClientEnvelopeCreateWithRoomKind(requestID, "private_room")
+}
+
+func encodeClientEnvelopeCreateWithRoomKind(requestID, roomKind string) []byte {
 	create := make([]byte, 0, 128)
-	create = appendPBString(create, 2, "private_room")
+	create = appendPBString(create, 2, roomKind)
 	create = appendPBString(create, 3, "Room Alpha")
 	create = appendPBString(create, 4, "ticket-create")
 	create = appendPBString(create, 6, "acc-owner")
@@ -148,6 +154,18 @@ func encodeClientEnvelopeCreate(requestID string) []byte {
 	env = appendPBVarint(env, 4, 1)
 	env = appendPBBytes(env, 10, create)
 	return env
+}
+
+func decodeDirectorySnapshot(payload []byte) *roomv1.RoomDirectorySnapshot {
+	env := &roomv1.ServerEnvelope{}
+	if err := proto.Unmarshal(payload, env); err != nil {
+		return nil
+	}
+	push := env.GetRoomDirectorySnapshotPush()
+	if push == nil {
+		return nil
+	}
+	return push.Snapshot
 }
 
 func encodeClientEnvelopeJoin(requestID, roomID string) []byte {
@@ -181,6 +199,16 @@ func encodeClientEnvelopeResume(requestID, roomID, memberID, reconnectToken stri
 	env = appendPBVarint(env, 3, 1)
 	env = appendPBVarint(env, 4, 1)
 	env = appendPBBytes(env, 12, resume)
+	return env
+}
+
+func encodeClientEnvelopeSubscribeDirectory(requestID string) []byte {
+	env := make([]byte, 0, 32)
+	env = appendPBString(env, 1, "room.v1")
+	env = appendPBString(env, 2, requestID)
+	env = appendPBVarint(env, 3, 1)
+	env = appendPBVarint(env, 4, 1)
+	env = appendPBBytes(env, 21, []byte{})
 	return env
 }
 
@@ -348,13 +376,6 @@ func decodeMember(payload []byte) (memberID string, reconnectToken string) {
 				return memberID, reconnectToken
 			}
 			memberID = value
-			payload = payload[m:]
-		case 7:
-			value, m := protowire.ConsumeString(payload)
-			if m < 0 {
-				return memberID, reconnectToken
-			}
-			reconnectToken = value
 			payload = payload[m:]
 		default:
 			m := protowire.ConsumeFieldValue(num, typ, payload)

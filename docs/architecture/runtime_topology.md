@@ -28,13 +28,28 @@ Define runtime ownership, formal process entrypoints, and legacy compatibility b
 - GDScript facade:
   - `network/runtime/room_client/client_room_runtime.gd`
   - `network/runtime/room_client/room_client_gateway.gd`
-- C# protocol layer:
+- C# protocol transport and codec:
   - `network/client_net/room/RoomWsClient.cs`
   - `network/client_net/room/RoomProtoCodec.cs`
-  - `network/client_net/room/RoomSnapshotMapper.cs`
+  - `network/client_net/room/RoomClientEnvelopeFactory.cs`
+  - `network/client_net/room/RoomServerEnvelopeParser.cs`
+- C# runtime-agnostic core mapping:
+  - `network/client_net/room/RoomClientEnvelopeFactoryCore.cs`
+  - `network/client_net/room/RoomSnapshotMapperCore.cs`
+  - `network/client_net/room/RoomCanonicalMessageMapperCore.cs`
+  - `network/client_net/room/RoomGodotInteropConverter.cs`
 - Transport and wire format:
   - WebSocket binary frames.
   - Protobuf envelope payloads.
+
+## Service Runtime Generation Boundaries
+- Room service generated protobuf and grpc code:
+  - `services/room_service/internal/gen/qqt/room/v1/`
+  - `services/room_service/internal/gen/qqt/internal/game/v1/`
+- Game service generated protobuf and grpc code:
+  - `services/game_service/internal/gen/qqt/room/v1/`
+  - `services/game_service/internal/gen/qqt/internal/game/v1/`
+- `gamev1shim` packages are compatibility bridge for Go `internal` path visibility and are not business logic layers.
 
 ## Compatibility Rules
 - Old paths under `network/runtime/*` and `network/session/runtime/*` are compatibility shells when marked deprecated.
@@ -43,4 +58,3 @@ Define runtime ownership, formal process entrypoints, and legacy compatibility b
   - `network/session/room/model/`
   - `network/session/room/shared/`
 - New Room server logic must not be added to Godot legacy room server paths.
-

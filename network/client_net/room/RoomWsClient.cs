@@ -1,8 +1,5 @@
 using Godot;
 using QQTang.Network.ClientNet.Shared;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
 
 namespace QQTang.Network.ClientNet.Room;
 
@@ -25,6 +22,8 @@ public partial class RoomWsClient : Node
 
     private readonly WebSocketPeer _socket = new();
     private readonly RoomProtoCodec _codec = new();
+    private readonly RoomClientEnvelopeFactory _envelopeFactory = new();
+    private readonly RoomCanonicalMessageMapper _messageMapper = new();
 
     public RoomClientSessionState SessionState { get; } = new();
 
@@ -43,6 +42,7 @@ public partial class RoomWsClient : Node
 
         SessionState.ServerUrl = url;
         SessionState.Connected = false;
+        SessionState.ConnectionState = "connecting";
         return Error.Ok;
     }
 
@@ -52,6 +52,7 @@ public partial class RoomWsClient : Node
         if (SessionState.Connected)
         {
             SessionState.Connected = false;
+            SessionState.ConnectionState = "disconnected";
             EmitSignal(SignalName.Disconnected);
         }
     }
@@ -62,8 +63,7 @@ public partial class RoomWsClient : Node
         {
             return Error.Unavailable;
         }
-        var encoded = _codec.EncodeEnvelope(payload);
-        return _socket.Send(encoded);
+        return _socket.Send(payload ?? []);
     }
 
     public Error SendMessage(Godot.Collections.Dictionary message)
@@ -72,8 +72,24 @@ public partial class RoomWsClient : Node
         {
             return Error.InvalidData;
         }
-        var json = JsonSerializer.Serialize(ToPlainObject(message));
-        return SendBinary(Encoding.UTF8.GetBytes(json));
+
+        if (_socket.GetReadyState() != WebSocketPeer.State.Open)
+        {
+            return Error.Unavailable;
+        }
+
+        try
+        {
+            var envelope = _envelopeFactory.BuildEnvelope(message, SessionState);
+            UpdateSessionStateOnOutgoingMessage(message);
+            var encoded = _codec.EncodeEnvelope(envelope);
+            return _socket.Send(encoded);
+        }
+        catch (System.Exception ex)
+        {
+            EmitSignal(SignalName.RoomError, "ROOM_SEND_FAILED", ex.Message);
+            return Error.Failed;
+        }
     }
 
     public override void _Process(double delta)
@@ -84,11 +100,13 @@ public partial class RoomWsClient : Node
         if (state == WebSocketPeer.State.Open && !SessionState.Connected)
         {
             SessionState.Connected = true;
+            SessionState.ConnectionState = "connected";
             EmitSignal(SignalName.Connected);
         }
         else if (state == WebSocketPeer.State.Closed && SessionState.Connected)
         {
             SessionState.Connected = false;
+            SessionState.ConnectionState = "disconnected";
             EmitSignal(SignalName.Disconnected);
         }
 
@@ -96,62 +114,175 @@ public partial class RoomWsClient : Node
         {
             var packet = _socket.GetPacket();
             var payload = WsBinaryFrameReader.ToManagedBytes(packet);
-            var decoded = _codec.DecodeEnvelope(payload);
-            EmitSignal(SignalName.FrameReceived, decoded);
-            var decodedText = Encoding.UTF8.GetString(decoded);
-            if (TryParseJsonDictionary(decodedText, out var dict))
+            EmitSignal(SignalName.FrameReceived, payload);
+
+            try
             {
+                var envelope = _codec.DecodeServerEnvelope(payload);
+                var dict = _messageMapper.Map(envelope);
+                UpdateSessionStateOnIncomingMessage(dict);
                 EmitSignal(SignalName.MessageReceived, dict);
+            }
+            catch (RoomProtocolDecodeException ex)
+            {
+                EmitSignal(SignalName.RoomError, ex.ErrorCode, ex.UserMessage);
+            }
+            catch (System.Exception ex)
+            {
+                EmitSignal(SignalName.RoomError, "ROOM_MESSAGE_MAP_FAILED", ex.Message);
             }
         }
     }
 
-    private static bool TryParseJsonDictionary(string text, out Godot.Collections.Dictionary result)
+    private void UpdateSessionStateOnOutgoingMessage(Godot.Collections.Dictionary message)
     {
-        result = new Godot.Collections.Dictionary();
-        if (string.IsNullOrWhiteSpace(text))
+        var messageType = ReadString(message, "message_type");
+        if (messageType == "ROOM_DIRECTORY_SUBSCRIBE")
         {
-            return false;
+            SessionState.DirectorySubscribed = true;
         }
-        var parsed = Json.ParseString(text);
-        if (parsed.VariantType != Variant.Type.Dictionary)
+        else if (messageType == "ROOM_DIRECTORY_UNSUBSCRIBE")
         {
-            return false;
+            SessionState.DirectorySubscribed = false;
         }
-        result = (Godot.Collections.Dictionary)parsed;
-        return true;
+        else if (
+            messageType == "ROOM_CREATE_REQUEST" ||
+            messageType == "ROOM_JOIN_REQUEST" ||
+            messageType == "ROOM_RESUME_REQUEST")
+        {
+            SessionState.LocalAccountId = ReadString(message, "account_id");
+            SessionState.LocalProfileId = ReadString(message, "profile_id");
+        }
     }
 
-    private static object ToPlainObject(Variant variant)
+    private void UpdateSessionStateOnIncomingMessage(Godot.Collections.Dictionary message)
     {
-        switch (variant.VariantType)
+        var messageType = ReadString(message, "message_type");
+        if (messageType == "ROOM_SNAPSHOT")
         {
-            case Variant.Type.Dictionary:
-                var dict = (Godot.Collections.Dictionary)variant;
-                var map = new Dictionary<string, object>();
-                foreach (var key in dict.Keys)
-                {
-                    map[key.ToString() ?? string.Empty] = ToPlainObject((Variant)dict[key]);
-                }
-                return map;
-            case Variant.Type.Array:
-                var arr = (Godot.Collections.Array)variant;
-                var list = new List<object>();
-                foreach (var item in arr)
-                {
-                    list.Add(ToPlainObject((Variant)item));
-                }
-                return list;
-            case Variant.Type.String:
-                return variant.AsString();
-            case Variant.Type.Bool:
-                return variant.AsBool();
-            case Variant.Type.Int:
-                return variant.AsInt64();
-            case Variant.Type.Float:
-                return variant.AsDouble();
-            default:
-                return variant.ToString();
+            var snapshot = ReadNestedDictionary(message, "snapshot");
+            SessionState.BoundRoomId = ReadString(snapshot, "room_id");
+            var ownerMemberId = ReadString(snapshot, "owner_member_id");
+            var resolvedLocalMemberId = ResolveLocalMemberId(snapshot);
+            if (!string.IsNullOrWhiteSpace(resolvedLocalMemberId))
+            {
+                SessionState.BoundMemberId = resolvedLocalMemberId;
+            }
+            else if (!string.IsNullOrWhiteSpace(ownerMemberId) && ReadMembers(snapshot).Count == 1)
+            {
+                SessionState.BoundMemberId = ownerMemberId;
+            }
+            DecorateSnapshotLocalFlags(snapshot);
+            SessionState.LastSnapshotRevision = ReadInt64(snapshot, "snapshot_revision");
         }
+    }
+
+    private string ResolveLocalMemberId(Godot.Collections.Dictionary snapshot)
+    {
+        if (!string.IsNullOrWhiteSpace(SessionState.BoundMemberId))
+        {
+            return SessionState.BoundMemberId;
+        }
+
+        var localAccountId = SessionState.LocalAccountId?.Trim() ?? string.Empty;
+        var localProfileId = SessionState.LocalProfileId?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(localAccountId) || string.IsNullOrEmpty(localProfileId))
+        {
+            return string.Empty;
+        }
+
+        var members = ReadMembers(snapshot);
+        for (var i = 0; i < members.Count; i++)
+        {
+            if (members[i].VariantType != Variant.Type.Dictionary)
+            {
+                continue;
+            }
+            var member = (Godot.Collections.Dictionary)members[i];
+            var accountId = ReadString(member, "account_id");
+            var profileId = ReadString(member, "profile_id");
+            if (string.Equals(accountId, localAccountId, System.StringComparison.Ordinal) &&
+                string.Equals(profileId, localProfileId, System.StringComparison.Ordinal))
+            {
+                return ReadString(member, "member_id");
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private void DecorateSnapshotLocalFlags(Godot.Collections.Dictionary snapshot)
+    {
+        var localMemberId = SessionState.BoundMemberId?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(localMemberId))
+        {
+            return;
+        }
+
+        var members = ReadMembers(snapshot);
+        for (var i = 0; i < members.Count; i++)
+        {
+            if (members[i].VariantType != Variant.Type.Dictionary)
+            {
+                continue;
+            }
+            var member = (Godot.Collections.Dictionary)members[i];
+            var memberId = ReadString(member, "member_id");
+            member["is_local_player"] = string.Equals(memberId, localMemberId, System.StringComparison.Ordinal);
+            members[i] = member;
+        }
+        snapshot["members"] = members;
+    }
+
+    private static Godot.Collections.Array ReadMembers(Godot.Collections.Dictionary snapshot)
+    {
+        if (snapshot == null || !snapshot.ContainsKey("members"))
+        {
+            return [];
+        }
+        var value = snapshot["members"];
+        return value.VariantType == Variant.Type.Array ? (Godot.Collections.Array)value : [];
+    }
+
+    private static Godot.Collections.Dictionary ReadNestedDictionary(Godot.Collections.Dictionary source, string key)
+    {
+        if (source == null || !source.ContainsKey(key))
+        {
+            return new Godot.Collections.Dictionary();
+        }
+
+        var value = source[key];
+        return value.VariantType == Variant.Type.Dictionary ? (Godot.Collections.Dictionary)value : new Godot.Collections.Dictionary();
+    }
+
+    private static string ReadString(Godot.Collections.Dictionary source, string key)
+    {
+        if (source == null || !source.ContainsKey(key))
+        {
+            return string.Empty;
+        }
+        return source[key].VariantType switch
+        {
+            Variant.Type.String => source[key].AsString(),
+            Variant.Type.StringName => source[key].AsStringName().ToString(),
+            Variant.Type.NodePath => source[key].AsNodePath().ToString(),
+            Variant.Type.Nil => string.Empty,
+            _ => source[key].ToString(),
+        };
+    }
+
+    private static long ReadInt64(Godot.Collections.Dictionary source, string key)
+    {
+        if (source == null || !source.ContainsKey(key))
+        {
+            return 0;
+        }
+        return source[key].VariantType switch
+        {
+            Variant.Type.Int => source[key].AsInt64(),
+            Variant.Type.Float => (long)source[key].AsDouble(),
+            Variant.Type.String when long.TryParse(source[key].AsString(), out var parsed) => parsed,
+            _ => 0,
+        };
     }
 }

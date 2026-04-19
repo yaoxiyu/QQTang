@@ -76,3 +76,36 @@
 - Owner: build-and-release
 - Last updated: 2026-04-19
 - Linked tests/docs: `tools/release/release_sanity_check.py`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`
+
+## DEBT-007 room protocol fake protobuf path
+- Risk level: P1
+- Status: closed
+- Related dirs: `network/client_net/`, `network/runtime/room_client/`, `services/room_service/internal/wsapi/`, `proto/qqt/room/v1/`
+- Forbidden new-logic dirs: `network/runtime/legacy/`, `network/session/legacy/`, `network/session/runtime/server_room_*`, `network/runtime/room_service_bootstrap.gd`
+- Planned phase: phase25-room-protocol-closure
+- Done definition: room client send and receive path use generated protobuf envelope end-to-end, room_service wsapi no longer uses hand-written protowire as formal path, snapshot projection excludes reconnect token fields
+- Owner: room-protocol
+- Last updated: 2026-04-19
+- Linked tests/docs: `services/room_service/internal/wsapi/proto_roundtrip_test.go`, `services/room_service/internal/wsapi/ws_dispatcher_full_coverage_test.go`, `tests/contracts/runtime/room_client_runtime_no_json_path_contract_test.gd`, `tests/contracts/runtime/room_client_runtime_no_formal_transport_fallback_contract_test.gd`, `docs/architecture/room_protocol.md`
+
+## DEBT-008 room control plane weak typed grpc
+- Risk level: P1
+- Status: closed
+- Related dirs: `services/room_service/internal/gameclient/`, `services/game_service/internal/rpcapi/`, `proto/qqt/internal/game/v1/`
+- Forbidden new-logic dirs: `services/game_service/internal/rpcapi/grpc_server.go` manual `grpc.ServiceDesc` and `structpb.Struct` formal request path
+- Planned phase: phase25-room-protocol-closure
+- Done definition: room_service gameclient uses generated typed grpc client, game_service rpcapi uses generated service registration and typed request and response only, room control operations pass through typed mapper
+- Owner: control-plane
+- Last updated: 2026-04-19
+- Linked tests/docs: `services/game_service/internal/rpcapi/party_queue_rpc_test.go`, `services/game_service/internal/rpcapi/manual_room_battle_rpc_test.go`, `services/game_service/internal/rpcapi/assignment_commit_rpc_test.go`, `services/game_service/internal/rpcapi/grpc_server.go`, `docs/architecture/network_control_plane.md`
+
+## DEBT-009 client room sdk test coverage missing
+- Risk level: P1
+- Status: closed
+- Related dirs: `tests/csharp/QQTang.RoomClient.Tests/`, `network/client_net/room/`, `network/client_net/generated/`
+- Forbidden new-logic dirs: protocol changes in `network/client_net/room/` without committed csharp tests
+- Planned phase: phase25-room-protocol-closure
+- Done definition: dedicated csharp test project exists in solution, envelope factory and codec and parser and snapshot mapper and canonical mapper are covered, tests run in local validation and CI entry
+- Owner: client-sdk
+- Last updated: 2026-04-19
+- Linked tests/docs: `tests/csharp/QQTang.RoomClient.Tests/RoomClientEnvelopeFactoryTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomProtoCodecTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomServerEnvelopeParserTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomSnapshotMapperTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomCanonicalMessageMapperTests.cs`, `scripts/validation/run_phase25_validation.ps1`, `.github/workflows/phase25_validate.yml`

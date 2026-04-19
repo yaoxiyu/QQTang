@@ -1,7 +1,7 @@
 # Room Service Runtime Contract
 
 ## Scope
-This document defines the formal runtime contract of Phase24 Room Service.
+This document defines the formal runtime contract of Phase25 Room Service.
 
 ## Formal Identity
 - Service entrypoint: `services/room_service/cmd/room_service/main.go`
@@ -15,6 +15,8 @@ This document defines the formal runtime contract of Phase24 Room Service.
 ## Required Config
 - `ROOM_HTTP_ADDR`
 - `ROOM_WS_ADDR`
+- `ROOM_ENV`
+- `ROOM_ALLOWED_ORIGINS`
 - `ROOM_TICKET_SECRET`
 - `ROOM_MANIFEST_PATH`
 - `ROOM_GAME_SERVICE_GRPC_ADDR`
@@ -45,8 +47,21 @@ cmd/room_service/main.go
   - update profile
   - update selection
   - toggle ready
+  - update match room config
+  - enter match queue
+  - cancel match queue
+  - start manual room battle
+  - ack battle entry
 - Push room snapshot with `snapshot_revision`.
+- Push room directory snapshot for subscribers.
+- Push `BattleEntryReady` events when assignment transitions to ready.
 - Reject invalid requests with operation-level error payload.
+
+## Security And Boundary Rules
+- WebSocket `CheckOrigin` must enforce `ROOM_ALLOWED_ORIGINS` in production mode.
+- Development mode can use relaxed origin policy for local workflows.
+- Room snapshot and canonical projections must not expose reconnect token fields.
+- Room service to game service path must use generated typed gRPC client and typed protobuf payloads only.
 
 ## Not In Scope
 - Battle runtime execution.
@@ -56,4 +71,3 @@ cmd/room_service/main.go
 ## Legacy Compatibility
 - Old Godot room server paths are deprecated compatibility shells.
 - Formal Room Service authority is no longer `res://scenes/network/room_service_scene.tscn`.
-

@@ -8,7 +8,7 @@ const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_select
 
 func apply_room_kind_visibility(scene_controller: Node, view_model: Dictionary) -> void:
 	var room_kind := String(view_model.get("room_kind", ""))
-	var is_custom_room := bool(view_model.get("is_custom_room", room_kind == "practice" or room_kind == "private_room" or room_kind == "public_room"))
+	var is_custom_room := bool(view_model.get("is_custom_room", room_kind == "practice" or room_kind == "custom_room" or room_kind == "private_room" or room_kind == "public_room"))
 	var is_match_room := bool(view_model.get("is_match_room", room_kind == "casual_match_room" or room_kind == "ranked_match_room"))
 	var is_assigned_room := bool(view_model.get("is_assigned_room", room_kind == "matchmade_room"))
 	_set_node_visible(scene_controller, "RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow", is_custom_room or is_assigned_room)
@@ -115,6 +115,10 @@ func update_debug_text(scene_controller: Node, snapshot: RoomSnapshot, view_mode
 	lines.append("Rule: %s" % snapshot.rule_set_id)
 	lines.append("Mode: %s" % snapshot.mode_id)
 	lines.append("Owner: %s" % String(view_model.get("owner_text", "")))
+	lines.append("OwnerPeer: %d LocalPeer: %d" % [int(snapshot.owner_peer_id), int(scene_controller._app_runtime.local_peer_id) if scene_controller._app_runtime != null else 0])
+	lines.append("Members: %d ReadyAll: %s" % [snapshot.members.size(), str(bool(snapshot.all_ready))])
+	lines.append("CanStart: %s CanQueue: %s" % [str(bool(view_model.get("can_start", false))), str(bool(view_model.get("can_enter_queue", false)))])
+	lines.append("QueueType: %s Format: %s Modes: %s" % [String(snapshot.queue_type), String(snapshot.match_format_id), JSON.stringify(snapshot.selected_match_mode_ids)])
 	lines.append("Blocker: %s" % String(view_model.get("blocker_text", "")))
 	debug_label.text = "\n".join(lines)
 

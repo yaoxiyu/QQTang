@@ -23,7 +23,7 @@ func on_profile_changed(controller: Node) -> void:
 		controller._select_team_id(local_member.team_id)
 		controller._set_room_feedback("Team cannot be changed after ready")
 		return
-	controller._room_use_case.update_local_profile(
+	var result : Dictionary = controller._room_use_case.update_local_profile(
 		controller.player_name_input.text.strip_edges() if controller.player_name_input != null else "",
 		controller._selected_metadata(controller.character_selector),
 		controller._selected_metadata(controller.character_skin_selector),
@@ -31,6 +31,8 @@ func on_profile_changed(controller: Node) -> void:
 		controller._selected_metadata(controller.bubble_skin_selector),
 		controller._selected_team_id()
 	)
+	if not bool(result.get("ok", false)):
+		controller._set_room_feedback(String(result.get("user_message", "Failed to update profile")))
 
 
 func on_profile_selector_changed(controller: Node) -> void:

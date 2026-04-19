@@ -1,16 +1,49 @@
 package wsapi
 
 import (
+	"bytes"
 	"testing"
 
-	"google.golang.org/protobuf/encoding/protowire"
+	"google.golang.org/protobuf/proto"
 
 	"qqtang/services/room_service/internal/domain"
+	roomv1 "qqtang/services/room_service/internal/gen/qqt/room/v1"
 	"qqtang/services/room_service/internal/roomapp"
 )
 
 func TestDecodeClientEnvelope_CreateRoomRoundtrip(t *testing.T) {
-	wire := encodeClientEnvelopeCreate("req-create-1")
+	wire, err := proto.Marshal(&roomv1.ClientEnvelope{
+		ProtocolVersion: "room.v1",
+		RequestId:       "req-create-1",
+		Sequence:        1,
+		SentAtUnixMs:    1,
+		Payload: &roomv1.ClientEnvelope_CreateRoom{
+			CreateRoom: &roomv1.CreateRoomRequest{
+				RoomKind:        "private_room",
+				RoomDisplayName: "Room Alpha",
+				RoomTicket:      "ticket-create",
+				AccountId:       "acc-owner",
+				ProfileId:       "pro-owner",
+				PlayerName:      "owner",
+				Loadout: &roomv1.RoomLoadout{
+					CharacterId:     "char_default",
+					CharacterSkinId: "skin_1",
+					BubbleStyleId:   "bubble_default",
+					BubbleSkinId:    "bubble_skin_1",
+				},
+				Selection: &roomv1.RoomSelection{
+					MapId:         "map_arcade",
+					RuleSetId:     "ruleset_classic",
+					ModeId:        "mode_classic",
+					MatchFormatId: "2v2",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal client envelope: %v", err)
+	}
+
 	env, err := DecodeClientEnvelope(wire)
 	if err != nil {
 		t.Fatalf("decode envelope failed: %v", err)
@@ -29,8 +62,9 @@ func TestDecodeClientEnvelope_CreateRoomRoundtrip(t *testing.T) {
 	}
 }
 
-func TestEncodeSnapshotPush_ContainsSnapshotRevision(t *testing.T) {
+func TestEncodeSnapshotPush_ContainsFieldsAndNoReconnectTokenLeak(t *testing.T) {
 	conn := newConnection("conn-test", nil)
+	uniqueReconnectToken := "reconnect-token-should-never-leak"
 	snapshot := &roomapp.SnapshotProjection{
 		RoomID:           "room-1",
 		RoomKind:         "private_room",
@@ -45,202 +79,111 @@ func TestEncodeSnapshotPush_ContainsSnapshotRevision(t *testing.T) {
 		},
 		Members: []domain.RoomMember{
 			{
-				MemberID:       "member-1",
-				AccountID:      "acc-1",
-				ProfileID:      "pro-1",
-				PlayerName:     "owner",
-				ReconnectToken: "reconnect-1",
+				MemberID:        "member-1",
+				AccountID:       "acc-1",
+				ProfileID:       "pro-1",
+				PlayerName:      "owner",
+				ConnectionState: "connected",
+				ReconnectToken:  uniqueReconnectToken,
+				Loadout: domain.RoomLoadout{
+					CharacterID:     "char_default",
+					CharacterSkinID: "skin_1",
+					BubbleStyleID:   "bubble_default",
+					BubbleSkinID:    "bubble_skin_1",
+				},
 			},
 		},
 	}
 
 	wire := EncodeSnapshotPush(conn, "req-snap-1", snapshot)
-	revision := decodeSnapshotRevisionFromServerEnvelope(wire)
-	if revision != 42 {
-		t.Fatalf("expected snapshot revision 42, got %d", revision)
+	if bytes.Contains(wire, []byte(uniqueReconnectToken)) {
+		t.Fatalf("snapshot push leaked reconnect token")
+	}
+
+	var env roomv1.ServerEnvelope
+	if err := proto.Unmarshal(wire, &env); err != nil {
+		t.Fatalf("unmarshal snapshot envelope: %v", err)
+	}
+	push := env.GetRoomSnapshotPush()
+	if push == nil || push.GetSnapshot() == nil {
+		t.Fatalf("expected room_snapshot_push payload")
+	}
+	mappedSnapshot := push.GetSnapshot()
+	if mappedSnapshot.GetSnapshotRevision() != 42 {
+		t.Fatalf("expected snapshot revision 42, got %d", mappedSnapshot.GetSnapshotRevision())
+	}
+	if mappedSnapshot.GetSelection().GetMapId() != "map_arcade" {
+		t.Fatalf("expected map_arcade, got %s", mappedSnapshot.GetSelection().GetMapId())
+	}
+	if len(mappedSnapshot.GetMembers()) != 1 {
+		t.Fatalf("expected one member, got %d", len(mappedSnapshot.GetMembers()))
+	}
+	member := mappedSnapshot.GetMembers()[0]
+	if member.GetLoadout().GetCharacterId() != "char_default" {
+		t.Fatalf("expected loadout character_id char_default, got %s", member.GetLoadout().GetCharacterId())
 	}
 }
 
 func TestEncodeOperationAcceptedAndRejected(t *testing.T) {
 	conn := newConnection("conn-test", nil)
 
-	accepted := EncodeOperationAccepted(conn, "req-1", "CreateRoom")
-	if op := decodeAcceptedOperationFromServerEnvelope(accepted); op != "CreateRoom" {
-		t.Fatalf("unexpected accepted operation: %s", op)
+	acceptedWire := EncodeOperationAccepted(conn, "req-1", "CreateRoom")
+	var accepted roomv1.ServerEnvelope
+	if err := proto.Unmarshal(acceptedWire, &accepted); err != nil {
+		t.Fatalf("unmarshal accepted envelope: %v", err)
+	}
+	if accepted.GetOperationAccepted().GetOperation() != "CreateRoom" {
+		t.Fatalf("unexpected accepted operation: %s", accepted.GetOperationAccepted().GetOperation())
 	}
 
-	rejected := EncodeOperationRejected(conn, "req-2", "JoinRoom", "ROOM_JOIN_REJECTED", "join failed")
-	code := decodeRejectedCodeFromServerEnvelope(rejected)
-	if code != "ROOM_JOIN_REJECTED" {
-		t.Fatalf("unexpected rejected code: %s", code)
+	rejectedWire := EncodeOperationRejected(conn, "req-2", "JoinRoom", "ROOM_JOIN_REJECTED", "join failed")
+	var rejected roomv1.ServerEnvelope
+	if err := proto.Unmarshal(rejectedWire, &rejected); err != nil {
+		t.Fatalf("unmarshal rejected envelope: %v", err)
+	}
+	if rejected.GetOperationRejected().GetError().GetCode() != "ROOM_JOIN_REJECTED" {
+		t.Fatalf("unexpected rejected code: %s", rejected.GetOperationRejected().GetError().GetCode())
 	}
 }
 
-func decodeSnapshotRevisionFromServerEnvelope(payload []byte) int64 {
-	for len(payload) > 0 {
-		num, typ, n := protowire.ConsumeTag(payload)
-		if n < 0 {
-			return 0
-		}
-		payload = payload[n:]
-		if num == 12 && typ == protowire.BytesType {
-			push, m := protowire.ConsumeBytes(payload)
-			if m < 0 {
-				return 0
-			}
-			return decodeSnapshotRevisionFromPush(push)
-		}
-		m := protowire.ConsumeFieldValue(num, typ, payload)
-		if m < 0 {
-			return 0
-		}
-		payload = payload[m:]
-	}
-	return 0
-}
+func TestEncodeDirectoryBattleNoticePushes(t *testing.T) {
+	conn := newConnection("conn-test", nil)
 
-func decodeSnapshotRevisionFromPush(payload []byte) int64 {
-	for len(payload) > 0 {
-		num, typ, n := protowire.ConsumeTag(payload)
-		if n < 0 {
-			return 0
-		}
-		payload = payload[n:]
-		if num == 1 && typ == protowire.BytesType {
-			snapshot, m := protowire.ConsumeBytes(payload)
-			if m < 0 {
-				return 0
-			}
-			return decodeSnapshotRevision(snapshot)
-		}
-		m := protowire.ConsumeFieldValue(num, typ, payload)
-		if m < 0 {
-			return 0
-		}
-		payload = payload[m:]
+	directoryWire := EncodeDirectorySnapshotPush(conn, "req-dir-1", &roomv1.RoomDirectorySnapshot{
+		Revision:   7,
+		ServerHost: "127.0.0.1",
+		ServerPort: 9100,
+	})
+	var dirEnv roomv1.ServerEnvelope
+	if err := proto.Unmarshal(directoryWire, &dirEnv); err != nil {
+		t.Fatalf("unmarshal directory envelope: %v", err)
 	}
-	return 0
-}
+	if dirEnv.GetRoomDirectorySnapshotPush() == nil {
+		t.Fatalf("expected room_directory_snapshot_push payload")
+	}
 
-func decodeSnapshotRevision(payload []byte) int64 {
-	for len(payload) > 0 {
-		num, typ, n := protowire.ConsumeTag(payload)
-		if n < 0 {
-			return 0
-		}
-		payload = payload[n:]
-		if num == 6 && typ == protowire.VarintType {
-			v, m := protowire.ConsumeVarint(payload)
-			if m < 0 {
-				return 0
-			}
-			return int64(v)
-		}
-		m := protowire.ConsumeFieldValue(num, typ, payload)
-		if m < 0 {
-			return 0
-		}
-		payload = payload[m:]
+	battleWire := EncodeBattleEntryReadyPush(conn, "req-battle-1", domain.BattleHandoff{
+		AssignmentID: "assignment-1",
+		BattleID:     "battle-1",
+		MatchID:      "match-1",
+		ServerHost:   "127.0.0.1",
+		ServerPort:   9200,
+		Ready:        true,
+	})
+	var battleEnv roomv1.ServerEnvelope
+	if err := proto.Unmarshal(battleWire, &battleEnv); err != nil {
+		t.Fatalf("unmarshal battle envelope: %v", err)
 	}
-	return 0
-}
+	if battleEnv.GetBattleEntryReadyPush() == nil {
+		t.Fatalf("expected battle_entry_ready_push payload")
+	}
 
-func decodeAcceptedOperationFromServerEnvelope(payload []byte) string {
-	for len(payload) > 0 {
-		num, typ, n := protowire.ConsumeTag(payload)
-		if n < 0 {
-			return ""
-		}
-		payload = payload[n:]
-		if num == 10 && typ == protowire.BytesType {
-			accepted, m := protowire.ConsumeBytes(payload)
-			if m < 0 {
-				return ""
-			}
-			for len(accepted) > 0 {
-				an, at, ax := protowire.ConsumeTag(accepted)
-				if ax < 0 {
-					return ""
-				}
-				accepted = accepted[ax:]
-				if an == 2 && at == protowire.BytesType {
-					op, om := protowire.ConsumeString(accepted)
-					if om < 0 {
-						return ""
-					}
-					return op
-				}
-				om := protowire.ConsumeFieldValue(an, at, accepted)
-				if om < 0 {
-					return ""
-				}
-				accepted = accepted[om:]
-			}
-		}
-		m := protowire.ConsumeFieldValue(num, typ, payload)
-		if m < 0 {
-			return ""
-		}
-		payload = payload[m:]
+	noticeWire := EncodeServerNotice(conn, "req-notice-1", "info", "ROOM_NOTICE", "ok")
+	var noticeEnv roomv1.ServerEnvelope
+	if err := proto.Unmarshal(noticeWire, &noticeEnv); err != nil {
+		t.Fatalf("unmarshal notice envelope: %v", err)
 	}
-	return ""
-}
-
-func decodeRejectedCodeFromServerEnvelope(payload []byte) string {
-	for len(payload) > 0 {
-		num, typ, n := protowire.ConsumeTag(payload)
-		if n < 0 {
-			return ""
-		}
-		payload = payload[n:]
-		if num == 11 && typ == protowire.BytesType {
-			rejected, m := protowire.ConsumeBytes(payload)
-			if m < 0 {
-				return ""
-			}
-			for len(rejected) > 0 {
-				rn, rt, rx := protowire.ConsumeTag(rejected)
-				if rx < 0 {
-					return ""
-				}
-				rejected = rejected[rx:]
-				if rn == 3 && rt == protowire.BytesType {
-					opErr, em := protowire.ConsumeBytes(rejected)
-					if em < 0 {
-						return ""
-					}
-					for len(opErr) > 0 {
-						en, et, ex := protowire.ConsumeTag(opErr)
-						if ex < 0 {
-							return ""
-						}
-						opErr = opErr[ex:]
-						if en == 1 && et == protowire.BytesType {
-							code, cm := protowire.ConsumeString(opErr)
-							if cm < 0 {
-								return ""
-							}
-							return code
-						}
-						cm := protowire.ConsumeFieldValue(en, et, opErr)
-						if cm < 0 {
-							return ""
-						}
-						opErr = opErr[cm:]
-					}
-				}
-				rm := protowire.ConsumeFieldValue(rn, rt, rejected)
-				if rm < 0 {
-					return ""
-				}
-				rejected = rejected[rm:]
-			}
-		}
-		m := protowire.ConsumeFieldValue(num, typ, payload)
-		if m < 0 {
-			return ""
-		}
-		payload = payload[m:]
+	if noticeEnv.GetServerNotice() == nil {
+		t.Fatalf("expected server_notice payload")
 	}
-	return ""
 }

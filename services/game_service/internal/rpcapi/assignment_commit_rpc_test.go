@@ -1,7 +1,11 @@
 package rpcapi
 
 import (
+	"context"
 	"testing"
+	"time"
+
+	gamev1 "qqtang/services/game_service/internal/gen/qqt/gamev1shim"
 
 	"qqtang/services/game_service/internal/assignment"
 )
@@ -18,20 +22,24 @@ func TestCommitAssignmentReadyRPC(t *testing.T) {
 	conn, cleanup := startTestRPCServer(t, NewRoomControlService(nil, nil, fakeAssignment))
 	defer cleanup()
 
-	resp := invokeRPC(t, conn, "/qqt.internal.game.v1.RoomControlService/CommitAssignmentReady", map[string]any{
-		"assignment_id":       "assign_1",
-		"assignment_revision": 2,
-		"account_id":          "acc_1",
-		"profile_id":          "pro_1",
-		"room_id":             "room_1",
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	resp, err := conn.CommitAssignmentReady(ctx, &gamev1.CommitAssignmentReadyRequest{
+		Context:      &gamev1.RoomContext{RoomId: "room_1"},
+		AssignmentId: "assign_1",
+		MatchId:      "match_1",
+		BattleId:     "battle_1",
 	})
-	if resp["ok"] != true {
+	if err != nil {
+		t.Fatalf("commit assignment ready rpc failed: %v", err)
+	}
+	if !resp.GetOk() {
 		t.Fatalf("commit assignment ready should succeed: %#v", resp)
 	}
-	if fakeAssignment.lastInput.AssignmentID != "assign_1" || fakeAssignment.lastInput.AccountID != "acc_1" {
+	if fakeAssignment.lastInput.AssignmentID != "assign_1" || fakeAssignment.lastInput.RoomID != "room_1" {
 		t.Fatalf("commit input should be forwarded to assignment service")
 	}
-	if resp["commit_state"] != "committed" {
+	if resp.GetCommittedState() != "committed" {
 		t.Fatalf("commit state mismatch: %#v", resp)
 	}
 }

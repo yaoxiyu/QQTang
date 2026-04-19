@@ -24,6 +24,7 @@ if (-not $SkipDb) {
 if (-not $SkipMigration) {
     & (Join-Path $PSScriptRoot 'db-migrate.ps1') -Profile $Profile -ProjectPath $root -SkipDbUp
 }
+& (Join-Path $root 'scripts\content\generate_room_manifest.ps1') -ProjectPath $root -GodotExecutable $GodotExecutable
 
 if ([string]::IsNullOrWhiteSpace($LogDir)) {
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
@@ -34,6 +35,7 @@ New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 $accountRoot = Join-Path $root 'services\account_service'
 $gameRoot = Join-Path $root 'services\game_service'
 $dsmRoot = Join-Path $root 'services\ds_manager_service'
+$roomRoot = Join-Path $root 'services\room_service'
 
 $internalSecret = 'dev_internal_shared_secret'
 $tokenSecret = 'replace_me_access_secret'
@@ -94,10 +96,16 @@ $dsmEnv = @{
 }
 
 $roomEnv = @{
-    'GAME_SERVICE_HOST' = ($cfg.Game.ListenAddr -split ':')[0]
-    'GAME_SERVICE_PORT' = ($cfg.Game.ListenAddr -split ':')[1]
-    'GAME_INTERNAL_AUTH_KEY_ID' = 'primary'
-    'GAME_INTERNAL_AUTH_SHARED_SECRET' = $internalSecret
+    'ROOM_WS_ADDR' = "$($cfg.Room.Host):$($cfg.Room.Port)"
+    'ROOM_HTTP_ADDR' = '127.0.0.1:19100'
+    'ROOM_DEFAULT_PORT' = [string]$cfg.Room.Port
+    'ROOM_TICKET_SECRET' = $roomTicketSecret
+    'ROOM_MANIFEST_PATH' = '../../build/generated/room_manifest/room_manifest.json'
+    'ROOM_GAME_SERVICE_GRPC_ADDR' = '127.0.0.1:19081'
+    'ROOM_LOG_LEVEL' = 'info'
+    'ROOM_ENV' = 'development'
+    'ROOM_INSTANCE_ID' = "room-instance-$Profile"
+    'ROOM_SHARD_ID' = "room-shard-$Profile"
 }
 
 $processes = @()
@@ -105,9 +113,7 @@ $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTan
 $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang game_service : $($cfg.Game.ListenAddr)" -WorkDir $gameRoot -Env $gameEnv -Command 'go run ./cmd/game_service' -LogPath (Join-Path $LogDir 'game_service.log')
 $processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang ds_manager_service : $($cfg.DSM.ListenAddr)" -WorkDir $dsmRoot -Env $dsmEnv -Command 'go run ./cmd/ds_manager_service' -LogPath (Join-Path $LogDir 'ds_manager_service.log')
 
-$roomScript = Join-Path $root 'network\scripts\run-room-service.ps1'
-$roomCmd = "powershell -ExecutionPolicy Bypass -File $(Quote-QQTPS $roomScript) -Profile $Profile -ProjectPath $(Quote-QQTPS $root) -GodotExecutable $(Quote-QQTPS $GodotExecutable) -LogFile $(Quote-QQTPS (Join-Path $LogDir 'room_service.log')) -RoomHost $(Quote-QQTPS $cfg.Room.Host) -RoomPort $($cfg.Room.Port) -RoomTicketSecret $(Quote-QQTPS $roomTicketSecret)"
-$processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang room_service : $($cfg.Room.Host):$($cfg.Room.Port)" -WorkDir $root -Env $roomEnv -Command $roomCmd
+$processes += Start-QQTServiceWindow -PowerShellExe $PowerShellExe -Title "QQTang room_service : $($cfg.Room.Host):$($cfg.Room.Port)" -WorkDir $roomRoot -Env $roomEnv -Command 'go run ./cmd/room_service' -LogPath (Join-Path $LogDir 'room_service.log')
 
 Write-Host "Started QQTang services (profile=$Profile)"
 Write-Host "  account_service:    http://$($cfg.Account.ListenAddr) pid=$($processes[0].Id)"

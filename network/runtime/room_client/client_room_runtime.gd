@@ -24,7 +24,8 @@ signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 signal room_member_session_received(payload: Dictionary)
 signal match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSnapshot)
 
-var _transport = null # legacy test fallback
+var _transport = null # compat/test-only transport adapter
+var _allow_test_transport_fallback: bool = false
 var _ws_client: Node = null
 var _last_snapshot: RoomSnapshot = null
 var _connected: bool = false
@@ -37,9 +38,10 @@ var _leave_disconnect_deadline_msec: int = 0
 
 
 func _process(_delta: float) -> void:
-	if _transport != null and _transport.has_method("poll"):
+	var allow_transport_consume := _allow_test_transport_fallback and (_ws_client == null or not _connected)
+	if allow_transport_consume and _transport != null and _transport.has_method("poll"):
 		_transport.poll()
-	if _transport != null and _transport.has_method("consume_incoming"):
+	if allow_transport_consume and _transport != null and _transport.has_method("consume_incoming"):
 		for message in _transport.consume_incoming():
 			_route_message(message)
 	if _pending_leave_disconnect and Time.get_ticks_msec() >= _leave_disconnect_deadline_msec:
@@ -63,6 +65,7 @@ func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> voi
 		"timeout_sec": timeout_sec,
 	})
 	_shutdown_transport()
+	_allow_test_transport_fallback = false
 	_connecting = true
 	_connected_host = normalized_host
 	_connected_port = normalized_port
@@ -79,6 +82,13 @@ func disconnect_from_server() -> void:
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
 	_shutdown_transport()
+
+
+func inject_test_room_transport(adapter: Node) -> void:
+	_transport = adapter
+	_allow_test_transport_fallback = adapter != null
+	if _allow_test_transport_fallback:
+		_connect_transport_signals()
 
 
 func is_transport_connected() -> bool:
@@ -340,7 +350,14 @@ func _connect_transport_signals() -> void:
 
 
 func _route_message(message: Dictionary) -> void:
+	if message.is_empty():
+		return
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	if message_type.is_empty():
+		_log_room_anomaly("runtime_message_without_message_type", {
+			"keys": message.keys(),
+		})
+		return
 	match message_type:
 		TransportMessageTypesScript.ROOM_CREATE_ACCEPTED:
 			if _last_snapshot != null:
@@ -376,6 +393,7 @@ func _route_message(message: Dictionary) -> void:
 			room_directory_snapshot_received.emit(directory_snapshot)
 		TransportMessageTypesScript.ROOM_SNAPSHOT:
 			var snapshot := RoomSnapshot.from_dict(message.get("snapshot", {}))
+			_sync_runtime_local_peer_id_from_snapshot(snapshot)
 			if snapshot.room_id.is_empty():
 				_log_room_anomaly("runtime_snapshot_without_room_id", {
 					"message_type": message_type,
@@ -401,6 +419,16 @@ func _route_message(message: Dictionary) -> void:
 			match_loading_snapshot_received.emit(snapshot)
 		TransportMessageTypesScript.ROOM_REMATCH_REJECTED:
 			room_error.emit(String(message.get("error", "REMATCH_REJECTED")), String(message.get("user_message", "Rematch rejected")))
+		"ROOM_UPDATE_PROFILE_REJECTED", \
+		"ROOM_UPDATE_SELECTION_REJECTED", \
+		"ROOM_UPDATE_MATCH_ROOM_CONFIG_REJECTED", \
+		"ROOM_TOGGLE_READY_REJECTED", \
+		"ROOM_START_REJECTED", \
+		"ROOM_ENTER_MATCH_QUEUE_REJECTED", \
+		"ROOM_CANCEL_MATCH_QUEUE_REJECTED", \
+		"ROOM_ACK_BATTLE_ENTRY_REJECTED", \
+		"ROOM_OPERATION_REJECTED":
+			room_error.emit(String(message.get("error", "ROOM_OPERATION_REJECTED")), String(message.get("user_message", "Operation rejected")))
 		TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS:
 			_apply_match_queue_status(message)
 		TransportMessageTypesScript.ROOM_MATCH_ASSIGNMENT_READY:
@@ -446,9 +474,6 @@ func _apply_match_queue_status(message: Dictionary) -> void:
 
 
 func _send_to_server(message: Dictionary) -> void:
-	if _transport != null and _transport.has_method("is_transport_connected") and bool(_transport.is_transport_connected()):
-		_transport.send_to_peer(1, message)
-		return
 	if _ws_client != null and _ws_client.has_method("SendMessage") and _connected:
 		var send_error := int(_ws_client.SendMessage(message))
 		if send_error == 0:
@@ -457,7 +482,10 @@ func _send_to_server(message: Dictionary) -> void:
 			"message_type": String(message.get("message_type", message.get("msg_type", ""))),
 			"send_error": send_error,
 		})
-	if _transport == null and _ws_client == null:
+	if _allow_test_transport_fallback and _transport != null and _transport.has_method("is_transport_connected") and bool(_transport.is_transport_connected()):
+		_transport.send_to_peer(1, message)
+		return
+	if _ws_client == null and (_transport == null or not _allow_test_transport_fallback):
 		_log_room_anomaly("send_to_server_while_not_connected", {
 			"message_type": String(message.get("message_type", message.get("msg_type", ""))),
 			"has_transport": false,
@@ -476,9 +504,6 @@ func _on_transport_connected() -> void:
 	_connecting = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
-	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
-	if app_runtime != null and app_runtime.has_method("set_local_peer_id"):
-		app_runtime.set_local_peer_id(_get_sender_peer_id())
 	transport_connected.emit()
 
 
@@ -525,6 +550,7 @@ func _shutdown_transport() -> void:
 			remove_child(_transport)
 		_transport.queue_free()
 	_transport = null
+	_allow_test_transport_fallback = false
 	_connected_host = ""
 	_connected_port = 0
 
@@ -579,7 +605,7 @@ func _on_ws_client_error(error_code: String, user_message: String) -> void:
 
 
 func _on_ws_client_message_received(payload: Dictionary) -> void:
-	_route_message(payload)
+	_route_message(Dictionary(payload).duplicate(true))
 
 
 func _get_sender_peer_id() -> int:
@@ -603,3 +629,22 @@ func _get_current_room_id_hint() -> String:
 		return String(_last_snapshot.room_id)
 	return ""
 
+
+func _sync_runtime_local_peer_id_from_snapshot(snapshot: RoomSnapshot) -> void:
+	if snapshot == null:
+		return
+	var app_runtime = AppRuntimeRootScript.get_existing(get_tree())
+	if app_runtime == null or not app_runtime.has_method("set_local_peer_id"):
+		return
+	var resolved_peer_id := 0
+	for member in snapshot.members:
+		if member != null and member.is_local_player and int(member.peer_id) > 0:
+			resolved_peer_id = int(member.peer_id)
+			break
+	if resolved_peer_id <= 0 and snapshot.members.size() == 1:
+		var only_member: RoomMemberState = snapshot.members[0]
+		if only_member != null and int(only_member.peer_id) > 0:
+			resolved_peer_id = int(only_member.peer_id)
+	if resolved_peer_id <= 0:
+		return
+	app_runtime.set_local_peer_id(resolved_peer_id)

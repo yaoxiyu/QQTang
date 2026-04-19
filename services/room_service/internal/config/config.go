@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -16,6 +17,8 @@ type Config struct {
 	RoomInstanceID          string
 	RoomShardID             string
 	RoomLogLevel            string
+	RoomEnv                 string
+	RoomAllowedOrigins      []string
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -34,6 +37,8 @@ func LoadFromEnv() (*Config, error) {
 		RoomInstanceID:          envOr("ROOM_INSTANCE_ID", "room-instance-dev"),
 		RoomShardID:             envOr("ROOM_SHARD_ID", "room-shard-dev"),
 		RoomLogLevel:            envOr("ROOM_LOG_LEVEL", "info"),
+		RoomEnv:                 envOr("ROOM_ENV", "development"),
+		RoomAllowedOrigins:      parseCSV(envOr("ROOM_ALLOWED_ORIGINS", "")),
 	}
 
 	if cfg.RoomHTTPAddr == "" {
@@ -47,6 +52,9 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if cfg.RoomTicketSecret == "" {
 		return nil, fmt.Errorf("ROOM_TICKET_SECRET is required")
+	}
+	if isProductionEnv(cfg.RoomEnv) && len(cfg.RoomAllowedOrigins) == 0 {
+		return nil, fmt.Errorf("ROOM_ALLOWED_ORIGINS is required in production")
 	}
 
 	return cfg, nil
@@ -69,4 +77,28 @@ func positiveInt(key string, fallback int) (int, error) {
 		return 0, fmt.Errorf("%s must be a positive integer", key)
 	}
 	return parsed, nil
+}
+
+func parseCSV(value string) []string {
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+func isProductionEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "prod", "production":
+		return true
+	default:
+		return false
+	}
 }

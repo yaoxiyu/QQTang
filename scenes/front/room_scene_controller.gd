@@ -248,7 +248,10 @@ func _on_leave_room_pressed() -> void:
 func _on_ready_button_pressed() -> void:
 	if _room_use_case == null:
 		return
+	_log_ready_gate_snapshot("ready_button_pressed_before_toggle")
 	var result := _room_use_case.toggle_ready()
+	_log_room("ready_button_result", result)
+	_log_ready_gate_snapshot("ready_button_pressed_after_toggle")
 	if not bool(result.get("ok", false)):
 		_set_room_feedback(String(result.get("user_message", "Failed to toggle ready")))
 
@@ -369,6 +372,40 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 
 func _log_room(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("[room_scene] %s %s" % [event_name, JSON.stringify(payload)], "", 0, ROOM_SCENE_LOG_TAG)
+
+
+func _log_ready_gate_snapshot(event_name: String) -> void:
+	if _app_runtime == null or _room_view_model_builder == null:
+		return
+	var snapshot: RoomSnapshot = null
+	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
+		snapshot = _room_controller.build_room_snapshot()
+	elif _app_runtime.current_room_snapshot != null:
+		snapshot = _app_runtime.current_room_snapshot
+	if snapshot == null:
+		_log_room(event_name, {"snapshot": "null"})
+		return
+	var view_model: Dictionary = _room_view_model_builder.build_view_model(
+		snapshot,
+		_room_controller.room_runtime_context if _room_controller != null else null,
+		_app_runtime.player_profile_state,
+		_app_runtime.current_room_entry_context
+	)
+	_log_room(event_name, {
+		"room_id": String(snapshot.room_id),
+		"room_kind": String(snapshot.room_kind),
+		"owner_peer_id": int(snapshot.owner_peer_id),
+		"local_peer_id": int(_app_runtime.local_peer_id),
+		"member_count": snapshot.members.size(),
+		"all_ready": bool(snapshot.all_ready),
+		"queue_state": String(snapshot.room_queue_state),
+		"selected_mode_id": String(snapshot.mode_id),
+		"selected_match_mode_ids": snapshot.selected_match_mode_ids,
+		"can_ready": bool(view_model.get("can_ready", false)),
+		"can_start": bool(view_model.get("can_start", false)),
+		"can_enter_queue": bool(view_model.get("can_enter_queue", false)),
+		"blocker_text": String(view_model.get("blocker_text", "")),
+	})
 
 
 func _try_consume_pending_room_action() -> void:

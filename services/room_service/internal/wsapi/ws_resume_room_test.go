@@ -12,9 +12,13 @@ func TestWSResumeRoom(t *testing.T) {
 	}
 	_ = socket.ReadBinary(t) // accepted create
 	createSnapshot := socket.ReadBinary(t)
-	roomID, memberID, reconnectToken := decodeSnapshotMeta(createSnapshot)
-	if roomID == "" || memberID == "" || reconnectToken == "" {
-		t.Fatalf("expected room/member/reconnect token from create snapshot")
+	roomID, memberID, _ := decodeSnapshotMeta(createSnapshot)
+	if roomID == "" || memberID == "" {
+		t.Fatalf("expected room/member from create snapshot")
+	}
+	reconnectToken, err := server.dispatcher.app.ReconnectToken(roomID, memberID)
+	if err != nil || reconnectToken == "" {
+		t.Fatalf("expected reconnect token from room app binding, err=%v", err)
 	}
 
 	if err := socket.WriteBinary(encodeClientEnvelopeResume("req-resume", roomID, memberID, reconnectToken)); err != nil {
