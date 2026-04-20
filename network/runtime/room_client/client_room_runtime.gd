@@ -4,6 +4,7 @@ extends Node
 const RoomWsClientScript = preload("res://network/client_net/room/RoomWsClient.cs")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
 const RoomDirectorySnapshotScript = preload("res://network/session/room/model/room_directory_snapshot.gd")
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
 const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
@@ -26,7 +27,7 @@ signal match_resume_accepted(config: BattleStartConfig, snapshot: MatchResumeSna
 
 var _transport = null # compat/test-only transport adapter
 var _allow_test_transport_fallback: bool = false
-var _ws_client: Node = null
+var _ws_client = null
 var _last_snapshot: RoomSnapshot = null
 var _connected: bool = false
 var _connecting: bool = false
@@ -49,8 +50,8 @@ func _process(_delta: float) -> void:
 
 
 func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> void:
-	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
-	var normalized_port := port if port > 0 else 9100
+	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else RoomDefaultsScript.DEFAULT_HOST
+	var normalized_port := port if port > 0 else RoomDefaultsScript.DEFAULT_PORT
 	if is_connected_to(normalized_host, normalized_port) and (_connected or _connecting):
 		_log_directory_event("connect_reused_existing_transport", {
 			"host": normalized_host,
@@ -100,8 +101,8 @@ func is_transport_connected() -> bool:
 
 
 func is_connected_to(host: String, port: int) -> bool:
-	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else "127.0.0.1"
-	var normalized_port := port if port > 0 else 9100
+	var normalized_host := host.strip_edges() if not host.strip_edges().is_empty() else RoomDefaultsScript.DEFAULT_HOST
+	var normalized_port := port if port > 0 else RoomDefaultsScript.DEFAULT_PORT
 	return _connected_host == normalized_host and _connected_port == normalized_port
 
 

@@ -1,6 +1,6 @@
 # Current Source Of Truth (Index)
 
-Scope: current repository implementation after Phase25 room protocol closure.
+Scope: current repository implementation after Phase26 control-plane closure and legacy/compat removal.
 Positioning: this file is index and governance only. Domain truth is in split architecture docs.
 
 ## 1. Global Rules

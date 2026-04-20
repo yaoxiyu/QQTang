@@ -69,3 +69,23 @@ exports/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Phase26 release hygiene (explicit guards)
+tests/reports/raw/
+tests/reports/tmp/
+
+# Additional IDE / editor local noise
+.idea/
+*.suo
+*.user
+*.userossc
+*.sln.docstates
+
+# C# build outputs in test projects
+tests/csharp/**/bin/
+tests/csharp/**/obj/
+
+# Local service runtime data/cache
+services/**/data/
+services/**/cache/
+services/**/tmp/

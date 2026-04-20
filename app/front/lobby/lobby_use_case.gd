@@ -10,6 +10,7 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
+const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
@@ -502,7 +503,7 @@ func _normalize_port(port: int) -> int:
 		return port
 	if front_settings_state != null and front_settings_state.last_server_port > 0:
 		return front_settings_state.last_server_port
-	return 9100
+	return RoomDefaultsScript.DEFAULT_PORT
 
 
 func _update_last_server(host: String, port: int) -> void:
@@ -547,4 +548,3 @@ func _has_object_property(target: Object, property_name: String) -> bool:
 		if String(entry.get("name", "")) == property_name:
 			return true
 	return false
-

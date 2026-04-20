@@ -2,6 +2,7 @@ class_name LobbyDirectoryUseCase
 extends RefCounted
 
 const LOBBY_DIRECTORY_LOG_PREFIX := "[QQT_LOBBY_DIR]"
+const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 var client_room_runtime: Node = null
@@ -87,7 +88,7 @@ func _normalize_port(port: int) -> int:
 		return port
 	if front_settings_state != null and front_settings_state.last_server_port > 0:
 		return front_settings_state.last_server_port
-	return 9100
+	return RoomDefaultsScript.DEFAULT_PORT
 
 
 func _store_last_server(host: String, port: int) -> void:
@@ -117,4 +118,3 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 func _log_directory(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[lobby_directory] %s %s" % [LOBBY_DIRECTORY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.lobby.directory")
-

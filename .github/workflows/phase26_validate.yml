@@ -1,0 +1,71 @@
+name: phase26_validate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  proto-go-services:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Generate Proto
+        run: ./scripts/proto/generate_proto.sh
+
+      - name: Ensure generated code committed
+        run: git diff --exit-code
+
+      - name: Test room_service
+        working-directory: services/room_service
+        run: go test ./...
+
+      - name: Test game_service
+        working-directory: services/game_service
+        run: go test ./...
+
+      - name: Test ds_manager_service
+        working-directory: services/ds_manager_service
+        run: go test ./...
+
+      - name: Test account_service
+        working-directory: services/account_service
+        run: go test ./...
+
+  csharp-room-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test C# room sdk
+        run: dotnet test tests/csharp/QQTang.RoomClient.Tests/QQTang.RoomClient.Tests.csproj -v minimal
+
+  release-sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run release sanity check
+        run: python tools/release/release_sanity_check.py

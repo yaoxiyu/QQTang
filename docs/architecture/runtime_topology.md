@@ -1,7 +1,7 @@
 # Runtime Topology
 
 ## Purpose
-Define runtime ownership, formal process entrypoints, and legacy compatibility boundaries.
+Define runtime ownership and formal process entrypoints.
 
 ## Formal Entrypoints
 - Client boot scene: `res://scenes/front/boot_scene.tscn`
@@ -16,13 +16,8 @@ Define runtime ownership, formal process entrypoints, and legacy compatibility b
 - Opening a consumer scene without runtime must return to boot.
 
 ## Room/Battle Split
-- Room authority (formal): Go Room Service in `services/room_service`.
-- Battle authority (formal): Godot Battle DS runtime.
-- Legacy Godot room authority remains compatibility-only:
-  - `network/runtime/legacy/room_service_bootstrap.gd`
-  - `network/session/legacy/server_room_service.gd`
-  - `network/session/legacy/server_room_registry.gd`
-  - `network/session/legacy/room_authority_runtime.gd`
+- Room authority (formal only): `services/room_service/cmd/room_service/main.go`.
+- Battle authority (formal only): `network/runtime/battle_dedicated_server_bootstrap.gd`.
 
 ## Client Room Protocol Stack
 - GDScript facade:
@@ -52,9 +47,10 @@ Define runtime ownership, formal process entrypoints, and legacy compatibility b
 - `gamev1shim` packages are compatibility bridge for Go `internal` path visibility and are not business logic layers.
 
 ## Compatibility Rules
-- Old paths under `network/runtime/*` and `network/session/runtime/*` are compatibility shells when marked deprecated.
+- Legacy/compat runtime shells are removed.
+- Reintroduction of removed legacy/compat paths is forbidden.
 - New Room client/runtime logic must go to:
   - `network/runtime/room_client/`
   - `network/session/room/model/`
   - `network/session/room/shared/`
-- New Room server logic must not be added to Godot legacy room server paths.
+- New Room server logic must not be added to any removed Godot legacy room server paths.

@@ -47,6 +47,17 @@ if (Test-Path -LiteralPath $rawXmlPath) {
     Remove-Item -LiteralPath $rawXmlPath -Force -ErrorAction SilentlyContinue
 }
 
+$classCachePath = Join-Path $ProjectPath '.godot\global_script_class_cache.cfg'
+$needsImport = $true
+if (Test-Path -LiteralPath $classCachePath) {
+    $hasGutClass = Select-String -LiteralPath $classCachePath -Pattern 'GutTest' -SimpleMatch -Quiet -ErrorAction SilentlyContinue
+    $needsImport = -not [bool]$hasGutClass
+}
+if ($needsImport) {
+    Write-Host ('==> [{0}] warmup import for GUT class cache' -f $SuiteName)
+    & $GodotExe --headless --path $ProjectPath --import 2>&1 | Out-Null
+}
+
 $gutArgs = @(
     '--headless',
     '--path', $ProjectPath,
@@ -56,6 +67,7 @@ $gutArgs = @(
     '-gconfig=',
     '-gprefix=',
     '-gsuffix=_test.gd',
+    '-gfailure_error_types=gut,push_error',
     ('-gjunit_xml_file={0}' -f $rawXmlResPath)
 )
 if ($IncludeSubdirs) {

@@ -15,8 +15,22 @@ try {
     $repoRoot = Resolve-Path (Join-Path $scriptDir "..\\..")
     Set-Location $repoRoot
 
-    if (-not (Get-Command buf -ErrorAction SilentlyContinue)) {
-        Write-FailAndExit "buf not found in PATH. Install buf and retry." 2
+    $bufCommand = Get-Command buf -ErrorAction SilentlyContinue
+    $bufExecutable = if ($bufCommand) { $bufCommand.Source } else { $null }
+    if (-not $bufExecutable) {
+        $bufCandidate = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Microsoft\\WinGet\\Packages") -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -like "bufbuild.buf_*" } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+        if ($bufCandidate) {
+            $candidateExe = Join-Path $bufCandidate.FullName "buf\\bin\\buf.exe"
+            if (Test-Path -LiteralPath $candidateExe) {
+                $bufExecutable = $candidateExe
+            }
+        }
+    }
+    if (-not $bufExecutable) {
+        Write-FailAndExit "buf not found in PATH or WinGet package directory. Install buf and retry." 2
     }
 
     $generatedRoots = @(
@@ -56,7 +70,7 @@ try {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null
     }
 
-    buf generate
+    & $bufExecutable generate
     if ($LASTEXITCODE -ne 0) {
         Write-FailAndExit "buf generate failed with exit code $LASTEXITCODE." $LASTEXITCODE
     }

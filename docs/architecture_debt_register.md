@@ -46,36 +46,36 @@
 
 ## DEBT-004 legacy compatibility path naming ambiguity
 - Risk level: P2
-- Status: in_progress
+- Status: closed
 - Related dirs: `network/session/runtime/`
 - Forbidden new-logic dirs: `network/session/runtime/server_room_runtime_compat_impl.gd`
 - Planned phase: milestone-2026-q2-runtime-bridge
-- Done definition: compat path reduced to forwarding shell <= 100 lines, new logic only in named bridge/runtime files
+- Done definition: legacy/compat paths removed, and contract tests block any reintroduction.
 - Owner: network-runtime
-- Last updated: 2026-04-17
-- Linked tests/docs: `tests/contracts/path/legacy_runtime_bridge_guard_test.gd`, `tests/contracts/path/canonical_path_contract_test.gd`
+- Last updated: 2026-04-20
+- Linked tests/docs: `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/canonical_path_contract_test.gd`
 
 ## DEBT-005 cross-service contract coverage gap
 - Risk level: P1
-- Status: open
+- Status: closed
 - Related dirs: `tests/contracts/`, `tests/integration/e2e/`, `services/game_service/`, `services/ds_manager_service/`
 - Forbidden new-logic dirs: ad-hoc local debug scripts as sole verification source
 - Planned phase: milestone-2026-q2-contracts
-- Done definition: internal auth, manual room alloc transaction, invalid entry ticket, resume window, ds lifecycle are all covered by committed suites
+- Done definition: battle lifecycle critical links are covered by committed suites (DSM internal auth/lifecycle, game internal handlers, room_service registry/wsapi, Battle DS E2E) and aggregated by cross-service contract suite.
 - Owner: architecture
-- Last updated: 2026-04-17
-- Linked tests/docs: `tests/contracts/ds_manager/dsm_internal_auth_contract_test.go`, `tests/integration/e2e/ds_control_plane_e2e_test.go`
+- Last updated: 2026-04-20
+- Linked tests/docs: `services/ds_manager_service/internal/httpapi/dsm_internal_auth_contract_test.go`, `services/ds_manager_service/internal/httpapi/ds_control_plane_lifecycle_test.go`, `services/game_service/internal/httpapi/internal_battle_manifest_handler_test.go`, `services/game_service/internal/httpapi/internal_assignment_handler_test.go`, `services/game_service/internal/httpapi/internal_finalize_handler_test.go`, `services/room_service/internal/registry/registry_test.go`, `services/room_service/internal/wsapi/ws_directory_visibility_test.go`, `tests/integration/e2e/battle_entry_invalid_ticket_e2e_test.gd`, `tests/integration/e2e/battle_resume_window_e2e_test.gd`, `tests/integration/e2e/battle_finalize_payload_e2e_test.gd`, `tests/scripts/run_cross_service_contract_suite.ps1`
 
 ## DEBT-006 release hygiene and evidence governance
 - Risk level: P1
-- Status: in_progress
+- Status: closed
 - Related dirs: `.gitignore`, `tests/reports/`, `tools/release/`, `services/`
 - Forbidden new-logic dirs: checked-in local `.env`, root-level mixed latest/archive reports
 - Planned phase: milestone-2026-q2-release
-- Done definition: release sanity check script blocks `.godot/`, raw xml, legacy runner refs, legacy Node test style, local env and logs excluded
+- Done definition: release sanity, local validation, and CI workflow are formalized as official entrypoints; release sanity blocks legacy/compat regressions and dirty release artifacts.
 - Owner: build-and-release
-- Last updated: 2026-04-19
-- Linked tests/docs: `tools/release/release_sanity_check.py`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`
+- Last updated: 2026-04-20
+- Linked tests/docs: `tools/release/release_sanity_check.py`, `scripts/validation/run_phase26_validation.ps1`, `.github/workflows/phase26_validate.yml`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`, `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`
 
 ## DEBT-007 room protocol fake protobuf path
 - Risk level: P1

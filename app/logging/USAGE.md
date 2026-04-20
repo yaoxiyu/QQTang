@@ -36,7 +36,7 @@ func _ready() -> void:
 
 **Dedicated Server 入口：**
 ```gdscript
-# network/runtime/dedicated_server_bootstrap.gd
+# network/runtime/battle_dedicated_server_bootstrap.gd
 func _ready() -> void:
     LogSystemInitializer.initialize_dedicated_server()
     # ... 其他初始化逻辑
@@ -156,3 +156,4 @@ LogSync.debug("rollback_corrected entity=%d" % entity_id, "", 0, "sync.trace syn
 2. 高频调用场景（如每 tick）使用 DEBUG 级别
 3. 文件写入采用缓冲 flush 和批量轮转检查，避免每条日志都同步刷盘
 4. 位置信息（文件:行号）默认关闭以优化性能
+

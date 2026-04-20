@@ -15,6 +15,8 @@ func mapBattleAllocError(err error) (int, string) {
 		return http.StatusConflict, "BATTLE_ALREADY_EXISTS"
 	case errors.Is(err, battlealloc.ErrAllocationFailed):
 		return http.StatusBadGateway, "BATTLE_ALLOCATION_FAILED"
+	case errors.Is(err, battlealloc.ErrManifestStateInvalid):
+		return http.StatusConflict, "ASSIGNMENT_STATE_INVALID"
 	default:
 		return http.StatusInternalServerError, "INTERNAL_ERROR"
 	}

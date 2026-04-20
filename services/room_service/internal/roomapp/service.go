@@ -920,6 +920,13 @@ func queueTypeByRoomKind(roomKind string) string {
 }
 
 func normalizeRoomKind(roomKind string) (string, error) {
+	switch strings.TrimSpace(roomKind) {
+	case "private_room":
+		return "private_room", nil
+	case "public_room":
+		return "public_room", nil
+	}
+
 	switch domain.ParseRoomKindCategory(roomKind) {
 	case domain.RoomKindCustom:
 		return "custom_room", nil
