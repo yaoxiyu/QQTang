@@ -1,14 +1,16 @@
 class_name FrontSettingsState
 extends RefCounted
 
+const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
+
 var remember_profile: bool = true
 var auto_enter_lobby: bool = false
 var account_service_host: String = "127.0.0.1"
 var account_service_port: int = 18080
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081
-var last_server_host: String = "127.0.0.1"
-var last_server_port: int = 9100
+var last_server_host: String = RoomDefaultsScript.DEFAULT_HOST
+var last_server_port: int = RoomDefaultsScript.DEFAULT_PORT
 var last_queue_type: String = "casual"
 var last_room_id: String = ""
 var reconnect_room_id: String = ""
@@ -61,8 +63,8 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	state.account_service_port = int(data.get("account_service_port", 18080))
 	state.game_service_host = String(data.get("game_service_host", "127.0.0.1"))
 	state.game_service_port = int(data.get("game_service_port", 18081))
-	state.last_server_host = String(data.get("last_server_host", "127.0.0.1"))
-	state.last_server_port = int(data.get("last_server_port", 9100))
+	state.last_server_host = String(data.get("last_server_host", RoomDefaultsScript.DEFAULT_HOST))
+	state.last_server_port = int(data.get("last_server_port", RoomDefaultsScript.DEFAULT_PORT))
 	state.last_queue_type = String(data.get("last_queue_type", "casual"))
 	if state.account_service_host.strip_edges().is_empty():
 		state.account_service_host = "127.0.0.1"
@@ -73,9 +75,9 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 	if state.game_service_port <= 0:
 		state.game_service_port = 18081
 	if state.last_server_host.strip_edges().is_empty():
-		state.last_server_host = "127.0.0.1"
+		state.last_server_host = RoomDefaultsScript.DEFAULT_HOST
 	if state.last_server_port <= 0:
-		state.last_server_port = 9100
+		state.last_server_port = RoomDefaultsScript.DEFAULT_PORT
 	if state.last_queue_type.strip_edges().is_empty():
 		state.last_queue_type = "casual"
 	state.last_room_id = String(data.get("last_room_id", ""))
@@ -110,4 +112,3 @@ func clear_reconnect_ticket() -> void:
 	reconnect_token = ""
 	reconnect_state = ""
 	reconnect_resume_deadline_msec = 0
-

@@ -1,14 +1,19 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 
 	"qqtang/services/game_service/internal/finalize"
 	"qqtang/services/game_service/internal/platform/httpx"
 )
 
+type finalizeExecutor interface {
+	Finalize(ctx context.Context, input finalize.FinalizeInput) (finalize.FinalizeResult, error)
+}
+
 type InternalFinalizeHandler struct {
-	service *finalize.Service
+	service finalizeExecutor
 }
 
 func NewInternalFinalizeHandler(service *finalize.Service) *InternalFinalizeHandler {

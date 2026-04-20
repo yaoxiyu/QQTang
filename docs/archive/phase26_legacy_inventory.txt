@@ -1,0 +1,61 @@
+# Phase26 Legacy/Compat Inventory
+GeneratedAt: 2026-04-20 10:44:46 +08:00
+
+## Target: gameplay/front/flow/
+(directory)
+.\gameplay\front\flow\app_runtime_root.gd
+.\gameplay\front\flow\app_runtime_root.gd.uid
+.\gameplay\front\flow\front_flow_controller.gd
+.\gameplay\front\flow\front_flow_controller.gd.uid
+.\gameplay\front\flow\scene_flow_controller.gd
+.\gameplay\front\flow\scene_flow_controller.gd.uid
+
+## Target: gameplay/network/session/
+(directory)
+.\gameplay\network\session\battle_session_adapter.gd
+.\gameplay\network\session\battle_session_adapter.gd.uid
+.\gameplay\network\session\match_start_coordinator.gd
+.\gameplay\network\session\match_start_coordinator.gd.uid
+.\gameplay\network\session\room_session_controller.gd
+.\gameplay\network\session\room_session_controller.gd.uid
+
+## Target: network/runtime/legacy/
+(directory)
+.\network\runtime\legacy\.gitkeep
+.\network\runtime\legacy\room_service_bootstrap.gd
+.\network\runtime\legacy\room_service_bootstrap.gd.uid
+
+## Target: network/session/legacy/
+(directory)
+.\network\session\legacy\.gitkeep
+.\network\session\legacy\room_authority_runtime.gd
+.\network\session\legacy\room_authority_runtime.gd.uid
+.\network\session\legacy\server_room_battle_handoff_service.gd
+.\network\session\legacy\server_room_battle_handoff_service.gd.uid
+.\network\session\legacy\server_room_member_service.gd
+.\network\session\legacy\server_room_member_service.gd.uid
+.\network\session\legacy\server_room_message_dispatcher.gd
+.\network\session\legacy\server_room_message_dispatcher.gd.uid
+.\network\session\legacy\server_room_registry.gd
+.\network\session\legacy\server_room_registry.gd.uid
+.\network\session\legacy\server_room_resume_service.gd
+.\network\session\legacy\server_room_resume_service.gd.uid
+.\network\session\legacy\server_room_service.gd
+.\network\session\legacy\server_room_service.gd.uid
+
+## Target: network/session/runtime/server_room_runtime.gd
+(file)
+.\network\session\runtime\server_room_runtime.gd
+
+## Target: network/session/runtime/server_room_runtime_compat_impl.gd
+(file)
+.\network\session\runtime\server_room_runtime_compat_impl.gd
+
+## Target: network/session/runtime/legacy_room_runtime_bridge.gd
+(file)
+.\network\session\runtime\legacy_room_runtime_bridge.gd
+
+## Target: network/runtime/dedicated_server_bootstrap.gd
+(file)
+.\network\runtime\dedicated_server_bootstrap.gd
+

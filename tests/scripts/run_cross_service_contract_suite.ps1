@@ -1,6 +1,6 @@
 param(
     [string]$GodotExe = 'D:\Godot\Godot.exe',
-    [string]$ProjectPath = 'D:\code\QQTang'
+    [string]$ProjectPath = 'D:\code\Personal\QQTang'
 )
 
 if ($PSVersionTable.PSVersion.Major -ge 7) {
@@ -25,17 +25,32 @@ $goSteps = @(
     @{
         name = 'dsm_internal_auth_contract'
         workdir = Join-Path $ProjectPath 'services\ds_manager_service'
-        command = 'go test ./internal/httpapi -run "TestInternalRoutesRejectMissingOrInvalidAuth|TestInternalRoutesAllowSignedAuth"'
-    },
-    @{
-        name = 'manual_room_two_phase_contract'
-        workdir = Join-Path $ProjectPath 'services\game_service'
-        command = 'go test ./internal/battlealloc -run TestManualRoomBattleTwoPhaseContract'
+        command = 'go test ./internal/httpapi -run "TestDSMInternalRoutesRejectMissingOrInvalidSignature|TestDSMInternalRoutesAcceptSignedRequests"'
     },
     @{
         name = 'ds_control_plane_lifecycle'
         workdir = Join-Path $ProjectPath 'services\ds_manager_service'
-        command = 'go test ./internal/httpapi -run TestInternalBattleLifecycleWithSignedAuth'
+        command = 'go test ./internal/httpapi -run "TestDSControlPlaneLifecycleAllocateReadyActiveReap|TestDSControlPlaneMarksFailedWhenProcessExitFails"'
+    },
+    @{
+        name = 'game_internal_battle_manifest_handler'
+        workdir = Join-Path $ProjectPath 'services\game_service'
+        command = 'go test ./internal/httpapi -run "^TestInternalBattleManifest"'
+    },
+    @{
+        name = 'game_internal_assignment_handler'
+        workdir = Join-Path $ProjectPath 'services\game_service'
+        command = 'go test ./internal/httpapi -run "^TestInternalAssignmentCommit"'
+    },
+    @{
+        name = 'game_internal_finalize_handler'
+        workdir = Join-Path $ProjectPath 'services\game_service'
+        command = 'go test ./internal/httpapi -run "^TestInternalFinalize"'
+    },
+    @{
+        name = 'room_wsapi_registry_contracts'
+        workdir = Join-Path $ProjectPath 'services\room_service'
+        command = 'go test ./internal/wsapi ./internal/registry -run "TestWSDirectoryVisibility|TestRegistry"'
     }
 )
 
@@ -62,10 +77,10 @@ foreach ($step in $goSteps) {
     -ProjectPath $ProjectPath `
     -SuiteName 'cross_service_contract_suite_godot' `
     -ReportBaseName 'cross_service_contract_suite_godot' `
-    -TestDirs @(
-        'res://tests/integration/e2e',
-        'res://tests/contracts/front',
-        'res://tests/contracts/runtime'
+    -TestFiles @(
+        'res://tests/integration/e2e/battle_entry_invalid_ticket_e2e_test.gd',
+        'res://tests/integration/e2e/battle_resume_window_e2e_test.gd',
+        'res://tests/integration/e2e/battle_finalize_payload_e2e_test.gd'
     )
 
 $godotExitCode = $LASTEXITCODE

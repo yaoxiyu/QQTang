@@ -4,7 +4,7 @@ const ClientRoomRuntimeScript = preload("res://network/runtime/room_client/clien
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 
 
-class FakeWsClient extends Node:
+class FakeWsClient extends RefCounted:
 	var sent_messages: Array[Dictionary] = []
 
 	func SendMessage(message: Dictionary) -> int:
@@ -44,3 +44,4 @@ func _main_body() -> void:
 		) and ok
 		ok = qqt_check(String(sent.get("member_id", "")) == "member_1", "resume member_id should be preserved", prefix) and ok
 	runtime.queue_free()
+

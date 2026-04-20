@@ -14,6 +14,17 @@ const FORMAL_SCENE_PATHS := [
 	"res://scenes/battle/battle_main.tscn",
 ]
 
+const REMOVED_LEGACY_COMPAT_PATHS := [
+	"res://gameplay/front/flow/",
+	"res://gameplay/network/session/",
+	"res://network/runtime/legacy/",
+	"res://network/session/legacy/",
+	"res://network/runtime/dedicated_server_bootstrap.gd",
+	"res://network/session/runtime/server_room_runtime.gd",
+	"res://network/session/runtime/server_room_runtime_compat_impl.gd",
+	"res://network/session/runtime/legacy_room_runtime_bridge.gd",
+]
+
 
 func test_main() -> void:
 	_main_body()
@@ -22,6 +33,7 @@ func test_main() -> void:
 func _main_body() -> void:
 	_test_battle_scene_path_uses_formal_battle_main()
 	_test_formal_scenes_do_not_reference_sandbox_or_legacy_wrappers()
+	_test_removed_legacy_compat_assets_do_not_exist()
 	_test_runtime_uses_canonical_scripts()
 
 
@@ -49,6 +61,13 @@ func _test_runtime_uses_canonical_scripts() -> void:
 	runtime.free()
 
 
+func _test_removed_legacy_compat_assets_do_not_exist() -> void:
+	for path in REMOVED_LEGACY_COMPAT_PATHS:
+		_assert_true(not ResourceLoader.exists(path), "removed legacy/compat asset should not exist: %s" % path)
+		if path.ends_with("/"):
+			_assert_true(not DirAccess.dir_exists_absolute(path), "removed legacy/compat directory should not exist: %s" % path)
+
+
 func _read_text(path: String) -> String:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -59,7 +78,5 @@ func _read_text(path: String) -> String:
 
 
 func _assert_true(condition: bool, message: String) -> void:
-	if condition:
-		return
-
+	assert_true(condition, message)
 

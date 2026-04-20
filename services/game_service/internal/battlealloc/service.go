@@ -18,6 +18,7 @@ var (
 	ErrBattleAlreadyExists = errors.New("BATTLE_ALREADY_EXISTS")
 	ErrBattleNotFound      = errors.New("BATTLE_NOT_FOUND")
 	ErrAllocationFailed    = errors.New("BATTLE_ALLOCATION_FAILED")
+	ErrManifestStateInvalid = errors.New("ASSIGNMENT_STATE_INVALID")
 )
 
 type Service struct {
@@ -121,6 +122,9 @@ func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManif
 	assignment, err := s.assignmentRepo.FindByID(ctx, bi.AssignmentID)
 	if err != nil {
 		return BattleManifest{}, err
+	}
+	if assignment.AllocationState == "alloc_failed" {
+		return BattleManifest{}, ErrManifestStateInvalid
 	}
 
 	members, err := s.assignmentRepo.ListMembers(ctx, bi.AssignmentID)

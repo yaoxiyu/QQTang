@@ -1,10 +1,10 @@
 # Room Service Runtime Contract
 
 ## Scope
-This document defines the formal runtime contract of Phase25 Room Service.
+This document defines the formal runtime contract of Phase26 Room Service.
 
 ## Formal Identity
-- Service entrypoint: `services/room_service/cmd/room_service/main.go`
+- Service entrypoint (formal room authority only): `services/room_service/cmd/room_service/main.go`
 - Runtime language: Go.
 - Protocol: WebSocket binary frames with protobuf wire payloads.
 - Default room endpoint port: `9100` (`ROOM_WS_ADDR`, default `127.0.0.1:9100`).
@@ -69,5 +69,5 @@ cmd/room_service/main.go
 - Battle scene orchestration in Godot runtime.
 
 ## Legacy Compatibility
-- Old Godot room server paths are deprecated compatibility shells.
+- Legacy room server paths were removed in Phase26 and must not be reintroduced.
 - Formal Room Service authority is no longer `res://scenes/network/room_service_scene.tscn`.
