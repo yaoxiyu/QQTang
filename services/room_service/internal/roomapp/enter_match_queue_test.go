@@ -17,9 +17,28 @@ func TestEnterMatchQueueLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create match room failed: %v", err)
 	}
+	_, err = svc.JoinRoom(JoinRoomInput{
+		RoomID:       created.RoomID,
+		RoomTicket:   "ticket-join",
+		AccountID:    "acc-guest",
+		ProfileID:    "pro-guest",
+		PlayerName:   "guest",
+		ConnectionID: "conn-guest",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+	})
+	if err != nil {
+		t.Fatalf("join match room failed: %v", err)
+	}
+	_, guestMemberID, err := svc.ResolveRoomMemberByConnection("conn-guest")
+	if err != nil {
+		t.Fatalf("resolve guest member failed: %v", err)
+	}
 
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
 		t.Fatalf("toggle ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guestMemberID}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
 	}
 	snapshot, err := svc.EnterMatchQueue(EnterMatchQueueInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
 	if err != nil {

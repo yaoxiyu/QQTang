@@ -53,10 +53,11 @@ func main() {
 	)
 	profileService := profile.NewService(profileRepo)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
+	battleTicketIssuer := ticket.NewRoomTicketIssuer(cfg.BattleTicketSignSecret)
 	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
 	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, assignmentGrantClient, time.Duration(cfg.RoomTicketTTLSeconds)*time.Second)
 	battleGrantClient := ticket.NewBattleAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
-	battleTicketService := ticket.NewBattleTicketService(profileService, ticketRepo, roomTicketIssuer, battleGrantClient, time.Duration(cfg.BattleTicketTTLSeconds)*time.Second)
+	battleTicketService := ticket.NewBattleTicketService(profileService, ticketRepo, battleTicketIssuer, battleGrantClient, time.Duration(cfg.BattleTicketTTLSeconds)*time.Second)
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
 		AuthService:         authService,

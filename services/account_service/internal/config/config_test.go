@@ -13,6 +13,7 @@ func TestLoadFromEnvSuccess(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "30")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
+	t.Setenv("ACCOUNT_BATTLE_TICKET_SIGN_SECRET", "battle-ticket-secret")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "test-key")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", "internal-secret")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS", "45")
@@ -27,7 +28,7 @@ func TestLoadFromEnvSuccess(t *testing.T) {
 	if cfg.HTTPListenAddr != "127.0.0.1:19090" {
 		t.Fatalf("unexpected listen addr: %s", cfg.HTTPListenAddr)
 	}
-	if cfg.PostgresDSN == "" || cfg.TokenSignSecret == "" || cfg.RoomTicketSignSecret == "" {
+	if cfg.PostgresDSN == "" || cfg.TokenSignSecret == "" || cfg.RoomTicketSignSecret == "" || cfg.BattleTicketSignSecret == "" {
 		t.Fatalf("expected required secrets and dsn to be set: %+v", cfg)
 	}
 	if cfg.AccessTokenTTLSeconds != 120 || cfg.RefreshTokenTTLSeconds != 240 || cfg.RoomTicketTTLSeconds != 30 {
@@ -81,6 +82,7 @@ func setMinimumValidEnv(t *testing.T) {
 	t.Setenv("ACCOUNT_ROOM_TICKET_TTL_SECONDS", "60")
 	t.Setenv("ACCOUNT_TOKEN_SIGN_SECRET", "access-secret")
 	t.Setenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET", "ticket-secret")
+	t.Setenv("ACCOUNT_BATTLE_TICKET_SIGN_SECRET", "battle-ticket-secret")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "primary")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", "internal-secret")
 	t.Setenv("ACCOUNT_GAME_INTERNAL_AUTH_MAX_SKEW_SECONDS", "60")

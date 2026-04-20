@@ -61,6 +61,8 @@ func mapError(err error) (int, string) {
 		return http.StatusNotFound, err.Error()
 	case queue.ErrQueueTypeInvalid, queue.ErrModeInvalid, queue.ErrRuleSetInvalid:
 		return http.StatusBadRequest, err.Error()
+	case queue.ErrPartySizeMismatch:
+		return http.StatusBadRequest, err.Error()
 	case queue.ErrAssignmentExpired, queue.ErrAssignmentRevisionStale:
 		return http.StatusConflict, err.Error()
 	case assignment.ErrAssignmentNotFound, assignment.ErrAssignmentMemberNotFound:

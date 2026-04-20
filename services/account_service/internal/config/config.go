@@ -16,6 +16,7 @@ type Config struct {
 	BattleTicketTTLSeconds   int
 	TokenSignSecret          string
 	RoomTicketSignSecret     string
+	BattleTicketSignSecret   string
 	GameServiceBaseURL       string
 	GameInternalAuthKeyID    string
 	GameInternalSharedSecret string
@@ -63,6 +64,7 @@ func LoadFromEnv() (*Config, error) {
 		BattleTicketTTLSeconds:   battleTicketTTLSeconds,
 		TokenSignSecret:          os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
 		RoomTicketSignSecret:     os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
+		BattleTicketSignSecret:   configx.Env("ACCOUNT_BATTLE_TICKET_SIGN_SECRET", os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET")),
 		GameServiceBaseURL:       configx.Env("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),
 		GameInternalAuthKeyID:    configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "primary"),
 		GameInternalSharedSecret: configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", os.Getenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET")),
@@ -82,6 +84,9 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if cfg.RoomTicketSignSecret == "" {
 		return nil, fmt.Errorf("ACCOUNT_ROOM_TICKET_SIGN_SECRET is required")
+	}
+	if cfg.BattleTicketSignSecret == "" {
+		return nil, fmt.Errorf("ACCOUNT_BATTLE_TICKET_SIGN_SECRET is required")
 	}
 	if cfg.GameServiceBaseURL == "" {
 		return nil, fmt.Errorf("ACCOUNT_GAME_SERVICE_BASE_URL is required")

@@ -31,6 +31,7 @@ Set-DefaultEnv 'ACCOUNT_ROOM_TICKET_TTL_SECONDS' '60'
 Set-DefaultEnv 'ACCOUNT_BATTLE_TICKET_TTL_SECONDS' '60'
 Set-DefaultEnv 'ACCOUNT_TOKEN_SIGN_SECRET' 'replace_me_access_secret'
 Set-DefaultEnv 'ACCOUNT_ROOM_TICKET_SIGN_SECRET' 'dev_room_ticket_secret'
+Set-DefaultEnv 'ACCOUNT_BATTLE_TICKET_SIGN_SECRET' 'dev_battle_ticket_secret'
 Set-DefaultEnv 'ACCOUNT_GAME_SERVICE_BASE_URL' ("http://{0}" -f $cfg.Game.ListenAddr)
 Set-DefaultEnv 'ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID' 'primary'
 Set-DefaultEnv 'ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET' 'dev_internal_shared_secret'

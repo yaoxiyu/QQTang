@@ -43,6 +43,7 @@ public static class RoomSnapshotMapperCore
             { "room_queue_state", snapshot.QueueState ?? string.Empty },
             { "room_queue_entry_id", string.Empty },
             { "battle_entry_ready", battleEntry.BattleEntryReady },
+            { "battle_allocation_state", battleEntry.BattleEntryReady ? "battle_ready" : string.Empty },
             { "battle_server_host", battleEntry.ServerHost ?? string.Empty },
             { "battle_server_port", battleEntry.ServerPort },
             { "current_assignment_id", battleEntry.AssignmentId ?? string.Empty },

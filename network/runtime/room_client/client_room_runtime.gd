@@ -10,6 +10,7 @@ const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_
 const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 const ROOM_RUNTIME_DIRECTORY_TAG := "net.room_runtime.directory"
 const ROOM_RUNTIME_ANOMALY_TAG := "net.room_runtime.anomaly"
+const ACCEPTED_SNAPSHOT_TIMEOUT_MSEC := 1200
 
 signal transport_connected()
 signal transport_disconnected()
@@ -36,6 +37,10 @@ var _connected_port: int = 0
 var _directory_subscribed: bool = false
 var _pending_leave_disconnect: bool = false
 var _leave_disconnect_deadline_msec: int = 0
+var _pending_create_snapshot: bool = false
+var _pending_create_snapshot_deadline_msec: int = 0
+var _pending_join_snapshot: bool = false
+var _pending_join_snapshot_deadline_msec: int = 0
 
 
 func _process(_delta: float) -> void:
@@ -47,6 +52,8 @@ func _process(_delta: float) -> void:
 			_route_message(message)
 	if _pending_leave_disconnect and Time.get_ticks_msec() >= _leave_disconnect_deadline_msec:
 		_shutdown_transport()
+		return
+	_check_pending_accept_without_snapshot()
 
 
 func connect_to_server(host: String, port: int, timeout_sec: float = 5.0) -> void:
@@ -361,20 +368,20 @@ func _route_message(message: Dictionary) -> void:
 		return
 	match message_type:
 		TransportMessageTypesScript.ROOM_CREATE_ACCEPTED:
-			if _last_snapshot != null:
-				room_joined.emit(_last_snapshot)
-			else:
-				_log_room_anomaly("create_accepted_without_snapshot", {
+			if _last_snapshot == null:
+				_pending_create_snapshot = true
+				_pending_create_snapshot_deadline_msec = Time.get_ticks_msec() + ACCEPTED_SNAPSHOT_TIMEOUT_MSEC
+				_log_directory_event("create_accepted_waiting_snapshot", {
 					"connected": _connected,
 					"connecting": _connecting,
 				})
 		TransportMessageTypesScript.ROOM_CREATE_REJECTED:
 			room_error.emit(String(message.get("error", "ROOM_CREATE_FAILED")), String(message.get("user_message", "Room create failed")))
 		TransportMessageTypesScript.ROOM_JOIN_ACCEPTED:
-			if _last_snapshot != null:
-				room_joined.emit(_last_snapshot)
-			else:
-				_log_room_anomaly("join_accepted_without_snapshot", {
+			if _last_snapshot == null:
+				_pending_join_snapshot = true
+				_pending_join_snapshot_deadline_msec = Time.get_ticks_msec() + ACCEPTED_SNAPSHOT_TIMEOUT_MSEC
+				_log_directory_event("join_accepted_waiting_snapshot", {
 					"connected": _connected,
 					"connecting": _connecting,
 				})
@@ -408,6 +415,10 @@ func _route_message(message: Dictionary) -> void:
 					"topology": String(snapshot.topology),
 				})
 			_last_snapshot = snapshot
+			_pending_create_snapshot = false
+			_pending_create_snapshot_deadline_msec = 0
+			_pending_join_snapshot = false
+			_pending_join_snapshot_deadline_msec = 0
 			room_snapshot_received.emit(snapshot)
 			room_joined.emit(snapshot)
 		TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED:
@@ -536,6 +547,10 @@ func _shutdown_transport() -> void:
 	_directory_subscribed = false
 	_pending_leave_disconnect = false
 	_leave_disconnect_deadline_msec = 0
+	_pending_create_snapshot = false
+	_pending_create_snapshot_deadline_msec = 0
+	_pending_join_snapshot = false
+	_pending_join_snapshot_deadline_msec = 0
 	_last_snapshot = null
 	if _ws_client != null and _ws_client.has_method("DisconnectFromServer"):
 		_ws_client.DisconnectFromServer()
@@ -649,3 +664,23 @@ func _sync_runtime_local_peer_id_from_snapshot(snapshot: RoomSnapshot) -> void:
 	if resolved_peer_id <= 0:
 		return
 	app_runtime.set_local_peer_id(resolved_peer_id)
+
+
+func _check_pending_accept_without_snapshot() -> void:
+	var now := Time.get_ticks_msec()
+	if _pending_create_snapshot and now >= _pending_create_snapshot_deadline_msec:
+		_pending_create_snapshot = false
+		_pending_create_snapshot_deadline_msec = 0
+		if _last_snapshot == null:
+			_log_room_anomaly("create_accepted_without_snapshot_timeout", {
+				"connected": _connected,
+				"connecting": _connecting,
+			})
+	if _pending_join_snapshot and now >= _pending_join_snapshot_deadline_msec:
+		_pending_join_snapshot = false
+		_pending_join_snapshot_deadline_msec = 0
+		if _last_snapshot == null:
+			_log_room_anomaly("join_accepted_without_snapshot_timeout", {
+				"connected": _connected,
+				"connecting": _connecting,
+			})

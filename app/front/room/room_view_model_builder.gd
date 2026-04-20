@@ -51,9 +51,9 @@ func build_view_model(
 	if max_player_count <= 0:
 		max_player_count = safe_snapshot.max_players
 	var can_edit_selection := is_host and is_custom_room and not binding.is_empty()
-	var can_edit_match_room_config := is_host and is_match_room and String(safe_snapshot.room_queue_state) != "queueing"
+	var can_edit_match_room_config := is_host and is_match_room and not _is_queueing_state(String(safe_snapshot.room_queue_state))
 	var can_enter_queue := _can_enter_match_queue(safe_snapshot, is_host, member_count, is_match_room)
-	var can_cancel_queue := is_host and is_match_room and String(safe_snapshot.room_queue_state) == "queueing"
+	var can_cancel_queue := is_host and is_match_room and _is_queueing_state(String(safe_snapshot.room_queue_state))
 	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
 	var mode_display_name := String(binding.get("mode_name", safe_snapshot.mode_id))
 	var eligible_map_pool_hint_text := _build_eligible_map_pool_hint_text(safe_snapshot) if is_match_room else ""
@@ -412,6 +412,9 @@ func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count:
 	var queue_state := String(snapshot.room_queue_state)
 	if queue_state != "idle" and queue_state != "cancelled":
 		return false
+	var required_party_size := _resolve_required_party_size(snapshot)
+	if member_count != required_party_size:
+		return false
 	if snapshot.selected_match_mode_ids.is_empty() and String(snapshot.mode_id).is_empty():
 		return false
 	if not bool(snapshot.all_ready):
@@ -422,10 +425,13 @@ func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count:
 func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -> String:
 	if snapshot == null:
 		return "Room context is not ready"
-	if String(snapshot.room_queue_state) == "queueing":
+	if _is_queueing_state(String(snapshot.room_queue_state)):
 		return "匹配中"
 	if String(snapshot.room_queue_state) == "assigned":
 		return "已匹配，等待分配"
+	var required_party_size := _resolve_required_party_size(snapshot)
+	if member_count != required_party_size:
+		return "队伍人数需要满足 %d 人编队" % required_party_size
 	if snapshot.selected_match_mode_ids.is_empty() and String(snapshot.mode_id).is_empty():
 		return "请选择匹配模式"
 	if not bool(snapshot.all_ready):
@@ -436,10 +442,23 @@ func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -
 func _build_match_room_party_status_text(snapshot: RoomSnapshot, member_count: int) -> String:
 	if snapshot == null:
 		return "队伍状态：未知"
-	var required_party_size := int(snapshot.required_party_size)
-	if required_party_size <= 0:
-		required_party_size = 1
+	var required_party_size := _resolve_required_party_size(snapshot)
 	return "队伍人数：%d / %d" % [member_count, required_party_size]
+
+
+func _resolve_required_party_size(snapshot: RoomSnapshot) -> int:
+	if snapshot == null:
+		return 1
+	match String(snapshot.match_format_id).strip_edges():
+		"1v1":
+			return 1
+		"2v2":
+			return 2
+		"4v4":
+			return 4
+		_:
+			var fallback := int(snapshot.required_party_size)
+			return fallback if fallback > 0 else 1
 
 
 func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
@@ -464,6 +483,8 @@ func _build_queue_status_text(snapshot: RoomSnapshot) -> String:
 	if not String(snapshot.room_queue_status_text).is_empty():
 		return String(snapshot.room_queue_status_text)
 	match String(snapshot.room_queue_state):
+		"queued":
+			return "匹配中"
 		"queueing":
 			return "匹配中"
 		"assigned":
@@ -480,3 +501,8 @@ func _build_queue_error_text(snapshot: RoomSnapshot) -> String:
 	if not String(snapshot.room_queue_error_code).is_empty():
 		return String(snapshot.room_queue_error_code)
 	return ""
+
+
+func _is_queueing_state(queue_state: String) -> bool:
+	var normalized := queue_state.strip_edges().to_lower()
+	return normalized == "queueing" or normalized == "queued"

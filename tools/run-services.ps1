@@ -51,6 +51,7 @@ $accountEnv = @{
     'ACCOUNT_BATTLE_TICKET_TTL_SECONDS' = '60'
     'ACCOUNT_TOKEN_SIGN_SECRET' = $tokenSecret
     'ACCOUNT_ROOM_TICKET_SIGN_SECRET' = $roomTicketSecret
+    'ACCOUNT_BATTLE_TICKET_SIGN_SECRET' = $battleTicketSecret
     'ACCOUNT_GAME_SERVICE_BASE_URL' = "http://$($cfg.Game.ListenAddr)"
     'ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID' = 'primary'
     'ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET' = $internalSecret

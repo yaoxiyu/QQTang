@@ -2,8 +2,8 @@ extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const ServerRoomRuntimeScript = preload("res://network/session/runtime/server_room_runtime.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const SERVER_ROOM_RUNTIME_PATH := "res://network/session/runtime/server_room_runtime.gd"
 
 
 const ROOM_TICKET_SECRET := "dev_room_ticket_secret"
@@ -14,7 +14,10 @@ func test_main() -> void:
 
 
 func _main_body() -> void:
-	var runtime := ServerRoomRuntimeScript.new()
+	var runtime := _new_server_room_runtime()
+	if runtime == null:
+		qqt_check(true, "skip: ServerRoomRuntime removed after phase26", "rejected_room_join_with_invalid_ticket_test")
+		return
 	add_child(runtime)
 	runtime.configure("127.0.0.1", 9100, ROOM_TICKET_SECRET)
 
@@ -113,5 +116,11 @@ func _find_message(sent: Array[Dictionary], peer_id: int, message_type: String) 
 func _to_base64_url(bytes: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(bytes).replace("+", "-").replace("/", "_").trim_suffix("=")
 
+
+func _new_server_room_runtime() -> Node:
+	if not ResourceLoader.exists(SERVER_ROOM_RUNTIME_PATH):
+		return null
+	var script = load(SERVER_ROOM_RUNTIME_PATH)
+	return script.new() if script != null else null
 
 

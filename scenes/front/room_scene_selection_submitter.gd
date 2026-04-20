@@ -1,5 +1,7 @@
 extends RefCounted
 
+const DEFAULT_MATCH_FORMAT_ID := "1v1"
+
 
 func apply_local_profile_defaults(controller: Node) -> void:
 	if controller._app_runtime == null or controller._app_runtime.player_profile_state == null:
@@ -78,7 +80,7 @@ func on_match_format_changed(controller: Node) -> void:
 		return
 	var snapshot: RoomSnapshot = controller._room_controller.build_room_snapshot() if controller._room_controller != null and controller._room_controller.has_method("build_room_snapshot") else null
 	var queue_type := String(snapshot.queue_type) if snapshot != null else "casual"
-	var match_format_id : String = controller._selected_metadata(controller.match_format_selector)
+	var match_format_id : String = _resolve_match_format_id(controller)
 	controller._suppress_selection_callbacks = true
 	controller._populate_match_mode_multi_select(queue_type, match_format_id)
 	controller._suppress_selection_callbacks = false
@@ -89,8 +91,15 @@ func on_match_mode_multi_select_changed(controller: Node) -> void:
 	if controller._suppress_selection_callbacks or controller._room_use_case == null:
 		return
 	var result : Dictionary = controller._room_use_case.update_match_room_config(
-		controller._selected_metadata(controller.match_format_selector),
+		_resolve_match_format_id(controller),
 		controller._selected_match_mode_ids()
 	)
 	if not bool(result.get("ok", false)):
 		controller._set_room_feedback(String(result.get("user_message", "Failed to update match room config")))
+
+
+func _resolve_match_format_id(controller: Node) -> String:
+	var match_format_id : String = controller._selected_metadata(controller.match_format_selector)
+	if match_format_id.strip_edges().is_empty():
+		return DEFAULT_MATCH_FORMAT_ID
+	return match_format_id

@@ -4,6 +4,7 @@ extends IBattleTransport
 const TransportMessageCodecScript = preload("res://network/transport/transport_message_codec.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = true
+const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 
 var _peer: ENetMultiplayerPeer = null
@@ -285,6 +286,8 @@ func _log_client_connect_progress_if_needed(elapsed_seconds: float) -> void:
 
 
 func _log_client_packet_probe_if_needed() -> void:
+	if not DEBUG_CLIENT_PACKET_PROBE_LOGS:
+		return
 	if _server_mode or _peer == null:
 		return
 	var now := Time.get_ticks_msec()

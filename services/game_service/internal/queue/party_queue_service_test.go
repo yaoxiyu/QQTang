@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -85,5 +86,22 @@ func TestResolveAssignmentStatusTextUsesAllocationState(t *testing.T) {
 	assignment.AllocationState = "allocated"
 	if got := resolveAssignmentStatusText(assignment, "default"); got != "default" {
 		t.Fatalf("allocated state should fallback to default text, got %s", got)
+	}
+}
+
+func TestEnterPartyQueueRejectsPartySizeMismatch(t *testing.T) {
+	service := NewService(nil, nil, nil, 30)
+	_, err := service.EnterPartyQueue(t.Context(), EnterPartyQueueInput{
+		PartyRoomID:     "room_1",
+		QueueType:       "casual",
+		MatchFormatID:   "1v1",
+		SelectedModeIDs: []string{"mode_classic"},
+		Members: []PartyQueueMemberInput{
+			{AccountID: "a1", ProfileID: "p1"},
+			{AccountID: "a2", ProfileID: "p2"},
+		},
+	})
+	if !errors.Is(err, ErrPartySizeMismatch) {
+		t.Fatalf("expected ErrPartySizeMismatch, got %v", err)
 	}
 }

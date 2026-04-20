@@ -34,6 +34,9 @@ type Server struct {
 	conns           map[string]*Connection
 	originSet       map[string]struct{}
 	allowAllOrigins bool
+	bgCtx           context.Context
+	bgCancel        context.CancelFunc
+	bgWait          sync.WaitGroup
 }
 
 func NewServer(addr string, app *roomapp.Service, logger *slog.Logger, allowedOrigins ...string) *Server {
@@ -82,6 +85,7 @@ func (s *Server) Start() error {
 	}
 	s.listenAddr = ln.Addr().String()
 	s.started.Store(true)
+	s.bgCtx, s.bgCancel = context.WithCancel(context.Background())
 
 	go func() {
 		if err := s.httpSrv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -89,6 +93,7 @@ func (s *Server) Start() error {
 			s.started.Store(false)
 		}
 	}()
+	s.startBackgroundWorkers()
 	s.logger.Info("room ws server listening", "addr", s.listenAddr)
 	return nil
 }
@@ -97,6 +102,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.started.Store(false)
+	if s.bgCancel != nil {
+		s.bgCancel()
+		s.bgCancel = nil
+	}
+	s.bgWait.Wait()
 	if s.httpSrv == nil {
 		return nil
 	}
@@ -284,6 +294,39 @@ func hasOperationAccepted(messages [][]byte) bool {
 		}
 	}
 	return false
+}
+
+func (s *Server) startBackgroundWorkers() {
+	if s == nil || s.bgCtx == nil {
+		return
+	}
+	s.bgWait.Add(1)
+	go func() {
+		defer s.bgWait.Done()
+		ticker := time.NewTicker(400 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-s.bgCtx.Done():
+				return
+			case <-ticker.C:
+				s.syncMatchQueueSnapshots()
+			}
+		}
+	}()
+}
+
+func (s *Server) syncMatchQueueSnapshots() {
+	if s == nil || s.dispatcher == nil || s.dispatcher.app == nil {
+		return
+	}
+	updates := s.dispatcher.app.SyncMatchQueueStatus()
+	for _, update := range updates {
+		if update.Snapshot == nil || update.RoomID == "" {
+			continue
+		}
+		s.broadcastRoomSnapshot(update.RoomID, update.Snapshot)
+	}
 }
 
 func isOriginAllowed(r *http.Request, allowAll bool, originSet map[string]struct{}) bool {

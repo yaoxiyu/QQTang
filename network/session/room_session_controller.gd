@@ -396,6 +396,8 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.current_battle_id = snapshot.current_battle_id
 	room_session.current_match_id = snapshot.current_match_id
 	room_session.battle_allocation_state = snapshot.battle_allocation_state
+	if room_session.battle_allocation_state.strip_edges().is_empty() and snapshot.battle_entry_ready:
+		room_session.battle_allocation_state = "battle_ready"
 	room_session.battle_server_host = snapshot.battle_server_host
 	room_session.battle_server_port = snapshot.battle_server_port
 	room_session.room_return_policy = snapshot.room_return_policy

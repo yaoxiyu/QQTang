@@ -29,7 +29,14 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	if _adapter.transport != null and _adapter.transport.is_transport_connected() and _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT:
 		preserved_transport = _adapter.transport
 		_adapter.transport = null
-	_adapter.shutdown_battle()
+	var has_active_runtime: bool = _adapter.current_context != null \
+		or _adapter.client_session != null \
+		or _adapter.server_session != null \
+		or _adapter.prediction_controller != null \
+		or (_adapter._bootstrap_client_runtime != null and _adapter._bootstrap_client_runtime.is_active()) \
+		or (_adapter._bootstrap_authority_runtime != null and _adapter._bootstrap_authority_runtime.is_match_running())
+	if has_active_runtime:
+		_adapter.shutdown_battle()
 	if preserved_transport != null:
 		_adapter.transport = preserved_transport
 	_adapter._ensure_bootstrap_client_runtime()
@@ -434,15 +441,25 @@ func _on_transport_connected() -> void:
 				"battle_id": battle_id,
 				"sender_peer_id": _adapter._bootstrap_local_peer_id if _adapter._bootstrap_local_peer_id > 0 else transport_peer_id,
 			}
+			var has_entry_context := false
+			var has_ticket := false
 			var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
 			if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
+				has_entry_context = true
 				var entry_context = app_runtime.current_battle_entry_context
 				request_payload["battle_ticket"] = String(entry_context.battle_ticket)
 				request_payload["battle_ticket_id"] = String(entry_context.battle_ticket_id)
 				request_payload["assignment_id"] = String(entry_context.assignment_id)
 				request_payload["match_id"] = String(entry_context.match_id)
+				has_ticket = not String(entry_context.battle_ticket).is_empty() and not String(entry_context.battle_ticket_id).is_empty()
 			if app_runtime != null and "auth_session_state" in app_runtime and app_runtime.auth_session_state != null:
 				request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
+			_adapter.network_log_event.emit("battle_entry_request_send battle_id=%s sender_peer_id=%d has_entry_context=%s has_ticket=%s" % [
+				battle_id,
+				int(request_payload.get("sender_peer_id", 0)),
+				str(has_entry_context),
+				str(has_ticket),
+			])
 			_adapter.transport.send_to_peer(1, request_payload)
 
 

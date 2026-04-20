@@ -1,5 +1,7 @@
 extends RefCounted
 
+const DEFAULT_MATCH_FORMAT_ID := "1v1"
+
 
 func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 	if snapshot == null or controller._app_runtime == null or controller._room_view_model_builder == null or controller._room_scene_presenter == null:
@@ -16,9 +18,12 @@ func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 	controller._populate_team_selector(int(view_model.get("team_option_max", 2)))
 	controller._select_team_id(int(view_model.get("local_team_id", 1)))
 	if bool(view_model.get("is_match_room", false)):
+		var resolved_match_format_id := String(snapshot.match_format_id).strip_edges()
+		if resolved_match_format_id.is_empty():
+			resolved_match_format_id = DEFAULT_MATCH_FORMAT_ID
 		controller._populate_match_format_selector(String(snapshot.queue_type))
-		controller._select_metadata(controller.match_format_selector, String(snapshot.match_format_id))
-		controller._populate_match_mode_multi_select(String(snapshot.queue_type), String(snapshot.match_format_id), snapshot.selected_match_mode_ids)
+		controller._select_metadata(controller.match_format_selector, resolved_match_format_id)
+		controller._populate_match_mode_multi_select(String(snapshot.queue_type), resolved_match_format_id, snapshot.selected_match_mode_ids)
 	else:
 		controller._populate_mode_selector()
 		controller._select_metadata(controller.game_mode_selector, String(view_model.get("selected_mode_id", "")))

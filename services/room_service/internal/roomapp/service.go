@@ -28,6 +28,7 @@ var (
 	ErrMatchRoomOnly      = errors.New("match room required")
 	ErrMembersNotReady    = errors.New("all members must be ready")
 	ErrQueueStateInvalid  = errors.New("queue state does not allow enter queue")
+	ErrPartySizeMismatch  = errors.New("MATCHMAKING_PARTY_SIZE_MISMATCH")
 	ErrManualRoomOnly     = errors.New("manual room required")
 	ErrInvalidRoomKind    = errors.New("invalid room kind")
 )
@@ -517,6 +518,10 @@ func (s *Service) EnterMatchQueue(input EnterMatchQueueInput) (*SnapshotProjecti
 	if !allMembersReady(room.Members) {
 		return nil, ErrMembersNotReady
 	}
+	requiredPartySize := requiredPartySizeFromMatchFormat(room.Selection.MatchFormatID)
+	if len(room.Members) != requiredPartySize {
+		return nil, ErrPartySizeMismatch
+	}
 	if s.game == nil {
 		return nil, fmt.Errorf("game client not configured")
 	}
@@ -566,7 +571,7 @@ func (s *Service) CancelMatchQueue(input CancelMatchQueueInput) (*SnapshotProjec
 	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
 		return nil, ErrNotRoomOwner
 	}
-	if room.Queue.QueueState != "queueing" {
+	if !canCancelQueueFromState(room.Queue.QueueState) {
 		return nil, ErrQueueStateInvalid
 	}
 	if s.game == nil {
@@ -593,6 +598,42 @@ func (s *Service) CancelMatchQueue(input CancelMatchQueueInput) (*SnapshotProjec
 	room.LifecycleState = "idle"
 	room.SnapshotRevision++
 	return s.snapshotProjectionLocked(room), nil
+}
+
+type QueueStatusSyncResult struct {
+	RoomID   string
+	Snapshot *SnapshotProjection
+}
+
+func (s *Service) SyncMatchQueueStatus() []QueueStatusSyncResult {
+	if s == nil || s.game == nil {
+		return nil
+	}
+
+	targets := s.collectQueueSyncTargets()
+	if len(targets) == 0 {
+		return nil
+	}
+
+	updates := make([]QueueStatusSyncResult, 0, len(targets))
+	for _, target := range targets {
+		result, err := s.game.GetPartyQueueStatus(gameclient.GetPartyQueueStatusInput{
+			RoomID:       target.roomID,
+			RoomKind:     target.roomKind,
+			QueueEntryID: target.queueEntryID,
+		})
+		if err != nil {
+			continue
+		}
+		snapshot, changed := s.applyQueueStatusResult(target, result)
+		if changed && snapshot != nil {
+			updates = append(updates, QueueStatusSyncResult{
+				RoomID:   target.roomID,
+				Snapshot: snapshot,
+			})
+		}
+	}
+	return updates
 }
 
 func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*SnapshotProjection, error) {
@@ -839,6 +880,9 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 
 	switch domain.ParseRoomKindCategory(roomKind) {
 	case domain.RoomKindMatch, domain.RoomKindRanked:
+		if strings.TrimSpace(resolved.MatchFormatID) == "" {
+			resolved.MatchFormatID = "1v1"
+		}
 		if len(resolved.SelectedModeIDs) == 0 && resolved.ModeID != "" {
 			resolved.SelectedModeIDs = []string{resolved.ModeID}
 		}
@@ -946,6 +990,142 @@ func canEnterQueueFromState(queueState string) bool {
 	return queueState == "" || queueState == "idle" || queueState == "cancelled" || queueState == "failed"
 }
 
+func canCancelQueueFromState(queueState string) bool {
+	return queueState == "queueing" || queueState == "queued"
+}
+
+func shouldSyncQueueState(queueState string) bool {
+	switch strings.TrimSpace(queueState) {
+	case "queueing", "queued", "assigned", "committing", "allocating", "battle_ready":
+		return true
+	default:
+		return false
+	}
+}
+
+type queueSyncTarget struct {
+	roomID       string
+	roomKind     string
+	queueEntryID string
+}
+
+func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	targets := make([]queueSyncTarget, 0)
+	for _, room := range s.roomsByID {
+		if room == nil {
+			continue
+		}
+		if !isMatchRoomKind(room.RoomKind) {
+			continue
+		}
+		if room.Queue.QueueEntryID == "" {
+			continue
+		}
+		if !shouldSyncQueueState(room.Queue.QueueState) {
+			continue
+		}
+		targets = append(targets, queueSyncTarget{
+			roomID:       room.RoomID,
+			roomKind:     room.RoomKind,
+			queueEntryID: room.Queue.QueueEntryID,
+		})
+	}
+	return targets
+}
+
+func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclient.GetPartyQueueStatusResult) (*SnapshotProjection, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[target.roomID]
+	if room == nil {
+		return nil, false
+	}
+	if room.Queue.QueueEntryID != target.queueEntryID {
+		return nil, false
+	}
+	if !shouldSyncQueueState(room.Queue.QueueState) {
+		return nil, false
+	}
+
+	changed := false
+
+	if room.Queue.QueueState != result.QueueState {
+		room.Queue.QueueState = result.QueueState
+		changed = true
+	}
+	if room.Queue.StatusText != result.QueueState {
+		room.Queue.StatusText = result.QueueState
+		changed = true
+	}
+	if room.Queue.ErrorCode != result.ErrorCode {
+		room.Queue.ErrorCode = result.ErrorCode
+		changed = true
+	}
+	if room.Queue.UserMessage != result.UserMessage {
+		room.Queue.UserMessage = result.UserMessage
+		changed = true
+	}
+
+	if room.BattleHandoffState.AssignmentID != result.AssignmentID {
+		room.BattleHandoffState.AssignmentID = result.AssignmentID
+		changed = true
+	}
+	if room.BattleHandoffState.MatchID != result.MatchID {
+		room.BattleHandoffState.MatchID = result.MatchID
+		changed = true
+	}
+	if room.BattleHandoffState.BattleID != result.BattleID {
+		room.BattleHandoffState.BattleID = result.BattleID
+		changed = true
+	}
+	if room.BattleHandoffState.ServerHost != result.ServerHost {
+		room.BattleHandoffState.ServerHost = result.ServerHost
+		changed = true
+	}
+	if room.BattleHandoffState.ServerPort != result.ServerPort {
+		room.BattleHandoffState.ServerPort = result.ServerPort
+		changed = true
+	}
+	if room.BattleHandoffState.AllocationState != result.QueueState {
+		room.BattleHandoffState.AllocationState = result.QueueState
+		changed = true
+	}
+	ready := isBattleEntryReadyStatus(result)
+	if room.BattleHandoffState.Ready != ready {
+		room.BattleHandoffState.Ready = ready
+		changed = true
+	}
+
+	nextLifecycleState := room.LifecycleState
+	switch {
+	case ready:
+		nextLifecycleState = "battle_handoff"
+	case strings.TrimSpace(result.QueueState) == "queueing" || strings.TrimSpace(result.QueueState) == "queued":
+		nextLifecycleState = "queueing"
+	case strings.TrimSpace(result.QueueState) == "assigned" || strings.TrimSpace(result.QueueState) == "committing" || strings.TrimSpace(result.QueueState) == "allocating":
+		nextLifecycleState = "queueing"
+	case strings.TrimSpace(result.QueueState) == "cancelled" || strings.TrimSpace(result.QueueState) == "failed":
+		nextLifecycleState = "idle"
+	}
+
+	if room.LifecycleState != nextLifecycleState {
+		room.LifecycleState = nextLifecycleState
+		changed = true
+	}
+
+	if !changed {
+		return nil, false
+	}
+
+	room.SnapshotRevision++
+	s.syncDirectoryEntryLocked(room)
+	return s.snapshotProjectionLocked(room), true
+}
+
 func allMembersReady(members map[string]domain.RoomMember) bool {
 	if len(members) == 0 {
 		return false
@@ -970,6 +1150,26 @@ func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyM
 	return result
 }
 
+func requiredPartySizeFromMatchFormat(matchFormatID string) int {
+	switch strings.TrimSpace(matchFormatID) {
+	case "2v2":
+		return 2
+	case "4v4":
+		return 4
+	case "1v1":
+		return 1
+	default:
+		return 1
+	}
+}
+
+func isBattleEntryReadyStatus(result gameclient.GetPartyQueueStatusResult) bool {
+	if strings.TrimSpace(result.AssignmentID) == "" || strings.TrimSpace(result.BattleID) == "" {
+		return false
+	}
+	return strings.TrimSpace(result.ServerHost) != "" && result.ServerPort > 0
+}
+
 func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 	if s == nil || s.registry == nil || room == nil {
 		return
@@ -980,7 +1180,7 @@ func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 	}
 	memberCount := len(room.Members)
 	joinable := memberCount < room.MaxPlayerCount &&
-		room.Queue.QueueState != "queueing" &&
+		!canCancelQueueFromState(room.Queue.QueueState) &&
 		room.Queue.QueueState != "matched" &&
 		room.LifecycleState != "battle_handoff" &&
 		room.LifecycleState != "battle_entry_acknowledged"

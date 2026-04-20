@@ -21,6 +21,7 @@ import (
 var (
 	ErrQueueAlreadyActive      = errors.New("MATCHMAKING_QUEUE_ALREADY_ACTIVE")
 	ErrQueueNotFound           = errors.New("MATCHMAKING_QUEUE_NOT_FOUND")
+	ErrPartySizeMismatch       = errors.New("MATCHMAKING_PARTY_SIZE_MISMATCH")
 	ErrQueueTypeInvalid        = errors.New("MATCHMAKING_QUEUE_TYPE_INVALID")
 	ErrModeInvalid             = errors.New("MATCHMAKING_MODE_INVALID")
 	ErrRuleSetInvalid          = errors.New("MATCHMAKING_RULE_SET_INVALID")
@@ -192,7 +193,7 @@ func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInpu
 	}
 	requiredPartySize := requiredPartySizeFromMatchFormat(input.MatchFormatID)
 	if requiredPartySize <= 0 || len(input.Members) != requiredPartySize {
-		return PartyQueueStatus{}, ErrQueueNotFound
+		return PartyQueueStatus{}, ErrPartySizeMismatch
 	}
 	if s.partyQueueRepo == nil || s.partyQueueMemberRepo == nil {
 		return PartyQueueStatus{}, ErrQueueNotFound

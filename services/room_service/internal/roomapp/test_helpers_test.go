@@ -177,6 +177,7 @@ type fakeGameControlServer struct {
 
 	enterResp  *gamev1.EnterPartyQueueResponse
 	cancelResp *gamev1.CancelPartyQueueResponse
+	statusResp *gamev1.GetPartyQueueStatusResponse
 	createResp *gamev1.CreateManualRoomBattleResponse
 	commitResp *gamev1.CommitAssignmentReadyResponse
 }
@@ -196,6 +197,9 @@ func (f *fakeGameControlServer) CancelPartyQueue(_ context.Context, _ *gamev1.Ca
 }
 
 func (f *fakeGameControlServer) GetPartyQueueStatus(_ context.Context, _ *gamev1.GetPartyQueueStatusRequest) (*gamev1.GetPartyQueueStatusResponse, error) {
+	if f.statusResp != nil {
+		return f.statusResp, nil
+	}
 	return &gamev1.GetPartyQueueStatusResponse{Ok: true, QueueState: "queueing"}, nil
 }
 
