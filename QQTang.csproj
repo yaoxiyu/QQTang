@@ -3,11 +3,18 @@
     <TargetFramework>net8.0</TargetFramework>
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);.godot\**;tests\csharp\**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove=".godot\**\*.cs" />
+    <Compile Remove="tests\csharp\**\*.cs" />
+    <EmbeddedResource Remove=".godot\**" />
+    <None Remove=".godot\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.30.2" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="tests\csharp\**\*.cs" />
   </ItemGroup>
 </Project>
