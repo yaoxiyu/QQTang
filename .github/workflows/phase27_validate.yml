@@ -1,0 +1,68 @@
+name: phase27_validate
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  phase27-validation:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Buf
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Install Godot Mono
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '4.6.2'
+          $archive = "Godot_v${version}-stable_mono_win64.zip"
+          $exeName = "Godot_v${version}-stable_mono_win64.exe"
+          $url = "https://github.com/godotengine/godot/releases/download/${version}-stable/$archive"
+          $destRoot = Join-Path $env:RUNNER_TEMP 'godot'
+          $zipPath = Join-Path $destRoot $archive
+          New-Item -ItemType Directory -Path $destRoot -Force | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $zipPath
+          Expand-Archive -Path $zipPath -DestinationPath $destRoot -Force
+          $exePath = Join-Path $destRoot $exeName
+          if (-not (Test-Path -LiteralPath $exePath)) {
+            throw "Godot executable not found: $exePath"
+          }
+          "GODOT_EXE=$exePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Run Phase27 Validation
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/validation/run_phase27_validation.ps1 -GodotExe "$env:GODOT_EXE" -ProjectPath "$env:GITHUB_WORKSPACE"
+
+      - name: Upload Validation Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase27-validation-reports
+          path: |
+            tests/reports/latest/phase27_validation_latest.txt
+            tests/reports/latest/phase27_validation_latest.json
+            tests/reports/latest/cross_service_contract_suite_latest.txt
+            tests/reports/latest/cross_service_contract_suite_latest.json
