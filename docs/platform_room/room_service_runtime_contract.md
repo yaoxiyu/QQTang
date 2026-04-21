@@ -7,6 +7,7 @@ This document defines the formal runtime contract of Phase26 Room Service.
 - Service entrypoint (formal room authority only): `services/room_service/cmd/room_service/main.go`
 - Runtime language: Go.
 - Protocol: WebSocket binary frames with protobuf wire payloads.
+- Default listen port: `9100`
 - Default room endpoint port: `9100` (`ROOM_WS_ADDR`, default `127.0.0.1:9100`).
 - Health endpoints:
   - `/healthz`

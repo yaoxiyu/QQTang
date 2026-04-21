@@ -28,6 +28,10 @@ type EnterPartyQueueInput struct {
 }
 
 type PartyQueueStatus struct {
+	QueuePhase             string   `json:"queue_phase"`
+	QueueTerminalReason    string   `json:"queue_terminal_reason"`
+	AllocationPhase        string   `json:"allocation_phase,omitempty"`
+	AllocationReason       string   `json:"allocation_reason,omitempty"`
 	QueueState             string   `json:"queue_state"`
 	QueueEntryID           string   `json:"queue_entry_id"`
 	PartyRoomID            string   `json:"party_room_id"`
@@ -39,6 +43,7 @@ type PartyQueueStatus struct {
 	AssignmentRevision     int      `json:"assignment_revision"`
 	QueueStatusText        string   `json:"queue_status_text"`
 	AssignmentStatusText   string   `json:"assignment_status_text"`
+	BattleEntryReady       bool     `json:"battle_entry_ready"`
 	EnqueueUnixSec         int64    `json:"enqueue_unix_sec"`
 	LastHeartbeatUnixSec   int64    `json:"last_heartbeat_unix_sec"`
 	ExpiresAtUnixSec       int64    `json:"expires_at_unix_sec"`
@@ -58,6 +63,10 @@ type PartyQueueStatus struct {
 }
 
 type QueueStatus struct {
+	QueuePhase             string `json:"queue_phase"`
+	QueueTerminalReason    string `json:"queue_terminal_reason"`
+	AllocationPhase        string `json:"allocation_phase,omitempty"`
+	AllocationReason       string `json:"allocation_reason,omitempty"`
 	QueueState             string `json:"queue_state"`
 	QueueEntryID           string `json:"queue_entry_id"`
 	QueueKey               string `json:"queue_key"`
@@ -65,6 +74,7 @@ type QueueStatus struct {
 	AssignmentRevision     int    `json:"assignment_revision"`
 	QueueStatusText        string `json:"queue_status_text"`
 	AssignmentStatusText   string `json:"assignment_status_text"`
+	BattleEntryReady       bool   `json:"battle_entry_ready"`
 	EnqueueUnixSec         int64  `json:"enqueue_unix_sec"`
 	LastHeartbeatUnixSec   int64  `json:"last_heartbeat_unix_sec"`
 	ExpiresAtUnixSec       int64  `json:"expires_at_unix_sec"`

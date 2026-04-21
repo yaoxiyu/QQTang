@@ -19,6 +19,10 @@ var room_queue_entry_id: String = ""
 var room_queue_status_text: String = ""
 var room_queue_error_code: String = ""
 var room_queue_error_message: String = ""
+var queue_status_text: String = ""
+var queue_error_code: String = ""
+var queue_user_message: String = ""
+var queue_entry_id: String = ""
 var min_start_players: int = 2
 var all_ready: bool = false
 var max_players: int = 0
@@ -26,14 +30,28 @@ var match_active: bool = false
 
 # LegacyMigration: Room lifecycle & battle handoff
 var room_lifecycle_state: String = "idle"
+var room_phase: String = "idle"
+var room_phase_reason: String = "none"
 var current_assignment_id: String = ""
 var current_battle_id: String = ""
 var current_match_id: String = ""
+var queue_phase: String = "idle"
+var queue_terminal_reason: String = "none"
 var battle_allocation_state: String = ""
+var battle_phase: String = "idle"
+var battle_terminal_reason: String = "none"
+var battle_status_text: String = ""
 var battle_server_host: String = ""
 var battle_server_port: int = 0
 var room_return_policy: String = "return_to_source_room"
 var battle_entry_ready: bool = false
+var can_toggle_ready: bool = false
+var can_start_manual_battle: bool = false
+var can_update_selection: bool = false
+var can_update_match_room_config: bool = false
+var can_enter_queue: bool = false
+var can_cancel_queue: bool = false
+var can_leave_room: bool = false
 
 
 func to_dict() -> Dictionary:
@@ -62,19 +80,37 @@ func to_dict() -> Dictionary:
 		"room_queue_status_text": room_queue_status_text,
 		"room_queue_error_code": room_queue_error_code,
 		"room_queue_error_message": room_queue_error_message,
+		"queue_status_text": queue_status_text,
+		"queue_error_code": queue_error_code,
+		"queue_user_message": queue_user_message,
+		"queue_entry_id": queue_entry_id,
 		"min_start_players": min_start_players,
 		"all_ready": all_ready,
 		"max_players": max_players,
 		"match_active": match_active,
 		"room_lifecycle_state": room_lifecycle_state,
+		"room_phase": room_phase,
+		"room_phase_reason": room_phase_reason,
 		"current_assignment_id": current_assignment_id,
 		"current_battle_id": current_battle_id,
 		"current_match_id": current_match_id,
+		"queue_phase": queue_phase,
+		"queue_terminal_reason": queue_terminal_reason,
 		"battle_allocation_state": battle_allocation_state,
+		"battle_phase": battle_phase,
+		"battle_terminal_reason": battle_terminal_reason,
+		"battle_status_text": battle_status_text,
 		"battle_server_host": battle_server_host,
 		"battle_server_port": battle_server_port,
 		"room_return_policy": room_return_policy,
 		"battle_entry_ready": battle_entry_ready,
+		"can_toggle_ready": can_toggle_ready,
+		"can_start_manual_battle": can_start_manual_battle,
+		"can_update_selection": can_update_selection,
+		"can_update_match_room_config": can_update_match_room_config,
+		"can_enter_queue": can_enter_queue,
+		"can_cancel_queue": can_cancel_queue,
+		"can_leave_room": can_leave_room,
 	}
 
 
@@ -97,19 +133,37 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.room_queue_status_text = String(data.get("room_queue_status_text", ""))
 	snapshot.room_queue_error_code = String(data.get("room_queue_error_code", ""))
 	snapshot.room_queue_error_message = String(data.get("room_queue_error_message", ""))
+	snapshot.queue_status_text = String(data.get("queue_status_text", snapshot.room_queue_status_text))
+	snapshot.queue_error_code = String(data.get("queue_error_code", snapshot.room_queue_error_code))
+	snapshot.queue_user_message = String(data.get("queue_user_message", snapshot.room_queue_error_message))
+	snapshot.queue_entry_id = String(data.get("queue_entry_id", snapshot.room_queue_entry_id))
 	snapshot.min_start_players = int(data.get("min_start_players", 2))
 	snapshot.all_ready = bool(data.get("all_ready", false))
 	snapshot.max_players = int(data.get("max_players", 0))
 	snapshot.match_active = bool(data.get("match_active", false))
 	snapshot.room_lifecycle_state = String(data.get("room_lifecycle_state", "idle"))
+	snapshot.room_phase = String(data.get("room_phase", "idle"))
+	snapshot.room_phase_reason = String(data.get("room_phase_reason", "none"))
 	snapshot.current_assignment_id = String(data.get("current_assignment_id", ""))
 	snapshot.current_battle_id = String(data.get("current_battle_id", ""))
 	snapshot.current_match_id = String(data.get("current_match_id", ""))
+	snapshot.queue_phase = String(data.get("queue_phase", "idle"))
+	snapshot.queue_terminal_reason = String(data.get("queue_terminal_reason", "none"))
 	snapshot.battle_allocation_state = String(data.get("battle_allocation_state", ""))
+	snapshot.battle_phase = String(data.get("battle_phase", "idle"))
+	snapshot.battle_terminal_reason = String(data.get("battle_terminal_reason", "none"))
+	snapshot.battle_status_text = String(data.get("battle_status_text", ""))
 	snapshot.battle_server_host = String(data.get("battle_server_host", ""))
 	snapshot.battle_server_port = int(data.get("battle_server_port", 0))
 	snapshot.room_return_policy = String(data.get("room_return_policy", "return_to_source_room"))
 	snapshot.battle_entry_ready = bool(data.get("battle_entry_ready", false))
+	snapshot.can_toggle_ready = bool(data.get("can_toggle_ready", false))
+	snapshot.can_start_manual_battle = bool(data.get("can_start_manual_battle", false))
+	snapshot.can_update_selection = bool(data.get("can_update_selection", false))
+	snapshot.can_update_match_room_config = bool(data.get("can_update_match_room_config", false))
+	snapshot.can_enter_queue = bool(data.get("can_enter_queue", false))
+	snapshot.can_cancel_queue = bool(data.get("can_cancel_queue", false))
+	snapshot.can_leave_room = bool(data.get("can_leave_room", false))
 
 	var member_entries: Array = data.get("members", [])
 	for entry in member_entries:

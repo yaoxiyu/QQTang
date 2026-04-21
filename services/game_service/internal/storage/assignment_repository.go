@@ -218,7 +218,7 @@ func (r *AssignmentRepository) ReelectCaptain(ctx context.Context, assignmentID 
 		SET assignment_revision = $2,
 		    updated_at = NOW()
 		WHERE assignment_id = $1
-		  AND state IN ('assigned', 'committing')
+		  AND state IN ('assignment_pending', 'allocating_battle', 'entry_ready')
 	`, assignmentID, revision); err != nil {
 		return err
 	}

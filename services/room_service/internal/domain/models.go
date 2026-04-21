@@ -21,11 +21,28 @@ type RoomMember struct {
 	ProfileID       string
 	PlayerName      string
 	TeamID          int
+	MemberPhase     string
 	ConnectionState string
 	ConnectionID    string
 	ReconnectToken  string
 	Ready           bool
 	Loadout         RoomLoadout
+}
+
+type RoomFSMState struct {
+	Phase      string
+	LastReason string
+	Revision   int64
+	StatusText string
+}
+
+type QueueFSMProjection struct {
+	Phase          string
+	TerminalReason string
+	QueueEntryID   string
+	StatusText     string
+	ErrorCode      string
+	UserMessage    string
 }
 
 type RoomQueueState struct {
@@ -53,16 +70,43 @@ type BattleHandoff struct {
 	AllocationState string
 }
 
+type BattleHandoffFSMProjection struct {
+	Phase          string
+	TerminalReason string
+	AssignmentID   string
+	BattleID       string
+	MatchID        string
+	ServerHost     string
+	ServerPort     int
+	Ready          bool
+	StatusText     string
+}
+
+type RoomCapabilitySet struct {
+	CanToggleReady           bool
+	CanStartManualBattle     bool
+	CanUpdateSelection       bool
+	CanUpdateMatchRoomConfig bool
+	CanEnterQueue            bool
+	CanCancelQueue           bool
+	CanLeaveRoom             bool
+}
+
 type RoomAggregate struct {
-	RoomID             string
-	RoomKind           string
-	RoomDisplayName    string
-	LifecycleState     string
-	SnapshotRevision   int64
-	Selection          RoomSelection
-	Members            map[string]RoomMember
-	Queue              RoomQueueState
-	ResumeBindings     map[string]ResumeBinding
-	BattleHandoffState BattleHandoff
-	MaxPlayerCount     int
+	RoomID           string
+	RoomKind         string
+	RoomDisplayName  string
+	SnapshotRevision int64
+	Selection        RoomSelection
+	Members          map[string]RoomMember
+	ResumeBindings   map[string]ResumeBinding
+	MaxPlayerCount   int
+
+	RoomState          RoomFSMState
+	QueueState         QueueFSMProjection
+	BattleState        BattleHandoffFSMProjection
+	Capabilities       RoomCapabilitySet
+	LifecycleState     string         // legacy alias projection only
+	Queue              RoomQueueState // legacy alias projection only
+	BattleHandoffState BattleHandoff  // legacy alias projection only
 }

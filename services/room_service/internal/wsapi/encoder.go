@@ -101,15 +101,30 @@ func encodeSnapshot(snapshot *roomapp.SnapshotProjection) *roomv1.RoomSnapshot {
 		return &roomv1.RoomSnapshot{}
 	}
 	result := &roomv1.RoomSnapshot{
-		RoomId:           snapshot.RoomID,
-		RoomKind:         snapshot.RoomKind,
-		RoomDisplayName:  snapshot.RoomDisplayName,
-		OwnerMemberId:    snapshot.OwnerMemberID,
-		LifecycleState:   snapshot.LifecycleState,
-		SnapshotRevision: snapshot.SnapshotRevision,
-		Selection:        encodeSelection(snapshot.Selection),
-		QueueState:       snapshot.QueueState.QueueState,
-		BattleEntry:      encodeBattleEntry(snapshot.BattleHandoff),
+		RoomId:                   snapshot.RoomID,
+		RoomKind:                 snapshot.RoomKind,
+		RoomDisplayName:          snapshot.RoomDisplayName,
+		OwnerMemberId:            snapshot.OwnerMemberID,
+		LifecycleState:           snapshot.LifecycleState,
+		SnapshotRevision:         snapshot.SnapshotRevision,
+		Selection:                encodeSelection(snapshot.Selection),
+		QueueState:               snapshot.QueueState.QueueState,
+		RoomPhase:                snapshot.RoomPhase,
+		RoomPhaseReason:          snapshot.RoomPhaseReason,
+		QueuePhase:               snapshot.QueuePhase,
+		QueueTerminalReason:      snapshot.QueueTerminalReason,
+		QueueStatusText:          snapshot.QueueStatusText,
+		QueueErrorCode:           snapshot.QueueErrorCode,
+		QueueUserMessage:         snapshot.QueueUserMessage,
+		QueueEntryId:             snapshot.QueueEntryID,
+		CanToggleReady:           snapshot.Capabilities.CanToggleReady,
+		CanStartManualBattle:     snapshot.Capabilities.CanStartManualBattle,
+		CanUpdateSelection:       snapshot.Capabilities.CanUpdateSelection,
+		CanUpdateMatchRoomConfig: snapshot.Capabilities.CanUpdateMatchRoomConfig,
+		CanEnterQueue:            snapshot.Capabilities.CanEnterQueue,
+		CanCancelQueue:           snapshot.Capabilities.CanCancelQueue,
+		CanLeaveRoom:             snapshot.Capabilities.CanLeaveRoom,
+		BattleEntry:              encodeBattleEntryFromSnapshot(snapshot),
 	}
 	result.Members = make([]*roomv1.RoomMember, 0, len(snapshot.Members))
 	for _, member := range snapshot.Members {
@@ -138,6 +153,7 @@ func encodeMember(member domain.RoomMember) *roomv1.RoomMember {
 		Ready:           member.Ready,
 		Loadout:         mapLoadout(member.Loadout),
 		ConnectionState: member.ConnectionState,
+		MemberPhase:     member.MemberPhase,
 	}
 }
 
@@ -159,4 +175,15 @@ func encodeBattleEntry(h domain.BattleHandoff) *roomv1.BattleEntryState {
 		ServerPort:       int32(h.ServerPort),
 		BattleEntryReady: h.Ready,
 	}
+}
+
+func encodeBattleEntryFromSnapshot(snapshot *roomapp.SnapshotProjection) *roomv1.BattleEntryState {
+	if snapshot == nil {
+		return &roomv1.BattleEntryState{}
+	}
+	entry := encodeBattleEntry(snapshot.BattleHandoff)
+	entry.Phase = snapshot.BattlePhase
+	entry.TerminalReason = snapshot.BattleTerminalReason
+	entry.StatusText = snapshot.BattleStatusText
+	return entry
 }

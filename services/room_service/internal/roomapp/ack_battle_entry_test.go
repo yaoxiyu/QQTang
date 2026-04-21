@@ -41,4 +41,46 @@ func TestAckBattleEntryLifecycle(t *testing.T) {
 	if acked.LifecycleState != "battle_entry_acknowledged" {
 		t.Fatalf("expected lifecycle battle_entry_acknowledged, got %s", acked.LifecycleState)
 	}
+	svc.mu.RLock()
+	room := svc.roomsByID[created.RoomID]
+	if room.RoomState.Phase != RoomPhaseBattleEntering {
+		svc.mu.RUnlock()
+		t.Fatalf("expected room phase battle_entering, got %s", room.RoomState.Phase)
+	}
+	if room.BattleState.Phase != BattlePhaseEntering {
+		svc.mu.RUnlock()
+		t.Fatalf("expected battle phase entering, got %s", room.BattleState.Phase)
+	}
+	if room.BattleState.TerminalReason != BattleReasonEntryAcknowledged {
+		svc.mu.RUnlock()
+		t.Fatalf("expected battle reason entry_acknowledged, got %s", room.BattleState.TerminalReason)
+	}
+	svc.mu.RUnlock()
+}
+
+func TestAckBattleEntryRejectsNonBattleEntryReadyPhase(t *testing.T) {
+	svc := newTestServiceWithFakeGame(t, nil)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	_, err = svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: "assign-x",
+		BattleID:     "battle-x",
+		MatchID:      "match-x",
+	})
+	if err != ErrRoomPhaseInvalid {
+		t.Fatalf("expected ErrRoomPhaseInvalid, got %v", err)
+	}
 }

@@ -3,6 +3,8 @@
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.gd")
 const SceneFlowControllerScript = preload("res://app/flow/scene_flow_controller.gd")
+const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 
 
 func test_practice_room_can_reach_loading_and_battle_flow() -> void:
@@ -26,6 +28,21 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 
 	runtime.front_flow.on_loading_completed()
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "front flow enters battle state after loading completes")
+
+	var returning_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
+	returning_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
+	returning_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	returning_snapshot.room_phase = "returning_to_room"
+	returning_snapshot.battle_phase = "returning"
+	runtime.room_use_case.on_authoritative_snapshot(returning_snapshot)
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.RETURNING_TO_ROOM), "canonical returning_to_room phase should drive returning flow")
+
+	var idle_snapshot: RoomSnapshot = returning_snapshot.duplicate_deep()
+	idle_snapshot.room_phase = "idle"
+	idle_snapshot.queue_phase = "idle"
+	idle_snapshot.battle_phase = "completed"
+	runtime.room_use_case.on_authoritative_snapshot(idle_snapshot)
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "canonical idle phase should return front flow to room")
 
 	var battle_scene: PackedScene = load(SceneFlowControllerScript.BATTLE_SCENE_PATH)
 	assert_not_null(battle_scene, "formal battle scene still loads")

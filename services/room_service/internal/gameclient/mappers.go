@@ -25,13 +25,20 @@ func fromPBEnterPartyQueue(response *gamev1.EnterPartyQueueResponse) EnterPartyQ
 	if response == nil {
 		return EnterPartyQueueResult{}
 	}
+	statusText := response.GetQueueStatusText()
+	if statusText == "" {
+		statusText = response.GetQueueState()
+	}
 	return EnterPartyQueueResult{
-		OK:           response.GetOk(),
-		QueueEntryID: response.GetQueueEntryId(),
-		QueueState:   response.GetQueueState(),
-		StatusText:   response.GetQueueState(),
-		ErrorCode:    response.GetErrorCode(),
-		UserMessage:  response.GetUserMessage(),
+		OK:                  response.GetOk(),
+		QueueEntryID:        response.GetQueueEntryId(),
+		QueueState:          response.GetQueueState(),
+		QueuePhase:          response.GetQueuePhase(),
+		QueueTerminalReason: response.GetQueueTerminalReason(),
+		QueueStatusText:     response.GetQueueStatusText(),
+		StatusText:          statusText,
+		ErrorCode:           response.GetErrorCode(),
+		UserMessage:         response.GetUserMessage(),
 	}
 }
 
@@ -39,12 +46,19 @@ func fromPBCancelPartyQueue(response *gamev1.CancelPartyQueueResponse) CancelPar
 	if response == nil {
 		return CancelPartyQueueResult{}
 	}
+	statusText := response.GetQueueStatusText()
+	if statusText == "" {
+		statusText = response.GetQueueState()
+	}
 	return CancelPartyQueueResult{
-		OK:          response.GetOk(),
-		QueueState:  response.GetQueueState(),
-		StatusText:  response.GetQueueState(),
-		ErrorCode:   response.GetErrorCode(),
-		UserMessage: response.GetUserMessage(),
+		OK:                  response.GetOk(),
+		QueueState:          response.GetQueueState(),
+		QueuePhase:          response.GetQueuePhase(),
+		QueueTerminalReason: response.GetQueueTerminalReason(),
+		QueueStatusText:     response.GetQueueStatusText(),
+		StatusText:          statusText,
+		ErrorCode:           response.GetErrorCode(),
+		UserMessage:         response.GetUserMessage(),
 	}
 }
 
@@ -53,15 +67,22 @@ func fromPBGetPartyQueueStatus(response *gamev1.GetPartyQueueStatusResponse) Get
 		return GetPartyQueueStatusResult{}
 	}
 	return GetPartyQueueStatusResult{
-		OK:           response.GetOk(),
-		QueueState:   response.GetQueueState(),
-		AssignmentID: response.GetAssignmentId(),
-		MatchID:      response.GetMatchId(),
-		BattleID:     response.GetBattleId(),
-		ServerHost:   response.GetServerHost(),
-		ServerPort:   int(response.GetServerPort()),
-		ErrorCode:    response.GetErrorCode(),
-		UserMessage:  response.GetUserMessage(),
+		OK:                   response.GetOk(),
+		QueueState:           response.GetQueueState(),
+		QueuePhase:           response.GetQueuePhase(),
+		QueueTerminalReason:  response.GetQueueTerminalReason(),
+		QueueStatusText:      response.GetQueueStatusText(),
+		AssignmentStatusText: response.GetAssignmentStatusText(),
+		AllocationPhase:      response.GetAllocationPhase(),
+		AllocationReason:     response.GetAllocationReason(),
+		BattleEntryReady:     response.GetBattleEntryReady(),
+		AssignmentID:         response.GetAssignmentId(),
+		MatchID:              response.GetMatchId(),
+		BattleID:             response.GetBattleId(),
+		ServerHost:           response.GetServerHost(),
+		ServerPort:           int(response.GetServerPort()),
+		ErrorCode:            response.GetErrorCode(),
+		UserMessage:          response.GetUserMessage(),
 	}
 }
 

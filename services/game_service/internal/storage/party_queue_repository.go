@@ -23,6 +23,7 @@ type PartyQueueEntry struct {
 	AssignmentRevision   int
 	EnqueueUnixSec       int64
 	LastHeartbeatUnixSec int64
+	TerminalReason       string
 	CancelReason         string
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
@@ -46,14 +47,14 @@ func (r *PartyQueueRepository) Insert(ctx context.Context, entry PartyQueueEntry
 			party_queue_entry_id, party_room_id, queue_type, match_format_id, party_size,
 			captain_account_id, captain_profile_id, selected_mode_ids_json, queue_key,
 			state, assignment_id, assignment_revision, enqueue_unix_sec, last_heartbeat_unix_sec,
-			cancel_reason, created_at, updated_at
+			terminal_reason, cancel_reason, created_at, updated_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,NULLIF($11, ''),$12,$13,$14,$15,$16,$17
+			$1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,NULLIF($11, ''),$12,$13,$14,$15,$16,$17,$18
 		)
 	`, entry.PartyQueueEntryID, entry.PartyRoomID, entry.QueueType, entry.MatchFormatID, entry.PartySize,
 		entry.CaptainAccountID, entry.CaptainProfileID, string(selectedModeIDsJSON), entry.QueueKey,
 		entry.State, entry.AssignmentID, entry.AssignmentRevision, entry.EnqueueUnixSec,
-		entry.LastHeartbeatUnixSec, entry.CancelReason, entry.CreatedAt, entry.UpdatedAt)
+		entry.LastHeartbeatUnixSec, canonicalTerminalReason(entry.TerminalReason, entry.CancelReason), entry.CancelReason, entry.CreatedAt, entry.UpdatedAt)
 	return err
 }
 
@@ -62,9 +63,9 @@ func (r *PartyQueueRepository) FindActiveByRoomID(ctx context.Context, partyRoom
 		SELECT party_queue_entry_id, party_room_id, queue_type, match_format_id, party_size,
 		       captain_account_id, captain_profile_id, selected_mode_ids_json, queue_key,
 		       state, COALESCE(assignment_id, ''), assignment_revision, enqueue_unix_sec,
-		       last_heartbeat_unix_sec, cancel_reason, created_at, updated_at
+		       last_heartbeat_unix_sec, COALESCE(NULLIF(terminal_reason, ''), cancel_reason, ''), cancel_reason, created_at, updated_at
 		FROM matchmaking_party_queue_entries
-		WHERE party_room_id = $1 AND state IN ('queued', 'assigned', 'committing')
+		WHERE party_room_id = $1 AND state IN ('queued', 'assignment_pending', 'allocating_battle', 'entry_ready')
 		ORDER BY created_at DESC
 		LIMIT 1
 	`, partyRoomID))
@@ -75,7 +76,7 @@ func (r *PartyQueueRepository) FindByEntryID(ctx context.Context, entryID string
 		SELECT party_queue_entry_id, party_room_id, queue_type, match_format_id, party_size,
 		       captain_account_id, captain_profile_id, selected_mode_ids_json, queue_key,
 		       state, COALESCE(assignment_id, ''), assignment_revision, enqueue_unix_sec,
-		       last_heartbeat_unix_sec, cancel_reason, created_at, updated_at
+		       last_heartbeat_unix_sec, COALESCE(NULLIF(terminal_reason, ''), cancel_reason, ''), cancel_reason, created_at, updated_at
 		FROM matchmaking_party_queue_entries
 		WHERE party_queue_entry_id = $1
 	`, entryID))
@@ -86,7 +87,7 @@ func (r *PartyQueueRepository) FindQueuedByKey(ctx context.Context, queueKey str
 		SELECT party_queue_entry_id, party_room_id, queue_type, match_format_id, party_size,
 		       captain_account_id, captain_profile_id, selected_mode_ids_json, queue_key,
 		       state, COALESCE(assignment_id, ''), assignment_revision, enqueue_unix_sec,
-		       last_heartbeat_unix_sec, cancel_reason, created_at, updated_at
+		       last_heartbeat_unix_sec, COALESCE(NULLIF(terminal_reason, ''), cancel_reason, ''), cancel_reason, created_at, updated_at
 		FROM matchmaking_party_queue_entries
 		WHERE queue_key = $1 AND state = 'queued'
 		  AND last_heartbeat_unix_sec >= $3
@@ -101,7 +102,7 @@ func (r *PartyQueueRepository) FindQueuedByKeyForUpdate(ctx context.Context, que
 		SELECT party_queue_entry_id, party_room_id, queue_type, match_format_id, party_size,
 		       captain_account_id, captain_profile_id, selected_mode_ids_json, queue_key,
 		       state, COALESCE(assignment_id, ''), assignment_revision, enqueue_unix_sec,
-		       last_heartbeat_unix_sec, cancel_reason, created_at, updated_at
+		       last_heartbeat_unix_sec, COALESCE(NULLIF(terminal_reason, ''), cancel_reason, ''), cancel_reason, created_at, updated_at
 		FROM matchmaking_party_queue_entries
 		WHERE queue_key = $1 AND state = 'queued'
 		  AND last_heartbeat_unix_sec >= $3
@@ -116,6 +117,7 @@ func (r *PartyQueueRepository) UpdateStatus(ctx context.Context, entryID string,
 	_, err := r.db.Exec(ctx, `
 		UPDATE matchmaking_party_queue_entries
 		SET state = $2,
+		    terminal_reason = $3,
 		    cancel_reason = $3,
 		    assignment_id = NULLIF($4, ''),
 		    assignment_revision = $5,
@@ -130,6 +132,7 @@ func (r *PartyQueueRepository) UpdateStatusIfCurrentState(ctx context.Context, e
 	tag, err := r.db.Exec(ctx, `
 		UPDATE matchmaking_party_queue_entries
 		SET state = $3,
+		    terminal_reason = $4,
 		    cancel_reason = $4,
 		    assignment_id = NULLIF($5, ''),
 		    assignment_revision = $6,
@@ -187,6 +190,7 @@ func scanPartyQueueEntry(row interface{ Scan(dest ...any) error }) (PartyQueueEn
 		&entry.AssignmentRevision,
 		&entry.EnqueueUnixSec,
 		&entry.LastHeartbeatUnixSec,
+		&entry.TerminalReason,
 		&entry.CancelReason,
 		&entry.CreatedAt,
 		&entry.UpdatedAt,
@@ -196,6 +200,9 @@ func scanPartyQueueEntry(row interface{ Scan(dest ...any) error }) (PartyQueueEn
 	}
 	if len(selectedModeIDsJSON) > 0 {
 		_ = json.Unmarshal(selectedModeIDsJSON, &entry.SelectedModeIDs)
+	}
+	if entry.TerminalReason == "" {
+		entry.TerminalReason = entry.CancelReason
 	}
 	return entry, nil
 }

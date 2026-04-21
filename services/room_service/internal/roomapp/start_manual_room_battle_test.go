@@ -31,4 +31,25 @@ func TestStartManualRoomBattleLifecycle(t *testing.T) {
 	if snapshot.LifecycleState != "battle_handoff" {
 		t.Fatalf("expected battle_handoff lifecycle, got %s", snapshot.LifecycleState)
 	}
+	svc.mu.RLock()
+	room := svc.roomsByID[created.RoomID]
+	if room.RoomState.Phase != RoomPhaseBattleEntryReady {
+		svc.mu.RUnlock()
+		t.Fatalf("expected room phase battle_entry_ready, got %s", room.RoomState.Phase)
+	}
+	if room.BattleState.Phase != BattlePhaseReady {
+		svc.mu.RUnlock()
+		t.Fatalf("expected battle phase ready, got %s", room.BattleState.Phase)
+	}
+	if room.BattleState.TerminalReason != BattleReasonManualStart {
+		svc.mu.RUnlock()
+		t.Fatalf("expected battle reason manual_start, got %s", room.BattleState.TerminalReason)
+	}
+	for _, member := range room.Members {
+		if member.MemberPhase != MemberPhaseQueueLocked {
+			svc.mu.RUnlock()
+			t.Fatalf("expected member phase queue_locked, got %s", member.MemberPhase)
+		}
+	}
+	svc.mu.RUnlock()
 }

@@ -32,6 +32,9 @@ message EnterPartyQueueResponse {
   string queue_state = 3;
   string error_code = 4;
   string user_message = 5;
+  string queue_phase = 6;
+  string queue_terminal_reason = 7;
+  string queue_status_text = 8;
 }
 
 message CancelPartyQueueRequest {
@@ -44,6 +47,9 @@ message CancelPartyQueueResponse {
   string queue_state = 2;
   string error_code = 3;
   string user_message = 4;
+  string queue_phase = 5;
+  string queue_terminal_reason = 6;
+  string queue_status_text = 7;
 }
 
 message GetPartyQueueStatusRequest {
@@ -61,6 +67,13 @@ message GetPartyQueueStatusResponse {
   int32 server_port = 7;
   string error_code = 8;
   string user_message = 9;
+  string queue_phase = 10;
+  string queue_terminal_reason = 11;
+  string queue_status_text = 12;
+  string assignment_status_text = 13;
+  string allocation_phase = 14;
+  string allocation_reason = 15;
+  bool battle_entry_ready = 16;
 }
 
 message CreateManualRoomBattleRequest {

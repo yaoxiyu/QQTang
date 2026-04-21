@@ -16,12 +16,15 @@ type EnterPartyQueueInput struct {
 }
 
 type EnterPartyQueueResult struct {
-	OK           bool
-	QueueEntryID string
-	QueueState   string
-	StatusText   string
-	ErrorCode    string
-	UserMessage  string
+	OK                 bool
+	QueueEntryID       string
+	QueueState         string
+	QueuePhase         string
+	QueueTerminalReason string
+	QueueStatusText    string
+	StatusText         string
+	ErrorCode          string
+	UserMessage        string
 }
 
 type CancelPartyQueueInput struct {
@@ -32,11 +35,14 @@ type CancelPartyQueueInput struct {
 }
 
 type CancelPartyQueueResult struct {
-	OK          bool
-	QueueState  string
-	StatusText  string
-	ErrorCode   string
-	UserMessage string
+	OK                 bool
+	QueueState         string
+	QueuePhase         string
+	QueueTerminalReason string
+	QueueStatusText    string
+	StatusText         string
+	ErrorCode          string
+	UserMessage        string
 }
 
 type GetPartyQueueStatusInput struct {
@@ -46,15 +52,22 @@ type GetPartyQueueStatusInput struct {
 }
 
 type GetPartyQueueStatusResult struct {
-	OK           bool
-	QueueState   string
-	AssignmentID string
-	MatchID      string
-	BattleID     string
-	ServerHost   string
-	ServerPort   int
-	ErrorCode    string
-	UserMessage  string
+	OK                   bool
+	QueueState           string
+	QueuePhase           string
+	QueueTerminalReason  string
+	QueueStatusText      string
+	AssignmentStatusText string
+	AllocationPhase      string
+	AllocationReason     string
+	BattleEntryReady     bool
+	AssignmentID         string
+	MatchID              string
+	BattleID             string
+	ServerHost           string
+	ServerPort           int
+	ErrorCode            string
+	UserMessage          string
 }
 
 type CreateManualRoomBattleInput struct {

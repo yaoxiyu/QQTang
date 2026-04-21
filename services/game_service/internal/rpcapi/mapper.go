@@ -65,9 +65,12 @@ func mapCommitAssignmentReadyInput(req *gamev1.CommitAssignmentReadyRequest) ass
 
 func successEnterPartyQueue(status queue.PartyQueueStatus) *gamev1.EnterPartyQueueResponse {
 	return &gamev1.EnterPartyQueueResponse{
-		Ok:           true,
-		QueueEntryId: status.QueueEntryID,
-		QueueState:   status.QueueState,
+		Ok:                 true,
+		QueueEntryId:       status.QueueEntryID,
+		QueueState:         status.QueueState,
+		QueuePhase:         status.QueuePhase,
+		QueueTerminalReason: status.QueueTerminalReason,
+		QueueStatusText:    status.QueueStatusText,
 	}
 }
 
@@ -81,8 +84,11 @@ func errorEnterPartyQueue(code, message string) *gamev1.EnterPartyQueueResponse 
 
 func successCancelPartyQueue(status queue.PartyQueueStatus) *gamev1.CancelPartyQueueResponse {
 	return &gamev1.CancelPartyQueueResponse{
-		Ok:         true,
-		QueueState: status.QueueState,
+		Ok:                 true,
+		QueueState:         status.QueueState,
+		QueuePhase:         status.QueuePhase,
+		QueueTerminalReason: status.QueueTerminalReason,
+		QueueStatusText:    status.QueueStatusText,
 	}
 }
 
@@ -96,13 +102,20 @@ func errorCancelPartyQueue(code, message string) *gamev1.CancelPartyQueueRespons
 
 func successGetPartyQueueStatus(status queue.PartyQueueStatus) *gamev1.GetPartyQueueStatusResponse {
 	return &gamev1.GetPartyQueueStatusResponse{
-		Ok:           true,
-		QueueState:   status.QueueState,
-		AssignmentId: status.AssignmentID,
-		MatchId:      status.MatchID,
-		BattleId:     status.BattleID,
-		ServerHost:   status.ServerHost,
-		ServerPort:   int32(status.ServerPort),
+		Ok:                   true,
+		QueueState:           status.QueueState,
+		AssignmentId:         status.AssignmentID,
+		MatchId:              status.MatchID,
+		BattleId:             status.BattleID,
+		ServerHost:           status.ServerHost,
+		ServerPort:           int32(status.ServerPort),
+		QueuePhase:           status.QueuePhase,
+		QueueTerminalReason:  status.QueueTerminalReason,
+		QueueStatusText:      status.QueueStatusText,
+		AssignmentStatusText: status.AssignmentStatusText,
+		AllocationPhase:      status.AllocationPhase,
+		AllocationReason:     status.AllocationReason,
+		BattleEntryReady:     status.BattleEntryReady,
 	}
 }
 

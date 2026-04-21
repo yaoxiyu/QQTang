@@ -102,16 +102,35 @@ func _set_disabled(scene_controller: Node, property_name: String, disabled: bool
 
 
 func _build_battle_allocation_text(view_model: Dictionary) -> String:
-	var lifecycle := String(view_model.get("room_lifecycle_state", ""))
-	var alloc_state := String(view_model.get("battle_allocation_state", ""))
+	var room_phase := String(view_model.get("room_phase", ""))
+	if room_phase.is_empty():
+		room_phase = String(view_model.get("room_lifecycle_state", ""))
+	var battle_phase := String(view_model.get("battle_phase", ""))
+	if battle_phase.is_empty():
+		battle_phase = String(view_model.get("battle_allocation_state", ""))
+	var battle_reason := String(view_model.get("battle_terminal_reason", ""))
 	var battle_ready := bool(view_model.get("battle_entry_ready", false))
-	if lifecycle == "idle" or lifecycle.is_empty():
+	if room_phase == "idle" or room_phase.is_empty():
 		return ""
-	if battle_ready:
+	if battle_ready or battle_phase == "ready" or room_phase == "battle_entry_ready":
 		return "Battle Ready — %s:%d" % [
 			String(view_model.get("battle_server_host", "")),
 			int(view_model.get("battle_server_port", 0)),
 		]
-	if alloc_state.is_empty():
-		return "Room: %s" % lifecycle
-	return "Battle: %s / %s" % [lifecycle, alloc_state]
+	if room_phase == "battle_allocating" or battle_phase == "allocating":
+		return "正在分配对局服务器"
+	if room_phase == "battle_entering" or battle_phase == "entering":
+		return "对局已就绪，正在进入"
+	if room_phase == "in_battle" or battle_phase == "active":
+		return "对局进行中"
+	if battle_phase == "completed":
+		match battle_reason:
+			"allocation_failed":
+				return "对局分配失败"
+			"battle_finished":
+				return "对局已结束"
+			"return_completed":
+				return "已返回房间"
+			_:
+				return "对局流程已结束"
+	return "Room: %s / Battle: %s" % [room_phase, battle_phase]

@@ -270,12 +270,13 @@ func (s *Service) CancelPartyQueue(ctx context.Context, partyRoomID string, queu
 		return PartyQueueStatus{}, err
 	}
 	nowUnix := time.Now().UTC().Unix()
-	if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, "cancelled", "party_cancelled", entry.AssignmentID, entry.AssignmentRevision, nowUnix); err != nil {
+	if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, QueuePhaseCompleted, QueueTerminalReasonClientCancelled, entry.AssignmentID, entry.AssignmentRevision, nowUnix); err != nil {
 		return PartyQueueStatus{}, err
 	}
-	entry.State = "cancelled"
+	entry.State = QueuePhaseCompleted
 	entry.LastHeartbeatUnixSec = nowUnix
-	entry.CancelReason = "party_cancelled"
+	entry.TerminalReason = QueueTerminalReasonClientCancelled
+	entry.CancelReason = QueueTerminalReasonClientCancelled
 	return s.buildPartyQueuedStatus(entry), nil
 }
 
@@ -286,32 +287,39 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 	}
 	now := time.Now().UTC()
 	if entry.LastHeartbeatUnixSec+int64(s.heartbeatTTL.Seconds()) < now.Unix() {
-		if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, "cancelled", "heartbeat_timeout", entry.AssignmentID, entry.AssignmentRevision, now.Unix()); err != nil {
+		if err := s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, QueuePhaseCompleted, QueueTerminalReasonHeartbeatTimeout, entry.AssignmentID, entry.AssignmentRevision, now.Unix()); err != nil {
 			return PartyQueueStatus{}, err
 		}
-		entry.State = "cancelled"
+		entry.State = QueuePhaseCompleted
+		entry.TerminalReason = QueueTerminalReasonHeartbeatTimeout
+		entry.CancelReason = QueueTerminalReasonHeartbeatTimeout
 		return s.buildPartyQueuedStatus(entry), nil
 	}
 	if entry.State == "queued" {
-		_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+		_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.TerminalReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
 		entry.LastHeartbeatUnixSec = now.Unix()
 		return s.buildPartyQueuedStatus(entry), nil
 	}
 	assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return s.reconcileTerminalPartyQueueStatus(ctx, entry, now.Unix(), "expired", "assignment_missing"), nil
+			return s.reconcileTerminalPartyQueueStatus(ctx, entry, now.Unix(), QueuePhaseCompleted, QueueTerminalReasonAssignmentMissing), nil
 		}
 		return PartyQueueStatus{}, err
 	}
 	if terminalState, cancelReason, terminal := resolveAssignmentTerminalState(assignment, now.Unix()); terminal {
 		return s.reconcileTerminalPartyQueueStatus(ctx, entry, now.Unix(), terminalState, cancelReason), nil
 	}
-	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.TerminalReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
 	resolvedHost, resolvedPort := resolveAssignmentServerEndpoint(assignment)
 	assignmentStatusText := resolveAssignmentStatusText(assignment, "Waiting for room ticket")
+	queuePhase, queueTerminalReason, allocationPhase, allocationReason := ProjectAssignmentToQueuePhase(assignment, now.Unix())
 	return PartyQueueStatus{
-		QueueState:             entry.State,
+		QueuePhase:             queuePhase,
+		QueueTerminalReason:    queueTerminalReason,
+		AllocationPhase:        allocationPhase,
+		AllocationReason:       allocationReason,
+		QueueState:             deriveLegacyQueueStateAlias(queuePhase, queueTerminalReason),
 		QueueEntryID:           entry.PartyQueueEntryID,
 		PartyRoomID:            entry.PartyRoomID,
 		QueueKey:               entry.QueueKey,
@@ -320,8 +328,9 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 		SelectedModeIDs:        entry.SelectedModeIDs,
 		AssignmentID:           assignment.AssignmentID,
 		AssignmentRevision:     assignment.AssignmentRevision,
-		QueueStatusText:        "Match found",
+		QueueStatusText:        buildQueueStatusText(queuePhase, queueTerminalReason),
 		AssignmentStatusText:   assignmentStatusText,
+		BattleEntryReady:       queuePhase == QueuePhaseEntryReady,
 		EnqueueUnixSec:         entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec:   now.Unix(),
 		ExpiresAtUnixSec:       now.Unix() + int64(s.heartbeatTTL.Seconds()),
@@ -347,7 +356,7 @@ func (s *Service) CancelQueue(ctx context.Context, profileID string, queueEntryI
 		return QueueStatus{}, err
 	}
 	nowUnix := time.Now().UTC().Unix()
-	if entry.State == "assigned" || entry.State == "committing" {
+	if entry.State == QueuePhaseAssignmentPending || entry.State == QueuePhaseAllocatingBattle || entry.State == QueuePhaseEntryReady {
 		assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
 		if err != nil && !errors.Is(err, storage.ErrNotFound) {
 			return QueueStatus{}, err
@@ -356,12 +365,15 @@ func (s *Service) CancelQueue(ctx context.Context, profileID string, queueEntryI
 			return QueueStatus{}, ErrAssignmentRevisionStale
 		}
 	}
-	if err := s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, "cancelled", "client_cancelled", entry.AssignmentID, entry.AssignmentRevision, nowUnix); err != nil {
+	if err := s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, QueuePhaseCompleted, QueueTerminalReasonClientCancelled, entry.AssignmentID, entry.AssignmentRevision, nowUnix); err != nil {
 		return QueueStatus{}, err
 	}
 	return QueueStatus{
-		QueueState:   "cancelled",
-		QueueEntryID: entry.QueueEntryID,
+		QueuePhase:          QueuePhaseCompleted,
+		QueueTerminalReason: QueueTerminalReasonClientCancelled,
+		QueueState:          deriveLegacyQueueStateAlias(QueuePhaseCompleted, QueueTerminalReasonClientCancelled),
+		QueueEntryID:        entry.QueueEntryID,
+		QueueStatusText:     buildQueueStatusText(QueuePhaseCompleted, QueueTerminalReasonClientCancelled),
 	}, nil
 }
 
@@ -372,20 +384,26 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 	}
 	now := time.Now().UTC()
 	if entry.LastHeartbeatUnixSec+int64(s.heartbeatTTL.Seconds()) < now.Unix() {
-		if err := s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, "cancelled", "heartbeat_timeout", entry.AssignmentID, entry.AssignmentRevision, now.Unix()); err != nil {
+		if err := s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, QueuePhaseCompleted, QueueTerminalReasonHeartbeatTimeout, entry.AssignmentID, entry.AssignmentRevision, now.Unix()); err != nil {
 			return QueueStatus{}, err
 		}
-		return QueueStatus{QueueState: "cancelled", QueueEntryID: entry.QueueEntryID}, nil
+		return QueueStatus{
+			QueuePhase:          QueuePhaseCompleted,
+			QueueTerminalReason: QueueTerminalReasonHeartbeatTimeout,
+			QueueState:          deriveLegacyQueueStateAlias(QueuePhaseCompleted, QueueTerminalReasonHeartbeatTimeout),
+			QueueEntryID:        entry.QueueEntryID,
+			QueueStatusText:     buildQueueStatusText(QueuePhaseCompleted, QueueTerminalReasonHeartbeatTimeout),
+		}, nil
 	}
 	if entry.State == "queued" {
-		_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+		_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.TerminalReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
 		entry.LastHeartbeatUnixSec = now.Unix()
 		return s.buildQueuedStatus(entry), nil
 	}
 	assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return s.reconcileTerminalSoloQueueStatus(ctx, entry, now.Unix(), "expired", "assignment_missing"), nil
+			return s.reconcileTerminalSoloQueueStatus(ctx, entry, now.Unix(), QueuePhaseCompleted, QueueTerminalReasonAssignmentMissing), nil
 		}
 		return QueueStatus{}, err
 	}
@@ -403,16 +421,21 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 	if assignment.AssignmentRevision != entry.AssignmentRevision {
 		return QueueStatus{}, ErrAssignmentRevisionStale
 	}
-	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
+	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, entry.State, entry.TerminalReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
 	resolvedHost, resolvedPort := resolveAssignmentServerEndpoint(assignment)
 	assignmentStatusText := resolveAssignmentStatusText(assignment, "Waiting for ticket request")
+	queuePhase, queueTerminalReason, allocationPhase, allocationReason := ProjectAssignmentToQueuePhase(assignment, now.Unix())
 	return QueueStatus{
-		QueueState:             entry.State,
+		QueuePhase:             queuePhase,
+		QueueTerminalReason:    queueTerminalReason,
+		AllocationPhase:        allocationPhase,
+		AllocationReason:       allocationReason,
+		QueueState:             deriveLegacyQueueStateAlias(queuePhase, queueTerminalReason),
 		QueueEntryID:           entry.QueueEntryID,
 		QueueKey:               entry.QueueKey,
 		AssignmentID:           assignment.AssignmentID,
 		AssignmentRevision:     assignment.AssignmentRevision,
-		QueueStatusText:        "Match found",
+		QueueStatusText:        buildQueueStatusText(queuePhase, queueTerminalReason),
 		AssignmentStatusText:   assignmentStatusText,
 		EnqueueUnixSec:         entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec:   now.Unix(),
@@ -433,25 +456,22 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 }
 
 func (s *Service) buildQueuedStatus(entry storage.QueueEntry) QueueStatus {
-	statusText := "Searching for players"
-	switch entry.State {
-	case "cancelled":
-		statusText = "Queue cancelled"
-	case "failed":
-		statusText = "Queue failed"
-	case "expired":
-		statusText = "Assignment expired"
-	case "finalized":
-		statusText = "Match finalized"
-	}
+	projection := normalizeQueueStatus(entry.State, terminalReasonOrCancelReason(entry.TerminalReason, entry.CancelReason), nil, entry.LastHeartbeatUnixSec)
+	queueStateAlias := deriveLegacyQueueStateAlias(projection.QueuePhase, projection.TerminalReason)
+	statusText := buildQueueStatusText(projection.QueuePhase, projection.TerminalReason)
 	return QueueStatus{
-		QueueState:           entry.State,
+		QueuePhase:           projection.QueuePhase,
+		QueueTerminalReason:  projection.TerminalReason,
+		AllocationPhase:      projection.AllocationPhase,
+		AllocationReason:     projection.AllocationReason,
+		QueueState:           queueStateAlias,
 		QueueEntryID:         entry.QueueEntryID,
 		QueueKey:             entry.QueueKey,
 		AssignmentID:         entry.AssignmentID,
 		AssignmentRevision:   entry.AssignmentRevision,
 		QueueStatusText:      statusText,
 		AssignmentStatusText: "",
+		BattleEntryReady:     projection.QueuePhase == QueuePhaseEntryReady,
 		EnqueueUnixSec:       entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec: entry.LastHeartbeatUnixSec,
 		ExpiresAtUnixSec:     entry.LastHeartbeatUnixSec + int64(s.heartbeatTTL.Seconds()),
@@ -459,19 +479,15 @@ func (s *Service) buildQueuedStatus(entry storage.QueueEntry) QueueStatus {
 }
 
 func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQueueStatus {
-	statusText := "Searching for teams"
-	switch entry.State {
-	case "cancelled":
-		statusText = "Queue cancelled"
-	case "failed":
-		statusText = "Queue failed"
-	case "expired":
-		statusText = "Assignment expired"
-	case "finalized":
-		statusText = "Match finalized"
-	}
+	projection := normalizeQueueStatus(entry.State, terminalReasonOrCancelReason(entry.TerminalReason, entry.CancelReason), nil, entry.LastHeartbeatUnixSec)
+	queueStateAlias := deriveLegacyQueueStateAlias(projection.QueuePhase, projection.TerminalReason)
+	statusText := buildQueueStatusText(projection.QueuePhase, projection.TerminalReason)
 	return PartyQueueStatus{
-		QueueState:           entry.State,
+		QueuePhase:           projection.QueuePhase,
+		QueueTerminalReason:  projection.TerminalReason,
+		AllocationPhase:      projection.AllocationPhase,
+		AllocationReason:     projection.AllocationReason,
+		QueueState:           queueStateAlias,
 		QueueEntryID:         entry.PartyQueueEntryID,
 		PartyRoomID:          entry.PartyRoomID,
 		QueueKey:             entry.QueueKey,
@@ -482,6 +498,7 @@ func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQue
 		AssignmentRevision:   entry.AssignmentRevision,
 		QueueStatusText:      statusText,
 		AssignmentStatusText: "",
+		BattleEntryReady:     projection.QueuePhase == QueuePhaseEntryReady,
 		EnqueueUnixSec:       entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec: entry.LastHeartbeatUnixSec,
 		ExpiresAtUnixSec:     entry.LastHeartbeatUnixSec + int64(s.heartbeatTTL.Seconds()),
@@ -490,13 +507,14 @@ func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQue
 
 func (s *Service) reconcileTerminalPartyQueueStatus(ctx context.Context, entry storage.PartyQueueEntry, nowUnix int64, queueState string, cancelReason string) PartyQueueStatus {
 	if queueState == "" {
-		queueState = "failed"
+		queueState = QueuePhaseCompleted
 	}
 	if cancelReason == "" {
-		cancelReason = queueState
+		cancelReason = QueueTerminalReasonAllocationFailed
 	}
 	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, queueState, cancelReason, entry.AssignmentID, entry.AssignmentRevision, nowUnix)
 	entry.State = queueState
+	entry.TerminalReason = cancelReason
 	entry.CancelReason = cancelReason
 	entry.LastHeartbeatUnixSec = nowUnix
 	return s.buildPartyQueuedStatus(entry)
@@ -504,13 +522,14 @@ func (s *Service) reconcileTerminalPartyQueueStatus(ctx context.Context, entry s
 
 func (s *Service) reconcileTerminalSoloQueueStatus(ctx context.Context, entry storage.QueueEntry, nowUnix int64, queueState string, cancelReason string) QueueStatus {
 	if queueState == "" {
-		queueState = "failed"
+		queueState = QueuePhaseCompleted
 	}
 	if cancelReason == "" {
-		cancelReason = queueState
+		cancelReason = QueueTerminalReasonAllocationFailed
 	}
 	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, queueState, cancelReason, entry.AssignmentID, entry.AssignmentRevision, nowUnix)
 	entry.State = queueState
+	entry.TerminalReason = cancelReason
 	entry.CancelReason = cancelReason
 	entry.LastHeartbeatUnixSec = nowUnix
 	return s.buildQueuedStatus(entry)
@@ -771,7 +790,7 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 				return nil, err
 			}
 		}
-		if err := partyRepo.UpdateStatusIfCurrentState(ctx, party.PartyQueueEntryID, "queued", "assigned", "", assignmentID, 1, now.Unix()); err != nil {
+		if err := partyRepo.UpdateStatusIfCurrentState(ctx, party.PartyQueueEntryID, "queued", QueuePhaseAssignmentPending, "", assignmentID, 1, now.Unix()); err != nil {
 			return nil, err
 		}
 	}
@@ -879,7 +898,7 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 		if err := assignmentRepo.InsertMember(ctx, member); err != nil {
 			return err
 		}
-		if err := queueRepo.UpdateStatusIfCurrentState(ctx, queued.QueueEntryID, "queued", "assigned", "", assignmentID, 1, now.Unix()); err != nil {
+		if err := queueRepo.UpdateStatusIfCurrentState(ctx, queued.QueueEntryID, "queued", QueuePhaseAssignmentPending, "", assignmentID, 1, now.Unix()); err != nil {
 			return err
 		}
 	}
@@ -1109,16 +1128,44 @@ func normalizeAllocationState(state string) string {
 
 func resolveAssignmentTerminalState(assignment storage.Assignment, nowUnix int64) (queueState string, cancelReason string, terminal bool) {
 	if assignment.State == "finalized" {
-		return "finalized", "match_finalized", true
+		return QueuePhaseCompleted, QueueTerminalReasonMatchFinalized, true
 	}
 	if assignment.CommitDeadlineUnixSec < nowUnix {
-		return "expired", "assignment_expired", true
+		return QueuePhaseCompleted, QueueTerminalReasonAssignmentExpired, true
 	}
 	allocationState := normalizeAllocationState(assignment.AllocationState)
 	if allocationState == "alloc_failed" {
-		return "failed", "allocation_failed", true
+		return QueuePhaseCompleted, QueueTerminalReasonAllocationFailed, true
 	}
 	return "", "", false
+}
+
+func deriveLegacyQueueStateAlias(queuePhase string, terminalReason string) string {
+	switch queuePhase {
+	case QueuePhaseIdle:
+		return "idle"
+	case QueuePhaseQueued:
+		return "queued"
+	case QueuePhaseAssignmentPending:
+		return "assigned"
+	case QueuePhaseAllocatingBattle:
+		return "allocating"
+	case QueuePhaseEntryReady:
+		return "battle_ready"
+	case QueuePhaseCompleted:
+		switch terminalReason {
+		case QueueTerminalReasonClientCancelled:
+			return "cancelled"
+		case QueueTerminalReasonAssignmentExpired:
+			return "expired"
+		case QueueTerminalReasonMatchFinalized:
+			return "finalized"
+		default:
+			return "failed"
+		}
+	default:
+		return "idle"
+	}
 }
 
 func deriveAllocationErrorCode(err error) string {

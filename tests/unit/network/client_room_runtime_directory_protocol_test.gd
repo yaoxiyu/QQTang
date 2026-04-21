@@ -37,7 +37,7 @@ func _test_directory_requests_are_forwarded_to_transport() -> bool:
 	runtime.set_process(false)
 	var transport := FakeDirectoryTransport.new()
 	runtime.add_child(transport)
-	runtime._transport = transport
+	runtime.inject_test_room_transport(transport)
 	runtime._connected = true
 
 	runtime.request_room_directory_snapshot()
@@ -110,6 +110,5 @@ func _test_directory_snapshot_message_is_parsed_and_emitted() -> bool:
 
 	runtime.queue_free()
 	return ok
-
 
 

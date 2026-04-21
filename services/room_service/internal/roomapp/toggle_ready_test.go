@@ -47,3 +47,33 @@ func TestToggleReady(t *testing.T) {
 		t.Fatalf("member should be not ready after second toggle")
 	}
 }
+
+func TestToggleReadyRejectsNonIdleRoomPhase(t *testing.T) {
+	svc := newTestService(t)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	memberID := created.OwnerMemberID
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: memberID}); err != nil {
+		t.Fatalf("toggle ready initial failed: %v", err)
+	}
+	svc.mu.Lock()
+	room := svc.roomsByID[created.RoomID]
+	room.RoomState.Phase = RoomPhaseQueueActive
+	svc.touchRoomSnapshotLocked(room)
+	svc.mu.Unlock()
+
+	_, err = svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: memberID})
+	if err != ErrRoomPhaseInvalid {
+		t.Fatalf("expected ErrRoomPhaseInvalid, got %v", err)
+	}
+}

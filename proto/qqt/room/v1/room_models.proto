@@ -29,6 +29,7 @@ message RoomMember {
   bool ready = 6;
   RoomLoadout loadout = 7;
   string connection_state = 8;
+  string member_phase = 9;
 }
 
 message BattleEntryState {
@@ -38,6 +39,9 @@ message BattleEntryState {
   string server_host = 4;
   int32 server_port = 5;
   bool battle_entry_ready = 6;
+  string phase = 7;
+  string terminal_reason = 8;
+  string status_text = 9;
 }
 
 message ResumeBinding {
@@ -57,6 +61,21 @@ message RoomSnapshot {
   repeated RoomMember members = 8;
   string queue_state = 9;
   BattleEntryState battle_entry = 10;
+  string room_phase = 11;
+  string room_phase_reason = 12;
+  string queue_phase = 13;
+  string queue_terminal_reason = 14;
+  string queue_status_text = 15;
+  string queue_error_code = 16;
+  string queue_user_message = 17;
+  string queue_entry_id = 18;
+  bool can_toggle_ready = 19;
+  bool can_start_manual_battle = 20;
+  bool can_update_selection = 21;
+  bool can_update_match_room_config = 22;
+  bool can_enter_queue = 23;
+  bool can_cancel_queue = 24;
+  bool can_leave_room = 25;
 }
 
 message RoomDirectoryEntry {

@@ -26,10 +26,17 @@ var locked: bool = false
 
 # LegacyMigration: Battle handoff state (populated from authoritative server snapshot)
 var room_lifecycle_state: String = "idle"
+var room_phase: String = "idle"
+var room_phase_reason: String = "none"
 var current_assignment_id: String = ""
 var current_battle_id: String = ""
 var current_match_id: String = ""
+var queue_phase: String = "idle"
+var queue_terminal_reason: String = "none"
 var battle_allocation_state: String = ""
+var battle_phase: String = "idle"
+var battle_terminal_reason: String = "none"
+var battle_status_text: String = ""
 var battle_server_host: String = ""
 var battle_server_port: int = 0
 var room_return_policy: String = "return_to_source_room"

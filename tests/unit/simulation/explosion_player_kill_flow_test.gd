@@ -17,7 +17,7 @@ func test_main() -> void:
 
 func _test_player_kill_flows_through_hit_system_before_status_commit() -> bool:
 	var world := _make_world()
-	world.config.system_flags["explosion_reaction"] = BattleExplosionConfigBuilder.new().build_for_rule("ruleset_classic")
+	world.config.system_flags["explosion_reaction"] = BattleExplosionConfigBuilder.new().build_for_rule("")
 
 	var players := world.state.players.active_ids
 	var attacker := world.state.players.get_player(players[0])
@@ -84,4 +84,3 @@ func _make_world() -> SimWorld:
 		"#######",
 	])})
 	return world
-

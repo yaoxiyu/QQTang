@@ -234,14 +234,17 @@ func (x *EnterPartyQueueRequest) GetMembers() []*PartyMember {
 }
 
 type EnterPartyQueueResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	QueueEntryId  string                 `protobuf:"bytes,2,opt,name=queue_entry_id,json=queueEntryId,proto3" json:"queue_entry_id,omitempty"`
-	QueueState    string                 `protobuf:"bytes,3,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,4,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
-	UserMessage   string                 `protobuf:"bytes,5,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Ok                  bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	QueueEntryId        string                 `protobuf:"bytes,2,opt,name=queue_entry_id,json=queueEntryId,proto3" json:"queue_entry_id,omitempty"`
+	QueueState          string                 `protobuf:"bytes,3,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
+	ErrorCode           string                 `protobuf:"bytes,4,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	UserMessage         string                 `protobuf:"bytes,5,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
+	QueuePhase          string                 `protobuf:"bytes,6,opt,name=queue_phase,json=queuePhase,proto3" json:"queue_phase,omitempty"`
+	QueueTerminalReason string                 `protobuf:"bytes,7,opt,name=queue_terminal_reason,json=queueTerminalReason,proto3" json:"queue_terminal_reason,omitempty"`
+	QueueStatusText     string                 `protobuf:"bytes,8,opt,name=queue_status_text,json=queueStatusText,proto3" json:"queue_status_text,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *EnterPartyQueueResponse) Reset() {
@@ -309,6 +312,27 @@ func (x *EnterPartyQueueResponse) GetUserMessage() string {
 	return ""
 }
 
+func (x *EnterPartyQueueResponse) GetQueuePhase() string {
+	if x != nil {
+		return x.QueuePhase
+	}
+	return ""
+}
+
+func (x *EnterPartyQueueResponse) GetQueueTerminalReason() string {
+	if x != nil {
+		return x.QueueTerminalReason
+	}
+	return ""
+}
+
+func (x *EnterPartyQueueResponse) GetQueueStatusText() string {
+	if x != nil {
+		return x.QueueStatusText
+	}
+	return ""
+}
+
 type CancelPartyQueueRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *RoomContext           `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -362,13 +386,16 @@ func (x *CancelPartyQueueRequest) GetQueueEntryId() string {
 }
 
 type CancelPartyQueueResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	QueueState    string                 `protobuf:"bytes,2,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,3,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
-	UserMessage   string                 `protobuf:"bytes,4,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Ok                  bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	QueueState          string                 `protobuf:"bytes,2,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
+	ErrorCode           string                 `protobuf:"bytes,3,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	UserMessage         string                 `protobuf:"bytes,4,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
+	QueuePhase          string                 `protobuf:"bytes,5,opt,name=queue_phase,json=queuePhase,proto3" json:"queue_phase,omitempty"`
+	QueueTerminalReason string                 `protobuf:"bytes,6,opt,name=queue_terminal_reason,json=queueTerminalReason,proto3" json:"queue_terminal_reason,omitempty"`
+	QueueStatusText     string                 `protobuf:"bytes,7,opt,name=queue_status_text,json=queueStatusText,proto3" json:"queue_status_text,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CancelPartyQueueResponse) Reset() {
@@ -429,6 +456,27 @@ func (x *CancelPartyQueueResponse) GetUserMessage() string {
 	return ""
 }
 
+func (x *CancelPartyQueueResponse) GetQueuePhase() string {
+	if x != nil {
+		return x.QueuePhase
+	}
+	return ""
+}
+
+func (x *CancelPartyQueueResponse) GetQueueTerminalReason() string {
+	if x != nil {
+		return x.QueueTerminalReason
+	}
+	return ""
+}
+
+func (x *CancelPartyQueueResponse) GetQueueStatusText() string {
+	if x != nil {
+		return x.QueueStatusText
+	}
+	return ""
+}
+
 type GetPartyQueueStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *RoomContext           `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -482,18 +530,25 @@ func (x *GetPartyQueueStatusRequest) GetQueueEntryId() string {
 }
 
 type GetPartyQueueStatusResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	QueueState    string                 `protobuf:"bytes,2,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
-	AssignmentId  string                 `protobuf:"bytes,3,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
-	MatchId       string                 `protobuf:"bytes,4,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
-	BattleId      string                 `protobuf:"bytes,5,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
-	ServerHost    string                 `protobuf:"bytes,6,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
-	ServerPort    int32                  `protobuf:"varint,7,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,8,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
-	UserMessage   string                 `protobuf:"bytes,9,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Ok                   bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	QueueState           string                 `protobuf:"bytes,2,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
+	AssignmentId         string                 `protobuf:"bytes,3,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
+	MatchId              string                 `protobuf:"bytes,4,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	BattleId             string                 `protobuf:"bytes,5,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
+	ServerHost           string                 `protobuf:"bytes,6,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
+	ServerPort           int32                  `protobuf:"varint,7,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
+	ErrorCode            string                 `protobuf:"bytes,8,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	UserMessage          string                 `protobuf:"bytes,9,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
+	QueuePhase           string                 `protobuf:"bytes,10,opt,name=queue_phase,json=queuePhase,proto3" json:"queue_phase,omitempty"`
+	QueueTerminalReason  string                 `protobuf:"bytes,11,opt,name=queue_terminal_reason,json=queueTerminalReason,proto3" json:"queue_terminal_reason,omitempty"`
+	QueueStatusText      string                 `protobuf:"bytes,12,opt,name=queue_status_text,json=queueStatusText,proto3" json:"queue_status_text,omitempty"`
+	AssignmentStatusText string                 `protobuf:"bytes,13,opt,name=assignment_status_text,json=assignmentStatusText,proto3" json:"assignment_status_text,omitempty"`
+	AllocationPhase      string                 `protobuf:"bytes,14,opt,name=allocation_phase,json=allocationPhase,proto3" json:"allocation_phase,omitempty"`
+	AllocationReason     string                 `protobuf:"bytes,15,opt,name=allocation_reason,json=allocationReason,proto3" json:"allocation_reason,omitempty"`
+	BattleEntryReady     bool                   `protobuf:"varint,16,opt,name=battle_entry_ready,json=battleEntryReady,proto3" json:"battle_entry_ready,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GetPartyQueueStatusResponse) Reset() {
@@ -587,6 +642,55 @@ func (x *GetPartyQueueStatusResponse) GetUserMessage() string {
 		return x.UserMessage
 	}
 	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetQueuePhase() string {
+	if x != nil {
+		return x.QueuePhase
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetQueueTerminalReason() string {
+	if x != nil {
+		return x.QueueTerminalReason
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetQueueStatusText() string {
+	if x != nil {
+		return x.QueueStatusText
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetAssignmentStatusText() string {
+	if x != nil {
+		return x.AssignmentStatusText
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetAllocationPhase() string {
+	if x != nil {
+		return x.AllocationPhase
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetAllocationReason() string {
+	if x != nil {
+		return x.AllocationReason
+	}
+	return ""
+}
+
+func (x *GetPartyQueueStatusResponse) GetBattleEntryReady() bool {
+	if x != nil {
+		return x.BattleEntryReady
+	}
+	return false
 }
 
 type CreateManualRoomBattleRequest struct {
@@ -924,7 +1028,7 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"queue_type\x18\x02 \x01(\tR\tqueueType\x12&\n" +
 	"\x0fmatch_format_id\x18\x03 \x01(\tR\rmatchFormatId\x12*\n" +
 	"\x11selected_mode_ids\x18\x04 \x03(\tR\x0fselectedModeIds\x12;\n" +
-	"\amembers\x18\x05 \x03(\v2!.qqt.internal.game.v1.PartyMemberR\amembers\"\xb2\x01\n" +
+	"\amembers\x18\x05 \x03(\v2!.qqt.internal.game.v1.PartyMemberR\amembers\"\xb3\x02\n" +
 	"\x17EnterPartyQueueResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12$\n" +
 	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\x12\x1f\n" +
@@ -932,20 +1036,28 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"queueState\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\x04 \x01(\tR\terrorCode\x12!\n" +
-	"\fuser_message\x18\x05 \x01(\tR\vuserMessage\"|\n" +
+	"\fuser_message\x18\x05 \x01(\tR\vuserMessage\x12\x1f\n" +
+	"\vqueue_phase\x18\x06 \x01(\tR\n" +
+	"queuePhase\x122\n" +
+	"\x15queue_terminal_reason\x18\a \x01(\tR\x13queueTerminalReason\x12*\n" +
+	"\x11queue_status_text\x18\b \x01(\tR\x0fqueueStatusText\"|\n" +
 	"\x17CancelPartyQueueRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12$\n" +
-	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\x8d\x01\n" +
+	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\x8e\x02\n" +
 	"\x18CancelPartyQueueResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1f\n" +
 	"\vqueue_state\x18\x02 \x01(\tR\n" +
 	"queueState\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\x03 \x01(\tR\terrorCode\x12!\n" +
-	"\fuser_message\x18\x04 \x01(\tR\vuserMessage\"\x7f\n" +
+	"\fuser_message\x18\x04 \x01(\tR\vuserMessage\x12\x1f\n" +
+	"\vqueue_phase\x18\x05 \x01(\tR\n" +
+	"queuePhase\x122\n" +
+	"\x15queue_terminal_reason\x18\x06 \x01(\tR\x13queueTerminalReason\x12*\n" +
+	"\x11queue_status_text\x18\a \x01(\tR\x0fqueueStatusText\"\x7f\n" +
 	"\x1aGetPartyQueueStatusRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12$\n" +
-	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\xaf\x02\n" +
+	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\xec\x04\n" +
 	"\x1bGetPartyQueueStatusResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1f\n" +
 	"\vqueue_state\x18\x02 \x01(\tR\n" +
@@ -959,7 +1071,16 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"serverPort\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\b \x01(\tR\terrorCode\x12!\n" +
-	"\fuser_message\x18\t \x01(\tR\vuserMessage\"\xe9\x01\n" +
+	"\fuser_message\x18\t \x01(\tR\vuserMessage\x12\x1f\n" +
+	"\vqueue_phase\x18\n" +
+	" \x01(\tR\n" +
+	"queuePhase\x122\n" +
+	"\x15queue_terminal_reason\x18\v \x01(\tR\x13queueTerminalReason\x12*\n" +
+	"\x11queue_status_text\x18\f \x01(\tR\x0fqueueStatusText\x124\n" +
+	"\x16assignment_status_text\x18\r \x01(\tR\x14assignmentStatusText\x12)\n" +
+	"\x10allocation_phase\x18\x0e \x01(\tR\x0fallocationPhase\x12+\n" +
+	"\x11allocation_reason\x18\x0f \x01(\tR\x10allocationReason\x12,\n" +
+	"\x12battle_entry_ready\x18\x10 \x01(\bR\x10battleEntryReady\"\xe9\x01\n" +
 	"\x1dCreateManualRoomBattleRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12\x17\n" +
 	"\amode_id\x18\x02 \x01(\tR\x06modeId\x12\x1e\n" +

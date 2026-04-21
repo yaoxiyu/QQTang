@@ -21,6 +21,8 @@ class FakeMatchmakingGateway:
 			"ok": true,
 			"queue_entry_id": "queue_alpha",
 			"queue_state": "queued",
+			"queue_phase": "queued",
+			"queue_terminal_reason": "none",
 			"queue_key": "%s:%s:%s" % [queue_type, match_format_id, mode_id],
 			"match_format_id": match_format_id,
 			"mode_id": mode_id,
@@ -37,6 +39,8 @@ class FakeMatchmakingGateway:
 			"ok": true,
 			"queue_entry_id": queue_entry_id,
 			"queue_state": "cancelled",
+			"queue_phase": "completed",
+			"queue_terminal_reason": "client_cancelled",
 		}
 
 	func get_queue_status(_access_token: String, queue_entry_id: String) -> Dictionary:
@@ -44,6 +48,8 @@ class FakeMatchmakingGateway:
 			"ok": true,
 			"queue_entry_id": queue_entry_id,
 			"queue_state": "queued",
+			"queue_phase": "queued",
+			"queue_terminal_reason": "none",
 			"queue_key": "ranked:2v2:mode_ranked",
 			"match_format_id": "2v2",
 			"mode_id": "mode_ranked",
@@ -84,8 +90,8 @@ func test_main() -> void:
 	var status_result: Dictionary = use_case.poll_queue_status()
 	ok = qqt_check(bool(status_result.get("ok", false)), "poll queue status should succeed", "lobby_matchmaking_queue_flow_test") and ok
 	ok = qqt_check(use_case.get_queue_state() != null and use_case.get_queue_state().queue_state == "queued", "queue state should remain queued", "lobby_matchmaking_queue_flow_test") and ok
+	ok = qqt_check(status_result.get("queue_state") != null and status_result.get("queue_state").queue_state == "queued", "legacy queue_state alias stays compatible when canonical fields exist", "lobby_matchmaking_queue_flow_test") and ok
 
 	var cancel_result: Dictionary = use_case.cancel_queue()
 	ok = qqt_check(bool(cancel_result.get("ok", false)), "cancel queue should succeed", "lobby_matchmaking_queue_flow_test") and ok
 	ok = qqt_check(gateway.last_cancel_queue_entry_id == "queue_alpha", "cancel queue should use current queue entry id", "lobby_matchmaking_queue_flow_test") and ok
-

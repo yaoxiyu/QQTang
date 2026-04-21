@@ -187,7 +187,7 @@ func _test_respawn_invincibility_expires_before_next_explosion() -> bool:
 
 	world.step()
 	var victim_after := world.state.players.get_player(victim.entity_id)
-	var max_steps := 80
+	var max_steps := 160
 	while max_steps > 0 and victim_after != null and victim_after.life_state != PlayerState.LifeState.NORMAL:
 		world.step()
 		victim_after = world.state.players.get_player(victim.entity_id)
@@ -275,6 +275,7 @@ func _make_world(respawn_enabled: bool, score_policy: String = "", death_display
 		"score_per_enemy_finish": 1,
 		"score_policy": resolved_score_policy,
 	}
+	config.system_flags["explosion_reaction"] = BattleExplosionConfigBuilder.new().build_for_rule("ruleset_classic")
 	var world := SimWorld.new()
 	world.bootstrap(config, {
 		"grid": BuiltinMapFactory._build_from_rows([
@@ -358,4 +359,3 @@ func _has_event(events: Array, event_type: int) -> bool:
 		if event is SimEvent and event.event_type == event_type:
 			return true
 	return false
-

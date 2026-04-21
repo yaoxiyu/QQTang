@@ -10,6 +10,10 @@
 
 本文是盘点文档，不是最终方案设计文档。
 
+Phase28 canonical state dictionary and formal FSM truth are now maintained in:
+`docs/architecture/room_state_machine.md`.
+This inventory remains baseline/reference material and must not override canonical FSM rules.
+
 ## 2. 核心状态域与责任边界
 
 | 状态域 | 主要字段 | 责任服务/模块 | 说明 |
@@ -199,4 +203,3 @@
 15. `network/session/runtime/session_lifecycle_state.gd`
 16. `gameplay/battle/runtime/battle_flow_state.gd`
 17. `app/flow/runtime_lifecycle_state.gd`
-

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"qqtang/services/game_service/internal/storage"
 )
@@ -103,5 +104,32 @@ func TestEnterPartyQueueRejectsPartySizeMismatch(t *testing.T) {
 	})
 	if !errors.Is(err, ErrPartySizeMismatch) {
 		t.Fatalf("expected ErrPartySizeMismatch, got %v", err)
+	}
+}
+
+func TestBuildPartyQueuedStatusUsesCanonicalPhaseAndAlias(t *testing.T) {
+	service := NewService(nil, nil, nil, 30*time.Second)
+	entry := storage.PartyQueueEntry{
+		PartyQueueEntryID:    "party_queue_1",
+		PartyRoomID:          "room_1",
+		QueueType:            "casual",
+		QueueKey:             BuildPartyQueueKey("casual", "2v2"),
+		MatchFormatID:        "2v2",
+		SelectedModeIDs:      []string{"mode_classic"},
+		EnqueueUnixSec:       1_800_000_000,
+		LastHeartbeatUnixSec: 1_800_000_010,
+		State:                QueuePhaseCompleted,
+		CancelReason:         QueueTerminalReasonMatchFinalized,
+	}
+
+	status := service.buildPartyQueuedStatus(entry)
+	if status.QueuePhase != QueuePhaseCompleted || status.QueueTerminalReason != QueueTerminalReasonMatchFinalized {
+		t.Fatalf("expected canonical completed/match_finalized, got phase=%s reason=%s", status.QueuePhase, status.QueueTerminalReason)
+	}
+	if status.QueueState != "finalized" {
+		t.Fatalf("expected legacy queue_state finalized, got %s", status.QueueState)
+	}
+	if status.QueueStatusText != "Match finalized" {
+		t.Fatalf("expected queue status text Match finalized, got %s", status.QueueStatusText)
 	}
 }

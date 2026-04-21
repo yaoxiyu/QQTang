@@ -35,8 +35,8 @@ func build_view_model(
 	var members := _build_member_view_models(safe_snapshot.sorted_members())
 	var has_server_pending_state := not is_practice and member_count <= 0
 	var local_member_ready := _is_local_member_ready(members)
-	var can_ready := local_peer_id > 0 and (not is_practice) and not has_server_pending_state and not is_assigned_room
-	var can_start := blocker_text.is_empty() and is_host and is_custom_room
+	var can_ready := bool(safe_snapshot.can_toggle_ready)
+	var can_start := bool(safe_snapshot.can_start_manual_battle)
 	var title_text := _build_title_text(resolved_room_kind, resolved_room_display_name)
 	var lifecycle_status_text := _build_lifecycle_status_text(safe_context)
 	var pending_action_status_text := _build_pending_action_status_text(safe_context, is_host)
@@ -50,10 +50,10 @@ func build_view_model(
 	var max_player_count := int(binding.get("max_player_count", safe_snapshot.max_players))
 	if max_player_count <= 0:
 		max_player_count = safe_snapshot.max_players
-	var can_edit_selection := is_host and is_custom_room and not binding.is_empty()
-	var can_edit_match_room_config := is_host and is_match_room and not _is_queueing_state(String(safe_snapshot.room_queue_state))
-	var can_enter_queue := _can_enter_match_queue(safe_snapshot, is_host, member_count, is_match_room)
-	var can_cancel_queue := is_host and is_match_room and _is_queueing_state(String(safe_snapshot.room_queue_state))
+	var can_edit_selection := bool(safe_snapshot.can_update_selection)
+	var can_edit_match_room_config := bool(safe_snapshot.can_update_match_room_config)
+	var can_enter_queue := bool(safe_snapshot.can_enter_queue)
+	var can_cancel_queue := bool(safe_snapshot.can_cancel_queue)
 	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
 	var mode_display_name := String(binding.get("mode_name", safe_snapshot.mode_id))
 	var eligible_map_pool_hint_text := _build_eligible_map_pool_hint_text(safe_snapshot) if is_match_room else ""
@@ -114,7 +114,12 @@ func build_view_model(
 		"entry_kind": String(safe_entry_context.entry_kind),
 		"return_target": String(safe_entry_context.return_target),
 		# Battle allocation state.
+		"room_phase": String(safe_snapshot.room_phase),
+		"queue_phase": String(safe_snapshot.queue_phase),
+		"queue_terminal_reason": String(safe_snapshot.queue_terminal_reason),
 		"room_lifecycle_state": String(safe_snapshot.room_lifecycle_state),
+		"battle_phase": String(safe_snapshot.battle_phase),
+		"battle_terminal_reason": String(safe_snapshot.battle_terminal_reason),
 		"battle_allocation_state": String(safe_snapshot.battle_allocation_state),
 		"battle_entry_ready": bool(safe_snapshot.battle_entry_ready),
 		"current_assignment_id": String(safe_snapshot.current_assignment_id),
@@ -255,6 +260,8 @@ func _build_blocker_text(
 		return "" if is_practice else "Waiting for host action"
 	if is_match_room:
 		return _build_match_room_blocker_text(snapshot, member_count)
+	if String(snapshot.room_phase) != "" and String(snapshot.room_phase) != "idle":
+		return "当前阶段不可开始对局"
 	if snapshot.selected_map_id.is_empty() or snapshot.rule_set_id.is_empty() or snapshot.mode_id.is_empty():
 		return "Selection is incomplete"
 	var binding := _resolve_map_binding(String(snapshot.selected_map_id))
@@ -406,28 +413,14 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 	return binding
 
 
-func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count: int, is_match_room: bool) -> bool:
-	if snapshot == null or not is_host or not is_match_room:
-		return false
-	if not _can_enter_queue_from_state(String(snapshot.room_queue_state)):
-		return false
-	var required_party_size := _resolve_required_party_size(snapshot)
-	if member_count != required_party_size:
-		return false
-	if snapshot.selected_match_mode_ids.is_empty() and String(snapshot.mode_id).is_empty():
-		return false
-	if not bool(snapshot.all_ready):
-		return false
-	return true
-
-
 func _build_match_room_blocker_text(snapshot: RoomSnapshot, member_count: int) -> String:
 	if snapshot == null:
 		return "Room context is not ready"
-	if _is_queueing_state(String(snapshot.room_queue_state)):
-		return "匹配中"
-	if String(snapshot.room_queue_state) == "assigned":
-		return "已匹配，等待分配"
+	var room_phase := String(snapshot.room_phase)
+	if room_phase.is_empty():
+		room_phase = String(snapshot.room_lifecycle_state)
+	if room_phase != "idle":
+		return "当前阶段不可开始匹配"
 	var required_party_size := _resolve_required_party_size(snapshot)
 	if member_count != required_party_size:
 		return "队伍人数需要满足 %d 人编队" % required_party_size
@@ -479,21 +472,33 @@ func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
 func _build_queue_status_text(snapshot: RoomSnapshot) -> String:
 	if snapshot == null:
 		return ""
-	if not String(snapshot.room_queue_status_text).is_empty():
-		return String(snapshot.room_queue_status_text)
-	match String(snapshot.room_queue_state):
+	if not String(snapshot.queue_status_text).is_empty():
+		return String(snapshot.queue_status_text)
+	var queue_phase := String(snapshot.queue_phase)
+	var queue_terminal_reason := String(snapshot.queue_terminal_reason)
+	if queue_phase.is_empty():
+		return _build_match_room_party_status_text(snapshot, snapshot.member_count())
+	match queue_phase:
 		"queued":
 			return "匹配中"
-		"queueing":
-			return "匹配中"
-		"assigned":
-			return "已分配对局"
-		"finalized":
-			return "对局已结束，可重新匹配"
-		"failed":
-			return "匹配失败，可重新匹配"
-		"expired":
-			return "匹配已过期，可重新匹配"
+		"assignment_pending":
+			return "已匹配，等待对局分配"
+		"allocating_battle":
+			return "正在分配对局服务器"
+		"entry_ready":
+			return "对局已就绪，正在进入"
+		"completed":
+			match queue_terminal_reason:
+				"client_cancelled":
+					return "已取消匹配"
+				"assignment_expired":
+					return "匹配已过期"
+				"allocation_failed":
+					return "分配失败"
+				"match_finalized":
+					return "对局已完成"
+				_:
+					return "匹配流程已结束"
 		_:
 			return _build_match_room_party_status_text(snapshot, snapshot.member_count())
 
@@ -501,22 +506,12 @@ func _build_queue_status_text(snapshot: RoomSnapshot) -> String:
 func _build_queue_error_text(snapshot: RoomSnapshot) -> String:
 	if snapshot == null:
 		return ""
+	if not String(snapshot.queue_user_message).is_empty():
+		return String(snapshot.queue_user_message)
+	if not String(snapshot.queue_error_code).is_empty():
+		return String(snapshot.queue_error_code)
 	if not String(snapshot.room_queue_error_message).is_empty():
 		return String(snapshot.room_queue_error_message)
 	if not String(snapshot.room_queue_error_code).is_empty():
 		return String(snapshot.room_queue_error_code)
 	return ""
-
-
-func _is_queueing_state(queue_state: String) -> bool:
-	var normalized := queue_state.strip_edges().to_lower()
-	return normalized == "queueing" or normalized == "queued"
-
-
-func _can_enter_queue_from_state(queue_state: String) -> bool:
-	var normalized := queue_state.strip_edges().to_lower()
-	return normalized == "idle" \
-		or normalized == "cancelled" \
-		or normalized == "failed" \
-		or normalized == "expired" \
-		or normalized == "finalized"

@@ -43,7 +43,17 @@ public class RoomCanonicalMessageMapperTests
                 {
                     RoomId = "room_1",
                     RoomKind = "private_room",
-                    Members = { new RoomMember { MemberId = "member_1" } },
+                    RoomPhase = "battle_entry_ready",
+                    QueuePhase = "entry_ready",
+                    QueueTerminalReason = "none",
+                    CanCancelQueue = true,
+                    BattleEntry = new BattleEntryState
+                    {
+                        Phase = "ready",
+                        TerminalReason = "manual_start",
+                        StatusText = "Battle ready",
+                    },
+                    Members = { new RoomMember { MemberId = "member_1", MemberPhase = "queue_locked" } },
                 },
             },
         });
@@ -64,7 +74,16 @@ public class RoomCanonicalMessageMapperTests
         });
 
         Assert.Equal("ROOM_SNAPSHOT", snapshotResult["message_type"]);
-        Assert.IsType<Dictionary<string, object?>>(snapshotResult["snapshot"]);
+        var mappedSnapshot = Assert.IsType<Dictionary<string, object?>>(snapshotResult["snapshot"]);
+        Assert.Equal("battle_entry_ready", mappedSnapshot["room_phase"]);
+        Assert.Equal("entry_ready", mappedSnapshot["queue_phase"]);
+        Assert.Equal("none", mappedSnapshot["queue_terminal_reason"]);
+        Assert.Equal("ready", mappedSnapshot["battle_phase"]);
+        Assert.Equal("manual_start", mappedSnapshot["battle_terminal_reason"]);
+        Assert.Equal(true, mappedSnapshot["can_cancel_queue"]);
+        var mappedMembers = Assert.IsType<List<object?>>(mappedSnapshot["members"]);
+        var firstMember = Assert.IsType<Dictionary<string, object?>>(mappedMembers[0]);
+        Assert.Equal("queue_locked", firstMember["member_phase"]);
         Assert.Equal("ROOM_MATCH_ASSIGNMENT_READY", battleResult["message_type"]);
         Assert.Equal("assign_1", battleResult["assignment_id"]);
         Assert.Equal(true, battleResult["battle_entry_ready"]);

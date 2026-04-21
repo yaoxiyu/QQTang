@@ -10,6 +10,7 @@ const RoomSelectionPolicyScript = preload("res://app/front/room/room_selection_p
 const RoomConnectionOrchestratorScript = preload("res://app/front/room/room_connection_orchestrator.gd")
 const RoomBattleEntryBuilderScript = preload("res://app/front/room/room_battle_entry_builder.gd")
 const RoomReconnectCoordinatorScript = preload("res://app/front/room/room_reconnect_coordinator.gd")
+const RoomPhaseToFrontFlowAdapterScript = preload("res://app/front/room/room_phase_to_front_flow_adapter.gd")
 const RoomUseCaseRuntimeStateScript = preload("res://app/front/room/room_use_case_runtime_state.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
@@ -104,7 +105,7 @@ func leave_room() -> Dictionary:
 				app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
 				app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
 	if room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
-		if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime) and RoomUseCaseRuntimeStateScript.get_current_room_queue_state(app_runtime) == "queueing" and room_client_gateway.has_method("request_cancel_match_queue"):
+		if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime) and RoomUseCaseRuntimeStateScript.can_cancel_current_queue(app_runtime) and room_client_gateway.has_method("request_cancel_match_queue"):
 			room_client_gateway.request_cancel_match_queue()
 		if room_client_gateway.has_method("request_leave_room_and_disconnect"):
 			room_client_gateway.request_leave_room_and_disconnect()
@@ -260,6 +261,8 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 		return
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = snapshot.duplicate_deep() if snapshot != null else null
+	if app_runtime.front_flow != null:
+		RoomPhaseToFrontFlowAdapterScript.apply(app_runtime.front_flow, snapshot)
 	_update_reconnect_state(snapshot)
 
 func build_room_connection_config(entry_context: RoomEntryContext) -> ClientConnectionConfig:

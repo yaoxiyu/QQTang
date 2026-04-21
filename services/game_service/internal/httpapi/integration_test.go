@@ -75,15 +75,17 @@ func (db *fakeHTTPQueueDB) Exec(_ context.Context, sql string, arguments ...any)
 			State:                arguments[13].(string),
 			AssignmentID:         arguments[14].(string),
 			AssignmentRevision:   arguments[15].(int),
-			CancelReason:         arguments[16].(string),
-			CreatedAt:            arguments[17].(time.Time),
-			UpdatedAt:            arguments[18].(time.Time),
+			TerminalReason:       arguments[16].(string),
+			CancelReason:         arguments[17].(string),
+			CreatedAt:            arguments[18].(time.Time),
+			UpdatedAt:            arguments[19].(time.Time),
 		}
 		db.entriesByProfile[entry.ProfileID] = entry
 		db.entriesByID[entry.QueueEntryID] = entry
 	case strings.Contains(sql, "UPDATE matchmaking_queue_entries"):
 		entry := db.entriesByID[arguments[0].(string)]
 		entry.State = arguments[1].(string)
+		entry.TerminalReason = arguments[2].(string)
 		entry.CancelReason = arguments[2].(string)
 		entry.AssignmentID = arguments[3].(string)
 		entry.AssignmentRevision = arguments[4].(int)
@@ -135,6 +137,7 @@ func queueEntryHTTPRow(entry storage.QueueEntry) []any {
 		entry.State,
 		entry.AssignmentID,
 		entry.AssignmentRevision,
+		entry.TerminalReason,
 		entry.CancelReason,
 		entry.CreatedAt,
 		entry.UpdatedAt,
@@ -204,8 +207,8 @@ func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	if cancelResp.Code != http.StatusOK {
 		t.Fatalf("expected 200 on cancel, got %d body=%s", cancelResp.Code, cancelResp.Body.String())
 	}
-	if got := db.entriesByID[queueEntryID].State; got != "cancelled" {
-		t.Fatalf("expected cancelled state in repository, got %s", got)
+	if got := db.entriesByID[queueEntryID].State; got != "completed" {
+		t.Fatalf("expected completed state in repository, got %s", got)
 	}
 }
 

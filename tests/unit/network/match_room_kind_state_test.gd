@@ -4,6 +4,8 @@ const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
 const RoomSessionControllerScript = preload("res://network/session/room_session_controller.gd")
+const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
+const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
 
 
 
@@ -37,6 +39,17 @@ func test_main() -> void:
 	controller.apply_authoritative_snapshot(roundtrip)
 	ok = qqt_check(String(controller.room_runtime_context.room_queue_state) == "queueing", "runtime context should receive queue state", prefix) and ok
 	ok = qqt_check(String(controller.room_runtime_context.match_format_id) == "2v2", "runtime context should receive match format", prefix) and ok
+	roundtrip.room_phase = "battle_entry_ready"
+	controller.apply_authoritative_snapshot(roundtrip)
+	ok = qqt_check(
+		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.MATCH_LOADING,
+		"canonical battle_entry_ready should drive room flow to MATCH_LOADING",
+		prefix
+	) and ok
+	ok = qqt_check(
+		int(controller.room_runtime_context.session_lifecycle_state) == SessionLifecycleStateScript.Value.MATCH_LOADING,
+		"canonical battle_entry_ready should drive session lifecycle to MATCH_LOADING",
+		prefix
+	) and ok
 	controller.queue_free()
-
 

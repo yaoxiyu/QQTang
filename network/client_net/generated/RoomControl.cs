@@ -37,72 +37,85 @@ namespace Qqt.Internal.Game.V1 {
             "cGUYAiABKAlSCXF1ZXVlVHlwZRImCg9tYXRjaF9mb3JtYXRfaWQYAyABKAlS",
             "DW1hdGNoRm9ybWF0SWQSKgoRc2VsZWN0ZWRfbW9kZV9pZHMYBCADKAlSD3Nl",
             "bGVjdGVkTW9kZUlkcxI7CgdtZW1iZXJzGAUgAygLMiEucXF0LmludGVybmFs",
-            "LmdhbWUudjEuUGFydHlNZW1iZXJSB21lbWJlcnMisgEKF0VudGVyUGFydHlR",
+            "LmdhbWUudjEuUGFydHlNZW1iZXJSB21lbWJlcnMiswIKF0VudGVyUGFydHlR",
             "dWV1ZVJlc3BvbnNlEg4KAm9rGAEgASgIUgJvaxIkCg5xdWV1ZV9lbnRyeV9p",
             "ZBgCIAEoCVIMcXVldWVFbnRyeUlkEh8KC3F1ZXVlX3N0YXRlGAMgASgJUgpx",
             "dWV1ZVN0YXRlEh0KCmVycm9yX2NvZGUYBCABKAlSCWVycm9yQ29kZRIhCgx1",
-            "c2VyX21lc3NhZ2UYBSABKAlSC3VzZXJNZXNzYWdlInwKF0NhbmNlbFBhcnR5",
-            "UXVldWVSZXF1ZXN0EjsKB2NvbnRleHQYASABKAsyIS5xcXQuaW50ZXJuYWwu",
-            "Z2FtZS52MS5Sb29tQ29udGV4dFIHY29udGV4dBIkCg5xdWV1ZV9lbnRyeV9p",
-            "ZBgCIAEoCVIMcXVldWVFbnRyeUlkIo0BChhDYW5jZWxQYXJ0eVF1ZXVlUmVz",
-            "cG9uc2USDgoCb2sYASABKAhSAm9rEh8KC3F1ZXVlX3N0YXRlGAIgASgJUgpx",
-            "dWV1ZVN0YXRlEh0KCmVycm9yX2NvZGUYAyABKAlSCWVycm9yQ29kZRIhCgx1",
-            "c2VyX21lc3NhZ2UYBCABKAlSC3VzZXJNZXNzYWdlIn8KGkdldFBhcnR5UXVl",
-            "dWVTdGF0dXNSZXF1ZXN0EjsKB2NvbnRleHQYASABKAsyIS5xcXQuaW50ZXJu",
-            "YWwuZ2FtZS52MS5Sb29tQ29udGV4dFIHY29udGV4dBIkCg5xdWV1ZV9lbnRy",
-            "eV9pZBgCIAEoCVIMcXVldWVFbnRyeUlkIq8CChtHZXRQYXJ0eVF1ZXVlU3Rh",
-            "dHVzUmVzcG9uc2USDgoCb2sYASABKAhSAm9rEh8KC3F1ZXVlX3N0YXRlGAIg",
-            "ASgJUgpxdWV1ZVN0YXRlEiMKDWFzc2lnbm1lbnRfaWQYAyABKAlSDGFzc2ln",
-            "bm1lbnRJZBIZCghtYXRjaF9pZBgEIAEoCVIHbWF0Y2hJZBIbCgliYXR0bGVf",
-            "aWQYBSABKAlSCGJhdHRsZUlkEh8KC3NlcnZlcl9ob3N0GAYgASgJUgpzZXJ2",
-            "ZXJIb3N0Eh8KC3NlcnZlcl9wb3J0GAcgASgFUgpzZXJ2ZXJQb3J0Eh0KCmVy",
-            "cm9yX2NvZGUYCCABKAlSCWVycm9yQ29kZRIhCgx1c2VyX21lc3NhZ2UYCSAB",
-            "KAlSC3VzZXJNZXNzYWdlIukBCh1DcmVhdGVNYW51YWxSb29tQmF0dGxlUmVx",
-            "dWVzdBI7Cgdjb250ZXh0GAEgASgLMiEucXF0LmludGVybmFsLmdhbWUudjEu",
-            "Um9vbUNvbnRleHRSB2NvbnRleHQSFwoHbW9kZV9pZBgCIAEoCVIGbW9kZUlk",
-            "Eh4KC3J1bGVfc2V0X2lkGAMgASgJUglydWxlU2V0SWQSFQoGbWFwX2lkGAQg",
-            "ASgJUgVtYXBJZBI7CgdtZW1iZXJzGAUgAygLMiEucXF0LmludGVybmFsLmdh",
-            "bWUudjEuUGFydHlNZW1iZXJSB21lbWJlcnMikQIKHkNyZWF0ZU1hbnVhbFJv",
-            "b21CYXR0bGVSZXNwb25zZRIOCgJvaxgBIAEoCFICb2sSIwoNYXNzaWdubWVu",
-            "dF9pZBgCIAEoCVIMYXNzaWdubWVudElkEhkKCG1hdGNoX2lkGAMgASgJUgdt",
-            "YXRjaElkEhsKCWJhdHRsZV9pZBgEIAEoCVIIYmF0dGxlSWQSHwoLc2VydmVy",
-            "X2hvc3QYBSABKAlSCnNlcnZlckhvc3QSHwoLc2VydmVyX3BvcnQYBiABKAVS",
-            "CnNlcnZlclBvcnQSHQoKZXJyb3JfY29kZRgHIAEoCVIJZXJyb3JDb2RlEiEK",
-            "DHVzZXJfbWVzc2FnZRgIIAEoCVILdXNlck1lc3NhZ2UiuAEKHENvbW1pdEFz",
-            "c2lnbm1lbnRSZWFkeVJlcXVlc3QSOwoHY29udGV4dBgBIAEoCzIhLnFxdC5p",
-            "bnRlcm5hbC5nYW1lLnYxLlJvb21Db250ZXh0Ugdjb250ZXh0EiMKDWFzc2ln",
-            "bm1lbnRfaWQYAiABKAlSDGFzc2lnbm1lbnRJZBIZCghtYXRjaF9pZBgDIAEo",
-            "CVIHbWF0Y2hJZBIbCgliYXR0bGVfaWQYBCABKAlSCGJhdHRsZUlkIpoBCh1D",
-            "b21taXRBc3NpZ25tZW50UmVhZHlSZXNwb25zZRIOCgJvaxgBIAEoCFICb2sS",
-            "JwoPY29tbWl0dGVkX3N0YXRlGAIgASgJUg5jb21taXR0ZWRTdGF0ZRIdCgpl",
-            "cnJvcl9jb2RlGAMgASgJUgllcnJvckNvZGUSIQoMdXNlcl9tZXNzYWdlGAQg",
-            "ASgJUgt1c2VyTWVzc2FnZTL8BAoSUm9vbUNvbnRyb2xTZXJ2aWNlEm4KD0Vu",
-            "dGVyUGFydHlRdWV1ZRIsLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkVudGVyUGFy",
-            "dHlRdWV1ZVJlcXVlc3QaLS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5FbnRlclBh",
-            "cnR5UXVldWVSZXNwb25zZRJxChBDYW5jZWxQYXJ0eVF1ZXVlEi0ucXF0Lmlu",
-            "dGVybmFsLmdhbWUudjEuQ2FuY2VsUGFydHlRdWV1ZVJlcXVlc3QaLi5xcXQu",
-            "aW50ZXJuYWwuZ2FtZS52MS5DYW5jZWxQYXJ0eVF1ZXVlUmVzcG9uc2USegoT",
-            "R2V0UGFydHlRdWV1ZVN0YXR1cxIwLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkdl",
-            "dFBhcnR5UXVldWVTdGF0dXNSZXF1ZXN0GjEucXF0LmludGVybmFsLmdhbWUu",
-            "djEuR2V0UGFydHlRdWV1ZVN0YXR1c1Jlc3BvbnNlEoMBChZDcmVhdGVNYW51",
-            "YWxSb29tQmF0dGxlEjMucXF0LmludGVybmFsLmdhbWUudjEuQ3JlYXRlTWFu",
-            "dWFsUm9vbUJhdHRsZVJlcXVlc3QaNC5xcXQuaW50ZXJuYWwuZ2FtZS52MS5D",
-            "cmVhdGVNYW51YWxSb29tQmF0dGxlUmVzcG9uc2USgAEKFUNvbW1pdEFzc2ln",
-            "bm1lbnRSZWFkeRIyLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkNvbW1pdEFzc2ln",
-            "bm1lbnRSZWFkeVJlcXVlc3QaMy5xcXQuaW50ZXJuYWwuZ2FtZS52MS5Db21t",
-            "aXRBc3NpZ25tZW50UmVhZHlSZXNwb25zZUInWiVxcXQvcHJvdG8vcXF0L2lu",
-            "dGVybmFsL2dhbWUvdjE7Z2FtZXYxYgZwcm90bzM="));
+            "c2VyX21lc3NhZ2UYBSABKAlSC3VzZXJNZXNzYWdlEh8KC3F1ZXVlX3BoYXNl",
+            "GAYgASgJUgpxdWV1ZVBoYXNlEjIKFXF1ZXVlX3Rlcm1pbmFsX3JlYXNvbhgH",
+            "IAEoCVITcXVldWVUZXJtaW5hbFJlYXNvbhIqChFxdWV1ZV9zdGF0dXNfdGV4",
+            "dBgIIAEoCVIPcXVldWVTdGF0dXNUZXh0InwKF0NhbmNlbFBhcnR5UXVldWVS",
+            "ZXF1ZXN0EjsKB2NvbnRleHQYASABKAsyIS5xcXQuaW50ZXJuYWwuZ2FtZS52",
+            "MS5Sb29tQ29udGV4dFIHY29udGV4dBIkCg5xdWV1ZV9lbnRyeV9pZBgCIAEo",
+            "CVIMcXVldWVFbnRyeUlkIo4CChhDYW5jZWxQYXJ0eVF1ZXVlUmVzcG9uc2US",
+            "DgoCb2sYASABKAhSAm9rEh8KC3F1ZXVlX3N0YXRlGAIgASgJUgpxdWV1ZVN0",
+            "YXRlEh0KCmVycm9yX2NvZGUYAyABKAlSCWVycm9yQ29kZRIhCgx1c2VyX21l",
+            "c3NhZ2UYBCABKAlSC3VzZXJNZXNzYWdlEh8KC3F1ZXVlX3BoYXNlGAUgASgJ",
+            "UgpxdWV1ZVBoYXNlEjIKFXF1ZXVlX3Rlcm1pbmFsX3JlYXNvbhgGIAEoCVIT",
+            "cXVldWVUZXJtaW5hbFJlYXNvbhIqChFxdWV1ZV9zdGF0dXNfdGV4dBgHIAEo",
+            "CVIPcXVldWVTdGF0dXNUZXh0In8KGkdldFBhcnR5UXVldWVTdGF0dXNSZXF1",
+            "ZXN0EjsKB2NvbnRleHQYASABKAsyIS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5S",
+            "b29tQ29udGV4dFIHY29udGV4dBIkCg5xdWV1ZV9lbnRyeV9pZBgCIAEoCVIM",
+            "cXVldWVFbnRyeUlkIuwEChtHZXRQYXJ0eVF1ZXVlU3RhdHVzUmVzcG9uc2US",
+            "DgoCb2sYASABKAhSAm9rEh8KC3F1ZXVlX3N0YXRlGAIgASgJUgpxdWV1ZVN0",
+            "YXRlEiMKDWFzc2lnbm1lbnRfaWQYAyABKAlSDGFzc2lnbm1lbnRJZBIZCght",
+            "YXRjaF9pZBgEIAEoCVIHbWF0Y2hJZBIbCgliYXR0bGVfaWQYBSABKAlSCGJh",
+            "dHRsZUlkEh8KC3NlcnZlcl9ob3N0GAYgASgJUgpzZXJ2ZXJIb3N0Eh8KC3Nl",
+            "cnZlcl9wb3J0GAcgASgFUgpzZXJ2ZXJQb3J0Eh0KCmVycm9yX2NvZGUYCCAB",
+            "KAlSCWVycm9yQ29kZRIhCgx1c2VyX21lc3NhZ2UYCSABKAlSC3VzZXJNZXNz",
+            "YWdlEh8KC3F1ZXVlX3BoYXNlGAogASgJUgpxdWV1ZVBoYXNlEjIKFXF1ZXVl",
+            "X3Rlcm1pbmFsX3JlYXNvbhgLIAEoCVITcXVldWVUZXJtaW5hbFJlYXNvbhIq",
+            "ChFxdWV1ZV9zdGF0dXNfdGV4dBgMIAEoCVIPcXVldWVTdGF0dXNUZXh0EjQK",
+            "FmFzc2lnbm1lbnRfc3RhdHVzX3RleHQYDSABKAlSFGFzc2lnbm1lbnRTdGF0",
+            "dXNUZXh0EikKEGFsbG9jYXRpb25fcGhhc2UYDiABKAlSD2FsbG9jYXRpb25Q",
+            "aGFzZRIrChFhbGxvY2F0aW9uX3JlYXNvbhgPIAEoCVIQYWxsb2NhdGlvblJl",
+            "YXNvbhIsChJiYXR0bGVfZW50cnlfcmVhZHkYECABKAhSEGJhdHRsZUVudHJ5",
+            "UmVhZHki6QEKHUNyZWF0ZU1hbnVhbFJvb21CYXR0bGVSZXF1ZXN0EjsKB2Nv",
+            "bnRleHQYASABKAsyIS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5Sb29tQ29udGV4",
+            "dFIHY29udGV4dBIXCgdtb2RlX2lkGAIgASgJUgZtb2RlSWQSHgoLcnVsZV9z",
+            "ZXRfaWQYAyABKAlSCXJ1bGVTZXRJZBIVCgZtYXBfaWQYBCABKAlSBW1hcElk",
+            "EjsKB21lbWJlcnMYBSADKAsyIS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5QYXJ0",
+            "eU1lbWJlclIHbWVtYmVycyKRAgoeQ3JlYXRlTWFudWFsUm9vbUJhdHRsZVJl",
+            "c3BvbnNlEg4KAm9rGAEgASgIUgJvaxIjCg1hc3NpZ25tZW50X2lkGAIgASgJ",
+            "Ugxhc3NpZ25tZW50SWQSGQoIbWF0Y2hfaWQYAyABKAlSB21hdGNoSWQSGwoJ",
+            "YmF0dGxlX2lkGAQgASgJUghiYXR0bGVJZBIfCgtzZXJ2ZXJfaG9zdBgFIAEo",
+            "CVIKc2VydmVySG9zdBIfCgtzZXJ2ZXJfcG9ydBgGIAEoBVIKc2VydmVyUG9y",
+            "dBIdCgplcnJvcl9jb2RlGAcgASgJUgllcnJvckNvZGUSIQoMdXNlcl9tZXNz",
+            "YWdlGAggASgJUgt1c2VyTWVzc2FnZSK4AQocQ29tbWl0QXNzaWdubWVudFJl",
+            "YWR5UmVxdWVzdBI7Cgdjb250ZXh0GAEgASgLMiEucXF0LmludGVybmFsLmdh",
+            "bWUudjEuUm9vbUNvbnRleHRSB2NvbnRleHQSIwoNYXNzaWdubWVudF9pZBgC",
+            "IAEoCVIMYXNzaWdubWVudElkEhkKCG1hdGNoX2lkGAMgASgJUgdtYXRjaElk",
+            "EhsKCWJhdHRsZV9pZBgEIAEoCVIIYmF0dGxlSWQimgEKHUNvbW1pdEFzc2ln",
+            "bm1lbnRSZWFkeVJlc3BvbnNlEg4KAm9rGAEgASgIUgJvaxInCg9jb21taXR0",
+            "ZWRfc3RhdGUYAiABKAlSDmNvbW1pdHRlZFN0YXRlEh0KCmVycm9yX2NvZGUY",
+            "AyABKAlSCWVycm9yQ29kZRIhCgx1c2VyX21lc3NhZ2UYBCABKAlSC3VzZXJN",
+            "ZXNzYWdlMvwEChJSb29tQ29udHJvbFNlcnZpY2USbgoPRW50ZXJQYXJ0eVF1",
+            "ZXVlEiwucXF0LmludGVybmFsLmdhbWUudjEuRW50ZXJQYXJ0eVF1ZXVlUmVx",
+            "dWVzdBotLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkVudGVyUGFydHlRdWV1ZVJl",
+            "c3BvbnNlEnEKEENhbmNlbFBhcnR5UXVldWUSLS5xcXQuaW50ZXJuYWwuZ2Ft",
+            "ZS52MS5DYW5jZWxQYXJ0eVF1ZXVlUmVxdWVzdBouLnFxdC5pbnRlcm5hbC5n",
+            "YW1lLnYxLkNhbmNlbFBhcnR5UXVldWVSZXNwb25zZRJ6ChNHZXRQYXJ0eVF1",
+            "ZXVlU3RhdHVzEjAucXF0LmludGVybmFsLmdhbWUudjEuR2V0UGFydHlRdWV1",
+            "ZVN0YXR1c1JlcXVlc3QaMS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5HZXRQYXJ0",
+            "eVF1ZXVlU3RhdHVzUmVzcG9uc2USgwEKFkNyZWF0ZU1hbnVhbFJvb21CYXR0",
+            "bGUSMy5xcXQuaW50ZXJuYWwuZ2FtZS52MS5DcmVhdGVNYW51YWxSb29tQmF0",
+            "dGxlUmVxdWVzdBo0LnFxdC5pbnRlcm5hbC5nYW1lLnYxLkNyZWF0ZU1hbnVh",
+            "bFJvb21CYXR0bGVSZXNwb25zZRKAAQoVQ29tbWl0QXNzaWdubWVudFJlYWR5",
+            "EjIucXF0LmludGVybmFsLmdhbWUudjEuQ29tbWl0QXNzaWdubWVudFJlYWR5",
+            "UmVxdWVzdBozLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkNvbW1pdEFzc2lnbm1l",
+            "bnRSZWFkeVJlc3BvbnNlQidaJXFxdC9wcm90by9xcXQvaW50ZXJuYWwvZ2Ft",
+            "ZS92MTtnYW1ldjFiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.RoomContext), global::Qqt.Internal.Game.V1.RoomContext.Parser, new[]{ "RoomId", "RoomKind", "AssignmentId", "RoomInstanceId", "RoomShardId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.PartyMember), global::Qqt.Internal.Game.V1.PartyMember.Parser, new[]{ "AccountId", "ProfileId", "TeamId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.EnterPartyQueueRequest), global::Qqt.Internal.Game.V1.EnterPartyQueueRequest.Parser, new[]{ "Context", "QueueType", "MatchFormatId", "SelectedModeIds", "Members" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.EnterPartyQueueResponse), global::Qqt.Internal.Game.V1.EnterPartyQueueResponse.Parser, new[]{ "Ok", "QueueEntryId", "QueueState", "ErrorCode", "UserMessage" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.EnterPartyQueueResponse), global::Qqt.Internal.Game.V1.EnterPartyQueueResponse.Parser, new[]{ "Ok", "QueueEntryId", "QueueState", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CancelPartyQueueRequest), global::Qqt.Internal.Game.V1.CancelPartyQueueRequest.Parser, new[]{ "Context", "QueueEntryId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CancelPartyQueueResponse), global::Qqt.Internal.Game.V1.CancelPartyQueueResponse.Parser, new[]{ "Ok", "QueueState", "ErrorCode", "UserMessage" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CancelPartyQueueResponse), global::Qqt.Internal.Game.V1.CancelPartyQueueResponse.Parser, new[]{ "Ok", "QueueState", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusRequest), global::Qqt.Internal.Game.V1.GetPartyQueueStatusRequest.Parser, new[]{ "Context", "QueueEntryId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse), global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse.Parser, new[]{ "Ok", "QueueState", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse), global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse.Parser, new[]{ "Ok", "QueueState", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText", "AssignmentStatusText", "AllocationPhase", "AllocationReason", "BattleEntryReady" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CreateManualRoomBattleRequest), global::Qqt.Internal.Game.V1.CreateManualRoomBattleRequest.Parser, new[]{ "Context", "ModeId", "RuleSetId", "MapId", "Members" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse), global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse.Parser, new[]{ "Ok", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest), global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest.Parser, new[]{ "Context", "AssignmentId", "MatchId", "BattleId" }, null, null, null, null),
@@ -1104,6 +1117,9 @@ namespace Qqt.Internal.Game.V1 {
       queueState_ = other.queueState_;
       errorCode_ = other.errorCode_;
       userMessage_ = other.userMessage_;
+      queuePhase_ = other.queuePhase_;
+      queueTerminalReason_ = other.queueTerminalReason_;
+      queueStatusText_ = other.queueStatusText_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1173,6 +1189,42 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "queue_phase" field.</summary>
+    public const int QueuePhaseFieldNumber = 6;
+    private string queuePhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueuePhase {
+      get { return queuePhase_; }
+      set {
+        queuePhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_terminal_reason" field.</summary>
+    public const int QueueTerminalReasonFieldNumber = 7;
+    private string queueTerminalReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueTerminalReason {
+      get { return queueTerminalReason_; }
+      set {
+        queueTerminalReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_status_text" field.</summary>
+    public const int QueueStatusTextFieldNumber = 8;
+    private string queueStatusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueStatusText {
+      get { return queueStatusText_; }
+      set {
+        queueStatusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1193,6 +1245,9 @@ namespace Qqt.Internal.Game.V1 {
       if (QueueState != other.QueueState) return false;
       if (ErrorCode != other.ErrorCode) return false;
       if (UserMessage != other.UserMessage) return false;
+      if (QueuePhase != other.QueuePhase) return false;
+      if (QueueTerminalReason != other.QueueTerminalReason) return false;
+      if (QueueStatusText != other.QueueStatusText) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1205,6 +1260,9 @@ namespace Qqt.Internal.Game.V1 {
       if (QueueState.Length != 0) hash ^= QueueState.GetHashCode();
       if (ErrorCode.Length != 0) hash ^= ErrorCode.GetHashCode();
       if (UserMessage.Length != 0) hash ^= UserMessage.GetHashCode();
+      if (QueuePhase.Length != 0) hash ^= QueuePhase.GetHashCode();
+      if (QueueTerminalReason.Length != 0) hash ^= QueueTerminalReason.GetHashCode();
+      if (QueueStatusText.Length != 0) hash ^= QueueStatusText.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1243,6 +1301,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(42);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(QueueStatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1273,6 +1343,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(42);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(QueueStatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1297,6 +1379,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (UserMessage.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserMessage);
+      }
+      if (QueuePhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueStatusText);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1324,6 +1415,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.UserMessage.Length != 0) {
         UserMessage = other.UserMessage;
+      }
+      if (other.QueuePhase.Length != 0) {
+        QueuePhase = other.QueuePhase;
+      }
+      if (other.QueueTerminalReason.Length != 0) {
+        QueueTerminalReason = other.QueueTerminalReason;
+      }
+      if (other.QueueStatusText.Length != 0) {
+        QueueStatusText = other.QueueStatusText;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1364,6 +1464,18 @@ namespace Qqt.Internal.Game.V1 {
             UserMessage = input.ReadString();
             break;
           }
+          case 50: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 58: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 66: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1401,6 +1513,18 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 42: {
             UserMessage = input.ReadString();
+            break;
+          }
+          case 50: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 58: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 66: {
+            QueueStatusText = input.ReadString();
             break;
           }
         }
@@ -1693,6 +1817,9 @@ namespace Qqt.Internal.Game.V1 {
       queueState_ = other.queueState_;
       errorCode_ = other.errorCode_;
       userMessage_ = other.userMessage_;
+      queuePhase_ = other.queuePhase_;
+      queueTerminalReason_ = other.queueTerminalReason_;
+      queueStatusText_ = other.queueStatusText_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1750,6 +1877,42 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "queue_phase" field.</summary>
+    public const int QueuePhaseFieldNumber = 5;
+    private string queuePhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueuePhase {
+      get { return queuePhase_; }
+      set {
+        queuePhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_terminal_reason" field.</summary>
+    public const int QueueTerminalReasonFieldNumber = 6;
+    private string queueTerminalReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueTerminalReason {
+      get { return queueTerminalReason_; }
+      set {
+        queueTerminalReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_status_text" field.</summary>
+    public const int QueueStatusTextFieldNumber = 7;
+    private string queueStatusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueStatusText {
+      get { return queueStatusText_; }
+      set {
+        queueStatusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1769,6 +1932,9 @@ namespace Qqt.Internal.Game.V1 {
       if (QueueState != other.QueueState) return false;
       if (ErrorCode != other.ErrorCode) return false;
       if (UserMessage != other.UserMessage) return false;
+      if (QueuePhase != other.QueuePhase) return false;
+      if (QueueTerminalReason != other.QueueTerminalReason) return false;
+      if (QueueStatusText != other.QueueStatusText) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1780,6 +1946,9 @@ namespace Qqt.Internal.Game.V1 {
       if (QueueState.Length != 0) hash ^= QueueState.GetHashCode();
       if (ErrorCode.Length != 0) hash ^= ErrorCode.GetHashCode();
       if (UserMessage.Length != 0) hash ^= UserMessage.GetHashCode();
+      if (QueuePhase.Length != 0) hash ^= QueuePhase.GetHashCode();
+      if (QueueTerminalReason.Length != 0) hash ^= QueueTerminalReason.GetHashCode();
+      if (QueueStatusText.Length != 0) hash ^= QueueStatusText.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1814,6 +1983,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(34);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(QueueStatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1840,6 +2021,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(34);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(QueueStatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1861,6 +2054,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (UserMessage.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserMessage);
+      }
+      if (QueuePhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueStatusText);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1885,6 +2087,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.UserMessage.Length != 0) {
         UserMessage = other.UserMessage;
+      }
+      if (other.QueuePhase.Length != 0) {
+        QueuePhase = other.QueuePhase;
+      }
+      if (other.QueueTerminalReason.Length != 0) {
+        QueueTerminalReason = other.QueueTerminalReason;
+      }
+      if (other.QueueStatusText.Length != 0) {
+        QueueStatusText = other.QueueStatusText;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1921,6 +2132,18 @@ namespace Qqt.Internal.Game.V1 {
             UserMessage = input.ReadString();
             break;
           }
+          case 42: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 50: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 58: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1954,6 +2177,18 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 34: {
             UserMessage = input.ReadString();
+            break;
+          }
+          case 42: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 50: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 58: {
+            QueueStatusText = input.ReadString();
             break;
           }
         }
@@ -2251,6 +2486,13 @@ namespace Qqt.Internal.Game.V1 {
       serverPort_ = other.serverPort_;
       errorCode_ = other.errorCode_;
       userMessage_ = other.userMessage_;
+      queuePhase_ = other.queuePhase_;
+      queueTerminalReason_ = other.queueTerminalReason_;
+      queueStatusText_ = other.queueStatusText_;
+      assignmentStatusText_ = other.assignmentStatusText_;
+      allocationPhase_ = other.allocationPhase_;
+      allocationReason_ = other.allocationReason_;
+      battleEntryReady_ = other.battleEntryReady_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2368,6 +2610,90 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "queue_phase" field.</summary>
+    public const int QueuePhaseFieldNumber = 10;
+    private string queuePhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueuePhase {
+      get { return queuePhase_; }
+      set {
+        queuePhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_terminal_reason" field.</summary>
+    public const int QueueTerminalReasonFieldNumber = 11;
+    private string queueTerminalReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueTerminalReason {
+      get { return queueTerminalReason_; }
+      set {
+        queueTerminalReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_status_text" field.</summary>
+    public const int QueueStatusTextFieldNumber = 12;
+    private string queueStatusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueStatusText {
+      get { return queueStatusText_; }
+      set {
+        queueStatusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "assignment_status_text" field.</summary>
+    public const int AssignmentStatusTextFieldNumber = 13;
+    private string assignmentStatusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string AssignmentStatusText {
+      get { return assignmentStatusText_; }
+      set {
+        assignmentStatusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "allocation_phase" field.</summary>
+    public const int AllocationPhaseFieldNumber = 14;
+    private string allocationPhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string AllocationPhase {
+      get { return allocationPhase_; }
+      set {
+        allocationPhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "allocation_reason" field.</summary>
+    public const int AllocationReasonFieldNumber = 15;
+    private string allocationReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string AllocationReason {
+      get { return allocationReason_; }
+      set {
+        allocationReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "battle_entry_ready" field.</summary>
+    public const int BattleEntryReadyFieldNumber = 16;
+    private bool battleEntryReady_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool BattleEntryReady {
+      get { return battleEntryReady_; }
+      set {
+        battleEntryReady_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2392,6 +2718,13 @@ namespace Qqt.Internal.Game.V1 {
       if (ServerPort != other.ServerPort) return false;
       if (ErrorCode != other.ErrorCode) return false;
       if (UserMessage != other.UserMessage) return false;
+      if (QueuePhase != other.QueuePhase) return false;
+      if (QueueTerminalReason != other.QueueTerminalReason) return false;
+      if (QueueStatusText != other.QueueStatusText) return false;
+      if (AssignmentStatusText != other.AssignmentStatusText) return false;
+      if (AllocationPhase != other.AllocationPhase) return false;
+      if (AllocationReason != other.AllocationReason) return false;
+      if (BattleEntryReady != other.BattleEntryReady) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2408,6 +2741,13 @@ namespace Qqt.Internal.Game.V1 {
       if (ServerPort != 0) hash ^= ServerPort.GetHashCode();
       if (ErrorCode.Length != 0) hash ^= ErrorCode.GetHashCode();
       if (UserMessage.Length != 0) hash ^= UserMessage.GetHashCode();
+      if (QueuePhase.Length != 0) hash ^= QueuePhase.GetHashCode();
+      if (QueueTerminalReason.Length != 0) hash ^= QueueTerminalReason.GetHashCode();
+      if (QueueStatusText.Length != 0) hash ^= QueueStatusText.GetHashCode();
+      if (AssignmentStatusText.Length != 0) hash ^= AssignmentStatusText.GetHashCode();
+      if (AllocationPhase.Length != 0) hash ^= AllocationPhase.GetHashCode();
+      if (AllocationReason.Length != 0) hash ^= AllocationReason.GetHashCode();
+      if (BattleEntryReady != false) hash ^= BattleEntryReady.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2462,6 +2802,34 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(74);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(QueueStatusText);
+      }
+      if (AssignmentStatusText.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(AssignmentStatusText);
+      }
+      if (AllocationPhase.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(AllocationPhase);
+      }
+      if (AllocationReason.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(AllocationReason);
+      }
+      if (BattleEntryReady != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(BattleEntryReady);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2508,6 +2876,34 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(74);
         output.WriteString(UserMessage);
       }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(82);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(QueueStatusText);
+      }
+      if (AssignmentStatusText.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(AssignmentStatusText);
+      }
+      if (AllocationPhase.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(AllocationPhase);
+      }
+      if (AllocationReason.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(AllocationReason);
+      }
+      if (BattleEntryReady != false) {
+        output.WriteRawTag(128, 1);
+        output.WriteBool(BattleEntryReady);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2544,6 +2940,27 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (UserMessage.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserMessage);
+      }
+      if (QueuePhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueStatusText);
+      }
+      if (AssignmentStatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(AssignmentStatusText);
+      }
+      if (AllocationPhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(AllocationPhase);
+      }
+      if (AllocationReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(AllocationReason);
+      }
+      if (BattleEntryReady != false) {
+        size += 2 + 1;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -2583,6 +3000,27 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.UserMessage.Length != 0) {
         UserMessage = other.UserMessage;
+      }
+      if (other.QueuePhase.Length != 0) {
+        QueuePhase = other.QueuePhase;
+      }
+      if (other.QueueTerminalReason.Length != 0) {
+        QueueTerminalReason = other.QueueTerminalReason;
+      }
+      if (other.QueueStatusText.Length != 0) {
+        QueueStatusText = other.QueueStatusText;
+      }
+      if (other.AssignmentStatusText.Length != 0) {
+        AssignmentStatusText = other.AssignmentStatusText;
+      }
+      if (other.AllocationPhase.Length != 0) {
+        AllocationPhase = other.AllocationPhase;
+      }
+      if (other.AllocationReason.Length != 0) {
+        AllocationReason = other.AllocationReason;
+      }
+      if (other.BattleEntryReady != false) {
+        BattleEntryReady = other.BattleEntryReady;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -2639,6 +3077,34 @@ namespace Qqt.Internal.Game.V1 {
             UserMessage = input.ReadString();
             break;
           }
+          case 82: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 90: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 98: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
+          case 106: {
+            AssignmentStatusText = input.ReadString();
+            break;
+          }
+          case 114: {
+            AllocationPhase = input.ReadString();
+            break;
+          }
+          case 122: {
+            AllocationReason = input.ReadString();
+            break;
+          }
+          case 128: {
+            BattleEntryReady = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -2692,6 +3158,34 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 74: {
             UserMessage = input.ReadString();
+            break;
+          }
+          case 82: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 90: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 98: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
+          case 106: {
+            AssignmentStatusText = input.ReadString();
+            break;
+          }
+          case 114: {
+            AllocationPhase = input.ReadString();
+            break;
+          }
+          case 122: {
+            AllocationReason = input.ReadString();
+            break;
+          }
+          case 128: {
+            BattleEntryReady = input.ReadBool();
             break;
           }
         }

@@ -175,6 +175,7 @@ type RoomMember struct {
 	Ready           bool                   `protobuf:"varint,6,opt,name=ready,proto3" json:"ready,omitempty"`
 	Loadout         *RoomLoadout           `protobuf:"bytes,7,opt,name=loadout,proto3" json:"loadout,omitempty"`
 	ConnectionState string                 `protobuf:"bytes,8,opt,name=connection_state,json=connectionState,proto3" json:"connection_state,omitempty"`
+	MemberPhase     string                 `protobuf:"bytes,9,opt,name=member_phase,json=memberPhase,proto3" json:"member_phase,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -265,6 +266,13 @@ func (x *RoomMember) GetConnectionState() string {
 	return ""
 }
 
+func (x *RoomMember) GetMemberPhase() string {
+	if x != nil {
+		return x.MemberPhase
+	}
+	return ""
+}
+
 type BattleEntryState struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	AssignmentId     string                 `protobuf:"bytes,1,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
@@ -273,6 +281,9 @@ type BattleEntryState struct {
 	ServerHost       string                 `protobuf:"bytes,4,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
 	ServerPort       int32                  `protobuf:"varint,5,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
 	BattleEntryReady bool                   `protobuf:"varint,6,opt,name=battle_entry_ready,json=battleEntryReady,proto3" json:"battle_entry_ready,omitempty"`
+	Phase            string                 `protobuf:"bytes,7,opt,name=phase,proto3" json:"phase,omitempty"`
+	TerminalReason   string                 `protobuf:"bytes,8,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
+	StatusText       string                 `protobuf:"bytes,9,opt,name=status_text,json=statusText,proto3" json:"status_text,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -349,6 +360,27 @@ func (x *BattleEntryState) GetBattleEntryReady() bool {
 	return false
 }
 
+func (x *BattleEntryState) GetPhase() string {
+	if x != nil {
+		return x.Phase
+	}
+	return ""
+}
+
+func (x *BattleEntryState) GetTerminalReason() string {
+	if x != nil {
+		return x.TerminalReason
+	}
+	return ""
+}
+
+func (x *BattleEntryState) GetStatusText() string {
+	if x != nil {
+		return x.StatusText
+	}
+	return ""
+}
+
 type ResumeBinding struct {
 	state                   protoimpl.MessageState `protogen:"open.v1"`
 	MemberId                string                 `protobuf:"bytes,1,opt,name=member_id,json=memberId,proto3" json:"member_id,omitempty"`
@@ -410,19 +442,34 @@ func (x *ResumeBinding) GetReconnectDeadlineUnixMs() int64 {
 }
 
 type RoomSnapshot struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	RoomId           string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	RoomKind         string                 `protobuf:"bytes,2,opt,name=room_kind,json=roomKind,proto3" json:"room_kind,omitempty"`
-	RoomDisplayName  string                 `protobuf:"bytes,3,opt,name=room_display_name,json=roomDisplayName,proto3" json:"room_display_name,omitempty"`
-	OwnerMemberId    string                 `protobuf:"bytes,4,opt,name=owner_member_id,json=ownerMemberId,proto3" json:"owner_member_id,omitempty"`
-	LifecycleState   string                 `protobuf:"bytes,5,opt,name=lifecycle_state,json=lifecycleState,proto3" json:"lifecycle_state,omitempty"`
-	SnapshotRevision int64                  `protobuf:"varint,6,opt,name=snapshot_revision,json=snapshotRevision,proto3" json:"snapshot_revision,omitempty"`
-	Selection        *RoomSelection         `protobuf:"bytes,7,opt,name=selection,proto3" json:"selection,omitempty"`
-	Members          []*RoomMember          `protobuf:"bytes,8,rep,name=members,proto3" json:"members,omitempty"`
-	QueueState       string                 `protobuf:"bytes,9,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
-	BattleEntry      *BattleEntryState      `protobuf:"bytes,10,opt,name=battle_entry,json=battleEntry,proto3" json:"battle_entry,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	RoomId                   string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	RoomKind                 string                 `protobuf:"bytes,2,opt,name=room_kind,json=roomKind,proto3" json:"room_kind,omitempty"`
+	RoomDisplayName          string                 `protobuf:"bytes,3,opt,name=room_display_name,json=roomDisplayName,proto3" json:"room_display_name,omitempty"`
+	OwnerMemberId            string                 `protobuf:"bytes,4,opt,name=owner_member_id,json=ownerMemberId,proto3" json:"owner_member_id,omitempty"`
+	LifecycleState           string                 `protobuf:"bytes,5,opt,name=lifecycle_state,json=lifecycleState,proto3" json:"lifecycle_state,omitempty"`
+	SnapshotRevision         int64                  `protobuf:"varint,6,opt,name=snapshot_revision,json=snapshotRevision,proto3" json:"snapshot_revision,omitempty"`
+	Selection                *RoomSelection         `protobuf:"bytes,7,opt,name=selection,proto3" json:"selection,omitempty"`
+	Members                  []*RoomMember          `protobuf:"bytes,8,rep,name=members,proto3" json:"members,omitempty"`
+	QueueState               string                 `protobuf:"bytes,9,opt,name=queue_state,json=queueState,proto3" json:"queue_state,omitempty"`
+	BattleEntry              *BattleEntryState      `protobuf:"bytes,10,opt,name=battle_entry,json=battleEntry,proto3" json:"battle_entry,omitempty"`
+	RoomPhase                string                 `protobuf:"bytes,11,opt,name=room_phase,json=roomPhase,proto3" json:"room_phase,omitempty"`
+	RoomPhaseReason          string                 `protobuf:"bytes,12,opt,name=room_phase_reason,json=roomPhaseReason,proto3" json:"room_phase_reason,omitempty"`
+	QueuePhase               string                 `protobuf:"bytes,13,opt,name=queue_phase,json=queuePhase,proto3" json:"queue_phase,omitempty"`
+	QueueTerminalReason      string                 `protobuf:"bytes,14,opt,name=queue_terminal_reason,json=queueTerminalReason,proto3" json:"queue_terminal_reason,omitempty"`
+	QueueStatusText          string                 `protobuf:"bytes,15,opt,name=queue_status_text,json=queueStatusText,proto3" json:"queue_status_text,omitempty"`
+	QueueErrorCode           string                 `protobuf:"bytes,16,opt,name=queue_error_code,json=queueErrorCode,proto3" json:"queue_error_code,omitempty"`
+	QueueUserMessage         string                 `protobuf:"bytes,17,opt,name=queue_user_message,json=queueUserMessage,proto3" json:"queue_user_message,omitempty"`
+	QueueEntryId             string                 `protobuf:"bytes,18,opt,name=queue_entry_id,json=queueEntryId,proto3" json:"queue_entry_id,omitempty"`
+	CanToggleReady           bool                   `protobuf:"varint,19,opt,name=can_toggle_ready,json=canToggleReady,proto3" json:"can_toggle_ready,omitempty"`
+	CanStartManualBattle     bool                   `protobuf:"varint,20,opt,name=can_start_manual_battle,json=canStartManualBattle,proto3" json:"can_start_manual_battle,omitempty"`
+	CanUpdateSelection       bool                   `protobuf:"varint,21,opt,name=can_update_selection,json=canUpdateSelection,proto3" json:"can_update_selection,omitempty"`
+	CanUpdateMatchRoomConfig bool                   `protobuf:"varint,22,opt,name=can_update_match_room_config,json=canUpdateMatchRoomConfig,proto3" json:"can_update_match_room_config,omitempty"`
+	CanEnterQueue            bool                   `protobuf:"varint,23,opt,name=can_enter_queue,json=canEnterQueue,proto3" json:"can_enter_queue,omitempty"`
+	CanCancelQueue           bool                   `protobuf:"varint,24,opt,name=can_cancel_queue,json=canCancelQueue,proto3" json:"can_cancel_queue,omitempty"`
+	CanLeaveRoom             bool                   `protobuf:"varint,25,opt,name=can_leave_room,json=canLeaveRoom,proto3" json:"can_leave_room,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *RoomSnapshot) Reset() {
@@ -523,6 +570,111 @@ func (x *RoomSnapshot) GetBattleEntry() *BattleEntryState {
 		return x.BattleEntry
 	}
 	return nil
+}
+
+func (x *RoomSnapshot) GetRoomPhase() string {
+	if x != nil {
+		return x.RoomPhase
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetRoomPhaseReason() string {
+	if x != nil {
+		return x.RoomPhaseReason
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueuePhase() string {
+	if x != nil {
+		return x.QueuePhase
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueueTerminalReason() string {
+	if x != nil {
+		return x.QueueTerminalReason
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueueStatusText() string {
+	if x != nil {
+		return x.QueueStatusText
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueueErrorCode() string {
+	if x != nil {
+		return x.QueueErrorCode
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueueUserMessage() string {
+	if x != nil {
+		return x.QueueUserMessage
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetQueueEntryId() string {
+	if x != nil {
+		return x.QueueEntryId
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetCanToggleReady() bool {
+	if x != nil {
+		return x.CanToggleReady
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanStartManualBattle() bool {
+	if x != nil {
+		return x.CanStartManualBattle
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanUpdateSelection() bool {
+	if x != nil {
+		return x.CanUpdateSelection
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanUpdateMatchRoomConfig() bool {
+	if x != nil {
+		return x.CanUpdateMatchRoomConfig
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanEnterQueue() bool {
+	if x != nil {
+		return x.CanEnterQueue
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanCancelQueue() bool {
+	if x != nil {
+		return x.CanCancelQueue
+	}
+	return false
+}
+
+func (x *RoomSnapshot) GetCanLeaveRoom() bool {
+	if x != nil {
+		return x.CanLeaveRoom
+	}
+	return false
 }
 
 type RoomDirectoryEntry struct {
@@ -768,7 +920,7 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\vrule_set_id\x18\x02 \x01(\tR\truleSetId\x12\x17\n" +
 	"\amode_id\x18\x03 \x01(\tR\x06modeId\x12&\n" +
 	"\x0fmatch_format_id\x18\x04 \x01(\tR\rmatchFormatId\x12*\n" +
-	"\x11selected_mode_ids\x18\x05 \x03(\tR\x0fselectedModeIds\"\x96\x02\n" +
+	"\x11selected_mode_ids\x18\x05 \x03(\tR\x0fselectedModeIds\"\xb9\x02\n" +
 	"\n" +
 	"RoomMember\x12\x1b\n" +
 	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x1d\n" +
@@ -781,7 +933,8 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\ateam_id\x18\x05 \x01(\x05R\x06teamId\x12\x14\n" +
 	"\x05ready\x18\x06 \x01(\bR\x05ready\x122\n" +
 	"\aloadout\x18\a \x01(\v2\x18.qqt.room.v1.RoomLoadoutR\aloadout\x12)\n" +
-	"\x10connection_state\x18\b \x01(\tR\x0fconnectionState\"\xdf\x01\n" +
+	"\x10connection_state\x18\b \x01(\tR\x0fconnectionState\x12!\n" +
+	"\fmember_phase\x18\t \x01(\tR\vmemberPhase\"\xbf\x02\n" +
 	"\x10BattleEntryState\x12#\n" +
 	"\rassignment_id\x18\x01 \x01(\tR\fassignmentId\x12\x1b\n" +
 	"\tbattle_id\x18\x02 \x01(\tR\bbattleId\x12\x19\n" +
@@ -790,11 +943,15 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"serverHost\x12\x1f\n" +
 	"\vserver_port\x18\x05 \x01(\x05R\n" +
 	"serverPort\x12,\n" +
-	"\x12battle_entry_ready\x18\x06 \x01(\bR\x10battleEntryReady\"\x92\x01\n" +
+	"\x12battle_entry_ready\x18\x06 \x01(\bR\x10battleEntryReady\x12\x14\n" +
+	"\x05phase\x18\a \x01(\tR\x05phase\x12'\n" +
+	"\x0fterminal_reason\x18\b \x01(\tR\x0eterminalReason\x12\x1f\n" +
+	"\vstatus_text\x18\t \x01(\tR\n" +
+	"statusText\"\x92\x01\n" +
 	"\rResumeBinding\x12\x1b\n" +
 	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12'\n" +
 	"\x0freconnect_token\x18\x02 \x01(\tR\x0ereconnectToken\x12;\n" +
-	"\x1areconnect_deadline_unix_ms\x18\x03 \x01(\x03R\x17reconnectDeadlineUnixMs\"\xbe\x03\n" +
+	"\x1areconnect_deadline_unix_ms\x18\x03 \x01(\x03R\x17reconnectDeadlineUnixMs\"\xd3\b\n" +
 	"\fRoomSnapshot\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
 	"\troom_kind\x18\x02 \x01(\tR\broomKind\x12*\n" +
@@ -807,7 +964,24 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\vqueue_state\x18\t \x01(\tR\n" +
 	"queueState\x12@\n" +
 	"\fbattle_entry\x18\n" +
-	" \x01(\v2\x1d.qqt.room.v1.BattleEntryStateR\vbattleEntry\"\x8f\x02\n" +
+	" \x01(\v2\x1d.qqt.room.v1.BattleEntryStateR\vbattleEntry\x12\x1d\n" +
+	"\n" +
+	"room_phase\x18\v \x01(\tR\troomPhase\x12*\n" +
+	"\x11room_phase_reason\x18\f \x01(\tR\x0froomPhaseReason\x12\x1f\n" +
+	"\vqueue_phase\x18\r \x01(\tR\n" +
+	"queuePhase\x122\n" +
+	"\x15queue_terminal_reason\x18\x0e \x01(\tR\x13queueTerminalReason\x12*\n" +
+	"\x11queue_status_text\x18\x0f \x01(\tR\x0fqueueStatusText\x12(\n" +
+	"\x10queue_error_code\x18\x10 \x01(\tR\x0equeueErrorCode\x12,\n" +
+	"\x12queue_user_message\x18\x11 \x01(\tR\x10queueUserMessage\x12$\n" +
+	"\x0equeue_entry_id\x18\x12 \x01(\tR\fqueueEntryId\x12(\n" +
+	"\x10can_toggle_ready\x18\x13 \x01(\bR\x0ecanToggleReady\x125\n" +
+	"\x17can_start_manual_battle\x18\x14 \x01(\bR\x14canStartManualBattle\x120\n" +
+	"\x14can_update_selection\x18\x15 \x01(\bR\x12canUpdateSelection\x12>\n" +
+	"\x1ccan_update_match_room_config\x18\x16 \x01(\bR\x18canUpdateMatchRoomConfig\x12&\n" +
+	"\x0fcan_enter_queue\x18\x17 \x01(\bR\rcanEnterQueue\x12(\n" +
+	"\x10can_cancel_queue\x18\x18 \x01(\bR\x0ecanCancelQueue\x12$\n" +
+	"\x0ecan_leave_room\x18\x19 \x01(\bR\fcanLeaveRoom\"\x8f\x02\n" +
 	"\x12RoomDirectoryEntry\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12*\n" +
 	"\x11room_display_name\x18\x02 \x01(\tR\x0froomDisplayName\x12\x1b\n" +

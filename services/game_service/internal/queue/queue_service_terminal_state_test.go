@@ -19,40 +19,51 @@ func TestResolveAssignmentTerminalState(t *testing.T) {
 		{
 			name: "finalized assignment",
 			assignment: storage.Assignment{
-				State:               "finalized",
+				State:                 "finalized",
 				CommitDeadlineUnixSec: nowUnix + 60,
 			},
-			wantState:    "finalized",
-			wantReason:   "match_finalized",
+			wantState:    QueuePhaseCompleted,
+			wantReason:   QueueTerminalReasonMatchFinalized,
 			wantTerminal: true,
 		},
 		{
 			name: "expired assignment deadline",
 			assignment: storage.Assignment{
-				State:               "assigned",
+				State:                 "assigned",
 				CommitDeadlineUnixSec: nowUnix - 1,
 			},
-			wantState:    "expired",
-			wantReason:   "assignment_expired",
+			wantState:    QueuePhaseCompleted,
+			wantReason:   QueueTerminalReasonAssignmentExpired,
 			wantTerminal: true,
 		},
 		{
 			name: "allocation failed",
 			assignment: storage.Assignment{
-				State:               "assigned",
+				State:                 "assigned",
 				CommitDeadlineUnixSec: nowUnix + 120,
-				AllocationState:     "alloc_failed",
+				AllocationState:       "alloc_failed",
 			},
-			wantState:    "failed",
-			wantReason:   "allocation_failed",
+			wantState:    QueuePhaseCompleted,
+			wantReason:   QueueTerminalReasonAllocationFailed,
+			wantTerminal: true,
+		},
+		{
+			name: "allocation_failed alias",
+			assignment: storage.Assignment{
+				State:                 "assigned",
+				CommitDeadlineUnixSec: nowUnix + 120,
+				AllocationState:       "allocation_failed",
+			},
+			wantState:    QueuePhaseCompleted,
+			wantReason:   QueueTerminalReasonAllocationFailed,
 			wantTerminal: true,
 		},
 		{
 			name: "active assignment",
 			assignment: storage.Assignment{
-				State:               "assigned",
+				State:                 "assigned",
 				CommitDeadlineUnixSec: nowUnix + 120,
-				AllocationState:     "allocated",
+				AllocationState:       "allocated",
 			},
 			wantState:    "",
 			wantReason:   "",
@@ -70,4 +81,3 @@ func TestResolveAssignmentTerminalState(t *testing.T) {
 		})
 	}
 }
-

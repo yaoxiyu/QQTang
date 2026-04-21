@@ -68,9 +68,10 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 			State:                arguments[13].(string),
 			AssignmentID:         arguments[14].(string),
 			AssignmentRevision:   arguments[15].(int),
-			CancelReason:         arguments[16].(string),
-			CreatedAt:            arguments[17].(time.Time),
-			UpdatedAt:            arguments[18].(time.Time),
+			TerminalReason:       arguments[16].(string),
+			CancelReason:         arguments[17].(string),
+			CreatedAt:            arguments[18].(time.Time),
+			UpdatedAt:            arguments[19].(time.Time),
 		}
 		db.entriesByProfile[entry.ProfileID] = entry
 		db.entriesByID[entry.QueueEntryID] = entry
@@ -136,12 +137,14 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 				return pgconn.NewCommandTag("UPDATE 0"), nil
 			}
 			entry.State = arguments[2].(string)
+			entry.TerminalReason = arguments[3].(string)
 			entry.CancelReason = arguments[3].(string)
 			entry.AssignmentID = arguments[4].(string)
 			entry.AssignmentRevision = arguments[5].(int)
 			entry.LastHeartbeatUnixSec = arguments[6].(int64)
 		} else {
 			entry.State = arguments[1].(string)
+			entry.TerminalReason = arguments[2].(string)
 			entry.CancelReason = arguments[2].(string)
 			entry.AssignmentID = arguments[3].(string)
 			entry.AssignmentRevision = arguments[4].(int)
@@ -375,6 +378,7 @@ func queueEntryRow(entry storage.QueueEntry) []any {
 		entry.State,
 		entry.AssignmentID,
 		entry.AssignmentRevision,
+		entry.TerminalReason,
 		entry.CancelReason,
 		entry.CreatedAt,
 		entry.UpdatedAt,
@@ -453,6 +457,9 @@ func TestEnterQueueCreatesQueuedEntry(t *testing.T) {
 	if status.QueueState != "queued" {
 		t.Fatalf("expected queued state, got %s", status.QueueState)
 	}
+	if status.QueuePhase != QueuePhaseQueued || status.QueueTerminalReason != QueueTerminalReasonNone {
+		t.Fatalf("expected queued/none canonical status, got phase=%s reason=%s", status.QueuePhase, status.QueueTerminalReason)
+	}
 	if status.QueueEntryID == "" {
 		t.Fatal("expected queue entry id to be generated")
 	}
@@ -492,9 +499,12 @@ func TestCancelQueueMarksEntryCancelled(t *testing.T) {
 	if status.QueueState != "cancelled" {
 		t.Fatalf("expected cancelled state, got %s", status.QueueState)
 	}
+	if status.QueuePhase != QueuePhaseCompleted || status.QueueTerminalReason != QueueTerminalReasonClientCancelled {
+		t.Fatalf("expected completed/client_cancelled canonical status, got phase=%s reason=%s", status.QueuePhase, status.QueueTerminalReason)
+	}
 	cancelled := db.entriesByID["queue_test"]
-	if cancelled.State != "cancelled" {
-		t.Fatalf("expected repository state to be cancelled, got %s", cancelled.State)
+	if cancelled.State != "completed" {
+		t.Fatalf("expected repository state to be completed, got %s", cancelled.State)
 	}
 	if cancelled.CancelReason != "client_cancelled" {
 		t.Fatalf("expected cancel reason client_cancelled, got %s", cancelled.CancelReason)
@@ -1075,15 +1085,62 @@ func TestGetStatusConvergesAllocationFailureToTerminalQueueState(t *testing.T) {
 	if status.QueueState != "failed" {
 		t.Fatalf("expected terminal queue state failed, got %s", status.QueueState)
 	}
-	if status.QueueStatusText != "Queue failed" {
-		t.Fatalf("expected queue failed status text, got %s", status.QueueStatusText)
+	if status.QueuePhase != QueuePhaseCompleted || status.QueueTerminalReason != QueueTerminalReasonAllocationFailed {
+		t.Fatalf("expected completed/allocation_failed canonical status, got phase=%s reason=%s", status.QueuePhase, status.QueueTerminalReason)
+	}
+	if status.QueueStatusText != "Battle allocation failed" {
+		t.Fatalf("expected allocation failed status text, got %s", status.QueueStatusText)
 	}
 	if status.ServerHost != "" || status.ServerPort != 0 {
 		t.Fatalf("expected endpoint hidden for failed terminal state, got %s:%d", status.ServerHost, status.ServerPort)
 	}
 	updated := db.entriesByID["queue_alpha"]
-	if updated.State != "failed" || updated.CancelReason != "allocation_failed" {
-		t.Fatalf("expected queue entry persisted as failed/allocation_failed, got state=%s reason=%s", updated.State, updated.CancelReason)
+	if updated.State != "completed" || updated.CancelReason != "allocation_failed" {
+		t.Fatalf("expected queue entry persisted as completed/allocation_failed, got state=%s reason=%s", updated.State, updated.CancelReason)
+	}
+}
+
+func TestGetStatusConvergesHeartbeatTimeoutToTerminalQueueState(t *testing.T) {
+	db := newFakeQueueDB()
+	nowUnix := time.Now().UTC().Unix()
+	entry := storage.QueueEntry{
+		QueueEntryID:         "queue_heartbeat",
+		QueueType:            "ranked",
+		QueueKey:             BuildQueueKey("ranked", "ranked_mode", "rule_standard"),
+		SeasonID:             "season_s1",
+		AccountID:            "account_heartbeat",
+		ProfileID:            "profile_heartbeat",
+		DeviceSessionID:      "device_heartbeat",
+		ModeID:               "ranked_mode",
+		RuleSetID:            "rule_standard",
+		RatingSnapshot:       1000,
+		EnqueueUnixSec:       nowUnix - 100,
+		LastHeartbeatUnixSec: nowUnix - 100,
+		State:                QueuePhaseQueued,
+		CreatedAt:            time.Unix(nowUnix-100, 0).UTC(),
+		UpdatedAt:            time.Unix(nowUnix-100, 0).UTC(),
+	}
+	db.entriesByID[entry.QueueEntryID] = entry
+	db.entriesByProfile[entry.ProfileID] = entry
+
+	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	status, err := service.GetStatus(context.Background(), entry.ProfileID, entry.QueueEntryID)
+	if err != nil {
+		t.Fatalf("GetStatus returned error: %v", err)
+	}
+	if status.QueuePhase != QueuePhaseCompleted || status.QueueTerminalReason != QueueTerminalReasonHeartbeatTimeout {
+		t.Fatalf("expected completed/heartbeat_timeout canonical status, got phase=%s reason=%s", status.QueuePhase, status.QueueTerminalReason)
+	}
+	if status.QueueState != "failed" {
+		t.Fatalf("expected legacy queue_state failed, got %s", status.QueueState)
+	}
+	if status.QueueStatusText != "Queue heartbeat timeout" {
+		t.Fatalf("expected heartbeat timeout status text, got %s", status.QueueStatusText)
+	}
+
+	updated := db.entriesByID[entry.QueueEntryID]
+	if updated.State != QueuePhaseCompleted || updated.CancelReason != QueueTerminalReasonHeartbeatTimeout {
+		t.Fatalf("expected persisted completed/heartbeat_timeout, got state=%s reason=%s", updated.State, updated.CancelReason)
 	}
 }
 

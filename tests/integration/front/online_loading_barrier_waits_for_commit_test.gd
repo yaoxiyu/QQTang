@@ -24,6 +24,7 @@ func test_main() -> void:
 	var ok := true
 	ok = _test_loading_use_case_submits_ready_once() and ok
 	ok = _test_begin_loading_preserves_preconsumed_gateway_snapshot() and ok
+	ok = _test_loading_snapshot_preserves_room_context_fields() and ok
 	ok = _test_consume_snapshot_committed() and ok
 	ok = _test_consume_snapshot_aborted() and ok
 
@@ -106,6 +107,29 @@ func _test_begin_loading_preserves_preconsumed_gateway_snapshot() -> bool:
 	return true
 
 
+func _test_loading_snapshot_preserves_room_context_fields() -> bool:
+	var snapshot := MatchLoadingSnapshotScript.new()
+	snapshot.room_id = "ROOM-LOADING"
+	snapshot.room_kind = "ranked_match_room"
+	snapshot.match_id = "match_ctx"
+	snapshot.phase = "waiting"
+	snapshot.expected_peer_ids = [1, 2]
+	snapshot.ready_peer_ids = [1]
+	var as_dict := snapshot.to_dict()
+	var restored := MatchLoadingSnapshotScript.from_dict(as_dict)
+
+	if restored.room_id != "ROOM-LOADING" or restored.room_kind != "ranked_match_room":
+		print("FAIL: loading snapshot should preserve room canonical context fields")
+		return false
+	if restored.match_id != "match_ctx":
+		print("FAIL: loading snapshot should preserve match_id")
+		return false
+	if restored.waiting_peer_ids != [2]:
+		print("FAIL: waiting peers should be recalculated from expected-ready set")
+		return false
+	return true
+
+
 func _test_consume_snapshot_committed() -> bool:
 	var use_case := LoadingUseCaseScript.new()
 	var runtime := MockRuntime.new()
@@ -158,4 +182,3 @@ func _test_consume_snapshot_aborted() -> bool:
 		return false
 	runtime.free()
 	return true
-

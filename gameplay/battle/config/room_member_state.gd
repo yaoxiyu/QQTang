@@ -13,6 +13,7 @@ var team_id: int = 1
 var is_owner: bool = false
 var is_local_player: bool = false
 var connection_state: String = ""
+var member_phase: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -29,6 +30,7 @@ func to_dict() -> Dictionary:
 		"is_owner": is_owner,
 		"is_local_player": is_local_player,
 		"connection_state": connection_state,
+		"member_phase": member_phase,
 	}
 
 
@@ -46,6 +48,7 @@ static func from_dict(data: Dictionary) -> RoomMemberState:
 	state.is_owner = bool(data.get("is_owner", false))
 	state.is_local_player = bool(data.get("is_local_player", false))
 	state.connection_state = String(data.get("connection_state", ""))
+	state.member_phase = String(data.get("member_phase", ""))
 	return state
 
 

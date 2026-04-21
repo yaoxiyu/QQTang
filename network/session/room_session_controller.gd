@@ -65,10 +65,21 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.match_active = room_session.match_active
 	# LegacyMigration: Battle handoff fields
 	snapshot.room_lifecycle_state = room_session.room_lifecycle_state
+	snapshot.room_phase = room_session.room_phase
+	snapshot.room_phase_reason = room_session.room_phase_reason
 	snapshot.current_assignment_id = room_session.current_assignment_id
 	snapshot.current_battle_id = room_session.current_battle_id
 	snapshot.current_match_id = room_session.current_match_id
+	snapshot.queue_phase = room_session.queue_phase
+	snapshot.queue_terminal_reason = room_session.queue_terminal_reason
+	snapshot.queue_status_text = room_session.room_queue_status_text
+	snapshot.queue_error_code = room_session.room_queue_error_code
+	snapshot.queue_user_message = room_session.room_queue_error_message
+	snapshot.queue_entry_id = room_session.room_queue_entry_id
 	snapshot.battle_allocation_state = room_session.battle_allocation_state
+	snapshot.battle_phase = room_session.battle_phase
+	snapshot.battle_terminal_reason = room_session.battle_terminal_reason
+	snapshot.battle_status_text = room_session.battle_status_text
 	snapshot.battle_server_host = room_session.battle_server_host
 	snapshot.battle_server_port = room_session.battle_server_port
 	snapshot.room_return_policy = room_session.room_return_policy
@@ -392,18 +403,25 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			room_session.selected_rule_set_id = snapshot.rule_set_id
 	# LegacyMigration: Battle handoff fields
 	room_session.room_lifecycle_state = snapshot.room_lifecycle_state
+	room_session.room_phase = snapshot.room_phase
+	room_session.room_phase_reason = snapshot.room_phase_reason
 	room_session.current_assignment_id = snapshot.current_assignment_id
 	room_session.current_battle_id = snapshot.current_battle_id
 	room_session.current_match_id = snapshot.current_match_id
+	room_session.queue_phase = snapshot.queue_phase
+	room_session.queue_terminal_reason = snapshot.queue_terminal_reason
 	room_session.battle_allocation_state = snapshot.battle_allocation_state
+	room_session.battle_phase = snapshot.battle_phase
+	room_session.battle_terminal_reason = snapshot.battle_terminal_reason
+	room_session.battle_status_text = snapshot.battle_status_text
 	if room_session.battle_allocation_state.strip_edges().is_empty() and snapshot.battle_entry_ready:
 		room_session.battle_allocation_state = "battle_ready"
 	room_session.battle_server_host = snapshot.battle_server_host
 	room_session.battle_server_port = snapshot.battle_server_port
 	room_session.room_return_policy = snapshot.room_return_policy
 	room_session.match_active = snapshot.match_active
-	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "authoritative_snapshot")
-	set_session_lifecycle_state(SessionLifecycleStateScript.Value.ROOM_ACTIVE, "authoritative_snapshot")
+	set_room_flow_state(_map_room_phase_to_room_flow_state(snapshot.room_phase), "authoritative_snapshot")
+	set_session_lifecycle_state(_map_room_phase_to_session_lifecycle_state(snapshot.room_phase), "authoritative_snapshot")
 	room_runtime_context.last_error = {}
 	_sync_runtime_context()
 	_emit_snapshot_changed()
@@ -763,3 +781,31 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 
 func _log_room_session(event_name: String, payload: Dictionary) -> void:
 	LogNetScript.debug("%s[room_session_controller] %s %s" % [ROOM_SESSION_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "net.room_session.controller")
+
+
+func _map_room_phase_to_room_flow_state(room_phase: String) -> int:
+	match room_phase.strip_edges():
+		"idle", "":
+			return RoomFlowStateScript.Value.IN_ROOM
+		"battle_entry_ready", "battle_entering":
+			return RoomFlowStateScript.Value.MATCH_LOADING
+		"in_battle":
+			return RoomFlowStateScript.Value.IN_BATTLE
+		"returning_to_room":
+			return RoomFlowStateScript.Value.RETURNING_FROM_BATTLE
+		_:
+			return RoomFlowStateScript.Value.IN_ROOM
+
+
+func _map_room_phase_to_session_lifecycle_state(room_phase: String) -> int:
+	match room_phase.strip_edges():
+		"idle", "":
+			return SessionLifecycleStateScript.Value.ROOM_ACTIVE
+		"battle_entry_ready", "battle_entering":
+			return SessionLifecycleStateScript.Value.MATCH_LOADING
+		"in_battle":
+			return SessionLifecycleStateScript.Value.MATCH_ACTIVE
+		"returning_to_room":
+			return SessionLifecycleStateScript.Value.RECOVERING_ROOM
+		_:
+			return SessionLifecycleStateScript.Value.ROOM_ACTIVE

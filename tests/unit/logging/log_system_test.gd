@@ -84,6 +84,7 @@ func _test_facade_pattern() -> void:
 	LogNetScript.info("Test info message")
 	LogNetScript.warn("Test warn message")
 	LogNetScript.error("Test error message")
+	assert_push_error("Test error message")
 	LogBattleScript.info("Battle test message")
 	LogSyncScript.debug("Sync test message")
 

@@ -55,6 +55,48 @@ static func get_current_room_queue_state(app_runtime: Node) -> String:
 	return ""
 
 
+static func get_current_room_phase(app_runtime: Node) -> String:
+	if app_runtime == null or app_runtime.current_room_snapshot == null:
+		return ""
+	for property in app_runtime.current_room_snapshot.get_property_list():
+		if String(property.get("name", "")) == "room_phase":
+			return String(app_runtime.current_room_snapshot.get("room_phase"))
+	for property in app_runtime.current_room_snapshot.get_property_list():
+		if String(property.get("name", "")) == "room_lifecycle_state":
+			return String(app_runtime.current_room_snapshot.get("room_lifecycle_state"))
+	return ""
+
+
+static func get_current_queue_phase(app_runtime: Node) -> String:
+	if app_runtime == null or app_runtime.current_room_snapshot == null:
+		return ""
+	for property in app_runtime.current_room_snapshot.get_property_list():
+		if String(property.get("name", "")) == "queue_phase":
+			return String(app_runtime.current_room_snapshot.get("queue_phase"))
+	var legacy_queue_state := get_current_room_queue_state(app_runtime).strip_edges().to_lower()
+	match legacy_queue_state:
+		"queueing", "queued":
+			return "queued"
+		"assigned", "committing":
+			return "assignment_pending"
+		"allocating":
+			return "allocating_battle"
+		"battle_ready", "matched":
+			return "entry_ready"
+		"cancelled", "failed", "expired", "finalized":
+			return "completed"
+		_:
+			return "idle"
+
+
+static func can_cancel_current_queue(app_runtime: Node) -> bool:
+	match get_current_queue_phase(app_runtime):
+		"queued", "assignment_pending", "allocating_battle", "entry_ready":
+			return true
+		_:
+			return false
+
+
 static func build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:
 	if entry_context == null:
 		return {}

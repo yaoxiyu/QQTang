@@ -88,6 +88,21 @@ func TestSyncMatchQueueStatus_BattleReadyUpdatesSnapshot(t *testing.T) {
 	if snapshot.LifecycleState != "battle_handoff" {
 		t.Fatalf("expected lifecycle battle_handoff, got %s", snapshot.LifecycleState)
 	}
+	svc.mu.RLock()
+	room := svc.roomsByID[created.RoomID]
+	if room.RoomState.Phase != RoomPhaseBattleEntryReady {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical room phase battle_entry_ready, got %s", room.RoomState.Phase)
+	}
+	if room.QueueState.Phase != QueuePhaseEntryReady {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical queue phase entry_ready, got %s", room.QueueState.Phase)
+	}
+	if room.BattleState.Phase != BattlePhaseReady {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical battle phase ready, got %s", room.BattleState.Phase)
+	}
+	svc.mu.RUnlock()
 }
 
 func TestSyncMatchQueueStatus_MatchedStateTerminalClearsBattleHandoff(t *testing.T) {
@@ -179,4 +194,29 @@ func TestSyncMatchQueueStatus_MatchedStateTerminalClearsBattleHandoff(t *testing
 	if snapshot.BattleHandoff.Ready {
 		t.Fatalf("expected battle handoff ready cleared")
 	}
+	svc.mu.RLock()
+	room = svc.roomsByID[created.RoomID]
+	if room.RoomState.Phase != RoomPhaseIdle {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical room phase idle, got %s", room.RoomState.Phase)
+	}
+	if room.QueueState.Phase != QueuePhaseCompleted {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical queue phase completed, got %s", room.QueueState.Phase)
+	}
+	if room.QueueState.TerminalReason != QueueReasonAllocationFailed {
+		svc.mu.RUnlock()
+		t.Fatalf("expected queue terminal reason allocation_failed, got %s", room.QueueState.TerminalReason)
+	}
+	if room.BattleState.Phase != BattlePhaseCompleted {
+		svc.mu.RUnlock()
+		t.Fatalf("expected canonical battle phase completed, got %s", room.BattleState.Phase)
+	}
+	for _, member := range room.Members {
+		if member.MemberPhase != MemberPhaseIdle {
+			svc.mu.RUnlock()
+			t.Fatalf("expected member phase idle after completed projection, got %s", member.MemberPhase)
+		}
+	}
+	svc.mu.RUnlock()
 }

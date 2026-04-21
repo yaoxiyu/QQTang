@@ -5,6 +5,9 @@ const PathScanHelperScript = preload("res://tests/helpers/contracts/path_scan_he
 const TEST_ROOT := "res://tests"
 const EXCLUDED_FILES := [
 	"res://tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd",
+	"res://tests/contracts/path/canonical_path_contract_test.gd",
+	"res://tests/contracts/path/no_legacy_compat_assets_contract_test.gd",
+	"res://tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd",
 ]
 const FORBIDDEN_PATTERNS := [
 	"res://network/runtime/legacy/",

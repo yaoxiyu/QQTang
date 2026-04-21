@@ -15,7 +15,8 @@ func test_main() -> void:
 	var victim := world.state.players.get_player(victim_id)
 	_assert(attacker != null and victim != null, "players should exist")
 
-	# 将 victim 放到攻击者右侧一格，确保爆炸可命中	victim.cell_x = attacker.cell_x + 1
+	# 将 victim 放到攻击者右侧一格，确保爆炸可命中
+	victim.cell_x = attacker.cell_x + 1
 	victim.cell_y = attacker.cell_y
 	world.state.players.update_player(victim)
 	world.state.indexes.rebuild_from_state(world.state)
@@ -57,4 +58,3 @@ func _has_event(events: Array, event_type: int) -> bool:
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-

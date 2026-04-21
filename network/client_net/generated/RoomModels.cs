@@ -32,54 +32,72 @@ namespace QQT.Room.V1 {
             "bVNlbGVjdGlvbhIVCgZtYXBfaWQYASABKAlSBW1hcElkEh4KC3J1bGVfc2V0",
             "X2lkGAIgASgJUglydWxlU2V0SWQSFwoHbW9kZV9pZBgDIAEoCVIGbW9kZUlk",
             "EiYKD21hdGNoX2Zvcm1hdF9pZBgEIAEoCVINbWF0Y2hGb3JtYXRJZBIqChFz",
-            "ZWxlY3RlZF9tb2RlX2lkcxgFIAMoCVIPc2VsZWN0ZWRNb2RlSWRzIpYCCgpS",
+            "ZWxlY3RlZF9tb2RlX2lkcxgFIAMoCVIPc2VsZWN0ZWRNb2RlSWRzIrkCCgpS",
             "b29tTWVtYmVyEhsKCW1lbWJlcl9pZBgBIAEoCVIIbWVtYmVySWQSHQoKYWNj",
             "b3VudF9pZBgCIAEoCVIJYWNjb3VudElkEh0KCnByb2ZpbGVfaWQYAyABKAlS",
             "CXByb2ZpbGVJZBIfCgtwbGF5ZXJfbmFtZRgEIAEoCVIKcGxheWVyTmFtZRIX",
             "Cgd0ZWFtX2lkGAUgASgFUgZ0ZWFtSWQSFAoFcmVhZHkYBiABKAhSBXJlYWR5",
             "EjIKB2xvYWRvdXQYByABKAsyGC5xcXQucm9vbS52MS5Sb29tTG9hZG91dFIH",
             "bG9hZG91dBIpChBjb25uZWN0aW9uX3N0YXRlGAggASgJUg9jb25uZWN0aW9u",
-            "U3RhdGUi3wEKEEJhdHRsZUVudHJ5U3RhdGUSIwoNYXNzaWdubWVudF9pZBgB",
-            "IAEoCVIMYXNzaWdubWVudElkEhsKCWJhdHRsZV9pZBgCIAEoCVIIYmF0dGxl",
-            "SWQSGQoIbWF0Y2hfaWQYAyABKAlSB21hdGNoSWQSHwoLc2VydmVyX2hvc3QY",
-            "BCABKAlSCnNlcnZlckhvc3QSHwoLc2VydmVyX3BvcnQYBSABKAVSCnNlcnZl",
-            "clBvcnQSLAoSYmF0dGxlX2VudHJ5X3JlYWR5GAYgASgIUhBiYXR0bGVFbnRy",
-            "eVJlYWR5IpIBCg1SZXN1bWVCaW5kaW5nEhsKCW1lbWJlcl9pZBgBIAEoCVII",
-            "bWVtYmVySWQSJwoPcmVjb25uZWN0X3Rva2VuGAIgASgJUg5yZWNvbm5lY3RU",
-            "b2tlbhI7ChpyZWNvbm5lY3RfZGVhZGxpbmVfdW5peF9tcxgDIAEoA1IXcmVj",
-            "b25uZWN0RGVhZGxpbmVVbml4TXMivgMKDFJvb21TbmFwc2hvdBIXCgdyb29t",
-            "X2lkGAEgASgJUgZyb29tSWQSGwoJcm9vbV9raW5kGAIgASgJUghyb29tS2lu",
-            "ZBIqChFyb29tX2Rpc3BsYXlfbmFtZRgDIAEoCVIPcm9vbURpc3BsYXlOYW1l",
-            "EiYKD293bmVyX21lbWJlcl9pZBgEIAEoCVINb3duZXJNZW1iZXJJZBInCg9s",
-            "aWZlY3ljbGVfc3RhdGUYBSABKAlSDmxpZmVjeWNsZVN0YXRlEisKEXNuYXBz",
-            "aG90X3JldmlzaW9uGAYgASgDUhBzbmFwc2hvdFJldmlzaW9uEjgKCXNlbGVj",
-            "dGlvbhgHIAEoCzIaLnFxdC5yb29tLnYxLlJvb21TZWxlY3Rpb25SCXNlbGVj",
-            "dGlvbhIxCgdtZW1iZXJzGAggAygLMhcucXF0LnJvb20udjEuUm9vbU1lbWJl",
-            "clIHbWVtYmVycxIfCgtxdWV1ZV9zdGF0ZRgJIAEoCVIKcXVldWVTdGF0ZRJA",
-            "CgxiYXR0bGVfZW50cnkYCiABKAsyHS5xcXQucm9vbS52MS5CYXR0bGVFbnRy",
-            "eVN0YXRlUgtiYXR0bGVFbnRyeSKPAgoSUm9vbURpcmVjdG9yeUVudHJ5EhcK",
-            "B3Jvb21faWQYASABKAlSBnJvb21JZBIqChFyb29tX2Rpc3BsYXlfbmFtZRgC",
-            "IAEoCVIPcm9vbURpc3BsYXlOYW1lEhsKCXJvb21fa2luZBgDIAEoCVIIcm9v",
-            "bUtpbmQSFwoHbW9kZV9pZBgEIAEoCVIGbW9kZUlkEhUKBm1hcF9pZBgFIAEo",
-            "CVIFbWFwSWQSIQoMbWVtYmVyX2NvdW50GAYgASgFUgttZW1iZXJDb3VudBIo",
-            "ChBtYXhfcGxheWVyX2NvdW50GAcgASgFUg5tYXhQbGF5ZXJDb3VudBIaCghq",
-            "b2luYWJsZRgIIAEoCFIIam9pbmFibGUisAEKFVJvb21EaXJlY3RvcnlTbmFw",
-            "c2hvdBIaCghyZXZpc2lvbhgBIAEoA1IIcmV2aXNpb24SHwoLc2VydmVyX2hv",
-            "c3QYAiABKAlSCnNlcnZlckhvc3QSHwoLc2VydmVyX3BvcnQYAyABKAVSCnNl",
-            "cnZlclBvcnQSOQoHZW50cmllcxgEIAMoCzIfLnFxdC5yb29tLnYxLlJvb21E",
-            "aXJlY3RvcnlFbnRyeVIHZW50cmllcyJfCg5PcGVyYXRpb25FcnJvchISCgRj",
-            "b2RlGAEgASgJUgRjb2RlEiEKDHVzZXJfbWVzc2FnZRgCIAEoCVILdXNlck1l",
-            "c3NhZ2USFgoGZGV0YWlsGAMgASgJUgZkZXRhaWxCLFoccXF0L3Byb3RvL3Fx",
-            "dC9yb29tL3YxO3Jvb212MaoCC1FRVC5Sb29tLlYxYgZwcm90bzM="));
+            "U3RhdGUSIQoMbWVtYmVyX3BoYXNlGAkgASgJUgttZW1iZXJQaGFzZSK/AgoQ",
+            "QmF0dGxlRW50cnlTdGF0ZRIjCg1hc3NpZ25tZW50X2lkGAEgASgJUgxhc3Np",
+            "Z25tZW50SWQSGwoJYmF0dGxlX2lkGAIgASgJUghiYXR0bGVJZBIZCghtYXRj",
+            "aF9pZBgDIAEoCVIHbWF0Y2hJZBIfCgtzZXJ2ZXJfaG9zdBgEIAEoCVIKc2Vy",
+            "dmVySG9zdBIfCgtzZXJ2ZXJfcG9ydBgFIAEoBVIKc2VydmVyUG9ydBIsChJi",
+            "YXR0bGVfZW50cnlfcmVhZHkYBiABKAhSEGJhdHRsZUVudHJ5UmVhZHkSFAoF",
+            "cGhhc2UYByABKAlSBXBoYXNlEicKD3Rlcm1pbmFsX3JlYXNvbhgIIAEoCVIO",
+            "dGVybWluYWxSZWFzb24SHwoLc3RhdHVzX3RleHQYCSABKAlSCnN0YXR1c1Rl",
+            "eHQikgEKDVJlc3VtZUJpbmRpbmcSGwoJbWVtYmVyX2lkGAEgASgJUghtZW1i",
+            "ZXJJZBInCg9yZWNvbm5lY3RfdG9rZW4YAiABKAlSDnJlY29ubmVjdFRva2Vu",
+            "EjsKGnJlY29ubmVjdF9kZWFkbGluZV91bml4X21zGAMgASgDUhdyZWNvbm5l",
+            "Y3REZWFkbGluZVVuaXhNcyLTCAoMUm9vbVNuYXBzaG90EhcKB3Jvb21faWQY",
+            "ASABKAlSBnJvb21JZBIbCglyb29tX2tpbmQYAiABKAlSCHJvb21LaW5kEioK",
+            "EXJvb21fZGlzcGxheV9uYW1lGAMgASgJUg9yb29tRGlzcGxheU5hbWUSJgoP",
+            "b3duZXJfbWVtYmVyX2lkGAQgASgJUg1vd25lck1lbWJlcklkEicKD2xpZmVj",
+            "eWNsZV9zdGF0ZRgFIAEoCVIObGlmZWN5Y2xlU3RhdGUSKwoRc25hcHNob3Rf",
+            "cmV2aXNpb24YBiABKANSEHNuYXBzaG90UmV2aXNpb24SOAoJc2VsZWN0aW9u",
+            "GAcgASgLMhoucXF0LnJvb20udjEuUm9vbVNlbGVjdGlvblIJc2VsZWN0aW9u",
+            "EjEKB21lbWJlcnMYCCADKAsyFy5xcXQucm9vbS52MS5Sb29tTWVtYmVyUgdt",
+            "ZW1iZXJzEh8KC3F1ZXVlX3N0YXRlGAkgASgJUgpxdWV1ZVN0YXRlEkAKDGJh",
+            "dHRsZV9lbnRyeRgKIAEoCzIdLnFxdC5yb29tLnYxLkJhdHRsZUVudHJ5U3Rh",
+            "dGVSC2JhdHRsZUVudHJ5Eh0KCnJvb21fcGhhc2UYCyABKAlSCXJvb21QaGFz",
+            "ZRIqChFyb29tX3BoYXNlX3JlYXNvbhgMIAEoCVIPcm9vbVBoYXNlUmVhc29u",
+            "Eh8KC3F1ZXVlX3BoYXNlGA0gASgJUgpxdWV1ZVBoYXNlEjIKFXF1ZXVlX3Rl",
+            "cm1pbmFsX3JlYXNvbhgOIAEoCVITcXVldWVUZXJtaW5hbFJlYXNvbhIqChFx",
+            "dWV1ZV9zdGF0dXNfdGV4dBgPIAEoCVIPcXVldWVTdGF0dXNUZXh0EigKEHF1",
+            "ZXVlX2Vycm9yX2NvZGUYECABKAlSDnF1ZXVlRXJyb3JDb2RlEiwKEnF1ZXVl",
+            "X3VzZXJfbWVzc2FnZRgRIAEoCVIQcXVldWVVc2VyTWVzc2FnZRIkCg5xdWV1",
+            "ZV9lbnRyeV9pZBgSIAEoCVIMcXVldWVFbnRyeUlkEigKEGNhbl90b2dnbGVf",
+            "cmVhZHkYEyABKAhSDmNhblRvZ2dsZVJlYWR5EjUKF2Nhbl9zdGFydF9tYW51",
+            "YWxfYmF0dGxlGBQgASgIUhRjYW5TdGFydE1hbnVhbEJhdHRsZRIwChRjYW5f",
+            "dXBkYXRlX3NlbGVjdGlvbhgVIAEoCFISY2FuVXBkYXRlU2VsZWN0aW9uEj4K",
+            "HGNhbl91cGRhdGVfbWF0Y2hfcm9vbV9jb25maWcYFiABKAhSGGNhblVwZGF0",
+            "ZU1hdGNoUm9vbUNvbmZpZxImCg9jYW5fZW50ZXJfcXVldWUYFyABKAhSDWNh",
+            "bkVudGVyUXVldWUSKAoQY2FuX2NhbmNlbF9xdWV1ZRgYIAEoCFIOY2FuQ2Fu",
+            "Y2VsUXVldWUSJAoOY2FuX2xlYXZlX3Jvb20YGSABKAhSDGNhbkxlYXZlUm9v",
+            "bSKPAgoSUm9vbURpcmVjdG9yeUVudHJ5EhcKB3Jvb21faWQYASABKAlSBnJv",
+            "b21JZBIqChFyb29tX2Rpc3BsYXlfbmFtZRgCIAEoCVIPcm9vbURpc3BsYXlO",
+            "YW1lEhsKCXJvb21fa2luZBgDIAEoCVIIcm9vbUtpbmQSFwoHbW9kZV9pZBgE",
+            "IAEoCVIGbW9kZUlkEhUKBm1hcF9pZBgFIAEoCVIFbWFwSWQSIQoMbWVtYmVy",
+            "X2NvdW50GAYgASgFUgttZW1iZXJDb3VudBIoChBtYXhfcGxheWVyX2NvdW50",
+            "GAcgASgFUg5tYXhQbGF5ZXJDb3VudBIaCghqb2luYWJsZRgIIAEoCFIIam9p",
+            "bmFibGUisAEKFVJvb21EaXJlY3RvcnlTbmFwc2hvdBIaCghyZXZpc2lvbhgB",
+            "IAEoA1IIcmV2aXNpb24SHwoLc2VydmVyX2hvc3QYAiABKAlSCnNlcnZlckhv",
+            "c3QSHwoLc2VydmVyX3BvcnQYAyABKAVSCnNlcnZlclBvcnQSOQoHZW50cmll",
+            "cxgEIAMoCzIfLnFxdC5yb29tLnYxLlJvb21EaXJlY3RvcnlFbnRyeVIHZW50",
+            "cmllcyJfCg5PcGVyYXRpb25FcnJvchISCgRjb2RlGAEgASgJUgRjb2RlEiEK",
+            "DHVzZXJfbWVzc2FnZRgCIAEoCVILdXNlck1lc3NhZ2USFgoGZGV0YWlsGAMg",
+            "ASgJUgZkZXRhaWxCLFoccXF0L3Byb3RvL3FxdC9yb29tL3YxO3Jvb212MaoC",
+            "C1FRVC5Sb29tLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomLoadout), global::QQT.Room.V1.RoomLoadout.Parser, new[]{ "CharacterId", "CharacterSkinId", "BubbleStyleId", "BubbleSkinId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomSelection), global::QQT.Room.V1.RoomSelection.Parser, new[]{ "MapId", "RuleSetId", "ModeId", "MatchFormatId", "SelectedModeIds" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomMember), global::QQT.Room.V1.RoomMember.Parser, new[]{ "MemberId", "AccountId", "ProfileId", "PlayerName", "TeamId", "Ready", "Loadout", "ConnectionState" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.BattleEntryState), global::QQT.Room.V1.BattleEntryState.Parser, new[]{ "AssignmentId", "BattleId", "MatchId", "ServerHost", "ServerPort", "BattleEntryReady" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomMember), global::QQT.Room.V1.RoomMember.Parser, new[]{ "MemberId", "AccountId", "ProfileId", "PlayerName", "TeamId", "Ready", "Loadout", "ConnectionState", "MemberPhase" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.BattleEntryState), global::QQT.Room.V1.BattleEntryState.Parser, new[]{ "AssignmentId", "BattleId", "MatchId", "ServerHost", "ServerPort", "BattleEntryReady", "Phase", "TerminalReason", "StatusText" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.ResumeBinding), global::QQT.Room.V1.ResumeBinding.Parser, new[]{ "MemberId", "ReconnectToken", "ReconnectDeadlineUnixMs" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomSnapshot), global::QQT.Room.V1.RoomSnapshot.Parser, new[]{ "RoomId", "RoomKind", "RoomDisplayName", "OwnerMemberId", "LifecycleState", "SnapshotRevision", "Selection", "Members", "QueueState", "BattleEntry" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomSnapshot), global::QQT.Room.V1.RoomSnapshot.Parser, new[]{ "RoomId", "RoomKind", "RoomDisplayName", "OwnerMemberId", "LifecycleState", "SnapshotRevision", "Selection", "Members", "QueueState", "BattleEntry", "RoomPhase", "RoomPhaseReason", "QueuePhase", "QueueTerminalReason", "QueueStatusText", "QueueErrorCode", "QueueUserMessage", "QueueEntryId", "CanToggleReady", "CanStartManualBattle", "CanUpdateSelection", "CanUpdateMatchRoomConfig", "CanEnterQueue", "CanCancelQueue", "CanLeaveRoom" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomDirectoryEntry), global::QQT.Room.V1.RoomDirectoryEntry.Parser, new[]{ "RoomId", "RoomDisplayName", "RoomKind", "ModeId", "MapId", "MemberCount", "MaxPlayerCount", "Joinable" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.RoomDirectorySnapshot), global::QQT.Room.V1.RoomDirectorySnapshot.Parser, new[]{ "Revision", "ServerHost", "ServerPort", "Entries" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.OperationError), global::QQT.Room.V1.OperationError.Parser, new[]{ "Code", "UserMessage", "Detail" }, null, null, null, null)
@@ -776,6 +794,7 @@ namespace QQT.Room.V1 {
       ready_ = other.ready_;
       loadout_ = other.loadout_ != null ? other.loadout_.Clone() : null;
       connectionState_ = other.connectionState_;
+      memberPhase_ = other.memberPhase_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -881,6 +900,18 @@ namespace QQT.Room.V1 {
       }
     }
 
+    /// <summary>Field number for the "member_phase" field.</summary>
+    public const int MemberPhaseFieldNumber = 9;
+    private string memberPhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string MemberPhase {
+      get { return memberPhase_; }
+      set {
+        memberPhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -904,6 +935,7 @@ namespace QQT.Room.V1 {
       if (Ready != other.Ready) return false;
       if (!object.Equals(Loadout, other.Loadout)) return false;
       if (ConnectionState != other.ConnectionState) return false;
+      if (MemberPhase != other.MemberPhase) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -919,6 +951,7 @@ namespace QQT.Room.V1 {
       if (Ready != false) hash ^= Ready.GetHashCode();
       if (loadout_ != null) hash ^= Loadout.GetHashCode();
       if (ConnectionState.Length != 0) hash ^= ConnectionState.GetHashCode();
+      if (MemberPhase.Length != 0) hash ^= MemberPhase.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -969,6 +1002,10 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(66);
         output.WriteString(ConnectionState);
       }
+      if (MemberPhase.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(MemberPhase);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1011,6 +1048,10 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(66);
         output.WriteString(ConnectionState);
       }
+      if (MemberPhase.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(MemberPhase);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1044,6 +1085,9 @@ namespace QQT.Room.V1 {
       }
       if (ConnectionState.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(ConnectionState);
+      }
+      if (MemberPhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(MemberPhase);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1083,6 +1127,9 @@ namespace QQT.Room.V1 {
       }
       if (other.ConnectionState.Length != 0) {
         ConnectionState = other.ConnectionState;
+      }
+      if (other.MemberPhase.Length != 0) {
+        MemberPhase = other.MemberPhase;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1136,6 +1183,10 @@ namespace QQT.Room.V1 {
           }
           case 66: {
             ConnectionState = input.ReadString();
+            break;
+          }
+          case 74: {
+            MemberPhase = input.ReadString();
             break;
           }
         }
@@ -1192,6 +1243,10 @@ namespace QQT.Room.V1 {
             ConnectionState = input.ReadString();
             break;
           }
+          case 74: {
+            MemberPhase = input.ReadString();
+            break;
+          }
         }
       }
     }
@@ -1240,6 +1295,9 @@ namespace QQT.Room.V1 {
       serverHost_ = other.serverHost_;
       serverPort_ = other.serverPort_;
       battleEntryReady_ = other.battleEntryReady_;
+      phase_ = other.phase_;
+      terminalReason_ = other.terminalReason_;
+      statusText_ = other.statusText_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -1321,6 +1379,42 @@ namespace QQT.Room.V1 {
       }
     }
 
+    /// <summary>Field number for the "phase" field.</summary>
+    public const int PhaseFieldNumber = 7;
+    private string phase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Phase {
+      get { return phase_; }
+      set {
+        phase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "terminal_reason" field.</summary>
+    public const int TerminalReasonFieldNumber = 8;
+    private string terminalReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string TerminalReason {
+      get { return terminalReason_; }
+      set {
+        terminalReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "status_text" field.</summary>
+    public const int StatusTextFieldNumber = 9;
+    private string statusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string StatusText {
+      get { return statusText_; }
+      set {
+        statusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -1342,6 +1436,9 @@ namespace QQT.Room.V1 {
       if (ServerHost != other.ServerHost) return false;
       if (ServerPort != other.ServerPort) return false;
       if (BattleEntryReady != other.BattleEntryReady) return false;
+      if (Phase != other.Phase) return false;
+      if (TerminalReason != other.TerminalReason) return false;
+      if (StatusText != other.StatusText) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -1355,6 +1452,9 @@ namespace QQT.Room.V1 {
       if (ServerHost.Length != 0) hash ^= ServerHost.GetHashCode();
       if (ServerPort != 0) hash ^= ServerPort.GetHashCode();
       if (BattleEntryReady != false) hash ^= BattleEntryReady.GetHashCode();
+      if (Phase.Length != 0) hash ^= Phase.GetHashCode();
+      if (TerminalReason.Length != 0) hash ^= TerminalReason.GetHashCode();
+      if (StatusText.Length != 0) hash ^= StatusText.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -1397,6 +1497,18 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(48);
         output.WriteBool(BattleEntryReady);
       }
+      if (Phase.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Phase);
+      }
+      if (TerminalReason.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(TerminalReason);
+      }
+      if (StatusText.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(StatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -1431,6 +1543,18 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(48);
         output.WriteBool(BattleEntryReady);
       }
+      if (Phase.Length != 0) {
+        output.WriteRawTag(58);
+        output.WriteString(Phase);
+      }
+      if (TerminalReason.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(TerminalReason);
+      }
+      if (StatusText.Length != 0) {
+        output.WriteRawTag(74);
+        output.WriteString(StatusText);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -1458,6 +1582,15 @@ namespace QQT.Room.V1 {
       }
       if (BattleEntryReady != false) {
         size += 1 + 1;
+      }
+      if (Phase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Phase);
+      }
+      if (TerminalReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(TerminalReason);
+      }
+      if (StatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(StatusText);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -1488,6 +1621,15 @@ namespace QQT.Room.V1 {
       }
       if (other.BattleEntryReady != false) {
         BattleEntryReady = other.BattleEntryReady;
+      }
+      if (other.Phase.Length != 0) {
+        Phase = other.Phase;
+      }
+      if (other.TerminalReason.Length != 0) {
+        TerminalReason = other.TerminalReason;
+      }
+      if (other.StatusText.Length != 0) {
+        StatusText = other.StatusText;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -1532,6 +1674,18 @@ namespace QQT.Room.V1 {
             BattleEntryReady = input.ReadBool();
             break;
           }
+          case 58: {
+            Phase = input.ReadString();
+            break;
+          }
+          case 66: {
+            TerminalReason = input.ReadString();
+            break;
+          }
+          case 74: {
+            StatusText = input.ReadString();
+            break;
+          }
         }
       }
     #endif
@@ -1573,6 +1727,18 @@ namespace QQT.Room.V1 {
           }
           case 48: {
             BattleEntryReady = input.ReadBool();
+            break;
+          }
+          case 58: {
+            Phase = input.ReadString();
+            break;
+          }
+          case 66: {
+            TerminalReason = input.ReadString();
+            break;
+          }
+          case 74: {
+            StatusText = input.ReadString();
             break;
           }
         }
@@ -1899,6 +2065,21 @@ namespace QQT.Room.V1 {
       members_ = other.members_.Clone();
       queueState_ = other.queueState_;
       battleEntry_ = other.battleEntry_ != null ? other.battleEntry_.Clone() : null;
+      roomPhase_ = other.roomPhase_;
+      roomPhaseReason_ = other.roomPhaseReason_;
+      queuePhase_ = other.queuePhase_;
+      queueTerminalReason_ = other.queueTerminalReason_;
+      queueStatusText_ = other.queueStatusText_;
+      queueErrorCode_ = other.queueErrorCode_;
+      queueUserMessage_ = other.queueUserMessage_;
+      queueEntryId_ = other.queueEntryId_;
+      canToggleReady_ = other.canToggleReady_;
+      canStartManualBattle_ = other.canStartManualBattle_;
+      canUpdateSelection_ = other.canUpdateSelection_;
+      canUpdateMatchRoomConfig_ = other.canUpdateMatchRoomConfig_;
+      canEnterQueue_ = other.canEnterQueue_;
+      canCancelQueue_ = other.canCancelQueue_;
+      canLeaveRoom_ = other.canLeaveRoom_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2027,6 +2208,186 @@ namespace QQT.Room.V1 {
       }
     }
 
+    /// <summary>Field number for the "room_phase" field.</summary>
+    public const int RoomPhaseFieldNumber = 11;
+    private string roomPhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string RoomPhase {
+      get { return roomPhase_; }
+      set {
+        roomPhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "room_phase_reason" field.</summary>
+    public const int RoomPhaseReasonFieldNumber = 12;
+    private string roomPhaseReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string RoomPhaseReason {
+      get { return roomPhaseReason_; }
+      set {
+        roomPhaseReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_phase" field.</summary>
+    public const int QueuePhaseFieldNumber = 13;
+    private string queuePhase_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueuePhase {
+      get { return queuePhase_; }
+      set {
+        queuePhase_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_terminal_reason" field.</summary>
+    public const int QueueTerminalReasonFieldNumber = 14;
+    private string queueTerminalReason_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueTerminalReason {
+      get { return queueTerminalReason_; }
+      set {
+        queueTerminalReason_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_status_text" field.</summary>
+    public const int QueueStatusTextFieldNumber = 15;
+    private string queueStatusText_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueStatusText {
+      get { return queueStatusText_; }
+      set {
+        queueStatusText_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_error_code" field.</summary>
+    public const int QueueErrorCodeFieldNumber = 16;
+    private string queueErrorCode_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueErrorCode {
+      get { return queueErrorCode_; }
+      set {
+        queueErrorCode_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_user_message" field.</summary>
+    public const int QueueUserMessageFieldNumber = 17;
+    private string queueUserMessage_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueUserMessage {
+      get { return queueUserMessage_; }
+      set {
+        queueUserMessage_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "queue_entry_id" field.</summary>
+    public const int QueueEntryIdFieldNumber = 18;
+    private string queueEntryId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string QueueEntryId {
+      get { return queueEntryId_; }
+      set {
+        queueEntryId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "can_toggle_ready" field.</summary>
+    public const int CanToggleReadyFieldNumber = 19;
+    private bool canToggleReady_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanToggleReady {
+      get { return canToggleReady_; }
+      set {
+        canToggleReady_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_start_manual_battle" field.</summary>
+    public const int CanStartManualBattleFieldNumber = 20;
+    private bool canStartManualBattle_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanStartManualBattle {
+      get { return canStartManualBattle_; }
+      set {
+        canStartManualBattle_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_update_selection" field.</summary>
+    public const int CanUpdateSelectionFieldNumber = 21;
+    private bool canUpdateSelection_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanUpdateSelection {
+      get { return canUpdateSelection_; }
+      set {
+        canUpdateSelection_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_update_match_room_config" field.</summary>
+    public const int CanUpdateMatchRoomConfigFieldNumber = 22;
+    private bool canUpdateMatchRoomConfig_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanUpdateMatchRoomConfig {
+      get { return canUpdateMatchRoomConfig_; }
+      set {
+        canUpdateMatchRoomConfig_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_enter_queue" field.</summary>
+    public const int CanEnterQueueFieldNumber = 23;
+    private bool canEnterQueue_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanEnterQueue {
+      get { return canEnterQueue_; }
+      set {
+        canEnterQueue_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_cancel_queue" field.</summary>
+    public const int CanCancelQueueFieldNumber = 24;
+    private bool canCancelQueue_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanCancelQueue {
+      get { return canCancelQueue_; }
+      set {
+        canCancelQueue_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "can_leave_room" field.</summary>
+    public const int CanLeaveRoomFieldNumber = 25;
+    private bool canLeaveRoom_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool CanLeaveRoom {
+      get { return canLeaveRoom_; }
+      set {
+        canLeaveRoom_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2052,6 +2413,21 @@ namespace QQT.Room.V1 {
       if(!members_.Equals(other.members_)) return false;
       if (QueueState != other.QueueState) return false;
       if (!object.Equals(BattleEntry, other.BattleEntry)) return false;
+      if (RoomPhase != other.RoomPhase) return false;
+      if (RoomPhaseReason != other.RoomPhaseReason) return false;
+      if (QueuePhase != other.QueuePhase) return false;
+      if (QueueTerminalReason != other.QueueTerminalReason) return false;
+      if (QueueStatusText != other.QueueStatusText) return false;
+      if (QueueErrorCode != other.QueueErrorCode) return false;
+      if (QueueUserMessage != other.QueueUserMessage) return false;
+      if (QueueEntryId != other.QueueEntryId) return false;
+      if (CanToggleReady != other.CanToggleReady) return false;
+      if (CanStartManualBattle != other.CanStartManualBattle) return false;
+      if (CanUpdateSelection != other.CanUpdateSelection) return false;
+      if (CanUpdateMatchRoomConfig != other.CanUpdateMatchRoomConfig) return false;
+      if (CanEnterQueue != other.CanEnterQueue) return false;
+      if (CanCancelQueue != other.CanCancelQueue) return false;
+      if (CanLeaveRoom != other.CanLeaveRoom) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2069,6 +2445,21 @@ namespace QQT.Room.V1 {
       hash ^= members_.GetHashCode();
       if (QueueState.Length != 0) hash ^= QueueState.GetHashCode();
       if (battleEntry_ != null) hash ^= BattleEntry.GetHashCode();
+      if (RoomPhase.Length != 0) hash ^= RoomPhase.GetHashCode();
+      if (RoomPhaseReason.Length != 0) hash ^= RoomPhaseReason.GetHashCode();
+      if (QueuePhase.Length != 0) hash ^= QueuePhase.GetHashCode();
+      if (QueueTerminalReason.Length != 0) hash ^= QueueTerminalReason.GetHashCode();
+      if (QueueStatusText.Length != 0) hash ^= QueueStatusText.GetHashCode();
+      if (QueueErrorCode.Length != 0) hash ^= QueueErrorCode.GetHashCode();
+      if (QueueUserMessage.Length != 0) hash ^= QueueUserMessage.GetHashCode();
+      if (QueueEntryId.Length != 0) hash ^= QueueEntryId.GetHashCode();
+      if (CanToggleReady != false) hash ^= CanToggleReady.GetHashCode();
+      if (CanStartManualBattle != false) hash ^= CanStartManualBattle.GetHashCode();
+      if (CanUpdateSelection != false) hash ^= CanUpdateSelection.GetHashCode();
+      if (CanUpdateMatchRoomConfig != false) hash ^= CanUpdateMatchRoomConfig.GetHashCode();
+      if (CanEnterQueue != false) hash ^= CanEnterQueue.GetHashCode();
+      if (CanCancelQueue != false) hash ^= CanCancelQueue.GetHashCode();
+      if (CanLeaveRoom != false) hash ^= CanLeaveRoom.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2124,6 +2515,66 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(82);
         output.WriteMessage(BattleEntry);
       }
+      if (RoomPhase.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(RoomPhase);
+      }
+      if (RoomPhaseReason.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(RoomPhaseReason);
+      }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(QueueStatusText);
+      }
+      if (QueueErrorCode.Length != 0) {
+        output.WriteRawTag(130, 1);
+        output.WriteString(QueueErrorCode);
+      }
+      if (QueueUserMessage.Length != 0) {
+        output.WriteRawTag(138, 1);
+        output.WriteString(QueueUserMessage);
+      }
+      if (QueueEntryId.Length != 0) {
+        output.WriteRawTag(146, 1);
+        output.WriteString(QueueEntryId);
+      }
+      if (CanToggleReady != false) {
+        output.WriteRawTag(152, 1);
+        output.WriteBool(CanToggleReady);
+      }
+      if (CanStartManualBattle != false) {
+        output.WriteRawTag(160, 1);
+        output.WriteBool(CanStartManualBattle);
+      }
+      if (CanUpdateSelection != false) {
+        output.WriteRawTag(168, 1);
+        output.WriteBool(CanUpdateSelection);
+      }
+      if (CanUpdateMatchRoomConfig != false) {
+        output.WriteRawTag(176, 1);
+        output.WriteBool(CanUpdateMatchRoomConfig);
+      }
+      if (CanEnterQueue != false) {
+        output.WriteRawTag(184, 1);
+        output.WriteBool(CanEnterQueue);
+      }
+      if (CanCancelQueue != false) {
+        output.WriteRawTag(192, 1);
+        output.WriteBool(CanCancelQueue);
+      }
+      if (CanLeaveRoom != false) {
+        output.WriteRawTag(200, 1);
+        output.WriteBool(CanLeaveRoom);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2171,6 +2622,66 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(82);
         output.WriteMessage(BattleEntry);
       }
+      if (RoomPhase.Length != 0) {
+        output.WriteRawTag(90);
+        output.WriteString(RoomPhase);
+      }
+      if (RoomPhaseReason.Length != 0) {
+        output.WriteRawTag(98);
+        output.WriteString(RoomPhaseReason);
+      }
+      if (QueuePhase.Length != 0) {
+        output.WriteRawTag(106);
+        output.WriteString(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        output.WriteRawTag(114);
+        output.WriteString(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        output.WriteRawTag(122);
+        output.WriteString(QueueStatusText);
+      }
+      if (QueueErrorCode.Length != 0) {
+        output.WriteRawTag(130, 1);
+        output.WriteString(QueueErrorCode);
+      }
+      if (QueueUserMessage.Length != 0) {
+        output.WriteRawTag(138, 1);
+        output.WriteString(QueueUserMessage);
+      }
+      if (QueueEntryId.Length != 0) {
+        output.WriteRawTag(146, 1);
+        output.WriteString(QueueEntryId);
+      }
+      if (CanToggleReady != false) {
+        output.WriteRawTag(152, 1);
+        output.WriteBool(CanToggleReady);
+      }
+      if (CanStartManualBattle != false) {
+        output.WriteRawTag(160, 1);
+        output.WriteBool(CanStartManualBattle);
+      }
+      if (CanUpdateSelection != false) {
+        output.WriteRawTag(168, 1);
+        output.WriteBool(CanUpdateSelection);
+      }
+      if (CanUpdateMatchRoomConfig != false) {
+        output.WriteRawTag(176, 1);
+        output.WriteBool(CanUpdateMatchRoomConfig);
+      }
+      if (CanEnterQueue != false) {
+        output.WriteRawTag(184, 1);
+        output.WriteBool(CanEnterQueue);
+      }
+      if (CanCancelQueue != false) {
+        output.WriteRawTag(192, 1);
+        output.WriteBool(CanCancelQueue);
+      }
+      if (CanLeaveRoom != false) {
+        output.WriteRawTag(200, 1);
+        output.WriteBool(CanLeaveRoom);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2208,6 +2719,51 @@ namespace QQT.Room.V1 {
       }
       if (battleEntry_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(BattleEntry);
+      }
+      if (RoomPhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(RoomPhase);
+      }
+      if (RoomPhaseReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(RoomPhaseReason);
+      }
+      if (QueuePhase.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueuePhase);
+      }
+      if (QueueTerminalReason.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueTerminalReason);
+      }
+      if (QueueStatusText.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(QueueStatusText);
+      }
+      if (QueueErrorCode.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(QueueErrorCode);
+      }
+      if (QueueUserMessage.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(QueueUserMessage);
+      }
+      if (QueueEntryId.Length != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeStringSize(QueueEntryId);
+      }
+      if (CanToggleReady != false) {
+        size += 2 + 1;
+      }
+      if (CanStartManualBattle != false) {
+        size += 2 + 1;
+      }
+      if (CanUpdateSelection != false) {
+        size += 2 + 1;
+      }
+      if (CanUpdateMatchRoomConfig != false) {
+        size += 2 + 1;
+      }
+      if (CanEnterQueue != false) {
+        size += 2 + 1;
+      }
+      if (CanCancelQueue != false) {
+        size += 2 + 1;
+      }
+      if (CanLeaveRoom != false) {
+        size += 2 + 1;
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -2254,6 +2810,51 @@ namespace QQT.Room.V1 {
           BattleEntry = new global::QQT.Room.V1.BattleEntryState();
         }
         BattleEntry.MergeFrom(other.BattleEntry);
+      }
+      if (other.RoomPhase.Length != 0) {
+        RoomPhase = other.RoomPhase;
+      }
+      if (other.RoomPhaseReason.Length != 0) {
+        RoomPhaseReason = other.RoomPhaseReason;
+      }
+      if (other.QueuePhase.Length != 0) {
+        QueuePhase = other.QueuePhase;
+      }
+      if (other.QueueTerminalReason.Length != 0) {
+        QueueTerminalReason = other.QueueTerminalReason;
+      }
+      if (other.QueueStatusText.Length != 0) {
+        QueueStatusText = other.QueueStatusText;
+      }
+      if (other.QueueErrorCode.Length != 0) {
+        QueueErrorCode = other.QueueErrorCode;
+      }
+      if (other.QueueUserMessage.Length != 0) {
+        QueueUserMessage = other.QueueUserMessage;
+      }
+      if (other.QueueEntryId.Length != 0) {
+        QueueEntryId = other.QueueEntryId;
+      }
+      if (other.CanToggleReady != false) {
+        CanToggleReady = other.CanToggleReady;
+      }
+      if (other.CanStartManualBattle != false) {
+        CanStartManualBattle = other.CanStartManualBattle;
+      }
+      if (other.CanUpdateSelection != false) {
+        CanUpdateSelection = other.CanUpdateSelection;
+      }
+      if (other.CanUpdateMatchRoomConfig != false) {
+        CanUpdateMatchRoomConfig = other.CanUpdateMatchRoomConfig;
+      }
+      if (other.CanEnterQueue != false) {
+        CanEnterQueue = other.CanEnterQueue;
+      }
+      if (other.CanCancelQueue != false) {
+        CanCancelQueue = other.CanCancelQueue;
+      }
+      if (other.CanLeaveRoom != false) {
+        CanLeaveRoom = other.CanLeaveRoom;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -2320,6 +2921,66 @@ namespace QQT.Room.V1 {
             input.ReadMessage(BattleEntry);
             break;
           }
+          case 90: {
+            RoomPhase = input.ReadString();
+            break;
+          }
+          case 98: {
+            RoomPhaseReason = input.ReadString();
+            break;
+          }
+          case 106: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 114: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 122: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
+          case 130: {
+            QueueErrorCode = input.ReadString();
+            break;
+          }
+          case 138: {
+            QueueUserMessage = input.ReadString();
+            break;
+          }
+          case 146: {
+            QueueEntryId = input.ReadString();
+            break;
+          }
+          case 152: {
+            CanToggleReady = input.ReadBool();
+            break;
+          }
+          case 160: {
+            CanStartManualBattle = input.ReadBool();
+            break;
+          }
+          case 168: {
+            CanUpdateSelection = input.ReadBool();
+            break;
+          }
+          case 176: {
+            CanUpdateMatchRoomConfig = input.ReadBool();
+            break;
+          }
+          case 184: {
+            CanEnterQueue = input.ReadBool();
+            break;
+          }
+          case 192: {
+            CanCancelQueue = input.ReadBool();
+            break;
+          }
+          case 200: {
+            CanLeaveRoom = input.ReadBool();
+            break;
+          }
         }
       }
     #endif
@@ -2383,6 +3044,66 @@ namespace QQT.Room.V1 {
               BattleEntry = new global::QQT.Room.V1.BattleEntryState();
             }
             input.ReadMessage(BattleEntry);
+            break;
+          }
+          case 90: {
+            RoomPhase = input.ReadString();
+            break;
+          }
+          case 98: {
+            RoomPhaseReason = input.ReadString();
+            break;
+          }
+          case 106: {
+            QueuePhase = input.ReadString();
+            break;
+          }
+          case 114: {
+            QueueTerminalReason = input.ReadString();
+            break;
+          }
+          case 122: {
+            QueueStatusText = input.ReadString();
+            break;
+          }
+          case 130: {
+            QueueErrorCode = input.ReadString();
+            break;
+          }
+          case 138: {
+            QueueUserMessage = input.ReadString();
+            break;
+          }
+          case 146: {
+            QueueEntryId = input.ReadString();
+            break;
+          }
+          case 152: {
+            CanToggleReady = input.ReadBool();
+            break;
+          }
+          case 160: {
+            CanStartManualBattle = input.ReadBool();
+            break;
+          }
+          case 168: {
+            CanUpdateSelection = input.ReadBool();
+            break;
+          }
+          case 176: {
+            CanUpdateMatchRoomConfig = input.ReadBool();
+            break;
+          }
+          case 184: {
+            CanEnterQueue = input.ReadBool();
+            break;
+          }
+          case 192: {
+            CanCancelQueue = input.ReadBool();
+            break;
+          }
+          case 200: {
+            CanLeaveRoom = input.ReadBool();
             break;
           }
         }

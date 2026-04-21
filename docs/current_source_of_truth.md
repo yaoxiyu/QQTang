@@ -18,6 +18,7 @@ do not re-merge domain semantics into this index.
 - Front flow: [`docs/architecture/front_flow.md`](./architecture/front_flow.md)
 - Network control plane: [`docs/architecture/network_control_plane.md`](./architecture/network_control_plane.md)
 - Room protocol: [`docs/architecture/room_protocol.md`](./architecture/room_protocol.md)
+- Room state machine: [`docs/architecture/room_state_machine.md`](./architecture/room_state_machine.md)
 - Room manifest: [`docs/architecture/room_manifest.md`](./architecture/room_manifest.md)
 - Content pipeline: [`docs/architecture/content_pipeline.md`](./architecture/content_pipeline.md)
 - Testing strategy: [`docs/architecture/testing_strategy.md`](./architecture/testing_strategy.md)
@@ -36,3 +37,6 @@ phase records and historical decisions only.
 1. Any runtime or protocol change must update matched domain docs in the same change set.
 2. New architecture domains must be added to `docs/architecture/` first, then indexed here.
 3. Every normative statement must map to concrete code paths and committed tests.
+4. Phase28 state-machine governance must keep contract guardrails green:
+`tests/contracts/runtime/room_state_machine_projection_contract_test.gd`,
+`tests/contracts/path/no_raw_room_state_whitelist_contract_test.gd`.
