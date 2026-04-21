@@ -3,7 +3,7 @@ extends RefCounted
 
 const HttpResponseScript = preload("res://app/infra/http/http_response.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
-const HttpResponseReaderScript = preload("res://app/http/http_response_reader.gd")
+const HttpResponseReaderScript = preload("res://app/infra/http/http_response_reader.gd")
 
 
 static func execute(options: HttpRequestOptions) -> HttpResponse:
