@@ -51,7 +51,7 @@ secrets/
 build/
 dist/
 out/
-release/
+/release/
 artifacts/
 exports/
 *.pck

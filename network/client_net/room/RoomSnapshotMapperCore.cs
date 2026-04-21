@@ -2,25 +2,26 @@ using QQT.Room.V1;
 using System;
 using System.Collections.Generic;
 
+#pragma warning disable IDE0130 // Keep namespace aligned with existing room client_net code.
 namespace QQTang.Network.ClientNet.Room;
+#pragma warning restore IDE0130
 
 public static class RoomSnapshotMapperCore
 {
     public static Dictionary<string, object?> ToSnapshotDictionary(RoomSnapshot snapshot)
     {
-        if (snapshot == null)
-        {
-            throw new ArgumentNullException(nameof(snapshot));
-        }
+        ArgumentNullException.ThrowIfNull(snapshot);
 
         var selection = snapshot.Selection ?? new RoomSelection();
         var battleEntry = snapshot.BattleEntry ?? new BattleEntryState();
+        var ownerMemberId = snapshot.OwnerMemberId ?? string.Empty;
+        var roomKind = snapshot.RoomKind ?? string.Empty;
         var members = new List<object?>(snapshot.Members.Count);
         var allReady = snapshot.Members.Count > 0;
         for (var i = 0; i < snapshot.Members.Count; i++)
         {
             var roomMember = snapshot.Members[i];
-            members.Add(ToMemberDictionary(roomMember, snapshot.OwnerMemberId, i));
+            members.Add(ToMemberDictionary(roomMember, ownerMemberId, i));
             if (allReady && !(roomMember?.Ready ?? false))
             {
                 allReady = false;
@@ -30,16 +31,16 @@ public static class RoomSnapshotMapperCore
         return new Dictionary<string, object?>
         {
             { "room_id", snapshot.RoomId ?? string.Empty },
-            { "room_kind", snapshot.RoomKind ?? string.Empty },
+            { "room_kind", roomKind },
             { "topology", "dedicated_server" },
             { "room_display_name", snapshot.RoomDisplayName ?? string.Empty },
-            { "owner_member_id", snapshot.OwnerMemberId ?? string.Empty },
-            { "owner_peer_id", ResolvePeerId(snapshot.OwnerMemberId) },
+            { "owner_member_id", ownerMemberId },
+            { "owner_peer_id", ResolvePeerId(ownerMemberId) },
             { "room_lifecycle_state", snapshot.LifecycleState ?? string.Empty },
             { "snapshot_revision", snapshot.SnapshotRevision },
             { "match_format_id", selection.MatchFormatId ?? string.Empty },
             { "selected_match_mode_ids", ToStringList(selection.SelectedModeIds) },
-            { "queue_type", ResolveQueueType(snapshot.RoomKind) },
+            { "queue_type", ResolveQueueType(roomKind) },
             { "room_queue_state", snapshot.QueueState ?? string.Empty },
             { "room_queue_entry_id", string.Empty },
             { "battle_entry_ready", battleEntry.BattleEntryReady },
@@ -104,13 +105,13 @@ public static class RoomSnapshotMapperCore
             return parsedInt;
         }
 
-        var normalized = memberId?.Trim() ?? string.Empty;
+        var normalized = memberId.Trim();
         if (!string.IsNullOrEmpty(normalized))
         {
-            var lastDash = normalized.LastIndexOf("-");
+            var lastDash = normalized.LastIndexOf('-');
             if (lastDash >= 0 && lastDash + 1 < normalized.Length)
             {
-                var tail = normalized.Substring(lastDash + 1);
+                var tail = normalized[(lastDash + 1)..];
                 if (int.TryParse(tail, out var tailId) && tailId > 0)
                 {
                     return tailId;
