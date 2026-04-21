@@ -8,7 +8,7 @@ const BATTLE_TICKET_SECRET := "dev_battle_ticket_secret"
 
 
 
-class BattleBootstrapProbe:
+class LocalBattleBootstrapProbe:
 	extends "res://network/runtime/battle_dedicated_server_bootstrap.gd"
 	var sent_messages: Array[Dictionary] = []
 
@@ -36,7 +36,7 @@ func test_main() -> void:
 
 
 func _test_invalid_battle_entry_ticket_is_rejected() -> bool:
-	var bootstrap: BattleBootstrapProbe = _new_bootstrap()
+	var bootstrap: LocalBattleBootstrapProbe = _new_bootstrap()
 
 	bootstrap._handle_battle_entry_request({
 		"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
@@ -57,7 +57,7 @@ func _test_invalid_battle_entry_ticket_is_rejected() -> bool:
 
 
 func _test_invalid_resume_token_is_rejected() -> bool:
-	var bootstrap: BattleBootstrapProbe = _new_bootstrap()
+	var bootstrap: LocalBattleBootstrapProbe = _new_bootstrap()
 	bootstrap._member_sessions_by_id["account_1:profile_1"] = {
 		"member_id": "account_1:profile_1",
 		"account_id": "account_1",
@@ -87,8 +87,8 @@ func _test_invalid_resume_token_is_rejected() -> bool:
 	return ok
 
 
-func _new_bootstrap() -> BattleBootstrapProbe:
-	var bootstrap := BattleBootstrapProbe.new()
+func _new_bootstrap() -> LocalBattleBootstrapProbe:
+	var bootstrap := LocalBattleBootstrapProbe.new()
 	bootstrap._battle_id = "battle_001"
 	bootstrap._assignment_id = "assign_001"
 	bootstrap._match_id = "match_001"
@@ -107,4 +107,3 @@ func _new_bootstrap() -> BattleBootstrapProbe:
 	bootstrap._battle_ticket_verifier = BattleTicketVerifierScript.new()
 	bootstrap._battle_ticket_verifier.configure(BATTLE_TICKET_SECRET)
 	return bootstrap
-
