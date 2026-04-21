@@ -127,7 +127,7 @@ func _build_finalize_payload(room_runtime: Node, result: BattleResult) -> Dictio
 	var room_id := String(match_service.get_last_finished_room_id()) if match_service.has_method("get_last_finished_room_id") else String(config.room_id)
 	if room_id.is_empty():
 		room_id = String(config.room_id)
-	var assignment_id := String(room_state.assignment_id)
+	var assignment_id := _resolve_assignment_id(room_state, config)
 	if match_id.is_empty() or room_id.is_empty() or assignment_id.is_empty():
 		return {}
 	var payload := {
@@ -152,6 +152,21 @@ func _build_finalize_payload(room_runtime: Node, result: BattleResult) -> Dictio
 	return payload
 
 
+func _resolve_assignment_id(room_state, config: BattleStartConfig) -> String:
+	if room_state == null:
+		return ""
+	var primary_id := String(room_state.assignment_id).strip_edges()
+	if not primary_id.is_empty():
+		return primary_id
+	var current_id := String(room_state.current_assignment_id).strip_edges()
+	if not current_id.is_empty():
+		return current_id
+	if config == null:
+		return ""
+	var config_data := config.to_dict() if config.has_method("to_dict") else {}
+	return String(config_data.get("assignment_id", "")).strip_edges()
+
+
 func _build_member_results(room_state, result: BattleResult) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	if room_state == null or result == null:
@@ -160,11 +175,13 @@ func _build_member_results(room_state, result: BattleResult) -> Array[Dictionary
 	for binding in bindings:
 		if binding == null:
 			continue
-		var peer_id := int(binding.match_peer_id if binding.match_peer_id > 0 else binding.transport_peer_id)
-		var team_id := int(binding.team_id)
+		var match_peer_id := _read_binding_int(binding, "match_peer_id")
+		var transport_peer_id := _read_binding_int(binding, "transport_peer_id")
+		var peer_id := match_peer_id if match_peer_id > 0 else transport_peer_id
+		var team_id := _read_binding_int(binding, "team_id")
 		rows.append({
-			"account_id": String(binding.account_id),
-			"profile_id": String(binding.profile_id),
+			"account_id": _read_binding_string(binding, "account_id"),
+			"profile_id": _read_binding_string(binding, "profile_id"),
 			"team_id": team_id,
 			"peer_id": peer_id,
 			"outcome": _resolve_outcome(result, peer_id, team_id),
@@ -192,6 +209,22 @@ func _resolve_placement(result: BattleResult, peer_id: int, team_id: int) -> int
 	if outcome == "win" or outcome == "draw":
 		return 1
 	return 2
+
+
+func _read_binding_int(binding: Variant, key: String) -> int:
+	if binding is Dictionary:
+		return int((binding as Dictionary).get(key, 0))
+	if binding != null and binding.get(key) != null:
+		return int(binding.get(key))
+	return 0
+
+
+func _read_binding_string(binding: Variant, key: String) -> String:
+	if binding is Dictionary:
+		return String((binding as Dictionary).get(key, ""))
+	if binding != null and binding.get(key) != null:
+		return String(binding.get(key))
+	return ""
 
 
 func _build_result_hash(payload: Dictionary) -> String:

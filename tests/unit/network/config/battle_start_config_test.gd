@@ -13,6 +13,7 @@ func test_main() -> void:
 	var ok := true
 	ok = _test_valid_config_passes_validation() and ok
 	ok = _test_build_start_config_reads_map_metadata() and ok
+	ok = _test_build_start_config_prefers_authoritative_match_id() and ok
 	ok = _test_protocol_mismatch_fails_validation() and ok
 	ok = _test_map_hash_mismatch_fails_validation() and ok
 	ok = _test_duplicate_slot_fails_validation() and ok
@@ -49,6 +50,22 @@ func _test_build_start_config_reads_map_metadata() -> bool:
 	ok = qqt_check(int(config.map_version) == int(metadata.get("version", -1)), "build_start_config should copy map_version from metadata", prefix) and ok
 	ok = qqt_check(String(config.map_content_hash) == String(metadata.get("content_hash", "")), "build_start_config should copy map_content_hash from metadata", prefix) and ok
 	ok = qqt_check(String(config.item_spawn_profile_id) == String(metadata.get("item_spawn_profile_id", "")), "build_start_config should copy item spawn profile", prefix) and ok
+	coordinator.free()
+	return ok
+
+
+func _test_build_start_config_prefers_authoritative_match_id() -> bool:
+	var coordinator := MatchStartCoordinatorScript.new()
+	var snapshot := _make_room_snapshot()
+	snapshot.current_match_id = "match_authoritative_42"
+	var config := coordinator.build_start_config(snapshot)
+	var prefix := "battle_start_config_test"
+	var ok := true
+	ok = qqt_check(
+		config.match_id == "match_authoritative_42",
+		"build_start_config should preserve snapshot.current_match_id in assignment flow",
+		prefix
+	) and ok
 	coordinator.free()
 	return ok
 
@@ -264,4 +281,3 @@ func _errors_contain(validation: Dictionary, needle: String) -> bool:
 		if String(entry).contains(needle):
 			return true
 	return false
-

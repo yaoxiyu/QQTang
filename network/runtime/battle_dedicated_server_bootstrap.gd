@@ -29,6 +29,9 @@ var _battle_runtime: Node = null
 var _battle_id: String = ""
 var _assignment_id: String = ""
 var _match_id: String = ""
+var _source_room_id: String = ""
+var _source_room_kind: String = ""
+var _season_id: String = ""
 
 # Manifest + peer gate.
 var _manifest_client: GameServiceBattleManifestClient = null
@@ -64,6 +67,8 @@ func _ready() -> void:
 	_battle_runtime.battle_id = _battle_id
 	_battle_runtime.assignment_id = _assignment_id
 	_battle_runtime.match_id = _match_id
+	_battle_runtime.room_kind = _source_room_kind
+	_battle_runtime.season_id = _season_id
 	_connect_battle_runtime_signals()
 
 	_transport = ENetBattleTransportScript.new()
@@ -413,6 +418,12 @@ func _fetch_manifest() -> void:
 		LogNetScript.warn("battle_manifest fetch failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 		return
 	_manifest = result
+	_source_room_id = String(_manifest.get("source_room_id", "")).strip_edges()
+	_source_room_kind = String(_manifest.get("source_room_kind", "")).strip_edges()
+	_season_id = String(_manifest.get("season_id", "")).strip_edges()
+	if _battle_runtime != null:
+		_battle_runtime.room_kind = _source_room_kind
+		_battle_runtime.season_id = _season_id
 	_member_sessions_by_id.clear()
 	_member_id_by_peer_id.clear()
 	_used_battle_ticket_ids.clear()
@@ -427,8 +438,8 @@ func _begin_battle_loading() -> void:
 		LogNetScript.warn("battle_ds: cannot begin loading, manifest is empty", "", 0, "net.battle_ds_bootstrap")
 		return
 	var snapshot := RoomSnapshot.new()
-	snapshot.room_id = _battle_id
-	snapshot.room_kind = "dedicated_server"
+	snapshot.room_id = _source_room_id if not _source_room_id.is_empty() else _battle_id
+	snapshot.room_kind = _source_room_kind if not _source_room_kind.is_empty() else "dedicated_server"
 	snapshot.topology = "dedicated_server"
 	snapshot.selected_map_id = String(_manifest.get("map_id", ""))
 	snapshot.rule_set_id = String(_manifest.get("rule_set_id", ""))

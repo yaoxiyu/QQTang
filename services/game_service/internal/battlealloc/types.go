@@ -53,6 +53,9 @@ type BattleManifest struct {
 	AssignmentID        string
 	BattleID            string
 	MatchID             string
+	SourceRoomID        string
+	SourceRoomKind      string
+	SeasonID            string
 	MapID               string
 	RuleSetID           string
 	ModeID              string

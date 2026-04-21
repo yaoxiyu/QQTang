@@ -35,6 +35,15 @@ func _main_body() -> void:
 	ok = qqt_check(bool(ready_vm.get("can_enter_queue", false)), "full ready 2v2 party can enter queue", prefix) and ok
 	ok = qqt_check(not bool(ready_vm.get("show_team_selector", true)), "match room should hide team selector", prefix) and ok
 	ok = qqt_check(bool(ready_vm.get("show_match_mode_multi_select", false)), "match room should show mode pool", prefix) and ok
+
+	var ready_after_finalize := _build_snapshot(2, [true, true])
+	ready_after_finalize.room_queue_state = "finalized"
+	var ready_after_finalize_vm := builder.build_view_model(ready_after_finalize, context, profile, entry_context)
+	ok = qqt_check(
+		bool(ready_after_finalize_vm.get("can_enter_queue", false)),
+		"finalized queue state should allow re-enter queue when party is ready",
+		prefix
+	) and ok
 	assert_true(ok, "match room queue view model should enforce party readiness")
 
 
@@ -62,5 +71,4 @@ func _build_snapshot(member_count: int, ready_flags: Array) -> RoomSnapshot:
 		snapshot.members.append(member)
 		snapshot.all_ready = snapshot.all_ready and member.ready
 	return snapshot
-
 

@@ -342,6 +342,10 @@ func on_bootstrap_join_battle_accepted(message) -> void:
 
 func on_bootstrap_join_battle_rejected(message) -> void:
 	_adapter.network_log_event.emit("Join rejected: %s" % str(message))
+	var error_code := String(message.get("error", "MATCH_START_REJECTED"))
+	var user_message := String(message.get("user_message", "Match start rejected"))
+	_adapter.network_transport_error.emit(ERR_CONNECTION_ERROR, "%s: %s" % [error_code, user_message])
+	shutdown_bootstrap()
 
 
 func on_bootstrap_input_frame_message(message) -> void:

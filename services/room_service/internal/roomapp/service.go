@@ -996,7 +996,7 @@ func canCancelQueueFromState(queueState string) bool {
 
 func shouldSyncQueueState(queueState string) bool {
 	switch strings.TrimSpace(queueState) {
-	case "queueing", "queued", "assigned", "committing", "allocating", "battle_ready":
+	case "queueing", "queued", "assigned", "committing", "allocating", "battle_ready", "matched":
 		return true
 	default:
 		return false
@@ -1051,14 +1051,24 @@ func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclie
 		return nil, false
 	}
 
+	nextQueueState := strings.TrimSpace(result.QueueState)
+	if !result.OK && nextQueueState == "" {
+		nextQueueState = "failed"
+	}
+
+	terminal := isTerminalQueueSyncState(nextQueueState) || !result.OK
 	changed := false
 
-	if room.Queue.QueueState != result.QueueState {
-		room.Queue.QueueState = result.QueueState
+	if room.Queue.QueueState != nextQueueState {
+		room.Queue.QueueState = nextQueueState
 		changed = true
 	}
-	if room.Queue.StatusText != result.QueueState {
-		room.Queue.StatusText = result.QueueState
+	nextStatusText := nextQueueState
+	if nextStatusText == "" && !result.OK {
+		nextStatusText = "failed"
+	}
+	if room.Queue.StatusText != nextStatusText {
+		room.Queue.StatusText = nextStatusText
 		changed = true
 	}
 	if room.Queue.ErrorCode != result.ErrorCode {
@@ -1091,24 +1101,31 @@ func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclie
 		changed = true
 	}
 	if room.BattleHandoffState.AllocationState != result.QueueState {
-		room.BattleHandoffState.AllocationState = result.QueueState
+		room.BattleHandoffState.AllocationState = nextQueueState
 		changed = true
 	}
-	ready := isBattleEntryReadyStatus(result)
+	ready := isBattleEntryReadyStatus(result) && result.OK
 	if room.BattleHandoffState.Ready != ready {
 		room.BattleHandoffState.Ready = ready
 		changed = true
 	}
+	if terminal {
+		if clearBattleHandoffState(&room.BattleHandoffState) {
+			changed = true
+		}
+	}
 
 	nextLifecycleState := room.LifecycleState
 	switch {
+	case terminal:
+		nextLifecycleState = "idle"
 	case ready:
 		nextLifecycleState = "battle_handoff"
-	case strings.TrimSpace(result.QueueState) == "queueing" || strings.TrimSpace(result.QueueState) == "queued":
+	case nextQueueState == "queueing" || nextQueueState == "queued":
 		nextLifecycleState = "queueing"
-	case strings.TrimSpace(result.QueueState) == "assigned" || strings.TrimSpace(result.QueueState) == "committing" || strings.TrimSpace(result.QueueState) == "allocating":
+	case nextQueueState == "assigned" || nextQueueState == "committing" || nextQueueState == "allocating":
 		nextLifecycleState = "queueing"
-	case strings.TrimSpace(result.QueueState) == "cancelled" || strings.TrimSpace(result.QueueState) == "failed":
+	case nextQueueState == "cancelled" || nextQueueState == "failed":
 		nextLifecycleState = "idle"
 	}
 
@@ -1168,6 +1185,51 @@ func isBattleEntryReadyStatus(result gameclient.GetPartyQueueStatusResult) bool 
 		return false
 	}
 	return strings.TrimSpace(result.ServerHost) != "" && result.ServerPort > 0
+}
+
+func isTerminalQueueSyncState(queueState string) bool {
+	switch strings.TrimSpace(queueState) {
+	case "", "idle", "cancelled", "failed", "expired", "finalized":
+		return true
+	default:
+		return false
+	}
+}
+
+func clearBattleHandoffState(handoff *domain.BattleHandoff) bool {
+	if handoff == nil {
+		return false
+	}
+	changed := false
+	if handoff.AssignmentID != "" {
+		handoff.AssignmentID = ""
+		changed = true
+	}
+	if handoff.MatchID != "" {
+		handoff.MatchID = ""
+		changed = true
+	}
+	if handoff.BattleID != "" {
+		handoff.BattleID = ""
+		changed = true
+	}
+	if handoff.ServerHost != "" {
+		handoff.ServerHost = ""
+		changed = true
+	}
+	if handoff.ServerPort != 0 {
+		handoff.ServerPort = 0
+		changed = true
+	}
+	if handoff.Ready {
+		handoff.Ready = false
+		changed = true
+	}
+	if handoff.AllocationState != "" {
+		handoff.AllocationState = ""
+		changed = true
+	}
+	return changed
 }
 
 func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {

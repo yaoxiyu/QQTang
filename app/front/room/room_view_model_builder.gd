@@ -409,8 +409,7 @@ func _resolve_map_binding(map_id: String) -> Dictionary:
 func _can_enter_match_queue(snapshot: RoomSnapshot, is_host: bool, member_count: int, is_match_room: bool) -> bool:
 	if snapshot == null or not is_host or not is_match_room:
 		return false
-	var queue_state := String(snapshot.room_queue_state)
-	if queue_state != "idle" and queue_state != "cancelled":
+	if not _can_enter_queue_from_state(String(snapshot.room_queue_state)):
 		return false
 	var required_party_size := _resolve_required_party_size(snapshot)
 	if member_count != required_party_size:
@@ -489,6 +488,12 @@ func _build_queue_status_text(snapshot: RoomSnapshot) -> String:
 			return "匹配中"
 		"assigned":
 			return "已分配对局"
+		"finalized":
+			return "对局已结束，可重新匹配"
+		"failed":
+			return "匹配失败，可重新匹配"
+		"expired":
+			return "匹配已过期，可重新匹配"
 		_:
 			return _build_match_room_party_status_text(snapshot, snapshot.member_count())
 
@@ -506,3 +511,12 @@ func _build_queue_error_text(snapshot: RoomSnapshot) -> String:
 func _is_queueing_state(queue_state: String) -> bool:
 	var normalized := queue_state.strip_edges().to_lower()
 	return normalized == "queueing" or normalized == "queued"
+
+
+func _can_enter_queue_from_state(queue_state: String) -> bool:
+	var normalized := queue_state.strip_edges().to_lower()
+	return normalized == "idle" \
+		or normalized == "cancelled" \
+		or normalized == "failed" \
+		or normalized == "expired" \
+		or normalized == "finalized"

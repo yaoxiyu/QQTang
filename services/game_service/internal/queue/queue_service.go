@@ -300,12 +300,12 @@ func (s *Service) GetPartyQueueStatus(ctx context.Context, partyRoomID string, q
 	assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return PartyQueueStatus{}, ErrAssignmentExpired
+			return s.reconcileTerminalPartyQueueStatus(ctx, entry, now.Unix(), "expired", "assignment_missing"), nil
 		}
 		return PartyQueueStatus{}, err
 	}
-	if assignment.CommitDeadlineUnixSec < now.Unix() {
-		return PartyQueueStatus{}, ErrAssignmentExpired
+	if terminalState, cancelReason, terminal := resolveAssignmentTerminalState(assignment, now.Unix()); terminal {
+		return s.reconcileTerminalPartyQueueStatus(ctx, entry, now.Unix(), terminalState, cancelReason), nil
 	}
 	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, entry.State, entry.CancelReason, entry.AssignmentID, entry.AssignmentRevision, now.Unix())
 	resolvedHost, resolvedPort := resolveAssignmentServerEndpoint(assignment)
@@ -385,12 +385,12 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 	assignment, err := s.assignmentRepo.FindByID(ctx, entry.AssignmentID)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return QueueStatus{}, ErrAssignmentExpired
+			return s.reconcileTerminalSoloQueueStatus(ctx, entry, now.Unix(), "expired", "assignment_missing"), nil
 		}
 		return QueueStatus{}, err
 	}
-	if assignment.CommitDeadlineUnixSec < now.Unix() {
-		return QueueStatus{}, ErrAssignmentExpired
+	if terminalState, cancelReason, terminal := resolveAssignmentTerminalState(assignment, now.Unix()); terminal {
+		return s.reconcileTerminalSoloQueueStatus(ctx, entry, now.Unix(), terminalState, cancelReason), nil
 	}
 	assignment, entry, err = s.reElectCaptainForStatusIfNeeded(ctx, assignment, entry, now)
 	if err != nil {
@@ -433,13 +433,24 @@ func (s *Service) GetStatus(ctx context.Context, profileID string, queueEntryID 
 }
 
 func (s *Service) buildQueuedStatus(entry storage.QueueEntry) QueueStatus {
+	statusText := "Searching for players"
+	switch entry.State {
+	case "cancelled":
+		statusText = "Queue cancelled"
+	case "failed":
+		statusText = "Queue failed"
+	case "expired":
+		statusText = "Assignment expired"
+	case "finalized":
+		statusText = "Match finalized"
+	}
 	return QueueStatus{
 		QueueState:           entry.State,
 		QueueEntryID:         entry.QueueEntryID,
 		QueueKey:             entry.QueueKey,
 		AssignmentID:         entry.AssignmentID,
 		AssignmentRevision:   entry.AssignmentRevision,
-		QueueStatusText:      "Searching for players",
+		QueueStatusText:      statusText,
 		AssignmentStatusText: "",
 		EnqueueUnixSec:       entry.EnqueueUnixSec,
 		LastHeartbeatUnixSec: entry.LastHeartbeatUnixSec,
@@ -449,8 +460,15 @@ func (s *Service) buildQueuedStatus(entry storage.QueueEntry) QueueStatus {
 
 func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQueueStatus {
 	statusText := "Searching for teams"
-	if entry.State == "cancelled" {
+	switch entry.State {
+	case "cancelled":
 		statusText = "Queue cancelled"
+	case "failed":
+		statusText = "Queue failed"
+	case "expired":
+		statusText = "Assignment expired"
+	case "finalized":
+		statusText = "Match finalized"
 	}
 	return PartyQueueStatus{
 		QueueState:           entry.State,
@@ -468,6 +486,34 @@ func (s *Service) buildPartyQueuedStatus(entry storage.PartyQueueEntry) PartyQue
 		LastHeartbeatUnixSec: entry.LastHeartbeatUnixSec,
 		ExpiresAtUnixSec:     entry.LastHeartbeatUnixSec + int64(s.heartbeatTTL.Seconds()),
 	}
+}
+
+func (s *Service) reconcileTerminalPartyQueueStatus(ctx context.Context, entry storage.PartyQueueEntry, nowUnix int64, queueState string, cancelReason string) PartyQueueStatus {
+	if queueState == "" {
+		queueState = "failed"
+	}
+	if cancelReason == "" {
+		cancelReason = queueState
+	}
+	_ = s.partyQueueRepo.UpdateStatus(ctx, entry.PartyQueueEntryID, queueState, cancelReason, entry.AssignmentID, entry.AssignmentRevision, nowUnix)
+	entry.State = queueState
+	entry.CancelReason = cancelReason
+	entry.LastHeartbeatUnixSec = nowUnix
+	return s.buildPartyQueuedStatus(entry)
+}
+
+func (s *Service) reconcileTerminalSoloQueueStatus(ctx context.Context, entry storage.QueueEntry, nowUnix int64, queueState string, cancelReason string) QueueStatus {
+	if queueState == "" {
+		queueState = "failed"
+	}
+	if cancelReason == "" {
+		cancelReason = queueState
+	}
+	_ = s.queueRepo.UpdateStatus(ctx, entry.QueueEntryID, queueState, cancelReason, entry.AssignmentID, entry.AssignmentRevision, nowUnix)
+	entry.State = queueState
+	entry.CancelReason = cancelReason
+	entry.LastHeartbeatUnixSec = nowUnix
+	return s.buildQueuedStatus(entry)
 }
 
 func (s *Service) findOwnedEntry(ctx context.Context, profileID string, queueEntryID string) (storage.QueueEntry, error) {
@@ -1059,6 +1105,20 @@ func normalizeAllocationState(state string) string {
 		return "allocated"
 	}
 	return normalized
+}
+
+func resolveAssignmentTerminalState(assignment storage.Assignment, nowUnix int64) (queueState string, cancelReason string, terminal bool) {
+	if assignment.State == "finalized" {
+		return "finalized", "match_finalized", true
+	}
+	if assignment.CommitDeadlineUnixSec < nowUnix {
+		return "expired", "assignment_expired", true
+	}
+	allocationState := normalizeAllocationState(assignment.AllocationState)
+	if allocationState == "alloc_failed" {
+		return "failed", "allocation_failed", true
+	}
+	return "", "", false
 }
 
 func deriveAllocationErrorCode(err error) string {

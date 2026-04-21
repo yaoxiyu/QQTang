@@ -50,5 +50,8 @@ func NormalizeAssignmentDefaults(defaults AssignmentDefaults) AssignmentDefaults
 	if defaults.CommitDeadlineSeconds > 0 {
 		normalized.CommitDeadlineSeconds = defaults.CommitDeadlineSeconds
 	}
+	if normalized.CommitDeadlineSeconds < normalized.CaptainDeadlineSeconds {
+		normalized.CommitDeadlineSeconds = normalized.CaptainDeadlineSeconds
+	}
 	return normalized
 }

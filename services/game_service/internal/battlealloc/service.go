@@ -15,9 +15,9 @@ import (
 )
 
 var (
-	ErrBattleAlreadyExists = errors.New("BATTLE_ALREADY_EXISTS")
-	ErrBattleNotFound      = errors.New("BATTLE_NOT_FOUND")
-	ErrAllocationFailed    = errors.New("BATTLE_ALLOCATION_FAILED")
+	ErrBattleAlreadyExists  = errors.New("BATTLE_ALREADY_EXISTS")
+	ErrBattleNotFound       = errors.New("BATTLE_NOT_FOUND")
+	ErrAllocationFailed     = errors.New("BATTLE_ALLOCATION_FAILED")
 	ErrManifestStateInvalid = errors.New("ASSIGNMENT_STATE_INVALID")
 )
 
@@ -136,6 +136,9 @@ func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManif
 		AssignmentID:        bi.AssignmentID,
 		BattleID:            bi.BattleID,
 		MatchID:             bi.MatchID,
+		SourceRoomID:        assignment.RoomID,
+		SourceRoomKind:      assignment.RoomKind,
+		SeasonID:            assignment.SeasonID,
 		MapID:               assignment.MapID,
 		RuleSetID:           assignment.RuleSetID,
 		ModeID:              assignment.ModeID,

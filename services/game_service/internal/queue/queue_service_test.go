@@ -1005,7 +1005,7 @@ func TestGetStatusReelectsCaptainAfterDeadline(t *testing.T) {
 	}
 }
 
-func TestGetStatusReflectsAllocationFailureState(t *testing.T) {
+func TestGetStatusConvergesAllocationFailureToTerminalQueueState(t *testing.T) {
 	db := newFakeQueueDB()
 	now := time.Now().UTC()
 	assignment := storage.Assignment{
@@ -1072,11 +1072,18 @@ func TestGetStatusReflectsAllocationFailureState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetStatus returned error: %v", err)
 	}
-	if status.AssignmentStatusText != "Battle allocation failed" {
-		t.Fatalf("expected allocation failed status text, got %s", status.AssignmentStatusText)
+	if status.QueueState != "failed" {
+		t.Fatalf("expected terminal queue state failed, got %s", status.QueueState)
+	}
+	if status.QueueStatusText != "Queue failed" {
+		t.Fatalf("expected queue failed status text, got %s", status.QueueStatusText)
 	}
 	if status.ServerHost != "" || status.ServerPort != 0 {
-		t.Fatalf("expected endpoint hidden for alloc_failed, got %s:%d", status.ServerHost, status.ServerPort)
+		t.Fatalf("expected endpoint hidden for failed terminal state, got %s:%d", status.ServerHost, status.ServerPort)
+	}
+	updated := db.entriesByID["queue_alpha"]
+	if updated.State != "failed" || updated.CancelReason != "allocation_failed" {
+		t.Fatalf("expected queue entry persisted as failed/allocation_failed, got state=%s reason=%s", updated.State, updated.CancelReason)
 	}
 }
 

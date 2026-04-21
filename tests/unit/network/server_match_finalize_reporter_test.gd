@@ -78,6 +78,33 @@ func test_finalize_payload_contains_member_results() -> void:
 	assert_eq(String(members[1].get("outcome", "")), "loss", "loser team member should be loss")
 
 
+func test_finalize_payload_falls_back_to_current_assignment_id() -> void:
+	var reporter = ServerMatchFinalizeReporterScript.new()
+	var state = RoomServerStateScript.new()
+	state.ensure_room("room_alpha", 1, "matchmade_room", "")
+	state.assignment_id = ""
+	state.current_assignment_id = "assign_current"
+	state.season_id = "season_s1"
+	state.upsert_member(1, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
+	state.upsert_member(2, "Beta", "", "", "", "", 2, "account_b", "profile_b")
+
+	var config = BattleStartConfigScript.new()
+	config.match_id = "match_alpha"
+	config.room_id = "room_alpha"
+	config.mode_id = "mode_ranked"
+	config.rule_set_id = "rule_standard"
+	config.map_id = state.selected_map_id
+
+	var result = BattleResultScript.new()
+	result.finish_reason = "last_survivor"
+	result.score_policy = "team_score"
+	result.winner_team_ids.append(1)
+
+	var runtime = FakeRoomRuntime.new(state, FakeMatchService.new(config, "match_alpha", "room_alpha"))
+	var payload: Dictionary = reporter._build_finalize_payload(runtime, result)
+	assert_eq(String(payload.get("assignment_id", "")), "assign_current", "payload should fallback to current assignment id")
+
+
 func test_result_hash_is_stable_for_same_payload() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var payload := {
@@ -116,4 +143,3 @@ func test_finalize_request_uses_internal_json_service_client() -> void:
 	missing_secret.configure("127.0.0.1", 18081, "", "wp6_key")
 	var response := missing_secret._send_internal_post_once("/internal/v1/matches/finalize", {"a": 1})
 	assert_eq(String(response.get("error_code", "")), "MATCH_FINALIZE_SECRET_MISSING", "missing secret should still map to finalize secret missing")
-

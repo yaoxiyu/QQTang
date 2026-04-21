@@ -31,6 +31,8 @@ var _resume_coordinator: ServerMatchResumeCoordinator = null
 var battle_id: String = ""
 var assignment_id: String = ""
 var match_id: String = ""
+var room_kind: String = ""
+var season_id: String = ""
 
 ## LegacyMigration: Member bindings for input validation (injected from manifest)
 var _member_bindings: Dictionary = {}  # member_id -> { match_peer_id, transport_peer_id, connection_state }
@@ -116,6 +118,10 @@ func get_match_service() -> ServerMatchService:
 	return _match_service
 
 
+func get_room_state():
+	return self
+
+
 func report_match_result(result: BattleResult) -> void:
 	if _match_finalize_reporter != null and _match_finalize_reporter.has_method("report_match_result_async"):
 		_match_finalize_reporter.report_match_result_async(self, result)
@@ -167,6 +173,33 @@ func _find_member_id_by_transport_peer(peer_id: int) -> String:
 		if int(info.get("transport_peer_id", 0)) == peer_id:
 			return String(member_id)
 	return ""
+
+
+func _get_sorted_member_bindings() -> Array:
+	var bindings: Array = []
+	for member_id in _member_bindings.keys():
+		var key := String(member_id)
+		var binding: Dictionary = _member_bindings.get(key, {})
+		if binding.is_empty():
+			continue
+		var match_peer_id := int(binding.get("match_peer_id", 0))
+		var transport_peer_id := int(binding.get("transport_peer_id", 0))
+		bindings.append({
+			"account_id": String(binding.get("account_id", "")),
+			"profile_id": String(binding.get("profile_id", "")),
+			"team_id": int(binding.get("assigned_team_id", 0)),
+			"match_peer_id": match_peer_id,
+			"transport_peer_id": transport_peer_id,
+			"slot_index": int(binding.get("slot_index", 0)),
+		})
+	bindings.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var slot_a := int(a.get("slot_index", 0))
+		var slot_b := int(b.get("slot_index", 0))
+		if slot_a == slot_b:
+			return int(a.get("transport_peer_id", 0)) < int(b.get("transport_peer_id", 0))
+		return slot_a < slot_b
+	)
+	return bindings
 
 
 func _ensure_services() -> void:

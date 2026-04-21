@@ -178,7 +178,7 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.gameplay_rule_version = int(rule_metadata.get("version", DEFAULT_GAMEPLAY_RULE_VERSION))
 	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
 	config.room_id = snapshot.room_id
-	config.match_id = _generate_match_id(snapshot) if consume_match_id else _peek_match_id(snapshot)
+	config.match_id = _resolve_match_id(snapshot, consume_match_id)
 	config.map_id = resolved_map_id
 	config.map_version = int(map_metadata.get("version", BattleStartConfigScript.DEFAULT_MAP_VERSION))
 	config.map_content_hash = String(map_metadata.get("content_hash", ""))
@@ -203,6 +203,14 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	)
 	config.sort_players()
 	return config
+
+
+func _resolve_match_id(snapshot: RoomSnapshot, consume_match_id: bool) -> String:
+	# Dedicated-server assignment flow must preserve authoritative match_id from room snapshot.
+	var authoritative_match_id := String(snapshot.current_match_id).strip_edges()
+	if not authoritative_match_id.is_empty():
+		return authoritative_match_id
+	return _generate_match_id(snapshot) if consume_match_id else _peek_match_id(snapshot)
 
 
 func _build_spawn_assignments(player_slots: Array[Dictionary], map_metadata: Dictionary) -> Array[Dictionary]:
