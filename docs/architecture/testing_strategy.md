@@ -15,7 +15,6 @@ Define formal test authority for current codebase: layering, execution entrypoin
 
 ## Execution Entrypoints
 - Local validation entry: `scripts/validation/run_phase27_validation.ps1`.
-- `scripts/validation/run_phase26_validation.ps1` is retained as historical script and is not the current formal entry.
 - Proto generation: `scripts/proto/generate_proto.ps1` and `scripts/proto/generate_proto.sh`.
 - GUT suite entry: `tests/scripts/run_gut_suite.ps1`.
 - Cross-service contract suite: `tests/scripts/run_cross_service_contract_suite.ps1`.
