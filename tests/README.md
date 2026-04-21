@@ -10,8 +10,8 @@
 - `smoke/`：长链路冒烟验证。
 - `gut/base/`：项目测试基类, 包括 `QQTUnitTest`、`QQTIntegrationTest`、`QQTContractTest`、`QQTSmokeTest`。
 - `helpers/`：测试辅助脚本。
-- `reports/latest/`：当前解释权汇总报告。
-- `reports/raw/`：原始 XML 运行产物。
+- `reports/latest/`：运行期 latest 汇总报告目录（由脚本创建，可在 clean repo 缺失）。
+- `reports/raw/`：运行期原始 XML 产物目录（由脚本创建，可在 clean repo 缺失）。
 - `scripts/`：suite 脚本与统一 GUT wrapper。
 
 ## 维护规则
@@ -20,6 +20,7 @@
 - 新测试函数统一使用 `test_` 前缀。
 - 不允许再引入 `extends Node`、`_ready()`、`signal test_finished`、`TestAssert.is_true` 风格。
 - 正式业务代码不能反向依赖测试目录。
+- 不保留已退出正式 SUT 的 legacy Godot Room authority 历史测试壳。
 
 ## 统一入口
 - `tests/scripts/run_gut_suite.ps1`：统一 GUT CLI wrapper。

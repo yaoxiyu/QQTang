@@ -15,7 +15,9 @@ $repoRoot = if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
 }
 
 $reportDir = Join-Path $repoRoot 'tests\reports\latest'
+$rawReportDir = Join-Path $repoRoot 'tests\reports\raw'
 $null = New-Item -ItemType Directory -Path $reportDir -Force
+$null = New-Item -ItemType Directory -Path $rawReportDir -Force
 
 $startedAt = Get-Date
 $results = @()
@@ -30,7 +32,7 @@ function Invoke-Step {
         [string]$ReportHint = ''
     )
 
-    Write-Host ("==> [phase26_validation] {0}" -f $Name)
+    Write-Host ("==> [phase27_validation] {0}" -f $Name)
     $output = @()
     $exitCode = 0
     $status = 'PASS'
@@ -127,7 +129,7 @@ Invoke-Step -Name 'release_sanity' -Type 'python' -Action {
 
 $finishedAt = Get-Date
 $summary = [ordered]@{
-    suite_name = 'phase26_validation'
+    suite_name = 'phase27_validation'
     started_at = $startedAt.ToString('s')
     finished_at = $finishedAt.ToString('s')
     duration_seconds = [Math]::Round((New-TimeSpan -Start $startedAt -End $finishedAt).TotalSeconds, 3)
@@ -143,7 +145,7 @@ $summary = [ordered]@{
 }
 
 $textLines = @()
-$textLines += 'phase26_validation Summary'
+$textLines += 'phase27_validation Summary'
 $textLines += ('started_at: {0}' -f $summary.started_at)
 $textLines += ('finished_at: {0}' -f $summary.finished_at)
 $textLines += ('duration_seconds: {0}' -f $summary.duration_seconds)
@@ -162,19 +164,19 @@ if ($failed.Count -gt 0) {
     foreach ($name in $failed) { $textLines += ('  FAIL {0}' -f $name) }
 }
 $textLines += 'reports:'
-$textLines += '  tests/reports/latest/phase26_validation_latest.txt'
-$textLines += '  tests/reports/latest/phase26_validation_latest.json'
+$textLines += '  tests/reports/latest/phase27_validation_latest.txt'
+$textLines += '  tests/reports/latest/phase27_validation_latest.json'
 $textLines += '  tests/reports/latest/cross_service_contract_suite_latest.txt'
 $textLines += '  tests/reports/latest/cross_service_contract_suite_latest.json'
 
-$textPath = Join-Path $reportDir 'phase26_validation_latest.txt'
-$jsonPath = Join-Path $reportDir 'phase26_validation_latest.json'
+$textPath = Join-Path $reportDir 'phase27_validation_latest.txt'
+$jsonPath = Join-Path $reportDir 'phase27_validation_latest.json'
 
 $textLines | Set-Content -LiteralPath $textPath
 ($summary | ConvertTo-Json -Depth 8) | Set-Content -LiteralPath $jsonPath
 
 Write-Host ''
-Write-Host ('[phase26_validation] pass={0} fail={1} skip={2}' -f $summary.passed_count, $summary.failed_count, $summary.skipped_count)
+Write-Host ('[phase27_validation] pass={0} fail={1} skip={2}' -f $summary.passed_count, $summary.failed_count, $summary.skipped_count)
 Write-Host ('ReportTxt: {0}' -f $textPath)
 Write-Host ('ReportJson: {0}' -f $jsonPath)
 
