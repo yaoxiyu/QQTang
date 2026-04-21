@@ -48,6 +48,15 @@ Define runtime ownership and formal process entrypoints.
 
 ## Compatibility Rules
 - Legacy/compat runtime shells are removed.
+- Removed legacy/compat paths include:
+  - `gameplay/front/flow/`
+  - `gameplay/network/session/`
+  - `network/runtime/legacy/`
+  - `network/session/legacy/`
+  - `network/runtime/dedicated_server_bootstrap.gd`
+  - `network/session/runtime/server_room_runtime.gd`
+  - `network/session/runtime/server_room_runtime_compat_impl.gd`
+  - `network/session/runtime/legacy_room_runtime_bridge.gd`
 - Reintroduction of removed legacy/compat paths is forbidden.
 - New Room client/runtime logic must go to:
   - `network/runtime/room_client/`

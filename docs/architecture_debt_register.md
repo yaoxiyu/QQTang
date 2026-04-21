@@ -52,8 +52,8 @@
 - Planned phase: milestone-2026-q2-runtime-bridge
 - Done definition: legacy/compat paths removed, and contract tests block any reintroduction.
 - Owner: network-runtime
-- Last updated: 2026-04-20
-- Linked tests/docs: `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/canonical_path_contract_test.gd`
+- Last updated: 2026-04-21
+- Linked tests/docs: `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd`, `tests/contracts/path/canonical_path_contract_test.gd`
 
 ## DEBT-005 cross-service contract coverage gap
 - Risk level: P1
@@ -74,8 +74,8 @@
 - Planned phase: milestone-2026-q2-release
 - Done definition: release sanity, local validation, and CI workflow are formalized as official entrypoints; release sanity blocks legacy/compat regressions and dirty release artifacts.
 - Owner: build-and-release
-- Last updated: 2026-04-20
-- Linked tests/docs: `tools/release/release_sanity_check.py`, `scripts/validation/run_phase26_validation.ps1`, `.github/workflows/phase26_validate.yml`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`, `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`
+- Last updated: 2026-04-21
+- Linked tests/docs: `tools/release/release_sanity_check.py`, `scripts/validation/run_phase27_validation.ps1`, `.github/workflows/phase27_validate.yml`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`, `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd`
 
 ## DEBT-007 room protocol fake protobuf path
 - Risk level: P1

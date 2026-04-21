@@ -1,6 +1,6 @@
 # Current Source Of Truth (Index)
 
-Scope: current repository implementation after Phase26 control-plane closure and legacy/compat removal.
+Scope: current repository implementation after Phase27 directory governance and single-path convergence.
 Positioning: this file is index and governance only. Domain truth is in split architecture docs.
 
 ## 1. Global Rules

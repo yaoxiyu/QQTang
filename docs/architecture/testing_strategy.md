@@ -14,12 +14,13 @@ Define formal test authority for current codebase: layering, execution entrypoin
 - `services/*/.../*_test.go`: Go unit and integration tests for control plane and room authority.
 
 ## Execution Entrypoints
-- Local validation entry: `scripts/validation/run_phase26_validation.ps1`.
+- Local validation entry: `scripts/validation/run_phase27_validation.ps1`.
+- `scripts/validation/run_phase26_validation.ps1` is retained as historical script and is not the current formal entry.
 - Proto generation: `scripts/proto/generate_proto.ps1` and `scripts/proto/generate_proto.sh`.
 - GUT suite entry: `tests/scripts/run_gut_suite.ps1`.
 - Cross-service contract suite: `tests/scripts/run_cross_service_contract_suite.ps1`.
 - Release hygiene gate: `tools/release/release_sanity_check.py`.
-- CI entry: `.github/workflows/phase26_validate.yml`.
+- CI entry: `.github/workflows/phase27_validate.yml`.
 - Legacy custom `tests/cli` runner path is removed and forbidden.
 
 ## Constraints
@@ -36,6 +37,7 @@ Define formal test authority for current codebase: layering, execution entrypoin
 - `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`: block legacy runner references.
 - `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`: assert legacy/compat assets do not exist in repository.
 - `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`: assert legacy runtime bridge files do not exist.
+- `tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd`: block test-side reintroduction of removed room runtime paths.
 - `tests/contracts/runtime/room_client_runtime_no_json_path_contract_test.gd`: block JSON formal-path regression.
 - `tests/contracts/runtime/room_client_runtime_no_formal_transport_fallback_contract_test.gd`: block formal-path fallback regression.
 - Runtime boundary guards:
@@ -51,6 +53,8 @@ Define formal test authority for current codebase: layering, execution entrypoin
 - Legacy Godot Room authority test assets are removed and must not be reintroduced.
 
 ## Reporting Rules
+- `tests/reports/raw/` and `tests/reports/latest/` are runtime-generated report directories and may be absent in a clean repository.
+- Validation scripts must create required report directories at runtime.
 - Raw JUnit XML is runtime artifact only under `tests/reports/raw/`.
-- Formal evidence stays in `tests/reports/latest/*.txt` and `*.json`.
+- Human-readable/latest summaries are generated under `tests/reports/latest/*.txt` and `*.json` per validation run.
 - `.godot/`, raw XML, and local appdata artifacts must not be released.
