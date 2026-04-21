@@ -89,3 +89,6 @@ tests/csharp/**/obj/
 services/**/data/
 services/**/cache/
 services/**/tmp/
+
+# Generated C# proto metadata (recreated by Godot import, non-source-of-truth)
+network/client_net/generated/*.uid
