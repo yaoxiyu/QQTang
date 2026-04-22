@@ -273,7 +273,7 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 		return
 	_reconcile_enter_match_queue_pending(snapshot)
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
-	app_runtime.current_room_snapshot = snapshot.duplicate_deep() if snapshot != null else null
+	app_runtime.current_room_snapshot = app_runtime.room_session_controller.build_room_snapshot() if snapshot != null else null
 	if app_runtime.front_flow != null:
 		RoomPhaseToFrontFlowAdapterScript.apply(app_runtime.front_flow, snapshot)
 	_update_reconnect_state(snapshot)

@@ -60,4 +60,41 @@ func test_main() -> void:
 		"canonical battle_entry_ready should drive session lifecycle to MATCH_LOADING",
 		prefix
 	) and ok
+	roundtrip.room_phase = "in_battle"
+	roundtrip.battle_phase = "active"
+	roundtrip.match_active = true
+	controller.apply_authoritative_snapshot(roundtrip)
+	ok = qqt_check(
+		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_BATTLE,
+		"canonical in_battle should drive room flow to IN_BATTLE",
+		prefix
+	) and ok
+	roundtrip.room_phase = "idle"
+	roundtrip.battle_phase = "active"
+	roundtrip.match_active = false
+	controller.apply_authoritative_snapshot(roundtrip)
+	ok = qqt_check(
+		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_BATTLE,
+		"stale idle snapshot must not downgrade active battle room flow",
+		prefix
+	) and ok
+	ok = qqt_check(
+		int(controller.room_runtime_context.session_lifecycle_state) == SessionLifecycleStateScript.Value.MATCH_ACTIVE,
+		"stale idle snapshot must not downgrade active battle lifecycle",
+		prefix
+	) and ok
+	var preserved_snapshot := controller.build_room_snapshot()
+	ok = qqt_check(bool(preserved_snapshot.match_active), "preserved active battle snapshot should keep match_active", prefix) and ok
+	ok = qqt_check(String(preserved_snapshot.room_phase) == "in_battle", "preserved active battle snapshot should keep in_battle phase", prefix) and ok
+	roundtrip.room_phase = "returning_to_room"
+	roundtrip.battle_phase = "returning"
+	controller.apply_authoritative_snapshot(roundtrip)
+	roundtrip.room_phase = "idle"
+	roundtrip.battle_phase = "completed"
+	controller.apply_authoritative_snapshot(roundtrip)
+	ok = qqt_check(
+		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_ROOM,
+		"completed idle snapshot after returning should restore room flow",
+		prefix
+	) and ok
 	controller.queue_free()

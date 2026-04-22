@@ -11,6 +11,7 @@
   - `network_control_plane.md`
   - `content_pipeline.md`
   - `testing_strategy.md`
+  - `battle_handoff_projection_repair_plan.md`
 - `architecture_debt_register.md` 是正式架构债务台账（debt register）。
 - `map_theme_material_integration.md` 记录当前地图材质包的格式要求与接入流程。
 - `platform_auth/` 与 `platform_game/` 记录当前平台服务 API / 内部协议契约。

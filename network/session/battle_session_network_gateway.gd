@@ -4,12 +4,19 @@ extends RefCounted
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const BattleSessionBootstrapScript = preload("res://network/session/battle_session_bootstrap.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 var _adapter = null
 var _dedicated_match_started: bool = false
 var _dedicated_first_full_authority_received: bool = false
 var _logged_waiting_for_match_start: bool = false
 var _logged_waiting_for_authority_opening: bool = false
+var _dedicated_client_connect_retry_delays_sec: Array[float] = DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC.duplicate()
+var _dedicated_client_connect_retry_attempt: int = 0
+var _dedicated_client_connect_retry_deadline_msec: int = 0
+var _dedicated_client_connect_retry_host: String = ""
+var _dedicated_client_connect_retry_port: int = 0
+var _dedicated_client_connect_retry_timeout_sec: float = 5.0
 
 
 func configure(adapter) -> void:
@@ -136,6 +143,7 @@ func is_dedicated_authority_ready() -> bool:
 
 
 func _poll_client_transport() -> void:
+	_restart_dedicated_client_transport_if_due()
 	if _adapter.transport != null:
 		_adapter.transport.poll()
 		var incoming: Array = _adapter.transport.consume_incoming()
@@ -168,7 +176,7 @@ func inject_pending_resume_snapshot() -> void:
 	_inject_pending_resume_snapshot()
 
 
-func initialize_transport(debug_profile: Dictionary = {}) -> void:
+func initialize_transport(debug_profile: Dictionary = {}, preserve_retry_state: bool = false) -> void:
 	if _adapter == null:
 		return
 	shutdown_transport()
@@ -186,7 +194,15 @@ func initialize_transport(debug_profile: Dictionary = {}) -> void:
 		_adapter.network_max_clients,
 		debug_profile
 	)
+	if _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT:
+		transport_config["connect_timeout_seconds"] = float(debug_profile.get("connect_timeout_seconds", 5.0))
 	_adapter.transport.initialize(transport_config)
+	if not preserve_retry_state and _is_dedicated_client_transport_target():
+		_begin_dedicated_client_connect_retry_tracking(
+			String(transport_config.get("host", _adapter.network_host)),
+			int(transport_config.get("port", _adapter.network_port)),
+			float(transport_config.get("connect_timeout_seconds", 5.0))
+		)
 
 
 func shutdown_transport() -> void:
@@ -534,6 +550,7 @@ func _log_dedicated_input_deferred() -> void:
 
 
 func _on_transport_connected() -> void:
+	_reset_dedicated_client_connect_retry_tracking()
 	_adapter.network_transport_connected.emit()
 	if _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT and _adapter.transport != null and _adapter.start_config != null:
 		var transport_peer_id: int = _adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else 0
@@ -581,4 +598,98 @@ func _on_transport_peer_disconnected(peer_id: int) -> void:
 
 
 func _on_transport_error(code: int, message: String) -> void:
+	if _schedule_dedicated_client_connect_retry(code, message):
+		return
 	_adapter.network_transport_error.emit(code, message)
+
+
+func _begin_dedicated_client_connect_retry_tracking(host: String, port: int, connect_timeout_seconds: float) -> void:
+	_dedicated_client_connect_retry_attempt = 0
+	_dedicated_client_connect_retry_deadline_msec = 0
+	_dedicated_client_connect_retry_host = host
+	_dedicated_client_connect_retry_port = port
+	_dedicated_client_connect_retry_timeout_sec = max(connect_timeout_seconds, 0.5)
+
+
+func _reset_dedicated_client_connect_retry_tracking() -> void:
+	_dedicated_client_connect_retry_attempt = 0
+	_dedicated_client_connect_retry_deadline_msec = 0
+	_dedicated_client_connect_retry_host = ""
+	_dedicated_client_connect_retry_port = 0
+	_dedicated_client_connect_retry_timeout_sec = 5.0
+
+
+func _schedule_dedicated_client_connect_retry(code: int, message: String) -> bool:
+	if not _should_retry_dedicated_client_connect_error(code):
+		return false
+	if _dedicated_client_connect_retry_port <= 0 or _dedicated_client_connect_retry_host.is_empty():
+		return false
+	if _dedicated_client_connect_retry_attempt >= _dedicated_client_connect_retry_delays_sec.size():
+		_adapter.network_log_event.emit("battle_transport_retry_exhausted host=%s port=%d attempts=%d code=%d message=%s" % [
+			_dedicated_client_connect_retry_host,
+			_dedicated_client_connect_retry_port,
+			_dedicated_client_connect_retry_attempt,
+			code,
+			message,
+		])
+		return false
+	var delay_sec := float(_dedicated_client_connect_retry_delays_sec[_dedicated_client_connect_retry_attempt])
+	_dedicated_client_connect_retry_attempt += 1
+	_dedicated_client_connect_retry_deadline_msec = Time.get_ticks_msec() + int(max(delay_sec, 0.0) * 1000.0)
+	_adapter.network_log_event.emit("battle_transport_retry_scheduled host=%s port=%d attempt=%d max_attempts=%d delay=%.2f code=%d message=%s" % [
+		_dedicated_client_connect_retry_host,
+		_dedicated_client_connect_retry_port,
+		_dedicated_client_connect_retry_attempt,
+		_dedicated_client_connect_retry_delays_sec.size(),
+		delay_sec,
+		code,
+		message,
+	])
+	return true
+
+
+func _restart_dedicated_client_transport_if_due() -> void:
+	if _dedicated_client_connect_retry_deadline_msec <= 0:
+		return
+	if Time.get_ticks_msec() < _dedicated_client_connect_retry_deadline_msec:
+		return
+	_dedicated_client_connect_retry_deadline_msec = 0
+	if not _is_waiting_for_dedicated_opening():
+		return
+	if _adapter.transport != null and _adapter.transport.is_transport_connected():
+		_reset_dedicated_client_connect_retry_tracking()
+		return
+	_adapter.network_host = _dedicated_client_connect_retry_host
+	_adapter.network_port = _dedicated_client_connect_retry_port
+	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
+	_adapter.network_log_event.emit("battle_transport_retry_start host=%s port=%d attempt=%d timeout=%.2f" % [
+		_dedicated_client_connect_retry_host,
+		_dedicated_client_connect_retry_port,
+		_dedicated_client_connect_retry_attempt,
+		_dedicated_client_connect_retry_timeout_sec,
+	])
+	initialize_transport({
+		"connect_timeout_seconds": _dedicated_client_connect_retry_timeout_sec,
+	}, true)
+
+
+func _should_retry_dedicated_client_connect_error(code: int) -> bool:
+	if _adapter == null:
+		return false
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return false
+	if not _is_waiting_for_dedicated_opening():
+		return false
+	if _adapter.transport != null and _adapter.transport.is_transport_connected():
+		return false
+	return code == ERR_TIMEOUT or code == ERR_CANT_CONNECT
+
+
+func _is_dedicated_client_transport_target() -> bool:
+	if _adapter == null or _adapter.start_config == null:
+		return false
+	return _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT \
+		and String(_adapter.start_config.topology) == "dedicated_server" \
+		and String(_adapter.start_config.session_mode) == "network_client" \
+		and not String(_adapter.network_host).is_empty() \
+		and int(_adapter.network_port) > 0
