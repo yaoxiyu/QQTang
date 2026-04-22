@@ -84,6 +84,13 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.battle_server_port = room_session.battle_server_port
 	snapshot.room_return_policy = room_session.room_return_policy
 	snapshot.battle_entry_ready = room_session.battle_allocation_state == "battle_ready"
+	snapshot.can_toggle_ready = room_session.can_toggle_ready
+	snapshot.can_start_manual_battle = room_session.can_start_manual_battle
+	snapshot.can_update_selection = room_session.can_update_selection
+	snapshot.can_update_match_room_config = room_session.can_update_match_room_config
+	snapshot.can_enter_queue = room_session.can_enter_queue
+	snapshot.can_cancel_queue = room_session.can_cancel_queue
+	snapshot.can_leave_room = room_session.can_leave_room
 
 	var slot_map := room_session.build_peer_slots()
 	for peer_id in room_session.peers:
@@ -98,6 +105,7 @@ func build_room_snapshot() -> RoomSnapshot:
 		member.bubble_style_id = String(profile.get("bubble_style_id", ""))
 		member.bubble_skin_id = String(profile.get("bubble_skin_id", ""))
 		member.team_id = int(profile.get("team_id", member.slot_index + 1))
+		member.member_phase = String(profile.get("member_phase", "ready" if member.ready else "idle"))
 		member.is_owner = peer_id == owner_peer_id
 		member.is_local_player = peer_id == room_runtime_context.local_player_id
 		member.connection_state = "local" if member.is_local_player and room_session.topology == "local" else "connected"
@@ -389,6 +397,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"bubble_style_id": member.bubble_style_id,
 			"bubble_skin_id": member.bubble_skin_id,
 			"team_id": member.team_id,
+			"member_phase": member.member_phase,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
 	# LegacyMigration: For matchmade rooms with an assignment, the server overrides
@@ -420,6 +429,13 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.battle_server_port = snapshot.battle_server_port
 	room_session.room_return_policy = snapshot.room_return_policy
 	room_session.match_active = snapshot.match_active
+	room_session.can_toggle_ready = snapshot.can_toggle_ready
+	room_session.can_start_manual_battle = snapshot.can_start_manual_battle
+	room_session.can_update_selection = snapshot.can_update_selection
+	room_session.can_update_match_room_config = snapshot.can_update_match_room_config
+	room_session.can_enter_queue = snapshot.can_enter_queue
+	room_session.can_cancel_queue = snapshot.can_cancel_queue
+	room_session.can_leave_room = snapshot.can_leave_room
 	set_room_flow_state(_map_room_phase_to_room_flow_state(snapshot.room_phase), "authoritative_snapshot")
 	set_session_lifecycle_state(_map_room_phase_to_session_lifecycle_state(snapshot.room_phase), "authoritative_snapshot")
 	room_runtime_context.last_error = {}

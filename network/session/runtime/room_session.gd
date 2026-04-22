@@ -41,6 +41,13 @@ var battle_server_host: String = ""
 var battle_server_port: int = 0
 var room_return_policy: String = "return_to_source_room"
 var match_active: bool = false
+var can_toggle_ready: bool = false
+var can_start_manual_battle: bool = false
+var can_update_selection: bool = false
+var can_update_match_room_config: bool = false
+var can_enter_queue: bool = false
+var can_cancel_queue: bool = false
+var can_leave_room: bool = true
 
 
 func _init(p_room_id: String = "") -> void:

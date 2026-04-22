@@ -29,6 +29,10 @@ func test_main() -> void:
 	state.room_queue_entry_id = "party_queue_alpha"
 	state.room_queue_status_text = "Queueing"
 	var roundtrip := RoomSnapshotScript.from_dict(state.build_snapshot().to_dict())
+	roundtrip.can_toggle_ready = true
+	roundtrip.can_update_match_room_config = true
+	roundtrip.can_enter_queue = false
+	roundtrip.members[0].member_phase = "idle"
 	ok = qqt_check(String(roundtrip.queue_type) == "ranked", "snapshot should preserve queue type", prefix) and ok
 	ok = qqt_check(String(roundtrip.match_format_id) == "2v2", "snapshot should preserve match format", prefix) and ok
 	ok = qqt_check(roundtrip.selected_match_mode_ids == ["mode_classic"], "snapshot should preserve selected mode pool", prefix) and ok
@@ -37,6 +41,11 @@ func test_main() -> void:
 	var controller := RoomSessionControllerScript.new()
 	add_child(controller)
 	controller.apply_authoritative_snapshot(roundtrip)
+	var rebuilt_snapshot := controller.build_room_snapshot()
+	ok = qqt_check(rebuilt_snapshot.can_toggle_ready, "rebuilt snapshot should preserve can_toggle_ready", prefix) and ok
+	ok = qqt_check(rebuilt_snapshot.can_update_match_room_config, "rebuilt snapshot should preserve can_update_match_room_config", prefix) and ok
+	ok = qqt_check(not rebuilt_snapshot.can_enter_queue, "rebuilt snapshot should preserve can_enter_queue=false", prefix) and ok
+	ok = qqt_check(String(rebuilt_snapshot.members[0].member_phase) == "idle", "rebuilt snapshot should preserve member_phase", prefix) and ok
 	ok = qqt_check(String(controller.room_runtime_context.room_queue_state) == "queueing", "runtime context should receive queue state", prefix) and ok
 	ok = qqt_check(String(controller.room_runtime_context.match_format_id) == "2v2", "runtime context should receive match format", prefix) and ok
 	roundtrip.room_phase = "battle_entry_ready"
@@ -52,4 +61,3 @@ func test_main() -> void:
 		prefix
 	) and ok
 	controller.queue_free()
-

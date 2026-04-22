@@ -6,7 +6,7 @@ const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.g
 
 
 class FakeFrontFlow:
-	extends Node
+	extends Control
 	var state: int = FrontFlowControllerScript.FlowState.ROOM
 
 	func is_in_state(target_state: int) -> bool:
