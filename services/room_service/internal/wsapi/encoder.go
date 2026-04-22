@@ -69,6 +69,16 @@ func EncodeBattleEntryReadyPush(conn *Connection, requestID string, handoff doma
 	})
 }
 
+func EncodeBattleEntryReadyPushFromSnapshot(conn *Connection, requestID string, snapshot *roomapp.SnapshotProjection) []byte {
+	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
+		Payload: &roomv1.ServerEnvelope_BattleEntryReadyPush{
+			BattleEntryReadyPush: &roomv1.BattleEntryReadyPush{
+				BattleEntry: encodeBattleEntryFromSnapshot(snapshot),
+			},
+		},
+	})
+}
+
 func EncodeServerNotice(conn *Connection, requestID, level, code, message string) []byte {
 	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
 		Payload: &roomv1.ServerEnvelope_ServerNotice{

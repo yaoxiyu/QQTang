@@ -454,6 +454,15 @@ func (s *Service) UpdateSelection(input UpdateSelectionInput) (*SnapshotProjecti
 	if _, ok := room.Members[input.MemberID]; !ok {
 		return nil, ErrMemberNotFound
 	}
+	if !isManualRoomKind(room.RoomKind) {
+		return nil, ErrManualRoomOnly
+	}
+	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
+		return nil, ErrNotRoomOwner
+	}
+	if room.RoomState.Phase != RoomPhaseIdle {
+		return nil, ErrRoomPhaseInvalid
+	}
 	roomKind := room.RoomKind
 	if roomKind == "" {
 		roomKind = "private_room"
@@ -491,6 +500,9 @@ func (s *Service) UpdateMatchRoomConfig(input UpdateMatchRoomConfigInput) (*Snap
 	}
 	if ownerID := s.roomOwnerByID[input.RoomID]; ownerID != input.MemberID {
 		return nil, ErrNotRoomOwner
+	}
+	if room.RoomState.Phase != RoomPhaseIdle {
+		return nil, ErrRoomPhaseInvalid
 	}
 
 	selectedModeIDs := append([]string{}, input.SelectedModeIDs...)
@@ -729,13 +741,16 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
 	}
 
-	room.BattleState.AssignmentID = result.AssignmentID
-	room.BattleState.MatchID = result.MatchID
-	room.BattleState.BattleID = result.BattleID
-	room.BattleState.ServerHost = result.ServerHost
-	room.BattleState.ServerPort = result.ServerPort
-	room.BattleState.TerminalReason = BattleReasonManualStart
-	roomTransitionEngine.ApplyBattleAllocated(room, s.roomOwnerByID[input.RoomID], BattlePhaseReady, true)
+	roomTransitionEngine.ApplyBattleHandoffUpdated(room, s.roomOwnerByID[input.RoomID], BattleHandoffUpdate{
+		AssignmentID:   result.AssignmentID,
+		MatchID:        result.MatchID,
+		BattleID:       result.BattleID,
+		ServerHost:     result.ServerHost,
+		ServerPort:     result.ServerPort,
+		Phase:          BattlePhaseReady,
+		TerminalReason: BattleReasonManualStart,
+		Ready:          true,
+	})
 	return s.snapshotProjectionLocked(room), nil
 }
 

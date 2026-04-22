@@ -107,6 +107,40 @@ func TestEnterPartyQueueRejectsPartySizeMismatch(t *testing.T) {
 	}
 }
 
+func TestEnterPartyQueueIsIdempotentForActiveRoom(t *testing.T) {
+	db := newFakeQueueDB()
+	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	service.ConfigurePartyQueueRepositories(storage.NewPartyQueueRepository(db), storage.NewPartyQueueMemberRepository(db))
+
+	input := EnterPartyQueueInput{
+		PartyRoomID:     "room_1",
+		QueueType:       "casual",
+		MatchFormatID:   "1v1",
+		SelectedModeIDs: []string{"mode_classic"},
+		Members: []PartyQueueMemberInput{
+			{AccountID: "account_1", ProfileID: "profile_1"},
+		},
+	}
+
+	first, err := service.EnterPartyQueue(t.Context(), input)
+	if err != nil {
+		t.Fatalf("first EnterPartyQueue returned error: %v", err)
+	}
+	second, err := service.EnterPartyQueue(t.Context(), input)
+	if err != nil {
+		t.Fatalf("second EnterPartyQueue should return active queue status, got error: %v", err)
+	}
+	if second.QueueEntryID == "" || second.QueueEntryID != first.QueueEntryID {
+		t.Fatalf("expected retry to return same queue entry id, first=%s second=%s", first.QueueEntryID, second.QueueEntryID)
+	}
+	if second.QueuePhase != QueuePhaseQueued || second.QueueState != "queued" {
+		t.Fatalf("expected queued idempotent status, got phase=%s state=%s", second.QueuePhase, second.QueueState)
+	}
+	if len(db.partyEntriesByID) != 1 {
+		t.Fatalf("expected one party queue entry after retry, got %d", len(db.partyEntriesByID))
+	}
+}
+
 func TestBuildPartyQueuedStatusUsesCanonicalPhaseAndAlias(t *testing.T) {
 	service := NewService(nil, nil, nil, 30*time.Second)
 	entry := storage.PartyQueueEntry{

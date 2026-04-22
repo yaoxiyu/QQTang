@@ -29,6 +29,14 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 	runtime.front_flow.on_loading_completed()
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "front flow enters battle state after loading completes")
 
+	var stale_idle_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
+	stale_idle_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
+	stale_idle_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	stale_idle_snapshot.room_phase = "idle"
+	stale_idle_snapshot.battle_phase = "active"
+	runtime.room_use_case.on_authoritative_snapshot(stale_idle_snapshot)
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "idle room snapshot must not reopen room over active battle")
+
 	var returning_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
 	returning_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
 	returning_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM

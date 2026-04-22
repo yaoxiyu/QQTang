@@ -177,6 +177,27 @@ func TestEncodeDirectoryBattleNoticePushes(t *testing.T) {
 	if battleEnv.GetBattleEntryReadyPush() == nil {
 		t.Fatalf("expected battle_entry_ready_push payload")
 	}
+	canonicalBattleWire := EncodeBattleEntryReadyPushFromSnapshot(conn, "req-battle-2", &roomapp.SnapshotProjection{
+		BattlePhase:          "ready",
+		BattleTerminalReason: "manual_start",
+		BattleStatusText:     "Battle ready",
+		BattleHandoff: domain.BattleHandoff{
+			AssignmentID: "assignment-2",
+			BattleID:     "battle-2",
+			MatchID:      "match-2",
+			ServerHost:   "127.0.0.1",
+			ServerPort:   9201,
+			Ready:        true,
+		},
+	})
+	var canonicalBattleEnv roomv1.ServerEnvelope
+	if err := proto.Unmarshal(canonicalBattleWire, &canonicalBattleEnv); err != nil {
+		t.Fatalf("unmarshal canonical battle envelope: %v", err)
+	}
+	canonicalBattleEntry := canonicalBattleEnv.GetBattleEntryReadyPush().GetBattleEntry()
+	if canonicalBattleEntry.GetPhase() != "ready" || canonicalBattleEntry.GetTerminalReason() != "manual_start" {
+		t.Fatalf("expected canonical battle phase/reason, got phase=%s reason=%s", canonicalBattleEntry.GetPhase(), canonicalBattleEntry.GetTerminalReason())
+	}
 
 	noticeWire := EncodeServerNotice(conn, "req-notice-1", "info", "ROOM_NOTICE", "ok")
 	var noticeEnv roomv1.ServerEnvelope

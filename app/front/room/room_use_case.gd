@@ -23,6 +23,8 @@ var _connection_orchestrator: RefCounted = RoomConnectionOrchestratorScript.new(
 var _pending_online_entry_context: RoomEntryContext = null
 var _pending_connection_config: ClientConnectionConfig = null
 var _await_room_before_enter: bool = false
+var _enter_match_queue_pending: bool = false
+var _enter_match_queue_pending_room_id: String = ""
 
 func configure(p_app_runtime: Node) -> void:
 	app_runtime = p_app_runtime
@@ -43,6 +45,7 @@ func dispose() -> void:
 		room_client_gateway.unbind_runtime()
 	room_client_gateway = null
 	app_runtime = null
+	_clear_enter_match_queue_pending("dispose")
 	_clear_pending_online_entry_state()
 
 
@@ -95,6 +98,7 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 func leave_room() -> Dictionary:
 	if app_runtime == null:
 		return _fail("APP_RUNTIME_MISSING", "App runtime is not configured")
+	_clear_enter_match_queue_pending("leave_room")
 	# matchmade_room no longer forces lobby return; room_return_policy governs this.
 	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
 		var return_policy := ""
@@ -219,6 +223,8 @@ func enter_match_queue() -> Dictionary:
 		"is_online_room": RoomUseCaseRuntimeStateScript.is_online_room(app_runtime),
 		"has_gateway": room_client_gateway != null,
 		"has_method": room_client_gateway.has_method("request_enter_match_queue") if room_client_gateway != null else false,
+		"pending": _enter_match_queue_pending,
+		"pending_room_id": _enter_match_queue_pending_room_id,
 	})
 	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return _fail("NOT_MATCH_ROOM", "Queue can only be entered from match rooms")
@@ -226,6 +232,12 @@ func enter_match_queue() -> Dictionary:
 		return _fail("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_enter_match_queue"):
 		return _fail("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	if _enter_match_queue_pending:
+		_log_room("enter_match_queue_duplicate_ignored", {
+			"pending_room_id": _enter_match_queue_pending_room_id,
+		})
+		return {"ok": true, "error_code": "", "user_message": "Entering match queue...", "pending": true}
+	_mark_enter_match_queue_pending()
 	_log_room("enter_match_queue_sending", {})
 	room_client_gateway.request_enter_match_queue()
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
@@ -259,6 +271,7 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	_sync_pending_state_from_orchestrator()
 	if app_runtime.current_room_entry_context == null and _pending_online_entry_context == null:
 		return
+	_reconcile_enter_match_queue_pending(snapshot)
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = snapshot.duplicate_deep() if snapshot != null else null
 	if app_runtime.front_flow != null:
@@ -472,6 +485,7 @@ func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: Matc
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 	_sync_pending_state_from_orchestrator()
+	_clear_enter_match_queue_pending("room_error:%s" % error_code)
 	_log_room_anomaly("gateway_room_error", {
 		"error_code": error_code,
 		"user_message": user_message,
@@ -531,6 +545,63 @@ func _on_pending_connection_timeout(timeout_sec: float) -> void:
 func _clear_pending_online_entry_state() -> void:
 	_connection_orchestrator.clear_pending_connection()
 	_sync_pending_state_from_orchestrator()
+
+
+func _mark_enter_match_queue_pending() -> void:
+	_enter_match_queue_pending = true
+	_enter_match_queue_pending_room_id = _current_room_id()
+	_log_room("enter_match_queue_pending_marked", {
+		"room_id": _enter_match_queue_pending_room_id,
+	})
+
+
+func _clear_enter_match_queue_pending(reason: String) -> void:
+	if not _enter_match_queue_pending and _enter_match_queue_pending_room_id.is_empty():
+		return
+	_log_room("enter_match_queue_pending_cleared", {
+		"reason": reason,
+		"room_id": _enter_match_queue_pending_room_id,
+	})
+	_enter_match_queue_pending = false
+	_enter_match_queue_pending_room_id = ""
+
+
+func _reconcile_enter_match_queue_pending(snapshot: RoomSnapshot) -> void:
+	if not _enter_match_queue_pending or snapshot == null:
+		return
+	var snapshot_room_id := String(snapshot.room_id)
+	if not _enter_match_queue_pending_room_id.is_empty() and not snapshot_room_id.is_empty() and snapshot_room_id != _enter_match_queue_pending_room_id:
+		_clear_enter_match_queue_pending("room_changed")
+		return
+	if _is_queue_enter_acknowledged(snapshot):
+		_clear_enter_match_queue_pending("queue_state_acknowledged")
+
+
+func _is_queue_enter_acknowledged(snapshot: RoomSnapshot) -> bool:
+	if snapshot == null:
+		return false
+	var active_states := [
+		"queued",
+		"assignment_pending",
+		"allocating_battle",
+		"entry_ready",
+	]
+	var queue_phase := String(snapshot.queue_phase)
+	var room_queue_state := String(snapshot.room_queue_state)
+	if active_states.has(queue_phase) or active_states.has(room_queue_state):
+		return true
+	if bool(snapshot.can_cancel_queue):
+		return true
+	var room_phase := String(snapshot.room_phase)
+	return not room_phase.is_empty() and room_phase != "idle"
+
+
+func _current_room_id() -> String:
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		return String(app_runtime.current_room_snapshot.room_id)
+	if app_runtime != null and app_runtime.current_room_entry_context != null:
+		return String(app_runtime.current_room_entry_context.target_room_id)
+	return ""
 
 
 func _sync_pending_state_from_orchestrator() -> void:

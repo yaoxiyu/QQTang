@@ -66,6 +66,7 @@ func start_match(config: BattleStartConfig) -> bool:
 	var controlled_slot := _resolve_controlled_slot(start_config)
 	predicted_world.state.runtime_flags.client_prediction_mode = true
 	predicted_world.state.runtime_flags.client_controlled_player_slot = controlled_slot
+	predicted_world.state.runtime_flags.suppress_authority_entity_side_effects = _should_suppress_authority_only_entity_prediction()
 	prediction_controller.configure(
 		predicted_world,
 		snapshot_service,

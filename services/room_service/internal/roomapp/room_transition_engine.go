@@ -95,6 +95,18 @@ type QueueProjectionUpdate struct {
 	ServerPort          int
 }
 
+type BattleHandoffUpdate struct {
+	AssignmentID   string
+	MatchID        string
+	BattleID       string
+	ServerHost     string
+	ServerPort     int
+	Phase          string
+	TerminalReason string
+	Ready          bool
+	StatusText     string
+}
+
 func (RoomTransitionEngine) ApplyQueueProjection(room *domain.RoomAggregate, ownerMemberID string, update QueueProjectionUpdate) bool {
 	if room == nil {
 		return false
@@ -266,20 +278,37 @@ func (RoomTransitionEngine) ApplyManualBattleAllocationFailed(room *domain.RoomA
 	finalizeRoomTransition(room, ownerMemberID)
 }
 
-func (RoomTransitionEngine) ApplyBattleAllocated(room *domain.RoomAggregate, ownerMemberID, battlePhase string, ready bool) {
+func (e RoomTransitionEngine) ApplyBattleAllocated(room *domain.RoomAggregate, ownerMemberID, battlePhase string, ready bool) {
+	e.ApplyBattleHandoffUpdated(room, ownerMemberID, BattleHandoffUpdate{
+		Phase: battlePhase,
+		Ready: ready,
+	})
+}
+
+func (RoomTransitionEngine) ApplyBattleHandoffUpdated(room *domain.RoomAggregate, ownerMemberID string, update BattleHandoffUpdate) {
 	if room == nil {
 		return
 	}
+	battlePhase := update.Phase
 	if battlePhase == "" {
-		if ready {
+		if update.Ready {
 			battlePhase = BattlePhaseReady
 		} else {
 			battlePhase = BattlePhaseAllocating
 		}
 	}
+	room.BattleState.AssignmentID = update.AssignmentID
+	room.BattleState.MatchID = update.MatchID
+	room.BattleState.BattleID = update.BattleID
+	room.BattleState.ServerHost = update.ServerHost
+	room.BattleState.ServerPort = update.ServerPort
 	room.BattleState.Phase = battlePhase
-	room.BattleState.Ready = ready
-	if ready {
+	room.BattleState.Ready = update.Ready
+	if update.TerminalReason != "" {
+		room.BattleState.TerminalReason = update.TerminalReason
+	}
+	room.BattleState.StatusText = update.StatusText
+	if update.Ready {
 		room.RoomState.Phase = RoomPhaseBattleEntryReady
 	} else {
 		room.RoomState.Phase = RoomPhaseBattleAllocating

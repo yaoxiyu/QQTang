@@ -44,7 +44,8 @@ func initialize_battle_context(
 	battle_hud: Node,
 	battle_camera_controller: Node,
 	map_theme_environment_controller: Node,
-	map_root: Node
+	map_root: Node,
+	reveal_initial_frame: bool = true
 ) -> void:
 	if battle_context == null:
 		return
@@ -64,20 +65,21 @@ func initialize_battle_context(
 	apply_content_style_overrides(app_runtime, presentation_bridge)
 	apply_player_visual_profiles(app_runtime, presentation_bridge)
 	apply_map_theme(app_runtime, presentation_bridge, map_theme_environment_controller, map_root)
-	presentation_bridge.consume_tick_result({}, battle_context.sim_world, [])
 	var local_player_entity_id := resolve_local_player_entity_id(app_runtime, battle_context)
 	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
 	battle_hud.set_local_player_entity_id(local_player_entity_id)
 	apply_battle_metadata(app_runtime, battle_context, battle_hud, null, null, null, null, null, null)
-	battle_hud.consume_battle_state(battle_context.sim_world)
-	if session_adapter != null:
-		battle_hud.consume_network_metrics(session_adapter.build_runtime_metrics_snapshot())
-	battle_hud.match_message_panel.apply_message(
-		"J Latency  K Loss  L ForceRollback  I DropRate %d%%  O RemoteDebug %s" % [
-			ItemSpawnSystemScript.get_debug_drop_rate_percent(),
-			"On" if session_adapter != null and session_adapter.use_remote_debug_inputs else "Off"
-		]
-	)
+	if reveal_initial_frame:
+		presentation_bridge.consume_tick_result({}, battle_context.sim_world, [])
+		battle_hud.consume_battle_state(battle_context.sim_world)
+		if session_adapter != null:
+			battle_hud.consume_network_metrics(session_adapter.build_runtime_metrics_snapshot())
+		battle_hud.match_message_panel.apply_message(
+			"J Latency  K Loss  L ForceRollback  I DropRate %d%%  O RemoteDebug %s" % [
+				ItemSpawnSystemScript.get_debug_drop_rate_percent(),
+				"On" if session_adapter != null and session_adapter.use_remote_debug_inputs else "Off"
+			]
+		)
 
 
 func apply_battle_metadata(

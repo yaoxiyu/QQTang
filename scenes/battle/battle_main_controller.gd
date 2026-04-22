@@ -28,6 +28,8 @@ const SETTLEMENT_SYNC_RETRY_DELAYS_SEC: Array[float] = [1.0, 2.0, 4.0, 4.0, 4.0]
 @onready var settlement_controller: SettlementController = $CanvasLayer/SettlementPopupAnchor/SettlementController
 @onready var battle_camera_controller: BattleCameraController = $BattleCameraController
 @onready var map_theme_environment_controller: MapThemeEnvironmentController = $MapThemeEnvironmentController
+@onready var world_root: Node2D = $WorldRoot
+@onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var map_root: BattleMapViewController = $WorldRoot/MapRoot
 
 var _app_runtime: Node = null
@@ -49,9 +51,11 @@ var _pressed_direction_stack: Array[String] = []
 var _last_place_pressed: bool = false
 var _place_action_latched: bool = false
 var _runtime_bound: bool = false
+var _battle_visuals_released: bool = false
 
 
 func _ready() -> void:
+	_set_battle_visuals_available(false)
 	call_deferred("_bind_runtime")
 
 
@@ -66,6 +70,10 @@ func _process(delta: float) -> void:
 			_show_pending_settlement()
 		return
 	if _session_adapter == null or _battle_context == null or _finished:
+		return
+	if _requires_dedicated_authority_opening() and not _battle_visuals_released:
+		if _session_adapter.has_method("poll_dedicated_client_transport"):
+			_session_adapter.poll_dedicated_client_transport()
 		return
 
 	_tick_accumulator += delta
@@ -127,6 +135,8 @@ func _exit_tree() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _shutting_down:
+		return
+	if _requires_dedicated_authority_opening() and not _battle_visuals_released:
 		return
 	if event.is_action_pressed("ui_accept") and settlement_controller.visible:
 		settlement_controller.request_return_to_room()
@@ -203,15 +213,55 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		battle_hud,
 		battle_camera_controller,
 		map_theme_environment_controller,
-		map_root
+		map_root,
+		not _requires_dedicated_authority_opening()
 	)
+	_battle_visuals_released = not _requires_dedicated_authority_opening()
+	_set_battle_visuals_available(_battle_visuals_released)
 	call_deferred("_apply_battle_metadata")
 	# LegacyMigration: Consume resume payload if present
 	if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
 		battle_hud.match_message_panel.apply_message("Resumed active match")
 
 
+func _requires_dedicated_authority_opening() -> bool:
+	var config: BattleStartConfig = null
+	if _battle_context != null and _battle_context.battle_start_config != null:
+		config = _battle_context.battle_start_config
+	elif _app_runtime != null and _app_runtime.current_start_config != null:
+		config = _app_runtime.current_start_config
+	if config == null:
+		return false
+	return String(config.topology) == "dedicated_server" and String(config.session_mode) == "network_client"
+
+
+func _release_dedicated_authority_opening() -> void:
+	_battle_visuals_released = true
+	_tick_accumulator = 0.0
+	_pressed_direction_stack.clear()
+	_last_place_pressed = false
+	_place_action_latched = false
+	_set_battle_visuals_available(true)
+	LogFrontScript.debug(
+		"%s[battle_scene] dedicated_authority_opening_released" % ONLINE_LOG_PREFIX,
+		"",
+		0,
+		"front.battle.scene"
+	)
+
+
+func _set_battle_visuals_available(available: bool) -> void:
+	if world_root != null:
+		world_root.visible = available
+	if canvas_layer != null:
+		canvas_layer.visible = available
+
+
 func _on_authoritative_tick_completed(context: BattleContext, tick_result: Dictionary, metrics: Dictionary) -> void:
+	if _requires_dedicated_authority_opening() and not _battle_visuals_released:
+		if _session_adapter == null or not _session_adapter.has_method("is_dedicated_authority_ready") or not _session_adapter.is_dedicated_authority_ready():
+			return
+		_release_dedicated_authority_opening()
 	_battle_flow_coordinator.consume_authoritative_tick(_app_runtime, context, presentation_bridge, battle_hud, tick_result, metrics)
 	_consume_battle_events(tick_result.get("events", []))
 
@@ -245,6 +295,8 @@ func _on_battle_session_stopped() -> void:
 	_pending_settlement_result = null
 	_settlement_delay_remaining = 0.0
 	_shutting_down = false
+	_battle_visuals_released = false
+	_set_battle_visuals_available(false)
 
 
 func _on_transport_runtime_error(code: int, message: String) -> void:

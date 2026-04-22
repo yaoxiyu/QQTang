@@ -35,3 +35,35 @@ func TestUpdateMatchRoomConfig(t *testing.T) {
 		t.Fatalf("selected_mode_ids not applied: %#v", updated.Selection.SelectedModeIDs)
 	}
 }
+
+func TestUpdateMatchRoomConfigRejectsNonIdleRoomPhase(t *testing.T) {
+	svc := newTestService(t)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "casual_match_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2", SelectedModeIDs: []string{"mode_classic"}},
+	})
+	if err != nil {
+		t.Fatalf("create match room failed: %v", err)
+	}
+
+	svc.mu.Lock()
+	room := svc.roomsByID[created.RoomID]
+	roomTransitionEngine.ApplyQueueAccepted(room, created.OwnerMemberID, QueuePhaseQueued, QueueReasonNone, "queueing", "queue-1", "", "")
+	svc.mu.Unlock()
+
+	_, err = svc.UpdateMatchRoomConfig(UpdateMatchRoomConfigInput{
+		RoomID:          created.RoomID,
+		MemberID:        created.OwnerMemberID,
+		MatchFormatID:   "2v2",
+		SelectedModeIDs: []string{"mode_classic"},
+	})
+	if err != ErrRoomPhaseInvalid {
+		t.Fatalf("expected ErrRoomPhaseInvalid, got %v", err)
+	}
+}

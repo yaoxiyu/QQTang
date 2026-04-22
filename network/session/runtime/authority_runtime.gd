@@ -112,6 +112,12 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionar
 	return outgoing
 
 
+func poll_opening_messages() -> Array[Dictionary]:
+	if server_session == null:
+		return []
+	return _decorate_messages(server_session.poll_messages())
+
+
 func is_match_running() -> bool:
 	return server_session != null and server_session.active_match != null and not _finished
 

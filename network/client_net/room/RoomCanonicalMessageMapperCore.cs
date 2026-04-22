@@ -90,6 +90,9 @@ public sealed class RoomCanonicalMessageMapperCore
             { "battle_server_host", battleEntry?.ServerHost ?? string.Empty },
             { "battle_server_port", battleEntry?.ServerPort ?? 0 },
             { "battle_entry_ready", battleEntry?.BattleEntryReady ?? false },
+            { "battle_phase", battleEntry?.Phase ?? string.Empty },
+            { "battle_terminal_reason", battleEntry?.TerminalReason ?? string.Empty },
+            { "battle_status_text", battleEntry?.StatusText ?? string.Empty },
         };
     }
 

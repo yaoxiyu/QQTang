@@ -57,6 +57,8 @@ func _process_player_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
 
 
 func _process_item_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
+	if _should_suppress_authority_entity_side_effects(ctx):
+		return
 	var item: ItemState = ctx.state.items.get_item(hit_entry.target_entity_id)
 	if item == null or not item.alive:
 		return
@@ -92,3 +94,9 @@ func _resolve_transform_item_type(hit_entry: ExplosionHitEntry, reaction_result:
 	if hit_entry.target_aux_data.has("transform_item_type"):
 		return int(hit_entry.target_aux_data.get("transform_item_type", -1))
 	return int(reaction_result.get("transform_item_type", -1))
+
+
+func _should_suppress_authority_entity_side_effects(ctx: SimContext) -> bool:
+	if ctx == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	return bool(ctx.state.runtime_flags.suppress_authority_entity_side_effects)

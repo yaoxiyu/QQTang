@@ -69,6 +69,9 @@ public class RoomCanonicalMessageMapperTests
                     ServerHost = "127.0.0.1",
                     ServerPort = 19090,
                     BattleEntryReady = true,
+                    Phase = "ready",
+                    TerminalReason = "manual_start",
+                    StatusText = "Battle ready",
                 },
             },
         });
@@ -87,5 +90,8 @@ public class RoomCanonicalMessageMapperTests
         Assert.Equal("ROOM_MATCH_ASSIGNMENT_READY", battleResult["message_type"]);
         Assert.Equal("assign_1", battleResult["assignment_id"]);
         Assert.Equal(true, battleResult["battle_entry_ready"]);
+        Assert.Equal("ready", battleResult["battle_phase"]);
+        Assert.Equal("manual_start", battleResult["battle_terminal_reason"]);
+        Assert.Equal("Battle ready", battleResult["battle_status_text"]);
     }
 }

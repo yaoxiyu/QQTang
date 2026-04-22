@@ -29,6 +29,12 @@ static func apply(front_flow: Node, snapshot: RoomSnapshot) -> void:
 static func _enter_room(front_flow: Node) -> void:
 	if front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM):
 		return
+	if front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
+		return
+	if front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE):
+		return
+	if front_flow.is_in_state(FrontFlowControllerScript.FlowState.SETTLEMENT):
+		return
 	if front_flow.has_method("enter_room"):
 		front_flow.enter_room()
 

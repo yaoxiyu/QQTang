@@ -96,6 +96,7 @@ func commit_prepared_match(config: BattleStartConfig) -> Dictionary:
 	_active = true
 	_tick_accumulator = 0.0
 	canonical_config_ready.emit(_current_config)
+	_broadcast_opening_authority_state()
 	return {
 		"ok": true,
 		"config": _current_config,
@@ -170,6 +171,17 @@ func build_resume_checkpoint_message() -> Dictionary:
 		"rng_state": snapshot.rng_state,
 		"checksum": snapshot.checksum,
 	}
+
+
+func _broadcast_opening_authority_state() -> void:
+	if _authority_runtime == null:
+		return
+	if _authority_runtime.has_method("poll_opening_messages"):
+		for message in _authority_runtime.poll_opening_messages():
+			broadcast_message.emit(message)
+	var checkpoint := build_resume_checkpoint_message()
+	if not checkpoint.is_empty():
+		broadcast_message.emit(checkpoint)
 
 
 func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:

@@ -7,6 +7,8 @@ func get_name() -> StringName:
 	return "ItemPickupSystem"
 
 func execute(ctx: SimContext) -> void:
+	if _should_suppress_authority_entity_side_effects(ctx):
+		return
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
@@ -76,3 +78,9 @@ func _apply_legacy_item_effect(player, item_type: int) -> void:
 			player.speed_level = min(player.speed_level + 1, 3)
 		_:
 			pass
+
+
+func _should_suppress_authority_entity_side_effects(ctx: SimContext) -> bool:
+	if ctx == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	return bool(ctx.state.runtime_flags.suppress_authority_entity_side_effects)

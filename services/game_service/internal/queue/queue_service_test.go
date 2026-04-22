@@ -33,23 +33,68 @@ func (r fakeQueueRow) Scan(dest ...any) error {
 }
 
 type fakeQueueDB struct {
-	entriesByProfile map[string]storage.QueueEntry
-	entriesByID      map[string]storage.QueueEntry
-	assignmentsByID  map[string]storage.Assignment
-	membersByKey     map[string]storage.AssignmentMember
+	entriesByProfile    map[string]storage.QueueEntry
+	entriesByID         map[string]storage.QueueEntry
+	partyEntriesByRoom  map[string]storage.PartyQueueEntry
+	partyEntriesByID    map[string]storage.PartyQueueEntry
+	partyMembersByEntry map[string][]storage.PartyQueueMember
+	assignmentsByID     map[string]storage.Assignment
+	membersByKey        map[string]storage.AssignmentMember
 }
 
 func newFakeQueueDB() *fakeQueueDB {
 	return &fakeQueueDB{
-		entriesByProfile: map[string]storage.QueueEntry{},
-		entriesByID:      map[string]storage.QueueEntry{},
-		assignmentsByID:  map[string]storage.Assignment{},
-		membersByKey:     map[string]storage.AssignmentMember{},
+		entriesByProfile:    map[string]storage.QueueEntry{},
+		entriesByID:         map[string]storage.QueueEntry{},
+		partyEntriesByRoom:  map[string]storage.PartyQueueEntry{},
+		partyEntriesByID:    map[string]storage.PartyQueueEntry{},
+		partyMembersByEntry: map[string][]storage.PartyQueueMember{},
+		assignmentsByID:     map[string]storage.Assignment{},
+		membersByKey:        map[string]storage.AssignmentMember{},
 	}
 }
 
 func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
 	switch {
+	case strings.Contains(sql, "INSERT INTO matchmaking_party_queue_entries"):
+		entry := storage.PartyQueueEntry{
+			PartyQueueEntryID:    arguments[0].(string),
+			PartyRoomID:          arguments[1].(string),
+			QueueType:            arguments[2].(string),
+			MatchFormatID:        arguments[3].(string),
+			PartySize:            arguments[4].(int),
+			CaptainAccountID:     arguments[5].(string),
+			CaptainProfileID:     arguments[6].(string),
+			QueueKey:             arguments[8].(string),
+			State:                arguments[9].(string),
+			AssignmentID:         arguments[10].(string),
+			AssignmentRevision:   arguments[11].(int),
+			EnqueueUnixSec:       arguments[12].(int64),
+			LastHeartbeatUnixSec: arguments[13].(int64),
+			TerminalReason:       arguments[14].(string),
+			CancelReason:         arguments[15].(string),
+			CreatedAt:            arguments[16].(time.Time),
+			UpdatedAt:            arguments[17].(time.Time),
+		}
+		if raw, ok := arguments[7].(string); ok {
+			entry.SelectedModeIDs = selectedModeIDsFromJSON(raw)
+		}
+		db.partyEntriesByRoom[entry.PartyRoomID] = entry
+		db.partyEntriesByID[entry.PartyQueueEntryID] = entry
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
+	case strings.Contains(sql, "INSERT INTO matchmaking_party_queue_members"):
+		member := storage.PartyQueueMember{
+			PartyQueueEntryID: arguments[0].(string),
+			AccountID:         arguments[1].(string),
+			ProfileID:         arguments[2].(string),
+			DeviceSessionID:   arguments[3].(string),
+			SeatIndex:         arguments[4].(int),
+			RatingSnapshot:    arguments[5].(int),
+			CreatedAt:         arguments[6].(time.Time),
+			UpdatedAt:         arguments[7].(time.Time),
+		}
+		db.partyMembersByEntry[member.PartyQueueEntryID] = append(db.partyMembersByEntry[member.PartyQueueEntryID], member)
+		return pgconn.NewCommandTag("INSERT 0 1"), nil
 	case strings.Contains(sql, "INSERT INTO matchmaking_queue_entries"):
 		entry := storage.QueueEntry{
 			QueueEntryID:         arguments[0].(string),
@@ -278,6 +323,20 @@ func (db *fakeQueueDB) Query(_ context.Context, sql string, args ...any) (pgx.Ro
 
 func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.Row {
 	switch {
+	case strings.Contains(sql, "FROM matchmaking_party_queue_entries") && strings.Contains(sql, "WHERE party_room_id = $1"):
+		partyRoomID := args[0].(string)
+		entry, ok := db.partyEntriesByRoom[partyRoomID]
+		if !ok || !isActivePartyQueueState(entry.State) {
+			return fakeQueueRow{err: pgx.ErrNoRows}
+		}
+		return fakeQueueRow{values: partyQueueEntryRow(entry)}
+	case strings.Contains(sql, "FROM matchmaking_party_queue_entries") && strings.Contains(sql, "WHERE party_queue_entry_id = $1"):
+		entryID := args[0].(string)
+		entry, ok := db.partyEntriesByID[entryID]
+		if !ok {
+			return fakeQueueRow{err: pgx.ErrNoRows}
+		}
+		return fakeQueueRow{values: partyQueueEntryRow(entry)}
 	case strings.Contains(sql, "FROM matchmaking_assignments"):
 		assignment, ok := db.assignmentsByID[args[0].(string)]
 		if !ok {
@@ -357,6 +416,56 @@ func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.
 		return fakeQueueRow{values: queueEntryRow(entry)}
 	default:
 		return fakeQueueRow{err: pgx.ErrNoRows}
+	}
+}
+
+func selectedModeIDsFromJSON(raw string) []string {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(trimmed, "[")
+	trimmed = strings.TrimSuffix(trimmed, "]")
+	if trimmed == "" {
+		return nil
+	}
+	parts := strings.Split(trimmed, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		value := strings.Trim(strings.TrimSpace(part), `"`)
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+func isActivePartyQueueState(state string) bool {
+	switch state {
+	case "queued", "assignment_pending", "allocating_battle", "entry_ready":
+		return true
+	default:
+		return false
+	}
+}
+
+func partyQueueEntryRow(entry storage.PartyQueueEntry) []any {
+	return []any{
+		entry.PartyQueueEntryID,
+		entry.PartyRoomID,
+		entry.QueueType,
+		entry.MatchFormatID,
+		entry.PartySize,
+		entry.CaptainAccountID,
+		entry.CaptainProfileID,
+		[]byte(`["` + strings.Join(entry.SelectedModeIDs, `","`) + `"]`),
+		entry.QueueKey,
+		entry.State,
+		entry.AssignmentID,
+		entry.AssignmentRevision,
+		entry.EnqueueUnixSec,
+		entry.LastHeartbeatUnixSec,
+		entry.TerminalReason,
+		entry.CancelReason,
+		entry.CreatedAt,
+		entry.UpdatedAt,
 	}
 }
 

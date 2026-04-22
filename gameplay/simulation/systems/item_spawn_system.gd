@@ -19,6 +19,8 @@ func get_name() -> StringName:
 
 
 func execute(ctx: SimContext) -> void:
+	if _should_suppress_authority_entity_side_effects(ctx):
+		return
 	_spawn_items_from_destroyed_cells(ctx)
 
 
@@ -104,3 +106,9 @@ func _resolve_legacy_debug_item_type(ctx: SimContext) -> int:
 	if drop_selector >= get_debug_drop_rate_percent():
 		return 0
 	return ctx.rng.range_int(1, 3)
+
+
+func _should_suppress_authority_entity_side_effects(ctx: SimContext) -> bool:
+	if ctx == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	return bool(ctx.state.runtime_flags.suppress_authority_entity_side_effects)

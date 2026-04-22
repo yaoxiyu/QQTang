@@ -432,6 +432,14 @@ func ingest_dedicated_server_message(message: Dictionary) -> void:
 	_network_gateway.ingest_dedicated_server_message(message)
 
 
+func poll_dedicated_client_transport() -> void:
+	_network_gateway.poll_dedicated_client_transport()
+
+
+func is_dedicated_authority_ready() -> bool:
+	return _network_gateway.is_dedicated_authority_ready()
+
+
 func _resolve_runtime_mode(config: BattleStartConfig) -> int:
 	if config == null:
 		return BattleNetworkMode.LOCAL_LOOPBACK

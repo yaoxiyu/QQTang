@@ -198,8 +198,8 @@ func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInpu
 	if s.partyQueueRepo == nil || s.partyQueueMemberRepo == nil {
 		return PartyQueueStatus{}, ErrQueueNotFound
 	}
-	if _, err := s.partyQueueRepo.FindActiveByRoomID(ctx, input.PartyRoomID); err == nil {
-		return PartyQueueStatus{}, ErrQueueAlreadyActive
+	if activeEntry, err := s.partyQueueRepo.FindActiveByRoomID(ctx, input.PartyRoomID); err == nil {
+		return s.GetPartyQueueStatus(ctx, input.PartyRoomID, activeEntry.PartyQueueEntryID)
 	} else if !errors.Is(err, storage.ErrNotFound) {
 		return PartyQueueStatus{}, err
 	}
@@ -228,6 +228,13 @@ func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInpu
 	}
 	if err := s.partyQueueRepo.Insert(ctx, entry); err != nil {
 		if storage.IsConstraintViolation(err, "uq_matchmaking_party_queue_entries_room_active") {
+			activeEntry, findErr := s.partyQueueRepo.FindActiveByRoomID(ctx, input.PartyRoomID)
+			if findErr == nil {
+				return s.GetPartyQueueStatus(ctx, input.PartyRoomID, activeEntry.PartyQueueEntryID)
+			}
+			if !errors.Is(findErr, storage.ErrNotFound) {
+				return PartyQueueStatus{}, findErr
+			}
 			return PartyQueueStatus{}, ErrQueueAlreadyActive
 		}
 		return PartyQueueStatus{}, err

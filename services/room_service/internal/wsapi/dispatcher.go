@@ -278,7 +278,7 @@ func (d *Dispatcher) handleStartManualRoomBattle(conn *Connection, env *ClientEn
 	return [][]byte{
 		EncodeOperationAccepted(conn, env.RequestID, "StartManualRoomBattle"),
 		EncodeSnapshotPush(conn, env.RequestID, snapshot),
-		EncodeBattleEntryReadyPush(conn, env.RequestID, snapshot.BattleHandoff),
+		EncodeBattleEntryReadyPushFromSnapshot(conn, env.RequestID, snapshot),
 	}, nil
 }
 

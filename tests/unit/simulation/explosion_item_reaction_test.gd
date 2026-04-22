@@ -9,6 +9,7 @@ func test_main() -> void:
 	ok = _test_destroy_profile_removes_item() and ok
 	ok = _test_transform_profile_updates_item_type_in_place() and ok
 	ok = _test_ignore_profile_keeps_item_alive() and ok
+	ok = _test_authority_entity_side_effect_suppression_keeps_item_alive() and ok
 
 
 func _test_destroy_profile_removes_item() -> bool:
@@ -51,6 +52,21 @@ func _test_ignore_profile_keeps_item_alive() -> bool:
 	return ok
 
 
+func _test_authority_entity_side_effect_suppression_keeps_item_alive() -> bool:
+	var world := _make_world_with_item_profile("item_destroy_default")
+	world.state.runtime_flags.client_prediction_mode = true
+	world.state.runtime_flags.suppress_authority_entity_side_effects = true
+	var item_id := _spawn_item_and_bubble(world)
+	world.step()
+	var item := world.state.items.get_item(item_id)
+	var prefix := "explosion_item_reaction_test"
+	var ok := true
+	ok = qqt_check(item != null and item.alive, "authority side-effect suppression should not despawn item locally", prefix) and ok
+	ok = qqt_check(world.state.items.active_ids.has(item_id), "authority side-effect suppression should keep item active", prefix) and ok
+	world.dispose()
+	return ok
+
+
 func _make_world_with_item_profile(item_profile_id: String) -> SimWorld:
 	var world := SimWorld.new()
 	world.bootstrap(SimConfig.new(), {"grid": BuiltinMapFactory._build_from_rows([
@@ -75,4 +91,3 @@ func _spawn_item_and_bubble(world: SimWorld) -> int:
 	world.state.bubbles.spawn_bubble(1, 2, 2, 1, 1)
 	world.state.indexes.rebuild_from_state(world.state)
 	return item_id
-

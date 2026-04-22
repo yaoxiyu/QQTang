@@ -17,6 +17,7 @@ var replay_mode: bool = false
 var rollback_mode: bool = false
 var client_prediction_mode: bool = false
 var client_controlled_player_slot: int = -1
+var suppress_authority_entity_side_effects: bool = false
 
 # 调试控制
 var debug_disable_damage: bool = false
@@ -32,6 +33,7 @@ func reset() -> void:
 	rollback_mode = false
 	client_prediction_mode = false
 	client_controlled_player_slot = -1
+	suppress_authority_entity_side_effects = false
 	debug_disable_damage = false
 	debug_inflict_damage = false
 	need_consistency_check = false

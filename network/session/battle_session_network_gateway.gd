@@ -6,6 +6,10 @@ const BattleSessionBootstrapScript = preload("res://network/session/battle_sessi
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 
 var _adapter = null
+var _dedicated_match_started: bool = false
+var _dedicated_first_full_authority_received: bool = false
+var _logged_waiting_for_match_start: bool = false
+var _logged_waiting_for_authority_opening: bool = false
 
 
 func configure(adapter) -> void:
@@ -17,9 +21,16 @@ func ingest_dedicated_server_message(message) -> void:
 		return
 	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
 		return
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	if _is_waiting_for_dedicated_full_authority():
+		if message_type == TransportMessageTypesScript.CHECKPOINT or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
+			_dedicated_first_full_authority_received = true
+			_logged_waiting_for_authority_opening = false
+		else:
+			return
 	_adapter._bootstrap_client_runtime.ingest_network_message(message)
 	_emit_client_runtime_tick()
-	if String(message.get("message_type", message.get("msg_type", ""))) == TransportMessageTypesScript.MATCH_FINISHED and _adapter.current_context != null:
+	if message_type == TransportMessageTypesScript.MATCH_FINISHED and _adapter.current_context != null:
 		_adapter._finished_emitted = true
 		_adapter._lifecycle_state = _adapter.BattleLifecycleState.FINISHING
 
@@ -44,6 +55,10 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	if _adapter.start_config == null:
 		return false
 	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
+	_dedicated_match_started = false
+	_dedicated_first_full_authority_received = false
+	_logged_waiting_for_match_start = false
+	_logged_waiting_for_authority_opening = false
 	_adapter._bootstrap_local_peer_id = int(options.get("local_peer_id", int(_adapter.start_config.local_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	var controlled_peer_id := int(options.get("controlled_peer_id", int(_adapter.start_config.controlled_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	_adapter._bootstrap_client_runtime.configure(_adapter._bootstrap_local_peer_id)
@@ -96,9 +111,31 @@ func advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
 	if _adapter._bootstrap_client_runtime == null:
 		_adapter.network_log_event.emit("client_tick_skip reason=no_client_runtime mode=%d transport=%s" % [_adapter.network_mode, str(_adapter.transport != null)])
 		return
+	if _is_waiting_for_dedicated_opening():
+		_log_dedicated_input_deferred()
+		_poll_client_transport()
+		return
 	var input_message: Dictionary = _adapter._bootstrap_client_runtime.build_local_input_message(local_input)
 	if not input_message.is_empty() and _adapter.transport != null and _adapter.transport.is_transport_connected():
 		_adapter.transport.send_to_peer(1, input_message)
+	_poll_client_transport()
+	_emit_client_runtime_tick()
+
+
+func poll_dedicated_client_transport() -> void:
+	if _adapter == null or _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	if not _is_waiting_for_dedicated_opening():
+		return
+	_log_dedicated_input_deferred()
+	_poll_client_transport()
+
+
+func is_dedicated_authority_ready() -> bool:
+	return _dedicated_first_full_authority_received
+
+
+func _poll_client_transport() -> void:
 	if _adapter.transport != null:
 		_adapter.transport.poll()
 		var incoming: Array = _adapter.transport.consume_incoming()
@@ -125,7 +162,6 @@ func advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
 			])
 		if not incoming.is_empty():
 			route_messages(incoming)
-	_emit_client_runtime_tick()
 
 
 func inject_pending_resume_snapshot() -> void:
@@ -355,16 +391,41 @@ func on_bootstrap_input_frame_message(message) -> void:
 
 func on_bootstrap_client_runtime_message(message) -> void:
 	if (_adapter.network_mode == _adapter.BattleNetworkMode.CLIENT or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_client_runtime != null:
+		var message_type := String(message.get("message_type", message.get("msg_type", "")))
+		var emit_opening_tick := false
+		if _is_waiting_for_dedicated_full_authority():
+			if message_type == TransportMessageTypesScript.CHECKPOINT or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
+				_dedicated_first_full_authority_received = true
+				_logged_waiting_for_authority_opening = false
+				emit_opening_tick = true
+				_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
+					message_type,
+					int(message.get("tick", 0)),
+					_adapter._bootstrap_local_peer_id,
+					_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+				])
+			else:
+				if not _logged_waiting_for_authority_opening:
+					_logged_waiting_for_authority_opening = true
+					_adapter.network_log_event.emit("client_runtime_ingest_deferred type=%s reason=waiting_full_authority match_id=%s" % [
+						message_type,
+						String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+					])
+				return
 		_adapter.network_log_event.emit("client_runtime_ingest type=%s tick=%d local_peer=%d controlled_peer=%d" % [
-			String(message.get("message_type", message.get("msg_type", ""))),
+			message_type,
 			int(message.get("tick", message.get("ack_tick", 0))),
 			_adapter._bootstrap_local_peer_id,
 			_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
 		])
 		_adapter._bootstrap_client_runtime.ingest_network_message(message)
+		if emit_opening_tick:
+			_emit_client_runtime_tick()
 
 
 func on_bootstrap_match_start_message(message) -> void:
+	_dedicated_match_started = true
+	_logged_waiting_for_match_start = false
 	_adapter.network_log_event.emit("client_match_start_received match_id=%s local_peer=%d controlled_peer=%d" % [
 		String(message.get("match_id", "")),
 		_adapter._bootstrap_local_peer_id,
@@ -430,6 +491,46 @@ func _emit_client_runtime_tick() -> void:
 		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
 	}
 	_adapter.authoritative_tick_completed.emit(_adapter.current_context, tick_result, _adapter._build_runtime_metrics())
+
+
+func _is_waiting_for_dedicated_match_start() -> bool:
+	if _adapter == null or _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return false
+	if _adapter.start_config == null:
+		return false
+	return String(_adapter.start_config.topology) == "dedicated_server" \
+		and String(_adapter.start_config.session_mode) == "network_client" \
+		and not _dedicated_match_started
+
+
+func _is_waiting_for_dedicated_full_authority() -> bool:
+	if _adapter == null or _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return false
+	if _adapter.start_config == null:
+		return false
+	return String(_adapter.start_config.topology) == "dedicated_server" \
+		and String(_adapter.start_config.session_mode) == "network_client" \
+		and _dedicated_match_started \
+		and not _dedicated_first_full_authority_received
+
+
+func _is_waiting_for_dedicated_opening() -> bool:
+	return _is_waiting_for_dedicated_match_start() or _is_waiting_for_dedicated_full_authority()
+
+
+func _log_dedicated_input_deferred() -> void:
+	if _is_waiting_for_dedicated_match_start():
+		if not _logged_waiting_for_match_start:
+			_logged_waiting_for_match_start = true
+			_adapter.network_log_event.emit("client_input_deferred reason=waiting_match_start match_id=%s" % [
+				String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+			])
+		return
+	if _is_waiting_for_dedicated_full_authority() and not _logged_waiting_for_authority_opening:
+		_logged_waiting_for_authority_opening = true
+		_adapter.network_log_event.emit("client_input_deferred reason=waiting_full_authority match_id=%s" % [
+			String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+		])
 
 
 func _on_transport_connected() -> void:
