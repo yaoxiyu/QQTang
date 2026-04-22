@@ -111,6 +111,9 @@ func (RoomTransitionEngine) ApplyQueueProjection(room *domain.RoomAggregate, own
 	if room == nil {
 		return false
 	}
+	if isProtectedBattleRoomPhase(room.RoomState.Phase) {
+		return false
+	}
 	changed := false
 	nextQueuePhase := update.QueuePhase
 	if nextQueuePhase == "" {
@@ -398,6 +401,15 @@ func mapQueuePhaseToRoomPhase(queuePhase string) string {
 		return RoomPhaseIdle
 	default:
 		return RoomPhaseQueueActive
+	}
+}
+
+func isProtectedBattleRoomPhase(roomPhase string) bool {
+	switch roomPhase {
+	case RoomPhaseBattleEntering, RoomPhaseInBattle, RoomPhaseReturningToRoom:
+		return true
+	default:
+		return false
 	}
 }
 

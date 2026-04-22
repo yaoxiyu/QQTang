@@ -800,6 +800,9 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	roomTransitionEngine.ApplyBattleEntryAckRequested(room, s.roomOwnerByID[input.RoomID])
 	room.QueueState.StatusText = "battle_entry_acknowledged"
 	roomTransitionEngine.ApplyBattleEntryAcked(room, s.roomOwnerByID[input.RoomID])
+	if strings.TrimSpace(result.CommittedState) == "committed" {
+		roomTransitionEngine.ApplyBattleStarted(room, s.roomOwnerByID[input.RoomID])
+	}
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -1115,6 +1118,9 @@ func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
 		if !isMatchRoomKind(room.RoomKind) {
 			continue
 		}
+		if isProtectedBattleRoomPhase(room.RoomState.Phase) {
+			continue
+		}
 		if room.QueueState.QueueEntryID == "" {
 			continue
 		}
@@ -1139,6 +1145,9 @@ func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclie
 		return nil, false
 	}
 	if room.QueueState.QueueEntryID != target.queueEntryID {
+		return nil, false
+	}
+	if isProtectedBattleRoomPhase(room.RoomState.Phase) {
 		return nil, false
 	}
 	if !shouldSyncQueueState(room.QueueState.Phase) {

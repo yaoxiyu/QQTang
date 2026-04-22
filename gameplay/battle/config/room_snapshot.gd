@@ -7,6 +7,7 @@ var topology: String = ""
 var owner_peer_id: int = 0
 var members: Array[RoomMemberState] = []
 var room_display_name: String = ""
+var snapshot_revision: int = 0
 var selected_map_id: String = ""
 var rule_set_id: String = ""
 var mode_id: String = ""
@@ -68,6 +69,7 @@ func to_dict() -> Dictionary:
 		"owner_peer_id": owner_peer_id,
 		"members": member_dicts,
 		"room_display_name": room_display_name,
+		"snapshot_revision": snapshot_revision,
 		"selected_map_id": selected_map_id,
 		"rule_set_id": rule_set_id,
 		"mode_id": mode_id,
@@ -121,6 +123,7 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.topology = String(data.get("topology", ""))
 	snapshot.owner_peer_id = int(data.get("owner_peer_id", 0))
 	snapshot.room_display_name = String(data.get("room_display_name", ""))
+	snapshot.snapshot_revision = int(data.get("snapshot_revision", 0))
 	snapshot.selected_map_id = String(data.get("selected_map_id", ""))
 	snapshot.rule_set_id = String(data.get("rule_set_id", ""))
 	snapshot.mode_id = String(data.get("mode_id", ""))

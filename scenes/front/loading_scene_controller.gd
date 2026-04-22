@@ -233,6 +233,18 @@ func _run_battle_entry_flow() -> void:
 		"battle_id": _battle_entry_context.battle_id,
 	})
 
+	if _room_client_gateway == null or not _room_client_gateway.has_method("request_ack_battle_entry"):
+		_abort_battle_entry("ROOM_ACK_GATEWAY_MISSING", "Room gateway cannot acknowledge battle entry")
+		return
+	_room_client_gateway.request_ack_battle_entry(
+		String(_battle_entry_context.assignment_id),
+		String(_battle_entry_context.battle_id)
+	)
+	_log_battle_entry("room_ack_battle_entry_requested", {
+		"assignment_id": String(_battle_entry_context.assignment_id),
+		"battle_id": String(_battle_entry_context.battle_id),
+	})
+
 	# Store battle entry context on runtime for battle scene to consume
 	_app_runtime.current_battle_entry_context = _battle_entry_context
 

@@ -43,17 +43,23 @@ func TestAckBattleEntryLifecycle(t *testing.T) {
 	}
 	svc.mu.RLock()
 	room := svc.roomsByID[created.RoomID]
-	if room.RoomState.Phase != RoomPhaseBattleEntering {
+	if room.RoomState.Phase != RoomPhaseInBattle {
 		svc.mu.RUnlock()
-		t.Fatalf("expected room phase battle_entering, got %s", room.RoomState.Phase)
+		t.Fatalf("expected room phase in_battle, got %s", room.RoomState.Phase)
 	}
-	if room.BattleState.Phase != BattlePhaseEntering {
+	if room.BattleState.Phase != BattlePhaseActive {
 		svc.mu.RUnlock()
-		t.Fatalf("expected battle phase entering, got %s", room.BattleState.Phase)
+		t.Fatalf("expected battle phase active, got %s", room.BattleState.Phase)
 	}
 	if room.BattleState.TerminalReason != BattleReasonEntryAcknowledged {
 		svc.mu.RUnlock()
 		t.Fatalf("expected battle reason entry_acknowledged, got %s", room.BattleState.TerminalReason)
+	}
+	for _, member := range room.Members {
+		if member.MemberPhase != MemberPhaseInBattle {
+			svc.mu.RUnlock()
+			t.Fatalf("expected member phase in_battle, got %s", member.MemberPhase)
+		}
 	}
 	svc.mu.RUnlock()
 }

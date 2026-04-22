@@ -25,6 +25,7 @@ var session_lifecycle_state: int = SessionLifecycleStateScript.Value.NONE
 var room_runtime_context: RoomRuntimeContext = RoomRuntimeContextScript.new()
 var completed_match_count: int = 0
 var last_completed_match_id: String = ""
+var last_snapshot_revision: int = 0
 
 
 func configure(session: RoomSession) -> void:
@@ -46,6 +47,7 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.room_id = room_session.room_id
 	snapshot.room_kind = room_session.room_kind
 	snapshot.topology = room_session.topology
+	snapshot.snapshot_revision = last_snapshot_revision
 	snapshot.selected_map_id = _resolve_map_id()
 	snapshot.rule_set_id = _resolve_rule_set_id()
 	snapshot.mode_id = _resolve_mode_id()
@@ -172,6 +174,7 @@ func reset_room_state() -> void:
 	max_players = 8
 	completed_match_count = 0
 	last_completed_match_id = ""
+	last_snapshot_revision = 0
 	room_runtime_context = RoomRuntimeContextScript.new()
 	room_runtime_context.local_player_id = preserved_local_player_id
 	set_room_flow_state(RoomFlowStateScript.Value.NONE, "reset_room_state")
@@ -371,8 +374,16 @@ func _resolve_effective_requester_peer_id(requested_peer_id: int) -> int:
 func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	if snapshot == null:
 		return
-	var previous_room_flow_state := room_flow_state
-	var previous_session_lifecycle_state := session_lifecycle_state
+	if _should_drop_stale_snapshot(snapshot):
+		_log_room_session("ignored_stale_snapshot_revision", {
+			"room_id": String(snapshot.room_id),
+			"snapshot_revision": int(snapshot.snapshot_revision),
+			"last_snapshot_revision": last_snapshot_revision,
+			"room_phase": String(snapshot.room_phase),
+			"battle_phase": String(snapshot.battle_phase),
+		})
+		return
+	last_snapshot_revision = int(snapshot.snapshot_revision)
 	room_session = RoomSession.new(snapshot.room_id)
 	room_session.room_kind = snapshot.room_kind
 	room_session.topology = snapshot.topology
@@ -438,33 +449,8 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.can_enter_queue = snapshot.can_enter_queue
 	room_session.can_cancel_queue = snapshot.can_cancel_queue
 	room_session.can_leave_room = snapshot.can_leave_room
-	var mapped_room_flow_state := _map_room_phase_to_room_flow_state(snapshot.room_phase)
-	var mapped_session_lifecycle_state := _map_room_phase_to_session_lifecycle_state(snapshot.room_phase)
-	if _should_preserve_active_battle_for_snapshot(
-		snapshot,
-		previous_room_flow_state,
-		previous_session_lifecycle_state,
-		mapped_room_flow_state,
-		mapped_session_lifecycle_state
-	):
-		room_session.match_active = true
-		if room_session.room_phase.strip_edges().is_empty() or room_session.room_phase == "idle":
-			room_session.room_phase = "in_battle"
-		if room_session.battle_phase.strip_edges().is_empty():
-			room_session.battle_phase = "active"
-		set_room_flow_state(previous_room_flow_state, "authoritative_snapshot_preserve_active_battle")
-		set_session_lifecycle_state(previous_session_lifecycle_state, "authoritative_snapshot_preserve_active_battle")
-		_log_room_session("ignored_stale_battle_idle_snapshot", {
-			"room_id": String(snapshot.room_id),
-			"room_phase": String(snapshot.room_phase),
-			"battle_phase": String(snapshot.battle_phase),
-			"match_active": bool(snapshot.match_active),
-			"previous_room_flow_state": RoomFlowStateScript.state_to_string(previous_room_flow_state),
-			"previous_session_lifecycle_state": SessionLifecycleStateScript.state_to_string(previous_session_lifecycle_state),
-		})
-	else:
-		set_room_flow_state(mapped_room_flow_state, "authoritative_snapshot")
-		set_session_lifecycle_state(mapped_session_lifecycle_state, "authoritative_snapshot")
+	set_room_flow_state(_map_room_phase_to_room_flow_state(snapshot.room_phase), "authoritative_snapshot")
+	set_session_lifecycle_state(_map_room_phase_to_session_lifecycle_state(snapshot.room_phase), "authoritative_snapshot")
 	room_runtime_context.last_error = {}
 	_sync_runtime_context()
 	_emit_snapshot_changed()
@@ -854,27 +840,10 @@ func _map_room_phase_to_session_lifecycle_state(room_phase: String) -> int:
 			return SessionLifecycleStateScript.Value.ROOM_ACTIVE
 
 
-func _should_preserve_active_battle_for_snapshot(
-	snapshot: RoomSnapshot,
-	previous_room_flow_state: int,
-	previous_session_lifecycle_state: int,
-	mapped_room_flow_state: int,
-	mapped_session_lifecycle_state: int
-) -> bool:
+func _should_drop_stale_snapshot(snapshot: RoomSnapshot) -> bool:
 	if snapshot == null:
 		return false
-	if previous_room_flow_state != RoomFlowStateScript.Value.IN_BATTLE:
+	var revision := int(snapshot.snapshot_revision)
+	if revision <= 0:
 		return false
-	if previous_session_lifecycle_state != SessionLifecycleStateScript.Value.MATCH_ACTIVE:
-		return false
-	if mapped_room_flow_state != RoomFlowStateScript.Value.IN_ROOM:
-		return false
-	if mapped_session_lifecycle_state != SessionLifecycleStateScript.Value.ROOM_ACTIVE:
-		return false
-	var room_phase := String(snapshot.room_phase).strip_edges()
-	if not (room_phase.is_empty() or room_phase == "idle"):
-		return false
-	var battle_phase := String(snapshot.battle_phase).strip_edges()
-	if battle_phase == "completed" or battle_phase == "settled" or battle_phase == "returning":
-		return false
-	return true
+	return revision < last_snapshot_revision

@@ -282,6 +282,20 @@ func request_match_loading_ready(match_id: String, revision: int) -> void:
 	})
 
 
+func request_ack_battle_entry(assignment_id: String, battle_id: String) -> void:
+	LogNetScript.info(
+		"request_ack_battle_entry sending ROOM_ACK_BATTLE_ENTRY assignment_id=%s battle_id=%s" % [assignment_id, battle_id],
+		"",
+		0,
+		"net.client_room_runtime"
+	)
+	_send_to_server({
+		"message_type": "ROOM_ACK_BATTLE_ENTRY",
+		"assignment_id": assignment_id,
+		"battle_id": battle_id,
+	})
+
+
 func request_rematch() -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_REMATCH_REQUEST,

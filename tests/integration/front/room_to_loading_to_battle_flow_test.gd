@@ -34,14 +34,16 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 	stale_idle_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
 	stale_idle_snapshot.room_phase = "idle"
 	stale_idle_snapshot.battle_phase = "active"
+	stale_idle_snapshot.snapshot_revision = max(0, int(stale_idle_snapshot.snapshot_revision) - 1)
 	runtime.room_use_case.on_authoritative_snapshot(stale_idle_snapshot)
-	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "idle room snapshot must not reopen room over active battle")
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "lower revision idle room snapshot must not reopen room over active battle")
 
 	var returning_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
 	returning_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
 	returning_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
 	returning_snapshot.room_phase = "returning_to_room"
 	returning_snapshot.battle_phase = "returning"
+	returning_snapshot.snapshot_revision = int(returning_snapshot.snapshot_revision) + 1
 	runtime.room_use_case.on_authoritative_snapshot(returning_snapshot)
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.RETURNING_TO_ROOM), "canonical returning_to_room phase should drive returning flow")
 
@@ -49,6 +51,7 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 	idle_snapshot.room_phase = "idle"
 	idle_snapshot.queue_phase = "idle"
 	idle_snapshot.battle_phase = "completed"
+	idle_snapshot.snapshot_revision = int(returning_snapshot.snapshot_revision) + 1
 	runtime.room_use_case.on_authoritative_snapshot(idle_snapshot)
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "canonical idle phase should return front flow to room")
 

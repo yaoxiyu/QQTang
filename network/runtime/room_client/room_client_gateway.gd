@@ -179,6 +179,14 @@ func request_match_loading_ready(match_id: String, revision: int) -> void:
 	client_room_runtime.request_match_loading_ready(match_id, revision)
 
 
+func request_ack_battle_entry(assignment_id: String, battle_id: String) -> void:
+	if client_room_runtime == null:
+		return
+	if not client_room_runtime.has_method("request_ack_battle_entry"):
+		return
+	client_room_runtime.request_ack_battle_entry(assignment_id, battle_id)
+
+
 func request_rematch() -> void:
 	if client_room_runtime == null:
 		return
