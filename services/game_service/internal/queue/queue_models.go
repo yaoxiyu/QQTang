@@ -17,6 +17,10 @@ type PartyQueueMemberInput struct {
 	DeviceSessionID string `json:"device_session_id"`
 	SeatIndex       int    `json:"seat_index"`
 	RatingSnapshot  int    `json:"rating_snapshot,omitempty"`
+	CharacterID     string `json:"character_id,omitempty"`
+	CharacterSkinID string `json:"character_skin_id,omitempty"`
+	BubbleStyleID   string `json:"bubble_style_id,omitempty"`
+	BubbleSkinID    string `json:"bubble_skin_id,omitempty"`
 }
 
 type EnterPartyQueueInput struct {

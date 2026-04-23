@@ -74,9 +74,9 @@ func (r *fakeManifestRows) RawValues() [][]byte { return nil }
 func (r *fakeManifestRows) Conn() *pgx.Conn { return nil }
 
 type fakeManifestDB struct {
-	assignmentsByID    map[string]storage.Assignment
-	battleByBattleID   map[string]storage.BattleInstance
-	membersByAssignID  map[string][]storage.AssignmentMember
+	assignmentsByID   map[string]storage.Assignment
+	battleByBattleID  map[string]storage.BattleInstance
+	membersByAssignID map[string][]storage.AssignmentMember
 }
 
 func newFakeManifestDB() *fakeManifestDB {
@@ -107,6 +107,10 @@ func (db *fakeManifestDB) Query(_ context.Context, sql string, args ...any) (pgx
 				m.ResultState,
 				m.CreatedAt,
 				m.UpdatedAt,
+				m.CharacterID,
+				m.CharacterSkinID,
+				m.BubbleStyleID,
+				m.BubbleSkinID,
 				m.SourceRoomID,
 				m.SourceRoomMemberID,
 				m.BattleJoinState,
@@ -248,6 +252,10 @@ func TestInternalBattleManifestReturnsManifestForSignedRequest(t *testing.T) {
 	assertManifestField(t, first, "account_id", "acc_1")
 	assertManifestField(t, first, "profile_id", "pro_1")
 	assertManifestField(t, first, "assigned_team_id", float64(1))
+	assertManifestField(t, first, "character_id", "char_alpha")
+	assertManifestField(t, first, "character_skin_id", "skin_alpha")
+	assertManifestField(t, first, "bubble_style_id", "bubble_alpha")
+	assertManifestField(t, first, "bubble_skin_id", "bubble_skin_alpha")
 }
 
 func TestInternalBattleManifestRejectsInvalidAssignmentState(t *testing.T) {
@@ -301,20 +309,28 @@ func buildSignedManifestHandlerWithSeededDB(t *testing.T, allocationState string
 	}
 	db.membersByAssignID["assign_1"] = []storage.AssignmentMember{
 		{
-			AssignmentID:   "assign_1",
-			AccountID:      "acc_1",
-			ProfileID:      "pro_1",
-			AssignedTeamID: 1,
-			CreatedAt:      now,
-			UpdatedAt:      now,
+			AssignmentID:    "assign_1",
+			AccountID:       "acc_1",
+			ProfileID:       "pro_1",
+			AssignedTeamID:  1,
+			CharacterID:     "char_alpha",
+			CharacterSkinID: "skin_alpha",
+			BubbleStyleID:   "bubble_alpha",
+			BubbleSkinID:    "bubble_skin_alpha",
+			CreatedAt:       now,
+			UpdatedAt:       now,
 		},
 		{
-			AssignmentID:   "assign_1",
-			AccountID:      "acc_2",
-			ProfileID:      "pro_2",
-			AssignedTeamID: 2,
-			CreatedAt:      now.Add(time.Second),
-			UpdatedAt:      now.Add(time.Second),
+			AssignmentID:    "assign_1",
+			AccountID:       "acc_2",
+			ProfileID:       "pro_2",
+			AssignedTeamID:  2,
+			CharacterID:     "char_beta",
+			CharacterSkinID: "skin_beta",
+			BubbleStyleID:   "bubble_beta",
+			BubbleSkinID:    "bubble_skin_beta",
+			CreatedAt:       now.Add(time.Second),
+			UpdatedAt:       now.Add(time.Second),
 		},
 	}
 

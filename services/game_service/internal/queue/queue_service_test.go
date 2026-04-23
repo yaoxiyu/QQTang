@@ -90,8 +90,12 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 			DeviceSessionID:   arguments[3].(string),
 			SeatIndex:         arguments[4].(int),
 			RatingSnapshot:    arguments[5].(int),
-			CreatedAt:         arguments[6].(time.Time),
-			UpdatedAt:         arguments[7].(time.Time),
+			CharacterID:       arguments[6].(string),
+			CharacterSkinID:   arguments[7].(string),
+			BubbleStyleID:     arguments[8].(string),
+			BubbleSkinID:      arguments[9].(string),
+			CreatedAt:         arguments[10].(time.Time),
+			UpdatedAt:         arguments[11].(time.Time),
 		}
 		db.partyMembersByEntry[member.PartyQueueEntryID] = append(db.partyMembersByEntry[member.PartyQueueEntryID], member)
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
@@ -164,14 +168,18 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 			TicketRole:         arguments[3].(string),
 			AssignedTeamID:     arguments[4].(int),
 			RatingBefore:       arguments[5].(int),
-			JoinState:          arguments[6].(string),
-			ResultState:        arguments[7].(string),
-			CreatedAt:          arguments[8].(time.Time),
-			UpdatedAt:          arguments[9].(time.Time),
-			SourceRoomID:       arguments[10].(string),
-			SourceRoomMemberID: arguments[11].(string),
-			BattleJoinState:    arguments[12].(string),
-			RoomReturnState:    arguments[13].(string),
+			CharacterID:        arguments[6].(string),
+			CharacterSkinID:    arguments[7].(string),
+			BubbleStyleID:      arguments[8].(string),
+			BubbleSkinID:       arguments[9].(string),
+			JoinState:          arguments[10].(string),
+			ResultState:        arguments[11].(string),
+			CreatedAt:          arguments[12].(time.Time),
+			UpdatedAt:          arguments[13].(time.Time),
+			SourceRoomID:       arguments[14].(string),
+			SourceRoomMemberID: arguments[15].(string),
+			BattleJoinState:    arguments[16].(string),
+			RoomReturnState:    arguments[17].(string),
 		}
 		db.membersByKey[member.AssignmentID+":"+member.AccountID] = member
 		return pgconn.NewCommandTag("INSERT 0 1"), nil
@@ -262,6 +270,27 @@ func (db *fakeQueueDB) Exec(_ context.Context, sql string, arguments ...any) (pg
 }
 
 func (db *fakeQueueDB) Query(_ context.Context, sql string, args ...any) (pgx.Rows, error) {
+	if strings.Contains(sql, "FROM matchmaking_party_queue_members") {
+		entryID := args[0].(string)
+		rows := &fakeQueueRows{}
+		for _, member := range db.partyMembersByEntry[entryID] {
+			rows.values = append(rows.values, []any{
+				member.PartyQueueEntryID,
+				member.AccountID,
+				member.ProfileID,
+				member.DeviceSessionID,
+				member.SeatIndex,
+				member.RatingSnapshot,
+				member.CharacterID,
+				member.CharacterSkinID,
+				member.BubbleStyleID,
+				member.BubbleSkinID,
+				member.CreatedAt,
+				member.UpdatedAt,
+			})
+		}
+		return rows, nil
+	}
 	if strings.Contains(sql, "FROM matchmaking_assignment_members") {
 		assignmentID := args[0].(string)
 		members := []storage.AssignmentMember{}
@@ -286,6 +315,10 @@ func (db *fakeQueueDB) Query(_ context.Context, sql string, args ...any) (pgx.Ro
 				member.ResultState,
 				member.CreatedAt,
 				member.UpdatedAt,
+				member.CharacterID,
+				member.CharacterSkinID,
+				member.BubbleStyleID,
+				member.BubbleSkinID,
 				member.SourceRoomID,
 				member.SourceRoomMemberID,
 				member.BattleJoinState,
@@ -395,6 +428,10 @@ func (db *fakeQueueDB) QueryRow(_ context.Context, sql string, args ...any) pgx.
 			member.ResultState,
 			member.CreatedAt,
 			member.UpdatedAt,
+			member.CharacterID,
+			member.CharacterSkinID,
+			member.BubbleStyleID,
+			member.BubbleSkinID,
 			member.SourceRoomID,
 			member.SourceRoomMemberID,
 			member.BattleJoinState,
@@ -549,6 +586,7 @@ func (r *fakeQueueRows) Conn() *pgx.Conn {
 }
 
 func TestEnterQueueCreatesQueuedEntry(t *testing.T) {
+	ConfigureContentManifestQuery(nil)
 	db := newFakeQueueDB()
 	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
 
@@ -621,6 +659,7 @@ func TestCancelQueueMarksEntryCancelled(t *testing.T) {
 }
 
 func TestEnterQueueFormsAssignmentWhenFourthMemberArrives(t *testing.T) {
+	ConfigureContentManifestQuery(nil)
 	db := newFakeQueueDB()
 	queueKey := BuildQueueKey("ranked", "ranked_mode", "rule_standard")
 	now := time.Now().UTC()

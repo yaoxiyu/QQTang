@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_471qc"]
+[ext_resource type="SpriteFrames" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_19001_frames.tres" id="2_m68uy"]
+
+[resource]
+script = ExtResource("1_471qc")
+animation_set_id = "char_anim_19001"
+display_name = "19001"
+sprite_frames = ExtResource("2_m68uy")
+frame_width = 100
+frame_height = 100
+frames_per_direction = 4
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "char_anim_19001_local_special_f2e08d8316c3"

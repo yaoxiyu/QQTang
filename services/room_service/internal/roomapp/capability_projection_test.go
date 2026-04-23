@@ -17,6 +17,18 @@ func newCapabilityTestQuery(t *testing.T) *manifest.Query {
 		"generated_at_unix_ms": 1,
 		"maps": [
 			{
+				"map_id": "map_duel",
+				"display_name": "Duel",
+				"mode_id": "mode_classic",
+				"rule_set_id": "ruleset_classic",
+				"match_format_ids": ["1v1"],
+				"required_team_count": 2,
+				"max_player_count": 2,
+				"custom_room_enabled": true,
+				"casual_enabled": true,
+				"ranked_enabled": false
+			},
+			{
 				"map_id": "map_arcade",
 				"display_name": "Arcade",
 				"mode_id": "mode_classic",
@@ -33,7 +45,7 @@ func newCapabilityTestQuery(t *testing.T) *manifest.Query {
 			{
 				"mode_id": "mode_classic",
 				"display_name": "Classic",
-				"match_format_ids": ["2v2"],
+				"match_format_ids": ["1v1", "2v2"],
 				"selectable_in_match_room": true
 			}
 		],
@@ -44,6 +56,13 @@ func newCapabilityTestQuery(t *testing.T) *manifest.Query {
 			}
 		],
 		"match_formats": [
+			{
+				"match_format_id": "1v1",
+				"required_party_size": 1,
+				"expected_total_player_count": 2,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			},
 			{
 				"match_format_id": "2v2",
 				"required_party_size": 2,
@@ -101,6 +120,29 @@ func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
 	}
 	if !room.Capabilities.CanUpdateMatchRoomConfig {
 		t.Fatalf("expected can_update_match_room_config for owner in match room idle")
+	}
+}
+
+func TestRebuildRoomCapabilities_IdleDuelRoomAllowsSoloQueue(t *testing.T) {
+	query := newCapabilityTestQuery(t)
+	room := &domain.RoomAggregate{
+		RoomKind: "casual_match_room",
+		Selection: domain.RoomSelection{
+			MatchFormatID:   "1v1",
+			SelectedModeIDs: []string{"mode_classic"},
+		},
+		RoomState: domain.RoomFSMState{
+			Phase: RoomPhaseIdle,
+		},
+		Members: map[string]domain.RoomMember{
+			"owner": {MemberID: "owner", MemberPhase: MemberPhaseReady, Ready: true},
+		},
+	}
+
+	rebuildRoomCapabilities(room, "owner", query)
+
+	if !room.Capabilities.CanEnterQueue {
+		t.Fatalf("expected can_enter_queue for solo ready 1v1 room")
 	}
 }
 

@@ -34,9 +34,13 @@ type ManualRoomBattleInput struct {
 }
 
 type ManualRoomMember struct {
-	AccountID      string
-	ProfileID      string
-	AssignedTeamID int
+	AccountID       string
+	ProfileID       string
+	AssignedTeamID  int
+	CharacterID     string
+	CharacterSkinID string
+	BubbleStyleID   string
+	BubbleSkinID    string
 }
 
 type ManualRoomBattleResult struct {
@@ -64,7 +68,11 @@ type BattleManifest struct {
 }
 
 type ManifestMember struct {
-	AccountID      string
-	ProfileID      string
-	AssignedTeamID int
+	AccountID       string
+	ProfileID       string
+	AssignedTeamID  int
+	CharacterID     string
+	CharacterSkinID string
+	BubbleStyleID   string
+	BubbleSkinID    string
 }

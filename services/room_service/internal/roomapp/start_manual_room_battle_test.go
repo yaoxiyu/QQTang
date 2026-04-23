@@ -53,3 +53,39 @@ func TestStartManualRoomBattleLifecycle(t *testing.T) {
 	}
 	svc.mu.RUnlock()
 }
+
+func TestStartManualRoomBattleSendsMemberLoadoutToGameService(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout: Loadout{
+			CharacterID:     "char_2",
+			CharacterSkinID: "skin_1",
+			BubbleStyleID:   "bubble_2",
+			BubbleSkinID:    "bubble_skin_1",
+		},
+		Selection: Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle ready failed: %v", err)
+	}
+	if _, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if fakeGame.lastCreateReq == nil || len(fakeGame.lastCreateReq.GetMembers()) != 1 {
+		t.Fatalf("expected captured manual battle request with one member, got %+v", fakeGame.lastCreateReq)
+	}
+	member := fakeGame.lastCreateReq.GetMembers()[0]
+	if member.GetCharacterId() != "char_2" || member.GetBubbleStyleId() != "bubble_2" {
+		t.Fatalf("expected member loadout to propagate into manual battle request, got %+v", member)
+	}
+}

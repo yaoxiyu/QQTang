@@ -1,9 +1,13 @@
 package gameclient
 
 type PartyMember struct {
-	AccountID string
-	ProfileID string
-	TeamID    int
+	AccountID       string
+	ProfileID       string
+	TeamID          int
+	CharacterID     string
+	CharacterSkinID string
+	BubbleStyleID   string
+	BubbleSkinID    string
 }
 
 type EnterPartyQueueInput struct {
@@ -16,15 +20,15 @@ type EnterPartyQueueInput struct {
 }
 
 type EnterPartyQueueResult struct {
-	OK                 bool
-	QueueEntryID       string
-	QueueState         string
-	QueuePhase         string
+	OK                  bool
+	QueueEntryID        string
+	QueueState          string
+	QueuePhase          string
 	QueueTerminalReason string
-	QueueStatusText    string
-	StatusText         string
-	ErrorCode          string
-	UserMessage        string
+	QueueStatusText     string
+	StatusText          string
+	ErrorCode           string
+	UserMessage         string
 }
 
 type CancelPartyQueueInput struct {
@@ -35,14 +39,14 @@ type CancelPartyQueueInput struct {
 }
 
 type CancelPartyQueueResult struct {
-	OK                 bool
-	QueueState         string
-	QueuePhase         string
+	OK                  bool
+	QueueState          string
+	QueuePhase          string
 	QueueTerminalReason string
-	QueueStatusText    string
-	StatusText         string
-	ErrorCode          string
-	UserMessage        string
+	QueueStatusText     string
+	StatusText          string
+	ErrorCode           string
+	UserMessage         string
 }
 
 type GetPartyQueueStatusInput struct {

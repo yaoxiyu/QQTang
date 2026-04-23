@@ -26,6 +26,18 @@ func newTestService(t *testing.T) *Service {
 		"generated_at_unix_ms": 1,
 		"maps": [
 			{
+				"map_id": "map_duel",
+				"display_name": "Duel",
+				"mode_id": "mode_classic",
+				"rule_set_id": "ruleset_classic",
+				"match_format_ids": ["1v1"],
+				"required_team_count": 2,
+				"max_player_count": 2,
+				"custom_room_enabled": true,
+				"casual_enabled": true,
+				"ranked_enabled": true
+			},
+			{
 				"map_id": "map_arcade",
 				"display_name": "Arcade",
 				"mode_id": "mode_classic",
@@ -42,7 +54,7 @@ func newTestService(t *testing.T) *Service {
 			{
 				"mode_id": "mode_classic",
 				"display_name": "Classic",
-				"match_format_ids": ["2v2"],
+				"match_format_ids": ["1v1", "2v2"],
 				"selectable_in_match_room": true
 			}
 		],
@@ -53,6 +65,13 @@ func newTestService(t *testing.T) *Service {
 			}
 		],
 		"match_formats": [
+			{
+				"match_format_id": "1v1",
+				"required_party_size": 1,
+				"expected_total_player_count": 2,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			},
 			{
 				"match_format_id": "2v2",
 				"required_party_size": 2,
@@ -112,6 +131,18 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 		"generated_at_unix_ms": 1,
 		"maps": [
 			{
+				"map_id": "map_duel",
+				"display_name": "Duel",
+				"mode_id": "mode_classic",
+				"rule_set_id": "ruleset_classic",
+				"match_format_ids": ["1v1"],
+				"required_team_count": 2,
+				"max_player_count": 2,
+				"custom_room_enabled": true,
+				"casual_enabled": true,
+				"ranked_enabled": true
+			},
+			{
 				"map_id": "map_arcade",
 				"display_name": "Arcade",
 				"mode_id": "mode_classic",
@@ -128,7 +159,7 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 			{
 				"mode_id": "mode_classic",
 				"display_name": "Classic",
-				"match_format_ids": ["2v2"],
+				"match_format_ids": ["1v1", "2v2"],
 				"selectable_in_match_room": true
 			}
 		],
@@ -139,6 +170,13 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 			}
 		],
 		"match_formats": [
+			{
+				"match_format_id": "1v1",
+				"required_party_size": 1,
+				"expected_total_player_count": 2,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			},
 			{
 				"match_format_id": "2v2",
 				"required_party_size": 2,
@@ -175,14 +213,17 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 type fakeGameControlServer struct {
 	gamev1.UnimplementedRoomControlServiceServer
 
-	enterResp  *gamev1.EnterPartyQueueResponse
-	cancelResp *gamev1.CancelPartyQueueResponse
-	statusResp *gamev1.GetPartyQueueStatusResponse
-	createResp *gamev1.CreateManualRoomBattleResponse
-	commitResp *gamev1.CommitAssignmentReadyResponse
+	enterResp     *gamev1.EnterPartyQueueResponse
+	cancelResp    *gamev1.CancelPartyQueueResponse
+	statusResp    *gamev1.GetPartyQueueStatusResponse
+	createResp    *gamev1.CreateManualRoomBattleResponse
+	commitResp    *gamev1.CommitAssignmentReadyResponse
+	lastEnterReq  *gamev1.EnterPartyQueueRequest
+	lastCreateReq *gamev1.CreateManualRoomBattleRequest
 }
 
-func (f *fakeGameControlServer) EnterPartyQueue(_ context.Context, _ *gamev1.EnterPartyQueueRequest) (*gamev1.EnterPartyQueueResponse, error) {
+func (f *fakeGameControlServer) EnterPartyQueue(_ context.Context, req *gamev1.EnterPartyQueueRequest) (*gamev1.EnterPartyQueueResponse, error) {
+	f.lastEnterReq = req
 	if f.enterResp != nil {
 		return f.enterResp, nil
 	}
@@ -203,7 +244,8 @@ func (f *fakeGameControlServer) GetPartyQueueStatus(_ context.Context, _ *gamev1
 	return &gamev1.GetPartyQueueStatusResponse{Ok: true, QueueState: "queueing"}, nil
 }
 
-func (f *fakeGameControlServer) CreateManualRoomBattle(_ context.Context, _ *gamev1.CreateManualRoomBattleRequest) (*gamev1.CreateManualRoomBattleResponse, error) {
+func (f *fakeGameControlServer) CreateManualRoomBattle(_ context.Context, req *gamev1.CreateManualRoomBattleRequest) (*gamev1.CreateManualRoomBattleResponse, error) {
+	f.lastCreateReq = req
 	if f.createResp != nil {
 		return f.createResp, nil
 	}

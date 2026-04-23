@@ -32,9 +32,13 @@ func (h *InternalBattleManifestHandler) GetManifest(w http.ResponseWriter, r *ht
 	members := make([]map[string]any, 0, len(manifest.Members))
 	for _, m := range manifest.Members {
 		members = append(members, map[string]any{
-			"account_id":       m.AccountID,
-			"profile_id":       m.ProfileID,
-			"assigned_team_id": m.AssignedTeamID,
+			"account_id":        m.AccountID,
+			"profile_id":        m.ProfileID,
+			"assigned_team_id":  m.AssignedTeamID,
+			"character_id":      m.CharacterID,
+			"character_skin_id": m.CharacterSkinID,
+			"bubble_style_id":   m.BubbleStyleID,
+			"bubble_skin_id":    m.BubbleSkinID,
 		})
 	}
 

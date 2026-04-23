@@ -42,11 +42,15 @@ static func build_connection_config(app_runtime: Object, entry_context: RoomEntr
 		config.selected_map_id = ""
 		config.selected_rule_set_id = ""
 		config.selected_mode_id = ""
+		config.match_format_id = String(entry_context.match_format_id)
+		config.selected_mode_ids = entry_context.selected_match_mode_ids.duplicate()
 	else:
 		var default_selection := RoomSelectionPolicyScript.resolve_default_selection(entry_context, _get_preferred_map_id(app_runtime))
 		config.selected_map_id = String(default_selection.get("map_id", ""))
 		config.selected_rule_set_id = String(default_selection.get("rule_set_id", ""))
 		config.selected_mode_id = String(default_selection.get("mode_id", _get_preferred_mode_id(app_runtime)))
+		config.match_format_id = ""
+		config.selected_mode_ids = []
 	RoomSelectionPolicyScript.sanitize_connection_selection(config, not FrontRoomKindScript.is_match_room(String(entry_context.room_kind)))
 	return {
 		"config": config,

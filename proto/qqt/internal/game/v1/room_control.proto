@@ -16,6 +16,10 @@ message PartyMember {
   string account_id = 1;
   string profile_id = 2;
   int32 team_id = 3;
+  string character_id = 4;
+  string character_skin_id = 5;
+  string bubble_style_id = 6;
+  string bubble_skin_id = 7;
 }
 
 message EnterPartyQueueRequest {

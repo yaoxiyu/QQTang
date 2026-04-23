@@ -146,9 +146,13 @@ func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManif
 	}
 	for _, m := range members {
 		manifest.Members = append(manifest.Members, ManifestMember{
-			AccountID:      m.AccountID,
-			ProfileID:      m.ProfileID,
-			AssignedTeamID: m.AssignedTeamID,
+			AccountID:       m.AccountID,
+			ProfileID:       m.ProfileID,
+			AssignedTeamID:  m.AssignedTeamID,
+			CharacterID:     m.CharacterID,
+			CharacterSkinID: m.CharacterSkinID,
+			BubbleStyleID:   m.BubbleStyleID,
+			BubbleSkinID:    m.BubbleSkinID,
 		})
 	}
 	return manifest, nil

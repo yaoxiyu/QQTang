@@ -12,6 +12,10 @@ type PartyQueueMember struct {
 	DeviceSessionID   string
 	SeatIndex         int
 	RatingSnapshot    int
+	CharacterID       string
+	CharacterSkinID   string
+	BubbleStyleID     string
+	BubbleSkinID      string
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -28,19 +32,19 @@ func (r *PartyQueueMemberRepository) Insert(ctx context.Context, member PartyQue
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO matchmaking_party_queue_members (
 			party_queue_entry_id, account_id, profile_id, device_session_id,
-			seat_index, rating_snapshot, created_at, updated_at
+			seat_index, rating_snapshot, character_id, character_skin_id, bubble_style_id, bubble_skin_id, created_at, updated_at
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
 		)
 	`, member.PartyQueueEntryID, member.AccountID, member.ProfileID, member.DeviceSessionID,
-		member.SeatIndex, member.RatingSnapshot, member.CreatedAt, member.UpdatedAt)
+		member.SeatIndex, member.RatingSnapshot, member.CharacterID, member.CharacterSkinID, member.BubbleStyleID, member.BubbleSkinID, member.CreatedAt, member.UpdatedAt)
 	return err
 }
 
 func (r *PartyQueueMemberRepository) ListByEntryID(ctx context.Context, entryID string) ([]PartyQueueMember, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT party_queue_entry_id, account_id, profile_id, device_session_id,
-		       seat_index, rating_snapshot, created_at, updated_at
+		       seat_index, rating_snapshot, character_id, character_skin_id, bubble_style_id, bubble_skin_id, created_at, updated_at
 		FROM matchmaking_party_queue_members
 		WHERE party_queue_entry_id = $1
 		ORDER BY seat_index ASC, created_at ASC
@@ -59,6 +63,10 @@ func (r *PartyQueueMemberRepository) ListByEntryID(ctx context.Context, entryID 
 			&member.DeviceSessionID,
 			&member.SeatIndex,
 			&member.RatingSnapshot,
+			&member.CharacterID,
+			&member.CharacterSkinID,
+			&member.BubbleStyleID,
+			&member.BubbleSkinID,
 			&member.CreatedAt,
 			&member.UpdatedAt,
 		); err != nil {

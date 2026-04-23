@@ -9,6 +9,14 @@ func rebuildRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string, q
 	if room == nil {
 		return
 	}
+	room.Capabilities = projectRoomCapabilities(room, ownerMemberID, query)
+}
+
+func projectRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string, query *manifest.Query) domain.RoomCapabilitySet {
+	capabilities := domain.RoomCapabilitySet{}
+	if room == nil {
+		return capabilities
+	}
 	isOwnerPresent := ownerMemberID != ""
 	isMatchRoom := isMatchRoomKind(room.RoomKind)
 	isManualRoom := isManualRoomKind(room.RoomKind)
@@ -17,18 +25,19 @@ func rebuildRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string, q
 		phase = RoomPhaseIdle
 	}
 
-	room.Capabilities.CanLeaveRoom = phase != RoomPhaseClosed
+	capabilities.CanLeaveRoom = phase != RoomPhaseClosed
 
-	room.Capabilities.CanToggleReady = isStableIdleForMemberOps(phase)
-	room.Capabilities.CanUpdateSelection = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle
-	room.Capabilities.CanUpdateMatchRoomConfig = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle
-	room.Capabilities.CanStartManualBattle = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasCompleteManualSelection(room)
+	capabilities.CanToggleReady = isStableIdleForMemberOps(phase)
+	capabilities.CanUpdateSelection = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle
+	capabilities.CanUpdateMatchRoomConfig = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle
+	capabilities.CanStartManualBattle = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasCompleteManualSelection(room)
 	requiredPartySize := 0
 	if query != nil {
 		requiredPartySize = query.RequiredPartySize(room.Selection.MatchFormatID)
 	}
-	room.Capabilities.CanEnterQueue = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasMatchQueueConfig(room) && requiredPartySize > 0 && len(room.Members) == requiredPartySize
-	room.Capabilities.CanCancelQueue = isOwnerPresent && isMatchRoom && (phase == RoomPhaseQueueActive || phase == RoomPhaseBattleAllocating || phase == RoomPhaseBattleEntryReady)
+	capabilities.CanEnterQueue = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasMatchQueueConfig(room) && requiredPartySize > 0 && len(room.Members) == requiredPartySize
+	capabilities.CanCancelQueue = isOwnerPresent && isMatchRoom && (phase == RoomPhaseQueueActive || phase == RoomPhaseBattleAllocating || phase == RoomPhaseBattleEntryReady)
+	return capabilities
 }
 
 func isStableIdleForMemberOps(roomPhase string) bool {

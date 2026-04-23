@@ -13,9 +13,13 @@ func toPBPartyMembers(input []PartyMember) []*gamev1.PartyMember {
 	result := make([]*gamev1.PartyMember, 0, len(input))
 	for _, member := range input {
 		result = append(result, &gamev1.PartyMember{
-			AccountId: member.AccountID,
-			ProfileId: member.ProfileID,
-			TeamId:    int32(member.TeamID),
+			AccountId:       member.AccountID,
+			ProfileId:       member.ProfileID,
+			TeamId:          int32(member.TeamID),
+			CharacterId:     member.CharacterID,
+			CharacterSkinId: member.CharacterSkinID,
+			BubbleStyleId:   member.BubbleStyleID,
+			BubbleSkinId:    member.BubbleSkinID,
 		})
 	}
 	return result

@@ -46,16 +46,20 @@ type Assignment struct {
 }
 
 type AssignmentMember struct {
-	AssignmentID   string
-	AccountID      string
-	ProfileID      string
-	TicketRole     string
-	AssignedTeamID int
-	RatingBefore   int
-	JoinState      string
-	ResultState    string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	AssignmentID    string
+	AccountID       string
+	ProfileID       string
+	TicketRole      string
+	AssignedTeamID  int
+	RatingBefore    int
+	CharacterID     string
+	CharacterSkinID string
+	BubbleStyleID   string
+	BubbleSkinID    string
+	JoinState       string
+	ResultState     string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 
 	// Room/Battle decoupling fields.
 	SourceRoomID       string
@@ -101,13 +105,15 @@ func (r *AssignmentRepository) InsertMember(ctx context.Context, member Assignme
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO matchmaking_assignment_members (
 			assignment_id, account_id, profile_id, ticket_role, assigned_team_id,
-			rating_before, join_state, result_state, created_at, updated_at,
+			rating_before, character_id, character_skin_id, bubble_style_id, bubble_skin_id,
+			join_state, result_state, created_at, updated_at,
 			source_room_id, source_room_member_id, battle_join_state, room_return_state
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
 		)
 	`, member.AssignmentID, member.AccountID, member.ProfileID, member.TicketRole, member.AssignedTeamID,
-		member.RatingBefore, member.JoinState, member.ResultState, member.CreatedAt, member.UpdatedAt,
+		member.RatingBefore, member.CharacterID, member.CharacterSkinID, member.BubbleStyleID, member.BubbleSkinID,
+		member.JoinState, member.ResultState, member.CreatedAt, member.UpdatedAt,
 		member.SourceRoomID, member.SourceRoomMemberID, member.BattleJoinState, member.RoomReturnState)
 	return err
 }
@@ -149,12 +155,14 @@ func (r *AssignmentRepository) FindMember(ctx context.Context, assignmentID stri
 	var record AssignmentMember
 	err := r.db.QueryRow(ctx, `
 		SELECT assignment_id, account_id, profile_id, ticket_role, assigned_team_id, rating_before, join_state, result_state, created_at, updated_at,
+		       character_id, character_skin_id, bubble_style_id, bubble_skin_id,
 		       source_room_id, source_room_member_id, battle_join_state, room_return_state
 		FROM matchmaking_assignment_members
 		WHERE assignment_id = $1 AND account_id = $2
 	`, assignmentID, accountID).Scan(
 		&record.AssignmentID, &record.AccountID, &record.ProfileID, &record.TicketRole, &record.AssignedTeamID,
 		&record.RatingBefore, &record.JoinState, &record.ResultState, &record.CreatedAt, &record.UpdatedAt,
+		&record.CharacterID, &record.CharacterSkinID, &record.BubbleStyleID, &record.BubbleSkinID,
 		&record.SourceRoomID, &record.SourceRoomMemberID, &record.BattleJoinState, &record.RoomReturnState,
 	)
 	if err != nil {
@@ -166,6 +174,7 @@ func (r *AssignmentRepository) FindMember(ctx context.Context, assignmentID stri
 func (r *AssignmentRepository) ListMembers(ctx context.Context, assignmentID string) ([]AssignmentMember, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT assignment_id, account_id, profile_id, ticket_role, assigned_team_id, rating_before, join_state, result_state, created_at, updated_at,
+		       character_id, character_skin_id, bubble_style_id, bubble_skin_id,
 		       source_room_id, source_room_member_id, battle_join_state, room_return_state
 		FROM matchmaking_assignment_members
 		WHERE assignment_id = $1
@@ -182,6 +191,7 @@ func (r *AssignmentRepository) ListMembers(ctx context.Context, assignmentID str
 		if err := rows.Scan(
 			&record.AssignmentID, &record.AccountID, &record.ProfileID, &record.TicketRole, &record.AssignedTeamID,
 			&record.RatingBefore, &record.JoinState, &record.ResultState, &record.CreatedAt, &record.UpdatedAt,
+			&record.CharacterID, &record.CharacterSkinID, &record.BubbleStyleID, &record.BubbleSkinID,
 			&record.SourceRoomID, &record.SourceRoomMemberID, &record.BattleJoinState, &record.RoomReturnState,
 		); err != nil {
 			return nil, err

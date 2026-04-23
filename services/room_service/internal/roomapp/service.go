@@ -932,31 +932,17 @@ func (s *Service) validateLoadout(loadout Loadout) (Loadout, error) {
 
 func (s *Service) validateSelection(roomKind string, selection Selection, memberCount int) (Selection, *manifest.MapEntry, error) {
 	resolved := selection
-	if resolved.MapID == "" {
-		first := s.manifest.FirstMap()
-		if first == nil {
-			return Selection{}, nil, ErrInvalidSelection
-		}
-		resolved.MapID = first.MapID
-	}
-	mapEntry := s.manifest.FindMap(resolved.MapID)
-	if mapEntry == nil {
-		return Selection{}, nil, ErrInvalidSelection
-	}
-	if resolved.ModeID == "" {
-		resolved.ModeID = mapEntry.ModeID
-	}
-	if resolved.RuleSetID == "" {
-		resolved.RuleSetID = mapEntry.RuleSetID
-	}
-	if resolved.MatchFormatID == "" && len(mapEntry.MatchFormatIDs) > 0 {
-		resolved.MatchFormatID = mapEntry.MatchFormatIDs[0]
-	}
+	var mapEntry *manifest.MapEntry
 
 	switch domain.ParseRoomKindCategory(roomKind) {
 	case domain.RoomKindMatch, domain.RoomKindRanked:
 		if strings.TrimSpace(resolved.MatchFormatID) == "" {
 			resolved.MatchFormatID = s.query.DefaultMatchFormatID()
+		}
+		if len(resolved.SelectedModeIDs) == 0 && strings.TrimSpace(resolved.ModeID) == "" {
+			if matchFormat := s.query.FindMatchFormat(resolved.MatchFormatID); matchFormat != nil && len(matchFormat.LegalModeIDs) > 0 {
+				resolved.ModeID = matchFormat.LegalModeIDs[0]
+			}
 		}
 		if len(resolved.SelectedModeIDs) == 0 && resolved.ModeID != "" {
 			resolved.SelectedModeIDs = []string{resolved.ModeID}
@@ -977,6 +963,26 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 		resolved.ModeID = mapEntry.ModeID
 		resolved.RuleSetID = mapEntry.RuleSetID
 	default:
+		if resolved.MapID == "" {
+			first := s.manifest.FirstMap()
+			if first == nil {
+				return Selection{}, nil, ErrInvalidSelection
+			}
+			resolved.MapID = first.MapID
+		}
+		mapEntry = s.manifest.FindMap(resolved.MapID)
+		if mapEntry == nil {
+			return Selection{}, nil, ErrInvalidSelection
+		}
+		if resolved.ModeID == "" {
+			resolved.ModeID = mapEntry.ModeID
+		}
+		if resolved.RuleSetID == "" {
+			resolved.RuleSetID = mapEntry.RuleSetID
+		}
+		if resolved.MatchFormatID == "" && len(mapEntry.MatchFormatIDs) > 0 {
+			resolved.MatchFormatID = mapEntry.MatchFormatIDs[0]
+		}
 		validated, err := s.query.ValidateCustomRoomSelection(resolved.MapID, resolved.ModeID, resolved.RuleSetID)
 		if err != nil {
 			return Selection{}, nil, ErrInvalidSelection
@@ -999,6 +1005,7 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 		member.ReconnectToken = ""
 		members = append(members, member)
 	}
+	capabilities := projectRoomCapabilities(room, s.roomOwnerByID[room.RoomID], s.query)
 	return &SnapshotProjection{
 		RoomID:               room.RoomID,
 		RoomKind:             room.RoomKind,
@@ -1019,7 +1026,7 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 		BattlePhase:          room.BattleState.Phase,
 		BattleTerminalReason: room.BattleState.TerminalReason,
 		BattleStatusText:     room.BattleState.StatusText,
-		Capabilities:         room.Capabilities,
+		Capabilities:         capabilities,
 		QueueState:           room.Queue,
 		BattleHandoff:        room.BattleHandoffState,
 	}
@@ -1179,9 +1186,13 @@ func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyM
 	result := make([]gameclient.PartyMember, 0, len(members))
 	for _, member := range members {
 		result = append(result, gameclient.PartyMember{
-			AccountID: member.AccountID,
-			ProfileID: member.ProfileID,
-			TeamID:    member.TeamID,
+			AccountID:       member.AccountID,
+			ProfileID:       member.ProfileID,
+			TeamID:          member.TeamID,
+			CharacterID:     member.Loadout.CharacterID,
+			CharacterSkinID: member.Loadout.CharacterSkinID,
+			BubbleStyleID:   member.Loadout.BubbleStyleID,
+			BubbleSkinID:    member.Loadout.BubbleSkinID,
 		})
 	}
 	return result

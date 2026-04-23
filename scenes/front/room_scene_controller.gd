@@ -84,9 +84,9 @@ var _suppress_selection_callbacks: bool = false
 
 
 func _ready() -> void:
+	_bind_runtime()
 	_populate_selectors()
 	_connect_ui_signals()
-	_bind_runtime()
 
 
 func _bind_runtime() -> void:
@@ -106,6 +106,7 @@ func _on_runtime_ready() -> void:
 	_front_flow = _app_runtime.front_flow
 	_room_use_case = _app_runtime.room_use_case
 	_connect_runtime_signals()
+	_populate_selectors()
 	_apply_local_profile_defaults()
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
 		_refresh_room(_room_controller.build_room_snapshot())

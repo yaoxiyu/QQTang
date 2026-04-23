@@ -114,8 +114,8 @@ func TestManualRoomCreateRollsBackWhenInsertMemberFails(t *testing.T) {
 		SourceRoomID: "room_manual_1",
 		ModeID:       "mode_classic",
 		Members: []ManualRoomMember{
-			{AccountID: "a1", ProfileID: "p1", AssignedTeamID: 1},
-			{AccountID: "a2", ProfileID: "p2", AssignedTeamID: 2},
+			{AccountID: "a1", ProfileID: "p1", AssignedTeamID: 1, CharacterID: "char_alpha", BubbleStyleID: "bubble_alpha"},
+			{AccountID: "a2", ProfileID: "p2", AssignedTeamID: 2, CharacterID: "char_beta", BubbleStyleID: "bubble_beta"},
 		},
 	})
 	if !errors.Is(err, ErrManualRoomPersistFailed) {
@@ -201,8 +201,8 @@ func TestManualRoomCreateSucceedsWithConsistentState(t *testing.T) {
 		MapID:               "map_classic_square",
 		ExpectedMemberCount: 2,
 		Members: []ManualRoomMember{
-			{AccountID: "a1", ProfileID: "p1", AssignedTeamID: 1},
-			{AccountID: "a2", ProfileID: "p2", AssignedTeamID: 2},
+			{AccountID: "a1", ProfileID: "p1", AssignedTeamID: 1, CharacterID: "char_alpha", BubbleStyleID: "bubble_alpha"},
+			{AccountID: "a2", ProfileID: "p2", AssignedTeamID: 2, CharacterID: "char_beta", BubbleStyleID: "bubble_beta"},
 		},
 	})
 	if err != nil {
@@ -220,6 +220,9 @@ func TestManualRoomCreateSucceedsWithConsistentState(t *testing.T) {
 	}
 	if got := len(repo.members[result.AssignmentID]); got != 2 {
 		t.Fatalf("expected 2 members, got %d", got)
+	}
+	if repo.members[result.AssignmentID][0].CharacterID != "char_alpha" || repo.members[result.AssignmentID][1].CharacterID != "char_beta" {
+		t.Fatalf("expected manual room member loadout persisted, got %+v", repo.members[result.AssignmentID])
 	}
 }
 

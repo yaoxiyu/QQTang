@@ -5,6 +5,7 @@ const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubb
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 
 func populate_selectors(controller: Node) -> void:
@@ -38,6 +39,14 @@ func populate_character_selector(controller: Node) -> void:
 		var fallback_id := _get_fallback_character_id(controller)
 		controller.character_selector.add_item(fallback_id)
 		controller.character_selector.set_item_metadata(controller.character_selector.item_count - 1, fallback_id)
+	_log_room_scene("populate_character_selector", {
+		"owned_character_count": owned_ids.size(),
+		"catalog_character_count": CharacterCatalogScript.get_character_entries().size(),
+		"selector_item_count": controller.character_selector.item_count,
+		"added_count": added_count,
+		"default_character_id": _get_fallback_character_id(controller),
+		"owned_character_ids": owned_ids,
+	})
 
 
 func populate_team_selector(controller: Node, team_option_max: int = 2) -> void:
@@ -253,3 +262,7 @@ func _get_fallback_bubble_id(controller: Node) -> String:
 		if not entry_id.is_empty():
 			return entry_id
 	return "bubble_style_default"
+
+
+func _log_room_scene(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("[room_scene_selector] %s %s" % [event_name, JSON.stringify(payload)], "", 0, "front.room.scene.selector")

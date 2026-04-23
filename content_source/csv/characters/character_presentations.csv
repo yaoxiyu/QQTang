@@ -1,2 +1,17 @@
 presentation_id,body_scene_path,animation_set_id,body_view_type,animation_library_path,idle_anim,run_anim,dead_anim,hud_portrait_small_path,hud_portrait_large_path,skin_anchor_slots
 char_pres_huoying,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_huoying,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_11001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_11001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_12001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_12001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_13001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_13001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_14001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_14001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_15001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_15001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_16001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_16001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_17001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_17001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_19001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_19001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_51001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_51001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_52001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_52001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_53001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_53001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_54001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_54001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_55001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_55001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_56001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_56001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
+char_pres_65001,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_65001,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay

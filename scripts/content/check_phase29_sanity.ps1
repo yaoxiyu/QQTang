@@ -37,23 +37,87 @@ $checks = @(
     }
 )
 
-foreach ($check in $checks) {
-    $paths = @($check.Paths)
-    $excludeArgs = @()
-    foreach ($exclude in @($check.Excludes)) {
+function Test-IsExcluded {
+    param(
+        [string]$RelativePath,
+        [object[]]$Excludes
+    )
+
+    foreach ($exclude in @($Excludes)) {
         if ($null -eq $exclude -or [string]::IsNullOrWhiteSpace([string]$exclude)) {
             continue
         }
-        $normalizedExclude = $exclude.Replace('\', '/')
+        $normalizedExclude = ([string]$exclude).Replace('\', '/')
         if ($normalizedExclude.Contains('*')) {
-            $excludeArgs += @('-g', ('!{0}' -f $normalizedExclude))
+            if ($RelativePath -like $normalizedExclude) {
+                return $true
+            }
             continue
         }
-        $excludeArgs += @('-g', ('!{0}/**' -f $normalizedExclude))
+        if ($RelativePath -eq $normalizedExclude -or $RelativePath.StartsWith($normalizedExclude + '/')) {
+            return $true
+        }
     }
-    $args = @('-n', '--fixed-strings', $check.Pattern) + $paths + @('-S') + $excludeArgs
-    $result = & rg @args 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace(($result | Out-String))) {
+    return $false
+}
+
+function Find-MatchesWithPowerShell {
+    param(
+        [string]$RepoRoot,
+        [string]$Pattern,
+        [object[]]$Paths,
+        [object[]]$Excludes
+    )
+
+    $matches = @()
+    foreach ($path in @($Paths)) {
+        $fullPath = Join-Path $RepoRoot $path
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            continue
+        }
+        Get-ChildItem -LiteralPath $fullPath -Recurse -File | ForEach-Object {
+            $relativePath = $_.FullName.Substring($RepoRoot.Path.Length + 1).Replace('\', '/')
+            if (Test-IsExcluded -RelativePath $relativePath -Excludes $Excludes) {
+                return
+            }
+            $hit = Select-String -LiteralPath $_.FullName -SimpleMatch -Pattern $Pattern -ErrorAction SilentlyContinue
+            if ($null -ne $hit) {
+                foreach ($item in @($hit)) {
+                    $matches += ('{0}:{1}:{2}' -f $relativePath, $item.LineNumber, $item.Line.Trim())
+                }
+            }
+        }
+    }
+    return $matches
+}
+
+foreach ($check in $checks) {
+    $paths = @($check.Paths)
+    $result = @()
+    $rgCommand = Get-Command rg -ErrorAction SilentlyContinue
+    if ($null -ne $rgCommand) {
+        $excludeArgs = @()
+        foreach ($exclude in @($check.Excludes)) {
+            if ($null -eq $exclude -or [string]::IsNullOrWhiteSpace([string]$exclude)) {
+                continue
+            }
+            $normalizedExclude = ([string]$exclude).Replace('\', '/')
+            if ($normalizedExclude.Contains('*')) {
+                $excludeArgs += @('-g', ('!{0}' -f $normalizedExclude))
+                continue
+            }
+            $excludeArgs += @('-g', ('!{0}/**' -f $normalizedExclude))
+        }
+        $args = @('-n', '--fixed-strings', $check.Pattern) + $paths + @('-S') + $excludeArgs
+        $result = & rg @args 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            $result = @()
+        }
+    } else {
+        $result = Find-MatchesWithPowerShell -RepoRoot $repoRoot -Pattern $check.Pattern -Paths $paths -Excludes @($check.Excludes)
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace(($result | Out-String))) {
         Write-Host ("[phase29-sanity] FAIL {0}" -f $check.Name)
         Write-Host ($result | Out-String)
         exit 1

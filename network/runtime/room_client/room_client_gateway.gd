@@ -84,6 +84,8 @@ func request_create_room(connection_config: ClientConnectionConfig) -> void:
 		connection_config.selected_map_id,
 		connection_config.selected_rule_set_id,
 		connection_config.selected_mode_id,
+		connection_config.match_format_id,
+		connection_config.selected_mode_ids,
 		connection_config.room_kind,
 		connection_config.room_display_name,
 		connection_config.room_ticket,

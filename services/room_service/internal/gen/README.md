@@ -1,4 +1,4 @@
-# Generated Code
+﻿# Generated Code
 
 This directory contains generated code.
 

@@ -205,3 +205,77 @@ func TestBuildPartyQueuedStatusUsesCanonicalPhaseAndAlias(t *testing.T) {
 		t.Fatalf("expected queue status text Match finalized, got %s", status.QueueStatusText)
 	}
 }
+
+func TestEnterPartyQueuePersistsMemberLoadout(t *testing.T) {
+	manifestPath := filepath.Join(t.TempDir(), "room_manifest.json")
+	content := `{
+		"schema_version": 1,
+		"generated_at_unix_ms": 1,
+		"maps": [],
+		"modes": [],
+		"rules": [],
+		"match_formats": [
+			{
+				"match_format_id": "1v1",
+				"required_party_size": 1,
+				"expected_total_player_count": 2,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			}
+		],
+		"assets": {
+			"default_character_id": "char_default",
+			"default_bubble_style_id": "bubble_default",
+			"legal_character_ids": ["char_default"],
+			"legal_character_skin_ids": ["skin_1"],
+			"legal_bubble_style_ids": ["bubble_default"],
+			"legal_bubble_skin_ids": ["bubble_skin_1"]
+		}
+	}`
+	if err := os.WriteFile(manifestPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	loader, err := contentmanifest.LoadFromFile(manifestPath)
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+
+	db := newFakeQueueDB()
+	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	service.ConfigureContentManifest(loader)
+	service.ConfigurePartyQueueRepositories(storage.NewPartyQueueRepository(db), storage.NewPartyQueueMemberRepository(db))
+
+	_, err = service.EnterPartyQueue(t.Context(), EnterPartyQueueInput{
+		PartyRoomID:     "room_1",
+		QueueType:       "casual",
+		MatchFormatID:   "1v1",
+		SelectedModeIDs: []string{"mode_classic"},
+		Members: []PartyQueueMemberInput{
+			{
+				AccountID:       "account_1",
+				ProfileID:       "profile_1",
+				CharacterID:     "char_default",
+				CharacterSkinID: "skin_1",
+				BubbleStyleID:   "bubble_default",
+				BubbleSkinID:    "bubble_skin_1",
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("EnterPartyQueue returned error: %v", err)
+	}
+
+	var stored storage.PartyQueueMember
+	for _, members := range db.partyMembersByEntry {
+		if len(members) > 0 {
+			stored = members[0]
+			break
+		}
+	}
+	if stored.CharacterID != "char_default" || stored.CharacterSkinID != "skin_1" {
+		t.Fatalf("expected character loadout persisted, got %+v", stored)
+	}
+	if stored.BubbleStyleID != "bubble_default" || stored.BubbleSkinID != "bubble_skin_1" {
+		t.Fatalf("expected bubble loadout persisted, got %+v", stored)
+	}
+}

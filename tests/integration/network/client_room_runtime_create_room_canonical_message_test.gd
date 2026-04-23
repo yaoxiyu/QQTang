@@ -34,6 +34,8 @@ func _main_body() -> void:
 		"map_arcade",
 		"ruleset_classic",
 		"mode_classic",
+		"",
+		[],
 		"private_room",
 		"Room Alpha",
 		"ticket_create"
@@ -49,4 +51,3 @@ func _main_body() -> void:
 			prefix
 		) and ok
 	runtime.queue_free()
-

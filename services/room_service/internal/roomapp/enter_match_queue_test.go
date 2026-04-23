@@ -110,3 +110,42 @@ func TestEnterMatchQueueRejectsNonIdleRoomPhase(t *testing.T) {
 		t.Fatalf("expected ErrRoomPhaseInvalid, got %v", err)
 	}
 }
+
+func TestEnterMatchQueueSendsMemberLoadoutToGameService(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "casual_match_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout: Loadout{
+			CharacterID:     "char_default",
+			CharacterSkinID: "skin_1",
+			BubbleStyleID:   "bubble_default",
+			BubbleSkinID:    "bubble_skin_1",
+		},
+		Selection: Selection{MapID: "map_duel", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "1v1", SelectedModeIDs: []string{"mode_classic"}},
+	})
+	if err != nil {
+		t.Fatalf("create match room failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle ready failed: %v", err)
+	}
+	if _, err := svc.EnterMatchQueue(EnterMatchQueueInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("enter match queue failed: %v", err)
+	}
+	if fakeGame.lastEnterReq == nil || len(fakeGame.lastEnterReq.GetMembers()) != 1 {
+		t.Fatalf("expected captured enter request with one member, got %+v", fakeGame.lastEnterReq)
+	}
+	member := fakeGame.lastEnterReq.GetMembers()[0]
+	if member.GetCharacterId() != "char_default" || member.GetCharacterSkinId() != "skin_1" {
+		t.Fatalf("expected character loadout in enter request, got %+v", member)
+	}
+	if member.GetBubbleStyleId() != "bubble_default" || member.GetBubbleSkinId() != "bubble_skin_1" {
+		t.Fatalf("expected bubble loadout in enter request, got %+v", member)
+	}
+}

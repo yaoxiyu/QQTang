@@ -98,12 +98,16 @@ func (x *RoomContext) GetRoomShardId() string {
 }
 
 type PartyMember struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	ProfileId     string                 `protobuf:"bytes,2,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
-	TeamId        int32                  `protobuf:"varint,3,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AccountId       string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ProfileId       string                 `protobuf:"bytes,2,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	TeamId          int32                  `protobuf:"varint,3,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
+	CharacterId     string                 `protobuf:"bytes,4,opt,name=character_id,json=characterId,proto3" json:"character_id,omitempty"`
+	CharacterSkinId string                 `protobuf:"bytes,5,opt,name=character_skin_id,json=characterSkinId,proto3" json:"character_skin_id,omitempty"`
+	BubbleStyleId   string                 `protobuf:"bytes,6,opt,name=bubble_style_id,json=bubbleStyleId,proto3" json:"bubble_style_id,omitempty"`
+	BubbleSkinId    string                 `protobuf:"bytes,7,opt,name=bubble_skin_id,json=bubbleSkinId,proto3" json:"bubble_skin_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *PartyMember) Reset() {
@@ -155,6 +159,34 @@ func (x *PartyMember) GetTeamId() int32 {
 		return x.TeamId
 	}
 	return 0
+}
+
+func (x *PartyMember) GetCharacterId() string {
+	if x != nil {
+		return x.CharacterId
+	}
+	return ""
+}
+
+func (x *PartyMember) GetCharacterSkinId() string {
+	if x != nil {
+		return x.CharacterSkinId
+	}
+	return ""
+}
+
+func (x *PartyMember) GetBubbleStyleId() string {
+	if x != nil {
+		return x.BubbleStyleId
+	}
+	return ""
+}
+
+func (x *PartyMember) GetBubbleSkinId() string {
+	if x != nil {
+		return x.BubbleSkinId
+	}
+	return ""
 }
 
 type EnterPartyQueueRequest struct {
@@ -1015,13 +1047,17 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"\troom_kind\x18\x02 \x01(\tR\broomKind\x12#\n" +
 	"\rassignment_id\x18\x03 \x01(\tR\fassignmentId\x12(\n" +
 	"\x10room_instance_id\x18\x04 \x01(\tR\x0eroomInstanceId\x12\"\n" +
-	"\rroom_shard_id\x18\x05 \x01(\tR\vroomShardId\"d\n" +
+	"\rroom_shard_id\x18\x05 \x01(\tR\vroomShardId\"\x81\x02\n" +
 	"\vPartyMember\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12\x1d\n" +
 	"\n" +
 	"profile_id\x18\x02 \x01(\tR\tprofileId\x12\x17\n" +
-	"\ateam_id\x18\x03 \x01(\x05R\x06teamId\"\x85\x02\n" +
+	"\ateam_id\x18\x03 \x01(\x05R\x06teamId\x12!\n" +
+	"\fcharacter_id\x18\x04 \x01(\tR\vcharacterId\x12*\n" +
+	"\x11character_skin_id\x18\x05 \x01(\tR\x0fcharacterSkinId\x12&\n" +
+	"\x0fbubble_style_id\x18\x06 \x01(\tR\rbubbleStyleId\x12$\n" +
+	"\x0ebubble_skin_id\x18\a \x01(\tR\fbubbleSkinId\"\x85\x02\n" +
 	"\x16EnterPartyQueueRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12\x1d\n" +
 	"\n" +

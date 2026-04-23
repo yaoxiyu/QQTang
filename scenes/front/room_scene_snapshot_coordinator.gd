@@ -1,6 +1,7 @@
 extends RefCounted
 
 const DEFAULT_MATCH_FORMAT_ID := "1v1"
+const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 
 func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
@@ -30,6 +31,20 @@ func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 		controller._populate_map_selector(String(view_model.get("selected_mode_id", "")))
 		controller._select_metadata(controller.map_selector, String(view_model.get("selected_map_id", "")))
 	controller._suppress_selection_callbacks = false
+	_log_room_scene("refresh_room", {
+		"room_id": String(snapshot.room_id),
+		"room_kind": String(snapshot.room_kind),
+		"queue_type": String(snapshot.queue_type),
+		"match_format_id": String(snapshot.match_format_id),
+		"selected_match_mode_ids": snapshot.selected_match_mode_ids,
+		"required_party_size": int(snapshot.required_party_size),
+		"member_count": snapshot.members.size(),
+		"all_ready": bool(snapshot.all_ready),
+		"can_enter_queue": bool(view_model.get("can_enter_queue", false)),
+		"can_ready": bool(view_model.get("can_ready", false)),
+		"blocker_text": String(view_model.get("blocker_text", "")),
+		"local_character_id": String(view_model.get("local_character_id", "")),
+	})
 	apply_room_kind_visibility(controller, view_model)
 	refresh_match_room_controls(controller, snapshot, view_model)
 	update_auth_binding_summary(controller, snapshot)
@@ -92,3 +107,7 @@ func on_room_snapshot_changed(controller: Node, snapshot: RoomSnapshot) -> void:
 			controller._app_runtime.current_battle_entry_context = battle_ctx
 			if controller._front_flow.has_method("request_battle_entry"):
 				controller._front_flow.request_battle_entry()
+
+
+func _log_room_scene(event_name: String, payload: Dictionary) -> void:
+	LogFrontScript.debug("[room_scene_snapshot] %s %s" % [event_name, JSON.stringify(payload)], "", 0, "front.room.scene.snapshot")

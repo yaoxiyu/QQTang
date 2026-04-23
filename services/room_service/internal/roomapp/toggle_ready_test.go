@@ -77,3 +77,37 @@ func TestToggleReadyRejectsNonIdleRoomPhase(t *testing.T) {
 		t.Fatalf("expected ErrRoomPhaseInvalid, got %v", err)
 	}
 }
+
+func TestToggleReady_MatchRoomSoloReadyProjectsCanEnterQueue(t *testing.T) {
+	svc := newTestService(t)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "casual_match_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout: Loadout{
+			CharacterID:   "char_default",
+			BubbleStyleID: "bubble_default",
+		},
+		Selection: Selection{
+			MatchFormatID:   "1v1",
+			SelectedModeIDs: []string{"mode_classic"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+
+	snapshot, err := svc.ToggleReady(ToggleReadyInput{
+		RoomID:   created.RoomID,
+		MemberID: created.OwnerMemberID,
+	})
+	if err != nil {
+		t.Fatalf("toggle ready failed: %v", err)
+	}
+	if !snapshot.Capabilities.CanEnterQueue {
+		t.Fatalf("expected can_enter_queue true for solo ready 1v1 room")
+	}
+}

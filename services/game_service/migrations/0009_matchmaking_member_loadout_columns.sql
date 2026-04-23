@@ -1,0 +1,15 @@
+BEGIN;
+
+ALTER TABLE matchmaking_party_queue_members
+    ADD COLUMN IF NOT EXISTS character_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS character_skin_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS bubble_style_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS bubble_skin_id TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE matchmaking_assignment_members
+    ADD COLUMN IF NOT EXISTS character_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS character_skin_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS bubble_style_id TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS bubble_skin_id TEXT NOT NULL DEFAULT '';
+
+COMMIT;

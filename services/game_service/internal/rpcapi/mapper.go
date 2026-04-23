@@ -16,9 +16,13 @@ func mapEnterPartyQueueInput(req *gamev1.EnterPartyQueueRequest) queue.EnterPart
 			continue
 		}
 		mappedMembers = append(mappedMembers, queue.PartyQueueMemberInput{
-			AccountID: member.GetAccountId(),
-			ProfileID: member.GetProfileId(),
-			SeatIndex: int(member.GetTeamId()),
+			AccountID:       member.GetAccountId(),
+			ProfileID:       member.GetProfileId(),
+			SeatIndex:       int(member.GetTeamId()),
+			CharacterID:     member.GetCharacterId(),
+			CharacterSkinID: member.GetCharacterSkinId(),
+			BubbleStyleID:   member.GetBubbleStyleId(),
+			BubbleSkinID:    member.GetBubbleSkinId(),
 		})
 	}
 	return queue.EnterPartyQueueInput{
@@ -38,9 +42,13 @@ func mapCreateManualRoomBattleInput(req *gamev1.CreateManualRoomBattleRequest) b
 			continue
 		}
 		mappedMembers = append(mappedMembers, battlealloc.ManualRoomMember{
-			AccountID:      member.GetAccountId(),
-			ProfileID:      member.GetProfileId(),
-			AssignedTeamID: int(member.GetTeamId()),
+			AccountID:       member.GetAccountId(),
+			ProfileID:       member.GetProfileId(),
+			AssignedTeamID:  int(member.GetTeamId()),
+			CharacterID:     member.GetCharacterId(),
+			CharacterSkinID: member.GetCharacterSkinId(),
+			BubbleStyleID:   member.GetBubbleStyleId(),
+			BubbleSkinID:    member.GetBubbleSkinId(),
 		})
 	}
 	return battlealloc.ManualRoomBattleInput{
@@ -65,12 +73,12 @@ func mapCommitAssignmentReadyInput(req *gamev1.CommitAssignmentReadyRequest) ass
 
 func successEnterPartyQueue(status queue.PartyQueueStatus) *gamev1.EnterPartyQueueResponse {
 	return &gamev1.EnterPartyQueueResponse{
-		Ok:                 true,
-		QueueEntryId:       status.QueueEntryID,
-		QueueState:         status.QueueState,
-		QueuePhase:         status.QueuePhase,
+		Ok:                  true,
+		QueueEntryId:        status.QueueEntryID,
+		QueueState:          status.QueueState,
+		QueuePhase:          status.QueuePhase,
 		QueueTerminalReason: status.QueueTerminalReason,
-		QueueStatusText:    status.QueueStatusText,
+		QueueStatusText:     status.QueueStatusText,
 	}
 }
 
@@ -84,11 +92,11 @@ func errorEnterPartyQueue(code, message string) *gamev1.EnterPartyQueueResponse 
 
 func successCancelPartyQueue(status queue.PartyQueueStatus) *gamev1.CancelPartyQueueResponse {
 	return &gamev1.CancelPartyQueueResponse{
-		Ok:                 true,
-		QueueState:         status.QueueState,
-		QueuePhase:         status.QueuePhase,
+		Ok:                  true,
+		QueueState:          status.QueueState,
+		QueuePhase:          status.QueuePhase,
 		QueueTerminalReason: status.QueueTerminalReason,
-		QueueStatusText:    status.QueueStatusText,
+		QueueStatusText:     status.QueueStatusText,
 	}
 }
 
