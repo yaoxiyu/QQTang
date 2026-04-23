@@ -65,6 +65,12 @@ exports/
 *.x86_64
 *.exe
 
+# Native extension local build artifacts
+addons/qqt_native/.sconsign.dblite
+addons/qqt_native/bin/
+addons/qqt_native/src/**/*.obj
+addons/qqt_native/src/**/*.obj.import
+
 # OS junk
 .DS_Store
 Thumbs.db
