@@ -39,8 +39,7 @@ func get_name() -> StringName:
 
 func execute(ctx: SimContext) -> void:
 	if NativeFeatureFlagsScript.enable_native_explosion and NativeKernelRuntimeScript.is_available():
-		if _execute_native_path(ctx):
-			return
+		_run_native_shadow_probe(ctx)
 
 	var pending_bubble_queue: Array[int] = []
 	for bubble_id in ctx.scratch.bubbles_to_explode:
@@ -119,6 +118,22 @@ func execute(ctx: SimContext) -> void:
 		}
 		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, center_x, center_y, covered_cells)
 		ctx.events.push(exploded_event)
+
+
+func _run_native_shadow_probe(ctx: SimContext) -> void:
+	var result := _native_explosion_bridge.resolve(ctx)
+	var pending_count := ctx.scratch.bubbles_to_explode.size()
+	var processed_count := int((result.get("processed_bubble_ids", []) as Array).size())
+	if pending_count > 0 and processed_count == 0:
+		LogSimulationScript.warn(
+			"[explosion_resolve_system] native shadow mismatch processed_bubble_ids=%d pending=%d" % [
+				processed_count,
+				pending_count,
+			],
+			"",
+			0,
+			"simulation.explosion.native_shadow"
+		)
 
 
 func _log_invalid_explosion_coverage_if_needed(

@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
 
@@ -25,6 +26,8 @@ public:
     PackedInt32Array pack_grid_static(const Variant &sim_world) const;
     Array unpack_player_positions(const PackedInt32Array &buffer) const;
     Array unpack_explosion_hits(const PackedInt32Array &buffer) const;
+    PackedByteArray pack_snapshot_payload(const Dictionary &payload) const;
+    Dictionary unpack_snapshot_payload(const PackedByteArray &payload_bytes) const;
 };
 
 #endif

@@ -5,6 +5,8 @@ const LogBattleScript = preload("res://app/logging/log_battle.gd")
 
 const LOG_TAG := "battle.native.snapshot.codec"
 
+var _native_codec: Object = null
+
 
 func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
 	if snapshot == null:
@@ -21,6 +23,17 @@ func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
 		"mode_state": snapshot.mode_state.duplicate(true),
 		"checksum": snapshot.checksum,
 	}
+	var native_codec := _get_native_codec()
+	if native_codec != null and native_codec.has_method("pack_snapshot_payload"):
+		var native_result: Variant = native_codec.pack_snapshot_payload(payload)
+		if native_result is PackedByteArray:
+			return native_result
+		LogBattleScript.warn(
+			"[native_packed_state_codec_bridge] native pack_snapshot_payload returned non-bytes, fallback to GDScript",
+			"",
+			0,
+			LOG_TAG
+		)
 	return var_to_bytes(payload)
 
 
@@ -28,7 +41,12 @@ func decode_snapshot_payload(snapshot_bytes: PackedByteArray) -> WorldSnapshot:
 	if snapshot_bytes.is_empty():
 		return null
 
-	var payload_variant: Variant = bytes_to_var(snapshot_bytes)
+	var payload_variant: Variant = null
+	var native_codec := _get_native_codec()
+	if native_codec != null and native_codec.has_method("unpack_snapshot_payload"):
+		payload_variant = native_codec.unpack_snapshot_payload(snapshot_bytes)
+	else:
+		payload_variant = bytes_to_var(snapshot_bytes)
 	if not (payload_variant is Dictionary):
 		LogBattleScript.warn(
 			"[native_packed_state_codec_bridge] snapshot payload decode returned non-dictionary",
@@ -65,3 +83,12 @@ func _coerce_dictionary(raw_value: Variant) -> Dictionary:
 	if raw_value is Dictionary:
 		return (raw_value as Dictionary).duplicate(true)
 	return {}
+
+
+func _get_native_codec() -> Object:
+	if _native_codec != null:
+		return _native_codec
+	if not ClassDB.can_instantiate("QQTNativePackedStateCodec"):
+		return null
+	_native_codec = ClassDB.instantiate("QQTNativePackedStateCodec")
+	return _native_codec

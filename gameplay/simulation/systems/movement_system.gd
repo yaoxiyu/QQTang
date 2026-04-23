@@ -34,8 +34,7 @@ func get_name() -> StringName:
 
 func execute(ctx: SimContext) -> void:
 	if NativeFeatureFlagsScript.enable_native_movement and NativeKernelRuntimeScript.is_available():
-		if _execute_native_path(ctx):
-			return
+		_run_native_shadow_probe(ctx)
 
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)
@@ -101,6 +100,32 @@ func execute(ctx: SimContext) -> void:
 				blocked_cell.x,
 				blocked_cell.y
 			)
+
+
+func _run_native_shadow_probe(ctx: SimContext) -> void:
+	var candidate_player_ids: Array[int] = []
+	for player_id in ctx.state.players.active_ids:
+		var player = ctx.state.players.get_player(player_id)
+		if player == null or not player.alive:
+			continue
+		if player.life_state != PlayerState.LifeState.NORMAL:
+			continue
+		if _should_preserve_authoritative_remote_state(ctx, player):
+			continue
+		candidate_player_ids.append(player_id)
+
+	var result := _native_movement_bridge.step_players(ctx, candidate_player_ids)
+	var updates: Array = result.get("player_updates", [])
+	if candidate_player_ids.size() > 0 and updates.size() != candidate_player_ids.size():
+		LogSimulationScript.warn(
+			"[movement_system] native shadow mismatch player_updates=%d candidates=%d" % [
+				updates.size(),
+				candidate_player_ids.size(),
+			],
+			"",
+			0,
+			"simulation.movement.native_shadow"
+		)
 
 
 func _execute_native_path(ctx: SimContext) -> bool:
