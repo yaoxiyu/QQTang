@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="CharacterDef" format=3 uid="uid://d353ofeo0xl0e"]
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
 
-[ext_resource type="Script" uid="uid://bujkqtducqy1l" path="res://content/characters/defs/character_def.gd" id="1_eq675"]
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_eq675"]
 
 [resource]
 script = ExtResource("1_eq675")

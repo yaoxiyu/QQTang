@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="RuleSetDef" format=3 uid="uid://dvxgvy2rkb8u4"]
+[gd_resource type="Resource" script_class="RuleSetDef" format=3]
 
-[ext_resource type="Script" uid="uid://dbnvkt8pfelkw" path="res://content/rulesets/defs/rule_set_def.gd" id="1_arrsm"]
+[ext_resource type="Script" path="res://content/rulesets/defs/rule_set_def.gd" id="1_arrsm"]
 
 [resource]
 script = ExtResource("1_arrsm")
@@ -9,4 +9,3 @@ time_limit_sec = 120
 player_down_policy = "jelly"
 rescue_touch_enabled = true
 enemy_touch_execute_enabled = true
-trapped_timeout_sec = 8

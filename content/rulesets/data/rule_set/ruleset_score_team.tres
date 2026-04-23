@@ -12,7 +12,6 @@ score_policy = "team_score"
 player_down_policy = "jelly"
 rescue_touch_enabled = true
 enemy_touch_execute_enabled = true
-trapped_timeout_sec = 8
 respawn_delay_sec = 3
 respawn_invincible_sec = 2
 death_display_sec = 0

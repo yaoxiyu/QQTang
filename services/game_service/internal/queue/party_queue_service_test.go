@@ -2,11 +2,14 @@ package queue
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 
 	"qqtang/services/game_service/internal/storage"
+	"qqtang/services/shared/contentmanifest"
 )
 
 func TestPartyQueueInputDoesNotConsumeSelectedMapIDs(t *testing.T) {
@@ -108,8 +111,43 @@ func TestEnterPartyQueueRejectsPartySizeMismatch(t *testing.T) {
 }
 
 func TestEnterPartyQueueIsIdempotentForActiveRoom(t *testing.T) {
+	manifestPath := filepath.Join(t.TempDir(), "room_manifest.json")
+	content := `{
+		"schema_version": 1,
+		"generated_at_unix_ms": 1,
+		"maps": [],
+		"modes": [],
+		"rules": [],
+		"match_formats": [
+			{
+				"match_format_id": "1v1",
+				"required_party_size": 1,
+				"expected_total_player_count": 2,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			}
+		],
+		"assets": {
+			"default_character_id": "char_default",
+			"default_bubble_style_id": "bubble_default",
+			"legal_character_ids": ["char_default"],
+			"legal_character_skin_ids": [],
+			"legal_bubble_style_ids": ["bubble_default"],
+			"legal_bubble_skin_ids": []
+		}
+	}`
+	if err := os.WriteFile(manifestPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	loader, err := contentmanifest.LoadFromFile(manifestPath)
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+
 	db := newFakeQueueDB()
 	service := NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
+	service.ConfigureContentManifest(loader)
+	t.Cleanup(func() { service.ConfigureContentManifest(nil) })
 	service.ConfigurePartyQueueRepositories(storage.NewPartyQueueRepository(db), storage.NewPartyQueueMemberRepository(db))
 
 	input := EnterPartyQueueInput{

@@ -16,6 +16,9 @@ Define Room legality source of truth and generation pipeline for Phase24.
 - Map enable flags for custom/casual/ranked.
 - Team and player count constraints.
 - Default assets and legal asset ID sets.
+- `match_formats` must come from `content/match_formats/*`, not string parsing heuristics.
+- `maps.match_format_ids` must be generated from `content_source/csv/maps/map_match_variants.csv`.
+- `required_party_size` and `expected_total_player_count` must come from `MatchFormatDef`.
 
 ## Runtime Usage
 - Go Room Service loads manifest from `ROOM_MANIFEST_PATH`.
@@ -29,4 +32,3 @@ Define Room legality source of truth and generation pipeline for Phase24.
   - `tests/contracts/content/room_manifest_matches_catalog_contract_test.gd`
 - Room Service loader contract:
   - `services/room_service/internal/manifest/loader_test.go`
-

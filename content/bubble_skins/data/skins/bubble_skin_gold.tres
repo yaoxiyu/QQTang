@@ -1,8 +1,8 @@
-[gd_resource type="Resource" script_class="BubbleSkinDef" format=3 uid="uid://b17mi6josmk0u"]
+[gd_resource type="Resource" script_class="BubbleSkinDef" format=3]
 
-[ext_resource type="Texture2D" uid="uid://56phy048t6og" path="res://assets/ui/bubbles/gold_skin_icon.png" id="1_uoxfj"]
-[ext_resource type="PackedScene" uid="uid://cq0j6qv3r8w0r" path="res://scenes/skins/bubbles/gold_bubble_overlay.tscn" id="2_t2mqw"]
-[ext_resource type="Script" uid="uid://mo5jvrmxrwha" path="res://content/bubble_skins/defs/bubble_skin_def.gd" id="3_8pogx"]
+[ext_resource type="Texture2D" path="res://assets/ui/bubbles/gold_skin_icon.png" id="1_uoxfj"]
+[ext_resource type="PackedScene" path="res://scenes/skins/bubbles/gold_bubble_overlay.tscn" id="2_t2mqw"]
+[ext_resource type="Script" path="res://content/bubble_skins/defs/bubble_skin_def.gd" id="3_8pogx"]
 
 [resource]
 script = ExtResource("3_8pogx")

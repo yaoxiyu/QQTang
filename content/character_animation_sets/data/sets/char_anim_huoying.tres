@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3 uid="uid://lh7ck8g6drbr"]
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
 
-[ext_resource type="Script" uid="uid://bki54mr12le8s" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_x0uni"]
-[ext_resource type="SpriteFrames" uid="uid://mjghl1ms10jj" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_huoying_frames.tres" id="2_jyyir"]
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_x0uni"]
+[ext_resource type="SpriteFrames" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_huoying_frames.tres" id="2_jyyir"]
 
 [resource]
 script = ExtResource("1_x0uni")

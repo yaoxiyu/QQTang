@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="MapThemeDef" format=3 uid="uid://cttt3tpcpgtli"]
+[gd_resource type="Resource" script_class="MapThemeDef" format=3]
 
-[ext_resource type="PackedScene" uid="uid://cxg8atlsqf0hr" path="res://scenes/map_themes/default_environment.tscn" id="1_bsmj0"]
-[ext_resource type="Script" uid="uid://cg4pvuk0bfdpu" path="res://content/map_themes/defs/map_theme_def.gd" id="2_d10mt"]
+[ext_resource type="PackedScene" path="res://scenes/map_themes/default_environment.tscn" id="1_bsmj0"]
+[ext_resource type="Script" path="res://content/map_themes/defs/map_theme_def.gd" id="2_d10mt"]
 
 [resource]
 script = ExtResource("2_d10mt")

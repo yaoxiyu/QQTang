@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="ModeDef" format=3 uid="uid://dgctm4ck7d74q"]
+[gd_resource type="Resource" script_class="ModeDef" format=3]
 
-[ext_resource type="Script" uid="uid://cii2x7aaiv1eu" path="res://content/modes/defs/mode_def.gd" id="1_0les4"]
+[ext_resource type="Script" path="res://content/modes/defs/mode_def.gd" id="1_0les4"]
 
 [resource]
 script = ExtResource("1_0les4")

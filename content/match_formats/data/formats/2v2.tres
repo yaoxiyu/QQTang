@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MatchFormatDef" format=3]
+
+[ext_resource type="Script" path="res://content/match_formats/defs/match_format_def.gd" id="1_x3htp"]
+
+[resource]
+script = ExtResource("1_x3htp")
+match_format_id = "2v2"
+display_name = "2v2"
+required_party_size = 2
+expected_total_player_count = 4
+sort_order = 20
+content_hash = "39466316d25ad928d2072d6f247e12ab2fc387b86d2f719a5164e60c91597d4f"

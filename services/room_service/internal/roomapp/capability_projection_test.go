@@ -1,12 +1,78 @@
 package roomapp
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"qqtang/services/room_service/internal/domain"
+	"qqtang/services/room_service/internal/manifest"
 )
 
+func newCapabilityTestQuery(t *testing.T) *manifest.Query {
+	t.Helper()
+	manifestPath := filepath.Join(t.TempDir(), "room_manifest.json")
+	content := `{
+		"schema_version": 1,
+		"generated_at_unix_ms": 1,
+		"maps": [
+			{
+				"map_id": "map_arcade",
+				"display_name": "Arcade",
+				"mode_id": "mode_classic",
+				"rule_set_id": "ruleset_classic",
+				"match_format_ids": ["2v2"],
+				"required_team_count": 2,
+				"max_player_count": 4,
+				"custom_room_enabled": true,
+				"casual_enabled": true,
+				"ranked_enabled": false
+			}
+		],
+		"modes": [
+			{
+				"mode_id": "mode_classic",
+				"display_name": "Classic",
+				"match_format_ids": ["2v2"],
+				"selectable_in_match_room": true
+			}
+		],
+		"rules": [
+			{
+				"rule_set_id": "ruleset_classic",
+				"display_name": "Classic Rule"
+			}
+		],
+		"match_formats": [
+			{
+				"match_format_id": "2v2",
+				"required_party_size": 2,
+				"expected_total_player_count": 4,
+				"legal_mode_ids": ["mode_classic"],
+				"map_pool_resolution_policy": "union_by_selected_modes"
+			}
+		],
+		"assets": {
+			"default_character_id": "char_default",
+			"default_bubble_style_id": "bubble_default",
+			"legal_character_ids": ["char_default"],
+			"legal_character_skin_ids": [],
+			"legal_bubble_style_ids": ["bubble_default"],
+			"legal_bubble_skin_ids": []
+		}
+	}`
+	if err := os.WriteFile(manifestPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	loader, err := manifest.LoadFromFile(manifestPath)
+	if err != nil {
+		t.Fatalf("load manifest: %v", err)
+	}
+	return manifest.NewQuery(loader)
+}
+
 func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
+	query := newCapabilityTestQuery(t)
 	room := &domain.RoomAggregate{
 		RoomKind: "casual_match_room",
 		Selection: domain.RoomSelection{
@@ -22,7 +88,7 @@ func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
 		},
 	}
 
-	rebuildRoomCapabilities(room, "owner")
+	rebuildRoomCapabilities(room, "owner", query)
 
 	if !room.Capabilities.CanToggleReady {
 		t.Fatalf("expected can_toggle_ready in idle")
@@ -39,6 +105,7 @@ func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
 }
 
 func TestRebuildRoomCapabilities_QueueAndBattlePhases(t *testing.T) {
+	query := newCapabilityTestQuery(t)
 	room := &domain.RoomAggregate{
 		RoomKind: "casual_match_room",
 		Members: map[string]domain.RoomMember{
@@ -48,7 +115,7 @@ func TestRebuildRoomCapabilities_QueueAndBattlePhases(t *testing.T) {
 	}
 
 	room.RoomState.Phase = RoomPhaseQueueActive
-	rebuildRoomCapabilities(room, "owner")
+	rebuildRoomCapabilities(room, "owner", query)
 	if room.Capabilities.CanToggleReady {
 		t.Fatalf("expected can_toggle_ready false in queue_active")
 	}
@@ -60,7 +127,7 @@ func TestRebuildRoomCapabilities_QueueAndBattlePhases(t *testing.T) {
 	}
 
 	room.RoomState.Phase = RoomPhaseBattleEntryReady
-	rebuildRoomCapabilities(room, "owner")
+	rebuildRoomCapabilities(room, "owner", query)
 	if !room.Capabilities.CanCancelQueue {
 		t.Fatalf("expected can_cancel_queue true in battle_entry_ready")
 	}
@@ -83,7 +150,7 @@ func TestRebuildRoomCapabilities_ManualRoomRules(t *testing.T) {
 		},
 	}
 
-	rebuildRoomCapabilities(room, "owner")
+	rebuildRoomCapabilities(room, "owner", nil)
 
 	if !room.Capabilities.CanStartManualBattle {
 		t.Fatalf("expected can_start_manual_battle true for manual room idle all-ready")

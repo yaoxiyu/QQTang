@@ -40,3 +40,6 @@ phase records and historical decisions only.
 4. Phase28 state-machine governance must keep contract guardrails green:
 `tests/contracts/runtime/room_state_machine_projection_contract_test.gd`,
 `tests/contracts/path/no_raw_room_state_whitelist_contract_test.gd`.
+5. Map gameplay binding fields must not be manually maintained in `.tres`; source truth stays in `content_source/csv/maps/*`.
+6. Any new or changed `match_format` must update the formal content domain and matching contract tests in the same change set.
+7. Go and Godot match-format logic must align to the generated manifest as the shared consumption truth.

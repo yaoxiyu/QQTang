@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="CharacterPresentationDef" format=3 uid="uid://dfvrkk7p27ybt"]
+[gd_resource type="Resource" script_class="CharacterPresentationDef" format=3]
 
-[ext_resource type="PackedScene" uid="uid://bgqvna1ssi0o1" path="res://scenes/actors/characters/character_sprite_body_view.tscn" id="1_lkv0k"]
-[ext_resource type="Script" uid="uid://jtget13nh715" path="res://content/characters/defs/character_presentation_def.gd" id="2_ch15h"]
+[ext_resource type="PackedScene" path="res://scenes/actors/characters/character_sprite_body_view.tscn" id="1_lkv0k"]
+[ext_resource type="Script" path="res://content/characters/defs/character_presentation_def.gd" id="2_ch15h"]
 
 [resource]
 script = ExtResource("2_ch15h")

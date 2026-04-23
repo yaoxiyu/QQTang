@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="RuleSetDef" format=3 uid="uid://1u30k68ofmkf"]
+[gd_resource type="Resource" script_class="RuleSetDef" format=3]
 
-[ext_resource type="Script" uid="uid://dbnvkt8pfelkw" path="res://content/rulesets/defs/rule_set_def.gd" id="1_lcphx"]
+[ext_resource type="Script" path="res://content/rulesets/defs/rule_set_def.gd" id="1_lcphx"]
 
 [resource]
 script = ExtResource("1_lcphx")
@@ -9,4 +9,3 @@ player_explosion_profile_id = "player_trap_default"
 player_down_policy = "jelly"
 rescue_touch_enabled = true
 enemy_touch_execute_enabled = true
-trapped_timeout_sec = 8

@@ -11,6 +11,7 @@ const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd"
 const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_request.gd")
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
+const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
@@ -393,7 +394,7 @@ func _create_match_room(host: String, port: int, room_kind: String, queue_type: 
 		true
 	)
 	entry_context.queue_type = queue_type
-	entry_context.match_format_id = "1v1"
+	entry_context.match_format_id = MatchFormatCatalogScript.get_default_match_format_id()
 	entry_context.selected_match_mode_ids = []
 	entry_context.is_prequeue_match_room = true
 	return _attach_room_ticket(entry_context, "create")

@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="MapResource" format=3 uid="uid://cnowd7h6qqdep"]
+[gd_resource type="Resource" script_class="MapResource" format=3]
 
-[ext_resource type="Script" uid="uid://byj6my4aw8ubr" path="res://content/maps/resources/map_resource.gd" id="1_apnyy"]
+[ext_resource type="Script" path="res://content/maps/resources/map_resource.gd" id="1_apnyy"]
 
 [resource]
 script = ExtResource("1_apnyy")
@@ -19,15 +19,25 @@ foreground_overlay_entries = Array[Dictionary]([{
 }])
 bound_mode_id = "mode_classic"
 bound_rule_set_id = "ruleset_classic"
+match_format_id = "1v1"
+max_player_count = 2
 match_format_variants = Array[Dictionary]([{
 "match_format_id": "1v1",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": true,
 "max_player_count": 2,
-"required_team_count": 2
+"required_party_size": 1,
+"required_team_count": 2,
+"sort_order": 10
 }, {
 "match_format_id": "2v2",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": true,
 "max_player_count": 4,
-"required_team_count": 2
+"required_party_size": 2,
+"required_team_count": 2,
+"sort_order": 20
 }])
 matchmaking_ranked_enabled = true
 sort_order = 10
-content_hash = "map_classic_square_csv_v1"
+content_hash = "1f16b409295b339b103c9483d833b954122e30f82b67a4488b04f99c1c6adac0"

@@ -21,6 +21,7 @@ import (
 	"qqtang/services/game_service/internal/reward"
 	"qqtang/services/game_service/internal/rpcapi"
 	"qqtang/services/game_service/internal/storage"
+	"qqtang/services/shared/contentmanifest"
 )
 
 func main() {
@@ -51,6 +52,11 @@ func main() {
 	ratingService := rating.NewEloService()
 	rewardService := reward.NewService()
 	queueService := queue.NewService(queueRepo, assignmentRepo, store.Pool, time.Duration(cfg.QueueHeartbeatTTLSeconds)*time.Second)
+	manifestLoader, err := contentmanifest.LoadFromFile(cfg.RoomManifestPath)
+	if err != nil {
+		log.Fatalf("load room manifest: %v", err)
+	}
+	queueService.ConfigureContentManifest(manifestLoader)
 	queueService.ConfigureDefaults(queue.AssignmentDefaults{
 		SeasonID:               cfg.DefaultSeasonID,
 		MapID:                  cfg.DefaultMapID,

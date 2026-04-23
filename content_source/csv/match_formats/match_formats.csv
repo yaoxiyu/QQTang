@@ -1,0 +1,4 @@
+match_format_id,display_name,team_count,required_party_size,map_pool_resolution_policy,sort_order,enabled_in_match_room
+1v1,1v1,2,1,union_by_selected_modes,10,true
+2v2,2v2,2,2,union_by_selected_modes,20,true
+4v4,4v4,2,4,union_by_selected_modes,30,true

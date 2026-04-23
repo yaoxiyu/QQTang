@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="MatchFormatDef" format=3]
+
+[ext_resource type="Script" path="res://content/match_formats/defs/match_format_def.gd" id="1_66gln"]
+
+[resource]
+script = ExtResource("1_66gln")
+match_format_id = "1v1"
+display_name = "1v1"
+sort_order = 10
+content_hash = "18a8452aa404c1213db259f0e6958855521f94e39b309382d0459af9b8f4473d"

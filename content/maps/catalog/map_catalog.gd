@@ -2,6 +2,7 @@ class_name MapCatalog
 extends RefCounted
 
 const MapResourceScript = preload("res://content/maps/resources/map_resource.gd")
+const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const LogContentScript = preload("res://app/logging/log_content.gd")
@@ -72,7 +73,7 @@ static func get_map_entries() -> Array:
 			"item_spawn_profile_id": String(metadata.get("item_spawn_profile_id", "")),
 			"bound_mode_id": String(metadata.get("bound_mode_id", "")),
 			"bound_rule_set_id": String(metadata.get("bound_rule_set_id", "")),
-			"match_format_id": String(metadata.get("match_format_id", "2v2")),
+			"match_format_id": String(metadata.get("match_format_id", "")),
 			"match_format_variants": metadata.get("match_format_variants", []).duplicate(true),
 			"required_team_count": int(metadata.get("required_team_count", 2)),
 			"max_player_count": int(metadata.get("max_player_count", 0)),
@@ -161,10 +162,35 @@ static func _validate_map_resource(map_resource: MapResource, resource_path: Str
 		if not variant is Dictionary:
 			issues.append("match_format_variants entries must be dictionaries")
 			continue
-		var variant_format := String((variant as Dictionary).get("match_format_id", ""))
-		var variant_max_players := int((variant as Dictionary).get("max_player_count", map_resource.max_player_count))
+		var variant_dict := variant as Dictionary
+		var variant_format := String(variant_dict.get("match_format_id", ""))
+		var variant_max_players := int(variant_dict.get("max_player_count", map_resource.max_player_count))
+		var variant_required_party_size := int(variant_dict.get("required_party_size", 0))
 		if variant_format.is_empty():
 			issues.append("match_format_variants entry match_format_id is empty")
+		elif not MatchFormatCatalogScript.has_match_format(variant_format):
+			issues.append("match_format_variants entry match_format_id is unknown: %s" % variant_format)
+		else:
+			var format_metadata := MatchFormatCatalogScript.get_metadata(variant_format)
+			var expected_team_count := int(format_metadata.get("team_count", 0))
+			var expected_party_size := int(format_metadata.get("required_party_size", 0))
+			var expected_total_players := int(format_metadata.get("expected_total_player_count", 0))
+			var variant_team_count := int(variant_dict.get("required_team_count", 0))
+			if variant_team_count != expected_team_count:
+				issues.append(
+					"match_format_variants entry %s required_team_count mismatch: expected=%d actual=%d"
+					% [variant_format, expected_team_count, variant_team_count]
+				)
+			if variant_required_party_size > 0 and variant_required_party_size != expected_party_size:
+				issues.append(
+					"match_format_variants entry %s required_party_size mismatch: expected=%d actual=%d"
+					% [variant_format, expected_party_size, variant_required_party_size]
+				)
+			if variant_max_players != expected_total_players:
+				issues.append(
+					"match_format_variants entry %s max_player_count mismatch: expected=%d actual=%d"
+					% [variant_format, expected_total_players, variant_max_players]
+				)
 		if variant_max_players <= 0:
 			issues.append("match_format_variants entry max_player_count must be > 0")
 		elif map_resource.spawn_points.size() < variant_max_players:
@@ -175,6 +201,8 @@ static func _validate_map_resource(map_resource: MapResource, resource_path: Str
 					variant_max_players,
 				]
 			)
+	if not map_resource.match_format_id.is_empty() and not MatchFormatCatalogScript.has_match_format(map_resource.match_format_id):
+		issues.append("match_format_id is unknown: %s" % map_resource.match_format_id)
 	if issues.is_empty():
 		return
 	LogContentScript.warn(

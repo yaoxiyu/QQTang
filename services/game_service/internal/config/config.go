@@ -18,6 +18,7 @@ type Config struct {
 	InternalAuthMaxSkewSec   int
 	DefaultSeasonID          string
 	DefaultMapID             string
+	RoomManifestPath         string
 	DefaultDSHost            string
 	DefaultDSPort            int
 	QueueHeartbeatTTLSeconds int
@@ -65,6 +66,7 @@ func LoadFromEnv() (*Config, error) {
 		InternalAuthMaxSkewSec:   internalAuthMaxSkewSec,
 		DefaultSeasonID:          configx.Env("GAME_DEFAULT_SEASON_ID", queue.DefaultSeasonID),
 		DefaultMapID:             configx.Env("GAME_DEFAULT_MAP_ID", queue.DefaultMapID),
+		RoomManifestPath:         configx.Env("GAME_ROOM_MANIFEST_PATH", "../../build/generated/room_manifest/room_manifest.json"),
 		DefaultDSHost:            configx.Env("GAME_DEFAULT_DS_HOST", queue.DefaultDSHost),
 		DefaultDSPort:            defaultDSPort,
 		QueueHeartbeatTTLSeconds: queueHeartbeatTTLSeconds,
@@ -99,6 +101,9 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if cfg.DefaultMapID == "" {
 		return nil, fmt.Errorf("GAME_DEFAULT_MAP_ID is required")
+	}
+	if cfg.RoomManifestPath == "" {
+		return nil, fmt.Errorf("GAME_ROOM_MANIFEST_PATH is required")
 	}
 
 	return cfg, nil

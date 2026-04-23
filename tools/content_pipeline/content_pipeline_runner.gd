@@ -2,22 +2,7 @@
 extends EditorScript
 class_name ContentPipelineRunner
 
-const GenerateCharactersScript = preload("res://tools/content_pipeline/generators/generate_characters.gd")
-const GenerateCharacterStatsScript = preload("res://tools/content_pipeline/generators/generate_character_stats.gd")
-const GenerateCharacterAnimationSetsScript = preload("res://tools/content_pipeline/generators/generate_character_animation_sets.gd")
-const GenerateCharacterPresentationsScript = preload("res://tools/content_pipeline/generators/generate_character_presentations.gd")
-const GenerateBubbleAnimationSetsScript = preload("res://tools/content_pipeline/generators/generate_bubble_animation_sets.gd")
-const GenerateBubbleStylesScript = preload("res://tools/content_pipeline/generators/generate_bubble_styles.gd")
-const GenerateBubbleGameplaysScript = preload("res://tools/content_pipeline/generators/generate_bubble_gameplays.gd")
-const GenerateModesScript = preload("res://tools/content_pipeline/generators/generate_modes.gd")
-const GenerateCharacterSkinsScript = preload("res://tools/content_pipeline/generators/generate_character_skins.gd")
-const GenerateBubbleSkinsScript = preload("res://tools/content_pipeline/generators/generate_bubble_skins.gd")
-const GenerateMapsScript = preload("res://tools/content_pipeline/generators/generate_maps.gd")
-const GenerateMapThemesScript = preload("res://tools/content_pipeline/generators/generate_map_themes.gd")
-const GenerateTilePresentationsScript = preload("res://tools/content_pipeline/generators/generate_tile_presentations.gd")
-const GenerateRulesetsScript = preload("res://tools/content_pipeline/generators/generate_rulesets.gd")
-const GenerateRoomManifestScript = preload("res://tools/content_pipeline/generators/generate_room_manifest.gd")
-const LogContentScript = preload("res://app/logging/log_content.gd")
+const ContentPipelineOrchestratorScript = preload("res://tools/content_pipeline/content_pipeline_orchestrator.gd")
 
 
 func _run() -> void:
@@ -25,19 +10,4 @@ func _run() -> void:
 
 
 func run_all() -> void:
-	GenerateCharactersScript.new().generate()
-	GenerateCharacterStatsScript.new().generate()
-	GenerateCharacterAnimationSetsScript.new().generate()
-	GenerateCharacterPresentationsScript.new().generate()
-	GenerateBubbleAnimationSetsScript.new().generate()
-	GenerateBubbleStylesScript.new().generate()
-	GenerateBubbleGameplaysScript.new().generate()
-	GenerateModesScript.new().generate()
-	GenerateCharacterSkinsScript.new().generate()
-	GenerateBubbleSkinsScript.new().generate()
-	GenerateMapsScript.new().generate()
-	GenerateMapThemesScript.new().generate()
-	GenerateTilePresentationsScript.new().generate()
-	GenerateRulesetsScript.new().generate()
-	GenerateRoomManifestScript.new().generate()
-	LogContentScript.info("generation finished", "", 0, "content.pipeline")
+	ContentPipelineOrchestratorScript.new().run_all()

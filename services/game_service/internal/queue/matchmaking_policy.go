@@ -1,9 +1,20 @@
 package queue
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	"qqtang/services/shared/contentmanifest"
+)
+
+var configuredManifestQuery *contentmanifest.Query
+
+func ConfigureContentManifestQuery(query *contentmanifest.Query) {
+	configuredManifestQuery = query
+}
 
 func BuildQueueKey(queueType string, parts ...string) string {
-	matchFormatID := "2v2"
+	matchFormatID := ""
 	modeID := ""
 	ruleSetID := ""
 	if len(parts) == 2 {
@@ -22,8 +33,12 @@ func BuildPartyQueueKey(queueType string, matchFormatID string) string {
 }
 
 func normalizeMatchFormatID(matchFormatID string) string {
-	if matchFormatID == "" {
-		return "2v2"
+	normalized := strings.TrimSpace(matchFormatID)
+	if normalized != "" {
+		return normalized
 	}
-	return matchFormatID
+	if configuredManifestQuery != nil {
+		return configuredManifestQuery.DefaultMatchFormatID()
+	}
+	return ""
 }

@@ -557,7 +557,7 @@ func (s *Service) EnterMatchQueue(input EnterMatchQueueInput) (*SnapshotProjecti
 	if !allMembersReady(room.Members) {
 		return nil, ErrMembersNotReady
 	}
-	requiredPartySize := requiredPartySizeFromMatchFormat(room.Selection.MatchFormatID)
+	requiredPartySize := s.query.RequiredPartySize(room.Selection.MatchFormatID)
 	if len(room.Members) != requiredPartySize {
 		return nil, ErrPartySizeMismatch
 	}
@@ -956,7 +956,7 @@ func (s *Service) validateSelection(roomKind string, selection Selection, member
 	switch domain.ParseRoomKindCategory(roomKind) {
 	case domain.RoomKindMatch, domain.RoomKindRanked:
 		if strings.TrimSpace(resolved.MatchFormatID) == "" {
-			resolved.MatchFormatID = "1v1"
+			resolved.MatchFormatID = s.query.DefaultMatchFormatID()
 		}
 		if len(resolved.SelectedModeIDs) == 0 && resolved.ModeID != "" {
 			resolved.SelectedModeIDs = []string{resolved.ModeID}
@@ -1187,19 +1187,6 @@ func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyM
 	return result
 }
 
-func requiredPartySizeFromMatchFormat(matchFormatID string) int {
-	switch strings.TrimSpace(matchFormatID) {
-	case "2v2":
-		return 2
-	case "4v4":
-		return 4
-	case "1v1":
-		return 1
-	default:
-		return 1
-	}
-}
-
 func isBattleEntryReadyStatus(result gameclient.GetPartyQueueStatusResult) bool {
 	if result.BattleEntryReady {
 		return true
@@ -1283,7 +1270,7 @@ func (s *Service) touchRoomSnapshotLocked(room *domain.RoomAggregate) {
 	room.SnapshotRevision++
 	room.RoomState.Revision = room.SnapshotRevision
 	syncLegacyAliases(room)
-	rebuildRoomCapabilities(room, s.roomOwnerByID[room.RoomID])
+	rebuildRoomCapabilities(room, s.roomOwnerByID[room.RoomID], s.query)
 }
 
 func legacyQueueStateToCanonical(legacy string) (string, string) {

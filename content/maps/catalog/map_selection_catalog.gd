@@ -2,10 +2,9 @@ class_name MapSelectionCatalog
 extends RefCounted
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
-
-const MATCH_FORMAT_IDS: Array[String] = ["1v1", "2v2", "4v4"]
 
 
 static func get_map_binding(map_id: String) -> Dictionary:
@@ -66,7 +65,10 @@ static func get_default_custom_room_map_id(preferred_map_id: String = "") -> Str
 
 static func get_matchmaking_format_entries() -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
-	for match_format_id in MATCH_FORMAT_IDS:
+	for format_entry in MatchFormatCatalogScript.get_entries():
+		var match_format_id := String(format_entry.get("match_format_id", ""))
+		if match_format_id.is_empty():
+			continue
 		var has_enabled_maps := false
 		for queue_type in ["casual", "ranked"]:
 			var modes := get_matchmaking_mode_entries(match_format_id, queue_type)
@@ -79,7 +81,7 @@ static func get_matchmaking_format_entries() -> Array[Dictionary]:
 		entries.append({
 			"id": match_format_id,
 			"match_format_id": match_format_id,
-			"display_name": match_format_id,
+			"display_name": String(format_entry.get("display_name", match_format_id)),
 			"enabled": has_enabled_maps,
 		})
 	return entries
@@ -123,13 +125,17 @@ static func get_matchmaking_maps(match_format_id: String, queue_type: String, mo
 
 static func get_match_room_format_entries(queue_type: String) -> Array[Dictionary]:
 	var entries: Array[Dictionary] = []
-	for match_format_id in MATCH_FORMAT_IDS:
+	for format_entry in MatchFormatCatalogScript.get_entries():
+		var match_format_id := String(format_entry.get("match_format_id", ""))
+		if match_format_id.is_empty():
+			continue
 		var mode_entries := get_match_room_mode_entries(queue_type, match_format_id)
+		var enabled_in_match_room := bool(format_entry.get("enabled_in_match_room", true))
 		entries.append({
 			"id": match_format_id,
 			"match_format_id": match_format_id,
-			"display_name": match_format_id,
-			"enabled": not mode_entries.is_empty(),
+			"display_name": String(format_entry.get("display_name", match_format_id)),
+			"enabled": enabled_in_match_room and not mode_entries.is_empty(),
 		})
 	return entries
 
@@ -198,7 +204,7 @@ static func _get_valid_bindings(use_matchmaking_variants: bool) -> Array[Diction
 
 static func _build_legacy_binding(map_metadata: Dictionary) -> Dictionary:
 	return _build_binding(map_metadata, {
-		"match_format_id": String(map_metadata.get("match_format_id", "2v2")),
+		"match_format_id": String(map_metadata.get("match_format_id", MatchFormatCatalogScript.get_default_match_format_id())),
 		"required_team_count": int(map_metadata.get("required_team_count", 2)),
 		"max_player_count": int(map_metadata.get("max_player_count", 0)),
 		"custom_room_enabled": bool(map_metadata.get("custom_room_enabled", true)),
@@ -221,7 +227,7 @@ static func _build_binding(map_metadata: Dictionary, variant: Dictionary) -> Dic
 	var map_id := String(map_metadata.get("map_id", map_metadata.get("id", "")))
 	var bound_mode_id := String(map_metadata.get("bound_mode_id", ""))
 	var bound_rule_set_id := String(map_metadata.get("bound_rule_set_id", ""))
-	var match_format_id := String(variant.get("match_format_id", map_metadata.get("match_format_id", "2v2")))
+	var match_format_id := String(variant.get("match_format_id", map_metadata.get("match_format_id", MatchFormatCatalogScript.get_default_match_format_id())))
 	var required_team_count := int(variant.get("required_team_count", map_metadata.get("required_team_count", 2)))
 	var max_player_count := int(variant.get("max_player_count", map_metadata.get("max_player_count", 0)))
 	var spawn_points = map_metadata.get("spawn_points", [])
@@ -237,7 +243,7 @@ static func _build_binding(map_metadata: Dictionary, variant: Dictionary) -> Dic
 		issues.append("bound_rule_set_id is empty")
 	elif not RuleSetCatalogScript.has_rule(bound_rule_set_id):
 		issues.append("bound_rule_set_id is unknown")
-	if not MATCH_FORMAT_IDS.has(match_format_id):
+	if not MatchFormatCatalogScript.has_match_format(match_format_id):
 		issues.append("match_format_id is invalid")
 	if required_team_count < 2:
 		issues.append("required_team_count must be >= 2")
@@ -282,7 +288,7 @@ static func _normalize_match_format_variants(map_metadata: Dictionary) -> Array[
 			variants.append(variant)
 	if variants.is_empty():
 		variants.append({
-			"match_format_id": String(map_metadata.get("match_format_id", "2v2")),
+			"match_format_id": String(map_metadata.get("match_format_id", MatchFormatCatalogScript.get_default_match_format_id())),
 			"required_team_count": int(map_metadata.get("required_team_count", 2)),
 			"max_player_count": int(map_metadata.get("max_player_count", 0)),
 		})

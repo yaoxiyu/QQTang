@@ -59,7 +59,7 @@ static func load_map_metadata(map_id: String) -> Dictionary:
 		"content_hash": layout.content_hash,
 		"bound_mode_id": String(map_metadata.get("bound_mode_id", "")),
 		"bound_rule_set_id": String(map_metadata.get("bound_rule_set_id", "")),
-		"match_format_id": String(map_metadata.get("match_format_id", "2v2")),
+		"match_format_id": String(map_metadata.get("match_format_id", "")),
 		"required_team_count": int(map_metadata.get("required_team_count", 2)),
 		"max_player_count": int(map_metadata.get("max_player_count", layout.spawn_points.size())),
 		"custom_room_enabled": bool(map_metadata.get("custom_room_enabled", true)),

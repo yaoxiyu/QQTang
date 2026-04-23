@@ -1,0 +1,43 @@
+extends RefCounted
+class_name ContentPipelineOrchestrator
+
+const GenerateCharactersScript = preload("res://tools/content_pipeline/generators/generate_characters.gd")
+const GenerateCharacterStatsScript = preload("res://tools/content_pipeline/generators/generate_character_stats.gd")
+const GenerateCharacterAnimationSetsScript = preload("res://tools/content_pipeline/generators/generate_character_animation_sets.gd")
+const GenerateCharacterPresentationsScript = preload("res://tools/content_pipeline/generators/generate_character_presentations.gd")
+const GenerateBubbleAnimationSetsScript = preload("res://tools/content_pipeline/generators/generate_bubble_animation_sets.gd")
+const GenerateBubbleStylesScript = preload("res://tools/content_pipeline/generators/generate_bubble_styles.gd")
+const GenerateBubbleGameplaysScript = preload("res://tools/content_pipeline/generators/generate_bubble_gameplays.gd")
+const GenerateRulesetsScript = preload("res://tools/content_pipeline/generators/generate_rulesets.gd")
+const GenerateModesScript = preload("res://tools/content_pipeline/generators/generate_modes.gd")
+const GenerateMatchFormatsScript = preload("res://tools/content_pipeline/generators/generate_match_formats.gd")
+const GenerateCharacterSkinsScript = preload("res://tools/content_pipeline/generators/generate_character_skins.gd")
+const GenerateBubbleSkinsScript = preload("res://tools/content_pipeline/generators/generate_bubble_skins.gd")
+const GenerateMapsScript = preload("res://tools/content_pipeline/generators/generate_maps.gd")
+const GenerateMapThemesScript = preload("res://tools/content_pipeline/generators/generate_map_themes.gd")
+const GenerateTilePresentationsScript = preload("res://tools/content_pipeline/generators/generate_tile_presentations.gd")
+const GenerateRoomManifestScript = preload("res://tools/content_pipeline/generators/generate_room_manifest.gd")
+const ContentValidationReportScript = preload("res://tools/content_pipeline/common/content_validation_report.gd")
+const LogContentScript = preload("res://app/logging/log_content.gd")
+
+
+func run_all() -> void:
+	GenerateCharactersScript.new().generate()
+	GenerateCharacterStatsScript.new().generate()
+	GenerateCharacterAnimationSetsScript.new().generate()
+	GenerateCharacterPresentationsScript.new().generate()
+	GenerateBubbleAnimationSetsScript.new().generate()
+	GenerateBubbleStylesScript.new().generate()
+	GenerateBubbleGameplaysScript.new().generate()
+	GenerateRulesetsScript.new().generate()
+	GenerateModesScript.new().generate()
+	GenerateMatchFormatsScript.new().generate()
+	GenerateCharacterSkinsScript.new().generate()
+	GenerateBubbleSkinsScript.new().generate()
+	GenerateMapsScript.new().generate()
+	GenerateMapThemesScript.new().generate()
+	GenerateTilePresentationsScript.new().generate()
+	GenerateRoomManifestScript.new().generate()
+	ContentValidationReportScript.new().generate()
+	if LogManager.is_initialized():
+		LogContentScript.info("generation finished", "", 0, "content.pipeline")

@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="BubbleGameplayDef" format=3 uid="uid://dsg1grc8dcnb"]
+[gd_resource type="Resource" script_class="BubbleGameplayDef" format=3]
 
-[ext_resource type="Script" uid="uid://cmhxuvlq2skbi" path="res://content/bubbles/defs/bubble_gameplay_def.gd" id="1_btbej"]
+[ext_resource type="Script" path="res://content/bubbles/defs/bubble_gameplay_def.gd" id="1_btbej"]
 
 [resource]
 script = ExtResource("1_btbej")

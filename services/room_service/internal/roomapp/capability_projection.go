@@ -1,8 +1,11 @@
 package roomapp
 
-import "qqtang/services/room_service/internal/domain"
+import (
+	"qqtang/services/room_service/internal/domain"
+	"qqtang/services/room_service/internal/manifest"
+)
 
-func rebuildRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string) {
+func rebuildRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string, query *manifest.Query) {
 	if room == nil {
 		return
 	}
@@ -20,7 +23,11 @@ func rebuildRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string) {
 	room.Capabilities.CanUpdateSelection = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle
 	room.Capabilities.CanUpdateMatchRoomConfig = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle
 	room.Capabilities.CanStartManualBattle = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasCompleteManualSelection(room)
-	room.Capabilities.CanEnterQueue = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasMatchQueueConfig(room) && len(room.Members) == requiredPartySizeFromMatchFormat(room.Selection.MatchFormatID)
+	requiredPartySize := 0
+	if query != nil {
+		requiredPartySize = query.RequiredPartySize(room.Selection.MatchFormatID)
+	}
+	room.Capabilities.CanEnterQueue = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasMatchQueueConfig(room) && requiredPartySize > 0 && len(room.Members) == requiredPartySize
 	room.Capabilities.CanCancelQueue = isOwnerPresent && isMatchRoom && (phase == RoomPhaseQueueActive || phase == RoomPhaseBattleAllocating || phase == RoomPhaseBattleEntryReady)
 }
 

@@ -446,7 +446,7 @@ func finalizeRoomTransition(room *domain.RoomAggregate, ownerMemberID string) {
 	room.SnapshotRevision++
 	room.RoomState.Revision = room.SnapshotRevision
 	syncLegacyAliases(room)
-	rebuildRoomCapabilities(room, ownerMemberID)
+	rebuildRoomCapabilities(room, ownerMemberID, nil)
 }
 
 func syncLegacyAliases(room *domain.RoomAggregate) {

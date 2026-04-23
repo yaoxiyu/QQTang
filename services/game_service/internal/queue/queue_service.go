@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"qqtang/services/game_service/internal/storage"
+	"qqtang/services/shared/contentmanifest"
 )
 
 var (
@@ -67,6 +68,7 @@ type Service struct {
 	heartbeatTTL           time.Duration
 	defaultSeasonID        string
 	defaultMapID           string
+	contentQuery           *contentmanifest.Query
 	defaultDSHost          string
 	defaultDSPort          int
 	captainDeadlineSeconds int
@@ -110,6 +112,16 @@ func (s *Service) ConfigureDefaults(defaults AssignmentDefaults) {
 
 func (s *Service) ConfigureRatingRepository(ratingRepo *storage.RatingRepository) {
 	s.ratingRepo = ratingRepo
+}
+
+func (s *Service) ConfigureContentManifest(loader *contentmanifest.Loader) {
+	if loader == nil {
+		s.contentQuery = nil
+		ConfigureContentManifestQuery(nil)
+		return
+	}
+	s.contentQuery = contentmanifest.NewQuery(loader)
+	ConfigureContentManifestQuery(s.contentQuery)
 }
 
 func (s *Service) ConfigurePartyQueueRepositories(partyQueueRepo *storage.PartyQueueRepository, partyQueueMemberRepo *storage.PartyQueueMemberRepository) {
@@ -191,7 +203,11 @@ func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInpu
 	if len(input.SelectedModeIDs) == 0 {
 		return PartyQueueStatus{}, ErrModeInvalid
 	}
-	requiredPartySize := requiredPartySizeFromMatchFormat(input.MatchFormatID)
+	resolvedMatchFormatID := normalizeMatchFormatID(input.MatchFormatID)
+	requiredPartySize := 0
+	if s.contentQuery != nil {
+		requiredPartySize = s.contentQuery.RequiredPartySize(resolvedMatchFormatID)
+	}
 	if requiredPartySize <= 0 || len(input.Members) != requiredPartySize {
 		return PartyQueueStatus{}, ErrPartySizeMismatch
 	}
@@ -214,7 +230,7 @@ func (s *Service) EnterPartyQueue(ctx context.Context, input EnterPartyQueueInpu
 		PartyQueueEntryID:    entryID,
 		PartyRoomID:          input.PartyRoomID,
 		QueueType:            input.QueueType,
-		MatchFormatID:        normalizeMatchFormatID(input.MatchFormatID),
+		MatchFormatID:        resolvedMatchFormatID,
 		PartySize:            len(input.Members),
 		CaptainAccountID:     captain.AccountID,
 		CaptainProfileID:     captain.ProfileID,
@@ -714,7 +730,10 @@ func (s *Service) tryFormPartyAssignmentWithRepos(ctx context.Context, entry sto
 	if err != nil {
 		return nil, err
 	}
-	requiredPartySize := requiredPartySizeFromMatchFormat(entry.MatchFormatID)
+	requiredPartySize := 0
+	if s.contentQuery != nil {
+		requiredPartySize = s.contentQuery.RequiredPartySize(entry.MatchFormatID)
+	}
 	selected := selectCompatibleParties(queuedEntries, requiredPartySize)
 	if len(selected) != 2 {
 		return nil, nil
@@ -931,19 +950,6 @@ func expectedMemberCountFromQueueKey(queueKey string) int {
 		return defaultMemberCount
 	}
 	return left + right
-}
-
-func requiredPartySizeFromMatchFormat(matchFormatID string) int {
-	switch normalizeMatchFormatID(matchFormatID) {
-	case "1v1":
-		return 1
-	case "2v2":
-		return 2
-	case "4v4":
-		return 4
-	default:
-		return 0
-	}
 }
 
 func resolveMatchRoomKind(queueType string) string {

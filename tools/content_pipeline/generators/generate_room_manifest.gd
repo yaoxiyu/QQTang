@@ -4,6 +4,7 @@ class_name GenerateRoomManifest
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
@@ -17,6 +18,7 @@ func generate() -> void:
 	var map_entries: Array = MapCatalogScript.get_map_entries()
 	var mode_entries: Array = ModeCatalogScript.get_mode_entries()
 	var rule_entries: Array = RuleSetCatalogScript.get_rule_entries()
+	var match_format_entries: Array[Dictionary] = MatchFormatCatalogScript.get_entries()
 
 	var format_to_modes: Dictionary = {}
 	var mode_to_formats: Dictionary = {}
@@ -70,18 +72,19 @@ func generate() -> void:
 			"display_name": String(entry.get("display_name", "")),
 		})
 
-	var known_format_ids: Array[String] = _sorted_string_array(format_to_modes.keys())
-	if known_format_ids.is_empty():
-		known_format_ids = ["1v1", "2v2", "4v4"]
-
 	var match_formats: Array[Dictionary] = []
-	for format_id in known_format_ids:
+	for format_entry in match_format_entries:
+		if format_entry.is_empty():
+			continue
+		var format_id := String(format_entry.get("match_format_id", ""))
+		if format_id.is_empty():
+			continue
 		match_formats.append({
 			"match_format_id": format_id,
-			"required_party_size": _required_party_size(format_id),
-			"expected_total_player_count": _expected_total_player_count(format_id),
+			"required_party_size": int(format_entry.get("required_party_size", 0)),
+			"expected_total_player_count": int(format_entry.get("expected_total_player_count", 0)),
 			"legal_mode_ids": _sorted_string_array(format_to_modes.get(format_id, [])),
-			"map_pool_resolution_policy": "union_by_selected_modes",
+			"map_pool_resolution_policy": String(format_entry.get("map_pool_resolution_policy", "union_by_selected_modes")),
 		})
 
 	var assets := {
@@ -154,25 +157,6 @@ func _add_format_for_mode(mode_to_formats: Dictionary, mode_id: String, format_i
 	values.append(format_id)
 	values.sort()
 	mode_to_formats[mode_id] = values
-
-
-func _required_party_size(match_format_id: String) -> int:
-	var parts := match_format_id.split("v", false)
-	if parts.size() != 2:
-		return 1
-	var parsed := int(String(parts[0]).to_int())
-	return parsed if parsed > 0 else 1
-
-
-func _expected_total_player_count(match_format_id: String) -> int:
-	var parts := match_format_id.split("v", false)
-	if parts.size() != 2:
-		return 2
-	var left := int(String(parts[0]).to_int())
-	var right := int(String(parts[1]).to_int())
-	if left > 0 and right > 0:
-		return left + right
-	return 2
 
 
 func _character_skin_ids() -> Array[String]:

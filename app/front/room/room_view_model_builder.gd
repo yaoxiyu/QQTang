@@ -1,6 +1,7 @@
 class_name RoomViewModelBuilder
 extends RefCounted
 
+const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 
 
@@ -441,16 +442,13 @@ func _build_match_room_party_status_text(snapshot: RoomSnapshot, member_count: i
 func _resolve_required_party_size(snapshot: RoomSnapshot) -> int:
 	if snapshot == null:
 		return 1
-	match String(snapshot.match_format_id).strip_edges():
-		"1v1":
-			return 1
-		"2v2":
-			return 2
-		"4v4":
-			return 4
-		_:
-			var fallback := int(snapshot.required_party_size)
-			return fallback if fallback > 0 else 1
+	var match_format_id := String(snapshot.match_format_id).strip_edges()
+	if not match_format_id.is_empty():
+		var required_party_size := MatchFormatCatalogScript.get_required_party_size(match_format_id)
+		if required_party_size > 0:
+			return required_party_size
+	var fallback := int(snapshot.required_party_size)
+	return fallback if fallback > 0 else 1
 
 
 func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
@@ -463,8 +461,10 @@ func _build_eligible_map_pool_hint_text(snapshot: RoomSnapshot) -> String:
 		selected_mode_ids = [String(snapshot.mode_id)]
 	var count := MapSelectionCatalogScript.get_match_room_eligible_map_count(queue_type, match_format_id, selected_mode_ids)
 	if count <= 0:
-		if match_format_id == "4v4":
-			return "4v4 当前暂无可运营地图"
+		var format_metadata := MatchFormatCatalogScript.get_metadata(match_format_id)
+		var format_display_name := String(format_metadata.get("display_name", match_format_id))
+		if not format_display_name.is_empty():
+			return "%s 当前暂无可运营地图" % format_display_name
 		return "当前选择没有合法地图"
 	return "当前模式池可匹配 %d 张地图" % count
 
