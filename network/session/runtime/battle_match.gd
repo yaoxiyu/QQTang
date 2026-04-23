@@ -1,6 +1,10 @@
 class_name BattleMatch
 extends RefCounted
 
+const NativeChecksumBridgeScript = preload("res://gameplay/native_bridge/native_checksum_bridge.gd")
+const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
+const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
+
 var match_id: String = ""
 var match_seed: int = 0
 var start_tick: int = 0
@@ -13,7 +17,9 @@ var input_buffer: InputBuffer = null
 var snapshot_service: SnapshotService = SnapshotService.new()
 var snapshot_buffer: SnapshotBuffer = SnapshotBuffer.new()
 var checksum_service: ChecksumBuilder = ChecksumBuilder.new()
+var native_checksum_bridge: NativeChecksumBridge = NativeChecksumBridgeScript.new()
 var divergence_logger: DivergenceLogger = DivergenceLogger.new()
+var last_authoritative_snapshot: WorldSnapshot = null
 
 var peer_slot_by_peer_id: Dictionary = {}
 
@@ -74,8 +80,9 @@ func run_authoritative_tick() -> Dictionary:
 	var result := sim_world.step()
 	var tick_id := int(result.get("tick", 0))
 	var snapshot := snapshot_service.build_standard_snapshot(sim_world, tick_id)
-	snapshot.checksum = checksum_service.build(sim_world, tick_id)
+	snapshot.checksum = compute_checksum(tick_id)
 	snapshot_buffer.put(snapshot)
+	last_authoritative_snapshot = snapshot.duplicate_deep()
 	return result
 
 
@@ -116,9 +123,17 @@ func get_snapshot(tick_id: int) -> WorldSnapshot:
 	return snapshot_buffer.get_snapshot(tick_id)
 
 
+func get_last_authoritative_snapshot() -> WorldSnapshot:
+	if last_authoritative_snapshot == null:
+		return null
+	return last_authoritative_snapshot.duplicate_deep()
+
+
 func compute_checksum(tick_id: int) -> int:
 	if sim_world == null:
 		return 0
+	if NativeFeatureFlagsScript.enable_native_checksum and NativeKernelRuntimeScript.is_available():
+		return native_checksum_bridge.build(sim_world, tick_id)
 	return checksum_service.build(sim_world, tick_id)
 
 
@@ -146,6 +161,7 @@ func _apply_controller_type(peer_id: int) -> void:
 		return
 func dispose() -> void:
 	snapshot_buffer.clear()
+	last_authoritative_snapshot = null
 	if sim_world != null:
 		sim_world.dispose()
 	sim_world = null

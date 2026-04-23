@@ -79,7 +79,9 @@ func _tick_world(_tick_id: int) -> void:
 		return
 
 	var tick_id := int(result.get("tick", 0))
-	var snapshot: WorldSnapshot = active_match.get_snapshot(tick_id)
+	var snapshot: WorldSnapshot = active_match.get_last_authoritative_snapshot()
+	if snapshot == null or snapshot.tick_id != tick_id:
+		snapshot = active_match.get_snapshot(tick_id)
 	var events: Array = _serialize_events(result.get("events", []))
 	_log_bubble_placed_events(tick_id, events, snapshot)
 	_queue_message({
@@ -91,14 +93,16 @@ func _tick_world(_tick_id: int) -> void:
 		"walls": snapshot.walls if snapshot != null else [],
 		"match_state": snapshot.match_state.duplicate(true) if snapshot != null else {},
 		"events": events,
-		"checksum": active_match.compute_checksum(tick_id)
+		"checksum": snapshot.checksum if snapshot != null else 0
 	})
 
 func _tick_snapshot(tick_id: int) -> void:
 	if active_match == null or tick_id % 5 != 0:
 		return
 
-	var snapshot := active_match.get_snapshot(tick_id)
+	var snapshot := active_match.get_last_authoritative_snapshot()
+	if snapshot == null or snapshot.tick_id != tick_id:
+		snapshot = active_match.get_snapshot(tick_id)
 	if snapshot == null:
 		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
 

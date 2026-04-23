@@ -1,0 +1,79 @@
+import os
+
+from SCons.Script import ARGUMENTS, Environment, Exit
+
+
+PROJECT_DIR = os.getcwd()
+SRC_DIR = os.path.join(PROJECT_DIR, "src")
+BIN_DIR = os.path.join(PROJECT_DIR, "bin")
+GODOT_CPP_DIR = os.path.join(PROJECT_DIR, "third_party", "godot-cpp")
+
+
+def fail(message):
+    print("qqt_native SConstruct error: %s" % message)
+    Exit(1)
+
+
+if not os.path.isdir(GODOT_CPP_DIR):
+    fail("missing godot-cpp dependency at addons/qqt_native/third_party/godot-cpp")
+
+
+platform = ARGUMENTS.get("platform", "windows")
+target = ARGUMENTS.get("target", "template_debug")
+arch = ARGUMENTS.get("arch", "x86_64")
+dev_build = ARGUMENTS.get("dev_build", "no")
+debug_symbols = ARGUMENTS.get("debug_symbols", "yes")
+
+if platform != "windows":
+    print("qqt_native SConstruct warning: current scaffold is validated for Windows first; requested platform=%s" % platform)
+
+if target not in ["editor", "template_debug", "template_release"]:
+    fail("unsupported target: %s" % target)
+
+
+env = Environment()
+env.Append(CPPDEFINES=["TYPED_METHOD_BIND"])
+env.Append(CXXFLAGS=["/std:c++17", "/EHsc"])
+env.Append(CPPPATH=[
+    SRC_DIR,
+    os.path.join(GODOT_CPP_DIR, "include"),
+    os.path.join(GODOT_CPP_DIR, "gen", "include"),
+])
+
+if target in ["editor", "template_debug"]:
+    env.Append(CPPDEFINES=["DEBUG_ENABLED"])
+
+variant_dir = os.path.join(BIN_DIR, "obj", platform, target, arch)
+godot_cpp_lib = os.path.join(
+    GODOT_CPP_DIR,
+    "bin",
+    "libgodot-cpp.%s.%s.%s%s.lib" % (
+        platform,
+        target,
+        arch,
+        ".dev" if dev_build == "yes" else "",
+    ),
+)
+
+if not os.path.isfile(godot_cpp_lib):
+    fail("missing godot-cpp static library: %s" % godot_cpp_lib)
+
+sources = [
+    os.path.join(SRC_DIR, "register_types.cpp"),
+    os.path.join(SRC_DIR, "codec", "native_packed_state_codec.cpp"),
+    os.path.join(SRC_DIR, "checksum", "native_checksum_builder.cpp"),
+    os.path.join(SRC_DIR, "snapshot", "native_snapshot_ring.cpp"),
+    os.path.join(SRC_DIR, "movement", "native_movement_kernel.cpp"),
+    os.path.join(SRC_DIR, "explosion", "native_explosion_kernel.cpp"),
+]
+
+bin_name = "qqt_native.%s.%s.%s" % (platform, target, arch)
+target_path = os.path.join(BIN_DIR, "%s.dll" % bin_name)
+
+library = env.SharedLibrary(
+    target=target_path,
+    source=sources,
+    LIBS=[godot_cpp_lib],
+)
+
+Default(library)

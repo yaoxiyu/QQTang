@@ -3,7 +3,8 @@ extends SceneTree
 const SKIP_DIRS := {
 	"res://.godot": true,
 	"res://build": true,
-	"res://addons/gut/.tmp": true
+	"res://addons/gut/.tmp": true,
+	"res://addons/qqt_native/third_party/godot-cpp/test": true
 }
 
 

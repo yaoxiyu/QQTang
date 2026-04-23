@@ -16,6 +16,9 @@ const ExplosionHitTypes = preload("res://gameplay/simulation/explosion/explosion
 const ExplosionHitEntry = preload("res://gameplay/simulation/explosion/explosion_hit_entry.gd")
 const ExplosionReactionResolver = preload("res://gameplay/simulation/explosion/explosion_reaction_resolver.gd")
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
+const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
+const NativeExplosionBridgeScript = preload("res://gameplay/native_bridge/native_explosion_bridge.gd")
 const TRACE_TAG := "sync.trace"
 
 const PROPAGATION_DIRS := [
@@ -25,6 +28,8 @@ const PROPAGATION_DIRS := [
 	Vector2i(1, 0)
 ]
 
+var _native_explosion_bridge: NativeExplosionBridge = NativeExplosionBridgeScript.new()
+
 # ====================
 # 系统接口
 # ====================
@@ -33,6 +38,10 @@ func get_name() -> StringName:
 	return "ExplosionResolveSystem"
 
 func execute(ctx: SimContext) -> void:
+	if NativeFeatureFlagsScript.enable_native_explosion and NativeKernelRuntimeScript.is_available():
+		if _execute_native_path(ctx):
+			return
+
 	var pending_bubble_queue: Array[int] = []
 	for bubble_id in ctx.scratch.bubbles_to_explode:
 		if ctx.scratch.queued_chain_bubble_ids.has(bubble_id):
@@ -333,5 +342,110 @@ func _register_entity_hit(
 	if ctx.scratch.explosion_hit_keys.has(dedupe_key):
 		return
 
-	ctx.scratch.explosion_hit_keys[dedupe_key] = true
-	ctx.scratch.explosion_hit_entries.append(hit_entry)
+		ctx.scratch.explosion_hit_keys[dedupe_key] = true
+		ctx.scratch.explosion_hit_entries.append(hit_entry)
+
+
+func _execute_native_path(ctx: SimContext) -> bool:
+	var result := _native_explosion_bridge.resolve(ctx)
+	if not ctx.scratch.bubbles_to_explode.is_empty() and result.get("processed_bubble_ids", []).is_empty():
+		LogSimulationScript.warn(
+			"[explosion_resolve_system] native explosion returned empty processed_bubble_ids, fallback to GDScript",
+			"",
+			0,
+			"simulation.explosion.native"
+		)
+		return false
+
+	_apply_native_destroy_cells(ctx, result.get("destroy_cells", []))
+	_apply_native_hit_entries(ctx, result.get("hit_entries", []))
+	_apply_native_chain_bubble_ids(ctx, result.get("chain_bubble_ids", []))
+	_apply_native_processed_bubbles(ctx, result.get("processed_bubble_ids", []), result.get("covered_cells", []))
+	return true
+
+
+func _apply_native_destroy_cells(ctx: SimContext, destroy_cells: Array) -> void:
+	for raw_cell in destroy_cells:
+		if not (raw_cell is Dictionary):
+			continue
+		var cell := Vector2i(int(raw_cell.get("cell_x", 0)), int(raw_cell.get("cell_y", 0)))
+		if not ctx.scratch.cells_to_destroy.has(cell):
+			ctx.scratch.cells_to_destroy.append(cell)
+
+
+func _apply_native_hit_entries(ctx: SimContext, hit_entries: Array) -> void:
+	for raw_entry in hit_entries:
+		if not (raw_entry is Dictionary):
+			continue
+		var entry_data: Dictionary = raw_entry
+		var hit_entry := ExplosionHitEntry.new()
+		hit_entry.tick = int(entry_data.get("tick", ctx.tick))
+		hit_entry.source_bubble_id = int(entry_data.get("source_bubble_id", -1))
+		hit_entry.source_player_id = int(entry_data.get("source_player_id", -1))
+		hit_entry.source_cell_x = int(entry_data.get("source_cell_x", 0))
+		hit_entry.source_cell_y = int(entry_data.get("source_cell_y", 0))
+		hit_entry.target_type = int(entry_data.get("target_type", ExplosionHitTypes.TargetType.PLAYER))
+		hit_entry.target_entity_id = int(entry_data.get("target_entity_id", -1))
+		hit_entry.target_cell_x = int(entry_data.get("target_cell_x", 0))
+		hit_entry.target_cell_y = int(entry_data.get("target_cell_y", 0))
+		hit_entry.target_aux_data = (entry_data.get("target_aux_data", {}) as Dictionary).duplicate(true)
+		var dedupe_key := hit_entry.build_dedupe_key()
+		if ctx.scratch.explosion_hit_keys.has(dedupe_key):
+			continue
+		ctx.scratch.explosion_hit_keys[dedupe_key] = true
+		ctx.scratch.explosion_hit_entries.append(hit_entry)
+
+
+func _apply_native_chain_bubble_ids(ctx: SimContext, chain_bubble_ids: Array) -> void:
+	for bubble_id in chain_bubble_ids:
+		ctx.scratch.queued_chain_bubble_ids[int(bubble_id)] = true
+
+
+func _apply_native_processed_bubbles(ctx: SimContext, processed_bubble_ids: Array, covered_cells: Array) -> void:
+	var covered_lookup := _group_native_covered_cells_by_bubble(covered_cells)
+	for bubble_id_value in processed_bubble_ids:
+		var bubble_id := int(bubble_id_value)
+		if ctx.scratch.processed_explosion_bubble_ids.has(bubble_id):
+			continue
+		var bubble: BubbleState = ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble == null or not bubble.alive:
+			continue
+
+		ctx.scratch.processed_explosion_bubble_ids[bubble_id] = true
+		bubble.alive = false
+		ctx.state.bubbles.active_ids.erase(bubble_id)
+		ctx.state.indexes.active_bubble_ids.erase(bubble_id)
+		if ctx.state.grid.is_in_bounds(bubble.cell_x, bubble.cell_y):
+			var exploded_idx := ctx.state.grid.to_cell_index(bubble.cell_x, bubble.cell_y)
+			if exploded_idx >= 0 and exploded_idx < ctx.state.indexes.bubbles_by_cell.size():
+				if ctx.state.indexes.bubbles_by_cell[exploded_idx] == bubble_id:
+					ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
+
+		ctx.scratch.exploded_bubble_ids.append(bubble_id)
+		var bubble_covered_cells: Array[Vector2i] = covered_lookup.get(bubble_id, [Vector2i(bubble.cell_x, bubble.cell_y)])
+		var exploded_event := SimEvent.new(ctx.tick, SimEvent.EventType.BUBBLE_EXPLODED)
+		exploded_event.payload = {
+			"bubble_id": bubble_id,
+			"owner_player_id": bubble.owner_player_id,
+			"cell_x": bubble.cell_x,
+			"cell_y": bubble.cell_y,
+			"covered_cells": bubble_covered_cells
+		}
+		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, bubble.cell_x, bubble.cell_y, bubble_covered_cells)
+		ctx.events.push(exploded_event)
+
+
+func _group_native_covered_cells_by_bubble(covered_cells: Array) -> Dictionary:
+	var grouped: Dictionary = {}
+	for raw_cell in covered_cells:
+		if not (raw_cell is Dictionary):
+			continue
+		var entry: Dictionary = raw_cell
+		var bubble_id := int(entry.get("bubble_id", -1))
+		if bubble_id < 0:
+			continue
+		if not grouped.has(bubble_id):
+			grouped[bubble_id] = []
+		var cells: Array[Vector2i] = grouped[bubble_id]
+		cells.append(Vector2i(int(entry.get("cell_x", 0)), int(entry.get("cell_y", 0))))
+	return grouped

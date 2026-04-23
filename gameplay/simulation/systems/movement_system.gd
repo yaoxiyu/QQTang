@@ -18,9 +18,14 @@ const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator
 const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
+const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
+const NativeMovementBridgeScript = preload("res://gameplay/native_bridge/native_movement_bridge.gd")
 
 const DEBUG_MOVEMENT_SNAP := true
 const DEBUG_REMOTE_ANIM_LOG := false
+
+var _native_movement_bridge: NativeMovementBridge = NativeMovementBridgeScript.new()
 
 
 func get_name() -> StringName:
@@ -28,6 +33,10 @@ func get_name() -> StringName:
 
 
 func execute(ctx: SimContext) -> void:
+	if NativeFeatureFlagsScript.enable_native_movement and NativeKernelRuntimeScript.is_available():
+		if _execute_native_path(ctx):
+			return
+
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
@@ -92,6 +101,107 @@ func execute(ctx: SimContext) -> void:
 				blocked_cell.x,
 				blocked_cell.y
 			)
+
+
+func _execute_native_path(ctx: SimContext) -> bool:
+	var candidate_player_ids: Array[int] = []
+	for player_id in ctx.state.players.active_ids:
+		var player = ctx.state.players.get_player(player_id)
+		if player == null or not player.alive:
+			continue
+		if player.life_state != PlayerState.LifeState.NORMAL:
+			player.move_state = PlayerState.MoveState.IDLE
+			player.move_phase_ticks = 0
+			ctx.state.players.update_player(player)
+			continue
+		if _should_preserve_authoritative_remote_state(ctx, player):
+			continue
+		candidate_player_ids.append(player_id)
+
+	var result := _native_movement_bridge.step_players(ctx, candidate_player_ids)
+	if candidate_player_ids.size() > 0 and result.get("player_updates", []).size() != candidate_player_ids.size():
+		LogSimulationScript.warn(
+			"[movement_system] native movement returned incomplete player_updates, fallback to GDScript",
+			"",
+			0,
+			"simulation.movement.native"
+		)
+		return false
+
+	_apply_native_player_updates(ctx, result.get("player_updates", []))
+	_apply_native_bubble_ignore_removals(ctx, result.get("bubble_ignore_removals", []))
+	_apply_native_cell_changes(ctx, result.get("cell_changes", []))
+	_apply_native_blocked_events(ctx, result.get("blocked_events", []))
+	return true
+
+
+func _apply_native_player_updates(ctx: SimContext, player_updates: Array) -> void:
+	for raw_update in player_updates:
+		if not (raw_update is Dictionary):
+			continue
+		var update: Dictionary = raw_update
+		var player_id := int(update.get("player_id", -1))
+		if player_id < 0:
+			continue
+		var player := ctx.state.players.get_player(player_id)
+		if player == null:
+			continue
+		player.cell_x = int(update.get("cell_x", player.cell_x))
+		player.cell_y = int(update.get("cell_y", player.cell_y))
+		player.offset_x = int(update.get("offset_x", player.offset_x))
+		player.offset_y = int(update.get("offset_y", player.offset_y))
+		player.facing = int(update.get("facing", player.facing))
+		player.move_state = int(update.get("move_state", player.move_state))
+		player.move_phase_ticks = int(update.get("move_phase_ticks", player.move_phase_ticks))
+		player.last_non_zero_move_x = int(update.get("last_non_zero_move_x", player.last_non_zero_move_x))
+		player.last_non_zero_move_y = int(update.get("last_non_zero_move_y", player.last_non_zero_move_y))
+		ctx.state.players.update_player(player)
+
+
+func _apply_native_bubble_ignore_removals(ctx: SimContext, removals: Array) -> void:
+	for raw_removal in removals:
+		if not (raw_removal is Dictionary):
+			continue
+		var removal: Dictionary = raw_removal
+		var bubble_id := int(removal.get("bubble_id", -1))
+		var player_id := int(removal.get("player_id", -1))
+		if bubble_id < 0 or player_id < 0:
+			continue
+		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble == null:
+			continue
+		bubble.ignore_player_ids.erase(player_id)
+		ctx.state.bubbles.update_bubble(bubble)
+
+
+func _apply_native_cell_changes(ctx: SimContext, cell_changes: Array) -> void:
+	for raw_change in cell_changes:
+		if not (raw_change is Dictionary):
+			continue
+		var change: Dictionary = raw_change
+		_emit_cell_changed_if_needed(
+			ctx,
+			int(change.get("player_id", -1)),
+			int(change.get("from_cell_x", 0)),
+			int(change.get("from_cell_y", 0)),
+			int(change.get("to_cell_x", 0)),
+			int(change.get("to_cell_y", 0))
+		)
+
+
+func _apply_native_blocked_events(ctx: SimContext, blocked_events: Array) -> void:
+	for raw_event in blocked_events:
+		if not (raw_event is Dictionary):
+			continue
+		var blocked_event: Dictionary = raw_event
+		_emit_blocked_event(
+			ctx,
+			int(blocked_event.get("player_id", -1)),
+			int(blocked_event.get("from_cell_x", 0)),
+			int(blocked_event.get("from_cell_y", 0)),
+			int(blocked_event.get("blocked_cell_x", 0)),
+			int(blocked_event.get("blocked_cell_y", 0))
+		)
 
 
 func _should_preserve_authoritative_remote_state(ctx: SimContext, player: PlayerState) -> bool:

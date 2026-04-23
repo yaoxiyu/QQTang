@@ -151,8 +151,12 @@ func build_resume_checkpoint_message() -> Dictionary:
 	
 	var active_match: BattleMatch = _authority_runtime.server_session.active_match
 	var tick_id: int = int(active_match.sim_world.state.match_state.tick)
-	var snapshot: WorldSnapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
-	snapshot.checksum = active_match.compute_checksum(tick_id)
+	var snapshot: WorldSnapshot = active_match.get_last_authoritative_snapshot()
+	if snapshot == null or snapshot.tick_id != tick_id:
+		snapshot = active_match.get_snapshot(tick_id)
+	if snapshot == null:
+		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
+		snapshot.checksum = active_match.compute_checksum(tick_id)
 	
 	return {
 		"message_type": TransportMessageTypesScript.CHECKPOINT,
