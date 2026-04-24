@@ -65,8 +65,17 @@ func test_authority_runtime_native_input_policy_execute_drops_stale_and_too_late
 	assert_true(authority.start_match(config))
 
 	authority.ingest_network_message(_input_message(2, 2, 10))
+	var accepted_metrics := authority.get_native_input_policy_shadow_metrics()
+	var accepted_native_metrics: Dictionary = accepted_metrics.get("native_buffer_metrics", {})
+	assert_true(int(accepted_native_metrics.get("accepted_count", 0)) >= 1)
+
+	authority.ingest_network_message(_input_message(2, 0, 11))
+	var retarget_metrics := authority.get_native_input_policy_shadow_metrics()
+	var retarget_native_metrics: Dictionary = retarget_metrics.get("native_buffer_metrics", {})
+	assert_true(int(retarget_native_metrics.get("late_retarget_count", 0)) >= 1)
+
 	authority.ingest_network_message(_input_message(2, 2, 9))
-	authority.ingest_network_message(_input_message(2, -5, 11))
+	authority.ingest_network_message(_input_message(2, -5, 12))
 
 	var metrics := authority.get_native_input_policy_shadow_metrics()
 	var native_metrics: Dictionary = metrics.get("native_buffer_metrics", {})

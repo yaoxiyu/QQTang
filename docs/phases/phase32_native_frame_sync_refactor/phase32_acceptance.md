@@ -8,9 +8,10 @@ Minimum acceptance:
 4. Intermediate snapshot events are preserved by tick and consumed in order.
 5. `MATCH_FINISHED` is not dropped and is applied after coalesced authority state.
 6. Native coalescer shadow parity is covered before execute mode is enabled.
-7. Native input buffer execute mode drops stale-seq and too-late input with metrics.
-8. Native snapshot diff and rollback planner execute mode preserves rollback/resync/noop decisions.
-9. Native battle message codec execute mode emits native binary payloads while JSON decode remains compatible.
+7. Native input buffer execute mode accepts future input, retargets late input, drops stale-seq and too-late input, and exposes metrics.
+8. Native snapshot diff covers local player, ignored keys, bubbles, items, rng, missing snapshot, and int/float numeric parity.
+9. Native rollback planner execute mode preserves `NOOP`, `ROLLBACK`, `FORCE_RESYNC`, and `DROP_STALE_AUTHORITY` decisions.
+10. Native battle message codec execute mode emits native envelope payloads, JSON decode remains compatible, malformed native payloads fail safe, and transport metrics count native/json/malformed decode paths.
 
 Required commands:
 
@@ -42,4 +43,12 @@ enable_native_input_buffer_execute = true
 enable_native_snapshot_diff_execute = true
 enable_native_rollback_planner_execute = true
 enable_native_battle_message_codec_execute = true
+```
+
+Codec rollout note:
+
+```text
+Phase32 codec execute uses a native QQTS envelope with a Variant Dictionary body.
+This is an execute-ready transition format, not the final type-specific binary schema.
+Mixed native/JSON decode is supported; explicit peer negotiation remains a later rollout item.
 ```

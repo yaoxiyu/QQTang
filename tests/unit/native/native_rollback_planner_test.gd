@@ -36,6 +36,14 @@ func test_native_rollback_planner_rollback_for_in_window_diff() -> void:
 	assert_eq(int(plan.get("replay_tick_count", -1)), 2)
 
 
+func test_native_rollback_planner_drops_stale_authority() -> void:
+	var cursor := _cursor()
+	cursor["authoritative_tick"] = 10
+	cursor["latest_authoritative_tick"] = 10
+	var plan: Dictionary = _planner().call("plan", cursor, {"equal": false, "reason_mask": 2})
+	assert_eq(int(plan.get("decision", -1)), 3)
+
+
 func _planner() -> Object:
 	var kernel: Object = ClassDB.instantiate("QQTNativeRollbackPlanner")
 	assert_not_null(kernel)

@@ -183,18 +183,18 @@ Native-backed paths:
   - `network/session/runtime/authority_batch_coalescer.gd`
   - `gameplay/native_bridge/native_authority_batch_bridge.gd`
   - `addons/qqt_native/src/sync/native_authority_batch_coalescer.*`
-- input buffer and late input policy shadow:
+- input buffer and late input policy:
   - `gameplay/simulation/input/input_buffer.gd`
   - `network/session/runtime/authority_runtime.gd`
   - `gameplay/native_bridge/native_input_buffer_bridge.gd`
   - `addons/qqt_native/src/sync/native_input_buffer.*`
-- snapshot diff and rollback planner shadow:
+- snapshot diff and rollback planner:
   - `gameplay/network/rollback/rollback_controller.gd`
   - `gameplay/native_bridge/native_snapshot_diff_bridge.gd`
   - `gameplay/native_bridge/native_rollback_planner_bridge.gd`
   - `addons/qqt_native/src/sync/native_snapshot_diff.*`
   - `addons/qqt_native/src/sync/native_rollback_planner.*`
-- battle message codec shadow:
+- battle message codec:
   - `network/transport/transport_message_codec.gd`
   - `addons/qqt_native/src/sync/native_battle_message_codec.*`
 
@@ -276,7 +276,7 @@ Implemented paths:
 Current scope:
 
 - native buffer mirrors normal `InputBuffer` push/merge/fallback/ack behavior through adapter shadow;
-- native late input policy is implemented and covered by metrics tests;
+- native late input policy accepts future input, retargets late input, drops stale seq and too-late input, and is covered by metrics tests;
 - `AuthorityRuntime` records native late-policy shadow decisions;
 - authority runtime uses native late-policy execute mode and records shadow comparison metrics.
 
@@ -305,6 +305,8 @@ Current scope:
 
 - `RollbackController.describe_snapshot_diff()` returns the native diff when execute mode is enabled;
 - native diff and planner metrics are recorded through `get_native_rollback_shadow_metrics()`;
+- native planner covers `NOOP`, `ROLLBACK`, `FORCE_RESYNC`, and `DROP_STALE_AUTHORITY`;
+- replay metrics expose `last_replay_tick_count`, `total_replay_ticks`, and `avg_replay_ticks`;
 - rollback replay still uses the existing GDScript restore/replay loop.
 
 Native battle message codec is enabled in execute mode:
@@ -317,15 +319,24 @@ enable_native_battle_message_codec_execute = true
 
 Current scope:
 
-- native binary payloads are the default project message wire format;
-- JSON decode remains accepted for compatibility and rollback.
+- native binary envelope payloads are the default project message wire format;
+- the Phase32 payload body is a transitional Variant-encoded Dictionary, not the final type-specific binary schema;
+- JSON decode remains accepted for compatibility and rollback;
+- transport codec metrics expose `native_decode_count`, `json_decode_count`, and `malformed_count`;
+- malformed native payloads return `{}` and do not crash.
+
+Compatibility policy:
+
+- mixed native/JSON decode is supported;
+- native encode execute should be enabled only for peers expected to run this Phase32 codec or through the feature flag rollback switch.
 
 ## Next Architecture Step
 
 After Phase32, remaining extraction candidates are:
 
 - rollback replay loop,
-- peer compatibility rollout for mixed JSON/native-codec clients,
+- type-specific battle message payload schema,
+- peer compatibility rollout for explicit codec negotiation,
 - deeper production profiling for rollback replay cost.
 
 Avoid first extracting high-level `ClientRuntime`, `AuthorityRuntime`, or router glue while those paths are still Dictionary-heavy.
