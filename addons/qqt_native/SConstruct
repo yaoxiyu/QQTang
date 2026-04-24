@@ -1,6 +1,12 @@
 import os
+from typing import Any, Callable, NoReturn, cast
 
-from SCons.Script import ARGUMENTS, Environment, Exit
+from SCons.Script import (  # pyright: ignore[reportMissingTypeStubs]
+    ARGUMENTS as SCONS_ARGUMENTS,
+    Default as SCONS_DEFAULT,
+    Environment as SCONS_ENVIRONMENT,
+    Exit as SCONS_EXIT,
+)
 
 
 PROJECT_DIR = os.getcwd()
@@ -8,27 +14,32 @@ SRC_DIR = os.path.join(PROJECT_DIR, "src")
 BIN_DIR = os.path.join(PROJECT_DIR, "bin")
 GODOT_CPP_DIR = os.path.join(PROJECT_DIR, "third_party", "godot-cpp")
 
+ARGUMENTS = cast(dict[str, str], SCONS_ARGUMENTS)
+Default = cast(Callable[[Any], Any], SCONS_DEFAULT)
+Environment = cast(Callable[[], Any], SCONS_ENVIRONMENT)
+Exit = cast(Callable[[int], NoReturn], SCONS_EXIT)
 
-def fail(message):
+
+def fail(message: str) -> NoReturn:
     print("qqt_native SConstruct error: %s" % message)
     Exit(1)
+    raise SystemExit(1)
 
 
 if not os.path.isdir(GODOT_CPP_DIR):
     fail("missing godot-cpp dependency at addons/qqt_native/third_party/godot-cpp")
 
 
-platform = ARGUMENTS.get("platform", "windows")
-target = ARGUMENTS.get("target", "template_debug")
-arch = ARGUMENTS.get("arch", "x86_64")
-dev_build = ARGUMENTS.get("dev_build", "no")
-debug_symbols = ARGUMENTS.get("debug_symbols", "yes")
+platform: str = ARGUMENTS.get("platform", "windows")
+target: str = ARGUMENTS.get("target", "template_debug")
+arch: str = ARGUMENTS.get("arch", "x86_64")
+dev_build: str = ARGUMENTS.get("dev_build", "no")
 
 if platform not in ["windows", "linux"]:
     fail(
         "unsupported platform: %s. Supported Phase31 qqt_native build matrix entries are windows and linux; "
-        "add matching godot-cpp static libraries and platform-specific output wiring before enabling another platform."
         % platform
+        + "add matching godot-cpp static libraries and platform-specific output wiring before enabling another platform."
     )
 
 if target not in ["template_debug", "template_release"]:
@@ -38,7 +49,7 @@ if arch != "x86_64":
     fail("unsupported arch: %s" % arch)
 
 
-env = Environment()
+env: Any = Environment()
 env.Append(CPPDEFINES=["TYPED_METHOD_BIND"])
 env.Append(CPPPATH=[
     SRC_DIR,
@@ -55,6 +66,8 @@ elif platform == "linux":
     env.Append(LINKFLAGS=["-shared"])
     shared_suffix = ".so"
     godot_cpp_suffix = ".a"
+else:
+    fail("unsupported platform: %s" % platform)
 
 if target == "template_debug":
     env.Append(CPPDEFINES=["DEBUG_ENABLED"])
