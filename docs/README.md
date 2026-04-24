@@ -9,10 +9,12 @@
   - `runtime_topology.md`
   - `front_flow.md`
   - `network_control_plane.md`
+  - `battle_sync.md`
   - `content_pipeline.md`
   - `testing_strategy.md`
   - `battle_handoff_projection_repair_plan.md`
 - `architecture_debt_register.md` 是正式架构债务台账（debt register）。
+- `battle_sync_rule_audit.md` 是 Battle 同步规则详细审计材料；当前运行时边界和后续性能债务以 `architecture/battle_sync.md` 为入口。
 - `map_theme_material_integration.md` 记录当前地图材质包的格式要求与接入流程。
 - `platform_auth/` 与 `platform_game/` 记录当前平台服务 API / 内部协议契约。
 - `archive/` 只存放历史基线、阶段报告、已合并专题原文；归档内容不得作为当前实现真相。

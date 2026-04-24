@@ -16,6 +16,8 @@ var start_config: BattleStartConfig = null
 var local_peer_id: int = 1
 var server_session: ServerSession = null
 var _finished: bool = false
+var _opening_input_freeze_drop_count: int = 0
+var _opening_input_freeze_end_logged: bool = false
 
 
 func configure(peer_id: int) -> void:
@@ -58,6 +60,8 @@ func start_match(config: BattleStartConfig) -> bool:
 	server_session.active_match.sim_world.state.match_state.remaining_ticks = int(start_config.match_duration_ticks)
 	server_session.active_match.sim_world.state.match_state.phase = MatchState.Phase.PLAYING
 	_finished = false
+	_opening_input_freeze_drop_count = 0
+	_opening_input_freeze_end_logged = false
 	match_started.emit(start_config)
 	log_event.emit("AuthorityRuntime started %s" % start_config.to_log_string())
 	return true
@@ -72,7 +76,10 @@ func ingest_network_message(message: Dictionary) -> void:
 	var frame := PlayerInputFrame.from_dict(message.get("frame", {}))
 	if frame.peer_id <= 0:
 		frame.peer_id = int(message.get("sender_peer_id", 0))
-	_retarget_late_place_frame(frame)
+	if _is_opening_input_frozen():
+		_opening_input_freeze_drop_count += 1
+		return
+	_retarget_late_input_frame(frame)
 	server_session.receive_input(frame)
 
 
@@ -81,9 +88,10 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionar
 		return []
 
 	var next_tick := server_session.active_match.sim_world.state.match_state.tick + 1
-	if local_peer_id > 0:
+	if local_peer_id > 0 and not _is_opening_input_frozen():
 		server_session.receive_input(_build_local_input_frame(next_tick, local_input))
 	server_session.tick_once()
+	_log_opening_input_freeze_end_if_needed()
 	var outgoing := _decorate_messages(server_session.poll_messages())
 
 	var sim_world := server_session.active_match.sim_world
@@ -128,6 +136,8 @@ func shutdown_runtime() -> void:
 	server_session = null
 	start_config = null
 	_finished = false
+	_opening_input_freeze_drop_count = 0
+	_opening_input_freeze_end_logged = false
 
 
 func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerInputFrame:
@@ -142,8 +152,8 @@ func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerIn
 	return frame
 
 
-func _retarget_late_place_frame(frame: PlayerInputFrame) -> void:
-	if frame == null or not frame.action_place:
+func _retarget_late_input_frame(frame: PlayerInputFrame) -> void:
+	if frame == null:
 		return
 	if server_session == null or server_session.active_match == null or server_session.active_match.sim_world == null:
 		return
@@ -153,12 +163,48 @@ func _retarget_late_place_frame(frame: PlayerInputFrame) -> void:
 	var original_tick := frame.tick_id
 	frame.tick_id = authority_tick + 1
 	frame.sanitize()
+	if frame.action_place:
+		LogSyncScript.info(
+			"authority_input late_place_retarget peer=%d from_tick=%d to_tick=%d authority_tick=%d" % [
+				frame.peer_id,
+				original_tick,
+				frame.tick_id,
+				authority_tick,
+			],
+			"",
+			0,
+			"%s sync.authority_runtime" % TRACE_TAG
+		)
+
+
+func _is_opening_input_frozen() -> bool:
+	if start_config == null or server_session == null or server_session.active_match == null:
+		return false
+	var freeze_ticks := int(start_config.opening_input_freeze_ticks)
+	if freeze_ticks <= 0:
+		return false
+	var authority_tick := int(server_session.active_match.sim_world.state.match_state.tick)
+	return authority_tick < int(start_config.start_tick) + freeze_ticks
+
+
+func _log_opening_input_freeze_end_if_needed() -> void:
+	if _opening_input_freeze_end_logged:
+		return
+	if start_config == null or server_session == null or server_session.active_match == null:
+		return
+	var freeze_ticks := int(start_config.opening_input_freeze_ticks)
+	if freeze_ticks <= 0:
+		_opening_input_freeze_end_logged = true
+		return
+	var authority_tick := int(server_session.active_match.sim_world.state.match_state.tick)
+	var end_tick := int(start_config.start_tick) + freeze_ticks
+	if authority_tick < end_tick:
+		return
+	_opening_input_freeze_end_logged = true
 	LogSyncScript.info(
-		"authority_input late_place_retarget peer=%d from_tick=%d to_tick=%d authority_tick=%d" % [
-			frame.peer_id,
-			original_tick,
-			frame.tick_id,
+		"authority_opening_input_freeze_end tick=%d dropped_inputs=%d" % [
 			authority_tick,
+			_opening_input_freeze_drop_count,
 		],
 		"",
 		0,

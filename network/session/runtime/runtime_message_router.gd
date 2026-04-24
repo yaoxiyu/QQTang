@@ -2,7 +2,7 @@ class_name RuntimeMessageRouter
 extends Node
 
 const LogSessionScript = preload("res://app/logging/log_session.gd")
-const DEBUG_ROUTER_LOGS: bool = true
+const DEBUG_ROUTER_LOGS: bool = false
 
 var _handlers: Dictionary = {}
 var _fallback_handler: Callable = Callable()

@@ -91,7 +91,7 @@ func start_match(config: BattleStartConfig) -> bool:
 func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 	if not _active or _finished or client_session == null:
 		return {}
-	var next_tick := prediction_controller.predicted_until_tick + 1 if prediction_controller != null else client_session.last_confirmed_tick + 1
+	var next_tick := _resolve_next_local_input_tick()
 	var requested_place := bool(local_input.get("action_place", false))
 	var effective_place := _resolve_local_place_action(requested_place, next_tick)
 	var frame := client_session.sample_input_for_tick(
@@ -115,6 +115,17 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 		"tick": frame.tick_id,
 		"frame": frame.to_dict(),
 	}
+
+
+func _resolve_next_local_input_tick() -> int:
+	var predicted_next_tick := prediction_controller.predicted_until_tick + 1 if prediction_controller != null else client_session.last_confirmed_tick + 1
+	if start_config == null:
+		return predicted_next_tick
+	var lead_ticks := int(start_config.network_input_lead_ticks)
+	if lead_ticks <= 0 or prediction_controller == null:
+		return predicted_next_tick
+	var authority_based_tick := int(prediction_controller.authoritative_tick) + lead_ticks
+	return max(predicted_next_tick, authority_based_tick)
 
 
 func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
@@ -435,7 +446,7 @@ func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
 		return
 	if _should_suppress_rollback_probe_log(reasons):
 		return
-	LogSyncScript.warn(
+	LogSyncScript.info(
 		"rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
 			authoritative_snapshot.tick_id,
 			", ".join(reasons),
@@ -544,7 +555,7 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 
 func _on_full_visual_resync(snapshot: WorldSnapshot) -> void:
 	_last_resync_tick = snapshot.tick_id if snapshot != null else -1
-	LogSyncScript.warn(
+	LogSyncScript.info(
 		"rollback_resync tick=%d rollback_count=%d resync_count=%d" % [
 			_last_resync_tick,
 			prediction_controller.rollback_controller.rollback_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,

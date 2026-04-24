@@ -14,6 +14,7 @@ const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
+const DEBUG_TICK_LOGS := false
 const LOG_FX_ANOMALIES := false
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
@@ -78,28 +79,30 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	var runtime_flags := world.state.runtime_flags
 	var force_client_refresh := runtime_flags != null and bool(runtime_flags.client_prediction_mode)
 	if tick_id == _last_consumed_tick and not force_client_refresh:
+		if DEBUG_TICK_LOGS:
+			LogPresentationScript.debug(
+				"consume_tick_result_skipped tick=%d force_client_refresh=%s event_count=%d" % [
+					tick_id,
+					str(force_client_refresh),
+					events.size(),
+				],
+				"",
+				0,
+				"presentation.bridge.skip"
+			)
+		return
+	if DEBUG_TICK_LOGS:
 		LogPresentationScript.debug(
-			"consume_tick_result_skipped tick=%d force_client_refresh=%s event_count=%d" % [
+			"consume_tick_result tick=%d force_client_refresh=%s event_count=%d phase=%d" % [
 				tick_id,
 				str(force_client_refresh),
 				events.size(),
+				int(world.state.match_state.phase),
 			],
 			"",
 			0,
-			"presentation.bridge.skip"
+			"presentation.bridge.tick"
 		)
-		return
-	LogPresentationScript.debug(
-		"consume_tick_result tick=%d force_client_refresh=%s event_count=%d phase=%d" % [
-			tick_id,
-			str(force_client_refresh),
-			events.size(),
-			int(world.state.match_state.phase),
-		],
-		"",
-		0,
-		"presentation.bridge.tick"
-	)
 
 	_grid_cache = state_to_view_mapper.build_grid_cache(world)
 	if map_view != null and map_view.has_method("apply_grid_cache"):

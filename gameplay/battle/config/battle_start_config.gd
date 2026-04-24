@@ -7,6 +7,8 @@ const DEFAULT_PROTOCOL_VERSION: int = 1
 const DEFAULT_GAMEPLAY_RULE_VERSION: int = 1
 const DEFAULT_MAP_VERSION: int = 1
 const DEFAULT_MATCH_DURATION_TICKS: int = 180 * TickRunnerScript.TICK_RATE
+const DEFAULT_OPENING_INPUT_FREEZE_TICKS: int = 2 * TickRunnerScript.TICK_RATE
+const DEFAULT_NETWORK_INPUT_LEAD_TICKS: int = 3
 const DEFAULT_ITEM_SPAWN_PROFILE_ID: String = "default_items"
 const BUILD_MODE_CANDIDATE: String = "candidate"
 const BUILD_MODE_CANONICAL: String = "canonical"
@@ -27,6 +29,8 @@ var player_slots: Array[Dictionary] = []
 var spawn_assignments: Array[Dictionary] = []
 var battle_seed: int = 0
 var start_tick: int = 0
+var opening_input_freeze_ticks: int = 0
+var network_input_lead_ticks: int = 0
 var match_duration_ticks: int = DEFAULT_MATCH_DURATION_TICKS
 var item_spawn_profile_id: String = DEFAULT_ITEM_SPAWN_PROFILE_ID
 var snapshot_interval: int = 0
@@ -63,6 +67,8 @@ func to_dict() -> Dictionary:
 		"spawn_assignments": spawn_assignments.duplicate(true),
 		"seed": battle_seed,
 		"start_tick": start_tick,
+		"opening_input_freeze_ticks": opening_input_freeze_ticks,
+		"network_input_lead_ticks": network_input_lead_ticks,
 		"match_duration_ticks": match_duration_ticks,
 		"item_spawn_profile_id": item_spawn_profile_id,
 		"snapshot_interval": snapshot_interval,
@@ -99,6 +105,8 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.spawn_assignments = _duplicate_dict_array(data.get("spawn_assignments", []))
 	config.battle_seed = int(data.get("seed", 0))
 	config.start_tick = int(data.get("start_tick", 0))
+	config.opening_input_freeze_ticks = int(data.get("opening_input_freeze_ticks", 0))
+	config.network_input_lead_ticks = int(data.get("network_input_lead_ticks", 0))
 	config.match_duration_ticks = int(data.get("match_duration_ticks", DEFAULT_MATCH_DURATION_TICKS))
 	config.item_spawn_profile_id = String(data.get("item_spawn_profile_id", DEFAULT_ITEM_SPAWN_PROFILE_ID))
 	config.snapshot_interval = int(data.get("snapshot_interval", 0))
@@ -178,6 +186,10 @@ func validate(options: Dictionary = {}) -> Dictionary:
 		errors.append("map_content_hash is required")
 	if match_duration_ticks <= 0:
 		errors.append("match_duration_ticks must be positive")
+	if opening_input_freeze_ticks < 0:
+		errors.append("opening_input_freeze_ticks must not be negative")
+	if network_input_lead_ticks < 0:
+		errors.append("network_input_lead_ticks must not be negative")
 	if player_slots.is_empty():
 		errors.append("player_slots must not be empty")
 	if spawn_assignments.is_empty():

@@ -9,6 +9,7 @@ const PLAYER_Z_INDEX := 20
 const LOCAL_VISUAL_LERP_SPEED := 16.0
 const REMOTE_VISUAL_LERP_SPEED := 22.0
 const TELEPORT_SNAP_DISTANCE_CELLS := 1.5
+const DEBUG_APPLY_VIEW_STATE_LOG := false
 
 var player_id: int = -1
 var player_slot: int = 0
@@ -46,19 +47,20 @@ func apply_view_state(view_state: Dictionary) -> void:
 	var should_snap := not _has_visual_target or position.distance_to(_target_position) >= snap_distance
 	if should_snap:
 		position = _target_position
-	LogPresentationScript.debug(
-		"apply_view_state entity_id=%d pose_state=%s alive=%s position=%s target=%s should_snap=%s" % [
-			player_id,
-			String(view_state.get("pose_state", "normal")),
-			str(alive),
-			str(position),
-			str(_target_position),
-			str(should_snap),
-		],
-		"",
-		0,
-		"presentation.actor.player"
-	)
+	if DEBUG_APPLY_VIEW_STATE_LOG:
+		LogPresentationScript.debug(
+			"apply_view_state entity_id=%d pose_state=%s alive=%s position=%s target=%s should_snap=%s" % [
+				player_id,
+				String(view_state.get("pose_state", "normal")),
+				str(alive),
+				str(position),
+				str(_target_position),
+				str(should_snap),
+			],
+			"",
+			0,
+			"presentation.actor.player"
+		)
 	_has_visual_target = true
 	z_as_relative = false
 	z_index = PLAYER_Z_INDEX

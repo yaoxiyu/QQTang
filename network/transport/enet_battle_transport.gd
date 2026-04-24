@@ -3,7 +3,7 @@ extends IBattleTransport
 
 const TransportMessageCodecScript = preload("res://network/transport/transport_message_codec.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const DEBUG_TRANSPORT_LOGS: bool = true
+const DEBUG_TRANSPORT_LOGS: bool = false
 const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 

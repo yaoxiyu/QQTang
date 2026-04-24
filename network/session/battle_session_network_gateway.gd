@@ -11,6 +11,7 @@ var _dedicated_match_started: bool = false
 var _dedicated_first_full_authority_received: bool = false
 var _logged_waiting_for_match_start: bool = false
 var _logged_waiting_for_authority_opening: bool = false
+var _logged_opening_input_freeze: bool = false
 var _dedicated_client_connect_retry_delays_sec: Array[float] = DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC.duplicate()
 var _dedicated_client_connect_retry_attempt: int = 0
 var _dedicated_client_connect_retry_deadline_msec: int = 0
@@ -66,6 +67,7 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	_dedicated_first_full_authority_received = false
 	_logged_waiting_for_match_start = false
 	_logged_waiting_for_authority_opening = false
+	_logged_opening_input_freeze = false
 	_adapter._bootstrap_local_peer_id = int(options.get("local_peer_id", int(_adapter.start_config.local_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	var controlled_peer_id := int(options.get("controlled_peer_id", int(_adapter.start_config.controlled_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	_adapter._bootstrap_client_runtime.configure(_adapter._bootstrap_local_peer_id)
@@ -121,6 +123,11 @@ func advance_client_runtime_tick(local_input: Dictionary = {}) -> void:
 	if _is_waiting_for_dedicated_opening():
 		_log_dedicated_input_deferred()
 		_poll_client_transport()
+		return
+	if _is_opening_input_frozen():
+		_log_opening_input_freeze_deferred()
+		_poll_client_transport()
+		_emit_client_runtime_tick()
 		return
 	var input_message: Dictionary = _adapter._bootstrap_client_runtime.build_local_input_message(local_input)
 	if not input_message.is_empty() and _adapter.transport != null and _adapter.transport.is_transport_connected():
@@ -534,6 +541,22 @@ func _is_waiting_for_dedicated_opening() -> bool:
 	return _is_waiting_for_dedicated_match_start() or _is_waiting_for_dedicated_full_authority()
 
 
+func _is_opening_input_frozen() -> bool:
+	if _adapter == null or _adapter.start_config == null:
+		return false
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return false
+	if String(_adapter.start_config.topology) != "dedicated_server":
+		return false
+	if String(_adapter.start_config.session_mode) != "network_client":
+		return false
+	var freeze_ticks := int(_adapter.start_config.opening_input_freeze_ticks)
+	if freeze_ticks <= 0:
+		return false
+	var authority_tick: int = int(_adapter.prediction_controller.authoritative_tick) if _adapter.prediction_controller != null else int(_adapter.start_config.start_tick)
+	return int(authority_tick) < int(_adapter.start_config.start_tick) + freeze_ticks
+
+
 func _log_dedicated_input_deferred() -> void:
 	if _is_waiting_for_dedicated_match_start():
 		if not _logged_waiting_for_match_start:
@@ -547,6 +570,17 @@ func _log_dedicated_input_deferred() -> void:
 		_adapter.network_log_event.emit("client_input_deferred reason=waiting_full_authority match_id=%s" % [
 			String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
 		])
+
+
+func _log_opening_input_freeze_deferred() -> void:
+	if _logged_opening_input_freeze:
+		return
+	_logged_opening_input_freeze = true
+	var end_tick := int(_adapter.start_config.start_tick) + int(_adapter.start_config.opening_input_freeze_ticks) if _adapter.start_config != null else 0
+	_adapter.network_log_event.emit("client_input_deferred reason=opening_input_freeze until_tick=%d match_id=%s" % [
+		end_tick,
+		String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+	])
 
 
 func _on_transport_connected() -> void:

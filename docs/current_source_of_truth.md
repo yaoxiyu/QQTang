@@ -17,6 +17,7 @@ do not re-merge domain semantics into this index.
 - Runtime topology: [`docs/architecture/runtime_topology.md`](./architecture/runtime_topology.md)
 - Front flow: [`docs/architecture/front_flow.md`](./architecture/front_flow.md)
 - Network control plane: [`docs/architecture/network_control_plane.md`](./architecture/network_control_plane.md)
+- Battle sync: [`docs/architecture/battle_sync.md`](./architecture/battle_sync.md)
 - Room protocol: [`docs/architecture/room_protocol.md`](./architecture/room_protocol.md)
 - Room state machine: [`docs/architecture/room_state_machine.md`](./architecture/room_state_machine.md)
 - Room manifest: [`docs/architecture/room_manifest.md`](./architecture/room_manifest.md)

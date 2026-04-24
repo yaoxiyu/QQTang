@@ -16,6 +16,8 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEFAULT_START_TICK: int = 0
 const DEFAULT_PROTOCOL_VERSION: int = BattleStartConfigScript.DEFAULT_PROTOCOL_VERSION
 const DEFAULT_GAMEPLAY_RULE_VERSION: int = BattleStartConfigScript.DEFAULT_GAMEPLAY_RULE_VERSION
+const DEFAULT_OPENING_INPUT_FREEZE_TICKS: int = 2 * TickRunnerScript.TICK_RATE
+const DEFAULT_NETWORK_INPUT_LEAD_TICKS: int = 3
 
 var match_id_prefix: String = "match"
 var next_match_sequence: int = 1
@@ -189,6 +191,8 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.spawn_assignments = _build_spawn_assignments(player_slots, map_metadata)
 	config.battle_seed = generate_seed()
 	config.start_tick = DEFAULT_START_TICK
+	config.opening_input_freeze_ticks = DEFAULT_OPENING_INPUT_FREEZE_TICKS if resolved_topology == "dedicated_server" else 0
+	config.network_input_lead_ticks = DEFAULT_NETWORK_INPUT_LEAD_TICKS if resolved_topology == "dedicated_server" else 0
 	config.match_duration_ticks = _resolve_match_duration_ticks(resolved_rule_set_id)
 	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
 	config.session_mode = _resolve_session_mode(resolved_topology)
