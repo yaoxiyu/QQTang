@@ -75,7 +75,7 @@
 - Done definition: release sanity, local validation, and CI workflow are formalized as official entrypoints; release sanity blocks legacy/compat regressions and dirty release artifacts.
 - Owner: build-and-release
 - Last updated: 2026-04-21
-- Linked tests/docs: `tools/release/release_sanity_check.py`, `scripts/validation/run_phase27_validation.ps1`, `.github/workflows/phase27_validate.yml`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`, `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd`
+- Linked tests/docs: `tools/release/release_sanity_check.py`, `scripts/validation/run_validation.ps1`, `.github/workflows/validate.yml`, `tests/contracts/path/no_legacy_node_test_style_contract_test.gd`, `tests/contracts/path/no_legacy_test_runner_reference_contract_test.gd`, `tests/contracts/path/no_legacy_compat_assets_contract_test.gd`, `tests/contracts/path/no_legacy_runtime_bridge_contract_test.gd`, `tests/contracts/path/no_removed_room_runtime_test_reference_contract_test.gd`
 
 ## DEBT-007 room protocol fake protobuf path
 - Risk level: P1
@@ -108,4 +108,4 @@
 - Done definition: dedicated csharp test project exists in solution, envelope factory and codec and parser and snapshot mapper and canonical mapper are covered, tests run in local validation and CI entry
 - Owner: client-sdk
 - Last updated: 2026-04-19
-- Linked tests/docs: `tests/csharp/QQTang.RoomClient.Tests/RoomClientEnvelopeFactoryTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomProtoCodecTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomServerEnvelopeParserTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomSnapshotMapperTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomCanonicalMessageMapperTests.cs`, `scripts/validation/run_phase25_validation.ps1`, `.github/workflows/phase25_validate.yml`
+- Linked tests/docs: `tests/csharp/QQTang.RoomClient.Tests/RoomClientEnvelopeFactoryTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomProtoCodecTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomServerEnvelopeParserTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomSnapshotMapperTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomCanonicalMessageMapperTests.cs`, `scripts/validation/run_validation.ps1`, `.github/workflows/validate.yml`

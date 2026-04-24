@@ -1,4 +1,4 @@
-name: phase27_validate
+name: validate
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  phase27-validation:
+  validation:
     runs-on: windows-latest
     timeout-minutes: 90
 
@@ -51,18 +51,18 @@ jobs:
           }
           "GODOT_EXE=$exePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Run Phase27 Validation
+      - name: Run Validation
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File scripts/validation/run_phase27_validation.ps1 -GodotExe "$env:GODOT_EXE" -ProjectPath "$env:GITHUB_WORKSPACE"
+          powershell -ExecutionPolicy Bypass -File scripts/validation/run_validation.ps1 -GodotExe "$env:GODOT_EXE" -ProjectPath "$env:GITHUB_WORKSPACE"
 
       - name: Upload Validation Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phase27-validation-reports
+          name: validation-reports
           path: |
-            tests/reports/latest/phase27_validation_latest.txt
-            tests/reports/latest/phase27_validation_latest.json
+            tests/reports/latest/validation_latest.txt
+            tests/reports/latest/validation_latest.json
             tests/reports/latest/cross_service_contract_suite_latest.txt
             tests/reports/latest/cross_service_contract_suite_latest.json

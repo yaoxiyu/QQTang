@@ -46,7 +46,7 @@ try {
         "network/client_net/generated"
     )
 
-    $generatedReadme = @(
+    $generatedReadmeLines = @(
         '# Generated Code',
         '',
         'This directory contains generated code.',
@@ -55,12 +55,14 @@ try {
         '- Source of truth: `proto/`.',
         '- Update path: run `buf generate` through repository scripts.'
     )
+    $generatedReadmeText = ($generatedReadmeLines -join "`n") + "`n"
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
     foreach ($dir in $generatedRoots) {
         if (-not (Test-Path -LiteralPath $dir)) {
             New-Item -ItemType Directory -Path $dir -Force | Out-Null
         }
-        Set-Content -LiteralPath (Join-Path $dir "README.md") -Value $generatedReadme -Encoding UTF8
+        [System.IO.File]::WriteAllText((Join-Path $dir "README.md"), $generatedReadmeText, $utf8NoBom)
     }
 
     foreach ($dir in $generatedTargets) {

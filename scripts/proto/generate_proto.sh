@@ -27,17 +27,11 @@ generated_targets=(
   "network/client_net/generated"
 )
 
+generated_readme_text=$'# Generated Code\n\nThis directory contains generated code.\n\n- Do not edit files here manually.\n- Source of truth: `proto/`.\n- Update path: run `buf generate` through repository scripts.\n'
+
 for dir in "${generated_roots[@]}"; do
   mkdir -p "${dir}"
-  cat > "${dir}/README.md" <<'EOF'
-# Generated Code
-
-This directory contains generated code.
-
-- Do not edit files here manually.
-- Source of truth: `proto/`.
-- Update path: run `buf generate` through repository scripts.
-EOF
+  printf '%s' "${generated_readme_text}" > "${dir}/README.md"
 done
 
 for dir in "${generated_targets[@]}"; do
@@ -45,9 +39,9 @@ for dir in "${generated_targets[@]}"; do
   mkdir -p "${dir}"
 done
 
-if ! buf generate; then
+buf generate || {
   code=$?
   fail "buf generate failed with exit code ${code}." "${code}"
-fi
+}
 
 echo "Proto generation completed successfully."

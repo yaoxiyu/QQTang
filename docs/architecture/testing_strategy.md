@@ -14,12 +14,12 @@ Define formal test authority for current codebase: layering, execution entrypoin
 - `services/*/.../*_test.go`: Go unit and integration tests for control plane and room authority.
 
 ## Execution Entrypoints
-- Local validation entry: `scripts/validation/run_phase27_validation.ps1`.
+- Local validation entry: `scripts/validation/run_validation.ps1`.
 - Proto generation: `scripts/proto/generate_proto.ps1` and `scripts/proto/generate_proto.sh`.
 - GUT suite entry: `tests/scripts/run_gut_suite.ps1`.
 - Cross-service contract suite: `tests/scripts/run_cross_service_contract_suite.ps1`.
 - Release hygiene gate: `tools/release/release_sanity_check.py`.
-- CI entry: `.github/workflows/phase27_validate.yml`.
+- CI entry: `.github/workflows/validate.yml`.
 - Legacy custom `tests/cli` runner path is removed and forbidden.
 
 ## Constraints
