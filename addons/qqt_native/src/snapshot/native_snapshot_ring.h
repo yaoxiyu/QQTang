@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
+#include <godot_cpp/variant/string.hpp>
 
 #include <vector>
 
@@ -28,6 +29,7 @@ public:
     QQTNativeSnapshotRing() = default;
     ~QQTNativeSnapshotRing() = default;
 
+    String get_kernel_version() const;
     void configure(int32_t capacity);
     void put_snapshot(int64_t tick_id, const PackedByteArray &snapshot_bytes);
     bool has_snapshot(int64_t tick_id) const;

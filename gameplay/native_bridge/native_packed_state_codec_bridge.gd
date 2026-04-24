@@ -2,6 +2,7 @@ class_name NativePackedStateCodecBridge
 extends RefCounted
 
 const LogBattleScript = preload("res://app/logging/log_battle.gd")
+const NativeWireContractScript = preload("res://gameplay/native_bridge/native_wire_contract.gd")
 
 const LOG_TAG := "battle.native.snapshot.codec"
 
@@ -13,18 +14,39 @@ func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
 		return PackedByteArray()
 
 	var payload := {
+		"version": NativeWireContractScript.SNAPSHOT_PAYLOAD_VERSION,
 		"tick_id": snapshot.tick_id,
 		"rng_state": snapshot.rng_state,
-		"players": snapshot.players.duplicate(true),
-		"bubbles": snapshot.bubbles.duplicate(true),
-		"items": snapshot.items.duplicate(true),
-		"walls": snapshot.walls.duplicate(true),
-		"match_state": snapshot.match_state.duplicate(true),
-		"mode_state": snapshot.mode_state.duplicate(true),
+		"players": snapshot.players,
+		"bubbles": snapshot.bubbles,
+		"items": snapshot.items,
+		"walls": snapshot.walls,
+		"match_state": snapshot.match_state,
+		"mode_state": snapshot.mode_state,
 		"checksum": snapshot.checksum,
 	}
 	var native_codec := _get_native_codec()
-	if native_codec != null and native_codec.has_method("pack_snapshot_payload"):
+	if native_codec != null and native_codec.has_method("pack_snapshot_segments"):
+		var native_result: Variant = native_codec.pack_snapshot_segments(
+			snapshot.tick_id,
+			snapshot.rng_state,
+			snapshot.checksum,
+			var_to_bytes(snapshot.players),
+			var_to_bytes(snapshot.bubbles),
+			var_to_bytes(snapshot.items),
+			var_to_bytes(snapshot.walls),
+			var_to_bytes(snapshot.match_state),
+			var_to_bytes(snapshot.mode_state)
+		)
+		if native_result is PackedByteArray:
+			return native_result
+		LogBattleScript.warn(
+			"[native_packed_state_codec_bridge] native pack_snapshot_segments returned non-bytes, fallback to GDScript",
+			"",
+			0,
+			LOG_TAG
+		)
+	elif native_codec != null and native_codec.has_method("pack_snapshot_payload"):
 		var native_result: Variant = native_codec.pack_snapshot_payload(payload)
 		if native_result is PackedByteArray:
 			return native_result
@@ -57,6 +79,16 @@ func decode_snapshot_payload(snapshot_bytes: PackedByteArray) -> WorldSnapshot:
 		return null
 
 	var payload: Dictionary = payload_variant
+	var version := int(payload.get("version", 0))
+	if version != NativeWireContractScript.SNAPSHOT_PAYLOAD_VERSION:
+		LogBattleScript.warn(
+			"[native_packed_state_codec_bridge] snapshot payload version mismatch: expected=%d actual=%d"
+				% [NativeWireContractScript.SNAPSHOT_PAYLOAD_VERSION, version],
+			"",
+			0,
+			LOG_TAG
+		)
+		return null
 	var snapshot := WorldSnapshot.new()
 	snapshot.tick_id = int(payload.get("tick_id", 0))
 	snapshot.rng_state = int(payload.get("rng_state", 0))

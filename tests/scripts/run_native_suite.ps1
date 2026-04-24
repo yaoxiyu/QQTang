@@ -2,7 +2,9 @@ param(
     [string]$GodotExe = 'D:\Godot\Godot.exe',
     [string]$SyntaxGodotExe = 'D:\Godot\Godot_console.exe',
     [string]$ProjectPath = '',
+    [ValidateSet('windows')]
     [string]$Platform = 'windows',
+    [ValidateSet('template_debug', 'template_release')]
     [string]$Target = 'template_debug',
     [string]$Arch = 'x86_64'
 )
@@ -29,6 +31,10 @@ if (-not (Test-Path -LiteralPath $gutWrapper)) {
 }
 if (-not (Test-Path -LiteralPath $nativeBuildScript)) {
     throw "missing native build script: $nativeBuildScript"
+}
+
+if ($Arch -ne 'x86_64') {
+    throw "Unsupported arch '$Arch'. Current repo only ships Windows x86_64 qqt_native artifacts."
 }
 
 $null = New-Item -ItemType Directory -Force -Path $latestReportDir

@@ -38,8 +38,15 @@ func get_name() -> StringName:
 	return "ExplosionResolveSystem"
 
 func execute(ctx: SimContext) -> void:
-	if NativeFeatureFlagsScript.enable_native_explosion and NativeKernelRuntimeScript.is_available():
-		_run_native_shadow_probe(ctx)
+	if NativeFeatureFlagsScript.enable_native_explosion:
+		if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_explosion_kernel():
+			if NativeFeatureFlagsScript.require_native_kernels:
+				push_error("[explosion_resolve_system] native explosion kernel is required but unavailable")
+				return
+		elif NativeFeatureFlagsScript.enable_native_explosion_execute and _execute_native_path(ctx):
+			return
+		elif NativeFeatureFlagsScript.enable_native_explosion_shadow:
+			_run_native_shadow_probe(ctx)
 
 	var pending_bubble_queue: Array[int] = []
 	for bubble_id in ctx.scratch.bubbles_to_explode:
@@ -357,26 +364,48 @@ func _register_entity_hit(
 	if ctx.scratch.explosion_hit_keys.has(dedupe_key):
 		return
 
-		ctx.scratch.explosion_hit_keys[dedupe_key] = true
-		ctx.scratch.explosion_hit_entries.append(hit_entry)
+	ctx.scratch.explosion_hit_keys[dedupe_key] = true
+	ctx.scratch.explosion_hit_entries.append(hit_entry)
 
 
 func _execute_native_path(ctx: SimContext) -> bool:
-	var result := _native_explosion_bridge.resolve(ctx)
-	if not ctx.scratch.bubbles_to_explode.is_empty() and result.get("processed_bubble_ids", []).is_empty():
-		LogSimulationScript.warn(
-			"[explosion_resolve_system] native explosion returned empty processed_bubble_ids, fallback to GDScript",
-			"",
-			0,
-			"simulation.explosion.native"
-		)
-		return false
+	for bubble_id in ctx.scratch.bubbles_to_explode:
+		ctx.scratch.queued_chain_bubble_ids[int(bubble_id)] = true
+	var pending_wave: Array[int] = ctx.scratch.bubbles_to_explode.duplicate()
+	var saw_processed := false
 
-	_apply_native_destroy_cells(ctx, result.get("destroy_cells", []))
-	_apply_native_hit_entries(ctx, result.get("hit_entries", []))
-	_apply_native_chain_bubble_ids(ctx, result.get("chain_bubble_ids", []))
-	_apply_native_processed_bubbles(ctx, result.get("processed_bubble_ids", []), result.get("covered_cells", []))
+	while not pending_wave.is_empty():
+		var result := _native_explosion_bridge.resolve(ctx, pending_wave)
+		var processed_bubble_ids: Array[int] = result.get("processed_bubble_ids", [])
+		if processed_bubble_ids.is_empty():
+			LogSimulationScript.warn(
+				"[explosion_resolve_system] native explosion returned empty processed_bubble_ids, fallback to GDScript",
+				"",
+				0,
+				"simulation.explosion.native"
+			)
+			return false
+
+		saw_processed = true
+		_apply_native_destroy_cells(ctx, result.get("destroy_cells", []))
+		_apply_native_hit_entries(ctx, result.get("hit_entries", []))
+		_apply_native_chain_bubble_ids(ctx, result.get("chain_bubble_ids", []))
+		_apply_native_processed_bubbles(ctx, processed_bubble_ids, result.get("covered_cells", []))
+		pending_wave = _collect_unprocessed_native_chain_bubble_ids(ctx, result.get("chain_bubble_ids", []))
+
+	if not ctx.scratch.bubbles_to_explode.is_empty() and not saw_processed:
+		return false
 	return true
+
+
+func _collect_unprocessed_native_chain_bubble_ids(ctx: SimContext, chain_bubble_ids: Array) -> Array[int]:
+	var pending: Array[int] = []
+	for bubble_id_value in chain_bubble_ids:
+		var bubble_id := int(bubble_id_value)
+		if ctx.scratch.processed_explosion_bubble_ids.has(bubble_id):
+			continue
+		pending.append(bubble_id)
+	return pending
 
 
 func _apply_native_destroy_cells(ctx: SimContext, destroy_cells: Array) -> void:
@@ -437,7 +466,9 @@ func _apply_native_processed_bubbles(ctx: SimContext, processed_bubble_ids: Arra
 					ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
 
 		ctx.scratch.exploded_bubble_ids.append(bubble_id)
-		var bubble_covered_cells: Array[Vector2i] = covered_lookup.get(bubble_id, [Vector2i(bubble.cell_x, bubble.cell_y)])
+		var bubble_covered_cells: Array[Vector2i] = [Vector2i(bubble.cell_x, bubble.cell_y)]
+		if covered_lookup.has(bubble_id):
+			bubble_covered_cells = covered_lookup[bubble_id]
 		var exploded_event := SimEvent.new(ctx.tick, SimEvent.EventType.BUBBLE_EXPLODED)
 		exploded_event.payload = {
 			"bubble_id": bubble_id,
@@ -460,7 +491,7 @@ func _group_native_covered_cells_by_bubble(covered_cells: Array) -> Dictionary:
 		if bubble_id < 0:
 			continue
 		if not grouped.has(bubble_id):
-			grouped[bubble_id] = []
+			grouped[bubble_id] = Array([], TYPE_VECTOR2I, "", null)
 		var cells: Array[Vector2i] = grouped[bubble_id]
 		cells.append(Vector2i(int(entry.get("cell_x", 0)), int(entry.get("cell_y", 0))))
 	return grouped

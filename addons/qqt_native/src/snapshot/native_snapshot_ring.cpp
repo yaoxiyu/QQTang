@@ -7,6 +7,8 @@
 using namespace godot;
 
 namespace {
+constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+
 inline int64_t normalize_slot_index(int64_t tick_id, int32_t capacity) {
     const int64_t capacity_i64 = static_cast<int64_t>(capacity);
     const int64_t raw = tick_id % capacity_i64;
@@ -15,11 +17,16 @@ inline int64_t normalize_slot_index(int64_t tick_id, int32_t capacity) {
 } // namespace
 
 void QQTNativeSnapshotRing::_bind_methods() {
+    ClassDB::bind_method(D_METHOD("get_kernel_version"), &QQTNativeSnapshotRing::get_kernel_version);
     ClassDB::bind_method(D_METHOD("configure", "capacity"), &QQTNativeSnapshotRing::configure);
     ClassDB::bind_method(D_METHOD("put_snapshot", "tick_id", "snapshot_bytes"), &QQTNativeSnapshotRing::put_snapshot);
     ClassDB::bind_method(D_METHOD("has_snapshot", "tick_id"), &QQTNativeSnapshotRing::has_snapshot);
     ClassDB::bind_method(D_METHOD("get_snapshot", "tick_id"), &QQTNativeSnapshotRing::get_snapshot);
     ClassDB::bind_method(D_METHOD("clear"), &QQTNativeSnapshotRing::clear);
+}
+
+String QQTNativeSnapshotRing::get_kernel_version() const {
+    return String(KERNEL_VERSION);
 }
 
 void QQTNativeSnapshotRing::configure(int32_t capacity) {

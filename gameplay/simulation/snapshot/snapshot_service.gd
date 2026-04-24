@@ -4,23 +4,25 @@ extends RefCounted
 var checksum_builder: ChecksumBuilder = ChecksumBuilder.new()
 
 
-func build_light_snapshot(sim_world: SimWorld, tick_id: int) -> WorldSnapshot:
+func build_light_snapshot(sim_world: SimWorld, tick_id: int, include_checksum: bool = true) -> WorldSnapshot:
 	var snapshot := WorldSnapshot.new()
 	snapshot.tick_id = tick_id
 	snapshot.match_state = _capture_match_state(sim_world)
 	snapshot.players = _capture_players(sim_world)
 	snapshot.bubbles = _capture_bubbles(sim_world)
 	snapshot.items = _capture_items(sim_world)
-	snapshot.checksum = checksum_builder.build(sim_world, tick_id)
+	if include_checksum:
+		snapshot.checksum = checksum_builder.build(sim_world, tick_id)
 	return snapshot
 
 
-func build_standard_snapshot(sim_world: SimWorld, tick_id: int) -> WorldSnapshot:
-	var snapshot := build_light_snapshot(sim_world, tick_id)
+func build_standard_snapshot(sim_world: SimWorld, tick_id: int, include_checksum: bool = true) -> WorldSnapshot:
+	var snapshot := build_light_snapshot(sim_world, tick_id, false)
 	snapshot.rng_state = sim_world.rng.get_state()
 	snapshot.walls = _capture_walls(sim_world)
 	snapshot.mode_state = _capture_mode_state(sim_world)
-	snapshot.checksum = checksum_builder.build(sim_world, tick_id)
+	if include_checksum:
+		snapshot.checksum = checksum_builder.build(sim_world, tick_id)
 	return snapshot
 
 

@@ -4,6 +4,7 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/string.hpp>
 
 using namespace godot;
 
@@ -17,6 +18,7 @@ public:
     QQTNativeChecksumBuilder() = default;
     ~QQTNativeChecksumBuilder() = default;
 
+    String get_kernel_version() const;
     int64_t build_checksum(
         int64_t tick_id,
         const PackedInt32Array &players,

@@ -25,10 +25,17 @@ dev_build = ARGUMENTS.get("dev_build", "no")
 debug_symbols = ARGUMENTS.get("debug_symbols", "yes")
 
 if platform != "windows":
-    print("qqt_native SConstruct warning: current scaffold is validated for Windows first; requested platform=%s" % platform)
+    fail(
+        "unsupported platform: %s. Current repo only ships Windows x86_64 qqt_native artifacts; "
+        "add matching godot-cpp static libraries and platform-specific output wiring before enabling %s."
+        % (platform, platform)
+    )
 
-if target not in ["editor", "template_debug", "template_release"]:
+if target not in ["template_debug", "template_release"]:
     fail("unsupported target: %s" % target)
+
+if arch != "x86_64":
+    fail("unsupported arch: %s" % arch)
 
 
 env = Environment()
@@ -40,7 +47,7 @@ env.Append(CPPPATH=[
     os.path.join(GODOT_CPP_DIR, "gen", "include"),
 ])
 
-if target in ["editor", "template_debug"]:
+if target == "template_debug":
     env.Append(CPPDEFINES=["DEBUG_ENABLED"])
 
 variant_dir = os.path.join(BIN_DIR, "obj", platform, target, arch)

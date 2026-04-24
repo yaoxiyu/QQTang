@@ -33,8 +33,15 @@ func get_name() -> StringName:
 
 
 func execute(ctx: SimContext) -> void:
-	if NativeFeatureFlagsScript.enable_native_movement and NativeKernelRuntimeScript.is_available():
-		_run_native_shadow_probe(ctx)
+	if NativeFeatureFlagsScript.enable_native_movement:
+		if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_movement_kernel():
+			if NativeFeatureFlagsScript.require_native_kernels:
+				push_error("[movement_system] native movement kernel is required but unavailable")
+				return
+		elif NativeFeatureFlagsScript.enable_native_movement_execute and _execute_native_path(ctx):
+			return
+		elif NativeFeatureFlagsScript.enable_native_movement_shadow:
+			_run_native_shadow_probe(ctx)
 
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)

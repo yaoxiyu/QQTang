@@ -65,7 +65,7 @@ func poll_messages() -> Array[Dictionary]:
 	return messages
 
 
-func _tick_collect_inputs(tick_id: int) -> void:
+func _tick_collect_inputs(_tick_id: int) -> void:
 	if active_match == null:
 		return
 
@@ -79,7 +79,7 @@ func _tick_world(_tick_id: int) -> void:
 		return
 
 	var tick_id := int(result.get("tick", 0))
-	var snapshot: WorldSnapshot = active_match.get_last_authoritative_snapshot()
+	var snapshot: WorldSnapshot = active_match.borrow_last_authoritative_snapshot()
 	if snapshot == null or snapshot.tick_id != tick_id:
 		snapshot = active_match.get_snapshot(tick_id)
 	var events: Array = _serialize_events(result.get("events", []))
@@ -100,11 +100,12 @@ func _tick_snapshot(tick_id: int) -> void:
 	if active_match == null or tick_id % 5 != 0:
 		return
 
-	var snapshot := active_match.get_last_authoritative_snapshot()
+	var snapshot := active_match.borrow_last_authoritative_snapshot()
 	if snapshot == null or snapshot.tick_id != tick_id:
 		snapshot = active_match.get_snapshot(tick_id)
 	if snapshot == null:
-		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id)
+		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id, false)
+		snapshot.checksum = active_match.compute_checksum(tick_id)
 
 	_queue_message({
 		"msg_type": "CHECKPOINT",

@@ -3,12 +3,17 @@ extends RefCounted
 
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
+const NativeWireContractScript = preload("res://gameplay/native_bridge/native_wire_contract.gd")
 
 const LOG_TAG := "simulation.native.explosion"
-const WIRE_VERSION := 1
+const EXPLOSION_PAYLOAD_MAGIC := 1163153745 # "QQTE" little-endian i32 marker.
+const BUBBLE_RECORD_STRIDE := 9
+const PLAYER_RECORD_STRIDE := 6
+const ITEM_RECORD_STRIDE := 5
+const GRID_RECORD_STRIDE := 4
 
 
-func resolve(ctx: SimContext) -> Dictionary:
+func resolve(ctx: SimContext, pending_bubble_ids: Array[int] = []) -> Dictionary:
 	var empty_result := {
 		"covered_cells": [],
 		"hit_entries": [],
@@ -23,16 +28,14 @@ func resolve(ctx: SimContext) -> Dictionary:
 	if kernel == null:
 		return empty_result
 
-	var payload := {
-		"version": WIRE_VERSION,
-		"tick": ctx.tick,
-		"pending_bubble_ids": PackedInt32Array(ctx.scratch.bubbles_to_explode),
-		"bubble_records": _pack_bubble_records(ctx),
-		"player_records": _pack_player_records(ctx),
-		"item_records": _pack_item_records(ctx),
-		"grid_records": _pack_grid_records(ctx),
-	}
-	var input_blob := var_to_bytes(payload)
+	var input_blob := _encode_input_blob(
+		ctx.tick,
+		PackedInt32Array(pending_bubble_ids if not pending_bubble_ids.is_empty() else ctx.scratch.bubbles_to_explode),
+		_pack_bubble_records(ctx),
+		_pack_player_records(ctx),
+		_pack_item_records(ctx),
+		_pack_grid_records(ctx)
+	)
 	var result_blob_variant: Variant = kernel.resolve_explosions(input_blob)
 	if not (result_blob_variant is PackedByteArray):
 		LogSimulationScript.warn(
@@ -56,76 +59,79 @@ func resolve(ctx: SimContext) -> Dictionary:
 	return _decode_result(result_variant)
 
 
-func _pack_bubble_records(ctx: SimContext) -> Array[Dictionary]:
-	var records: Array[Dictionary] = []
-	for bubble_id in ctx.state.bubbles.active_ids:
-		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
+func _pack_bubble_records(ctx: SimContext) -> PackedInt32Array:
+	var records := PackedInt32Array()
+	for bubble in _get_sorted_bubbles(ctx):
 		if bubble == null:
 			continue
-		records.append({
-			"entity_id": bubble.entity_id,
-			"alive": bubble.alive,
-			"owner_player_id": bubble.owner_player_id,
-			"cell_x": bubble.cell_x,
-			"cell_y": bubble.cell_y,
-			"explode_tick": bubble.explode_tick,
-			"bubble_range": bubble.bubble_range,
-			"pierce": bubble.pierce,
-			"chain_triggered": bubble.chain_triggered,
-		})
+		records.append(bubble.entity_id)
+		records.append(int(bubble.alive))
+		records.append(bubble.owner_player_id)
+		records.append(bubble.cell_x)
+		records.append(bubble.cell_y)
+		records.append(bubble.explode_tick)
+		records.append(bubble.bubble_range)
+		records.append(int(bubble.pierce))
+		records.append(int(bubble.chain_triggered))
 	return records
 
 
-func _pack_player_records(ctx: SimContext) -> Array[Dictionary]:
-	var records: Array[Dictionary] = []
-	for player_id in ctx.state.players.active_ids:
-		var player := ctx.state.players.get_player(player_id)
+func _pack_player_records(ctx: SimContext) -> PackedInt32Array:
+	var records := PackedInt32Array()
+	for player in _get_sorted_players(ctx):
 		if player == null:
 			continue
-		records.append({
-			"entity_id": player.entity_id,
-			"alive": player.alive,
-			"life_state": player.life_state,
-			"player_slot": player.player_slot,
-			"cell_x": player.cell_x,
-			"cell_y": player.cell_y,
-			"offset_x": player.offset_x,
-			"offset_y": player.offset_y,
-		})
+		records.append(player.entity_id)
+		records.append(int(player.alive))
+		records.append(player.life_state)
+		records.append(player.player_slot)
+		records.append(player.cell_x)
+		records.append(player.cell_y)
 	return records
 
 
-func _pack_item_records(ctx: SimContext) -> Array[Dictionary]:
-	var records: Array[Dictionary] = []
-	for item_id in ctx.state.items.active_ids:
-		var item := ctx.state.items.get_item(item_id)
+func _pack_item_records(ctx: SimContext) -> PackedInt32Array:
+	var records := PackedInt32Array()
+	for item in _get_sorted_items(ctx):
 		if item == null:
 			continue
-		records.append({
-			"entity_id": item.entity_id,
-			"alive": item.alive,
-			"item_type": item.item_type,
-			"cell_x": item.cell_x,
-			"cell_y": item.cell_y,
-		})
+		records.append(item.entity_id)
+		records.append(int(item.alive))
+		records.append(item.item_type)
+		records.append(item.cell_x)
+		records.append(item.cell_y)
 	return records
 
 
-func _pack_grid_records(ctx: SimContext) -> Array[Dictionary]:
-	var records: Array[Dictionary] = []
+func _pack_grid_records(ctx: SimContext) -> PackedInt32Array:
+	var records := PackedInt32Array()
 	for y in range(ctx.state.grid.height):
 		for x in range(ctx.state.grid.width):
 			var static_cell = ctx.state.grid.get_static_cell(x, y)
-			records.append({
-				"cell_x": x,
-				"cell_y": y,
-				"tile_type": static_cell.tile_type,
-				"tile_flags": static_cell.tile_flags,
-			})
+			records.append(x)
+			records.append(y)
+			records.append(static_cell.tile_type)
+			records.append(static_cell.tile_flags)
 	return records
 
 
 func _decode_result(raw_result: Dictionary) -> Dictionary:
+	var version := int(raw_result.get("version", 0))
+	if version != NativeWireContractScript.EXPLOSION_WIRE_VERSION:
+		LogSimulationScript.warn(
+			"[native_explosion_bridge] explosion result version mismatch: expected=%d actual=%d"
+				% [NativeWireContractScript.EXPLOSION_WIRE_VERSION, version],
+			"",
+			0,
+			LOG_TAG
+		)
+		return {
+			"covered_cells": [],
+			"hit_entries": [],
+			"destroy_cells": [],
+			"chain_bubble_ids": [],
+			"processed_bubble_ids": [],
+		}
 	return {
 		"covered_cells": _coerce_dict_array(raw_result.get("covered_cells", [])),
 		"hit_entries": _coerce_dict_array(raw_result.get("hit_entries", [])),
@@ -133,6 +139,46 @@ func _decode_result(raw_result: Dictionary) -> Dictionary:
 		"chain_bubble_ids": _coerce_int_array(raw_result.get("chain_bubble_ids", [])),
 		"processed_bubble_ids": _coerce_int_array(raw_result.get("processed_bubble_ids", [])),
 	}
+
+
+func _encode_input_blob(
+	tick: int,
+	pending_bubble_ids: PackedInt32Array,
+	bubble_records: PackedInt32Array,
+	player_records: PackedInt32Array,
+	item_records: PackedInt32Array,
+	grid_records: PackedInt32Array
+) -> PackedByteArray:
+	var blob := PackedByteArray()
+	var total_i32_count := 3
+	total_i32_count += 1 + pending_bubble_ids.size()
+	total_i32_count += 1 + bubble_records.size()
+	total_i32_count += 1 + player_records.size()
+	total_i32_count += 1 + item_records.size()
+	total_i32_count += 1 + grid_records.size()
+	blob.resize(total_i32_count * 4)
+	var offset := 0
+	offset = _write_i32(blob, offset, EXPLOSION_PAYLOAD_MAGIC)
+	offset = _write_i32(blob, offset, NativeWireContractScript.EXPLOSION_WIRE_VERSION)
+	offset = _write_i32(blob, offset, tick)
+	offset = _write_i32_array(blob, offset, pending_bubble_ids)
+	offset = _write_i32_array(blob, offset, bubble_records)
+	offset = _write_i32_array(blob, offset, player_records)
+	offset = _write_i32_array(blob, offset, item_records)
+	_write_i32_array(blob, offset, grid_records)
+	return blob
+
+
+func _write_i32(blob: PackedByteArray, offset: int, value: int) -> int:
+	blob.encode_s32(offset, value)
+	return offset + 4
+
+
+func _write_i32_array(blob: PackedByteArray, offset: int, values: PackedInt32Array) -> int:
+	offset = _write_i32(blob, offset, values.size())
+	for value in values:
+		offset = _write_i32(blob, offset, int(value))
+	return offset
 
 
 func _coerce_dict_array(raw_value: Variant) -> Array[Dictionary]:
@@ -150,3 +196,33 @@ func _coerce_int_array(raw_value: Variant) -> Array[int]:
 		for entry in raw_value:
 			result.append(int(entry))
 	return result
+
+
+func _get_sorted_bubbles(ctx: SimContext) -> Array[BubbleState]:
+	var bubbles: Array[BubbleState] = []
+	for bubble_id in ctx.state.bubbles.active_ids:
+		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble != null:
+			bubbles.append(bubble)
+	bubbles.sort_custom(func(a: BubbleState, b: BubbleState): return a.entity_id < b.entity_id)
+	return bubbles
+
+
+func _get_sorted_players(ctx: SimContext) -> Array[PlayerState]:
+	var players: Array[PlayerState] = []
+	for player_id in ctx.state.players.active_ids:
+		var player := ctx.state.players.get_player(player_id)
+		if player != null:
+			players.append(player)
+	players.sort_custom(func(a: PlayerState, b: PlayerState): return a.entity_id < b.entity_id)
+	return players
+
+
+func _get_sorted_items(ctx: SimContext) -> Array[ItemState]:
+	var items: Array[ItemState] = []
+	for item_id in ctx.state.items.active_ids:
+		var item := ctx.state.items.get_item(item_id)
+		if item != null:
+			items.append(item)
+	items.sort_custom(func(a: ItemState, b: ItemState): return a.entity_id < b.entity_id)
+	return items

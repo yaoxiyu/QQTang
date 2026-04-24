@@ -24,6 +24,7 @@ if (-not $SkipDb) {
 if (-not $SkipMigration) {
     & (Join-Path $PSScriptRoot 'db-migrate.ps1') -Profile $Profile -ProjectPath $root -SkipDbUp
 }
+& (Join-Path $root 'tools\native\build_native.ps1') -Target template_debug
 & (Join-Path $root 'scripts\content\generate_room_manifest.ps1') -ProjectPath $root -GodotExecutable $GodotExecutable
 
 if ([string]::IsNullOrWhiteSpace($LogDir)) {

@@ -1,31 +1,44 @@
 # Movement Kernel Wire Contract
 
 ## Purpose
-Define the packed input/output contract for `QQTNativeMovementKernel.step_players(input_blob)`.
+Define the packed input/output contract for `QQTNativeMovementKernel.step_players_packed(...)` and the compatibility `step_players(input_blob)` entry point.
 
-This contract is Phase30 shadow-path only:
+This contract is Phase30 mainline native execution:
 - GDScript remains the orchestration owner.
 - Native consumes packed batch input and returns packed batch results.
 - No Node/Scene/Resource references cross the bridge.
+- The compatibility `step_players(input_blob)` path accepts the same binary layout below. Older top-level Dictionary payloads are retained only for explicit compatibility tests.
 
 ## Encoding Container
 
-`input_blob` and `result_blob` are `PackedByteArray` values encoded from a top-level `Dictionary`.
+`step_players_packed(...)` receives packed arrays directly:
 
-Top-level input dictionary keys:
-- `version`
-- `player_records`
-- `bubble_records`
-- `blocked_grid_records`
-- `command_records`
-- `tuning`
+- `players: PackedInt32Array`
+- `bubbles: PackedInt32Array`
+- `ignore_values: PackedInt32Array`
+- `blocked_grid: PackedInt32Array`
+- `movement_step_units: int`
+- `turn_snap_window_units: int`
+- `pass_absorb_window_units: int`
+
+The compatibility `input_blob` uses little-endian signed 32-bit integers:
+
+1. magic `QQTM`
+2. wire version
+3. `movement_step_units`
+4. `turn_snap_window_units`
+5. `pass_absorb_window_units`
+6. `player_records` length, then values
+7. `bubble_records` length, then values
+8. `bubble_ignore_values` length, then values
+9. `blocked_grid_records` length, then values
 
 Top-level result dictionary keys:
 - `version`
-- `result_records`
-- `cell_changed_records`
-- `ignore_remove_records`
-- `blocked_event_records`
+- `player_updates`
+- `cell_changes`
+- `bubble_ignore_removals`
+- `blocked_events`
 
 Current wire version:
 - `1`
@@ -108,35 +121,33 @@ Rules:
 
 ## Output Strides
 
-### Result Record Stride
+### Player Updates
 
 Array key:
-- `result_records`
+- `player_updates`
 
-Stride:
-- `10`
+Each entry is a dictionary with:
 
-Per-record layout:
-1. `player_id`
-2. `new_cell_x`
-3. `new_cell_y`
-4. `new_offset_x`
-5. `new_offset_y`
-6. `new_facing`
-7. `new_move_state`
-8. `new_move_phase_ticks`
-9. `blocked`
-10. `turn_only`
+- `player_id`
+- `cell_x`
+- `cell_y`
+- `offset_x`
+- `offset_y`
+- `facing`
+- `move_state`
+- `move_phase_ticks`
+- `last_non_zero_move_x`
+- `last_non_zero_move_y`
 
 Rules:
 - `blocked` and `turn_only` are `0/1`.
 - One result record per input player record.
 - Output order must match input player record order exactly.
 
-### Cell Changed Record Stride
+### Cell Changes
 
 Array key:
-- `cell_changed_records`
+- `cell_changes`
 
 Stride:
 - `5`
@@ -152,10 +163,10 @@ Rules:
 - Emit only when foot cell actually changes.
 - Order must match player processing order.
 
-### Ignore Remove Record Stride
+### Bubble Ignore Removals
 
 Array key:
-- `ignore_remove_records`
+- `bubble_ignore_removals`
 
 Stride:
 - `2`
@@ -172,10 +183,10 @@ Rules:
 
 ## Additional Output Records
 
-### Blocked Event Record Stride
+### Blocked Events
 
 Array key:
-- `blocked_event_records`
+- `blocked_events`
 
 Stride:
 - `5`

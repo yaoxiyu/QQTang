@@ -28,3 +28,23 @@ func test_pack_and_unpack_preserve_snapshot_payload() -> void:
 	assert_eq(unpacked.match_state, snapshot.match_state, "match_state should roundtrip")
 	assert_eq(unpacked.mode_state, snapshot.mode_state, "mode_state should roundtrip")
 	assert_eq(unpacked.checksum, snapshot.checksum, "checksum should roundtrip")
+
+
+func test_unpack_rejects_snapshot_payload_with_wrong_version() -> void:
+	var bridge := NativePackedStateCodecBridge.new()
+	var raw_payload := {
+		"version": 999,
+		"tick_id": 3,
+		"rng_state": 5,
+		"players": [],
+		"bubbles": [],
+		"items": [],
+		"walls": [],
+		"match_state": {},
+		"mode_state": {},
+		"checksum": 7,
+	}
+
+	var unpacked := bridge.decode_snapshot_payload(var_to_bytes(raw_payload))
+
+	assert_true(unpacked == null, "snapshot payload with wrong version should be rejected")

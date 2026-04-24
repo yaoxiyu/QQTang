@@ -79,10 +79,10 @@ func run_authoritative_tick() -> Dictionary:
 	sim_world.enqueue_input(input_frame)
 	var result := sim_world.step()
 	var tick_id := int(result.get("tick", 0))
-	var snapshot := snapshot_service.build_standard_snapshot(sim_world, tick_id)
+	var snapshot := snapshot_service.build_standard_snapshot(sim_world, tick_id, false)
 	snapshot.checksum = compute_checksum(tick_id)
 	snapshot_buffer.put(snapshot)
-	last_authoritative_snapshot = snapshot.duplicate_deep()
+	last_authoritative_snapshot = snapshot
 	return result
 
 
@@ -129,11 +129,20 @@ func get_last_authoritative_snapshot() -> WorldSnapshot:
 	return last_authoritative_snapshot.duplicate_deep()
 
 
+func borrow_last_authoritative_snapshot() -> WorldSnapshot:
+	return last_authoritative_snapshot
+
+
 func compute_checksum(tick_id: int) -> int:
 	if sim_world == null:
 		return 0
-	if NativeFeatureFlagsScript.enable_native_checksum and NativeKernelRuntimeScript.is_available():
-		return native_checksum_bridge.build(sim_world, tick_id)
+	if NativeFeatureFlagsScript.enable_native_checksum:
+		if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_checksum_kernel():
+			if NativeFeatureFlagsScript.require_native_kernels:
+				push_error("[battle_match] native checksum kernel is required but unavailable")
+				return 0
+		else:
+			return native_checksum_bridge.build(sim_world, tick_id)
 	return checksum_service.build(sim_world, tick_id)
 
 

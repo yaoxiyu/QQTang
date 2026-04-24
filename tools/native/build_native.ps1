@@ -1,7 +1,7 @@
 param(
-    [ValidateSet('windows', 'linux', 'macos')]
+    [ValidateSet('windows')]
     [string]$Platform = 'windows',
-    [ValidateSet('editor', 'template_debug', 'template_release')]
+    [ValidateSet('template_debug', 'template_release')]
     [string]$Target = 'template_debug',
     [string]$Arch = 'x86_64',
     [string]$SconsExe = 'scons'
@@ -13,9 +13,23 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $projectRoot = Join-Path $repoRoot 'addons/qqt_native'
 $sconstructPath = Join-Path $projectRoot 'SConstruct'
 $binDir = Join-Path $projectRoot 'bin'
+$godotCppRoot = Join-Path $projectRoot 'third_party\godot-cpp'
+$godotCppLib = Join-Path $godotCppRoot ("bin\libgodot-cpp.{0}.{1}.{2}.lib" -f $Platform, $Target, $Arch)
 
 if (-not (Test-Path -LiteralPath $sconstructPath)) {
     throw "SConstruct not found: $sconstructPath"
+}
+
+if ($Arch -ne 'x86_64') {
+    throw "Unsupported arch '$Arch'. Current repo only ships Windows x86_64 qqt_native artifacts."
+}
+
+if (-not (Test-Path -LiteralPath $godotCppLib)) {
+    Write-Host "[native] building missing godot-cpp static library: $godotCppLib"
+    & $SconsExe "-C" $godotCppRoot "platform=$Platform" "target=$Target" "arch=$Arch"
+    if ($LASTEXITCODE -ne 0) {
+        throw "godot-cpp build failed (scons exit code: $LASTEXITCODE)"
+    }
 }
 
 Push-Location $repoRoot

@@ -30,7 +30,7 @@ func put(snapshot: WorldSnapshot) -> void:
 
 	snapshots[snapshot.tick_id] = snapshot.duplicate_deep()
 
-	var min_tick := snapshot.tick_id - capacity
+	var min_tick := snapshot.tick_id - capacity + 1
 	var to_remove: Array[int] = []
 	for tick in snapshots.keys():
 		if tick < min_tick:
@@ -44,14 +44,39 @@ func get_snapshot(tick_id: int) -> WorldSnapshot:
 	_refresh_native_mode()
 	if _use_native_ring:
 		_ensure_native_ring_ready()
-		if _native_ring == null:
-			return null
-		return _native_snapshot_bridge.unpack_snapshot(_native_ring.get_snapshot(tick_id))
+		if _native_ring != null and _native_ring.has_snapshot(tick_id):
+			return _native_snapshot_bridge.unpack_snapshot(_native_ring.get_snapshot(tick_id))
 
 	var snapshot: WorldSnapshot = snapshots.get(tick_id, null)
-	if snapshot == null:
-		return null
-	return snapshot.duplicate_deep()
+	if snapshot != null:
+		return snapshot.duplicate_deep()
+	if _native_ring != null and _native_ring.has_snapshot(tick_id):
+		return _native_snapshot_bridge.unpack_snapshot(_native_ring.get_snapshot(tick_id))
+	return null
+
+
+func has_snapshot(tick_id: int) -> bool:
+	_refresh_native_mode()
+	if _use_native_ring:
+		_ensure_native_ring_ready()
+		if _native_ring != null and _native_ring.has_snapshot(tick_id):
+			return true
+	return snapshots.has(tick_id) or (_native_ring != null and _native_ring.has_snapshot(tick_id))
+
+
+func get_packed_snapshot(tick_id: int) -> PackedByteArray:
+	_refresh_native_mode()
+	if _use_native_ring:
+		_ensure_native_ring_ready()
+		if _native_ring != null and _native_ring.has_snapshot(tick_id):
+			return _native_ring.get_snapshot(tick_id)
+
+	var snapshot: WorldSnapshot = snapshots.get(tick_id, null)
+	if snapshot != null:
+		return _native_snapshot_bridge.pack_snapshot(snapshot)
+	if _native_ring != null and _native_ring.has_snapshot(tick_id):
+		return _native_ring.get_snapshot(tick_id)
+	return PackedByteArray()
 
 
 func clear() -> void:
@@ -62,7 +87,13 @@ func clear() -> void:
 
 
 func _refresh_native_mode() -> void:
-	_use_native_ring = NativeFeatureFlagsScript.enable_native_snapshot_ring and NativeKernelRuntimeScript.is_available()
+	_use_native_ring = (
+		NativeFeatureFlagsScript.enable_native_snapshot_ring
+		and NativeKernelRuntimeScript.is_available()
+		and NativeKernelRuntimeScript.has_snapshot_ring_kernel()
+	)
+	if NativeFeatureFlagsScript.enable_native_snapshot_ring and not _use_native_ring and NativeFeatureFlagsScript.require_native_kernels:
+		push_error("[snapshot_buffer] native snapshot ring is required but unavailable")
 	if not _use_native_ring:
 		_native_ring = null
 		_native_ring_configured = false
