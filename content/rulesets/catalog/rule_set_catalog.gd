@@ -2,6 +2,7 @@ class_name RuleSetCatalog
 extends RefCounted
 
 const RuleSetDefScript = preload("res://content/rulesets/defs/rule_set_def.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 const DATA_DIR := "res://content/rulesets/data/rule_set"
 
 static var _rules_by_id: Dictionary = {}
@@ -11,6 +12,11 @@ static var _ordered_ids: Array[String] = []
 static func load_all() -> void:
 	_rules_by_id.clear()
 	_ordered_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("rulesets"):
+		if _load_from_generated_index():
+			return
+
 	if not DirAccess.dir_exists_absolute(DATA_DIR):
 		push_error("RuleSetCatalog data dir missing: %s" % DATA_DIR)
 		return
@@ -32,6 +38,29 @@ static func load_all() -> void:
 	for rule_set_id in _rules_by_id.keys():
 		_ordered_ids.append(String(rule_set_id))
 	_ordered_ids.sort()
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("rulesets")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var rule_set_id := String(entry.get("rule_set_id", entry.get("id", "")))
+		var resource_path := String(entry.get("resource_path", ""))
+		if rule_set_id.is_empty() or resource_path.is_empty():
+			continue
+		var resource := load(resource_path)
+		if resource == null or not resource is RuleSetDefScript:
+			continue
+		_rules_by_id[rule_set_id] = resource
+	_ordered_ids.clear()
+	for rule_set_id in _rules_by_id.keys():
+		_ordered_ids.append(String(rule_set_id))
+	_ordered_ids.sort()
+	return not _rules_by_id.is_empty()
 
 
 static func get_by_id(rule_set_id: String) -> RuleSetDef:

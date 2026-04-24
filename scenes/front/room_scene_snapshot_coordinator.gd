@@ -2,6 +2,11 @@ extends RefCounted
 
 const DEFAULT_MATCH_FORMAT_ID := "1v1"
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const LogPayloadSummarizerScript = preload("res://app/logging/log_payload_summarizer.gd")
+const LogSamplingPolicyScript = preload("res://app/logging/log_sampling_policy.gd")
+const ViewRevisionGuardScript = preload("res://app/front/common/view_revision_guard.gd")
+
+var _room_revision_guard: RefCounted = ViewRevisionGuardScript.new()
 
 
 func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
@@ -34,8 +39,11 @@ func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 	_log_room_scene("refresh_room", {
 		"room_id": String(snapshot.room_id),
 		"room_kind": String(snapshot.room_kind),
+		"room_phase": String(snapshot.room_phase),
+		"snapshot_revision": int(snapshot.snapshot_revision),
 		"queue_type": String(snapshot.queue_type),
 		"match_format_id": String(snapshot.match_format_id),
+		"current_assignment_id": String(snapshot.current_assignment_id),
 		"selected_match_mode_ids": snapshot.selected_match_mode_ids,
 		"required_party_size": int(snapshot.required_party_size),
 		"member_count": snapshot.members.size(),
@@ -100,6 +108,8 @@ func resolve_local_member(controller: Node, snapshot: RoomSnapshot) -> RoomMembe
 
 
 func on_room_snapshot_changed(controller: Node, snapshot: RoomSnapshot) -> void:
+	if snapshot != null and _room_revision_guard.should_skip(String(snapshot.room_id), int(snapshot.snapshot_revision)):
+		return
 	refresh_room(controller, snapshot)
 	if snapshot != null and snapshot.battle_entry_ready and controller._room_use_case != null and controller._front_flow != null:
 		var battle_ctx = controller._room_use_case.build_battle_entry_context(snapshot)
@@ -110,4 +120,31 @@ func on_room_snapshot_changed(controller: Node, snapshot: RoomSnapshot) -> void:
 
 
 func _log_room_scene(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("[room_scene_snapshot] %s %s" % [event_name, JSON.stringify(payload)], "", 0, "front.room.scene.snapshot")
+	if not LogSamplingPolicyScript.should_log("front.room.scene.snapshot.%s" % event_name, 10):
+		return
+	var summary := payload
+	if event_name == "refresh_room":
+		summary = LogPayloadSummarizerScript.summarize_room_snapshot(payload)
+		summary["room_kind"] = String(payload.get("room_kind", ""))
+		summary["queue_type"] = String(payload.get("queue_type", ""))
+		summary["match_format_id"] = String(payload.get("match_format_id", ""))
+		summary["can_enter_queue"] = bool(payload.get("can_enter_queue", false))
+		summary["can_ready"] = bool(payload.get("can_ready", false))
+		summary["room_id"] = String(payload.get("room_id", summary.get("room_id", "")))
+		if summary.get("phase", "") == "":
+			summary["phase"] = String(payload.get("room_phase", ""))
+		if int(summary.get("revision", 0)) == 0:
+			summary["revision"] = int(payload.get("snapshot_revision", 0))
+		# Keep the log stable and small; full member lists and selected mode arrays stay out of hot-path logs.
+		summary = {
+			"room_id": String(summary.get("room_id", "")),
+			"phase": String(summary.get("phase", "")),
+			"revision": int(summary.get("revision", 0)),
+			"member_count": int(summary.get("member_count", 0)),
+			"room_kind": String(payload.get("room_kind", "")),
+			"queue_type": String(payload.get("queue_type", "")),
+			"match_format_id": String(payload.get("match_format_id", "")),
+			"can_enter_queue": bool(payload.get("can_enter_queue", false)),
+			"can_ready": bool(payload.get("can_ready", false)),
+		}
+	LogFrontScript.debug("[room_scene_snapshot] %s %s" % [event_name, JSON.stringify(summary)], "", 0, "front.room.scene.snapshot")

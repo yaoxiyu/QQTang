@@ -29,6 +29,13 @@ try {
         'content\match_formats\data\formats\2v2.tres',
         'content\match_formats\data\formats\4v4.tres',
         'build\generated\room_manifest\room_manifest.json',
+        'build\generated\content_catalog\characters_catalog_index.json',
+        'build\generated\content_catalog\bubbles_catalog_index.json',
+        'build\generated\content_catalog\maps_catalog_index.json',
+        'build\generated\content_catalog\modes_catalog_index.json',
+        'build\generated\content_catalog\rulesets_catalog_index.json',
+        'build\generated\content_catalog\match_formats_catalog_index.json',
+        'build\generated\content_catalog\content_catalog_summary.json',
         'build\generated\content_reports\content_pipeline_report.json'
     )
 

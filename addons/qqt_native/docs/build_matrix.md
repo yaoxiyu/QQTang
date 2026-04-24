@@ -38,3 +38,25 @@ Before enabling another platform, all of the following must be added together:
 2. Platform-specific compiler and linker wiring in `addons/qqt_native/SConstruct`.
 3. Correct output artifact naming that matches `qqt_native.gdextension`.
 4. A platform-specific verification path that actually builds and loads the extension.
+
+## Phase31 Linux Matrix Entry
+
+Phase31 adds Linux build scripts and `.gdextension` library mapping for:
+
+- `linux.template_debug.x86_64`
+- `linux.template_release.x86_64`
+
+Expected artifacts:
+
+- `addons/qqt_native/bin/qqt_native.linux.template_debug.x86_64.so`
+- `addons/qqt_native/bin/qqt_native.linux.template_release.x86_64.so`
+
+Validation command:
+
+```bash
+GODOT_BIN=/path/to/godot ./tools/native/check_native_runtime_linux.sh
+```
+
+The check builds both `linux.template_debug.x86_64` and `linux.template_release.x86_64`, then loads the debug artifact in headless Godot to verify the native runtime classes are available.
+
+If this command has not passed in CI or on a Linux host, Docker/k8s deployment may only claim Go service image readiness, not Godot DS native runtime production readiness.

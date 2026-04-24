@@ -13,7 +13,9 @@ const RoomTicketRequestScript = preload("res://app/front/auth/room_ticket_reques
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const LogSamplingPolicyScript = preload("res://app/logging/log_sampling_policy.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const MATCHMAKING_LOG_TAG := "front.matchmaking.use_case"
 
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
@@ -233,5 +235,48 @@ func _fail(error_code: String, user_message: String) -> Dictionary:
 
 
 func _log_matchmaking(event_name: String, payload: Dictionary) -> void:
-	LogFrontScript.debug("%s[matchmaking_use_case] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.matchmaking.use_case")
+	if not LogSamplingPolicyScript.should_log("%s.%s" % [MATCHMAKING_LOG_TAG, event_name], _matchmaking_log_sample_every(event_name)):
+		return
+	var summary := _summarize_matchmaking_log_payload(event_name, payload)
+	LogFrontScript.debug("%s[matchmaking_use_case] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(summary)], "", 0, MATCHMAKING_LOG_TAG)
 
+
+func _matchmaking_log_sample_every(event_name: String) -> int:
+	match event_name:
+		"poll_queue_status_succeeded":
+			return 10
+		"poll_queue_status_failed":
+			return 3
+		_:
+			return 1
+
+
+func _summarize_matchmaking_log_payload(_event_name: String, payload: Dictionary) -> Dictionary:
+	var summary := {}
+	for key in [
+		"queue_type",
+		"match_format_id",
+		"mode_id",
+		"rule_set_id",
+		"queue_entry_id",
+		"queue_state",
+		"assignment_id",
+		"ticket_role",
+		"room_id",
+		"server_host",
+		"server_port",
+		"assigned_team_id",
+		"match_source",
+		"error_code",
+		"user_message",
+	]:
+		if payload.has(key):
+			summary[key] = payload[key]
+	if payload.has("selected_map_ids"):
+		var selected_map_ids = payload.get("selected_map_ids", [])
+		summary["selected_map_count"] = selected_map_ids.size() if selected_map_ids is Array else 0
+	if payload.has("changed_fields"):
+		var changed_fields = payload.get("changed_fields", [])
+		summary["changed_field_count"] = changed_fields.size() if changed_fields is Array else 0
+		summary["changed_fields"] = changed_fields if changed_fields is Array and changed_fields.size() <= 4 else []
+	return summary

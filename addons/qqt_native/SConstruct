@@ -24,11 +24,11 @@ arch = ARGUMENTS.get("arch", "x86_64")
 dev_build = ARGUMENTS.get("dev_build", "no")
 debug_symbols = ARGUMENTS.get("debug_symbols", "yes")
 
-if platform != "windows":
+if platform not in ["windows", "linux"]:
     fail(
-        "unsupported platform: %s. Current repo only ships Windows x86_64 qqt_native artifacts; "
-        "add matching godot-cpp static libraries and platform-specific output wiring before enabling %s."
-        % (platform, platform)
+        "unsupported platform: %s. Supported Phase31 qqt_native build matrix entries are windows and linux; "
+        "add matching godot-cpp static libraries and platform-specific output wiring before enabling another platform."
+        % platform
     )
 
 if target not in ["template_debug", "template_release"]:
@@ -40,12 +40,21 @@ if arch != "x86_64":
 
 env = Environment()
 env.Append(CPPDEFINES=["TYPED_METHOD_BIND"])
-env.Append(CXXFLAGS=["/std:c++17", "/EHsc"])
 env.Append(CPPPATH=[
     SRC_DIR,
     os.path.join(GODOT_CPP_DIR, "include"),
     os.path.join(GODOT_CPP_DIR, "gen", "include"),
 ])
+
+if platform == "windows":
+    env.Append(CXXFLAGS=["/std:c++17", "/EHsc"])
+    shared_suffix = ".dll"
+    godot_cpp_suffix = ".lib"
+elif platform == "linux":
+    env.Append(CXXFLAGS=["-std=c++17", "-fPIC"])
+    env.Append(LINKFLAGS=["-shared"])
+    shared_suffix = ".so"
+    godot_cpp_suffix = ".a"
 
 if target == "template_debug":
     env.Append(CPPDEFINES=["DEBUG_ENABLED"])
@@ -54,11 +63,12 @@ variant_dir = os.path.join(BIN_DIR, "obj", platform, target, arch)
 godot_cpp_lib = os.path.join(
     GODOT_CPP_DIR,
     "bin",
-    "libgodot-cpp.%s.%s.%s%s.lib" % (
+    "libgodot-cpp.%s.%s.%s%s%s" % (
         platform,
         target,
         arch,
         ".dev" if dev_build == "yes" else "",
+        godot_cpp_suffix,
     ),
 )
 
@@ -75,7 +85,7 @@ sources = [
 ]
 
 bin_name = "qqt_native.%s.%s.%s" % (platform, target, arch)
-target_path = os.path.join(BIN_DIR, "%s.dll" % bin_name)
+target_path = os.path.join(BIN_DIR, "%s%s" % (bin_name, shared_suffix))
 
 library = env.SharedLibrary(
     target=target_path,

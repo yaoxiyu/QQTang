@@ -3,10 +3,12 @@ extends RefCounted
 
 const LogBattleScript = preload("res://app/logging/log_battle.gd")
 const NativeWireContractScript = preload("res://gameplay/native_bridge/native_wire_contract.gd")
+const NativeBattlePackedStateBuilderScript = preload("res://gameplay/native_bridge/native_battle_packed_state_builder.gd")
 
 const LOG_TAG := "battle.native.snapshot.codec"
 
 var _native_codec: Object = null
+var _battle_packed_state_builder: NativeBattlePackedStateBuilder = NativeBattlePackedStateBuilderScript.new()
 
 
 func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
@@ -24,29 +26,10 @@ func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
 		"match_state": snapshot.match_state,
 		"mode_state": snapshot.mode_state,
 		"checksum": snapshot.checksum,
+		"battle_packed_state": _battle_packed_state_builder.build_from_snapshot(snapshot, 0, 0),
 	}
 	var native_codec := _get_native_codec()
-	if native_codec != null and native_codec.has_method("pack_snapshot_segments"):
-		var native_result: Variant = native_codec.pack_snapshot_segments(
-			snapshot.tick_id,
-			snapshot.rng_state,
-			snapshot.checksum,
-			var_to_bytes(snapshot.players),
-			var_to_bytes(snapshot.bubbles),
-			var_to_bytes(snapshot.items),
-			var_to_bytes(snapshot.walls),
-			var_to_bytes(snapshot.match_state),
-			var_to_bytes(snapshot.mode_state)
-		)
-		if native_result is PackedByteArray:
-			return native_result
-		LogBattleScript.warn(
-			"[native_packed_state_codec_bridge] native pack_snapshot_segments returned non-bytes, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
-	elif native_codec != null and native_codec.has_method("pack_snapshot_payload"):
+	if native_codec != null and native_codec.has_method("pack_snapshot_payload"):
 		var native_result: Variant = native_codec.pack_snapshot_payload(payload)
 		if native_result is PackedByteArray:
 			return native_result

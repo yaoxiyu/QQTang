@@ -3,6 +3,7 @@ extends RefCounted
 
 const BubbleStyleDefScript = preload("res://content/bubbles/defs/bubble_style_def.gd")
 const BubbleGameplayDefScript = preload("res://content/bubbles/defs/bubble_gameplay_def.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 
 const STYLE_DIR := "res://content/bubbles/data/style"
 const GAMEPLAY_DIR := "res://content/bubbles/data/gameplay"
@@ -16,6 +17,10 @@ static var _ordered_bubble_ids: Array[String] = []
 static func load_all() -> void:
 	_bubble_registry.clear()
 	_ordered_bubble_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("bubbles"):
+		if _load_from_generated_index():
+			return
 
 	var gameplay_by_id := _scan_gameplay_registry()
 
@@ -46,6 +51,29 @@ static func load_all() -> void:
 	for bubble_id in _bubble_registry.keys():
 		_ordered_bubble_ids.append(String(bubble_id))
 	_ordered_bubble_ids.sort()
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("bubbles")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var bubble_id := String(entry.get("id", ""))
+		if bubble_id.is_empty():
+			continue
+		_bubble_registry[bubble_id] = {
+			"display_name": String(entry.get("display_name", bubble_id)),
+			"style_resource_path": String(entry.get("style_resource_path", "")),
+			"gameplay_resource_path": String(entry.get("gameplay_resource_path", "")),
+		}
+	_ordered_bubble_ids.clear()
+	for bubble_id in _bubble_registry.keys():
+		_ordered_bubble_ids.append(String(bubble_id))
+	_ordered_bubble_ids.sort()
+	return not _bubble_registry.is_empty()
 
 
 static func get_bubble_ids() -> Array[String]:

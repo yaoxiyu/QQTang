@@ -2,6 +2,7 @@ class_name MatchFormatCatalog
 extends RefCounted
 
 const MatchFormatDefScript = preload("res://content/match_formats/defs/match_format_def.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 const DATA_DIR := "res://content/match_formats/data/formats"
 
 static var _formats_by_id: Dictionary = {}
@@ -11,6 +12,11 @@ static var _ordered_format_ids: Array[String] = []
 static func load_all() -> void:
 	_formats_by_id.clear()
 	_ordered_format_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("match_formats"):
+		if _load_from_generated_index():
+			return
+
 	if not DirAccess.dir_exists_absolute(DATA_DIR):
 		push_error("MatchFormatCatalog data dir missing: %s" % DATA_DIR)
 		return
@@ -33,6 +39,41 @@ static func load_all() -> void:
 			"sort_order": def.sort_order,
 		}
 
+	for match_format_id in _formats_by_id.keys():
+		_ordered_format_ids.append(String(match_format_id))
+	_ordered_format_ids.sort_custom(func(a: String, b: String) -> bool:
+		var left := get_metadata(a)
+		var right := get_metadata(b)
+		var left_sort := int(left.get("sort_order", 0))
+		var right_sort := int(right.get("sort_order", 0))
+		if left_sort == right_sort:
+			return a < b
+		return left_sort < right_sort
+	)
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("match_formats")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var match_format_id := String(entry.get("match_format_id", entry.get("id", "")))
+		if match_format_id.is_empty():
+			continue
+		_formats_by_id[match_format_id] = {
+			"resource_path": String(entry.get("resource_path", "")),
+			"display_name": String(entry.get("display_name", match_format_id)),
+			"sort_order": int(entry.get("sort_order", 0)),
+		}
+	_sort_loaded_formats()
+	return not _formats_by_id.is_empty()
+
+
+static func _sort_loaded_formats() -> void:
+	_ordered_format_ids.clear()
 	for match_format_id in _formats_by_id.keys():
 		_ordered_format_ids.append(String(match_format_id))
 	_ordered_format_ids.sort_custom(func(a: String, b: String) -> bool:

@@ -25,6 +25,8 @@ $reportPath = Join-Path $repoRoot 'build\generated\content_reports\content_pipel
     'res://tests/contracts/content/match_format_catalog_contract_test.gd',
     'res://tests/contracts/content/room_manifest_export_contract_test.gd',
     'res://tests/contracts/content/room_manifest_matches_catalog_contract_test.gd',
+    'res://tests/contracts/content/generated_catalog_index_contract_test.gd',
+    'res://tests/contracts/content/generated_catalog_index_matches_room_manifest_test.gd',
     'res://tests/contracts/content/character_animation_pipeline_contract_test.gd'
 )
 

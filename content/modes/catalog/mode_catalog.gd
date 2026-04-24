@@ -2,6 +2,7 @@ class_name ModeCatalog
 extends RefCounted
 
 const ModeDefScript = preload("res://content/modes/defs/mode_def.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 const DATA_DIR := "res://content/modes/data/mode"
 
 static var _modes_by_id: Dictionary = {}
@@ -11,6 +12,11 @@ static var _ordered_mode_ids: Array[String] = []
 static func load_all() -> void:
 	_modes_by_id.clear()
 	_ordered_mode_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("modes"):
+		if _load_from_generated_index():
+			return
+
 	if not DirAccess.dir_exists_absolute(DATA_DIR):
 		push_error("ModeCatalog data dir missing: %s" % DATA_DIR)
 		return
@@ -35,6 +41,28 @@ static func load_all() -> void:
 	for mode_id in _modes_by_id.keys():
 		_ordered_mode_ids.append(String(mode_id))
 	_ordered_mode_ids.sort()
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("modes")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var mode_id := String(entry.get("mode_id", entry.get("id", "")))
+		if mode_id.is_empty():
+			continue
+		_modes_by_id[mode_id] = {
+			"resource_path": String(entry.get("resource_path", "")),
+			"display_name": String(entry.get("display_name", mode_id)),
+		}
+	_ordered_mode_ids.clear()
+	for mode_id in _modes_by_id.keys():
+		_ordered_mode_ids.append(String(mode_id))
+	_ordered_mode_ids.sort()
+	return not _modes_by_id.is_empty()
 
 
 static func get_mode_ids() -> Array[String]:

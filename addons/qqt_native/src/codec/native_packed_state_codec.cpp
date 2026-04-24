@@ -1,5 +1,7 @@
 #include "native_packed_state_codec.h"
 
+#include "common/native_battle_packed_schema.h"
+
 #include <cstdint>
 #include <cstring>
 
@@ -11,7 +13,11 @@ using namespace godot;
 
 namespace {
 constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
-constexpr uint32_t SNAPSHOT_PAYLOAD_VERSION = 1;
+constexpr uint32_t SNAPSHOT_PAYLOAD_VERSION = static_cast<uint32_t>(qqt::packed_schema::SCHEMA_VERSION);
+static_assert(qqt::packed_schema::PLAYER_STRIDE == 16, "battle packed schema player stride changed unexpectedly");
+static_assert(qqt::packed_schema::BUBBLE_STRIDE == 12, "battle packed schema bubble stride changed unexpectedly");
+static_assert(qqt::packed_schema::ITEM_STRIDE == 8, "battle packed schema item stride changed unexpectedly");
+static_assert(qqt::packed_schema::GRID_STRIDE == 4, "battle packed schema grid stride changed unexpectedly");
 
 Dictionary get_dictionary(const Variant &value) {
     if (value.get_type() == Variant::DICTIONARY) {
@@ -109,6 +115,7 @@ Variant read_segment(const PackedByteArray &buffer, int32_t &cursor) {
 
 void QQTNativePackedStateCodec::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_kernel_version"), &QQTNativePackedStateCodec::get_kernel_version);
+    ClassDB::bind_method(D_METHOD("get_battle_packed_schema_version"), &QQTNativePackedStateCodec::get_battle_packed_schema_version);
     ClassDB::bind_method(D_METHOD("pack_players", "sim_world"), &QQTNativePackedStateCodec::pack_players);
     ClassDB::bind_method(D_METHOD("pack_bubbles", "sim_world"), &QQTNativePackedStateCodec::pack_bubbles);
     ClassDB::bind_method(D_METHOD("pack_items", "sim_world"), &QQTNativePackedStateCodec::pack_items);
@@ -136,6 +143,10 @@ void QQTNativePackedStateCodec::_bind_methods() {
 
 String QQTNativePackedStateCodec::get_kernel_version() const {
     return String(KERNEL_VERSION);
+}
+
+int64_t QQTNativePackedStateCodec::get_battle_packed_schema_version() const {
+    return qqt::packed_schema::SCHEMA_VERSION;
 }
 
 PackedInt32Array QQTNativePackedStateCodec::pack_players(const Variant &sim_world) const {
@@ -258,6 +269,7 @@ PackedByteArray QQTNativePackedStateCodec::pack_snapshot_payload(const Dictionar
     append_segment(encoded, payload.get("walls", Array()));
     append_segment(encoded, payload.get("match_state", Dictionary()));
     append_segment(encoded, payload.get("mode_state", Dictionary()));
+    append_segment(encoded, payload.get("battle_packed_state", Dictionary()));
     return encoded;
 }
 
@@ -317,5 +329,8 @@ Dictionary QQTNativePackedStateCodec::unpack_snapshot_payload(const PackedByteAr
     payload["walls"] = get_array(read_segment(payload_bytes, cursor));
     payload["match_state"] = get_dictionary(read_segment(payload_bytes, cursor));
     payload["mode_state"] = get_dictionary(read_segment(payload_bytes, cursor));
+    if (cursor < payload_bytes.size()) {
+        payload["battle_packed_state"] = get_dictionary(read_segment(payload_bytes, cursor));
+    }
     return payload;
 }

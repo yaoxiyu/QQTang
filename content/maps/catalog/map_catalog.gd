@@ -5,6 +5,7 @@ const MapResourceScript = preload("res://content/maps/resources/map_resource.gd"
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 const LogContentScript = preload("res://app/logging/log_content.gd")
 const DATA_DIR := "res://content/maps/resources"
 
@@ -17,6 +18,10 @@ static var _ordered_map_ids: Array[String] = []
 static func load_all() -> void:
 	_map_registry.clear()
 	_ordered_map_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("maps"):
+		if _load_from_generated_index():
+			return
 
 	if DirAccess.dir_exists_absolute(DATA_DIR):
 		for file_name in DirAccess.get_files_at(DATA_DIR):
@@ -45,6 +50,29 @@ static func load_all() -> void:
 	for map_id in _map_registry.keys():
 		_ordered_map_ids.append(String(map_id))
 	_ordered_map_ids.sort()
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("maps")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var map_id := String(entry.get("id", entry.get("map_id", "")))
+		if map_id.is_empty():
+			continue
+		_map_registry[map_id] = {
+			"display_name": String(entry.get("display_name", map_id)),
+			"resource_path": String(entry.get("resource_path", "")),
+			"is_formal": bool(entry.get("is_formal", true)),
+		}
+	_ordered_map_ids.clear()
+	for map_id in _map_registry.keys():
+		_ordered_map_ids.append(String(map_id))
+	_ordered_map_ids.sort()
+	return not _map_registry.is_empty()
 
 
 static func get_map_ids() -> Array[String]:

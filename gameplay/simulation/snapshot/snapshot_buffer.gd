@@ -86,6 +86,12 @@ func clear() -> void:
 		_native_ring_configured = false
 
 
+func get_native_snapshot_ring_metrics() -> Dictionary:
+	if _native_ring == null or not _native_ring.has_method("get_metrics"):
+		return {}
+	return _native_ring.get_metrics()
+
+
 func _refresh_native_mode() -> void:
 	_use_native_ring = (
 		NativeFeatureFlagsScript.enable_native_snapshot_ring
@@ -106,5 +112,9 @@ func _ensure_native_ring_ready() -> void:
 		_native_ring = NativeKernelRuntimeScript.get_snapshot_ring_kernel()
 		_native_ring_configured = false
 	if _native_ring != null and not _native_ring_configured:
-		_native_ring.configure(capacity)
+		var max_snapshot_bytes: int = maxi(0, int(NativeFeatureFlagsScript.native_snapshot_ring_max_snapshot_bytes))
+		if max_snapshot_bytes > 0 and _native_ring.has_method("configure_with_limits"):
+			_native_ring.configure_with_limits(capacity, max_snapshot_bytes)
+		else:
+			_native_ring.configure(capacity)
 		_native_ring_configured = true

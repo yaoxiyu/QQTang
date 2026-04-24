@@ -30,6 +30,28 @@ func test_pack_and_unpack_preserve_snapshot_payload() -> void:
 	assert_eq(unpacked.checksum, snapshot.checksum, "checksum should roundtrip")
 
 
+func test_snapshot_payload_contains_battle_packed_state_when_native_codec_available() -> void:
+	if not ClassDB.can_instantiate("QQTNativePackedStateCodec"):
+		pending("native packed state codec is not available in this runtime")
+		return
+	var bridge := NativePackedStateCodecBridge.new()
+	var codec = ClassDB.instantiate("QQTNativePackedStateCodec")
+	var snapshot := WorldSnapshot.new()
+	snapshot.tick_id = 21
+	snapshot.players = [{"entity_id": 1, "cell_x": 3, "cell_y": 4, "alive": true}]
+	snapshot.bubbles = [{"entity_id": 5, "cell_x": 7, "cell_y": 8}]
+	snapshot.items = [{"entity_id": 9, "item_type": 2, "cell_x": 6, "cell_y": 1}]
+	snapshot.walls = [{"cell_x": 0, "cell_y": 0, "tile_type": 1, "tile_flags": 4}]
+
+	var payload: Dictionary = codec.unpack_snapshot_payload(bridge.encode_snapshot_payload(snapshot))
+	var packed_state: Dictionary = payload.get("battle_packed_state", {})
+
+	assert_false(packed_state.is_empty(), "native payload should carry battle packed state")
+	assert_eq(int(packed_state.get("schema_version", 0)), NativeBattlePackedSchema.SCHEMA_VERSION, "packed state schema version should be present")
+	assert_eq(NativeBattlePackedStateReader.get_tick_id(packed_state), snapshot.tick_id, "packed state tick should match snapshot tick")
+	assert_eq(NativeBattlePackedStateReader.get_player_count(packed_state), 1, "packed state should include players")
+
+
 func test_unpack_rejects_snapshot_payload_with_wrong_version() -> void:
 	var bridge := NativePackedStateCodecBridge.new()
 	var raw_payload := {

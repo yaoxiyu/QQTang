@@ -4,6 +4,7 @@ extends RefCounted
 const CharacterDefScript = preload("res://content/characters/defs/character_def.gd")
 const CharacterStatsDefScript = preload("res://content/characters/defs/character_stats_def.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
+const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/generated_catalog_index_loader.gd")
 
 const CHARACTER_DIR := "res://content/characters/data/character"
 const STATS_DIR := "res://content/characters/data/stats"
@@ -18,6 +19,10 @@ static var _ordered_character_ids: Array[String] = []
 static func load_all() -> void:
 	_character_registry.clear()
 	_ordered_character_ids.clear()
+
+	if GeneratedCatalogIndexLoaderScript.has_index("characters"):
+		if _load_from_generated_index():
+			return
 
 	var stats_by_id := _scan_stats_registry()
 	var presentations_by_id := _scan_presentation_registry()
@@ -48,6 +53,34 @@ static func load_all() -> void:
 		for character_id in LEGACY_CHARACTER_REGISTRY.keys():
 			_character_registry[String(character_id)] = LEGACY_CHARACTER_REGISTRY[character_id].duplicate(true)
 
+	_sort_loaded_characters()
+
+
+static func _load_from_generated_index() -> bool:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("characters")
+	if entries.is_empty():
+		return false
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		var character_id := String(entry.get("id", ""))
+		if character_id.is_empty():
+			continue
+		_character_registry[character_id] = {
+			"display_name": String(entry.get("display_name", character_id)),
+			"def_resource_path": String(entry.get("def_resource_path", "")),
+			"stats_resource_path": String(entry.get("stats_resource_path", "")),
+			"presentation_resource_path": String(entry.get("presentation_resource_path", "")),
+			"selection_order": int(entry.get("selection_order", 999999)),
+			"content_hash": String(entry.get("content_hash", "")),
+		}
+	_sort_loaded_characters()
+	return not _character_registry.is_empty()
+
+
+static func _sort_loaded_characters() -> void:
+	_ordered_character_ids.clear()
 	var sortable_entries: Array[Dictionary] = []
 	for character_id in _character_registry.keys():
 		var entry: Dictionary = _character_registry[character_id]

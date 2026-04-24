@@ -22,6 +22,7 @@ public:
     ~QQTNativePackedStateCodec() = default;
 
     String get_kernel_version() const;
+    int64_t get_battle_packed_schema_version() const;
     PackedInt32Array pack_players(const Variant &sim_world) const;
     PackedInt32Array pack_bubbles(const Variant &sim_world) const;
     PackedInt32Array pack_items(const Variant &sim_world) const;

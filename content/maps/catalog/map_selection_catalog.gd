@@ -206,11 +206,22 @@ static func _build_legacy_binding(map_metadata: Dictionary) -> Dictionary:
 	return _build_binding(map_metadata, {
 		"match_format_id": String(map_metadata.get("match_format_id", MatchFormatCatalogScript.get_default_match_format_id())),
 		"required_team_count": int(map_metadata.get("required_team_count", 2)),
-		"max_player_count": int(map_metadata.get("max_player_count", 0)),
+		"max_player_count": _legacy_custom_room_max_player_count(map_metadata),
 		"custom_room_enabled": bool(map_metadata.get("custom_room_enabled", true)),
 		"matchmaking_casual_enabled": bool(map_metadata.get("matchmaking_casual_enabled", true)),
 		"matchmaking_ranked_enabled": bool(map_metadata.get("matchmaking_ranked_enabled", false)),
 	})
+
+
+static func _legacy_custom_room_max_player_count(map_metadata: Dictionary) -> int:
+	var max_player_count := int(map_metadata.get("max_player_count", 0))
+	var variants = map_metadata.get("match_format_variants", [])
+	if variants is Array:
+		for variant in variants:
+			if not variant is Dictionary:
+				continue
+			max_player_count = maxi(max_player_count, int((variant as Dictionary).get("max_player_count", 0)))
+	return max_player_count
 
 
 static func _build_bindings(map_metadata: Dictionary) -> Array[Dictionary]:

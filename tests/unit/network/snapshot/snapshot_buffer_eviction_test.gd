@@ -2,7 +2,7 @@ extends "res://tests/gut/base/qqt_unit_test.gd"
 
 
 func test_main() -> void:
-	var snapshot_buffer := SnapshotBuffer.new(3)
+	var snapshot_buffer := SnapshotBuffer.new(4)
 	for tick_id in [1, 2, 3, 4, 5]:
 		var snapshot := WorldSnapshot.new()
 		snapshot.tick_id = tick_id
@@ -18,4 +18,3 @@ func test_main() -> void:
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-

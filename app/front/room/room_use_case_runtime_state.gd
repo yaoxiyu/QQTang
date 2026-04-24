@@ -4,6 +4,42 @@ extends RefCounted
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
 
+var pending_online_entry_context: RoomEntryContext = null
+var pending_connection_config: ClientConnectionConfig = null
+var await_room_before_enter: bool = false
+var enter_match_queue_pending: bool = false
+var enter_match_queue_pending_room_id: String = ""
+
+
+func sync_pending_connection(orchestrator: RefCounted) -> void:
+	if orchestrator == null:
+		clear_pending_connection()
+		return
+	pending_online_entry_context = orchestrator.pending_online_entry_context
+	pending_connection_config = orchestrator.pending_connection_config
+	await_room_before_enter = bool(orchestrator.await_room_before_enter)
+
+
+func clear_pending_connection() -> void:
+	pending_online_entry_context = null
+	pending_connection_config = null
+	await_room_before_enter = false
+
+
+func mark_enter_match_queue_pending(room_id: String) -> void:
+	enter_match_queue_pending = true
+	enter_match_queue_pending_room_id = String(room_id)
+
+
+func clear_enter_match_queue_pending() -> void:
+	enter_match_queue_pending = false
+	enter_match_queue_pending_room_id = ""
+
+
+func clear_transient_state() -> void:
+	clear_pending_connection()
+	clear_enter_match_queue_pending()
+
 
 static func is_online_room(app_runtime: Node) -> bool:
 	if app_runtime == null:
