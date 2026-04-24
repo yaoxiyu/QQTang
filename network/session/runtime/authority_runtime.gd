@@ -5,6 +5,8 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const NativeInputBufferBridgeScript = preload("res://gameplay/native_bridge/native_input_buffer_bridge.gd")
+const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
 const TRACE_TAG := "sync.trace"
 
 signal match_started(config: BattleStartConfig)
@@ -18,6 +20,8 @@ var server_session: ServerSession = null
 var _finished: bool = false
 var _opening_input_freeze_drop_count: int = 0
 var _opening_input_freeze_end_logged: bool = false
+var _native_input_policy_shadow: RefCounted = NativeInputBufferBridgeScript.new()
+var _native_input_policy_shadow_metrics: Dictionary = {}
 
 
 func configure(peer_id: int) -> void:
@@ -62,6 +66,9 @@ func start_match(config: BattleStartConfig) -> bool:
 	_finished = false
 	_opening_input_freeze_drop_count = 0
 	_opening_input_freeze_end_logged = false
+	_native_input_policy_shadow = NativeInputBufferBridgeScript.new()
+	_native_input_policy_shadow.configure(8, 64, 2, false)
+	_native_input_policy_shadow_metrics.clear()
 	match_started.emit(start_config)
 	log_event.emit("AuthorityRuntime started %s" % start_config.to_log_string())
 	return true
@@ -79,7 +86,16 @@ func ingest_network_message(message: Dictionary) -> void:
 	if _is_opening_input_frozen():
 		_opening_input_freeze_drop_count += 1
 		return
-	_retarget_late_input_frame(frame)
+	var authority_tick := _get_authority_tick()
+	var native_decision := _evaluate_native_input_policy(frame, authority_tick)
+	var gd_decision := _retarget_late_input_frame(frame, not NativeFeatureFlagsScript.enable_native_input_buffer_execute)
+	_record_native_input_policy_shadow(native_decision, gd_decision)
+	if NativeFeatureFlagsScript.enable_native_input_buffer_execute and not native_decision.is_empty():
+		if String(native_decision.get("status", "")).begins_with("drop_"):
+			return
+		if bool(native_decision.get("retargeted", false)):
+			frame.tick_id = int(native_decision.get("tick_id", frame.tick_id))
+			frame.sanitize()
 	server_session.receive_input(frame)
 
 
@@ -104,6 +120,7 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionar
 		"authoritative_tick": sim_world.state.match_state.tick,
 		"remaining_ticks": sim_world.state.match_state.remaining_ticks,
 		"player_count": start_config.player_slots.size() if start_config != null else 0,
+		"native_input_policy_shadow": get_native_input_policy_shadow_metrics(),
 	}
 	authoritative_tick_completed.emit(tick_result, metrics)
 
@@ -138,6 +155,8 @@ func shutdown_runtime() -> void:
 	_finished = false
 	_opening_input_freeze_drop_count = 0
 	_opening_input_freeze_end_logged = false
+	_native_input_policy_shadow = NativeInputBufferBridgeScript.new()
+	_native_input_policy_shadow_metrics.clear()
 
 
 func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerInputFrame:
@@ -152,29 +171,87 @@ func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerIn
 	return frame
 
 
-func _retarget_late_input_frame(frame: PlayerInputFrame) -> void:
+func _retarget_late_input_frame(frame: PlayerInputFrame, mutate_frame: bool = true) -> Dictionary:
+	var decision := {
+		"status": "accepted",
+		"retargeted": false,
+		"original_tick": frame.tick_id if frame != null else -1,
+		"tick_id": frame.tick_id if frame != null else -1,
+	}
 	if frame == null:
-		return
+		decision["status"] = "drop_empty"
+		return decision
 	if server_session == null or server_session.active_match == null or server_session.active_match.sim_world == null:
-		return
-	var authority_tick := int(server_session.active_match.sim_world.state.match_state.tick)
+		return decision
+	var authority_tick := _get_authority_tick()
 	if frame.tick_id > authority_tick:
-		return
+		return decision
 	var original_tick := frame.tick_id
-	frame.tick_id = authority_tick + 1
-	frame.sanitize()
+	if mutate_frame:
+		frame.tick_id = authority_tick + 1
+		frame.sanitize()
+	decision["status"] = "accepted"
+	decision["retargeted"] = true
+	decision["tick_id"] = authority_tick + 1
 	if frame.action_place:
 		LogSyncScript.info(
 			"authority_input late_place_retarget peer=%d from_tick=%d to_tick=%d authority_tick=%d" % [
 				frame.peer_id,
 				original_tick,
-				frame.tick_id,
+				int(decision["tick_id"]),
 				authority_tick,
 			],
 			"",
 			0,
 			"%s sync.authority_runtime" % TRACE_TAG
 		)
+	return decision
+
+
+func _get_authority_tick() -> int:
+	if server_session == null or server_session.active_match == null or server_session.active_match.sim_world == null:
+		return -1
+	return int(server_session.active_match.sim_world.state.match_state.tick)
+
+
+func _evaluate_native_input_policy(frame: PlayerInputFrame, authority_tick: int) -> Dictionary:
+	if frame == null:
+		return {}
+	if not NativeFeatureFlagsScript.enable_native_input_buffer_shadow and not NativeFeatureFlagsScript.enable_native_input_buffer_execute:
+		return {}
+	if _native_input_policy_shadow == null:
+		_native_input_policy_shadow = NativeInputBufferBridgeScript.new()
+		_native_input_policy_shadow.configure(8, 64, 2, false)
+	return _native_input_policy_shadow.push_input_dict(frame.to_dict(), authority_tick)
+
+
+func _record_native_input_policy_shadow(native_decision: Dictionary, gd_decision: Dictionary) -> void:
+	if native_decision.is_empty():
+		return
+	var native_effect := _decision_effect(native_decision)
+	var gd_effect := _decision_effect(gd_decision)
+	var equal := native_effect == gd_effect
+	_native_input_policy_shadow_metrics["last_native_status"] = String(native_decision.get("status", ""))
+	_native_input_policy_shadow_metrics["last_gd_status"] = String(gd_decision.get("status", ""))
+	_native_input_policy_shadow_metrics["last_native_effect"] = native_effect
+	_native_input_policy_shadow_metrics["last_gd_effect"] = gd_effect
+	_native_input_policy_shadow_metrics["shadow_equal"] = equal
+	_native_input_policy_shadow_metrics["shadow_checked_count"] = int(_native_input_policy_shadow_metrics.get("shadow_checked_count", 0)) + 1
+	if not equal:
+		_native_input_policy_shadow_metrics["shadow_mismatch_count"] = int(_native_input_policy_shadow_metrics.get("shadow_mismatch_count", 0)) + 1
+	if _native_input_policy_shadow != null:
+		_native_input_policy_shadow_metrics["native_buffer_metrics"] = _native_input_policy_shadow.get_metrics()
+
+
+func _decision_effect(decision: Dictionary) -> Dictionary:
+	return {
+		"retargeted": bool(decision.get("retargeted", false)),
+		"tick_id": int(decision.get("tick_id", -1)),
+	}
+
+
+func get_native_input_policy_shadow_metrics() -> Dictionary:
+	return _native_input_policy_shadow_metrics.duplicate(true)
 
 
 func _is_opening_input_frozen() -> bool:

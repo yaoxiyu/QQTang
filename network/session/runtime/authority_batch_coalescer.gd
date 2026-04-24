@@ -1,0 +1,215 @@
+class_name AuthorityBatchCoalescer
+extends RefCounted
+
+const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+
+
+func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -> Dictionary:
+	var started_usec: int = Time.get_ticks_usec()
+	var result: Dictionary = _empty_result()
+	var known_tick: int = max(int(cursor.get("latest_authoritative_tick", -1)), int(cursor.get("latest_snapshot_tick", -1)))
+	var ack_by_peer: Dictionary = {}
+	var summary_message: Dictionary = {}
+	var summary_tick := -1
+	var snapshot_message: Dictionary = {}
+	var snapshot_tick := -1
+	var events_by_tick: Dictionary = {}
+	var raw_ack_count := 0
+	var raw_summary_count := 0
+	var raw_checkpoint_count := 0
+	var raw_auth_snapshot_count := 0
+	var dropped_stale_count := 0
+	var dropped_intermediate_count := 0
+	var dropped_snapshot_ticks := PackedInt32Array()
+
+	for index in range(messages.size()):
+		var raw_message: Variant = messages[index]
+		if not (raw_message is Dictionary):
+			continue
+		var message: Dictionary = raw_message
+		var message_type: String = _message_type(message)
+		if _is_authority_sync_type(message_type):
+			_append_events(events_by_tick, message, index)
+		if message_type == TransportMessageTypesScript.INPUT_ACK:
+			raw_ack_count += 1
+			var peer_id: int = int(message.get("peer_id", message.get("sender_peer_id", -1)))
+			var ack_tick: int = int(message.get("ack_tick", message.get("tick", 0)))
+			if not ack_by_peer.has(peer_id) or ack_tick > int((ack_by_peer[peer_id] as Dictionary).get("ack_tick", 0)):
+				var ack_message: Dictionary = message.duplicate(true)
+				ack_message["ack_tick"] = ack_tick
+				ack_message["peer_id"] = peer_id
+				ack_by_peer[peer_id] = ack_message
+		elif message_type == TransportMessageTypesScript.STATE_SUMMARY:
+			raw_summary_count += 1
+			var tick: int = _message_tick(message)
+			if summary_message.is_empty() or tick >= summary_tick:
+				summary_tick = tick
+				summary_message = message.duplicate(true)
+		elif _is_snapshot_type(message_type):
+			if message_type == TransportMessageTypesScript.CHECKPOINT:
+				raw_checkpoint_count += 1
+			else:
+				raw_auth_snapshot_count += 1
+			var tick: int = _message_tick(message)
+			if tick <= known_tick:
+				dropped_stale_count += 1
+				dropped_snapshot_ticks.append(tick)
+			elif snapshot_message.is_empty() or tick >= snapshot_tick:
+				if not snapshot_message.is_empty():
+					dropped_intermediate_count += 1
+					dropped_snapshot_ticks.append(snapshot_tick)
+				snapshot_tick = tick
+				snapshot_message = message.duplicate(true)
+			else:
+				dropped_intermediate_count += 1
+				dropped_snapshot_ticks.append(tick)
+		elif _is_terminal_type(message_type):
+			result["terminal_messages"].append(message.duplicate(true))
+		else:
+			result["passthrough_messages"].append(message.duplicate(true))
+
+	result["input_acks"] = _ack_array_from_peer_map(ack_by_peer)
+	result["latest_state_summary"] = summary_message
+	result["latest_snapshot_message"] = snapshot_message
+	result["authority_events_by_tick"] = _events_array_from_tick_map(events_by_tick)
+	result["dropped_snapshot_ticks"] = dropped_snapshot_ticks
+	result["metrics"] = _make_metrics(
+		messages.size(),
+		raw_ack_count,
+		raw_summary_count,
+		raw_checkpoint_count,
+		raw_auth_snapshot_count,
+		result["input_acks"].size(),
+		snapshot_tick,
+		dropped_stale_count,
+		dropped_intermediate_count,
+		result["authority_events_by_tick"].size(),
+		result["terminal_messages"].size(),
+		result["passthrough_messages"].size(),
+		Time.get_ticks_usec() - started_usec
+	)
+	return result
+
+
+func _empty_result() -> Dictionary:
+	return {
+		"input_acks": [],
+		"latest_state_summary": {},
+		"latest_snapshot_message": {},
+		"authority_events_by_tick": [],
+		"terminal_messages": [],
+		"passthrough_messages": [],
+		"dropped_snapshot_ticks": PackedInt32Array(),
+		"metrics": {},
+	}
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", message.get("msg_type", "")))
+
+
+func _message_tick(message: Dictionary) -> int:
+	return int(message.get("tick", message.get("snapshot_tick", message.get("ack_tick", 0))))
+
+
+func _append_events(events_by_tick: Dictionary, message: Dictionary, original_index: int) -> void:
+	var events: Variant = message.get("events", [])
+	if not (events is Array) or events.is_empty():
+		return
+	var fallback_tick := _message_tick(message)
+	for event_index in range(events.size()):
+		var event: Variant = events[event_index]
+		var event_tick: int = fallback_tick
+		if event is Dictionary:
+			event_tick = int((event as Dictionary).get("tick", fallback_tick))
+		if not events_by_tick.has(event_tick):
+			events_by_tick[event_tick] = []
+		(events_by_tick[event_tick] as Array).append({
+			"original_index": original_index,
+			"event_index": event_index,
+			"event": event,
+		})
+
+
+func _is_authority_sync_type(message_type: String) -> bool:
+	return message_type == TransportMessageTypesScript.INPUT_ACK \
+		or message_type == TransportMessageTypesScript.STATE_SUMMARY \
+		or _is_snapshot_type(message_type) \
+		or _is_terminal_type(message_type)
+
+
+func _is_snapshot_type(message_type: String) -> bool:
+	return message_type == TransportMessageTypesScript.CHECKPOINT \
+		or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT
+
+
+func _is_terminal_type(message_type: String) -> bool:
+	return message_type == TransportMessageTypesScript.MATCH_FINISHED
+
+
+func _ack_array_from_peer_map(ack_by_peer: Dictionary) -> Array:
+	var peer_ids := ack_by_peer.keys()
+	peer_ids.sort()
+	var result: Array = []
+	for peer_id in peer_ids:
+		result.append((ack_by_peer[peer_id] as Dictionary).duplicate(true))
+	return result
+
+
+func _events_array_from_tick_map(events_by_tick: Dictionary) -> Array:
+	var ticks := events_by_tick.keys()
+	ticks.sort()
+	var result: Array = []
+	for tick in ticks:
+		var event_records: Array = events_by_tick[tick]
+		event_records.sort_custom(_compare_event_records)
+		var events: Array = []
+		for record in event_records:
+			events.append((record as Dictionary).get("event"))
+		result.append({
+			"tick": int(tick),
+			"events": events,
+		})
+	return result
+
+
+func _compare_event_records(left: Dictionary, right: Dictionary) -> bool:
+	var left_message_index := int(left.get("original_index", 0))
+	var right_message_index := int(right.get("original_index", 0))
+	if left_message_index == right_message_index:
+		return int(left.get("event_index", 0)) < int(right.get("event_index", 0))
+	return left_message_index < right_message_index
+
+
+func _make_metrics(
+	incoming_batch_size: int,
+	raw_ack_count: int,
+	raw_summary_count: int,
+	raw_checkpoint_count: int,
+	raw_auth_snapshot_count: int,
+	coalesced_ack_count: int,
+	coalesced_snapshot_tick: int,
+	dropped_stale_snapshot_count: int,
+	dropped_intermediate_snapshot_count: int,
+	preserved_event_tick_count: int,
+	terminal_message_count: int,
+	passthrough_message_count: int,
+	coalesce_usec: int
+) -> Dictionary:
+	return {
+		"incoming_batch_size": incoming_batch_size,
+		"raw_ack_count": raw_ack_count,
+		"raw_summary_count": raw_summary_count,
+		"raw_checkpoint_count": raw_checkpoint_count,
+		"raw_auth_snapshot_count": raw_auth_snapshot_count,
+		"coalesced_ack_count": coalesced_ack_count,
+		"coalesced_snapshot_tick": coalesced_snapshot_tick,
+		"dropped_stale_snapshot_count": dropped_stale_snapshot_count,
+		"dropped_intermediate_snapshot_count": dropped_intermediate_snapshot_count,
+		"preserved_event_tick_count": preserved_event_tick_count,
+		"terminal_message_count": terminal_message_count,
+		"passthrough_message_count": passthrough_message_count,
+		"coalesce_usec": coalesce_usec,
+		"native_shadow_equal": false,
+		"native_shadow_mismatch_count": 0,
+	}

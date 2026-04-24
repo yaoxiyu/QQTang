@@ -411,7 +411,7 @@ func _poll_transport(current_tick: int) -> void:
 
 
 func _build_runtime_metrics() -> Dictionary:
-	return _metrics_collector.build_runtime_metrics(
+	var metrics: Dictionary = _metrics_collector.build_runtime_metrics(
 		_lifecycle_state,
 		get_lifecycle_state_name(),
 		is_battle_active(),
@@ -426,6 +426,12 @@ func _build_runtime_metrics() -> Dictionary:
 		_last_resync_tick,
 		use_remote_debug_inputs
 	)
+	if _bootstrap_client_runtime != null and _bootstrap_client_runtime.has_method("get_last_authority_batch_metrics"):
+		metrics["authority_batch"] = _bootstrap_client_runtime.get_last_authority_batch_metrics()
+	if _bootstrap_client_runtime != null and _bootstrap_client_runtime.has_method("build_metrics"):
+		var client_metrics: Dictionary = _bootstrap_client_runtime.build_metrics()
+		metrics["rollback"] = client_metrics.get("rollback", {})
+	return metrics
 
 
 func ingest_dedicated_server_message(message: Dictionary) -> void:

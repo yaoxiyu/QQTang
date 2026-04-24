@@ -4,6 +4,7 @@ extends RefCounted
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const BattleSessionBootstrapScript = preload("res://network/session/battle_session_bootstrap.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
+const NativeAuthorityBatchBridgeScript = preload("res://gameplay/native_bridge/native_authority_batch_bridge.gd")
 const DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 var _adapter = null
@@ -18,6 +19,7 @@ var _dedicated_client_connect_retry_deadline_msec: int = 0
 var _dedicated_client_connect_retry_host: String = ""
 var _dedicated_client_connect_retry_port: int = 0
 var _dedicated_client_connect_retry_timeout_sec: float = 5.0
+var _authority_batch_bridge: RefCounted = NativeAuthorityBatchBridgeScript.new()
 
 
 func configure(adapter) -> void:
@@ -176,7 +178,7 @@ func _poll_client_transport() -> void:
 				_adapter.client_session.last_confirmed_tick if _adapter.client_session != null else -1,
 			])
 		if not incoming.is_empty():
-			route_messages(incoming)
+			_route_client_poll_batch(incoming)
 
 
 func inject_pending_resume_snapshot() -> void:
@@ -274,6 +276,66 @@ func build_start_config(snapshot):
 func route_messages(messages: Array) -> void:
 	_adapter._ensure_runtime_message_router()
 	_adapter._runtime_message_router.route_messages(messages)
+
+
+func _route_client_poll_batch(incoming: Array) -> void:
+	var authority_messages: Array = []
+	var non_authority_messages: Array = []
+	for raw_message in incoming:
+		if not (raw_message is Dictionary):
+			continue
+		var message: Dictionary = raw_message
+		if _is_client_authority_sync_message(message):
+			authority_messages.append(message)
+		else:
+			non_authority_messages.append(message)
+	_route_non_authority_messages(non_authority_messages)
+	_ingest_client_authority_messages(authority_messages)
+
+
+func _ingest_client_authority_messages(authority_messages: Array) -> void:
+	if authority_messages.is_empty() or _adapter == null or _adapter._bootstrap_client_runtime == null:
+		return
+	var cursor: Dictionary = _adapter._bootstrap_client_runtime.build_authority_cursor()
+	cursor["waiting_full_authority"] = _is_waiting_for_dedicated_full_authority()
+	var batch: Dictionary = _authority_batch_bridge.coalesce_client_authority_batch(authority_messages, cursor)
+	var latest_snapshot: Dictionary = batch.get("latest_snapshot_message", {})
+	if _is_waiting_for_dedicated_full_authority():
+		if latest_snapshot.is_empty():
+			if not _logged_waiting_for_authority_opening:
+				_logged_waiting_for_authority_opening = true
+				_adapter.network_log_event.emit("client_runtime_ingest_deferred type=authority_batch reason=waiting_full_authority match_id=%s" % [
+					String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+				])
+			return
+		_dedicated_first_full_authority_received = true
+		_logged_waiting_for_authority_opening = false
+		_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
+			String(latest_snapshot.get("message_type", latest_snapshot.get("msg_type", ""))),
+			int(latest_snapshot.get("tick", 0)),
+			_adapter._bootstrap_local_peer_id,
+			_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+	])
+	_adapter._bootstrap_client_runtime.ingest_authority_batch(batch)
+	var terminal_messages: Variant = batch.get("terminal_messages", [])
+	if terminal_messages is Array and not terminal_messages.is_empty() and _adapter.current_context != null:
+		_adapter._finished_emitted = true
+		_adapter._lifecycle_state = _adapter.BattleLifecycleState.FINISHING
+
+
+func _is_client_authority_sync_message(message: Dictionary) -> bool:
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	return message_type == TransportMessageTypesScript.INPUT_ACK \
+		or message_type == TransportMessageTypesScript.STATE_SUMMARY \
+		or message_type == TransportMessageTypesScript.CHECKPOINT \
+		or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT \
+		or message_type == TransportMessageTypesScript.MATCH_FINISHED
+
+
+func _route_non_authority_messages(messages: Array) -> void:
+	if messages.is_empty():
+		return
+	route_messages(messages)
 
 
 func build_host_tick_messages(local_input: Dictionary = {}) -> Array:

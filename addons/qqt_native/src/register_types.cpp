@@ -8,6 +8,11 @@
 #include "explosion/native_explosion_kernel.h"
 #include "movement/native_movement_kernel.h"
 #include "snapshot/native_snapshot_ring.h"
+#include "sync/native_authority_batch_coalescer.h"
+#include "sync/native_input_buffer.h"
+#include "sync/native_battle_message_codec.h"
+#include "sync/native_rollback_planner.h"
+#include "sync/native_snapshot_diff.h"
 
 using namespace godot;
 
@@ -21,6 +26,11 @@ void initialize_qqt_native_module(ModuleInitializationLevel p_level) {
     ClassDB::register_class<QQTNativeSnapshotRing>();
     ClassDB::register_class<QQTNativeMovementKernel>();
     ClassDB::register_class<QQTNativeExplosionKernel>();
+    ClassDB::register_class<QQTNativeAuthorityBatchCoalescer>();
+    ClassDB::register_class<QQTNativeInputBuffer>();
+    ClassDB::register_class<QQTNativeSnapshotDiff>();
+    ClassDB::register_class<QQTNativeRollbackPlanner>();
+    ClassDB::register_class<QQTNativeBattleMessageCodec>();
 }
 
 void uninitialize_qqt_native_module(ModuleInitializationLevel p_level) {

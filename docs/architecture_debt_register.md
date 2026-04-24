@@ -2,14 +2,14 @@
 
 ## DEBT-010 battle authority batch consumption not coalesced
 - Risk level: P1
-- Status: open
+- Status: closed
 - Related dirs: `network/session/runtime/`, `network/session/`, `gameplay/network/rollback/`
 - Forbidden new-logic dirs: per-message authority rollback paths that bypass a batch coalescing boundary
-- Planned phase: phase31-system-design-and-performance
-- Done definition: client transport poll batches are coalesced before runtime ingestion; stale authority snapshots are dropped; one rendered client frame runs at most one rollback/resync from the latest useful authority snapshot; authority events remain ordered and are not lost when intermediate snapshots are skipped; profiling counters cover incoming batch size, checkpoint count, rollback count, replay ticks, and late input handling.
+- Planned phase: phase32-native-frame-sync-refactor
+- Done definition: client transport poll batches are coalesced before runtime ingestion; stale authority snapshots are dropped; one rendered client frame runs at most one rollback/resync from the latest useful authority snapshot; authority events remain ordered and are not lost when intermediate snapshots are skipped; profiling counters cover incoming batch size, checkpoint count, rollback count, replay ticks, and late input handling; native shadow parity is covered before execute mode is enabled.
 - Owner: battle-sync
 - Last updated: 2026-04-24
-- Linked tests/docs: `docs/architecture/battle_sync.md`, `docs/battle_sync_rule_audit.md`, `tests/integration/network/dual_client_runner.gd`, `tests/unit/network/rollback/rollback_controller_test.gd`
+- Linked tests/docs: `docs/architecture/battle_sync.md`, `docs/battle_sync_rule_audit.md`, `tests/unit/network/authority_batch_coalescer_test.gd`, `tests/unit/network/client_runtime_authority_batch_test.gd`, `tests/integration/network/client_authority_batch_coalescing_test.gd`, `tests/integration/network/client_authority_burst_recovery_test.gd`, `tests/integration/network/client_authority_fault_profile_test.gd`, `tests/performance/native/native_frame_sync_soak_test.gd`
 
 ## DEBT-001 app_runtime_root orchestration overload
 - Risk level: P1

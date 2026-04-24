@@ -95,6 +95,11 @@ sources = [
     os.path.join(SRC_DIR, "snapshot", "native_snapshot_ring.cpp"),
     os.path.join(SRC_DIR, "movement", "native_movement_kernel.cpp"),
     os.path.join(SRC_DIR, "explosion", "native_explosion_kernel.cpp"),
+    os.path.join(SRC_DIR, "sync", "native_authority_batch_coalescer.cpp"),
+    os.path.join(SRC_DIR, "sync", "native_input_buffer.cpp"),
+    os.path.join(SRC_DIR, "sync", "native_snapshot_diff.cpp"),
+    os.path.join(SRC_DIR, "sync", "native_rollback_planner.cpp"),
+    os.path.join(SRC_DIR, "sync", "native_battle_message_codec.cpp"),
 ]
 
 bin_name = "qqt_native.%s.%s.%s" % (platform, target, arch)

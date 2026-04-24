@@ -2,6 +2,13 @@ class_name RollbackController
 extends Node
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
+const NativeSnapshotDiffBridgeScript = preload("res://gameplay/native_bridge/native_snapshot_diff_bridge.gd")
+const NativeRollbackPlannerBridgeScript = preload("res://gameplay/native_bridge/native_rollback_planner_bridge.gd")
+
+const PLAN_NOOP := 0
+const PLAN_ROLLBACK := 1
+const PLAN_FORCE_RESYNC := 2
+const PLAN_DROP_STALE_AUTHORITY := 3
 
 signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
 signal full_visual_resync(snapshot: WorldSnapshot)
@@ -19,9 +26,14 @@ var compare_items: bool = true
 var rollback_count: int = 0
 var last_rollback_from_tick: int = -1
 var avg_replay_ticks: float = 0.0
+var last_replay_tick_count: int = 0
+var total_replay_ticks: int = 0
 var force_resync_count: int = 0
 var predicted_until_tick: int = 0
 var ignored_local_player_keys: Array[String] = []
+var _native_snapshot_diff_bridge: RefCounted = NativeSnapshotDiffBridgeScript.new()
+var _native_rollback_planner_bridge: RefCounted = NativeRollbackPlannerBridgeScript.new()
+var _last_native_planner_metrics: Dictionary = {}
 
 
 func configure(
@@ -63,6 +75,8 @@ func dispose() -> void:
 	rollback_count = 0
 	last_rollback_from_tick = -1
 	avg_replay_ticks = 0.0
+	last_replay_tick_count = 0
+	total_replay_ticks = 0
 	force_resync_count = 0
 	predicted_until_tick = 0
 	ignored_local_player_keys.clear()
@@ -85,15 +99,42 @@ func on_authoritative_snapshot(snapshot: WorldSnapshot) -> bool:
 		_force_resync(snapshot)
 		return true
 
-	if _is_snapshot_equal(local_snapshot, snapshot):
-		return false
+	var diff_result := describe_snapshot_diff(local_snapshot, snapshot)
+	var plan := _plan_rollback(snapshot, local_snapshot, diff_result)
+	match int(plan.get("decision", PLAN_NOOP)):
+		PLAN_NOOP:
+			return false
+		PLAN_FORCE_RESYNC:
+			_force_resync(snapshot)
+			return true
+		PLAN_ROLLBACK:
+			_rollback_from_snapshot(snapshot)
+			return true
+		PLAN_DROP_STALE_AUTHORITY:
+			return false
+		_:
+			return false
 
-	if _should_force_resync(snapshot, local_snapshot):
-		_force_resync(snapshot)
-		return true
 
-	_rollback_from_snapshot(snapshot)
-	return true
+func describe_snapshot_diff(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> Dictionary:
+	var baseline := _describe_snapshot_diff_baseline(local_snapshot, authoritative_snapshot)
+	if _native_snapshot_diff_bridge == null:
+		return baseline
+	return _native_snapshot_diff_bridge.diff_snapshots(
+		_snapshot_to_diff_dict(local_snapshot),
+		_snapshot_to_diff_dict(authoritative_snapshot),
+		_diff_options(),
+		baseline
+	)
+
+
+func get_native_rollback_shadow_metrics() -> Dictionary:
+	var metrics := _last_native_planner_metrics.duplicate(true)
+	if _native_snapshot_diff_bridge != null:
+		metrics["snapshot_diff"] = _native_snapshot_diff_bridge.get_metrics()
+	if _native_rollback_planner_bridge != null:
+		metrics["rollback_planner"] = _native_rollback_planner_bridge.get_metrics()
+	return metrics
 
 
 func on_checksum_mismatch(server_tick: int, server_snapshot: WorldSnapshot = null) -> bool:
@@ -123,6 +164,8 @@ func _rollback_from_snapshot(authoritative_snapshot: WorldSnapshot) -> void:
 
 	var replay_to : int = max(predicted_until_tick, authoritative_snapshot.tick_id)
 	var replay_count : int = max(0, replay_to - authoritative_snapshot.tick_id)
+	last_replay_tick_count = replay_count
+	total_replay_ticks += replay_count
 	avg_replay_ticks = ((avg_replay_ticks * float(max(rollback_count - 1, 0))) + replay_count) / float(max(rollback_count, 1))
 
 	var before_positions := _capture_player_positions()
@@ -166,6 +209,7 @@ func _force_resync(snapshot: WorldSnapshot) -> void:
 		return
 
 	force_resync_count += 1
+	last_replay_tick_count = 0
 	snapshot_service.restore_snapshot(predicted_sim_world, snapshot)
 	if predicted_sim_world.tick_runner != null:
 		predicted_sim_world.tick_runner.set_tick(snapshot.tick_id)
@@ -189,6 +233,103 @@ func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot:
 	if compare_items and authoritative_snapshot.items.size() != local_snapshot.items.size():
 		return true
 	return false
+
+
+func _describe_snapshot_diff_baseline(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> Dictionary:
+	if local_snapshot == null or authoritative_snapshot == null:
+		return _make_diff_result(false, 1, "missing")
+	if not _local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players):
+		return _make_diff_result(false, 2, "local_player")
+	if compare_bubbles and not _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles):
+		return _make_diff_result(false, 4, "bubbles")
+	if compare_items and not _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items):
+		return _make_diff_result(false, 8, "items")
+	if local_snapshot.rng_state != 0 and authoritative_snapshot.rng_state != 0 and local_snapshot.rng_state != authoritative_snapshot.rng_state:
+		return _make_diff_result(false, 16, "rng_state")
+	return _make_diff_result(true, 0, "")
+
+
+func _make_diff_result(equal: bool, reason_mask: int, section: String) -> Dictionary:
+	return {
+		"equal": equal,
+		"reason_mask": reason_mask,
+		"first_diff_section": section,
+		"first_diff_index": -1,
+		"first_diff_field": "",
+		"local_value": null,
+		"authority_value": null,
+		"force_resync_reason_mask": 0,
+	}
+
+
+func _plan_rollback(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary) -> Dictionary:
+	var baseline_plan := _build_baseline_plan(authoritative_snapshot, local_snapshot, diff_result)
+	var plan := baseline_plan
+	if _native_rollback_planner_bridge == null:
+		return plan
+	plan = _native_rollback_planner_bridge.plan(
+		_build_planner_cursor(authoritative_snapshot, local_snapshot),
+		diff_result,
+		baseline_plan
+	)
+	_last_native_planner_metrics = {
+		"last_plan": plan,
+	}
+	return plan
+
+
+func _build_baseline_plan(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary) -> Dictionary:
+	var decision := PLAN_NOOP
+	if bool(diff_result.get("equal", false)):
+		decision = PLAN_NOOP
+	elif _should_force_resync(authoritative_snapshot, local_snapshot):
+		decision = PLAN_FORCE_RESYNC
+	else:
+		decision = PLAN_ROLLBACK
+	var authority_tick := authoritative_snapshot.tick_id if authoritative_snapshot != null else 0
+	var replay_to: int = max(predicted_until_tick, authority_tick)
+	return {
+		"decision": decision,
+		"rollback_from_tick": authority_tick if authoritative_snapshot != null else -1,
+		"replay_to_tick": replay_to,
+		"replay_tick_count": max(0, replay_to - authority_tick),
+		"reason_mask": int(diff_result.get("reason_mask", 0)),
+	}
+
+
+func _build_planner_cursor(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot) -> Dictionary:
+	return {
+		"authoritative_tick": authoritative_snapshot.tick_id if authoritative_snapshot != null else -1,
+		"latest_authoritative_tick": -1,
+		"predicted_until_tick": predicted_until_tick,
+		"max_rollback_window": max_rollback_window,
+		"local_snapshot_exists": local_snapshot != null,
+		"rng_state_match": authoritative_snapshot != null and local_snapshot != null and authoritative_snapshot.rng_state == local_snapshot.rng_state,
+		"force_resync": authoritative_snapshot != null and _should_force_resync(authoritative_snapshot, local_snapshot),
+		"compare_bubbles": compare_bubbles,
+		"compare_items": compare_items,
+	}
+
+
+func _snapshot_to_diff_dict(snapshot: WorldSnapshot) -> Dictionary:
+	if snapshot == null:
+		return {}
+	return {
+		"tick": snapshot.tick_id,
+		"players": snapshot.players,
+		"bubbles": snapshot.bubbles,
+		"items": snapshot.items,
+		"rng_state": snapshot.rng_state,
+	}
+
+
+func _diff_options() -> Dictionary:
+	return {
+		"local_peer_id": local_peer_id,
+		"compare_bubbles": compare_bubbles,
+		"compare_items": compare_items,
+		"ignored_local_player_keys": ignored_local_player_keys,
+	}
 
 
 func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> bool:
