@@ -4,6 +4,7 @@ extends Node
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
 const NativeSnapshotDiffBridgeScript = preload("res://gameplay/native_bridge/native_snapshot_diff_bridge.gd")
 const NativeRollbackPlannerBridgeScript = preload("res://gameplay/native_bridge/native_rollback_planner_bridge.gd")
+const LogSyncScript = preload("res://app/logging/log_sync.gd")
 
 const PLAN_NOOP := 0
 const PLAN_ROLLBACK := 1
@@ -11,6 +12,7 @@ const PLAN_FORCE_RESYNC := 2
 const PLAN_DROP_STALE_AUTHORITY := 3
 const MAX_SYNC_REPLAY_TICKS := 8
 const MAX_DEFERRED_REPLAY_TICKS := 32
+const TRACE_TAG := "sync.trace"
 
 signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
 signal full_visual_resync(snapshot: WorldSnapshot)
@@ -103,6 +105,7 @@ func on_authoritative_snapshot(snapshot: WorldSnapshot) -> bool:
 
 	var diff_result := describe_snapshot_diff(local_snapshot, snapshot)
 	var plan := _plan_rollback(snapshot, local_snapshot, diff_result)
+	_log_rollback_plan(snapshot, diff_result, plan)
 	match int(plan.get("decision", PLAN_NOOP)):
 		PLAN_NOOP:
 			return false
@@ -336,6 +339,31 @@ func _to_player_command(frame: PlayerInputFrame) -> PlayerCommand:
 	command.remote_trigger = frame.action_skill1 or frame.action_skill2
 	command.sequence_id = frame.seq
 	return command
+
+
+func _log_rollback_plan(snapshot: WorldSnapshot, diff_result: Dictionary, plan: Dictionary) -> void:
+	if snapshot == null:
+		return
+	var decision := int(plan.get("decision", PLAN_NOOP))
+	if decision == PLAN_NOOP:
+		return
+	LogSyncScript.info(
+		"rollback_plan tick=%d decision=%d predicted_until=%d last_auth=%d reason=%s field=%s local=%s auth=%s replay_ticks=%d force=%s" % [
+			snapshot.tick_id,
+			decision,
+			predicted_until_tick,
+			last_authoritative_tick,
+			String(diff_result.get("first_diff_section", "")),
+			String(diff_result.get("first_diff_field", "")),
+			str(diff_result.get("local_value", null)),
+			str(diff_result.get("authority_value", null)),
+			max(0, predicted_until_tick - snapshot.tick_id),
+			str(plan.get("force_resync", false)),
+		],
+		"",
+		0,
+		"%s sync.rollback.plan" % TRACE_TAG
+	)
 
 
 func _capture_player_positions() -> Dictionary:

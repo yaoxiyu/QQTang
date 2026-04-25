@@ -10,7 +10,8 @@ const ClientRuntimeResumeCoordinatorScript = preload("res://network/session/runt
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
 const INPUT_BATCH_RECENT_FRAME_COUNT := 6
-const MIN_INPUT_LEAD_TICKS := 2
+const PLACE_REDUNDANCY_TICKS := 3
+const MIN_INPUT_LEAD_TICKS := 3
 const MAX_INPUT_LEAD_TICKS := 12
 const OPENING_INPUT_LEAD_TICKS := 6
 
@@ -37,6 +38,7 @@ var _last_authority_batch_metrics: Dictionary = {}
 var _resume_coordinator: RefCounted = ClientRuntimeResumeCoordinatorScript.new()
 var _input_send_seq: int = 0
 var _runtime_input_lead_ticks: int = 0
+var _place_redundancy_ticks_remaining: int = 0
 
 
 func configure(peer_id: int) -> void:
@@ -101,7 +103,7 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 		return {}
 	var next_tick := _resolve_next_local_input_tick()
 	var requested_place := bool(local_input.get("action_place", false))
-	var effective_place := _resolve_local_place_action(requested_place, next_tick)
+	var effective_place := _resolve_redundant_place_action(requested_place, next_tick)
 	var frame := client_session.sample_input_for_tick(
 		next_tick,
 		clamp(int(local_input.get("move_x", 0)), -1, 1),
@@ -124,7 +126,7 @@ func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
 	var frames: Array = []
 	var start_tick: int = max(0, latest_frame.tick_id - INPUT_BATCH_RECENT_FRAME_COUNT + 1)
 	for tick in range(start_tick, latest_frame.tick_id + 1):
-		var buffered_frame: PlayerInputFrame = client_session.local_input_buffer.get_frame(tick) if client_session != null and client_session.local_input_buffer != null else null
+		var buffered_frame: PlayerInputFrame = client_session.get_network_frame(tick) if client_session != null else null
 		if buffered_frame != null:
 			frames.append(buffered_frame.to_dict())
 	return {
@@ -137,7 +139,6 @@ func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
 		"client_seq": _input_send_seq,
 		"latest_tick": latest_frame.tick_id,
 		"tick": latest_frame.tick_id,
-		"frame": latest_frame.to_dict(),
 		"frames": frames,
 	}
 
@@ -325,6 +326,7 @@ func shutdown_runtime() -> void:
 	_resume_coordinator.reset()
 	_input_send_seq = 0
 	_runtime_input_lead_ticks = 0
+	_place_redundancy_ticks_remaining = 0
 
 
 # LegacyMigration: Inject resume checkpoint for battle recovery
@@ -417,9 +419,21 @@ func _apply_batch_input_acks(input_acks: Array) -> void:
 			client_session.on_input_ack(int((ack as Dictionary).get("ack_tick", 0)))
 
 
+func _apply_ack_by_peer(ack_by_peer: Variant) -> void:
+	if client_session == null or not (ack_by_peer is Dictionary):
+		return
+	var expected_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
+	for key in (ack_by_peer as Dictionary).keys():
+		var peer_id := int(key)
+		if peer_id != expected_peer_id and peer_id != local_peer_id:
+			continue
+		client_session.on_input_ack(int((ack_by_peer as Dictionary).get(key, 0)))
+
+
 func _apply_latest_state_summary(message: Dictionary) -> void:
 	if client_session == null or message.is_empty():
 		return
+	_apply_ack_by_peer(message.get("ack_by_peer", {}))
 	client_session.on_state_summary(message)
 	_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
 	if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
@@ -519,6 +533,15 @@ func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool
 		local_tick,
 		prediction_controller.predicted_sim_world if prediction_controller != null else null
 	)
+
+
+func _resolve_redundant_place_action(requested_place: bool, local_tick: int) -> bool:
+	if _resolve_local_place_action(requested_place, local_tick):
+		_place_redundancy_ticks_remaining = PLACE_REDUNDANCY_TICKS
+	if _place_redundancy_ticks_remaining <= 0:
+		return false
+	_place_redundancy_ticks_remaining -= 1
+	return true
 
 
 func _inspect_pending_place_request(authoritative_tick: int, source: String) -> void:
@@ -652,7 +675,7 @@ func _should_suppress_rollback_probe_log(reasons: Array[String]) -> bool:
 
 
 func _find_player_entry_for_log(values: Array[Dictionary]) -> String:
-	var target_slot := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
+	var target_slot := _resolve_controlled_slot(start_config)
 	for entry in values:
 		if int(entry.get("player_slot", -1)) == target_slot:
 			return str(entry)
@@ -684,16 +707,6 @@ func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector
 
 func _on_full_visual_resync(snapshot: WorldSnapshot) -> void:
 	_last_resync_tick = snapshot.tick_id if snapshot != null else -1
-	LogSyncScript.info(
-		"rollback_resync tick=%d rollback_count=%d resync_count=%d" % [
-			_last_resync_tick,
-			prediction_controller.rollback_controller.rollback_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
-			prediction_controller.rollback_controller.force_resync_count if prediction_controller != null and prediction_controller.rollback_controller != null else -1,
-		],
-		"",
-		0,
-		"%s sync.client_runtime.rollback" % TRACE_TAG
-	)
 	prediction_event.emit({
 		"type": "full_resync",
 		"tick": _last_resync_tick,

@@ -130,24 +130,12 @@ func update_match_room_config(match_format_id: String, selected_mode_ids: Array[
 
 
 func enter_match_queue() -> Dictionary:
-	_log_room("enter_match_queue_called", {
-		"is_match_room": RoomUseCaseRuntimeStateScript.is_match_room(app_runtime),
-		"is_online_room": RoomUseCaseRuntimeStateScript.is_online_room(app_runtime),
-		"has_gateway": room_client_gateway != null,
-		"has_method": room_client_gateway.has_method("request_enter_match_queue") if room_client_gateway != null else false,
-		"pending": _runtime_state.enter_match_queue_pending,
-		"pending_room_id": _runtime_state.enter_match_queue_pending_room_id,
-	})
 	var queue_check: Dictionary = _queue_command.can_enter_match_queue(app_runtime, room_client_gateway)
 	if not bool(queue_check.get("ok", false)):
 		return queue_check
 	if _runtime_state.enter_match_queue_pending:
-		_log_room("enter_match_queue_duplicate_ignored", {
-			"pending_room_id": _runtime_state.enter_match_queue_pending_room_id,
-		})
 		return {"ok": true, "error_code": "", "user_message": "Entering match queue...", "pending": true}
 	_mark_enter_match_queue_pending()
-	_log_room("enter_match_queue_sending", {})
 	return _queue_command.request_enter_match_queue(app_runtime, room_client_gateway)
 
 
@@ -425,7 +413,7 @@ func _build_pending_connection_context() -> Dictionary:
 
 func _room_log_sample_every(event_name: String) -> int:
 	match event_name:
-		"authoritative_room_snapshot_received", "enter_match_queue_called":
+		"authoritative_room_snapshot_received":
 			return 10
 		_:
 			return 1

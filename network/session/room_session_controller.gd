@@ -562,6 +562,59 @@ func reset_ready_state() -> void:
 	_emit_snapshot_changed()
 
 
+func recover_room_after_battle_return(reset_ready: bool = true) -> void:
+	if room_session == null:
+		return
+	if reset_ready:
+		for peer_id in room_session.peers:
+			room_session.set_ready(peer_id, false)
+			if member_profiles.has(peer_id):
+				var profile: Dictionary = member_profiles.get(peer_id, {})
+				profile["member_phase"] = "idle"
+				member_profiles[peer_id] = profile
+	room_session.room_phase = "idle"
+	room_session.room_phase_reason = "return_completed"
+	room_session.room_lifecycle_state = "idle"
+	room_session.match_active = false
+	room_session.room_queue_state = "idle"
+	room_session.room_queue_entry_id = ""
+	room_session.room_queue_status_text = ""
+	room_session.room_queue_error_code = ""
+	room_session.room_queue_error_message = ""
+	room_session.queue_phase = "completed"
+	room_session.queue_terminal_reason = "match_finalized"
+	room_session.battle_allocation_state = ""
+	room_session.battle_phase = "completed"
+	room_session.battle_terminal_reason = "return_completed"
+	room_session.battle_status_text = ""
+	room_session.current_assignment_id = ""
+	room_session.current_battle_id = ""
+	room_session.current_match_id = ""
+	room_session.battle_server_host = ""
+	room_session.battle_server_port = 0
+	room_session.can_toggle_ready = true
+	room_session.can_leave_room = true
+	room_session.can_cancel_queue = false
+	room_session.can_enter_queue = false
+	room_session.can_update_match_room_config = _is_match_room_kind(room_session.room_kind) and owner_peer_id > 0
+	room_session.can_update_selection = _is_manual_room_kind(room_session.room_kind) and owner_peer_id > 0
+	room_session.can_start_manual_battle = false
+	room_runtime_context.pending_match_id = ""
+	_log_room_session("recover_room_after_battle_return", {
+		"reset_ready": reset_ready,
+		"room_id": String(room_session.room_id),
+		"room_kind": String(room_session.room_kind),
+		"room_phase": String(room_session.room_phase),
+		"room_queue_state": String(room_session.room_queue_state),
+		"queue_phase": String(room_session.queue_phase),
+		"can_toggle_ready": bool(room_session.can_toggle_ready),
+		"can_enter_queue": bool(room_session.can_enter_queue),
+		"can_cancel_queue": bool(room_session.can_cancel_queue),
+	})
+	_sync_runtime_context()
+	_emit_snapshot_changed()
+
+
 const LogSessionScript = preload("res://app/logging/log_session.gd")
 
 func set_room_flow_state(new_state: int, reason: String = "") -> void:
@@ -838,6 +891,14 @@ func _map_room_phase_to_session_lifecycle_state(room_phase: String) -> int:
 			return SessionLifecycleStateScript.Value.RECOVERING_ROOM
 		_:
 			return SessionLifecycleStateScript.Value.ROOM_ACTIVE
+
+
+func _is_match_room_kind(room_kind: String) -> bool:
+	return room_kind == "casual_match_room" or room_kind == "ranked_match_room"
+
+
+func _is_manual_room_kind(room_kind: String) -> bool:
+	return room_kind == "practice" or room_kind == "custom_room" or room_kind == "private_room" or room_kind == "public_room"
 
 
 func _should_drop_stale_snapshot(snapshot: RoomSnapshot) -> bool:

@@ -1130,9 +1130,6 @@ func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
 		if !isMatchRoomKind(room.RoomKind) {
 			continue
 		}
-		if isProtectedBattleRoomPhase(room.RoomState.Phase) {
-			continue
-		}
 		if room.QueueState.QueueEntryID == "" {
 			continue
 		}
@@ -1159,10 +1156,10 @@ func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclie
 	if room.QueueState.QueueEntryID != target.queueEntryID {
 		return nil, false
 	}
-	if isProtectedBattleRoomPhase(room.RoomState.Phase) {
+	if !shouldSyncQueueState(room.QueueState.Phase) {
 		return nil, false
 	}
-	if !shouldSyncQueueState(room.QueueState.Phase) {
+	if isProtectedBattleRoomPhase(room.RoomState.Phase) && !isAuthoritativeMatchFinalizedForRoom(room, result) {
 		return nil, false
 	}
 
@@ -1173,6 +1170,37 @@ func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclie
 
 	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), true
+}
+
+func isAuthoritativeMatchFinalizedForRoom(room *domain.RoomAggregate, result gameclient.GetPartyQueueStatusResult) bool {
+	if room == nil {
+		return false
+	}
+	queuePhase, terminalReason := resolveQueuePhaseAndTerminalReason(
+		result.QueuePhase,
+		result.QueueTerminalReason,
+		result.QueueState,
+		result.OK,
+	)
+	if queuePhase != QueuePhaseCompleted || terminalReason != QueueReasonMatchFinalized {
+		return false
+	}
+	resultAssignmentID := strings.TrimSpace(result.AssignmentID)
+	resultBattleID := strings.TrimSpace(result.BattleID)
+	resultMatchID := strings.TrimSpace(result.MatchID)
+	if resultAssignmentID == "" && resultBattleID == "" && resultMatchID == "" {
+		return false
+	}
+	if resultAssignmentID != "" && room.BattleState.AssignmentID != "" && resultAssignmentID != room.BattleState.AssignmentID {
+		return false
+	}
+	if resultBattleID != "" && room.BattleState.BattleID != "" && resultBattleID != room.BattleState.BattleID {
+		return false
+	}
+	if resultMatchID != "" && room.BattleState.MatchID != "" && resultMatchID != room.BattleState.MatchID {
+		return false
+	}
+	return true
 }
 
 func allMembersReady(members map[string]domain.RoomMember) bool {

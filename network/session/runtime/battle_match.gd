@@ -65,7 +65,9 @@ func build_input_frame_for_tick(tick_id: int) -> InputFrame:
 		var slot := int(peer_slot_by_peer_id.get(peer_id, -1))
 		if slot < 0:
 			continue
-		frame.set_command(slot, _to_player_command(input_buffer.get_input(peer_id, tick_id)))
+		var player_input := input_buffer.get_input(peer_id, tick_id)
+		var command := _to_player_command(player_input)
+		frame.set_command(slot, command)
 
 	return frame
 

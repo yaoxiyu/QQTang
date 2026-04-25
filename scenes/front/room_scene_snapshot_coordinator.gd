@@ -48,7 +48,11 @@ func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 		"required_party_size": int(snapshot.required_party_size),
 		"member_count": snapshot.members.size(),
 		"all_ready": bool(snapshot.all_ready),
+		"room_queue_state": String(snapshot.room_queue_state),
+		"queue_phase": String(snapshot.queue_phase),
+		"battle_phase": String(snapshot.battle_phase),
 		"can_enter_queue": bool(view_model.get("can_enter_queue", false)),
+		"can_cancel_queue": bool(view_model.get("can_cancel_queue", false)),
 		"can_ready": bool(view_model.get("can_ready", false)),
 		"blocker_text": String(view_model.get("blocker_text", "")),
 		"local_character_id": String(view_model.get("local_character_id", "")),
@@ -145,6 +149,10 @@ func _log_room_scene(event_name: String, payload: Dictionary) -> void:
 			"queue_type": String(payload.get("queue_type", "")),
 			"match_format_id": String(payload.get("match_format_id", "")),
 			"can_enter_queue": bool(payload.get("can_enter_queue", false)),
+			"can_cancel_queue": bool(payload.get("can_cancel_queue", false)),
 			"can_ready": bool(payload.get("can_ready", false)),
+			"room_queue_state": String(payload.get("room_queue_state", "")),
+			"queue_phase": String(payload.get("queue_phase", "")),
+			"battle_phase": String(payload.get("battle_phase", "")),
 		}
 	LogFrontScript.debug("[room_scene_snapshot] %s %s" % [event_name, JSON.stringify(summary)], "", 0, "front.room.scene.snapshot")

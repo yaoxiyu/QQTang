@@ -17,6 +17,20 @@ func test_ingest_authority_batch_applies_max_ack_once() -> void:
 	runtime.queue_free()
 
 
+func test_ingest_state_summary_applies_merged_ack_by_peer() -> void:
+	var runtime := _runtime_with_session(7)
+	runtime.ingest_network_message({
+		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
+		"tick": 12,
+		"ack_by_peer": {7: 12},
+		"player_summary": {},
+		"events": [],
+	})
+
+	assert_eq(runtime.client_session.last_confirmed_tick, 12)
+	runtime.queue_free()
+
+
 func test_ingest_authority_batch_runs_one_rollback_for_latest_snapshot() -> void:
 	var runtime := _runtime_with_session(7)
 	runtime.ingest_authority_batch({

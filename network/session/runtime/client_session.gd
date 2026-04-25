@@ -8,6 +8,7 @@ var latest_snapshot_tick: int = 0
 var latest_checksum: int = 0
 var outgoing_input_frames: Array[PlayerInputFrame] = []
 var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
+var network_input_buffer: InputRingBuffer = InputRingBuffer.new()
 var latest_player_summary: Array[Dictionary] = []
 
 
@@ -15,6 +16,7 @@ func configure(peer_id: int, p_controlled_peer_id: int = 0, ring_capacity: int =
 	local_peer_id = peer_id
 	controlled_peer_id = p_controlled_peer_id if p_controlled_peer_id > 0 else peer_id
 	local_input_buffer = InputRingBuffer.new(ring_capacity)
+	network_input_buffer = InputRingBuffer.new(ring_capacity)
 	last_confirmed_tick = 0
 	latest_snapshot_tick = 0
 	latest_checksum = 0
@@ -26,6 +28,7 @@ func send_input(frame: PlayerInputFrame, prediction_frame: PlayerInputFrame = nu
 	# LegacyMigration: Use controlled_peer_id for battle control identity
 	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.sanitize()
+	network_input_buffer.put(frame)
 	if prediction_frame != null:
 		prediction_frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 		prediction_frame.sanitize()
@@ -70,6 +73,10 @@ func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place:
 
 func get_local_frame(tick_id: int) -> PlayerInputFrame:
 	return local_input_buffer.get_frame(tick_id)
+
+
+func get_network_frame(tick_id: int) -> PlayerInputFrame:
+	return network_input_buffer.get_frame(tick_id)
 
 func _coerce_player_summary(raw_summary: Variant) -> Array[Dictionary]:
 	var coerced: Array[Dictionary] = []

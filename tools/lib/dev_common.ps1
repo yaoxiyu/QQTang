@@ -117,7 +117,7 @@ function Get-QQTProfileConfig {
         }
         Room = @{
             Host = '127.0.0.1'
-            Port = 9000
+            Port = 9100
         }
     }
 }

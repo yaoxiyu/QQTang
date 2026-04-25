@@ -113,7 +113,7 @@ func (RoomTransitionEngine) ApplyQueueProjection(room *domain.RoomAggregate, own
 	if room == nil {
 		return false
 	}
-	if isProtectedBattleRoomPhase(room.RoomState.Phase) {
+	if isProtectedBattleRoomPhase(room.RoomState.Phase) && !isProtectedBattleFinalizedProjection(room, update) {
 		return false
 	}
 	changed := false
@@ -419,6 +419,28 @@ func isProtectedBattleRoomPhase(roomPhase string) bool {
 	default:
 		return false
 	}
+}
+
+func isProtectedBattleFinalizedProjection(room *domain.RoomAggregate, update QueueProjectionUpdate) bool {
+	if room == nil {
+		return false
+	}
+	if update.QueuePhase != QueuePhaseCompleted || terminalReasonOrNone(update.QueueTerminalReason) != QueueReasonMatchFinalized {
+		return false
+	}
+	if update.AssignmentID == "" && update.BattleID == "" && update.MatchID == "" {
+		return false
+	}
+	if update.AssignmentID != "" && room.BattleState.AssignmentID != "" && update.AssignmentID != room.BattleState.AssignmentID {
+		return false
+	}
+	if update.BattleID != "" && room.BattleState.BattleID != "" && update.BattleID != room.BattleState.BattleID {
+		return false
+	}
+	if update.MatchID != "" && room.BattleState.MatchID != "" && update.MatchID != room.BattleState.MatchID {
+		return false
+	}
+	return true
 }
 
 func terminalReasonOrNone(reason string) string {

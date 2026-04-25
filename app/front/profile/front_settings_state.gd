@@ -2,6 +2,7 @@ class_name FrontSettingsState
 extends RefCounted
 
 const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
+const LEGACY_LOCAL_ROOM_PORT := 9000
 
 var remember_profile: bool = true
 var auto_enter_lobby: bool = false
@@ -78,12 +79,16 @@ static func from_dict(data: Dictionary) -> FrontSettingsState:
 		state.last_server_host = RoomDefaultsScript.DEFAULT_HOST
 	if state.last_server_port <= 0:
 		state.last_server_port = RoomDefaultsScript.DEFAULT_PORT
+	if _is_local_host(state.last_server_host) and state.last_server_port == LEGACY_LOCAL_ROOM_PORT:
+		state.last_server_port = RoomDefaultsScript.DEFAULT_PORT
 	if state.last_queue_type.strip_edges().is_empty():
 		state.last_queue_type = "casual"
 	state.last_room_id = String(data.get("last_room_id", ""))
 	state.reconnect_room_id = String(data.get("reconnect_room_id", ""))
 	state.reconnect_host = String(data.get("reconnect_host", ""))
 	state.reconnect_port = int(data.get("reconnect_port", 0))
+	if _is_local_host(state.reconnect_host) and state.reconnect_port == LEGACY_LOCAL_ROOM_PORT:
+		state.reconnect_port = RoomDefaultsScript.DEFAULT_PORT
 	state.reconnect_room_kind = String(data.get("reconnect_room_kind", ""))
 	state.reconnect_room_display_name = String(data.get("reconnect_room_display_name", ""))
 	state.reconnect_topology = String(data.get("reconnect_topology", ""))
@@ -112,3 +117,8 @@ func clear_reconnect_ticket() -> void:
 	reconnect_token = ""
 	reconnect_state = ""
 	reconnect_resume_deadline_msec = 0
+
+
+static func _is_local_host(host: String) -> bool:
+	var normalized := host.strip_edges().to_lower()
+	return normalized.is_empty() or normalized == "127.0.0.1" or normalized == "localhost" or normalized == "::1"

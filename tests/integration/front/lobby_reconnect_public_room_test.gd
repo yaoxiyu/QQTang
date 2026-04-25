@@ -9,6 +9,7 @@ func test_main() -> void:
 	ok = _test_reconnect_ticket_stores_public_room_kind() and ok
 	ok = _test_lobby_view_state_carries_reconnect_kind() and ok
 	ok = _test_reconnect_ticket_serialization_round_trip() and ok
+	ok = _test_legacy_local_room_port_migrates_to_default() and ok
 
 
 func _test_reconnect_ticket_stores_public_room_kind() -> bool:
@@ -99,4 +100,32 @@ func _test_reconnect_ticket_serialization_round_trip() -> bool:
 		return false
 	return true
 
+
+func _test_legacy_local_room_port_migrates_to_default() -> bool:
+	var restored := FrontSettingsStateScript.from_dict({
+		"last_server_host": "127.0.0.1",
+		"last_server_port": 9000,
+		"reconnect_host": "localhost",
+		"reconnect_port": 9000,
+	})
+	if restored.last_server_port != 9100:
+		print("FAIL: local last_server_port 9000 should migrate to 9100")
+		return false
+	if restored.reconnect_port != 9100:
+		print("FAIL: local reconnect_port 9000 should migrate to 9100")
+		return false
+
+	var remote_restored := FrontSettingsStateScript.from_dict({
+		"last_server_host": "10.0.0.8",
+		"last_server_port": 9000,
+		"reconnect_host": "10.0.0.8",
+		"reconnect_port": 9000,
+	})
+	if remote_restored.last_server_port != 9000:
+		print("FAIL: remote last_server_port 9000 should be preserved")
+		return false
+	if remote_restored.reconnect_port != 9000:
+		print("FAIL: remote reconnect_port 9000 should be preserved")
+		return false
+	return true
 

@@ -233,6 +233,7 @@ func (d *Dispatcher) handleToggleReady(conn *Connection, env *ClientEnvelope) ([
 	}
 	snapshot, err := d.app.ToggleReady(roomapp.ToggleReadyInput{RoomID: roomID, MemberID: memberID})
 	if err != nil {
+		d.logOperationRejected("ToggleReady", conn, roomID, memberID, err)
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "ToggleReady", "ROOM_TOGGLE_READY_REJECTED", err.Error())}, nil
 	}
 	d.logSnapshotCapabilities("ToggleReady", conn, snapshot)
@@ -310,6 +311,7 @@ func (d *Dispatcher) handleCancelMatchQueue(conn *Connection, env *ClientEnvelop
 	}
 	snapshot, err := d.app.CancelMatchQueue(roomapp.CancelMatchQueueInput{RoomID: roomID, MemberID: memberID})
 	if err != nil {
+		d.logOperationRejected("CancelMatchQueue", conn, roomID, memberID, err)
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "CancelMatchQueue", "ROOM_CANCEL_MATCH_QUEUE_REJECTED", err.Error())}, nil
 	}
 	return [][]byte{EncodeOperationAccepted(conn, env.RequestID, "CancelMatchQueue"), EncodeSnapshotPush(conn, env.RequestID, snapshot)}, nil
@@ -364,4 +366,35 @@ func (d *Dispatcher) logSnapshotCapabilities(operation string, conn *Connection,
 		"can_update_match_room_config", snapshot.Capabilities.CanUpdateMatchRoomConfig,
 		"can_enter_queue", snapshot.Capabilities.CanEnterQueue,
 	)
+}
+
+func (d *Dispatcher) logOperationRejected(operation string, conn *Connection, roomID string, memberID string, cause error) {
+	if d == nil || d.logger == nil {
+		return
+	}
+	connID := ""
+	if conn != nil {
+		connID = conn.ID()
+	}
+	attrs := []any{
+		"operation", operation,
+		"conn_id", connID,
+		"room_id", roomID,
+		"member_id", memberID,
+		"error", cause.Error(),
+	}
+	if snapshot, err := d.app.SnapshotProjection(roomID); err == nil && snapshot != nil {
+		attrs = append(attrs,
+			"room_kind", snapshot.RoomKind,
+			"room_phase", snapshot.RoomPhase,
+			"queue_phase", snapshot.QueuePhase,
+			"queue_terminal_reason", snapshot.QueueTerminalReason,
+			"battle_phase", snapshot.BattlePhase,
+			"battle_terminal_reason", snapshot.BattleTerminalReason,
+			"can_toggle_ready", snapshot.Capabilities.CanToggleReady,
+			"can_enter_queue", snapshot.Capabilities.CanEnterQueue,
+			"can_cancel_queue", snapshot.Capabilities.CanCancelQueue,
+		)
+	}
+	d.logger.Warn("room operation rejected", attrs...)
 }

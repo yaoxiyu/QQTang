@@ -48,6 +48,7 @@ var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 var _battle_flow_coordinator = BattleFlowCoordinatorScript.new()
 var _battle_result_transition_controller = BattleResultTransitionControllerScript.new()
 var _pressed_direction_stack: Array[String] = []
+var _direction_tap_stack: Array[String] = []
 var _last_place_pressed: bool = false
 var _place_action_latched: bool = false
 var _runtime_bound: bool = false
@@ -143,18 +144,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.is_action_pressed("ui_left"):
 		_push_direction("left")
+		_latch_direction_tap("left")
 	elif event.is_action_released("ui_left"):
 		_remove_direction("left")
 	if event.is_action_pressed("ui_right"):
 		_push_direction("right")
+		_latch_direction_tap("right")
 	elif event.is_action_released("ui_right"):
 		_remove_direction("right")
 	if event.is_action_pressed("ui_up"):
 		_push_direction("up")
+		_latch_direction_tap("up")
 	elif event.is_action_released("ui_up"):
 		_remove_direction("up")
 	if event.is_action_pressed("ui_down"):
 		_push_direction("down")
+		_latch_direction_tap("down")
 	elif event.is_action_released("ui_down"):
 		_remove_direction("down")
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
@@ -239,6 +244,7 @@ func _release_dedicated_authority_opening() -> void:
 	_battle_visuals_released = true
 	_tick_accumulator = 0.0
 	_pressed_direction_stack.clear()
+	_direction_tap_stack.clear()
 	_last_place_pressed = false
 	_place_action_latched = false
 	_set_battle_visuals_available(true)
@@ -363,8 +369,9 @@ func _consume_battle_events(events: Array) -> void:
 func _collect_local_input() -> Dictionary:
 	var move_x := 0
 	var move_y := 0
-	if not _pressed_direction_stack.is_empty():
-		match String(_pressed_direction_stack[_pressed_direction_stack.size() - 1]):
+	var direction := _resolve_current_direction()
+	if not direction.is_empty():
+		match direction:
 			"left":
 				move_x = -1
 			"right":
@@ -382,6 +389,43 @@ func _collect_local_input() -> Dictionary:
 		"move_y": move_y,
 		"action_place": place_just_pressed,
 	}
+
+
+func _resolve_current_direction() -> String:
+	_prune_released_directions()
+	if not _pressed_direction_stack.is_empty():
+		return String(_pressed_direction_stack[_pressed_direction_stack.size() - 1])
+	if not _direction_tap_stack.is_empty():
+		var direction := String(_direction_tap_stack[_direction_tap_stack.size() - 1])
+		_direction_tap_stack.clear()
+		return direction
+	return ""
+
+
+func _prune_released_directions() -> void:
+	var active_directions: Array[String] = []
+	if Input.is_action_pressed("ui_left"):
+		active_directions.append("left")
+	if Input.is_action_pressed("ui_right"):
+		active_directions.append("right")
+	if Input.is_action_pressed("ui_up"):
+		active_directions.append("up")
+	if Input.is_action_pressed("ui_down"):
+		active_directions.append("down")
+	for direction in active_directions:
+		if not _pressed_direction_stack.has(direction):
+			_pressed_direction_stack.append(direction)
+	var stale_directions: Array[String] = []
+	for direction in _pressed_direction_stack:
+		if not active_directions.has(String(direction)):
+			stale_directions.append(String(direction))
+	for direction in stale_directions:
+		_pressed_direction_stack.erase(direction)
+
+
+func _latch_direction_tap(direction: String) -> void:
+	_direction_tap_stack.erase(direction)
+	_direction_tap_stack.append(direction)
 
 
 func _push_direction(direction: String) -> void:

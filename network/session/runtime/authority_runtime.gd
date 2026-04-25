@@ -66,7 +66,7 @@ func start_match(config: BattleStartConfig) -> bool:
 	_opening_input_freeze_drop_count = 0
 	_opening_input_freeze_end_logged = false
 	_native_input_policy = NativeInputBufferBridgeScript.new()
-	_native_input_policy.configure(8, 64, 2, false)
+	_native_input_policy.configure(8, 64, 4, false)
 	_native_input_policy_metrics.clear()
 	match_started.emit(start_config)
 	log_event.emit("AuthorityRuntime started %s" % start_config.to_log_string())
@@ -196,7 +196,7 @@ func _evaluate_native_input_policy(frame: PlayerInputFrame, authority_tick: int)
 		return {}
 	if _native_input_policy == null:
 		_native_input_policy = NativeInputBufferBridgeScript.new()
-		_native_input_policy.configure(8, 64, 2, false)
+		_native_input_policy.configure(8, 64, 4, false)
 	var decision: Dictionary = _native_input_policy.push_input_dict(frame.to_dict(), authority_tick)
 	_native_input_policy_metrics["last_status"] = String(decision.get("status", ""))
 	_native_input_policy_metrics["last_retargeted"] = bool(decision.get("retargeted", false))

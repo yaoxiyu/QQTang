@@ -28,13 +28,70 @@ func test_build_local_input_message_sends_recent_input_batch() -> void:
 	assert_eq(int(latest_message.get("client_seq", 0)), 8)
 	assert_eq(int(latest_message.get("latest_tick", 0)), 13)
 	assert_eq(int(latest_message.get("tick", 0)), 13)
-	assert_true(bool((latest_message.get("frame", {}) as Dictionary).get("action_place", false)))
+	assert_false(latest_message.has("frame"))
 	var frames: Array = latest_message.get("frames", [])
 	assert_eq(frames.size(), 6)
 	assert_eq(int((frames[0] as Dictionary).get("tick_id", 0)), 8)
 	assert_eq(int((frames[5] as Dictionary).get("tick_id", 0)), 13)
+	assert_true(bool((frames[5] as Dictionary).get("action_place", false)))
 	assert_eq(int(runtime.build_metrics().get("input_lead_ticks", 0)), 6)
 
+	runtime.shutdown_runtime()
+	runtime.queue_free()
+
+
+func test_place_action_is_redundantly_sent_after_edge() -> void:
+	var runtime := ClientRuntimeScript.new()
+	add_child(runtime)
+	runtime.configure(2)
+	runtime.configure_controlled_peer(2)
+	assert_true(runtime.start_match(_make_config()))
+
+	var first_message := runtime.build_local_input_message({
+		"move_x": 0,
+		"move_y": 0,
+		"action_place": true,
+	})
+	var second_message := runtime.build_local_input_message({
+		"move_x": 0,
+		"move_y": 0,
+		"action_place": false,
+	})
+	var third_message := runtime.build_local_input_message({
+		"move_x": 0,
+		"move_y": 0,
+		"action_place": false,
+	})
+	var fourth_message := runtime.build_local_input_message({
+		"move_x": 0,
+		"move_y": 0,
+		"action_place": false,
+	})
+
+	assert_true(bool(((first_message.get("frames", []) as Array)[0] as Dictionary).get("action_place", false)))
+	assert_true(bool(((second_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
+	assert_true(bool(((third_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
+	assert_false(bool(((fourth_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
+	assert_false(runtime.client_session.get_local_frame(int(first_message.get("tick", 0))).action_place)
+
+	runtime.shutdown_runtime()
+	runtime.queue_free()
+
+
+func test_runtime_input_lead_keeps_dedicated_minimum_after_opening_window() -> void:
+	var runtime := ClientRuntimeScript.new()
+	add_child(runtime)
+	runtime.configure(2)
+	runtime.configure_controlled_peer(2)
+	var config := _make_config()
+	config.opening_input_freeze_ticks = 0
+	config.network_input_lead_ticks = 1
+	assert_true(runtime.start_match(config))
+	runtime.prediction_controller.authoritative_tick = 10
+
+	runtime.build_local_input_message({"move_x": 1, "move_y": 0, "action_place": false})
+
+	assert_eq(int(runtime.build_metrics().get("input_lead_ticks", 0)), 3)
 	runtime.shutdown_runtime()
 	runtime.queue_free()
 
