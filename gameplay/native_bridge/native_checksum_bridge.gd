@@ -1,19 +1,16 @@
 class_name NativeChecksumBridge
 extends RefCounted
 
-const LogBattleScript = preload("res://app/logging/log_battle.gd")
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
 
-const LOG_TAG := "battle.native.checksum"
 const BUBBLE_IGNORE_SENTINEL := -999999
-
-var _fallback_builder: ChecksumBuilder = ChecksumBuilder.new()
 
 
 func build(sim_world: SimWorld, tick_id: int) -> int:
 	var native_builder := NativeKernelRuntimeScript.get_checksum_kernel()
 	if native_builder == null:
-		return _fallback_builder.build(sim_world, tick_id)
+		push_error("[native_checksum_bridge] native checksum kernel is unavailable")
+		return 0
 
 	var players := _pack_players(sim_world)
 	var bubbles := _pack_bubbles(sim_world)
@@ -36,13 +33,8 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 	if checksum_variant is int:
 		return int(checksum_variant)
 
-	LogBattleScript.warn(
-		"[native_checksum_bridge] native checksum returned non-int result, fallback to GDScript",
-		"",
-		0,
-		LOG_TAG
-	)
-	return _fallback_builder.build(sim_world, tick_id)
+	push_error("[native_checksum_bridge] native checksum returned non-int result")
+	return 0
 
 
 func _pack_match(sim_world: SimWorld) -> PackedInt32Array:

@@ -83,11 +83,7 @@ func run_explosion_benchmark(iterations: int = 4) -> Dictionary:
 
 func _measure_movement_sequence(use_native: bool, seed: int) -> Dictionary:
 	var previous_flag := NativeFeatureFlagsScript.enable_native_movement
-	var previous_shadow_flag := NativeFeatureFlagsScript.enable_native_movement_shadow
-	var previous_execute_flag := NativeFeatureFlagsScript.enable_native_movement_execute
 	NativeFeatureFlagsScript.enable_native_movement = use_native
-	NativeFeatureFlagsScript.enable_native_movement_shadow = false
-	NativeFeatureFlagsScript.enable_native_movement_execute = use_native
 	var world := _build_world(seed)
 	var player := world.state.players.get_player(int(world.state.players.active_ids[0]))
 	player.speed_level = 3
@@ -118,18 +114,12 @@ func _measure_movement_sequence(use_native: bool, seed: int) -> Dictionary:
 	}
 	world.dispose()
 	NativeFeatureFlagsScript.enable_native_movement = previous_flag
-	NativeFeatureFlagsScript.enable_native_movement_shadow = previous_shadow_flag
-	NativeFeatureFlagsScript.enable_native_movement_execute = previous_execute_flag
 	return result
 
 
 func _measure_explosion_sequence(use_native: bool, seed: int) -> Dictionary:
 	var previous_flag := NativeFeatureFlagsScript.enable_native_explosion
-	var previous_shadow_flag := NativeFeatureFlagsScript.enable_native_explosion_shadow
-	var previous_execute_flag := NativeFeatureFlagsScript.enable_native_explosion_execute
 	NativeFeatureFlagsScript.enable_native_explosion = use_native
-	NativeFeatureFlagsScript.enable_native_explosion_shadow = false
-	NativeFeatureFlagsScript.enable_native_explosion_execute = use_native
 	var world := _build_world(seed)
 	_configure_explosion_scenario(world)
 	world.events.begin_tick(1)
@@ -163,8 +153,6 @@ func _measure_explosion_sequence(use_native: bool, seed: int) -> Dictionary:
 	}
 	world.dispose()
 	NativeFeatureFlagsScript.enable_native_explosion = previous_flag
-	NativeFeatureFlagsScript.enable_native_explosion_shadow = previous_shadow_flag
-	NativeFeatureFlagsScript.enable_native_explosion_execute = previous_execute_flag
 	return result
 
 

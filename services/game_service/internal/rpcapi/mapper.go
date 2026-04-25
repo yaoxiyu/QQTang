@@ -64,10 +64,12 @@ func mapCreateManualRoomBattleInput(req *gamev1.CreateManualRoomBattleRequest) b
 
 func mapCommitAssignmentReadyInput(req *gamev1.CommitAssignmentReadyRequest) assignment.CommitInput {
 	return assignment.CommitInput{
-		AssignmentID: req.GetAssignmentId(),
-		AccountID:    "",
-		ProfileID:    "",
-		RoomID:       roomIDFromContext(req.GetContext()),
+		AssignmentID:       req.GetAssignmentId(),
+		AccountID:          req.GetAccountId(),
+		ProfileID:          req.GetProfileId(),
+		AssignmentRevision: int(req.GetAssignmentRevision()),
+		RoomID:             roomIDFromContext(req.GetContext()),
+		BattleID:           req.GetBattleId(),
 	}
 }
 
@@ -124,6 +126,7 @@ func successGetPartyQueueStatus(status queue.PartyQueueStatus) *gamev1.GetPartyQ
 		AllocationPhase:      status.AllocationPhase,
 		AllocationReason:     status.AllocationReason,
 		BattleEntryReady:     status.BattleEntryReady,
+		AssignmentRevision:   int32(status.AssignmentRevision),
 	}
 }
 
@@ -137,12 +140,13 @@ func errorGetPartyQueueStatus(code, message string) *gamev1.GetPartyQueueStatusR
 
 func successCreateManualRoomBattle(result battlealloc.ManualRoomBattleResult) *gamev1.CreateManualRoomBattleResponse {
 	return &gamev1.CreateManualRoomBattleResponse{
-		Ok:           true,
-		AssignmentId: result.AssignmentID,
-		MatchId:      result.MatchID,
-		BattleId:     result.BattleID,
-		ServerHost:   result.ServerHost,
-		ServerPort:   int32(result.ServerPort),
+		Ok:                 true,
+		AssignmentId:       result.AssignmentID,
+		MatchId:            result.MatchID,
+		BattleId:           result.BattleID,
+		ServerHost:         result.ServerHost,
+		ServerPort:         int32(result.ServerPort),
+		AssignmentRevision: int32(result.AssignmentRevision),
 	}
 }
 

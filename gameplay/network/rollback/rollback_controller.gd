@@ -117,18 +117,16 @@ func on_authoritative_snapshot(snapshot: WorldSnapshot) -> bool:
 
 
 func describe_snapshot_diff(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> Dictionary:
-	var baseline := _describe_snapshot_diff_baseline(local_snapshot, authoritative_snapshot)
 	if _native_snapshot_diff_bridge == null:
-		return baseline
+		return {}
 	return _native_snapshot_diff_bridge.diff_snapshots(
 		_snapshot_to_diff_dict(local_snapshot),
 		_snapshot_to_diff_dict(authoritative_snapshot),
-		_diff_options(),
-		baseline
+		_diff_options()
 	)
 
 
-func get_native_rollback_shadow_metrics() -> Dictionary:
+func get_native_rollback_metrics() -> Dictionary:
 	var metrics := _last_native_planner_metrics.duplicate(true)
 	if _native_snapshot_diff_bridge != null:
 		metrics["snapshot_diff"] = _native_snapshot_diff_bridge.get_metrics()
@@ -235,66 +233,17 @@ func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot:
 	return false
 
 
-func _describe_snapshot_diff_baseline(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> Dictionary:
-	if local_snapshot == null or authoritative_snapshot == null:
-		return _make_diff_result(false, 1, "missing")
-	if not _local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players):
-		return _make_diff_result(false, 2, "local_player")
-	if compare_bubbles and not _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles):
-		return _make_diff_result(false, 4, "bubbles")
-	if compare_items and not _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items):
-		return _make_diff_result(false, 8, "items")
-	if local_snapshot.rng_state != 0 and authoritative_snapshot.rng_state != 0 and local_snapshot.rng_state != authoritative_snapshot.rng_state:
-		return _make_diff_result(false, 16, "rng_state")
-	return _make_diff_result(true, 0, "")
-
-
-func _make_diff_result(equal: bool, reason_mask: int, section: String) -> Dictionary:
-	return {
-		"equal": equal,
-		"reason_mask": reason_mask,
-		"first_diff_section": section,
-		"first_diff_index": -1,
-		"first_diff_field": "",
-		"local_value": null,
-		"authority_value": null,
-		"force_resync_reason_mask": 0,
-	}
-
-
 func _plan_rollback(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary) -> Dictionary:
-	var baseline_plan := _build_baseline_plan(authoritative_snapshot, local_snapshot, diff_result)
-	var plan := baseline_plan
 	if _native_rollback_planner_bridge == null:
-		return plan
-	plan = _native_rollback_planner_bridge.plan(
+		return {}
+	var plan: Dictionary = _native_rollback_planner_bridge.plan(
 		_build_planner_cursor(authoritative_snapshot, local_snapshot),
-		diff_result,
-		baseline_plan
+		diff_result
 	)
 	_last_native_planner_metrics = {
 		"last_plan": plan,
 	}
 	return plan
-
-
-func _build_baseline_plan(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary) -> Dictionary:
-	var decision := PLAN_NOOP
-	if bool(diff_result.get("equal", false)):
-		decision = PLAN_NOOP
-	elif _should_force_resync(authoritative_snapshot, local_snapshot):
-		decision = PLAN_FORCE_RESYNC
-	else:
-		decision = PLAN_ROLLBACK
-	var authority_tick := authoritative_snapshot.tick_id if authoritative_snapshot != null else 0
-	var replay_to: int = max(predicted_until_tick, authority_tick)
-	return {
-		"decision": decision,
-		"rollback_from_tick": authority_tick if authoritative_snapshot != null else -1,
-		"replay_to_tick": replay_to,
-		"replay_tick_count": max(0, replay_to - authority_tick),
-		"reason_mask": int(diff_result.get("reason_mask", 0)),
-	}
 
 
 func _build_planner_cursor(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot) -> Dictionary:
@@ -332,17 +281,6 @@ func _diff_options() -> Dictionary:
 	}
 
 
-func _is_snapshot_equal(local_snapshot: WorldSnapshot, authoritative_snapshot: WorldSnapshot) -> bool:
-	if local_snapshot == null or authoritative_snapshot == null:
-		return false
-
-	return (
-		_local_player_entries_equal(local_snapshot.players, authoritative_snapshot.players)
-		and (not compare_bubbles or _dictionary_array_equal(local_snapshot.bubbles, authoritative_snapshot.bubbles))
-		and (not compare_items or _dictionary_array_equal(local_snapshot.items, authoritative_snapshot.items))
-	)
-
-
 func _has_matching_local_player_entry(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
 	if local_peer_id < 0:
 		return left_values.size() == right_values.size()
@@ -351,82 +289,11 @@ func _has_matching_local_player_entry(left_values: Array[Dictionary], right_valu
 	return not left_entry.is_empty() and not right_entry.is_empty()
 
 
-func _local_player_entries_equal(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
-	if local_peer_id < 0:
-		return _dictionary_array_equal(left_values, right_values)
-	var left_entry := _find_local_player_entry(left_values)
-	var right_entry := _find_local_player_entry(right_values)
-	if left_entry.is_empty() or right_entry.is_empty():
-		return false
-	return _dictionary_equal_ignoring_keys(left_entry, right_entry, ignored_local_player_keys)
-
-
 func _find_local_player_entry(values: Array[Dictionary]) -> Dictionary:
 	for entry in values:
 		if int(entry.get("player_slot", -1)) == local_peer_id:
 			return entry
 	return {}
-
-
-func _dictionary_array_equal(left_values: Array[Dictionary], right_values: Array[Dictionary]) -> bool:
-	if left_values.size() != right_values.size():
-		return false
-	for index in range(left_values.size()):
-		if not _dictionary_equal(left_values[index], right_values[index]):
-			return false
-	return true
-
-
-func _dictionary_equal(left_value: Dictionary, right_value: Dictionary) -> bool:
-	if left_value.size() != right_value.size():
-		return false
-	for key in left_value.keys():
-		if not right_value.has(key):
-			return false
-		if not _variant_equal(left_value[key], right_value[key]):
-			return false
-	return true
-
-
-func _dictionary_equal_ignoring_keys(left_value: Dictionary, right_value: Dictionary, ignored_keys: Array[String]) -> bool:
-	for key in left_value.keys():
-		var key_name := str(key)
-		if ignored_keys.has(key_name):
-			continue
-		if not right_value.has(key):
-			return false
-		if not _variant_equal(left_value[key], right_value[key]):
-			return false
-	for key in right_value.keys():
-		var key_name := str(key)
-		if ignored_keys.has(key_name):
-			continue
-		if not left_value.has(key):
-			return false
-	return true
-
-
-func _array_equal(left_values: Array, right_values: Array) -> bool:
-	if left_values.size() != right_values.size():
-		return false
-	for index in range(left_values.size()):
-		if not _variant_equal(left_values[index], right_values[index]):
-			return false
-	return true
-
-
-func _variant_equal(left_value: Variant, right_value: Variant) -> bool:
-	if left_value is Dictionary and right_value is Dictionary:
-		return _dictionary_equal(left_value, right_value)
-	if left_value is Array and right_value is Array:
-		return _array_equal(left_value, right_value)
-	if left_value is float and right_value is int:
-		return is_equal_approx(left_value, float(right_value))
-	if left_value is int and right_value is float:
-		return is_equal_approx(float(left_value), right_value)
-	if left_value is float and right_value is float:
-		return is_equal_approx(left_value, right_value)
-	return left_value == right_value
 
 
 func _find_local_player_slot() -> int:

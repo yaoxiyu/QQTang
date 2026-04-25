@@ -579,6 +579,7 @@ type GetPartyQueueStatusResponse struct {
 	AllocationPhase      string                 `protobuf:"bytes,14,opt,name=allocation_phase,json=allocationPhase,proto3" json:"allocation_phase,omitempty"`
 	AllocationReason     string                 `protobuf:"bytes,15,opt,name=allocation_reason,json=allocationReason,proto3" json:"allocation_reason,omitempty"`
 	BattleEntryReady     bool                   `protobuf:"varint,16,opt,name=battle_entry_ready,json=battleEntryReady,proto3" json:"battle_entry_ready,omitempty"`
+	AssignmentRevision   int32                  `protobuf:"varint,17,opt,name=assignment_revision,json=assignmentRevision,proto3" json:"assignment_revision,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -725,6 +726,13 @@ func (x *GetPartyQueueStatusResponse) GetBattleEntryReady() bool {
 	return false
 }
 
+func (x *GetPartyQueueStatusResponse) GetAssignmentRevision() int32 {
+	if x != nil {
+		return x.AssignmentRevision
+	}
+	return 0
+}
+
 type CreateManualRoomBattleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *RoomContext           `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
@@ -802,17 +810,18 @@ func (x *CreateManualRoomBattleRequest) GetMembers() []*PartyMember {
 }
 
 type CreateManualRoomBattleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	AssignmentId  string                 `protobuf:"bytes,2,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
-	MatchId       string                 `protobuf:"bytes,3,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
-	BattleId      string                 `protobuf:"bytes,4,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
-	ServerHost    string                 `protobuf:"bytes,5,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
-	ServerPort    int32                  `protobuf:"varint,6,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
-	ErrorCode     string                 `protobuf:"bytes,7,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
-	UserMessage   string                 `protobuf:"bytes,8,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Ok                 bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	AssignmentId       string                 `protobuf:"bytes,2,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
+	MatchId            string                 `protobuf:"bytes,3,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	BattleId           string                 `protobuf:"bytes,4,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
+	ServerHost         string                 `protobuf:"bytes,5,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
+	ServerPort         int32                  `protobuf:"varint,6,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
+	ErrorCode          string                 `protobuf:"bytes,7,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	UserMessage        string                 `protobuf:"bytes,8,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
+	AssignmentRevision int32                  `protobuf:"varint,9,opt,name=assignment_revision,json=assignmentRevision,proto3" json:"assignment_revision,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateManualRoomBattleResponse) Reset() {
@@ -901,14 +910,24 @@ func (x *CreateManualRoomBattleResponse) GetUserMessage() string {
 	return ""
 }
 
+func (x *CreateManualRoomBattleResponse) GetAssignmentRevision() int32 {
+	if x != nil {
+		return x.AssignmentRevision
+	}
+	return 0
+}
+
 type CommitAssignmentReadyRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Context       *RoomContext           `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
-	AssignmentId  string                 `protobuf:"bytes,2,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
-	MatchId       string                 `protobuf:"bytes,3,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
-	BattleId      string                 `protobuf:"bytes,4,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Context            *RoomContext           `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	AssignmentId       string                 `protobuf:"bytes,2,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
+	MatchId            string                 `protobuf:"bytes,3,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	BattleId           string                 `protobuf:"bytes,4,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
+	AccountId          string                 `protobuf:"bytes,5,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	ProfileId          string                 `protobuf:"bytes,6,opt,name=profile_id,json=profileId,proto3" json:"profile_id,omitempty"`
+	AssignmentRevision int32                  `protobuf:"varint,7,opt,name=assignment_revision,json=assignmentRevision,proto3" json:"assignment_revision,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CommitAssignmentReadyRequest) Reset() {
@@ -967,6 +986,27 @@ func (x *CommitAssignmentReadyRequest) GetBattleId() string {
 		return x.BattleId
 	}
 	return ""
+}
+
+func (x *CommitAssignmentReadyRequest) GetAccountId() string {
+	if x != nil {
+		return x.AccountId
+	}
+	return ""
+}
+
+func (x *CommitAssignmentReadyRequest) GetProfileId() string {
+	if x != nil {
+		return x.ProfileId
+	}
+	return ""
+}
+
+func (x *CommitAssignmentReadyRequest) GetAssignmentRevision() int32 {
+	if x != nil {
+		return x.AssignmentRevision
+	}
+	return 0
 }
 
 type CommitAssignmentReadyResponse struct {
@@ -1093,7 +1133,7 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"\x11queue_status_text\x18\a \x01(\tR\x0fqueueStatusText\"\x7f\n" +
 	"\x1aGetPartyQueueStatusRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12$\n" +
-	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\xec\x04\n" +
+	"\x0equeue_entry_id\x18\x02 \x01(\tR\fqueueEntryId\"\x9d\x05\n" +
 	"\x1bGetPartyQueueStatusResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1f\n" +
 	"\vqueue_state\x18\x02 \x01(\tR\n" +
@@ -1116,13 +1156,14 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"\x16assignment_status_text\x18\r \x01(\tR\x14assignmentStatusText\x12)\n" +
 	"\x10allocation_phase\x18\x0e \x01(\tR\x0fallocationPhase\x12+\n" +
 	"\x11allocation_reason\x18\x0f \x01(\tR\x10allocationReason\x12,\n" +
-	"\x12battle_entry_ready\x18\x10 \x01(\bR\x10battleEntryReady\"\xe9\x01\n" +
+	"\x12battle_entry_ready\x18\x10 \x01(\bR\x10battleEntryReady\x12/\n" +
+	"\x13assignment_revision\x18\x11 \x01(\x05R\x12assignmentRevision\"\xe9\x01\n" +
 	"\x1dCreateManualRoomBattleRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12\x17\n" +
 	"\amode_id\x18\x02 \x01(\tR\x06modeId\x12\x1e\n" +
 	"\vrule_set_id\x18\x03 \x01(\tR\truleSetId\x12\x15\n" +
 	"\x06map_id\x18\x04 \x01(\tR\x05mapId\x12;\n" +
-	"\amembers\x18\x05 \x03(\v2!.qqt.internal.game.v1.PartyMemberR\amembers\"\x91\x02\n" +
+	"\amembers\x18\x05 \x03(\v2!.qqt.internal.game.v1.PartyMemberR\amembers\"\xc2\x02\n" +
 	"\x1eCreateManualRoomBattleResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12#\n" +
 	"\rassignment_id\x18\x02 \x01(\tR\fassignmentId\x12\x19\n" +
@@ -1134,12 +1175,18 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"serverPort\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\a \x01(\tR\terrorCode\x12!\n" +
-	"\fuser_message\x18\b \x01(\tR\vuserMessage\"\xb8\x01\n" +
+	"\fuser_message\x18\b \x01(\tR\vuserMessage\x12/\n" +
+	"\x13assignment_revision\x18\t \x01(\x05R\x12assignmentRevision\"\xa7\x02\n" +
 	"\x1cCommitAssignmentReadyRequest\x12;\n" +
 	"\acontext\x18\x01 \x01(\v2!.qqt.internal.game.v1.RoomContextR\acontext\x12#\n" +
 	"\rassignment_id\x18\x02 \x01(\tR\fassignmentId\x12\x19\n" +
 	"\bmatch_id\x18\x03 \x01(\tR\amatchId\x12\x1b\n" +
-	"\tbattle_id\x18\x04 \x01(\tR\bbattleId\"\x9a\x01\n" +
+	"\tbattle_id\x18\x04 \x01(\tR\bbattleId\x12\x1d\n" +
+	"\n" +
+	"account_id\x18\x05 \x01(\tR\taccountId\x12\x1d\n" +
+	"\n" +
+	"profile_id\x18\x06 \x01(\tR\tprofileId\x12/\n" +
+	"\x13assignment_revision\x18\a \x01(\x05R\x12assignmentRevision\"\x9a\x01\n" +
 	"\x1dCommitAssignmentReadyResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12'\n" +
 	"\x0fcommitted_state\x18\x02 \x01(\tR\x0ecommittedState\x12\x1d\n" +

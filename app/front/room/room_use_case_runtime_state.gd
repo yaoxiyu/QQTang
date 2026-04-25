@@ -54,24 +54,28 @@ static func is_online_room(app_runtime: Node) -> bool:
 
 
 static func is_matchmade_room(app_runtime: Node, entry_context: RoomEntryContext = null) -> bool:
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		var snapshot_room_kind := String(app_runtime.current_room_snapshot.room_kind)
+		if not snapshot_room_kind.is_empty():
+			return snapshot_room_kind == FrontRoomKindScript.MATCHMADE_ROOM
 	var target := entry_context
 	if target == null and app_runtime != null:
 		target = app_runtime.current_room_entry_context
 	if target != null and String(target.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
 		return true
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		return String(app_runtime.current_room_snapshot.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM
 	return false
 
 
 static func is_match_room(app_runtime: Node, entry_context: RoomEntryContext = null) -> bool:
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		var snapshot_room_kind := String(app_runtime.current_room_snapshot.room_kind)
+		if not snapshot_room_kind.is_empty():
+			return FrontRoomKindScript.is_match_room(snapshot_room_kind)
 	var target := entry_context
 	if target == null and app_runtime != null:
 		target = app_runtime.current_room_entry_context
 	if target != null and FrontRoomKindScript.is_match_room(String(target.room_kind)):
 		return true
-	if app_runtime != null and app_runtime.current_room_snapshot != null:
-		return FrontRoomKindScript.is_match_room(String(app_runtime.current_room_snapshot.room_kind))
 	return false
 
 

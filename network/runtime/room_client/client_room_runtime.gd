@@ -18,6 +18,7 @@ signal room_snapshot_received(snapshot: RoomSnapshot)
 signal room_directory_snapshot_received(snapshot: RoomDirectorySnapshot)
 signal room_joined(snapshot: RoomSnapshot)
 signal room_error(error_code: String, user_message: String)
+signal room_operation_accepted(operation: String, request_id: String)
 signal canonical_start_config_received(config: BattleStartConfig)
 signal battle_message_received(message: Dictionary)
 signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
@@ -408,6 +409,8 @@ func _route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_LEAVE_ACCEPTED:
 			if _pending_leave_disconnect:
 				_shutdown_transport()
+		"ROOM_OPERATION_ACCEPTED":
+			room_operation_accepted.emit(String(message.get("operation", "")), String(message.get("request_id", "")))
 		TransportMessageTypesScript.ROOM_DIRECTORY_SNAPSHOT:
 			var directory_snapshot := RoomDirectorySnapshotScript.from_dict(message.get("snapshot", {}))
 			_log_directory_event("directory_snapshot_received", {

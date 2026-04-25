@@ -38,10 +38,9 @@ func execute(ctx: SimContext) -> void:
 			if NativeFeatureFlagsScript.require_native_kernels:
 				push_error("[movement_system] native movement kernel is required but unavailable")
 				return
-		elif NativeFeatureFlagsScript.enable_native_movement_execute and _execute_native_path(ctx):
+		else:
+			_execute_native_path(ctx)
 			return
-		elif NativeFeatureFlagsScript.enable_native_movement_shadow:
-			_run_native_shadow_probe(ctx)
 
 	for player_id in ctx.state.players.active_ids:
 		var player = ctx.state.players.get_player(player_id)
@@ -109,32 +108,6 @@ func execute(ctx: SimContext) -> void:
 			)
 
 
-func _run_native_shadow_probe(ctx: SimContext) -> void:
-	var candidate_player_ids: Array[int] = []
-	for player_id in ctx.state.players.active_ids:
-		var player = ctx.state.players.get_player(player_id)
-		if player == null or not player.alive:
-			continue
-		if player.life_state != PlayerState.LifeState.NORMAL:
-			continue
-		if _should_preserve_authoritative_remote_state(ctx, player):
-			continue
-		candidate_player_ids.append(player_id)
-
-	var result := _native_movement_bridge.step_players(ctx, candidate_player_ids)
-	var updates: Array = result.get("player_updates", [])
-	if candidate_player_ids.size() > 0 and updates.size() != candidate_player_ids.size():
-		LogSimulationScript.warn(
-			"[movement_system] native shadow mismatch player_updates=%d candidates=%d" % [
-				updates.size(),
-				candidate_player_ids.size(),
-			],
-			"",
-			0,
-			"simulation.movement.native_shadow"
-		)
-
-
 func _execute_native_path(ctx: SimContext) -> bool:
 	var candidate_player_ids: Array[int] = []
 	for player_id in ctx.state.players.active_ids:
@@ -152,12 +125,7 @@ func _execute_native_path(ctx: SimContext) -> bool:
 
 	var result := _native_movement_bridge.step_players(ctx, candidate_player_ids)
 	if candidate_player_ids.size() > 0 and result.get("player_updates", []).size() != candidate_player_ids.size():
-		LogSimulationScript.warn(
-			"[movement_system] native movement returned incomplete player_updates, fallback to GDScript",
-			"",
-			0,
-			"simulation.movement.native"
-		)
+		push_error("[movement_system] native movement returned incomplete player_updates")
 		return false
 
 	_apply_native_player_updates(ctx, result.get("player_updates", []))

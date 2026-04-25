@@ -210,6 +210,4 @@ func _make_metrics(
 		"terminal_message_count": terminal_message_count,
 		"passthrough_message_count": passthrough_message_count,
 		"coalesce_usec": coalesce_usec,
-		"native_shadow_equal": false,
-		"native_shadow_mismatch_count": 0,
 	}

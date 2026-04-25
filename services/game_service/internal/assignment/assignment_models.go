@@ -35,6 +35,7 @@ type CommitInput struct {
 	ProfileID          string `json:"profile_id"`
 	AssignmentRevision int    `json:"assignment_revision"`
 	RoomID             string `json:"room_id"`
+	BattleID           string `json:"battle_id"`
 }
 
 type CommitResult struct {

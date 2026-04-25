@@ -38,3 +38,20 @@ func test_can_toggle_ready_rejects_matchmade_room() -> void:
 	assert_eq(String(result.get("error_code", "")), "MATCHMADE_READY_LOCKED", "matchmade ready should use stable error code")
 	runtime.room_session_controller.free()
 	runtime.free()
+
+
+func test_can_toggle_ready_prefers_authoritative_match_room_snapshot() -> void:
+	var command := RoomReadyCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "matchmade_room"
+	var snapshot := RoomSnapshot.new()
+	snapshot.room_kind = "casual_match_room"
+	runtime.current_room_entry_context = entry
+	runtime.current_room_snapshot = snapshot
+
+	var result: Dictionary = command.can_toggle_ready(runtime)
+
+	assert_true(bool(result.get("ok", false)), "authoritative match room snapshot should allow manual ready")
+	runtime.room_session_controller.free()
+	runtime.free()

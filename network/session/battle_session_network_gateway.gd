@@ -300,6 +300,7 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 	cursor["waiting_full_authority"] = _is_waiting_for_dedicated_full_authority()
 	var batch: Dictionary = _authority_batch_bridge.coalesce_client_authority_batch(authority_messages, cursor)
 	var latest_snapshot: Dictionary = batch.get("latest_snapshot_message", {})
+	var emit_opening_tick := false
 	if _is_waiting_for_dedicated_full_authority():
 		if latest_snapshot.is_empty():
 			if not _logged_waiting_for_authority_opening:
@@ -310,6 +311,7 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 			return
 		_dedicated_first_full_authority_received = true
 		_logged_waiting_for_authority_opening = false
+		emit_opening_tick = true
 		_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
 			String(latest_snapshot.get("message_type", latest_snapshot.get("msg_type", ""))),
 			int(latest_snapshot.get("tick", 0)),
@@ -321,6 +323,8 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 	if terminal_messages is Array and not terminal_messages.is_empty() and _adapter.current_context != null:
 		_adapter._finished_emitted = true
 		_adapter._lifecycle_state = _adapter.BattleLifecycleState.FINISHING
+	if emit_opening_tick:
+		_emit_client_runtime_tick()
 
 
 func _is_client_authority_sync_message(message: Dictionary) -> bool:

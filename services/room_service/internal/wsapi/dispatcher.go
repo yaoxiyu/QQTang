@@ -2,6 +2,7 @@ package wsapi
 
 import (
 	"errors"
+	"log/slog"
 
 	roomv1 "qqtang/services/room_service/internal/gen/qqt/room/v1"
 	"qqtang/services/room_service/internal/roomapp"
@@ -9,11 +10,16 @@ import (
 
 type Dispatcher struct {
 	app                       *roomapp.Service
+	logger                    *slog.Logger
 	directorySnapshotProvider func() *roomv1.RoomDirectorySnapshot
 }
 
 func NewDispatcher(app *roomapp.Service) *Dispatcher {
 	return &Dispatcher{app: app}
+}
+
+func (d *Dispatcher) SetLogger(logger *slog.Logger) {
+	d.logger = logger
 }
 
 func (d *Dispatcher) SetDirectorySnapshotProvider(provider func() *roomv1.RoomDirectorySnapshot) {
@@ -96,6 +102,7 @@ func (d *Dispatcher) handleCreate(conn *Connection, env *ClientEnvelope) ([][]by
 	if roomID, memberID, resolveErr := d.resolveCaller(conn); resolveErr == nil {
 		conn.BindRoom(roomID, memberID)
 	}
+	d.logSnapshotCapabilities("CreateRoom", conn, snapshot)
 	return [][]byte{
 		EncodeOperationAccepted(conn, env.RequestID, "CreateRoom"),
 		EncodeSnapshotPush(conn, env.RequestID, snapshot),
@@ -215,6 +222,7 @@ func (d *Dispatcher) handleUpdateMatchRoomConfig(conn *Connection, env *ClientEn
 	if err != nil {
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "UpdateMatchRoomConfig", "ROOM_UPDATE_MATCH_ROOM_CONFIG_REJECTED", err.Error())}, nil
 	}
+	d.logSnapshotCapabilities("UpdateMatchRoomConfig", conn, snapshot)
 	return [][]byte{EncodeOperationAccepted(conn, env.RequestID, "UpdateMatchRoomConfig"), EncodeSnapshotPush(conn, env.RequestID, snapshot)}, nil
 }
 
@@ -227,6 +235,7 @@ func (d *Dispatcher) handleToggleReady(conn *Connection, env *ClientEnvelope) ([
 	if err != nil {
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "ToggleReady", "ROOM_TOGGLE_READY_REJECTED", err.Error())}, nil
 	}
+	d.logSnapshotCapabilities("ToggleReady", conn, snapshot)
 	return [][]byte{EncodeOperationAccepted(conn, env.RequestID, "ToggleReady"), EncodeSnapshotPush(conn, env.RequestID, snapshot)}, nil
 }
 
@@ -330,4 +339,29 @@ func (d *Dispatcher) resolveCaller(conn *Connection) (string, string, error) {
 		return "", "", errors.New("connection is nil")
 	}
 	return d.app.ResolveRoomMemberByConnection(conn.ID())
+}
+
+func (d *Dispatcher) logSnapshotCapabilities(operation string, conn *Connection, snapshot *roomapp.SnapshotProjection) {
+	if d == nil || d.logger == nil || snapshot == nil {
+		return
+	}
+	connID := ""
+	if conn != nil {
+		connID = conn.ID()
+	}
+	d.logger.Info(
+		"room snapshot capabilities",
+		"operation", operation,
+		"conn_id", connID,
+		"room_id", snapshot.RoomID,
+		"room_kind", snapshot.RoomKind,
+		"owner_member_id", snapshot.OwnerMemberID,
+		"member_count", len(snapshot.Members),
+		"room_phase", snapshot.RoomPhase,
+		"match_format_id", snapshot.Selection.MatchFormatID,
+		"selected_mode_ids", snapshot.Selection.SelectedModeIDs,
+		"can_toggle_ready", snapshot.Capabilities.CanToggleReady,
+		"can_update_match_room_config", snapshot.Capabilities.CanUpdateMatchRoomConfig,
+		"can_enter_queue", snapshot.Capabilities.CanEnterQueue,
+	)
 }

@@ -89,10 +89,11 @@ func (s *ManualRoomService) Create(ctx context.Context, input ManualRoomBattleIn
 		return ManualRoomBattleResult{}, fmt.Errorf("%w: generate match id: %v", ErrManualRoomPersistFailed, err)
 	}
 	result := ManualRoomBattleResult{
-		AssignmentID:    assignmentID,
-		BattleID:        battleID,
-		MatchID:         matchID,
-		AllocationState: "pending_allocate",
+		AssignmentID:       assignmentID,
+		AssignmentRevision: 1,
+		BattleID:           battleID,
+		MatchID:            matchID,
+		AllocationState:    "pending_allocate",
 	}
 
 	expectedMemberCount := input.ExpectedMemberCount

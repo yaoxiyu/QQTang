@@ -67,6 +67,11 @@ func (f *fakeAssignmentService) CommitRoom(_ context.Context, input assignment.C
 	return f.result, f.err
 }
 
+func (f *fakeAssignmentService) CommitBattleEntryReady(_ context.Context, input assignment.CommitInput) (assignment.CommitResult, error) {
+	f.lastInput = input
+	return f.result, f.err
+}
+
 func startTestRPCServer(t *testing.T, svc *RoomControlService) (gamev1.RoomControlServiceClient, func()) {
 	t.Helper()
 	grpcServer := grpc.NewServer()

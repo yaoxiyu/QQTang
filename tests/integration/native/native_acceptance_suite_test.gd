@@ -11,10 +11,6 @@ func test_native_acceptance_flow_preserves_world_parity_and_rollback_consistency
 	var previous_snapshot_flag := NativeFeatureFlagsScript.enable_native_snapshot_ring
 	var previous_movement_flag := NativeFeatureFlagsScript.enable_native_movement
 	var previous_explosion_flag := NativeFeatureFlagsScript.enable_native_explosion
-	var previous_movement_shadow_flag := NativeFeatureFlagsScript.enable_native_movement_shadow
-	var previous_explosion_shadow_flag := NativeFeatureFlagsScript.enable_native_explosion_shadow
-	var previous_movement_execute_flag := NativeFeatureFlagsScript.enable_native_movement_execute
-	var previous_explosion_execute_flag := NativeFeatureFlagsScript.enable_native_explosion_execute
 
 	var snapshot_service := SnapshotService.new()
 	var checksum_builder := ChecksumBuilder.new()
@@ -73,10 +69,6 @@ func test_native_acceptance_flow_preserves_world_parity_and_rollback_consistency
 	NativeFeatureFlagsScript.enable_native_snapshot_ring = previous_snapshot_flag
 	NativeFeatureFlagsScript.enable_native_movement = previous_movement_flag
 	NativeFeatureFlagsScript.enable_native_explosion = previous_explosion_flag
-	NativeFeatureFlagsScript.enable_native_movement_shadow = previous_movement_shadow_flag
-	NativeFeatureFlagsScript.enable_native_explosion_shadow = previous_explosion_shadow_flag
-	NativeFeatureFlagsScript.enable_native_movement_execute = previous_movement_execute_flag
-	NativeFeatureFlagsScript.enable_native_explosion_execute = previous_explosion_execute_flag
 	baseline_world.dispose()
 	native_world.dispose()
 
@@ -147,10 +139,6 @@ func _step_world_with_flags(world: SimWorld, command: Dictionary, use_native: bo
 	NativeFeatureFlagsScript.enable_native_checksum = use_native
 	NativeFeatureFlagsScript.enable_native_movement = use_native
 	NativeFeatureFlagsScript.enable_native_explosion = use_native
-	NativeFeatureFlagsScript.enable_native_movement_shadow = false
-	NativeFeatureFlagsScript.enable_native_explosion_shadow = false
-	NativeFeatureFlagsScript.enable_native_movement_execute = use_native
-	NativeFeatureFlagsScript.enable_native_explosion_execute = use_native
 
 	var frame := InputFrame.new()
 	frame.tick = world.state.match_state.tick + 1

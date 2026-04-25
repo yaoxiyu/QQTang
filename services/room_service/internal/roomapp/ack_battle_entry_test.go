@@ -3,7 +3,8 @@ package roomapp
 import "testing"
 
 func TestAckBattleEntryLifecycle(t *testing.T) {
-	svc := newTestServiceWithFakeGame(t, nil)
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
 		RoomTicket:   "ticket-create",
@@ -34,6 +35,15 @@ func TestAckBattleEntryLifecycle(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("ack battle entry failed: %v", err)
+	}
+	if fakeGame.lastCommitReq == nil {
+		t.Fatalf("expected commit assignment ready request")
+	}
+	if fakeGame.lastCommitReq.GetAccountId() != "acc-owner" || fakeGame.lastCommitReq.GetProfileId() != "pro-owner" {
+		t.Fatalf("expected commit identity from room member, got %#v", fakeGame.lastCommitReq)
+	}
+	if fakeGame.lastCommitReq.GetAssignmentRevision() != 1 {
+		t.Fatalf("expected commit assignment revision 1, got %d", fakeGame.lastCommitReq.GetAssignmentRevision())
 	}
 	if !acked.BattleHandoff.Ready {
 		t.Fatalf("expected battle handoff ready true")

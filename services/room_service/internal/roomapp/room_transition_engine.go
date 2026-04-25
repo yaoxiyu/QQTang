@@ -89,6 +89,7 @@ type QueueProjectionUpdate struct {
 	BattlePhase         string
 	BattleReady         bool
 	AssignmentID        string
+	AssignmentRevision  int
 	MatchID             string
 	BattleID            string
 	ServerHost          string
@@ -96,15 +97,16 @@ type QueueProjectionUpdate struct {
 }
 
 type BattleHandoffUpdate struct {
-	AssignmentID   string
-	MatchID        string
-	BattleID       string
-	ServerHost     string
-	ServerPort     int
-	Phase          string
-	TerminalReason string
-	Ready          bool
-	StatusText     string
+	AssignmentID       string
+	AssignmentRevision int
+	MatchID            string
+	BattleID           string
+	ServerHost         string
+	ServerPort         int
+	Phase              string
+	TerminalReason     string
+	Ready              bool
+	StatusText         string
 }
 
 func (RoomTransitionEngine) ApplyQueueProjection(room *domain.RoomAggregate, ownerMemberID string, update QueueProjectionUpdate) bool {
@@ -162,6 +164,10 @@ func (RoomTransitionEngine) ApplyQueueProjection(room *domain.RoomAggregate, own
 
 	if room.BattleState.AssignmentID != update.AssignmentID {
 		room.BattleState.AssignmentID = update.AssignmentID
+		changed = true
+	}
+	if room.BattleState.AssignmentRevision != update.AssignmentRevision {
+		room.BattleState.AssignmentRevision = update.AssignmentRevision
 		changed = true
 	}
 	if room.BattleState.MatchID != update.MatchID {
@@ -301,6 +307,7 @@ func (RoomTransitionEngine) ApplyBattleHandoffUpdated(room *domain.RoomAggregate
 		}
 	}
 	room.BattleState.AssignmentID = update.AssignmentID
+	room.BattleState.AssignmentRevision = update.AssignmentRevision
 	room.BattleState.MatchID = update.MatchID
 	room.BattleState.BattleID = update.BattleID
 	room.BattleState.ServerHost = update.ServerHost
@@ -369,6 +376,7 @@ func (RoomTransitionEngine) ApplyReturnCompleted(room *domain.RoomAggregate, own
 	room.BattleState.Phase = BattlePhaseCompleted
 	room.BattleState.TerminalReason = BattleReasonReturnCompleted
 	room.BattleState.AssignmentID = ""
+	room.BattleState.AssignmentRevision = 0
 	room.BattleState.BattleID = ""
 	room.BattleState.MatchID = ""
 	room.BattleState.ServerHost = ""
@@ -463,6 +471,7 @@ func syncLegacyAliases(room *domain.RoomAggregate) {
 	room.Queue.UserMessage = room.QueueState.UserMessage
 
 	room.BattleHandoffState.AssignmentID = room.BattleState.AssignmentID
+	room.BattleHandoffState.AssignmentRevision = room.BattleState.AssignmentRevision
 	room.BattleHandoffState.BattleID = room.BattleState.BattleID
 	room.BattleHandoffState.MatchID = room.BattleState.MatchID
 	room.BattleHandoffState.ServerHost = room.BattleState.ServerHost

@@ -187,3 +187,91 @@ func TestCommitRoomRejectsAllocFailedAssignment(t *testing.T) {
 		t.Fatalf("expected ErrAssignmentAllocFailed, got %v", err)
 	}
 }
+
+func TestCommitBattleEntryReadyAllowsAssignmentMember(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeAssignmentDB{
+		assignment: storage.Assignment{
+			AssignmentID:           "assign_battle",
+			QueueType:              "casual",
+			RoomID:                 "captain_room",
+			RoomKind:               "casual_match_room",
+			MatchID:                "match_battle",
+			ModeID:                 "mode_classic",
+			RuleSetID:              "ruleset_classic",
+			MapID:                  "map_classic_square",
+			CaptainAccountID:       "account_captain",
+			AssignmentRevision:     3,
+			ExpectedMemberCount:    2,
+			State:                  "assigned",
+			CommitDeadlineUnixSec:  now.Add(time.Minute).Unix(),
+			CaptainDeadlineUnixSec: now.Add(time.Minute).Unix(),
+			BattleID:               "battle_1",
+			AllocationState:        "battle_ready",
+			CreatedAt:              now,
+			UpdatedAt:              now,
+		},
+		member: storage.AssignmentMember{
+			AssignmentID: "assign_battle",
+			AccountID:    "account_join",
+			ProfileID:    "profile_join",
+			TicketRole:   "join",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		},
+	}
+	service := NewService(storage.NewAssignmentRepository(db), time.Minute)
+	result, err := service.CommitBattleEntryReady(context.Background(), CommitInput{
+		AssignmentID:       "assign_battle",
+		AccountID:          "account_join",
+		ProfileID:          "profile_join",
+		AssignmentRevision: 3,
+		RoomID:             "member_room",
+		BattleID:           "battle_1",
+	})
+	if err != nil {
+		t.Fatalf("expected battle entry member commit to succeed, got %v", err)
+	}
+	if result.CommitState != "committed" {
+		t.Fatalf("expected committed state, got %#v", result)
+	}
+}
+
+func TestCommitBattleEntryReadyRejectsBattleMismatch(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeAssignmentDB{
+		assignment: storage.Assignment{
+			AssignmentID:           "assign_battle",
+			RoomID:                 "captain_room",
+			RoomKind:               "casual_match_room",
+			CaptainAccountID:       "account_captain",
+			AssignmentRevision:     3,
+			State:                  "assigned",
+			CommitDeadlineUnixSec:  now.Add(time.Minute).Unix(),
+			CaptainDeadlineUnixSec: now.Add(time.Minute).Unix(),
+			BattleID:               "battle_1",
+			AllocationState:        "battle_ready",
+			CreatedAt:              now,
+			UpdatedAt:              now,
+		},
+		member: storage.AssignmentMember{
+			AssignmentID: "assign_battle",
+			AccountID:    "account_join",
+			ProfileID:    "profile_join",
+			TicketRole:   "join",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		},
+	}
+	service := NewService(storage.NewAssignmentRepository(db), time.Minute)
+	_, err := service.CommitBattleEntryReady(context.Background(), CommitInput{
+		AssignmentID:       "assign_battle",
+		AccountID:          "account_join",
+		ProfileID:          "profile_join",
+		AssignmentRevision: 3,
+		BattleID:           "battle_other",
+	})
+	if err != ErrAssignmentGrantForbidden {
+		t.Fatalf("expected ErrAssignmentGrantForbidden, got %v", err)
+	}
+}

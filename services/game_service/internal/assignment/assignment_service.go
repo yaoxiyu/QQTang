@@ -148,6 +148,48 @@ func (s *Service) CommitRoom(ctx context.Context, input CommitInput) (CommitResu
 	}, nil
 }
 
+func (s *Service) CommitBattleEntryReady(ctx context.Context, input CommitInput) (CommitResult, error) {
+	assignmentRecord, err := s.repo.FindByID(ctx, input.AssignmentID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return CommitResult{}, ErrAssignmentNotFound
+		}
+		return CommitResult{}, err
+	}
+	member, err := s.repo.FindMember(ctx, input.AssignmentID, input.AccountID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return CommitResult{}, ErrAssignmentMemberNotFound
+		}
+		return CommitResult{}, err
+	}
+	if member.ProfileID != input.ProfileID {
+		return CommitResult{}, ErrAssignmentGrantForbidden
+	}
+	if input.AssignmentRevision != assignmentRecord.AssignmentRevision {
+		return CommitResult{}, ErrAssignmentRevisionStale
+	}
+	if assignmentRecord.BattleID == "" || input.BattleID == "" || input.BattleID != assignmentRecord.BattleID {
+		return CommitResult{}, ErrAssignmentGrantForbidden
+	}
+	now := time.Now().UTC().Unix()
+	if assignmentRecord.CommitDeadlineUnixSec < now || assignmentRecord.State == "finalized" {
+		return CommitResult{}, ErrAssignmentExpired
+	}
+	if assignmentRecord.AllocationState == "alloc_failed" || assignmentRecord.AllocationState == "allocation_failed" {
+		return CommitResult{}, ErrAssignmentAllocFailed
+	}
+	if err := s.repo.MarkCommitted(ctx, assignmentRecord.AssignmentID, input.AccountID); err != nil {
+		return CommitResult{}, err
+	}
+	return CommitResult{
+		AssignmentID:       assignmentRecord.AssignmentID,
+		AssignmentRevision: assignmentRecord.AssignmentRevision,
+		CommitState:        "committed",
+		RoomID:             assignmentRecord.RoomID,
+	}, nil
+}
+
 func (s *Service) reElectCaptainIfNeeded(ctx context.Context, assignmentRecord storage.Assignment, member storage.AssignmentMember) (storage.Assignment, storage.AssignmentMember, error) {
 	now := time.Now().UTC()
 	if assignmentRecord.State == "committed" || assignmentRecord.CaptainDeadlineUnixSec >= now.Unix() {

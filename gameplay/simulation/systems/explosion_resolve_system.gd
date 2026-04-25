@@ -43,10 +43,9 @@ func execute(ctx: SimContext) -> void:
 			if NativeFeatureFlagsScript.require_native_kernels:
 				push_error("[explosion_resolve_system] native explosion kernel is required but unavailable")
 				return
-		elif NativeFeatureFlagsScript.enable_native_explosion_execute and _execute_native_path(ctx):
+		else:
+			_execute_native_path(ctx)
 			return
-		elif NativeFeatureFlagsScript.enable_native_explosion_shadow:
-			_run_native_shadow_probe(ctx)
 
 	var pending_bubble_queue: Array[int] = []
 	for bubble_id in ctx.scratch.bubbles_to_explode:
@@ -125,22 +124,6 @@ func execute(ctx: SimContext) -> void:
 		}
 		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, center_x, center_y, covered_cells)
 		ctx.events.push(exploded_event)
-
-
-func _run_native_shadow_probe(ctx: SimContext) -> void:
-	var result := _native_explosion_bridge.resolve(ctx)
-	var pending_count := ctx.scratch.bubbles_to_explode.size()
-	var processed_count := int((result.get("processed_bubble_ids", []) as Array).size())
-	if pending_count > 0 and processed_count == 0:
-		LogSimulationScript.warn(
-			"[explosion_resolve_system] native shadow mismatch processed_bubble_ids=%d pending=%d" % [
-				processed_count,
-				pending_count,
-			],
-			"",
-			0,
-			"simulation.explosion.native_shadow"
-		)
 
 
 func _log_invalid_explosion_coverage_if_needed(
@@ -378,12 +361,7 @@ func _execute_native_path(ctx: SimContext) -> bool:
 		var result := _native_explosion_bridge.resolve(ctx, pending_wave)
 		var processed_bubble_ids: Array[int] = result.get("processed_bubble_ids", [])
 		if processed_bubble_ids.is_empty():
-			LogSimulationScript.warn(
-				"[explosion_resolve_system] native explosion returned empty processed_bubble_ids, fallback to GDScript",
-				"",
-				0,
-				"simulation.explosion.native"
-			)
+			push_error("[explosion_resolve_system] native explosion returned empty processed_bubble_ids")
 			return false
 
 		saw_processed = true

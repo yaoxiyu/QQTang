@@ -200,10 +200,13 @@ func (c *Client) callCommitAssignmentReady(input CommitAssignmentReadyInput) (*g
 	ctx, cancel := context.WithTimeout(context.Background(), c.rpcTimeout)
 	defer cancel()
 	response, rpcErr := stub.CommitAssignmentReady(ctx, &gamev1.CommitAssignmentReadyRequest{
-		Context:      toPBRoomContext(input.RoomID, input.RoomKind),
-		AssignmentId: input.AssignmentID,
-		MatchId:      input.MatchID,
-		BattleId:     input.BattleID,
+		Context:            toPBRoomContext(input.RoomID, input.RoomKind),
+		AssignmentId:       input.AssignmentID,
+		MatchId:            input.MatchID,
+		BattleId:           input.BattleID,
+		AccountId:          input.AccountID,
+		ProfileId:          input.ProfileID,
+		AssignmentRevision: int32(input.AssignmentRevision),
 	})
 	if rpcErr != nil {
 		return nil, mapRPCError("CommitAssignmentReady", rpcErr)

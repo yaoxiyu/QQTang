@@ -44,13 +44,14 @@ type ManualRoomMember struct {
 }
 
 type ManualRoomBattleResult struct {
-	AssignmentID    string
-	BattleID        string
-	MatchID         string
-	DSInstanceID    string
-	ServerHost      string
-	ServerPort      int
-	AllocationState string
+	AssignmentID       string
+	AssignmentRevision int
+	BattleID           string
+	MatchID            string
+	DSInstanceID       string
+	ServerHost         string
+	ServerPort         int
+	AllocationState    string
 }
 
 type BattleManifest struct {

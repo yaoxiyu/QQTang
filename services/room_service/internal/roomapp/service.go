@@ -742,14 +742,15 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 	}
 
 	roomTransitionEngine.ApplyBattleHandoffUpdated(room, s.roomOwnerByID[input.RoomID], BattleHandoffUpdate{
-		AssignmentID:   result.AssignmentID,
-		MatchID:        result.MatchID,
-		BattleID:       result.BattleID,
-		ServerHost:     result.ServerHost,
-		ServerPort:     result.ServerPort,
-		Phase:          BattlePhaseReady,
-		TerminalReason: BattleReasonManualStart,
-		Ready:          true,
+		AssignmentID:       result.AssignmentID,
+		AssignmentRevision: result.AssignmentRevision,
+		MatchID:            result.MatchID,
+		BattleID:           result.BattleID,
+		ServerHost:         result.ServerHost,
+		ServerPort:         result.ServerPort,
+		Phase:              BattlePhaseReady,
+		TerminalReason:     BattleReasonManualStart,
+		Ready:              true,
 	})
 	return s.snapshotProjectionLocked(room), nil
 }
@@ -762,7 +763,8 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	if room == nil {
 		return nil, ErrRoomNotFound
 	}
-	if _, ok := room.Members[input.MemberID]; !ok {
+	member, ok := room.Members[input.MemberID]
+	if !ok {
 		return nil, ErrMemberNotFound
 	}
 	if room.RoomState.Phase != RoomPhaseBattleEntryReady || room.BattleState.Phase != BattlePhaseReady {
@@ -784,11 +786,14 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	}
 
 	result, err := s.game.CommitAssignmentReady(gameclient.CommitAssignmentReadyInput{
-		RoomID:       room.RoomID,
-		RoomKind:     room.RoomKind,
-		AssignmentID: input.AssignmentID,
-		BattleID:     input.BattleID,
-		MatchID:      input.MatchID,
+		RoomID:             room.RoomID,
+		RoomKind:           room.RoomKind,
+		AssignmentID:       input.AssignmentID,
+		AccountID:          member.AccountID,
+		ProfileID:          member.ProfileID,
+		AssignmentRevision: handoff.AssignmentRevision,
+		BattleID:           input.BattleID,
+		MatchID:            input.MatchID,
 	})
 	if err != nil {
 		return nil, err
@@ -1215,6 +1220,10 @@ func clearBattleStateProjection(handoff *domain.BattleHandoffFSMProjection) bool
 	changed := false
 	if handoff.AssignmentID != "" {
 		handoff.AssignmentID = ""
+		changed = true
+	}
+	if handoff.AssignmentRevision != 0 {
+		handoff.AssignmentRevision = 0
 		changed = true
 	}
 	if handoff.MatchID != "" {

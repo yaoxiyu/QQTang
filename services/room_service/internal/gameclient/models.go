@@ -66,6 +66,7 @@ type GetPartyQueueStatusResult struct {
 	AllocationReason     string
 	BattleEntryReady     bool
 	AssignmentID         string
+	AssignmentRevision   int
 	MatchID              string
 	BattleID             string
 	ServerHost           string
@@ -84,24 +85,28 @@ type CreateManualRoomBattleInput struct {
 }
 
 type CreateManualRoomBattleResult struct {
-	OK              bool
-	AssignmentID    string
-	MatchID         string
-	BattleID        string
-	ServerHost      string
-	ServerPort      int
-	AllocationState string
-	Ready           bool
-	ErrorCode       string
-	UserMessage     string
+	OK                 bool
+	AssignmentID       string
+	AssignmentRevision int
+	MatchID            string
+	BattleID           string
+	ServerHost         string
+	ServerPort         int
+	AllocationState    string
+	Ready              bool
+	ErrorCode          string
+	UserMessage        string
 }
 
 type CommitAssignmentReadyInput struct {
-	RoomID       string
-	RoomKind     string
-	AssignmentID string
-	BattleID     string
-	MatchID      string
+	RoomID             string
+	RoomKind           string
+	AssignmentID       string
+	AccountID          string
+	ProfileID          string
+	AssignmentRevision int
+	BattleID           string
+	MatchID            string
 }
 
 type CommitAssignmentReadyResult struct {

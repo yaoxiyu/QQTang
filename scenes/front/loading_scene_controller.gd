@@ -5,6 +5,7 @@ const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.
 const BattleEntryUseCaseScript = preload("res://app/front/battle/battle_entry_use_case.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
+const BATTLE_ENTRY_ACK_TIMEOUT_SEC := 3.0
 
 @onready var loading_root: Control = $LoadingRoot
 @onready var main_layout: VBoxContainer = $LoadingRoot/MainLayout
@@ -240,10 +241,13 @@ func _run_battle_entry_flow() -> void:
 		String(_battle_entry_context.assignment_id),
 		String(_battle_entry_context.battle_id)
 	)
-	_log_battle_entry("room_ack_battle_entry_requested", {
-		"assignment_id": String(_battle_entry_context.assignment_id),
-		"battle_id": String(_battle_entry_context.battle_id),
-	})
+	var ack_result := await _wait_for_battle_entry_ack()
+	if not bool(ack_result.get("ok", false)):
+		_abort_battle_entry(
+			String(ack_result.get("error_code", "ROOM_ACK_BATTLE_ENTRY_FAILED")),
+			String(ack_result.get("user_message", "Room failed to acknowledge battle entry"))
+		)
+		return
 
 	# Store battle entry context on runtime for battle scene to consume
 	_app_runtime.current_battle_entry_context = _battle_entry_context
@@ -252,6 +256,48 @@ func _run_battle_entry_flow() -> void:
 	_transition_handled = true
 	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
 		_front_flow.on_match_loading_ready(null)
+
+
+func _wait_for_battle_entry_ack() -> Dictionary:
+	if _room_client_gateway == null:
+		return {"ok": false, "error_code": "ROOM_ACK_GATEWAY_MISSING", "user_message": "Room gateway cannot acknowledge battle entry"}
+	if not _room_client_gateway.has_signal("room_operation_accepted") or not _room_client_gateway.has_signal("room_error"):
+		return {"ok": false, "error_code": "ROOM_ACK_SIGNAL_MISSING", "user_message": "Room gateway cannot report battle entry acknowledgement"}
+	var state := {
+		"done": false,
+		"ok": false,
+		"error_code": "",
+		"user_message": "",
+	}
+	var accepted_callback := func(operation: String, _request_id: String) -> void:
+		if String(operation) != "AckBattleEntry":
+			return
+		state["done"] = true
+		state["ok"] = true
+	var error_callback := func(error_code: String, user_message: String) -> void:
+		state["done"] = true
+		state["ok"] = false
+		state["error_code"] = error_code
+		state["user_message"] = user_message
+	_room_client_gateway.room_operation_accepted.connect(accepted_callback)
+	_room_client_gateway.room_error.connect(error_callback)
+	var deadline_msec := Time.get_ticks_msec() + int(BATTLE_ENTRY_ACK_TIMEOUT_SEC * 1000.0)
+	while not bool(state.done) and Time.get_ticks_msec() < deadline_msec:
+		await get_tree().process_frame
+	if _room_client_gateway != null:
+		if _room_client_gateway.room_operation_accepted.is_connected(accepted_callback):
+			_room_client_gateway.room_operation_accepted.disconnect(accepted_callback)
+		if _room_client_gateway.room_error.is_connected(error_callback):
+			_room_client_gateway.room_error.disconnect(error_callback)
+	if bool(state.done):
+		if bool(state.ok):
+			return {"ok": true}
+		return {
+			"ok": false,
+			"error_code": String(state.error_code),
+			"user_message": String(state.user_message),
+		}
+	return {"ok": false, "error_code": "ROOM_ACK_BATTLE_ENTRY_TIMEOUT", "user_message": "Room battle entry acknowledgement timed out"}
 
 
 func _abort_battle_entry(error_code: String, user_message: String) -> void:

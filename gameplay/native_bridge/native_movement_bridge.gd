@@ -23,6 +23,7 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 
 	var kernel := NativeKernelRuntimeScript.get_movement_kernel()
 	if kernel == null:
+		push_error("[native_movement_bridge] native movement kernel is unavailable")
 		return empty_result
 
 	var player_records := _pack_player_records(ctx, player_ids)
@@ -52,22 +53,12 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 			)
 		)
 	if not (result_blob_variant is PackedByteArray):
-		LogSimulationScript.warn(
-			"[native_movement_bridge] movement kernel returned non-byte result, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
+		push_error("[native_movement_bridge] movement kernel returned non-byte result")
 		return empty_result
 
 	var result_variant: Variant = bytes_to_var(result_blob_variant)
 	if not (result_variant is Dictionary):
-		LogSimulationScript.warn(
-			"[native_movement_bridge] movement kernel decoded non-dictionary result, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
+		push_error("[native_movement_bridge] movement kernel decoded non-dictionary result")
 		return empty_result
 
 	return _decode_result(result_variant)

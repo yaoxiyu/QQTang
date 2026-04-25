@@ -33,13 +33,10 @@ func encode_snapshot_payload(snapshot: WorldSnapshot) -> PackedByteArray:
 		var native_result: Variant = native_codec.pack_snapshot_payload(payload)
 		if native_result is PackedByteArray:
 			return native_result
-		LogBattleScript.warn(
-			"[native_packed_state_codec_bridge] native pack_snapshot_payload returned non-bytes, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
-	return var_to_bytes(payload)
+		push_error("[native_packed_state_codec_bridge] native pack_snapshot_payload returned non-bytes")
+		return PackedByteArray()
+	push_error("[native_packed_state_codec_bridge] native packed state codec is unavailable")
+	return PackedByteArray()
 
 
 func decode_snapshot_payload(snapshot_bytes: PackedByteArray) -> WorldSnapshot:
@@ -51,7 +48,8 @@ func decode_snapshot_payload(snapshot_bytes: PackedByteArray) -> WorldSnapshot:
 	if native_codec != null and native_codec.has_method("unpack_snapshot_payload"):
 		payload_variant = native_codec.unpack_snapshot_payload(snapshot_bytes)
 	else:
-		payload_variant = bytes_to_var(snapshot_bytes)
+		push_error("[native_packed_state_codec_bridge] native packed state codec is unavailable")
+		return null
 	if not (payload_variant is Dictionary):
 		LogBattleScript.warn(
 			"[native_packed_state_codec_bridge] snapshot payload decode returned non-dictionary",

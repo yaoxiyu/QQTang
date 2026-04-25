@@ -220,6 +220,7 @@ type fakeGameControlServer struct {
 	commitResp    *gamev1.CommitAssignmentReadyResponse
 	lastEnterReq  *gamev1.EnterPartyQueueRequest
 	lastCreateReq *gamev1.CreateManualRoomBattleRequest
+	lastCommitReq *gamev1.CommitAssignmentReadyRequest
 }
 
 func (f *fakeGameControlServer) EnterPartyQueue(_ context.Context, req *gamev1.EnterPartyQueueRequest) (*gamev1.EnterPartyQueueResponse, error) {
@@ -250,16 +251,18 @@ func (f *fakeGameControlServer) CreateManualRoomBattle(_ context.Context, req *g
 		return f.createResp, nil
 	}
 	return &gamev1.CreateManualRoomBattleResponse{
-		Ok:           true,
-		AssignmentId: "assignment-1",
-		MatchId:      "match-1",
-		BattleId:     "battle-1",
-		ServerHost:   "127.0.0.1",
-		ServerPort:   19091,
+		Ok:                 true,
+		AssignmentId:       "assignment-1",
+		MatchId:            "match-1",
+		BattleId:           "battle-1",
+		ServerHost:         "127.0.0.1",
+		ServerPort:         19091,
+		AssignmentRevision: 1,
 	}, nil
 }
 
-func (f *fakeGameControlServer) CommitAssignmentReady(_ context.Context, _ *gamev1.CommitAssignmentReadyRequest) (*gamev1.CommitAssignmentReadyResponse, error) {
+func (f *fakeGameControlServer) CommitAssignmentReady(_ context.Context, req *gamev1.CommitAssignmentReadyRequest) (*gamev1.CommitAssignmentReadyResponse, error) {
+	f.lastCommitReq = req
 	if f.commitResp != nil {
 		return f.commitResp, nil
 	}

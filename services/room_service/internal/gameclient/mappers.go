@@ -81,6 +81,7 @@ func fromPBGetPartyQueueStatus(response *gamev1.GetPartyQueueStatusResponse) Get
 		AllocationReason:     response.GetAllocationReason(),
 		BattleEntryReady:     response.GetBattleEntryReady(),
 		AssignmentID:         response.GetAssignmentId(),
+		AssignmentRevision:   int(response.GetAssignmentRevision()),
 		MatchID:              response.GetMatchId(),
 		BattleID:             response.GetBattleId(),
 		ServerHost:           response.GetServerHost(),
@@ -95,16 +96,17 @@ func fromPBCreateManualRoomBattle(response *gamev1.CreateManualRoomBattleRespons
 		return CreateManualRoomBattleResult{}
 	}
 	return CreateManualRoomBattleResult{
-		OK:              response.GetOk(),
-		AssignmentID:    response.GetAssignmentId(),
-		MatchID:         response.GetMatchId(),
-		BattleID:        response.GetBattleId(),
-		ServerHost:      response.GetServerHost(),
-		ServerPort:      int(response.GetServerPort()),
-		AllocationState: "",
-		Ready:           response.GetOk(),
-		ErrorCode:       response.GetErrorCode(),
-		UserMessage:     response.GetUserMessage(),
+		OK:                 response.GetOk(),
+		AssignmentID:       response.GetAssignmentId(),
+		AssignmentRevision: int(response.GetAssignmentRevision()),
+		MatchID:            response.GetMatchId(),
+		BattleID:           response.GetBattleId(),
+		ServerHost:         response.GetServerHost(),
+		ServerPort:         int(response.GetServerPort()),
+		AllocationState:    "",
+		Ready:              response.GetOk(),
+		ErrorCode:          response.GetErrorCode(),
+		UserMessage:        response.GetUserMessage(),
 	}
 }
 

@@ -64,6 +64,7 @@ func NewServer(addr string, app *roomapp.Service, logger *slog.Logger, allowedOr
 			},
 		},
 	}
+	s.dispatcher.SetLogger(logger)
 	s.dispatcher.SetDirectorySnapshotProvider(s.buildDirectorySnapshot)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", s.handleWS)

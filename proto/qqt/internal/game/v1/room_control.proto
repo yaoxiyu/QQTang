@@ -78,6 +78,7 @@ message GetPartyQueueStatusResponse {
   string allocation_phase = 14;
   string allocation_reason = 15;
   bool battle_entry_ready = 16;
+  int32 assignment_revision = 17;
 }
 
 message CreateManualRoomBattleRequest {
@@ -97,6 +98,7 @@ message CreateManualRoomBattleResponse {
   int32 server_port = 6;
   string error_code = 7;
   string user_message = 8;
+  int32 assignment_revision = 9;
 }
 
 message CommitAssignmentReadyRequest {
@@ -104,6 +106,9 @@ message CommitAssignmentReadyRequest {
   string assignment_id = 2;
   string match_id = 3;
   string battle_id = 4;
+  string account_id = 5;
+  string profile_id = 6;
+  int32 assignment_revision = 7;
 }
 
 message CommitAssignmentReadyResponse {

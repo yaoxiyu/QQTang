@@ -32,7 +32,6 @@ func test_client_authority_burst_coalesces_to_one_snapshot_and_preserves_events(
 	assert_eq(int(metrics.get("coalesced_snapshot_tick", 0)), 129)
 	assert_eq(int(metrics.get("dropped_intermediate_snapshot_count", 0)), 9)
 	assert_eq(events.size(), 20)
-	assert_true(bool(metrics.get("native_shadow_equal", false)))
 	runtime.queue_free()
 
 

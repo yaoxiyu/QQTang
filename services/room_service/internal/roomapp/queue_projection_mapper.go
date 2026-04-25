@@ -43,6 +43,7 @@ func applyPartyQueueProjection(room *domain.RoomAggregate, result gameclient.Get
 		BattlePhase:         nextBattlePhase,
 		BattleReady:         ready,
 		AssignmentID:        result.AssignmentID,
+		AssignmentRevision:  result.AssignmentRevision,
 		MatchID:             result.MatchID,
 		BattleID:            result.BattleID,
 		ServerHost:          result.ServerHost,

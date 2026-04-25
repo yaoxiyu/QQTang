@@ -26,6 +26,7 @@ func resolve(ctx: SimContext, pending_bubble_ids: Array[int] = []) -> Dictionary
 
 	var kernel := NativeKernelRuntimeScript.get_explosion_kernel()
 	if kernel == null:
+		push_error("[native_explosion_bridge] native explosion kernel is unavailable")
 		return empty_result
 
 	var input_blob := _encode_input_blob(
@@ -38,22 +39,12 @@ func resolve(ctx: SimContext, pending_bubble_ids: Array[int] = []) -> Dictionary
 	)
 	var result_blob_variant: Variant = kernel.resolve_explosions(input_blob)
 	if not (result_blob_variant is PackedByteArray):
-		LogSimulationScript.warn(
-			"[native_explosion_bridge] explosion kernel returned non-byte result, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
+		push_error("[native_explosion_bridge] explosion kernel returned non-byte result")
 		return empty_result
 
 	var result_variant: Variant = bytes_to_var(result_blob_variant)
 	if not (result_variant is Dictionary):
-		LogSimulationScript.warn(
-			"[native_explosion_bridge] explosion kernel decoded non-dictionary result, fallback to GDScript",
-			"",
-			0,
-			LOG_TAG
-		)
+		push_error("[native_explosion_bridge] explosion kernel decoded non-dictionary result")
 		return empty_result
 
 	return _decode_result(result_variant)

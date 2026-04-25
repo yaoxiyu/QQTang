@@ -126,7 +126,7 @@ static func _probe_availability() -> bool:
 		return false
 	if not checksum_kernel.has_method("get_kernel_version"):
 		LogBattleScript.warn(
-			"[native_kernel_runtime] checksum kernel missing get_kernel_version, fallback to GDScript",
+			"[native_kernel_runtime] checksum kernel missing get_kernel_version",
 			"",
 			0,
 			LOG_TAG
@@ -243,7 +243,7 @@ static func _get_or_create_kernel(p_class_name: String, cache_name: String) -> O
 	var instance: Object = _instantiate_kernel(p_class_name)
 	if instance == null:
 		LogBattleScript.warn(
-			"[native_kernel_runtime] kernel instantiate failed, fallback to GDScript class=%s" % p_class_name,
+			"[native_kernel_runtime] kernel instantiate failed class=%s" % p_class_name,
 			"",
 			0,
 			LOG_TAG
@@ -256,7 +256,7 @@ static func _get_or_create_kernel(p_class_name: String, cache_name: String) -> O
 static func _instantiate_kernel(p_class_name: String) -> Object:
 	if not ClassDB.can_instantiate(p_class_name):
 		LogBattleScript.warn(
-			"[native_kernel_runtime] native class unavailable, fallback to GDScript class=%s" % p_class_name,
+			"[native_kernel_runtime] native class unavailable class=%s" % p_class_name,
 			"",
 			0,
 			LOG_TAG

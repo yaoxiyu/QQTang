@@ -8,6 +8,7 @@ param(
     [string]$UserSlotPrefix = 'client',
     [string]$LogRoot = '',
     [switch]$UseConsoleClient,
+    [switch]$SkipDotnetBuild,
     [switch]$Wait
 )
 
@@ -23,6 +24,17 @@ if ($StartIndex -le 0) {
 
 $root = Resolve-QQTProjectRoot $ProjectPath
 $clientExe = Resolve-QQTGodotExecutable -GodotDir $GodotDir -PreferConsole ([bool]$UseConsoleClient)
+
+if (-not $SkipDotnetBuild) {
+    $projectFile = Join-Path $root 'QQTang.csproj'
+    if (Test-Path -LiteralPath $projectFile) {
+        Write-Host 'Building QQTang C# project...'
+        & dotnet build $projectFile
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet build failed: $projectFile"
+        }
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($LogRoot)) {
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'

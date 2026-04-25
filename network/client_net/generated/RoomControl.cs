@@ -59,7 +59,7 @@ namespace Qqt.Internal.Game.V1 {
             "EXF1ZXVlX3N0YXR1c190ZXh0GAcgASgJUg9xdWV1ZVN0YXR1c1RleHQifwoa",
             "R2V0UGFydHlRdWV1ZVN0YXR1c1JlcXVlc3QSOwoHY29udGV4dBgBIAEoCzIh",
             "LnFxdC5pbnRlcm5hbC5nYW1lLnYxLlJvb21Db250ZXh0Ugdjb250ZXh0EiQK",
-            "DnF1ZXVlX2VudHJ5X2lkGAIgASgJUgxxdWV1ZUVudHJ5SWQi7AQKG0dldFBh",
+            "DnF1ZXVlX2VudHJ5X2lkGAIgASgJUgxxdWV1ZUVudHJ5SWQinQUKG0dldFBh",
             "cnR5UXVldWVTdGF0dXNSZXNwb25zZRIOCgJvaxgBIAEoCFICb2sSHwoLcXVl",
             "dWVfc3RhdGUYAiABKAlSCnF1ZXVlU3RhdGUSIwoNYXNzaWdubWVudF9pZBgD",
             "IAEoCVIMYXNzaWdubWVudElkEhkKCG1hdGNoX2lkGAQgASgJUgdtYXRjaElk",
@@ -73,41 +73,46 @@ namespace Qqt.Internal.Game.V1 {
             "dBgNIAEoCVIUYXNzaWdubWVudFN0YXR1c1RleHQSKQoQYWxsb2NhdGlvbl9w",
             "aGFzZRgOIAEoCVIPYWxsb2NhdGlvblBoYXNlEisKEWFsbG9jYXRpb25fcmVh",
             "c29uGA8gASgJUhBhbGxvY2F0aW9uUmVhc29uEiwKEmJhdHRsZV9lbnRyeV9y",
-            "ZWFkeRgQIAEoCFIQYmF0dGxlRW50cnlSZWFkeSLpAQodQ3JlYXRlTWFudWFs",
-            "Um9vbUJhdHRsZVJlcXVlc3QSOwoHY29udGV4dBgBIAEoCzIhLnFxdC5pbnRl",
-            "cm5hbC5nYW1lLnYxLlJvb21Db250ZXh0Ugdjb250ZXh0EhcKB21vZGVfaWQY",
-            "AiABKAlSBm1vZGVJZBIeCgtydWxlX3NldF9pZBgDIAEoCVIJcnVsZVNldElk",
-            "EhUKBm1hcF9pZBgEIAEoCVIFbWFwSWQSOwoHbWVtYmVycxgFIAMoCzIhLnFx",
-            "dC5pbnRlcm5hbC5nYW1lLnYxLlBhcnR5TWVtYmVyUgdtZW1iZXJzIpECCh5D",
-            "cmVhdGVNYW51YWxSb29tQmF0dGxlUmVzcG9uc2USDgoCb2sYASABKAhSAm9r",
-            "EiMKDWFzc2lnbm1lbnRfaWQYAiABKAlSDGFzc2lnbm1lbnRJZBIZCghtYXRj",
-            "aF9pZBgDIAEoCVIHbWF0Y2hJZBIbCgliYXR0bGVfaWQYBCABKAlSCGJhdHRs",
-            "ZUlkEh8KC3NlcnZlcl9ob3N0GAUgASgJUgpzZXJ2ZXJIb3N0Eh8KC3NlcnZl",
-            "cl9wb3J0GAYgASgFUgpzZXJ2ZXJQb3J0Eh0KCmVycm9yX2NvZGUYByABKAlS",
-            "CWVycm9yQ29kZRIhCgx1c2VyX21lc3NhZ2UYCCABKAlSC3VzZXJNZXNzYWdl",
-            "IrgBChxDb21taXRBc3NpZ25tZW50UmVhZHlSZXF1ZXN0EjsKB2NvbnRleHQY",
-            "ASABKAsyIS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5Sb29tQ29udGV4dFIHY29u",
-            "dGV4dBIjCg1hc3NpZ25tZW50X2lkGAIgASgJUgxhc3NpZ25tZW50SWQSGQoI",
+            "ZWFkeRgQIAEoCFIQYmF0dGxlRW50cnlSZWFkeRIvChNhc3NpZ25tZW50X3Jl",
+            "dmlzaW9uGBEgASgFUhJhc3NpZ25tZW50UmV2aXNpb24i6QEKHUNyZWF0ZU1h",
+            "bnVhbFJvb21CYXR0bGVSZXF1ZXN0EjsKB2NvbnRleHQYASABKAsyIS5xcXQu",
+            "aW50ZXJuYWwuZ2FtZS52MS5Sb29tQ29udGV4dFIHY29udGV4dBIXCgdtb2Rl",
+            "X2lkGAIgASgJUgZtb2RlSWQSHgoLcnVsZV9zZXRfaWQYAyABKAlSCXJ1bGVT",
+            "ZXRJZBIVCgZtYXBfaWQYBCABKAlSBW1hcElkEjsKB21lbWJlcnMYBSADKAsy",
+            "IS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5QYXJ0eU1lbWJlclIHbWVtYmVycyLC",
+            "AgoeQ3JlYXRlTWFudWFsUm9vbUJhdHRsZVJlc3BvbnNlEg4KAm9rGAEgASgI",
+            "UgJvaxIjCg1hc3NpZ25tZW50X2lkGAIgASgJUgxhc3NpZ25tZW50SWQSGQoI",
             "bWF0Y2hfaWQYAyABKAlSB21hdGNoSWQSGwoJYmF0dGxlX2lkGAQgASgJUghi",
-            "YXR0bGVJZCKaAQodQ29tbWl0QXNzaWdubWVudFJlYWR5UmVzcG9uc2USDgoC",
-            "b2sYASABKAhSAm9rEicKD2NvbW1pdHRlZF9zdGF0ZRgCIAEoCVIOY29tbWl0",
-            "dGVkU3RhdGUSHQoKZXJyb3JfY29kZRgDIAEoCVIJZXJyb3JDb2RlEiEKDHVz",
-            "ZXJfbWVzc2FnZRgEIAEoCVILdXNlck1lc3NhZ2Uy/AQKElJvb21Db250cm9s",
-            "U2VydmljZRJuCg9FbnRlclBhcnR5UXVldWUSLC5xcXQuaW50ZXJuYWwuZ2Ft",
-            "ZS52MS5FbnRlclBhcnR5UXVldWVSZXF1ZXN0Gi0ucXF0LmludGVybmFsLmdh",
-            "bWUudjEuRW50ZXJQYXJ0eVF1ZXVlUmVzcG9uc2UScQoQQ2FuY2VsUGFydHlR",
-            "dWV1ZRItLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkNhbmNlbFBhcnR5UXVldWVS",
-            "ZXF1ZXN0Gi4ucXF0LmludGVybmFsLmdhbWUudjEuQ2FuY2VsUGFydHlRdWV1",
-            "ZVJlc3BvbnNlEnoKE0dldFBhcnR5UXVldWVTdGF0dXMSMC5xcXQuaW50ZXJu",
-            "YWwuZ2FtZS52MS5HZXRQYXJ0eVF1ZXVlU3RhdHVzUmVxdWVzdBoxLnFxdC5p",
-            "bnRlcm5hbC5nYW1lLnYxLkdldFBhcnR5UXVldWVTdGF0dXNSZXNwb25zZRKD",
-            "AQoWQ3JlYXRlTWFudWFsUm9vbUJhdHRsZRIzLnFxdC5pbnRlcm5hbC5nYW1l",
-            "LnYxLkNyZWF0ZU1hbnVhbFJvb21CYXR0bGVSZXF1ZXN0GjQucXF0LmludGVy",
-            "bmFsLmdhbWUudjEuQ3JlYXRlTWFudWFsUm9vbUJhdHRsZVJlc3BvbnNlEoAB",
-            "ChVDb21taXRBc3NpZ25tZW50UmVhZHkSMi5xcXQuaW50ZXJuYWwuZ2FtZS52",
-            "MS5Db21taXRBc3NpZ25tZW50UmVhZHlSZXF1ZXN0GjMucXF0LmludGVybmFs",
-            "LmdhbWUudjEuQ29tbWl0QXNzaWdubWVudFJlYWR5UmVzcG9uc2VCJ1olcXF0",
-            "L3Byb3RvL3FxdC9pbnRlcm5hbC9nYW1lL3YxO2dhbWV2MWIGcHJvdG8z"));
+            "YXR0bGVJZBIfCgtzZXJ2ZXJfaG9zdBgFIAEoCVIKc2VydmVySG9zdBIfCgtz",
+            "ZXJ2ZXJfcG9ydBgGIAEoBVIKc2VydmVyUG9ydBIdCgplcnJvcl9jb2RlGAcg",
+            "ASgJUgllcnJvckNvZGUSIQoMdXNlcl9tZXNzYWdlGAggASgJUgt1c2VyTWVz",
+            "c2FnZRIvChNhc3NpZ25tZW50X3JldmlzaW9uGAkgASgFUhJhc3NpZ25tZW50",
+            "UmV2aXNpb24ipwIKHENvbW1pdEFzc2lnbm1lbnRSZWFkeVJlcXVlc3QSOwoH",
+            "Y29udGV4dBgBIAEoCzIhLnFxdC5pbnRlcm5hbC5nYW1lLnYxLlJvb21Db250",
+            "ZXh0Ugdjb250ZXh0EiMKDWFzc2lnbm1lbnRfaWQYAiABKAlSDGFzc2lnbm1l",
+            "bnRJZBIZCghtYXRjaF9pZBgDIAEoCVIHbWF0Y2hJZBIbCgliYXR0bGVfaWQY",
+            "BCABKAlSCGJhdHRsZUlkEh0KCmFjY291bnRfaWQYBSABKAlSCWFjY291bnRJ",
+            "ZBIdCgpwcm9maWxlX2lkGAYgASgJUglwcm9maWxlSWQSLwoTYXNzaWdubWVu",
+            "dF9yZXZpc2lvbhgHIAEoBVISYXNzaWdubWVudFJldmlzaW9uIpoBCh1Db21t",
+            "aXRBc3NpZ25tZW50UmVhZHlSZXNwb25zZRIOCgJvaxgBIAEoCFICb2sSJwoP",
+            "Y29tbWl0dGVkX3N0YXRlGAIgASgJUg5jb21taXR0ZWRTdGF0ZRIdCgplcnJv",
+            "cl9jb2RlGAMgASgJUgllcnJvckNvZGUSIQoMdXNlcl9tZXNzYWdlGAQgASgJ",
+            "Ugt1c2VyTWVzc2FnZTL8BAoSUm9vbUNvbnRyb2xTZXJ2aWNlEm4KD0VudGVy",
+            "UGFydHlRdWV1ZRIsLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkVudGVyUGFydHlR",
+            "dWV1ZVJlcXVlc3QaLS5xcXQuaW50ZXJuYWwuZ2FtZS52MS5FbnRlclBhcnR5",
+            "UXVldWVSZXNwb25zZRJxChBDYW5jZWxQYXJ0eVF1ZXVlEi0ucXF0LmludGVy",
+            "bmFsLmdhbWUudjEuQ2FuY2VsUGFydHlRdWV1ZVJlcXVlc3QaLi5xcXQuaW50",
+            "ZXJuYWwuZ2FtZS52MS5DYW5jZWxQYXJ0eVF1ZXVlUmVzcG9uc2USegoTR2V0",
+            "UGFydHlRdWV1ZVN0YXR1cxIwLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkdldFBh",
+            "cnR5UXVldWVTdGF0dXNSZXF1ZXN0GjEucXF0LmludGVybmFsLmdhbWUudjEu",
+            "R2V0UGFydHlRdWV1ZVN0YXR1c1Jlc3BvbnNlEoMBChZDcmVhdGVNYW51YWxS",
+            "b29tQmF0dGxlEjMucXF0LmludGVybmFsLmdhbWUudjEuQ3JlYXRlTWFudWFs",
+            "Um9vbUJhdHRsZVJlcXVlc3QaNC5xcXQuaW50ZXJuYWwuZ2FtZS52MS5DcmVh",
+            "dGVNYW51YWxSb29tQmF0dGxlUmVzcG9uc2USgAEKFUNvbW1pdEFzc2lnbm1l",
+            "bnRSZWFkeRIyLnFxdC5pbnRlcm5hbC5nYW1lLnYxLkNvbW1pdEFzc2lnbm1l",
+            "bnRSZWFkeVJlcXVlc3QaMy5xcXQuaW50ZXJuYWwuZ2FtZS52MS5Db21taXRB",
+            "c3NpZ25tZW50UmVhZHlSZXNwb25zZUInWiVxcXQvcHJvdG8vcXF0L2ludGVy",
+            "bmFsL2dhbWUvdjE7Z2FtZXYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -118,10 +123,10 @@ namespace Qqt.Internal.Game.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CancelPartyQueueRequest), global::Qqt.Internal.Game.V1.CancelPartyQueueRequest.Parser, new[]{ "Context", "QueueEntryId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CancelPartyQueueResponse), global::Qqt.Internal.Game.V1.CancelPartyQueueResponse.Parser, new[]{ "Ok", "QueueState", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusRequest), global::Qqt.Internal.Game.V1.GetPartyQueueStatusRequest.Parser, new[]{ "Context", "QueueEntryId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse), global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse.Parser, new[]{ "Ok", "QueueState", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText", "AssignmentStatusText", "AllocationPhase", "AllocationReason", "BattleEntryReady" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse), global::Qqt.Internal.Game.V1.GetPartyQueueStatusResponse.Parser, new[]{ "Ok", "QueueState", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage", "QueuePhase", "QueueTerminalReason", "QueueStatusText", "AssignmentStatusText", "AllocationPhase", "AllocationReason", "BattleEntryReady", "AssignmentRevision" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CreateManualRoomBattleRequest), global::Qqt.Internal.Game.V1.CreateManualRoomBattleRequest.Parser, new[]{ "Context", "ModeId", "RuleSetId", "MapId", "Members" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse), global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse.Parser, new[]{ "Ok", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest), global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest.Parser, new[]{ "Context", "AssignmentId", "MatchId", "BattleId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse), global::Qqt.Internal.Game.V1.CreateManualRoomBattleResponse.Parser, new[]{ "Ok", "AssignmentId", "MatchId", "BattleId", "ServerHost", "ServerPort", "ErrorCode", "UserMessage", "AssignmentRevision" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest), global::Qqt.Internal.Game.V1.CommitAssignmentReadyRequest.Parser, new[]{ "Context", "AssignmentId", "MatchId", "BattleId", "AccountId", "ProfileId", "AssignmentRevision" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Qqt.Internal.Game.V1.CommitAssignmentReadyResponse), global::Qqt.Internal.Game.V1.CommitAssignmentReadyResponse.Parser, new[]{ "Ok", "CommittedState", "ErrorCode", "UserMessage" }, null, null, null, null)
           }));
     }
@@ -2644,6 +2649,7 @@ namespace Qqt.Internal.Game.V1 {
       allocationPhase_ = other.allocationPhase_;
       allocationReason_ = other.allocationReason_;
       battleEntryReady_ = other.battleEntryReady_;
+      assignmentRevision_ = other.assignmentRevision_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2845,6 +2851,18 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "assignment_revision" field.</summary>
+    public const int AssignmentRevisionFieldNumber = 17;
+    private int assignmentRevision_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int AssignmentRevision {
+      get { return assignmentRevision_; }
+      set {
+        assignmentRevision_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2876,6 +2894,7 @@ namespace Qqt.Internal.Game.V1 {
       if (AllocationPhase != other.AllocationPhase) return false;
       if (AllocationReason != other.AllocationReason) return false;
       if (BattleEntryReady != other.BattleEntryReady) return false;
+      if (AssignmentRevision != other.AssignmentRevision) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2899,6 +2918,7 @@ namespace Qqt.Internal.Game.V1 {
       if (AllocationPhase.Length != 0) hash ^= AllocationPhase.GetHashCode();
       if (AllocationReason.Length != 0) hash ^= AllocationReason.GetHashCode();
       if (BattleEntryReady != false) hash ^= BattleEntryReady.GetHashCode();
+      if (AssignmentRevision != 0) hash ^= AssignmentRevision.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2981,6 +3001,10 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(128, 1);
         output.WriteBool(BattleEntryReady);
       }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3055,6 +3079,10 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(128, 1);
         output.WriteBool(BattleEntryReady);
       }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -3112,6 +3140,9 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (BattleEntryReady != false) {
         size += 2 + 1;
+      }
+      if (AssignmentRevision != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeInt32Size(AssignmentRevision);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -3172,6 +3203,9 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.BattleEntryReady != false) {
         BattleEntryReady = other.BattleEntryReady;
+      }
+      if (other.AssignmentRevision != 0) {
+        AssignmentRevision = other.AssignmentRevision;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -3256,6 +3290,10 @@ namespace Qqt.Internal.Game.V1 {
             BattleEntryReady = input.ReadBool();
             break;
           }
+          case 136: {
+            AssignmentRevision = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -3337,6 +3375,10 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 128: {
             BattleEntryReady = input.ReadBool();
+            break;
+          }
+          case 136: {
+            AssignmentRevision = input.ReadInt32();
             break;
           }
         }
@@ -3733,6 +3775,7 @@ namespace Qqt.Internal.Game.V1 {
       serverPort_ = other.serverPort_;
       errorCode_ = other.errorCode_;
       userMessage_ = other.userMessage_;
+      assignmentRevision_ = other.assignmentRevision_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -3838,6 +3881,18 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "assignment_revision" field.</summary>
+    public const int AssignmentRevisionFieldNumber = 9;
+    private int assignmentRevision_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int AssignmentRevision {
+      get { return assignmentRevision_; }
+      set {
+        assignmentRevision_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -3861,6 +3916,7 @@ namespace Qqt.Internal.Game.V1 {
       if (ServerPort != other.ServerPort) return false;
       if (ErrorCode != other.ErrorCode) return false;
       if (UserMessage != other.UserMessage) return false;
+      if (AssignmentRevision != other.AssignmentRevision) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -3876,6 +3932,7 @@ namespace Qqt.Internal.Game.V1 {
       if (ServerPort != 0) hash ^= ServerPort.GetHashCode();
       if (ErrorCode.Length != 0) hash ^= ErrorCode.GetHashCode();
       if (UserMessage.Length != 0) hash ^= UserMessage.GetHashCode();
+      if (AssignmentRevision != 0) hash ^= AssignmentRevision.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -3926,6 +3983,10 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(66);
         output.WriteString(UserMessage);
       }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(72);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -3968,6 +4029,10 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(66);
         output.WriteString(UserMessage);
       }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(72);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4001,6 +4066,9 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (UserMessage.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(UserMessage);
+      }
+      if (AssignmentRevision != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(AssignmentRevision);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4037,6 +4105,9 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.UserMessage.Length != 0) {
         UserMessage = other.UserMessage;
+      }
+      if (other.AssignmentRevision != 0) {
+        AssignmentRevision = other.AssignmentRevision;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4087,6 +4158,10 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 66: {
             UserMessage = input.ReadString();
+            break;
+          }
+          case 72: {
+            AssignmentRevision = input.ReadInt32();
             break;
           }
         }
@@ -4140,6 +4215,10 @@ namespace Qqt.Internal.Game.V1 {
             UserMessage = input.ReadString();
             break;
           }
+          case 72: {
+            AssignmentRevision = input.ReadInt32();
+            break;
+          }
         }
       }
     }
@@ -4186,6 +4265,9 @@ namespace Qqt.Internal.Game.V1 {
       assignmentId_ = other.assignmentId_;
       matchId_ = other.matchId_;
       battleId_ = other.battleId_;
+      accountId_ = other.accountId_;
+      profileId_ = other.profileId_;
+      assignmentRevision_ = other.assignmentRevision_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4243,6 +4325,42 @@ namespace Qqt.Internal.Game.V1 {
       }
     }
 
+    /// <summary>Field number for the "account_id" field.</summary>
+    public const int AccountIdFieldNumber = 5;
+    private string accountId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string AccountId {
+      get { return accountId_; }
+      set {
+        accountId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "profile_id" field.</summary>
+    public const int ProfileIdFieldNumber = 6;
+    private string profileId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProfileId {
+      get { return profileId_; }
+      set {
+        profileId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "assignment_revision" field.</summary>
+    public const int AssignmentRevisionFieldNumber = 7;
+    private int assignmentRevision_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int AssignmentRevision {
+      get { return assignmentRevision_; }
+      set {
+        assignmentRevision_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4262,6 +4380,9 @@ namespace Qqt.Internal.Game.V1 {
       if (AssignmentId != other.AssignmentId) return false;
       if (MatchId != other.MatchId) return false;
       if (BattleId != other.BattleId) return false;
+      if (AccountId != other.AccountId) return false;
+      if (ProfileId != other.ProfileId) return false;
+      if (AssignmentRevision != other.AssignmentRevision) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4273,6 +4394,9 @@ namespace Qqt.Internal.Game.V1 {
       if (AssignmentId.Length != 0) hash ^= AssignmentId.GetHashCode();
       if (MatchId.Length != 0) hash ^= MatchId.GetHashCode();
       if (BattleId.Length != 0) hash ^= BattleId.GetHashCode();
+      if (AccountId.Length != 0) hash ^= AccountId.GetHashCode();
+      if (ProfileId.Length != 0) hash ^= ProfileId.GetHashCode();
+      if (AssignmentRevision != 0) hash ^= AssignmentRevision.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4307,6 +4431,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(34);
         output.WriteString(BattleId);
       }
+      if (AccountId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(AccountId);
+      }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(ProfileId);
+      }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(56);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4333,6 +4469,18 @@ namespace Qqt.Internal.Game.V1 {
         output.WriteRawTag(34);
         output.WriteString(BattleId);
       }
+      if (AccountId.Length != 0) {
+        output.WriteRawTag(42);
+        output.WriteString(AccountId);
+      }
+      if (ProfileId.Length != 0) {
+        output.WriteRawTag(50);
+        output.WriteString(ProfileId);
+      }
+      if (AssignmentRevision != 0) {
+        output.WriteRawTag(56);
+        output.WriteInt32(AssignmentRevision);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4354,6 +4502,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (BattleId.Length != 0) {
         size += 1 + pb::CodedOutputStream.ComputeStringSize(BattleId);
+      }
+      if (AccountId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(AccountId);
+      }
+      if (ProfileId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProfileId);
+      }
+      if (AssignmentRevision != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeInt32Size(AssignmentRevision);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -4381,6 +4538,15 @@ namespace Qqt.Internal.Game.V1 {
       }
       if (other.BattleId.Length != 0) {
         BattleId = other.BattleId;
+      }
+      if (other.AccountId.Length != 0) {
+        AccountId = other.AccountId;
+      }
+      if (other.ProfileId.Length != 0) {
+        ProfileId = other.ProfileId;
+      }
+      if (other.AssignmentRevision != 0) {
+        AssignmentRevision = other.AssignmentRevision;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4420,6 +4586,18 @@ namespace Qqt.Internal.Game.V1 {
             BattleId = input.ReadString();
             break;
           }
+          case 42: {
+            AccountId = input.ReadString();
+            break;
+          }
+          case 50: {
+            ProfileId = input.ReadString();
+            break;
+          }
+          case 56: {
+            AssignmentRevision = input.ReadInt32();
+            break;
+          }
         }
       }
     #endif
@@ -4456,6 +4634,18 @@ namespace Qqt.Internal.Game.V1 {
           }
           case 34: {
             BattleId = input.ReadString();
+            break;
+          }
+          case 42: {
+            AccountId = input.ReadString();
+            break;
+          }
+          case 50: {
+            ProfileId = input.ReadString();
+            break;
+          }
+          case 56: {
+            AssignmentRevision = input.ReadInt32();
             break;
           }
         }

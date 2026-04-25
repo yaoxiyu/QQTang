@@ -5,6 +5,7 @@ const ROOM_GATEWAY_ANOMALY_TAG := "net.room_gateway.anomaly"
 signal transport_connected()
 signal room_snapshot_received(snapshot: RoomSnapshot)
 signal room_error(error_code: String, user_message: String)
+signal room_operation_accepted(operation: String, request_id: String)
 signal canonical_start_config_received(config: BattleStartConfig)
 signal match_loading_snapshot_received(snapshot: MatchLoadingSnapshot)
 
@@ -241,6 +242,8 @@ func _connect_runtime_signals() -> void:
 		client_room_runtime.room_snapshot_received.connect(_on_room_snapshot_received)
 	if not client_room_runtime.room_error.is_connected(_on_room_error):
 		client_room_runtime.room_error.connect(_on_room_error)
+	if client_room_runtime.has_signal("room_operation_accepted") and not client_room_runtime.room_operation_accepted.is_connected(_on_room_operation_accepted):
+		client_room_runtime.room_operation_accepted.connect(_on_room_operation_accepted)
 	if not client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.connect(_on_canonical_start_config_received)
 	if client_room_runtime.has_signal("match_loading_snapshot_received") and not client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
@@ -261,6 +264,8 @@ func _disconnect_runtime_signals() -> void:
 		client_room_runtime.room_snapshot_received.disconnect(_on_room_snapshot_received)
 	if client_room_runtime.room_error.is_connected(_on_room_error):
 		client_room_runtime.room_error.disconnect(_on_room_error)
+	if client_room_runtime.has_signal("room_operation_accepted") and client_room_runtime.room_operation_accepted.is_connected(_on_room_operation_accepted):
+		client_room_runtime.room_operation_accepted.disconnect(_on_room_operation_accepted)
 	if client_room_runtime.canonical_start_config_received.is_connected(_on_canonical_start_config_received):
 		client_room_runtime.canonical_start_config_received.disconnect(_on_canonical_start_config_received)
 	if client_room_runtime.has_signal("match_loading_snapshot_received") and client_room_runtime.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
@@ -282,6 +287,10 @@ func _on_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 
 func _on_room_error(error_code: String, user_message: String) -> void:
 	room_error.emit(error_code, user_message)
+
+
+func _on_room_operation_accepted(operation: String, request_id: String) -> void:
+	room_operation_accepted.emit(operation, request_id)
 
 
 func _on_canonical_start_config_received(config: BattleStartConfig) -> void:

@@ -246,7 +246,7 @@ func _build_rollback_metrics() -> Dictionary:
 		"last_replay_tick_count": rollback.last_replay_tick_count,
 		"total_replay_ticks": rollback.total_replay_ticks,
 		"avg_replay_ticks": rollback.avg_replay_ticks,
-		"native": rollback.get_native_rollback_shadow_metrics(),
+		"native": rollback.get_native_rollback_metrics(),
 	}
 
 

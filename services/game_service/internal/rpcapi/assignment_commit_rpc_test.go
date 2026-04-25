@@ -25,10 +25,13 @@ func TestCommitAssignmentReadyRPC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	resp, err := conn.CommitAssignmentReady(ctx, &gamev1.CommitAssignmentReadyRequest{
-		Context:      &gamev1.RoomContext{RoomId: "room_1"},
-		AssignmentId: "assign_1",
-		MatchId:      "match_1",
-		BattleId:     "battle_1",
+		Context:            &gamev1.RoomContext{RoomId: "room_1"},
+		AssignmentId:       "assign_1",
+		MatchId:            "match_1",
+		BattleId:           "battle_1",
+		AccountId:          "acc_1",
+		ProfileId:          "pro_1",
+		AssignmentRevision: 2,
 	})
 	if err != nil {
 		t.Fatalf("commit assignment ready rpc failed: %v", err)
@@ -38,6 +41,9 @@ func TestCommitAssignmentReadyRPC(t *testing.T) {
 	}
 	if fakeAssignment.lastInput.AssignmentID != "assign_1" || fakeAssignment.lastInput.RoomID != "room_1" {
 		t.Fatalf("commit input should be forwarded to assignment service")
+	}
+	if fakeAssignment.lastInput.AccountID != "acc_1" || fakeAssignment.lastInput.ProfileID != "pro_1" || fakeAssignment.lastInput.AssignmentRevision != 2 || fakeAssignment.lastInput.BattleID != "battle_1" {
+		t.Fatalf("commit identity should be forwarded to assignment service: %#v", fakeAssignment.lastInput)
 	}
 	if resp.GetCommittedState() != "committed" {
 		t.Fatalf("commit state mismatch: %#v", resp)

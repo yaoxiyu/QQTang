@@ -44,6 +44,8 @@ func enter_room(
 		"server_port": int(connection_config.server_port),
 		"room_id_hint": String(connection_config.room_id_hint),
 		"room_display_name": String(connection_config.room_display_name),
+		"match_format_id": String(connection_config.match_format_id),
+		"selected_mode_ids": connection_config.selected_mode_ids,
 	})
 	if room_client_gateway == null:
 		_log_anomaly(log_sink, "enter_room_missing_gateway", RoomUseCaseRuntimeStateScript.build_entry_context_context(entry_context))
@@ -118,6 +120,8 @@ func _build_connection_config(app_runtime: Object, entry_context: RoomEntryConte
 		"selected_map_id": config.selected_map_id,
 		"selected_rule_set_id": config.selected_rule_set_id,
 		"selected_mode_id": config.selected_mode_id,
+		"match_format_id": String(config.match_format_id),
+		"selected_mode_ids": config.selected_mode_ids,
 		"target_room_id": String(entry_context.target_room_id),
 	})
 	if config.server_host.strip_edges().is_empty() or config.server_port <= 0:

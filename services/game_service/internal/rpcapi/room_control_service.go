@@ -22,6 +22,7 @@ type ManualRoomBattleService interface {
 
 type AssignmentCommitService interface {
 	CommitRoom(ctx context.Context, input assignment.CommitInput) (assignment.CommitResult, error)
+	CommitBattleEntryReady(ctx context.Context, input assignment.CommitInput) (assignment.CommitResult, error)
 }
 
 type RoomControlService struct {
@@ -88,7 +89,7 @@ func (s *RoomControlService) CommitAssignmentReady(ctx context.Context, req *gam
 	if s.assignment == nil {
 		return errorCommitAssignmentReady("ASSIGNMENT_SERVICE_MISSING", "assignment service is not configured"), nil
 	}
-	result, err := s.assignment.CommitRoom(ctx, mapCommitAssignmentReadyInput(req))
+	result, err := s.assignment.CommitBattleEntryReady(ctx, mapCommitAssignmentReadyInput(req))
 	if err != nil {
 		return errorCommitAssignmentReady("COMMIT_ASSIGNMENT_READY_FAILED", err.Error()), nil
 	}

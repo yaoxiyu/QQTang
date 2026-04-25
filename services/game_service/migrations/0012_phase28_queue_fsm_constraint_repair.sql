@@ -6,36 +6,11 @@ ALTER TABLE matchmaking_queue_entries
 ALTER TABLE matchmaking_party_queue_entries
     ADD COLUMN IF NOT EXISTS terminal_reason TEXT NOT NULL DEFAULT '';
 
--- Drop legacy state constraints before rewriting rows to the Phase28 FSM names.
 ALTER TABLE matchmaking_queue_entries
     DROP CONSTRAINT IF EXISTS chk_matchmaking_queue_entries_state;
 ALTER TABLE matchmaking_party_queue_entries
     DROP CONSTRAINT IF EXISTS chk_matchmaking_party_queue_entries_state;
 
--- Backfill terminal reason from legacy terminal states.
-UPDATE matchmaking_queue_entries
-SET terminal_reason = CASE
-    WHEN state = 'cancelled' AND cancel_reason = 'heartbeat_timeout' THEN 'heartbeat_timeout'
-    WHEN state = 'cancelled' THEN 'client_cancelled'
-    WHEN state = 'failed' THEN 'allocation_failed'
-    WHEN state = 'expired' THEN 'assignment_expired'
-    WHEN state = 'finalized' THEN 'match_finalized'
-    ELSE terminal_reason
-END
-WHERE terminal_reason = '';
-
-UPDATE matchmaking_party_queue_entries
-SET terminal_reason = CASE
-    WHEN state = 'cancelled' AND cancel_reason = 'heartbeat_timeout' THEN 'heartbeat_timeout'
-    WHEN state = 'cancelled' THEN 'client_cancelled'
-    WHEN state = 'failed' THEN 'allocation_failed'
-    WHEN state = 'expired' THEN 'assignment_expired'
-    WHEN state = 'finalized' THEN 'match_finalized'
-    ELSE terminal_reason
-END
-WHERE terminal_reason = '';
-
--- Normalize active states to canonical Queue FSM state set.
 UPDATE matchmaking_queue_entries SET state = 'queued' WHERE state = 'queueing';
 UPDATE matchmaking_queue_entries SET state = 'assignment_pending' WHERE state = 'assigned';
 UPDATE matchmaking_queue_entries SET state = 'allocating_battle' WHERE state IN ('committing', 'allocating');
@@ -48,7 +23,6 @@ UPDATE matchmaking_party_queue_entries SET state = 'allocating_battle' WHERE sta
 UPDATE matchmaking_party_queue_entries SET state = 'entry_ready' WHERE state IN ('battle_ready', 'matched');
 UPDATE matchmaking_party_queue_entries SET state = 'completed' WHERE state IN ('cancelled', 'failed', 'expired', 'finalized');
 
--- Ensure completed entries always carry a terminal reason.
 UPDATE matchmaking_queue_entries
 SET terminal_reason = CASE
     WHEN cancel_reason = 'heartbeat_timeout' THEN 'heartbeat_timeout'

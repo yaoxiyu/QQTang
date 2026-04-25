@@ -61,25 +61,27 @@ type ResumeBinding struct {
 }
 
 type BattleHandoff struct {
-	AssignmentID    string
-	BattleID        string
-	MatchID         string
-	ServerHost      string
-	ServerPort      int
-	Ready           bool
-	AllocationState string
+	AssignmentID       string
+	AssignmentRevision int
+	BattleID           string
+	MatchID            string
+	ServerHost         string
+	ServerPort         int
+	Ready              bool
+	AllocationState    string
 }
 
 type BattleHandoffFSMProjection struct {
-	Phase          string
-	TerminalReason string
-	AssignmentID   string
-	BattleID       string
-	MatchID        string
-	ServerHost     string
-	ServerPort     int
-	Ready          bool
-	StatusText     string
+	Phase              string
+	TerminalReason     string
+	AssignmentID       string
+	AssignmentRevision int
+	BattleID           string
+	MatchID            string
+	ServerHost         string
+	ServerPort         int
+	Ready              bool
+	StatusText         string
 }
 
 type RoomCapabilitySet struct {
