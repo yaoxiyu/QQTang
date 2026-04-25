@@ -1,38 +1,109 @@
 # Battle Sync Architecture
 
-> Current source of truth for dedicated-server battle frame sync runtime boundaries and performance risks.  
-> Last updated: 2026-04-24.
+> Current source of truth for dedicated-server battle frame sync runtime boundaries and performance risks.
+> Last updated: 2026-04-25.
 
 ## Positioning
 
-Battle sync is currently **GDScript orchestration with selected GDExtension kernels**.
+Battle sync is GDScript orchestration with native deterministic kernels.
 
-GDScript owns the sync control plane:
+GDScript still owns lifecycle and glue:
 
-- transport queueing and project-level message encoding,
-- runtime message routing,
-- DS authoritative tick scheduling,
-- client input timing,
-- authoritative message ingestion,
-- prediction and rollback decisions,
-- rollback replay scheduling.
+- ENet wrapper and transport polling.
+- Runtime message routing.
+- Dedicated-server authoritative tick scheduling.
+- Client authority message ingestion.
+- Prediction scheduling.
+- Rollback restore and replay loop.
+- Scene and presentation handoff.
 
-Native code owns selected compute/storage kernels:
+Native code owns deterministic high-frequency data paths:
 
 - movement calculation,
 - explosion propagation,
 - checksum,
 - packed snapshot payload codec,
-- snapshot ring storage.
-- authority batch coalescing.
+- snapshot ring storage,
+- authority batch coalescing,
+- input buffering and late input policy,
+- snapshot diff,
+- rollback planning,
+- battle message codec.
 
-Detailed state ownership and `STATE_SUMMARY` / `CHECKPOINT` rules are in [`../battle_sync_rule_audit.md`](../battle_sync_rule_audit.md).
+Repository code and committed tests are the final authority when this document conflicts with implementation.
 
-## Current Local Sync Changes
+## Current Runtime Path
 
-### Opening Input Freeze
+Client polling batches authority messages before runtime ingestion:
 
-Dedicated-server start configs now include:
+```text
+consume_incoming()
+  -> route non-authority messages
+  -> coalesce authority messages in native
+  -> ClientRuntime.ingest_authority_batch()
+  -> at most one rollback/resync
+  -> emit presentation tick once
+```
+
+Coalescing semantics:
+
+- keep max `INPUT_ACK` per peer,
+- keep latest `STATE_SUMMARY`,
+- keep latest non-stale `CHECKPOINT` / `AUTHORITATIVE_SNAPSHOT`,
+- drop stale and intermediate authority snapshots before rollback,
+- preserve authority events by tick,
+- apply `MATCH_FINISHED` after coalesced authority state.
+
+## Native-Backed Paths
+
+Native classes are registered from `addons/qqt_native/src/register_types.cpp`.
+
+| Domain | GDScript boundary | Native implementation |
+| --- | --- | --- |
+| Checksum | `gameplay/native_bridge/native_checksum_bridge.gd` | `addons/qqt_native/src/checksum/native_checksum_builder.*` |
+| Snapshot ring | `gameplay/simulation/snapshot/snapshot_buffer.gd` | `addons/qqt_native/src/snapshot/native_snapshot_ring.*` |
+| Snapshot codec | `gameplay/native_bridge/native_packed_state_codec_bridge.gd` | `addons/qqt_native/src/codec/native_packed_state_codec.*` |
+| Movement | `gameplay/simulation/systems/movement_system.gd`, `gameplay/native_bridge/native_movement_bridge.gd` | `addons/qqt_native/src/movement/native_movement_kernel.*` |
+| Explosion | `gameplay/simulation/systems/explosion_resolve_system.gd`, `gameplay/native_bridge/native_explosion_bridge.gd` | `addons/qqt_native/src/explosion/native_explosion_kernel.*` |
+| Authority batch | `gameplay/native_bridge/native_authority_batch_bridge.gd` | `addons/qqt_native/src/sync/native_authority_batch_coalescer.*` |
+| Input buffer | `gameplay/simulation/input/input_buffer.gd`, `gameplay/native_bridge/native_input_buffer_bridge.gd` | `addons/qqt_native/src/sync/native_input_buffer.*` |
+| Late input policy | `network/session/runtime/authority_runtime.gd`, `gameplay/native_bridge/native_input_buffer_bridge.gd` | `addons/qqt_native/src/sync/native_input_buffer.*` |
+| Snapshot diff | `gameplay/network/rollback/rollback_controller.gd`, `gameplay/native_bridge/native_snapshot_diff_bridge.gd` | `addons/qqt_native/src/sync/native_snapshot_diff.*` |
+| Rollback planner | `gameplay/network/rollback/rollback_controller.gd`, `gameplay/native_bridge/native_rollback_planner_bridge.gd` | `addons/qqt_native/src/sync/native_rollback_planner.*` |
+| Battle message codec | `network/transport/transport_message_codec.gd` | `addons/qqt_native/src/sync/native_battle_message_codec.*` |
+
+## Native Policy
+
+The sync paths above no longer use shadow, execute, or GDScript baseline fallback switches.
+
+Current flag surface is coarse-grained:
+
+```gdscript
+require_native_kernels = true
+enable_native_checksum = true
+enable_native_snapshot_ring = true
+enable_native_movement = true
+enable_native_explosion = true
+enable_native_authority_batch_coalescer = true
+enable_native_input_buffer = true
+enable_native_snapshot_diff = true
+enable_native_rollback_planner = true
+enable_native_battle_message_codec = true
+```
+
+Important behavior:
+
+- native bridge failures fail closed with `push_error()` and empty or neutral results;
+- transport byte payloads must be native codec payloads;
+- `Dictionary` messages may still be normalized when passed in-process;
+- `msg_type` remains a wire alias for `message_type`;
+- rollback replay itself remains GDScript-owned.
+
+Movement and explosion still have coarse enable flags. Turning either flag off re-enters the older GDScript simulation implementation. Treat that as a remaining cleanup risk, not a production rollout path.
+
+## Input Timing
+
+Dedicated-server start configs include:
 
 - `opening_input_freeze_ticks`
 - `network_input_lead_ticks`
@@ -44,314 +115,54 @@ opening_input_freeze_ticks = 2 * TickRunnerScript.TICK_RATE
 network_input_lead_ticks = 3
 ```
 
-During the opening freeze:
+During opening freeze:
 
-- clients poll DS authority messages and refresh the predicted/presentation world;
+- clients poll DS authority messages and refresh predicted/presentation world;
 - clients do not build or send local input;
-- DS rejects any input that still arrives during the freeze;
+- DS rejects input that still arrives during the freeze;
 - DS emits one freeze-end log with dropped input count.
 
-Purpose:
-
-- prevent local movement prediction before the first stable DS authority state;
-- give loading handoff, first checkpoint, opening animation, voice, and countdown a deterministic input-free buffer.
-
-Touched code:
-
-- `gameplay/battle/config/battle_start_config.gd`
-- `network/session/runtime/battle_start_config_builder.gd`
-- `network/session/runtime/authority_runtime.gd`
-- `network/session/battle_session_network_gateway.gd`
-
-### Input Lead
-
-Client input target tick now resolves from both local prediction and latest authority:
+Client input target tick resolves from local prediction and latest authority:
 
 ```text
 target_tick >= latest_authoritative_tick + network_input_lead_ticks
 ```
 
-This reduces the chance that input is sent for a tick the DS is already simulating.
+The lead is still a fixed heuristic. It should eventually be derived from measured RTT/jitter and clamped by a max prediction window.
 
-Touched code:
+## Rollback Boundary
 
-- `network/session/runtime/client_runtime.gd`
+Native owns diff and planning decisions. GDScript still owns applying the plan:
 
-Current limitation:
+- restore authoritative snapshot,
+- inject local replay inputs,
+- step predicted world,
+- rebuild retained snapshots,
+- emit visual corrections.
 
-- the lead is a fixed heuristic; it should eventually be derived from measured RTT/jitter and clamped by a max prediction window.
-
-### Late Input Policy
-
-DS now retargets late input frames:
-
-```text
-if frame.tick_id <= authority_tick:
-    frame.tick_id = authority_tick + 1
-```
-
-This prevents slightly late movement input from silently becoming a dead historical frame.
-
-Current limitation:
-
-- this is a stopgap. Final movement handling should be seq-driven per peer, with bounded lateness, stale-seq drops, and aggregated metrics.
-
-### Log Flood Reduction
-
-Per-packet, per-message, per-tick, and per-player presentation debug logs are default-off. `rollback_probe` and `rollback_resync` are info-level instead of warning-level to avoid warning backtrace flood.
-
-Touched code:
-
-- `network/transport/enet_battle_transport.gd`
-- `network/session/runtime/runtime_message_router.gd`
-- `presentation/battle/bridge/presentation_bridge.gd`
-- `presentation/battle/bridge/state_to_view_mapper.gd`
-- `presentation/battle/actors/player_actor_view.gd`
-- `network/session/runtime/client_runtime.gd`
-
-## GDScript Boundary
-
-Still in GDScript:
-
-- ENet wrapper and JSON project message codec:
-  - `network/transport/enet_battle_transport.gd`
-  - `network/transport/transport_message_codec.gd`
-- Message routing:
-  - `network/session/runtime/runtime_message_router.gd`
-- DS authority runtime:
-  - `network/session/runtime/authority_runtime.gd`
-  - `network/session/runtime/server_match_service.gd`
-  - `network/session/runtime/battle_match.gd`
-- Client runtime:
-  - `network/session/runtime/client_runtime.gd`
-  - `network/session/battle_session_network_gateway.gd`
-- Prediction and rollback:
-  - `gameplay/network/prediction/prediction_controller.gd`
-  - `gameplay/network/rollback/rollback_controller.gd`
-- Input buffers:
-  - `gameplay/simulation/input/input_buffer.gd`
-  - `gameplay/simulation/input/input_ring_buffer.gd`
-- Simulation orchestration:
-  - `gameplay/simulation/runtime/sim_world.gd`
-  - `gameplay/simulation/runtime/system_pipeline.gd`
-
-Implication:
-
-- authority batch consumption has a native execute path;
-- input timing policy, snapshot diff, rollback planning, and battle message codec have native execute paths with shadow checks still enabled;
-- high-level runtime routing and rollback replay scheduling remain GDScript-owned.
-
-## Native Boundary
-
-Registered native classes:
-
-- `QQTNativePackedStateCodec`
-- `QQTNativeChecksumBuilder`
-- `QQTNativeSnapshotRing`
-- `QQTNativeMovementKernel`
-- `QQTNativeExplosionKernel`
-- `QQTNativeAuthorityBatchCoalescer`
-- `QQTNativeInputBuffer`
-- `QQTNativeSnapshotDiff`
-- `QQTNativeRollbackPlanner`
-- `QQTNativeBattleMessageCodec`
-
-Registration:
-
-- `addons/qqt_native/src/register_types.cpp`
-
-Native-backed paths:
-
-- checksum:
-  - `gameplay/native_bridge/native_checksum_bridge.gd`
-  - `addons/qqt_native/src/checksum/native_checksum_builder.*`
-- snapshot ring:
-  - `gameplay/simulation/snapshot/snapshot_buffer.gd`
-  - `addons/qqt_native/src/snapshot/native_snapshot_ring.*`
-- snapshot codec:
-  - `gameplay/native_bridge/native_packed_state_codec_bridge.gd`
-  - `addons/qqt_native/src/codec/native_packed_state_codec.*`
-- movement:
-  - `gameplay/simulation/systems/movement_system.gd`
-  - `gameplay/native_bridge/native_movement_bridge.gd`
-  - `addons/qqt_native/src/movement/native_movement_kernel.*`
-- explosion:
-  - `gameplay/simulation/systems/explosion_resolve_system.gd`
-  - `gameplay/native_bridge/native_explosion_bridge.gd`
-  - `addons/qqt_native/src/explosion/native_explosion_kernel.*`
-- authority batch coalescer:
-  - `network/session/runtime/authority_batch_coalescer.gd`
-  - `gameplay/native_bridge/native_authority_batch_bridge.gd`
-  - `addons/qqt_native/src/sync/native_authority_batch_coalescer.*`
-- input buffer and late input policy:
-  - `gameplay/simulation/input/input_buffer.gd`
-  - `network/session/runtime/authority_runtime.gd`
-  - `gameplay/native_bridge/native_input_buffer_bridge.gd`
-  - `addons/qqt_native/src/sync/native_input_buffer.*`
-- snapshot diff and rollback planner:
-  - `gameplay/network/rollback/rollback_controller.gd`
-  - `gameplay/native_bridge/native_snapshot_diff_bridge.gd`
-  - `gameplay/native_bridge/native_rollback_planner_bridge.gd`
-  - `addons/qqt_native/src/sync/native_snapshot_diff.*`
-  - `addons/qqt_native/src/sync/native_rollback_planner.*`
-- battle message codec:
-  - `network/transport/transport_message_codec.gd`
-  - `addons/qqt_native/src/sync/native_battle_message_codec.*`
-
-## Authority Message Consumption Risk
-
-Legacy client consumption path before Phase32:
-
-1. `ENetBattleTransport.poll()` drains all available packets.
-2. `consume_incoming()` returns the batch.
-3. `RuntimeMessageRouter.route_messages()` dispatches messages in order.
-4. `ClientRuntime.ingest_network_message()` handles every message immediately.
-5. Each `CHECKPOINT` / `AUTHORITATIVE_SNAPSHOT` can immediately trigger rollback/resync.
-6. Presentation is emitted after the poll cycle.
-
-Risk:
-
-- if multiple authority snapshots arrive in one poll, rollback can run multiple times for intermediate snapshots;
-- this creates CPU spikes and correction churn after network stalls;
-- presentation often sees only the final world, but rollback already paid the cost for each intermediate authority frame.
-
-Tracked as:
-
-- `DEBT-010 battle authority batch consumption not coalesced`
-
-## Authority Batch Boundary
-
-Phase32 adds a client poll batch boundary before runtime ingestion:
-
-```text
-consume_incoming()
-  -> route non-authority messages through RuntimeMessageRouter
-  -> coalesce INPUT_ACK / STATE_SUMMARY / CHECKPOINT / AUTHORITATIVE_SNAPSHOT / MATCH_FINISHED
-  -> ClientRuntime.ingest_authority_batch()
-  -> at most one latest useful authority snapshot reaches rollback
-```
-
-Implemented paths:
-
-- GDScript baseline:
-  - `network/session/runtime/authority_batch_coalescer.gd`
-- Native shadow/execute bridge:
-  - `gameplay/native_bridge/native_authority_batch_bridge.gd`
-  - `addons/qqt_native/src/sync/native_authority_batch_coalescer.*`
-- Runtime batch API:
-  - `network/session/runtime/client_runtime.gd`
-- Poll boundary:
-  - `network/session/battle_session_network_gateway.gd`
-
-Current coalescing semantics:
-
-- keep max `INPUT_ACK` per peer;
-- keep latest `STATE_SUMMARY`;
-- keep latest non-stale `CHECKPOINT` / `AUTHORITATIVE_SNAPSHOT`;
-- drop stale and intermediate authority snapshots before rollback;
-- preserve authority events by tick;
-- apply `MATCH_FINISHED` after coalesced authority state.
-
-Native authority batch coalescer is enabled with shadow still on:
-
-```text
-enable_native_authority_batch_coalescer = true
-enable_native_authority_batch_coalescer_shadow = true
-enable_native_authority_batch_coalescer_execute = true
-```
-
-Native input buffer is enabled in execute mode with shadow checks:
-
-```text
-enable_native_input_buffer = true
-enable_native_input_buffer_shadow = true
-enable_native_input_buffer_execute = true
-```
-
-Implemented paths:
-
-- `addons/qqt_native/src/sync/native_input_buffer.*`
-- `gameplay/native_bridge/native_input_buffer_bridge.gd`
-
-Current scope:
-
-- native buffer mirrors normal `InputBuffer` push/merge/fallback/ack behavior through adapter shadow;
-- native late input policy accepts future input, retargets late input, drops stale seq and too-late input, and is covered by metrics tests;
-- `AuthorityRuntime` records native late-policy shadow decisions;
-- authority runtime uses native late-policy execute mode and records shadow comparison metrics.
-
-Rollback switch:
-
-```text
-enable_native_input_buffer_execute = false
-```
-
-Reason:
-
-- disables native late-policy execution and falls back to GDScript late retarget behavior.
-
-Native snapshot diff and rollback planner are enabled in execute mode with shadow checks:
-
-```text
-enable_native_snapshot_diff = true
-enable_native_snapshot_diff_shadow = true
-enable_native_snapshot_diff_execute = true
-enable_native_rollback_planner = true
-enable_native_rollback_planner_shadow = true
-enable_native_rollback_planner_execute = true
-```
-
-Current scope:
-
-- `RollbackController.describe_snapshot_diff()` returns the native diff when execute mode is enabled;
-- native diff and planner metrics are recorded through `get_native_rollback_shadow_metrics()`;
-- native planner covers `NOOP`, `ROLLBACK`, `FORCE_RESYNC`, and `DROP_STALE_AUTHORITY`;
-- replay metrics expose `last_replay_tick_count`, `total_replay_ticks`, and `avg_replay_ticks`;
-- rollback replay still uses the existing GDScript restore/replay loop.
-
-Native battle message codec is enabled in execute mode:
-
-```text
-enable_native_battle_message_codec = true
-enable_native_battle_message_codec_shadow = true
-enable_native_battle_message_codec_execute = true
-```
-
-Current scope:
-
-- native binary envelope payloads are the default project message wire format;
-- the Phase32 payload body is a transitional Variant-encoded Dictionary, not the final type-specific binary schema;
-- JSON decode remains accepted for compatibility and rollback;
-- transport codec metrics expose `native_decode_count`, `json_decode_count`, and `malformed_count`;
-- malformed native payloads return `{}` and do not crash.
-
-Compatibility policy:
-
-- mixed native/JSON decode is supported;
-- native encode execute should be enabled only for peers expected to run this Phase32 codec or through the feature flag rollback switch.
-
-## Next Architecture Step
-
-After Phase32, remaining extraction candidates are:
+Remaining extraction candidates:
 
 - rollback replay loop,
 - type-specific battle message payload schema,
-- peer compatibility rollout for explicit codec negotiation,
-- deeper production profiling for rollback replay cost.
+- peer compatibility and codec negotiation,
+- production profiling for rollback replay cost.
 
-Avoid first extracting high-level `ClientRuntime`, `AuthorityRuntime`, or router glue while those paths are still Dictionary-heavy.
+Avoid moving high-level `ClientRuntime`, `AuthorityRuntime`, or router glue into C++ while those paths are still Dictionary-heavy.
 
 ## Verification
 
-Latest GDScript syntax gate after the sync code changes:
+Latest validation for the native sync cleanup:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1
 ```
 
-Result:
+```text
+[gdsyntax] PASS checked=749
+```
+
+Focused native chain suite:
 
 ```text
-[gdsyntax] PASS checked=757
-[gdsyntax] syntax preflight passed
+native_chain_cleanup: PASS total=11 pass=11 fail=0
 ```
