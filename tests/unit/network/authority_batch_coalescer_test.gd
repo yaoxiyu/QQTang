@@ -84,6 +84,41 @@ func test_keeps_latest_state_summary() -> void:
 	assert_eq(int(batch["latest_state_summary"].get("tick", 0)), 9)
 	assert_eq(String(batch["latest_state_summary"].get("value", "")), "new")
 	assert_eq(int(batch["metrics"].get("raw_summary_count", 0)), 2)
+	assert_eq(int(batch["metrics"].get("dropped_intermediate_summary_count", 0)), 1)
+	assert_eq(int(batch["metrics"].get("coalesced_summary_tick", 0)), 9)
+
+
+func test_drops_stale_state_summaries_by_cursor() -> void:
+	var coalescer := AuthorityBatchCoalescerScript.new()
+	var batch := coalescer.coalesce_client_authority_batch([
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 100, "value": "stale"},
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 101, "value": "latest"},
+	], {
+		"latest_authoritative_tick": 100,
+	})
+
+	assert_eq(int(batch["latest_state_summary"].get("tick", 0)), 101)
+	assert_eq(String(batch["latest_state_summary"].get("value", "")), "latest")
+	assert_eq(int(batch["metrics"].get("dropped_stale_summary_count", 0)), 1)
+
+
+func test_deduplicates_events_by_event_id() -> void:
+	var coalescer := AuthorityBatchCoalescerScript.new()
+	var batch := coalescer.coalesce_client_authority_batch([
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 10, "events": [
+			{"tick": 10, "event_id": "same", "name": "first"},
+		]},
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 11, "events": [
+			{"tick": 11, "event_id": "same", "name": "duplicate"},
+			{"tick": 11, "event_id": "other", "name": "second"},
+		]},
+	], {})
+
+	var events_by_tick: Array = batch["authority_events_by_tick"]
+	assert_eq(events_by_tick.size(), 2)
+	assert_eq(String(events_by_tick[0]["events"][0]["name"]), "first")
+	assert_eq(String(events_by_tick[1]["events"][0]["name"]), "second")
+	assert_eq(int(batch["metrics"].get("preserved_event_count", 0)), 2)
 
 
 func test_preserves_match_finished_as_terminal_message() -> void:

@@ -1,6 +1,7 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtime/client_runtime_snapshot_applier.gd")
+const TileConstants = preload("res://gameplay/simulation/state/tile_constants.gd")
 
 
 func test_snapshot_from_message_normalizes_integer_floats() -> void:
@@ -38,3 +39,60 @@ func test_decode_events_denormalizes_vector_payload() -> void:
 
 	assert_eq(events.size(), 1, "event should decode")
 	assert_eq(events[0].payload["cell"], Vector2i(3, 4), "tagged Vector2i payload should denormalize")
+
+
+func test_state_summary_without_walls_does_not_clear_local_walls() -> void:
+	var world := _build_world()
+	var breakable_cell := _find_breakable_cell(world)
+	assert_ne(breakable_cell, Vector2i(-1, -1))
+	var before_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+
+	ClientRuntimeSnapshotApplierScript.apply_authority_sideband(world, {
+		"message_type": "STATE_SUMMARY",
+		"tick": 1,
+		"bubbles": [],
+		"items": [],
+		"match_state": {"remaining_ticks": 10},
+	}, false, false)
+
+	var after_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+	assert_eq(before_tile_type, TileConstants.TileType.BREAKABLE_BLOCK)
+	assert_eq(after_tile_type, before_tile_type)
+	world.dispose()
+
+
+func test_checkpoint_with_walls_restores_local_walls() -> void:
+	var world := _build_world()
+	var breakable_cell := _find_breakable_cell(world)
+	assert_ne(breakable_cell, Vector2i(-1, -1))
+
+	ClientRuntimeSnapshotApplierScript.apply_authority_sideband(world, {
+		"message_type": "CHECKPOINT",
+		"tick": 2,
+		"walls": [{
+			"cell_x": breakable_cell.x,
+			"cell_y": breakable_cell.y,
+			"tile_type": TileConstants.TileType.EMPTY,
+			"tile_flags": 0,
+			"theme_variant": 0,
+		}],
+	}, true, true)
+
+	var after_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+	assert_eq(after_tile_type, TileConstants.TileType.EMPTY)
+	world.dispose()
+
+
+func _build_world() -> SimWorld:
+	var world := SimWorld.new()
+	world.bootstrap(SimConfig.new(), {"grid": BuiltinMapFactory.build_basic_map()})
+	return world
+
+
+func _find_breakable_cell(world: SimWorld) -> Vector2i:
+	for y in range(world.state.grid.height):
+		for x in range(world.state.grid.width):
+			var cell = world.state.grid.get_static_cell(x, y)
+			if cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
+				return Vector2i(x, y)
+	return Vector2i(-1, -1)

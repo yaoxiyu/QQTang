@@ -49,10 +49,32 @@ Coalescing semantics:
 
 - keep max `INPUT_ACK` per peer,
 - keep latest `STATE_SUMMARY`,
+- drop stale and intermediate `STATE_SUMMARY` packets before applying authority state,
+- dedupe authority events by `event_id` when present, otherwise by tick/type/source/sequence fallback,
 - keep latest non-stale `CHECKPOINT` / `AUTHORITATIVE_SNAPSHOT`,
 - drop stale and intermediate authority snapshots before rollback,
 - preserve authority events by tick,
 - apply `MATCH_FINISHED` after coalesced authority state.
+
+## Frame Sync Transport And Tick Truth
+
+Dedicated-server battle sync follows these invariants:
+
+1. Authority simulation ticks must execute one by one. Never skip directly to a final tick.
+2. `ServerMatchService` must not run an unbounded `_process()` catch-up loop. A single process frame is budgeted and excessive accumulator backlog is clamped.
+3. Multiple simulation ticks produced in one process frame may have their network output merged. This merges delivery, not simulation.
+4. `STATE_SUMMARY` is a high-frequency lightweight packet and must not carry full `walls`.
+5. Full `walls` state belongs in opening authority state, checkpoint, resume, or future wall deltas.
+6. ENet transport is UDP-based and must route battle messages by type:
+   - critical handshake, opening, finish: reliable critical channel,
+   - `STATE_SUMMARY` / authority delta: unreliable ordered state channel,
+   - `INPUT_FRAME` / `INPUT_BATCH`: unreliable ordered input channel,
+   - checkpoint / authoritative snapshot: isolated reliable checkpoint channel,
+   - ping, pong, debug: unreliable debug channel.
+7. Opening full authority state is barriered. DS sends opening state, waits for client ready or timeout, then starts authority ticks with the first active delta ignored.
+8. Client prediction advances idle ticks when local input is absent.
+9. Client input is sent as `INPUT_BATCH` with recent-frame redundancy.
+10. Rollback synchronous replay is budgeted. Very large replay spans force resync instead of replaying many ticks in one frame.
 
 ## Native-Backed Paths
 
@@ -128,7 +150,7 @@ Client input target tick resolves from local prediction and latest authority:
 target_tick >= latest_authoritative_tick + network_input_lead_ticks
 ```
 
-The lead is still a fixed heuristic. It should eventually be derived from measured RTT/jitter and clamped by a max prediction window.
+Runtime input lead is clamped to `[2, 12]`. Dedicated-server opening uses at least 6 lead ticks, then returns to the configured runtime lead. It should eventually be derived from measured RTT/jitter and adjusted continuously.
 
 ## Rollback Boundary
 
@@ -139,6 +161,8 @@ Native owns diff and planning decisions. GDScript still owns applying the plan:
 - step predicted world,
 - rebuild retained snapshots,
 - emit visual corrections.
+
+Synchronous replay is capped. If the replay span exceeds the large-replay guard, GDScript force-resyncs to the authoritative snapshot instead of replaying the entire span in one frame.
 
 Remaining extraction candidates:
 

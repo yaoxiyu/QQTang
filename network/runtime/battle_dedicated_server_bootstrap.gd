@@ -165,6 +165,10 @@ func _route_message(message: Dictionary) -> void:
 			_handle_battle_resume_request(message)
 		TransportMessageTypesScript.INPUT_FRAME:
 			_battle_runtime.handle_battle_message(message)
+		TransportMessageTypesScript.INPUT_BATCH:
+			_battle_runtime.handle_battle_message(message)
+		TransportMessageTypesScript.OPENING_SNAPSHOT_ACK, TransportMessageTypesScript.BATTLE_READY:
+			_battle_runtime.handle_battle_message(message)
 		TransportMessageTypesScript.MATCH_LOADING_READY:
 			_battle_runtime.handle_loading_message(message)
 		_:

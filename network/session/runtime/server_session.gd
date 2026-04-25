@@ -4,6 +4,7 @@ extends Node
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
+const DEBUG_SYNC_EVENT_LOGS := false
 
 var room_session: RoomSession = RoomSession.new()
 var active_match: BattleMatch = null
@@ -90,7 +91,6 @@ func _tick_world(_tick_id: int) -> void:
 		"player_summary": active_match.build_player_position_summary(),
 		"bubbles": snapshot.bubbles if snapshot != null else [],
 		"items": snapshot.items if snapshot != null else [],
-		"walls": snapshot.walls if snapshot != null else [],
 		"match_state": snapshot.match_state.duplicate(true) if snapshot != null else {},
 		"events": events,
 		"checksum": snapshot.checksum if snapshot != null else 0
@@ -157,6 +157,8 @@ func _serialize_events(raw_events: Array) -> Array[Dictionary]:
 
 
 func _log_bubble_placed_events(tick_id: int, events: Array[Dictionary], snapshot: WorldSnapshot) -> void:
+	if not DEBUG_SYNC_EVENT_LOGS:
+		return
 	for event in events:
 		if int(event.get("event_type", -1)) != SimEventScript.EventType.BUBBLE_PLACED:
 			continue

@@ -14,12 +14,16 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 	var snapshot_message: Dictionary = {}
 	var snapshot_tick := -1
 	var events_by_tick: Dictionary = {}
+	var event_ids: Dictionary = {}
 	var raw_ack_count := 0
 	var raw_summary_count := 0
 	var raw_checkpoint_count := 0
 	var raw_auth_snapshot_count := 0
 	var dropped_stale_count := 0
 	var dropped_intermediate_count := 0
+	var dropped_stale_summary_count := 0
+	var dropped_intermediate_summary_count := 0
+	var preserved_event_count := 0
 	var dropped_snapshot_ticks := PackedInt32Array()
 
 	for index in range(messages.size()):
@@ -29,7 +33,7 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 		var message: Dictionary = raw_message
 		var message_type: String = _message_type(message)
 		if _is_authority_sync_type(message_type):
-			_append_events(events_by_tick, message, index)
+			preserved_event_count += _append_events(events_by_tick, event_ids, message, index)
 		if message_type == TransportMessageTypesScript.INPUT_ACK:
 			raw_ack_count += 1
 			var peer_id: int = int(message.get("peer_id", message.get("sender_peer_id", -1)))
@@ -42,9 +46,15 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 		elif message_type == TransportMessageTypesScript.STATE_SUMMARY:
 			raw_summary_count += 1
 			var tick: int = _message_tick(message)
-			if summary_message.is_empty() or tick >= summary_tick:
+			if tick <= known_tick:
+				dropped_stale_summary_count += 1
+			elif summary_message.is_empty() or tick >= summary_tick:
+				if not summary_message.is_empty():
+					dropped_intermediate_summary_count += 1
 				summary_tick = tick
 				summary_message = message.duplicate(true)
+			else:
+				dropped_intermediate_summary_count += 1
 		elif _is_snapshot_type(message_type):
 			if message_type == TransportMessageTypesScript.CHECKPOINT:
 				raw_checkpoint_count += 1
@@ -80,10 +90,14 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 		raw_checkpoint_count,
 		raw_auth_snapshot_count,
 		result["input_acks"].size(),
+		summary_tick,
 		snapshot_tick,
+		dropped_stale_summary_count,
+		dropped_intermediate_summary_count,
 		dropped_stale_count,
 		dropped_intermediate_count,
 		result["authority_events_by_tick"].size(),
+		preserved_event_count,
 		result["terminal_messages"].size(),
 		result["passthrough_messages"].size(),
 		Time.get_ticks_usec() - started_usec
@@ -112,16 +126,25 @@ func _message_tick(message: Dictionary) -> int:
 	return int(message.get("tick", message.get("snapshot_tick", message.get("ack_tick", 0))))
 
 
-func _append_events(events_by_tick: Dictionary, message: Dictionary, original_index: int) -> void:
+func _append_events(events_by_tick: Dictionary, event_ids: Dictionary, message: Dictionary, original_index: int) -> int:
 	var events: Variant = message.get("events", [])
 	if not (events is Array) or events.is_empty():
-		return
+		return 0
 	var fallback_tick := _message_tick(message)
+	var appended_count := 0
 	for event_index in range(events.size()):
 		var event: Variant = events[event_index]
 		var event_tick: int = fallback_tick
+		var event_id := ""
 		if event is Dictionary:
-			event_tick = int((event as Dictionary).get("tick", fallback_tick))
+			var event_dict: Dictionary = event
+			event_tick = int(event_dict.get("tick", fallback_tick))
+			event_id = _event_id(event_dict, event_tick, original_index, event_index)
+		else:
+			event_id = "%d:-1:%d:%d" % [event_tick, original_index, event_index]
+		if event_ids.has(event_id):
+			continue
+		event_ids[event_id] = true
 		if not events_by_tick.has(event_tick):
 			events_by_tick[event_tick] = []
 		(events_by_tick[event_tick] as Array).append({
@@ -129,6 +152,20 @@ func _append_events(events_by_tick: Dictionary, message: Dictionary, original_in
 			"event_index": event_index,
 			"event": event,
 		})
+		appended_count += 1
+	return appended_count
+
+
+func _event_id(event: Dictionary, event_tick: int, original_index: int, event_index: int) -> String:
+	var explicit_id := String(event.get("event_id", ""))
+	if not explicit_id.is_empty():
+		return explicit_id
+	var event_type := int(event.get("event_type", -1))
+	var source_id := int(event.get("source_id", event.get("entity_id", event.get("bubble_id", -1))))
+	var sequence := int(event.get("sequence", event.get("seq", -1)))
+	if source_id >= 0 or sequence >= 0:
+		return "%d:%d:%d:%d" % [event_tick, event_type, source_id, sequence]
+	return "%d:%d:%d:%d" % [event_tick, event_type, original_index, event_index]
 
 
 func _is_authority_sync_type(message_type: String) -> bool:
@@ -188,10 +225,14 @@ func _make_metrics(
 	raw_checkpoint_count: int,
 	raw_auth_snapshot_count: int,
 	coalesced_ack_count: int,
+	coalesced_summary_tick: int,
 	coalesced_snapshot_tick: int,
+	dropped_stale_summary_count: int,
+	dropped_intermediate_summary_count: int,
 	dropped_stale_snapshot_count: int,
 	dropped_intermediate_snapshot_count: int,
 	preserved_event_tick_count: int,
+	preserved_event_count: int,
 	terminal_message_count: int,
 	passthrough_message_count: int,
 	coalesce_usec: int
@@ -203,10 +244,14 @@ func _make_metrics(
 		"raw_checkpoint_count": raw_checkpoint_count,
 		"raw_auth_snapshot_count": raw_auth_snapshot_count,
 		"coalesced_ack_count": coalesced_ack_count,
+		"coalesced_summary_tick": coalesced_summary_tick,
 		"coalesced_snapshot_tick": coalesced_snapshot_tick,
+		"dropped_stale_summary_count": dropped_stale_summary_count,
+		"dropped_intermediate_summary_count": dropped_intermediate_summary_count,
 		"dropped_stale_snapshot_count": dropped_stale_snapshot_count,
 		"dropped_intermediate_snapshot_count": dropped_intermediate_snapshot_count,
 		"preserved_event_tick_count": preserved_event_tick_count,
+		"preserved_event_count": preserved_event_count,
 		"terminal_message_count": terminal_message_count,
 		"passthrough_message_count": passthrough_message_count,
 		"coalesce_usec": coalesce_usec,

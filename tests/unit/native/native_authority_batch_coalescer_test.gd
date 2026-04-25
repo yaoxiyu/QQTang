@@ -56,6 +56,43 @@ func test_native_keeps_max_ack_and_events_order() -> void:
 	assert_eq(String(events_by_tick[1]["events"][0]["name"]), "b")
 
 
+func test_native_drops_stale_summary_and_counts_intermediate_summary() -> void:
+	var kernel: Object = ClassDB.instantiate("QQTNativeAuthorityBatchCoalescer")
+	var batch: Dictionary = kernel.call("coalesce_client_authority_batch", [
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 100, "value": "stale"},
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 101, "value": "old"},
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 102, "value": "new"},
+	], {
+		"latest_authoritative_tick": 100,
+	})
+
+	var metrics: Dictionary = batch["metrics"]
+	assert_eq(int(batch["latest_state_summary"].get("tick", 0)), 102)
+	assert_eq(String(batch["latest_state_summary"].get("value", "")), "new")
+	assert_eq(int(metrics.get("dropped_stale_summary_count", 0)), 1)
+	assert_eq(int(metrics.get("dropped_intermediate_summary_count", 0)), 1)
+	assert_eq(int(metrics.get("coalesced_summary_tick", 0)), 102)
+
+
+func test_native_deduplicates_events_by_event_id() -> void:
+	var kernel: Object = ClassDB.instantiate("QQTNativeAuthorityBatchCoalescer")
+	var batch: Dictionary = kernel.call("coalesce_client_authority_batch", [
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 10, "events": [
+			{"tick": 10, "event_id": "same", "name": "first"},
+		]},
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 11, "events": [
+			{"tick": 11, "event_id": "same", "name": "duplicate"},
+			{"tick": 11, "event_id": "other", "name": "second"},
+		]},
+	], {})
+
+	var events_by_tick: Array = batch["authority_events_by_tick"]
+	assert_eq(events_by_tick.size(), 2)
+	assert_eq(String(events_by_tick[0]["events"][0]["name"]), "first")
+	assert_eq(String(events_by_tick[1]["events"][0]["name"]), "second")
+	assert_eq(int(batch["metrics"].get("preserved_event_count", 0)), 2)
+
+
 func _snapshot(message_type: String, tick: int, events: Array = []) -> Dictionary:
 	return {
 		"message_type": message_type,

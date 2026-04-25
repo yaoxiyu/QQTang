@@ -18,7 +18,7 @@ func test_main() -> void:
 	ok = _test_dedicated_server_disables_authority_only_history_compare() and ok
 	ok = _test_dedicated_server_skips_non_aligned_sideband_restore() and ok
 	ok = _test_dedicated_server_accepts_monotonic_sideband_restore() and ok
-	ok = _test_dedicated_server_applies_authoritative_walls_sideband_to_current_world() and ok
+	ok = _test_dedicated_server_ignores_state_summary_walls_and_applies_checkpoint_walls() and ok
 	ok = _test_match_finished_rebinds_local_peer_context_for_client() and ok
 
 
@@ -330,7 +330,7 @@ func _test_dedicated_server_accepts_monotonic_sideband_restore() -> bool:
 	return ok
 
 
-func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_world() -> bool:
+func _test_dedicated_server_ignores_state_summary_walls_and_applies_checkpoint_walls() -> bool:
 	var client := ClientRuntimeScript.new()
 	add_child(client)
 
@@ -356,26 +356,39 @@ func _test_dedicated_server_applies_authoritative_walls_sideband_to_current_worl
 		return false
 
 	var before_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
-	client.ingest_network_message({
+	var wall_delta := {
+		"cell_x": breakable_cell.x,
+		"cell_y": breakable_cell.y,
+		"tile_type": TileConstants.TileType.EMPTY,
+		"tile_flags": 0,
+		"theme_variant": 0,
+	}
+	var summary_message := {
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 2,
 		"player_summary": [],
 		"bubbles": [],
 		"items": [],
-		"walls": [{
-			"cell_x": breakable_cell.x,
-			"cell_y": breakable_cell.y,
-			"tile_type": TileConstants.TileType.EMPTY,
-			"tile_flags": 0,
-			"theme_variant": 0,
-		}],
+		"walls": [wall_delta],
 		"events": []
-	})
-	var after_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+	}
+	client.ingest_network_message(summary_message)
+	var after_summary_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
 	ok = qqt_check(
-		before_tile_type == TileConstants.TileType.BREAKABLE_BLOCK and after_tile_type == TileConstants.TileType.EMPTY,
-		"dedicated server should apply authoritative wall sideband to the current world",
+		before_tile_type == TileConstants.TileType.BREAKABLE_BLOCK and after_summary_tile_type == before_tile_type,
+		"dedicated server should ignore walls carried by state summary",
+		prefix
+	) and ok
+	var checkpoint_message := summary_message.duplicate(true)
+	checkpoint_message["message_type"] = TransportMessageTypesScript.CHECKPOINT
+	checkpoint_message["msg_type"] = TransportMessageTypesScript.CHECKPOINT
+	checkpoint_message["mode_state"] = {}
+	client.ingest_network_message(checkpoint_message)
+	var after_checkpoint_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+	ok = qqt_check(
+		after_checkpoint_tile_type == TileConstants.TileType.EMPTY,
+		"dedicated server should apply walls carried by checkpoint",
 		prefix
 	) and ok
 
@@ -505,4 +518,3 @@ func _find_breakable_cell(world: SimWorld) -> Vector2i:
 			if cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
 				return Vector2i(x, y)
 	return Vector2i(-1, -1)
-

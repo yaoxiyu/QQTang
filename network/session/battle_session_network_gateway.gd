@@ -13,6 +13,7 @@ var _dedicated_first_full_authority_received: bool = false
 var _logged_waiting_for_match_start: bool = false
 var _logged_waiting_for_authority_opening: bool = false
 var _logged_opening_input_freeze: bool = false
+var _dedicated_opening_ack_sent: bool = false
 var _dedicated_client_connect_retry_delays_sec: Array[float] = DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC.duplicate()
 var _dedicated_client_connect_retry_attempt: int = 0
 var _dedicated_client_connect_retry_deadline_msec: int = 0
@@ -36,6 +37,7 @@ func ingest_dedicated_server_message(message) -> void:
 		if message_type == TransportMessageTypesScript.CHECKPOINT or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 			_dedicated_first_full_authority_received = true
 			_logged_waiting_for_authority_opening = false
+			_send_opening_snapshot_ack(int(message.get("tick", 0)))
 		else:
 			return
 	_adapter._bootstrap_client_runtime.ingest_network_message(message)
@@ -70,6 +72,7 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	_logged_waiting_for_match_start = false
 	_logged_waiting_for_authority_opening = false
 	_logged_opening_input_freeze = false
+	_dedicated_opening_ack_sent = false
 	_adapter._bootstrap_local_peer_id = int(options.get("local_peer_id", int(_adapter.start_config.local_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	var controlled_peer_id := int(options.get("controlled_peer_id", int(_adapter.start_config.controlled_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	_adapter._bootstrap_client_runtime.configure(_adapter._bootstrap_local_peer_id)
@@ -312,6 +315,7 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 		_dedicated_first_full_authority_received = true
 		_logged_waiting_for_authority_opening = false
 		emit_opening_tick = true
+		_send_opening_snapshot_ack(int(latest_snapshot.get("tick", 0)))
 		_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
 			String(latest_snapshot.get("message_type", latest_snapshot.get("msg_type", ""))),
 			int(latest_snapshot.get("tick", 0)),
@@ -487,6 +491,7 @@ func on_bootstrap_client_runtime_message(message) -> void:
 				_dedicated_first_full_authority_received = true
 				_logged_waiting_for_authority_opening = false
 				emit_opening_tick = true
+				_send_opening_snapshot_ack(int(message.get("tick", 0)))
 				_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
 					message_type,
 					int(message.get("tick", 0)),
@@ -580,6 +585,24 @@ func _emit_client_runtime_tick() -> void:
 		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
 	}
 	_adapter.authoritative_tick_completed.emit(_adapter.current_context, tick_result, _adapter._build_runtime_metrics())
+
+
+func _send_opening_snapshot_ack(snapshot_tick: int) -> void:
+	if _dedicated_opening_ack_sent:
+		return
+	if _adapter == null or _adapter.transport == null or not _adapter.transport.is_transport_connected():
+		return
+	if _adapter.start_config == null:
+		return
+	_dedicated_opening_ack_sent = true
+	_adapter.transport.send_to_peer(1, {
+		"message_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
+		"msg_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
+		"match_id": String(_adapter.start_config.match_id),
+		"sender_peer_id": _adapter._bootstrap_local_peer_id,
+		"peer_id": _adapter._bootstrap_local_peer_id,
+		"tick": snapshot_tick,
+	})
 
 
 func _is_waiting_for_dedicated_match_start() -> bool:

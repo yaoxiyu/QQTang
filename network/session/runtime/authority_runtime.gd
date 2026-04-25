@@ -77,9 +77,27 @@ func ingest_network_message(message: Dictionary) -> void:
 	if server_session == null:
 		return
 	var message_type := str(message.get("message_type", message.get("msg_type", "")))
+	if message_type == TransportMessageTypesScript.INPUT_BATCH:
+		_ingest_input_batch(message)
+		return
 	if message_type != TransportMessageTypesScript.INPUT_FRAME:
 		return
-	var frame := PlayerInputFrame.from_dict(message.get("frame", {}))
+	_ingest_input_frame(PlayerInputFrame.from_dict(message.get("frame", {})), message)
+
+
+func _ingest_input_batch(message: Dictionary) -> void:
+	var frames: Variant = message.get("frames", [])
+	if not (frames is Array):
+		return
+	for frame_data in frames:
+		if not (frame_data is Dictionary):
+			continue
+		_ingest_input_frame(PlayerInputFrame.from_dict(frame_data), message)
+
+
+func _ingest_input_frame(frame: PlayerInputFrame, message: Dictionary) -> void:
+	if frame == null:
+		return
 	if frame.peer_id <= 0:
 		frame.peer_id = int(message.get("sender_peer_id", 0))
 	if _is_opening_input_frozen():

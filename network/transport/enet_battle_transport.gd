@@ -2,6 +2,7 @@ class_name ENetBattleTransport
 extends IBattleTransport
 
 const TransportMessageCodecScript = preload("res://network/transport/transport_message_codec.gd")
+const BattleTransportChannelsScript = preload("res://network/transport/battle_transport_channels.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = false
 const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
@@ -19,6 +20,10 @@ var _connection_failure_reported: bool = false
 var _last_logged_connection_status: int = -1
 var _last_logged_connect_progress_sec: int = -1
 var _last_client_packet_probe_msec: int = 0
+var _sent_count_by_channel: Dictionary = {}
+var _sent_bytes_by_channel: Dictionary = {}
+var _sent_count_by_type: Dictionary = {}
+var _received_count_by_channel: Dictionary = {}
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -30,13 +35,28 @@ func initialize(config: Dictionary = {}) -> void:
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
 	_last_client_packet_probe_msec = 0
+	_reset_transport_metrics()
 	_peer = ENetMultiplayerPeer.new()
 	var result := OK
+	var channel_count := int(config.get("channel_count", BattleTransportChannelsScript.CHANNEL_COUNT))
 	if _server_mode:
-		result = _peer.create_server(int(config.get("port", 9000)), int(config.get("max_clients", 8)))
+		result = _peer.create_server(
+			int(config.get("port", 9000)),
+			int(config.get("max_clients", 8)),
+			channel_count,
+			int(config.get("in_bandwidth", 0)),
+			int(config.get("out_bandwidth", 0))
+		)
 		_connected = result == OK
 	else:
-		result = _peer.create_client(String(config.get("host", "127.0.0.1")), int(config.get("port", 9000)))
+		result = _peer.create_client(
+			String(config.get("host", "127.0.0.1")),
+			int(config.get("port", 9000)),
+			channel_count,
+			int(config.get("in_bandwidth", 0)),
+			int(config.get("out_bandwidth", 0)),
+			int(config.get("local_port", 0))
+		)
 		_connected = false
 		_connect_started_msec = Time.get_ticks_msec()
 	if result != OK:
@@ -69,6 +89,7 @@ func shutdown() -> void:
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
 	_last_client_packet_probe_msec = 0
+	_reset_transport_metrics()
 
 
 func poll() -> void:
@@ -94,6 +115,8 @@ func poll() -> void:
 	_sync_connection_state()
 	_sync_remote_peer_ids()
 	while _peer != null and _peer.get_available_packet_count() > 0:
+		var packet_channel := _peer.get_packet_channel()
+		var packet_mode := _peer.get_packet_mode()
 		var sender_peer_id := _peer.get_packet_peer()
 		var payload: PackedByteArray = _peer.get_packet()
 		_ensure_remote_peer_known(sender_peer_id)
@@ -102,6 +125,9 @@ func poll() -> void:
 			_debug_log("received undecodable packet from %d" % sender_peer_id)
 			continue
 		message["sender_peer_id"] = sender_peer_id
+		message["transport_channel"] = packet_channel
+		message["transport_mode"] = packet_mode
+		_increment_metric(_received_count_by_channel, packet_channel, 1)
 		_incoming_queue.append(message)
 		_debug_log("received %s from %d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), sender_peer_id])
 
@@ -127,26 +153,34 @@ func send_to_peer(peer_id: int, message: Dictionary) -> void:
 		return
 	if peer_id == _local_peer_id:
 		return
+	var message_type := _message_type(message)
 	var payload := TransportMessageCodecScript.encode_message(message)
-	_peer.set_target_peer(peer_id)
-	var result := _peer.put_packet(payload)
-	_debug_log("send %s -> %d result=%d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), peer_id, result])
-	if result != OK:
-		if result == ERR_INVALID_PARAMETER and _remote_peer_ids.has(peer_id):
-			_remove_remote_peer(peer_id, "send_invalid_peer")
-		transport_error.emit(result, "ENet transport failed to send packet")
+	_send_payload_to_peer(peer_id, payload, message_type)
 
 
 func broadcast(message: Dictionary) -> void:
 	_debug_log("broadcast %s -> %s" % [str(message.get("message_type", message.get("msg_type", "unknown"))), str(_remote_peer_ids)])
+	if _peer == null:
+		return
+	var message_type := _message_type(message)
+	var payload := TransportMessageCodecScript.encode_message(message)
 	for peer_id in _remote_peer_ids.duplicate():
-		send_to_peer(peer_id, message)
+		_send_payload_to_peer(peer_id, payload, message_type)
 
 
 func consume_incoming() -> Array[Dictionary]:
 	var messages := _incoming_queue.duplicate(true)
 	_incoming_queue.clear()
 	return messages
+
+
+func get_transport_metrics() -> Dictionary:
+	return {
+		"sent_count_by_channel": _sent_count_by_channel.duplicate(true),
+		"sent_bytes_by_channel": _sent_bytes_by_channel.duplicate(true),
+		"sent_count_by_type": _sent_count_by_type.duplicate(true),
+		"received_count_by_channel": _received_count_by_channel.duplicate(true),
+	}
 
 
 func _sync_connection_state() -> void:
@@ -231,6 +265,47 @@ func _remove_remote_peer(peer_id: int, reason: String) -> void:
 		str(_remote_peer_ids),
 	])
 	peer_disconnected.emit(peer_id)
+
+
+func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type: String) -> void:
+	if _peer == null or peer_id <= 0:
+		return
+	if peer_id == _local_peer_id:
+		return
+	_peer.transfer_channel = BattleTransportChannelsScript.resolve_channel(message_type)
+	_peer.transfer_mode = BattleTransportChannelsScript.resolve_transfer_mode(message_type)
+	_peer.set_target_peer(peer_id)
+	var result := _peer.put_packet(payload)
+	if result == OK:
+		_increment_metric(_sent_count_by_channel, _peer.transfer_channel, 1)
+		_increment_metric(_sent_bytes_by_channel, _peer.transfer_channel, payload.size())
+		_increment_metric(_sent_count_by_type, message_type, 1)
+	_debug_log("send %s -> %d channel=%d mode=%d result=%d" % [
+		message_type,
+		peer_id,
+		_peer.transfer_channel,
+		_peer.transfer_mode,
+		result,
+	])
+	if result != OK:
+		if result == ERR_INVALID_PARAMETER and _remote_peer_ids.has(peer_id):
+			_remove_remote_peer(peer_id, "send_invalid_peer")
+		transport_error.emit(result, "ENet transport failed to send packet")
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", message.get("msg_type", "")))
+
+
+func _increment_metric(metrics: Dictionary, key: Variant, amount: int) -> void:
+	metrics[key] = int(metrics.get(key, 0)) + amount
+
+
+func _reset_transport_metrics() -> void:
+	_sent_count_by_channel.clear()
+	_sent_bytes_by_channel.clear()
+	_sent_count_by_type.clear()
+	_received_count_by_channel.clear()
 
 
 func _report_connection_failure(code: int, message: String) -> void:

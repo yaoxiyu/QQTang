@@ -9,6 +9,10 @@ const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtim
 const ClientRuntimeResumeCoordinatorScript = preload("res://network/session/runtime/client_runtime_resume_coordinator.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
+const INPUT_BATCH_RECENT_FRAME_COUNT := 6
+const MIN_INPUT_LEAD_TICKS := 2
+const MAX_INPUT_LEAD_TICKS := 12
+const OPENING_INPUT_LEAD_TICKS := 6
 
 signal config_accepted(config: BattleStartConfig)
 signal prediction_event(event: Dictionary)
@@ -31,6 +35,8 @@ var _latest_authoritative_event_tick: int = -1
 var _last_consumed_authoritative_event_tick: int = -1
 var _last_authority_batch_metrics: Dictionary = {}
 var _resume_coordinator: RefCounted = ClientRuntimeResumeCoordinatorScript.new()
+var _input_send_seq: int = 0
+var _runtime_input_lead_ticks: int = 0
 
 
 func configure(peer_id: int) -> void:
@@ -108,14 +114,31 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 		_resume_coordinator.track_local_place_request(prediction_controller.predicted_sim_world if prediction_controller != null else null, frame.tick_id)
 	if prediction_controller != null:
 		prediction_controller.predict_to_tick(next_tick)
+	return _build_input_batch_message(frame)
+
+
+func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
+	if latest_frame == null:
+		return {}
+	_input_send_seq += 1
+	var frames: Array = []
+	var start_tick: int = max(0, latest_frame.tick_id - INPUT_BATCH_RECENT_FRAME_COUNT + 1)
+	for tick in range(start_tick, latest_frame.tick_id + 1):
+		var buffered_frame: PlayerInputFrame = client_session.local_input_buffer.get_frame(tick) if client_session != null and client_session.local_input_buffer != null else null
+		if buffered_frame != null:
+			frames.append(buffered_frame.to_dict())
 	return {
-		"message_type": TransportMessageTypesScript.INPUT_FRAME,
-		"msg_type": TransportMessageTypesScript.INPUT_FRAME,
+		"message_type": TransportMessageTypesScript.INPUT_BATCH,
+		"msg_type": TransportMessageTypesScript.INPUT_BATCH,
 		"protocol_version": int(start_config.protocol_version) if start_config != null else 1,
 		"match_id": String(start_config.match_id) if start_config != null else "",
 		"sender_peer_id": local_peer_id,
-		"tick": frame.tick_id,
-		"frame": frame.to_dict(),
+		"peer_id": local_peer_id,
+		"client_seq": _input_send_seq,
+		"latest_tick": latest_frame.tick_id,
+		"tick": latest_frame.tick_id,
+		"frame": latest_frame.to_dict(),
+		"frames": frames,
 	}
 
 
@@ -124,10 +147,33 @@ func _resolve_next_local_input_tick() -> int:
 	if start_config == null:
 		return predicted_next_tick
 	var lead_ticks := int(start_config.network_input_lead_ticks)
-	if lead_ticks <= 0 or prediction_controller == null:
+	if prediction_controller == null:
 		return predicted_next_tick
+	lead_ticks = _resolve_runtime_input_lead_ticks()
 	var authority_based_tick := int(prediction_controller.authoritative_tick) + lead_ticks
 	return max(predicted_next_tick, authority_based_tick)
+
+
+func _resolve_runtime_input_lead_ticks() -> int:
+	var base_lead := int(start_config.network_input_lead_ticks) if start_config != null else 3
+	if base_lead <= 0:
+		base_lead = 3
+	if _runtime_input_lead_ticks <= 0:
+		_runtime_input_lead_ticks = clamp(base_lead, MIN_INPUT_LEAD_TICKS, MAX_INPUT_LEAD_TICKS)
+	if _is_dedicated_opening_lead_window():
+		return max(_runtime_input_lead_ticks, OPENING_INPUT_LEAD_TICKS)
+	return _runtime_input_lead_ticks
+
+
+func _is_dedicated_opening_lead_window() -> bool:
+	if start_config == null or prediction_controller == null:
+		return false
+	if String(start_config.topology) != "dedicated_server":
+		return false
+	if String(start_config.session_mode) != "network_client":
+		return false
+	var opening_ticks: int = max(int(start_config.opening_input_freeze_ticks), OPENING_INPUT_LEAD_TICKS)
+	return int(prediction_controller.authoritative_tick) < int(start_config.start_tick) + opening_ticks
 
 
 func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
@@ -224,6 +270,7 @@ func build_metrics() -> Dictionary:
 		"last_resync_tick": _last_resync_tick,
 		"authority_batch": get_last_authority_batch_metrics(),
 		"rollback": rollback_metrics,
+		"input_lead_ticks": _resolve_runtime_input_lead_ticks() if start_config != null and prediction_controller != null else 0,
 	}
 
 
@@ -276,6 +323,8 @@ func shutdown_runtime() -> void:
 	_last_consumed_authoritative_event_tick = -1
 	_last_authority_batch_metrics.clear()
 	_resume_coordinator.reset()
+	_input_send_seq = 0
+	_runtime_input_lead_ticks = 0
 
 
 # LegacyMigration: Inject resume checkpoint for battle recovery
@@ -374,7 +423,7 @@ func _apply_latest_state_summary(message: Dictionary) -> void:
 	client_session.on_state_summary(message)
 	_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
 	if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
-		_apply_authority_sideband_from_message(message, true, false)
+		_apply_authority_sideband_from_message(message, false, false)
 
 
 func _apply_latest_authoritative_snapshot(message: Dictionary) -> void:

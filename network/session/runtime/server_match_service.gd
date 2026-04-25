@@ -6,6 +6,18 @@ const BattleResultScript = preload("res://gameplay/battle/runtime/battle_result.
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
+const AuthorityFrameMessageMergerScript = preload("res://network/session/runtime/authority_frame_message_merger.gd")
+
+const MAX_AUTHORITY_TICKS_PER_FRAME := 3
+const MAX_ACCUMULATOR_TICKS := 4
+const HARD_BACKLOG_TICKS := 16
+const OPENING_READY_TIMEOUT_MSEC := 3000
+const PHASE_IDLE := 0
+const PHASE_OPENING_SENT := 1
+const PHASE_WAITING_READY := 2
+const PHASE_RUNNING := 3
+const PHASE_FINISHING := 4
+const PHASE_CLOSED := 5
 
 @warning_ignore("unused_signal")
 signal send_to_peer(peer_id: int, message: Dictionary)
@@ -26,6 +38,16 @@ var _last_finished_result: BattleResult = null
 var _last_finished_config: BattleStartConfig = null
 var _last_finished_match_id: String = ""
 var _last_finished_room_id: String = ""
+var _skip_first_active_delta: bool = false
+var _frame_message_merger: RefCounted = AuthorityFrameMessageMergerScript.new()
+var _server_tick_overflow_count: int = 0
+var _last_ticks_this_process: int = 0
+var _last_raw_message_count: int = 0
+var _last_merged_message_count: int = 0
+var _phase: int = PHASE_IDLE
+var _ready_peer_ids: Dictionary = {}
+var _required_peer_ids: Array[int] = []
+var _opening_started_msec: int = 0
 
 
 func _ready() -> void:
@@ -33,13 +55,45 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _phase == PHASE_WAITING_READY:
+		if _all_required_peers_ready() or Time.get_ticks_msec() - _opening_started_msec >= OPENING_READY_TIMEOUT_MSEC:
+			_start_running_ticks()
+		return
 	if not _active or _authority_runtime == null:
 		return
-	_tick_accumulator += delta
-	while _tick_accumulator >= TickRunnerScript.TICK_DT and _active:
+	if _skip_first_active_delta:
+		_skip_first_active_delta = false
+		delta = 0.0
+
+	_tick_accumulator += maxf(delta, 0.0)
+	var backlog_ticks := int(floor(_tick_accumulator / TickRunnerScript.TICK_DT))
+	if backlog_ticks > HARD_BACKLOG_TICKS:
+		_server_tick_overflow_count += 1
+		_tick_accumulator = TickRunnerScript.TICK_DT * float(MAX_ACCUMULATOR_TICKS)
+		backlog_ticks = MAX_ACCUMULATOR_TICKS
+	else:
+		var max_accumulator := TickRunnerScript.TICK_DT * float(MAX_ACCUMULATOR_TICKS)
+		_tick_accumulator = min(_tick_accumulator, max_accumulator)
+		backlog_ticks = int(floor(_tick_accumulator / TickRunnerScript.TICK_DT))
+
+	var ticks_this_frame: int = min(backlog_ticks, MAX_AUTHORITY_TICKS_PER_FRAME)
+	var raw_messages: Array[Dictionary] = []
+	for _i in range(ticks_this_frame):
+		if not _active:
+			break
 		_tick_accumulator -= TickRunnerScript.TICK_DT
-		for message in _authority_runtime.advance_authoritative_tick({}):
-			broadcast_message.emit(message)
+		raw_messages.append_array(_authority_runtime.advance_authoritative_tick({}))
+
+	_last_ticks_this_process = ticks_this_frame
+	_last_raw_message_count = raw_messages.size()
+	if raw_messages.is_empty():
+		_last_merged_message_count = 0
+		return
+
+	var merged_messages: Array[Dictionary] = _frame_message_merger.merge_server_frame(raw_messages)
+	_last_merged_message_count = merged_messages.size()
+	for message in merged_messages:
+		broadcast_message.emit(message)
 
 
 func start_match(snapshot: RoomSnapshot) -> Dictionary:
@@ -94,10 +148,16 @@ func commit_prepared_match(config: BattleStartConfig) -> Dictionary:
 			},
 		}
 	_current_config = config.duplicate_deep()
-	_active = true
+	_active = false
+	_phase = PHASE_OPENING_SENT
 	_tick_accumulator = 0.0
+	_skip_first_active_delta = true
+	_ready_peer_ids.clear()
+	_required_peer_ids = _extract_required_peer_ids(_current_config)
+	_opening_started_msec = Time.get_ticks_msec()
 	canonical_config_ready.emit(_current_config)
 	_broadcast_opening_authority_state()
+	_phase = PHASE_WAITING_READY
 	return {
 		"ok": true,
 		"config": _current_config,
@@ -115,6 +175,10 @@ func build_peer_candidate_config(config: BattleStartConfig, peer_id: int) -> Bat
 
 
 func ingest_runtime_message(message: Dictionary) -> void:
+	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	if message_type == TransportMessageTypesScript.OPENING_SNAPSHOT_ACK or message_type == TransportMessageTypesScript.BATTLE_READY:
+		_mark_peer_ready(int(message.get("sender_peer_id", message.get("peer_id", 0))))
+		return
 	if not _active or _authority_runtime == null:
 		return
 	_authority_runtime.ingest_network_message(message)
@@ -145,9 +209,20 @@ func get_last_finished_room_id() -> String:
 	return _last_finished_room_id
 
 
+func get_tick_budget_metrics() -> Dictionary:
+	return {
+		"ticks_this_process": _last_ticks_this_process,
+		"raw_message_count": _last_raw_message_count,
+		"merged_message_count": _last_merged_message_count,
+		"accumulator_sec": _tick_accumulator,
+		"overflow_count": _server_tick_overflow_count,
+		"phase": _phase,
+	}
+
+
 # LegacyMigration: Build resume checkpoint message
 func build_resume_checkpoint_message() -> Dictionary:
-	if not is_match_active() or _authority_runtime == null or _authority_runtime.server_session == null or _authority_runtime.server_session.active_match == null:
+	if _authority_runtime == null or _authority_runtime.server_session == null or _authority_runtime.server_session.active_match == null:
 		return {}
 	
 	var active_match: BattleMatch = _authority_runtime.server_session.active_match
@@ -242,7 +317,11 @@ func abort_match_due_to_resume_timeout(member_id: String) -> BattleResult:
 
 func shutdown_match() -> void:
 	_active = false
+	_phase = PHASE_CLOSED
 	_tick_accumulator = 0.0
+	_skip_first_active_delta = false
+	_ready_peer_ids.clear()
+	_required_peer_ids.clear()
 	_current_config = null
 	if _authority_runtime != null:
 		_authority_runtime.shutdown_runtime()
@@ -253,6 +332,42 @@ func _cache_finished_payload(result: BattleResult) -> void:
 	_last_finished_config = _current_config.duplicate_deep() if _current_config != null else null
 	_last_finished_match_id = String(_current_config.match_id) if _current_config != null else ""
 	_last_finished_room_id = String(_current_config.room_id) if _current_config != null else ""
+
+
+func _extract_required_peer_ids(config: BattleStartConfig) -> Array[int]:
+	var result: Array[int] = []
+	if config == null:
+		return result
+	for player_entry in config.player_slots:
+		var peer_id := int(player_entry.get("peer_id", 0))
+		if peer_id > 0 and not result.has(peer_id):
+			result.append(peer_id)
+	result.sort()
+	return result
+
+
+func _mark_peer_ready(peer_id: int) -> void:
+	if peer_id <= 0:
+		return
+	_ready_peer_ids[peer_id] = true
+
+
+func _all_required_peers_ready() -> bool:
+	if _required_peer_ids.is_empty():
+		return true
+	for peer_id in _required_peer_ids:
+		if not bool(_ready_peer_ids.get(peer_id, false)):
+			return false
+	return true
+
+
+func _start_running_ticks() -> void:
+	if _authority_runtime == null:
+		return
+	_phase = PHASE_RUNNING
+	_active = true
+	_tick_accumulator = 0.0
+	_skip_first_active_delta = true
 
 
 func _ensure_runtime() -> void:

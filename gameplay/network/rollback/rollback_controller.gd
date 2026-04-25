@@ -9,6 +9,8 @@ const PLAN_NOOP := 0
 const PLAN_ROLLBACK := 1
 const PLAN_FORCE_RESYNC := 2
 const PLAN_DROP_STALE_AUTHORITY := 3
+const MAX_SYNC_REPLAY_TICKS := 8
+const MAX_DEFERRED_REPLAY_TICKS := 32
 
 signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
 signal full_visual_resync(snapshot: WorldSnapshot)
@@ -157,11 +159,14 @@ func _rollback_from_snapshot(authoritative_snapshot: WorldSnapshot) -> void:
 	if predicted_sim_world == null or snapshot_service == null:
 		return
 
-	rollback_count += 1
-	last_rollback_from_tick = authoritative_snapshot.tick_id
-
 	var replay_to : int = max(predicted_until_tick, authoritative_snapshot.tick_id)
 	var replay_count : int = max(0, replay_to - authoritative_snapshot.tick_id)
+	if replay_count > MAX_DEFERRED_REPLAY_TICKS:
+		_force_resync(authoritative_snapshot)
+		return
+
+	rollback_count += 1
+	last_rollback_from_tick = authoritative_snapshot.tick_id
 	last_replay_tick_count = replay_count
 	total_replay_ticks += replay_count
 	avg_replay_ticks = ((avg_replay_ticks * float(max(rollback_count - 1, 0))) + replay_count) / float(max(rollback_count, 1))

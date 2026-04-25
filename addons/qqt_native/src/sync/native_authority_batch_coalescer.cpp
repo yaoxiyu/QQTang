@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 
 namespace {
 constexpr const char *TYPE_INPUT_ACK = "INPUT_ACK";
@@ -61,25 +62,50 @@ Dictionary empty_result() {
     return result;
 }
 
-void append_events(std::map<int32_t, Array> &events_by_tick, const Dictionary &message) {
+String event_id_for(const Dictionary &event, int32_t event_tick, int64_t original_index, int64_t event_index) {
+    const String explicit_id = String(event.get("event_id", ""));
+    if (!explicit_id.is_empty()) {
+        return explicit_id;
+    }
+    const int32_t event_type = int32_t(int64_t(event.get("event_type", -1)));
+    const int32_t source_id = int32_t(int64_t(event.get("source_id", event.get("entity_id", event.get("bubble_id", -1)))));
+    const int32_t sequence = int32_t(int64_t(event.get("sequence", event.get("seq", -1))));
+    if (source_id >= 0 || sequence >= 0) {
+        return String::num_int64(event_tick) + ":" + String::num_int64(event_type) + ":" + String::num_int64(source_id) + ":" + String::num_int64(sequence);
+    }
+    return String::num_int64(event_tick) + ":" + String::num_int64(event_type) + ":" + String::num_int64(original_index) + ":" + String::num_int64(event_index);
+}
+
+int32_t append_events(std::map<int32_t, Array> &events_by_tick, std::set<String> &event_ids, const Dictionary &message, int64_t original_index) {
     Variant raw_events = message.get("events", Variant());
     if (raw_events.get_type() != Variant::ARRAY) {
-        return;
+        return 0;
     }
     Array events = raw_events;
     if (events.is_empty()) {
-        return;
+        return 0;
     }
     const int32_t fallback_tick = message_tick(message);
+    int32_t appended_count = 0;
     for (int64_t event_index = 0; event_index < events.size(); ++event_index) {
         Variant event = events[event_index];
         int32_t event_tick = fallback_tick;
+        String event_id;
         if (event.get_type() == Variant::DICTIONARY) {
             Dictionary event_dict = event;
             event_tick = int32_t(int64_t(event_dict.get("tick", fallback_tick)));
+            event_id = event_id_for(event_dict, event_tick, original_index, event_index);
+        } else {
+            event_id = String::num_int64(event_tick) + ":-1:" + String::num_int64(original_index) + ":" + String::num_int64(event_index);
         }
+        if (event_ids.find(event_id) != event_ids.end()) {
+            continue;
+        }
+        event_ids.insert(event_id);
         events_by_tick[event_tick].append(event);
+        appended_count += 1;
     }
+    return appended_count;
 }
 
 Array ack_array_from_peer_map(const std::map<int32_t, Dictionary> &ack_by_peer) {
@@ -108,10 +134,14 @@ Dictionary make_metrics(
     int32_t raw_checkpoint_count,
     int32_t raw_auth_snapshot_count,
     int32_t coalesced_ack_count,
+    int32_t coalesced_summary_tick,
     int32_t coalesced_snapshot_tick,
+    int32_t dropped_stale_summary_count,
+    int32_t dropped_intermediate_summary_count,
     int32_t dropped_stale_snapshot_count,
     int32_t dropped_intermediate_snapshot_count,
     int32_t preserved_event_tick_count,
+    int32_t preserved_event_count,
     int32_t terminal_message_count,
     int32_t passthrough_message_count,
     int64_t coalesce_usec
@@ -123,10 +153,14 @@ Dictionary make_metrics(
     metrics["raw_checkpoint_count"] = raw_checkpoint_count;
     metrics["raw_auth_snapshot_count"] = raw_auth_snapshot_count;
     metrics["coalesced_ack_count"] = coalesced_ack_count;
+    metrics["coalesced_summary_tick"] = coalesced_summary_tick;
     metrics["coalesced_snapshot_tick"] = coalesced_snapshot_tick;
+    metrics["dropped_stale_summary_count"] = dropped_stale_summary_count;
+    metrics["dropped_intermediate_summary_count"] = dropped_intermediate_summary_count;
     metrics["dropped_stale_snapshot_count"] = dropped_stale_snapshot_count;
     metrics["dropped_intermediate_snapshot_count"] = dropped_intermediate_snapshot_count;
     metrics["preserved_event_tick_count"] = preserved_event_tick_count;
+    metrics["preserved_event_count"] = preserved_event_count;
     metrics["terminal_message_count"] = terminal_message_count;
     metrics["passthrough_message_count"] = passthrough_message_count;
     metrics["coalesce_usec"] = coalesce_usec;
@@ -154,6 +188,7 @@ Dictionary QQTNativeAuthorityBatchCoalescer::coalesce_client_authority_batch(con
     );
     std::map<int32_t, Dictionary> ack_by_peer;
     std::map<int32_t, Array> events_by_tick;
+    std::set<String> event_ids;
     Dictionary summary_message;
     Dictionary snapshot_message;
     int32_t summary_tick = -1;
@@ -164,6 +199,9 @@ Dictionary QQTNativeAuthorityBatchCoalescer::coalesce_client_authority_batch(con
     int32_t raw_auth_snapshot_count = 0;
     int32_t dropped_stale_count = 0;
     int32_t dropped_intermediate_count = 0;
+    int32_t dropped_stale_summary_count = 0;
+    int32_t dropped_intermediate_summary_count = 0;
+    int32_t preserved_event_count = 0;
     PackedInt32Array dropped_snapshot_ticks;
 
     Array terminal_messages = result["terminal_messages"];
@@ -176,7 +214,7 @@ Dictionary QQTNativeAuthorityBatchCoalescer::coalesce_client_authority_batch(con
         Dictionary message = raw_message;
         const String type = message_type(message);
         if (is_authority_sync_type(type)) {
-            append_events(events_by_tick, message);
+            preserved_event_count += append_events(events_by_tick, event_ids, message, index);
         }
         if (type == TYPE_INPUT_ACK) {
             raw_ack_count += 1;
@@ -192,9 +230,16 @@ Dictionary QQTNativeAuthorityBatchCoalescer::coalesce_client_authority_batch(con
         } else if (type == TYPE_STATE_SUMMARY) {
             raw_summary_count += 1;
             const int32_t tick = message_tick(message);
-            if (summary_message.is_empty() || tick >= summary_tick) {
+            if (tick <= known_tick) {
+                dropped_stale_summary_count += 1;
+            } else if (summary_message.is_empty() || tick >= summary_tick) {
+                if (!summary_message.is_empty()) {
+                    dropped_intermediate_summary_count += 1;
+                }
                 summary_tick = tick;
                 summary_message = message.duplicate(true);
+            } else {
+                dropped_intermediate_summary_count += 1;
             }
         } else if (is_snapshot_type(type)) {
             if (type == TYPE_CHECKPOINT) {
@@ -240,10 +285,14 @@ Dictionary QQTNativeAuthorityBatchCoalescer::coalesce_client_authority_batch(con
         raw_checkpoint_count,
         raw_auth_snapshot_count,
         int32_t(input_acks.size()),
+        summary_tick,
         snapshot_tick,
+        dropped_stale_summary_count,
+        dropped_intermediate_summary_count,
         dropped_stale_count,
         dropped_intermediate_count,
         int32_t(authority_events.size()),
+        preserved_event_count,
         int32_t(terminal_messages.size()),
         int32_t(passthrough_messages.size()),
         Time::get_singleton()->get_ticks_usec() - started_usec
