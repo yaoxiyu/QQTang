@@ -12,6 +12,9 @@ var loading_phase_text: String = ""
 var waiting_summary_text: String = ""
 var status_message: String = ""
 var is_commit_ready: bool = false
+var progress: float = 0.0
+var progress_percent: int = 0
+var progress_detail_text: String = ""
 
 # LegacyMigration: Resume mode fields
 var loading_mode: String = "normal_start"
@@ -32,6 +35,9 @@ func to_dict() -> Dictionary:
 		"waiting_summary_text": waiting_summary_text,
 		"status_message": status_message,
 		"is_commit_ready": is_commit_ready,
+		"progress": progress,
+		"progress_percent": progress_percent,
+		"progress_detail_text": progress_detail_text,
 		"loading_mode": loading_mode,
 		"resume_hint_text": resume_hint_text,
 		"resume_match_id": resume_match_id,

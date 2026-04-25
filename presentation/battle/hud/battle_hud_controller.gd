@@ -7,6 +7,7 @@ const NetworkStatusPanelScript = preload("res://presentation/battle/hud/network_
 const MatchMessagePanelScript = preload("res://presentation/battle/hud/match_message_panel.gd")
 const BattleMetaPanelScript = preload("res://presentation/battle/hud/battle_meta_panel.gd")
 const LocalPlayerAbilityPanelScript = preload("res://presentation/battle/hud/local_player_ability_panel.gd")
+const BattleHudResourceBinderScript = preload("res://presentation/battle/hud/battle_hud_resource_binder.gd")
 const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
 
 @export var countdown_panel_path: NodePath = ^"../CountdownPanel"
@@ -35,6 +36,7 @@ var _pending_rule_display_name: String = ""
 var _pending_match_meta_text: String = ""
 var _pending_character_display_name: String = ""
 var _pending_bubble_display_name: String = ""
+var _hud_asset_bindings: Dictionary = {}
 
 
 func _ready() -> void:
@@ -46,6 +48,8 @@ func _ready() -> void:
 	local_player_ability_panel = _resolve_panel(local_player_ability_panel_path, LocalPlayerAbilityPanelScript)
 	team_score_panel = get_node_or_null(team_score_panel_path)
 	local_life_state_panel = get_node_or_null(local_life_state_panel_path)
+	_bind_hud_resource_ids()
+	_apply_formal_hud_layout()
 	_apply_pending_battle_metadata()
 
 
@@ -137,6 +141,7 @@ func debug_dump_hud_state() -> Dictionary:
 		"battle_meta_map_text": String(meta_dump.get("map_text", "")),
 		"battle_meta_rule_text": String(meta_dump.get("rule_text", "")),
 		"battle_meta_match_text": String(meta_dump.get("match_text", "")),
+		"hud_asset_bindings": _hud_asset_bindings.duplicate(),
 	}
 
 
@@ -172,6 +177,81 @@ func _resolve_panel(path: NodePath, fallback_script: Script) -> Node:
 	var panel: Node = fallback_script.new()
 	add_child(panel)
 	return panel
+
+
+func _bind_hud_resource_ids() -> void:
+	var binder = BattleHudResourceBinderScript.new()
+	_hud_asset_bindings = binder.bind_panel_assets({
+		"countdown_panel": countdown_panel,
+		"player_status_panel": player_status_panel,
+		"network_status_panel": network_status_panel,
+		"match_message_panel": match_message_panel,
+		"battle_meta_panel": battle_meta_panel,
+		"local_player_ability_panel": local_player_ability_panel,
+		"team_score_panel": team_score_panel,
+		"local_life_state_panel": local_life_state_panel,
+	})
+
+
+func _apply_formal_hud_layout() -> void:
+	_style_label_panel(countdown_panel, Vector2(28, 22), Vector2(248, 68), 24, HORIZONTAL_ALIGNMENT_CENTER)
+	_style_label_panel(player_status_panel, Vector2(28, 82), Vector2(360, 220), 15, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(network_status_panel, Vector2(816, 22), Vector2(1180, 210), 12, HORIZONTAL_ALIGNMENT_RIGHT)
+	_style_label_panel(match_message_panel, Vector2(404, 24), Vector2(780, 76), 20, HORIZONTAL_ALIGNMENT_CENTER)
+	_style_panel(battle_meta_panel)
+	_style_panel(local_player_ability_panel)
+	_style_label_panel(team_score_panel, Vector2(970, 226), Vector2(1180, 332), 16, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(local_life_state_panel, Vector2(28, 400), Vector2(300, 442), 18, HORIZONTAL_ALIGNMENT_LEFT)
+	if battle_meta_panel is Control:
+		_set_control_rect(battle_meta_panel, Vector2(28, 238), Vector2(360, 360))
+	if local_player_ability_panel is Control:
+		_set_control_rect(local_player_ability_panel, Vector2(28, 372), Vector2(440, 424))
+
+
+func _style_label_panel(label_node: Label, position: Vector2, size: Vector2, font_size: int, alignment: int) -> void:
+	if label_node == null:
+		return
+	_set_control_rect(label_node, position, size)
+	label_node.horizontal_alignment = alignment
+	label_node.add_theme_font_size_override("font_size", font_size)
+	label_node.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 1.0))
+	label_node.add_theme_stylebox_override("normal", _make_hud_style(Color(0.04, 0.07, 0.10, 0.72), Color(0.36, 0.58, 0.78, 0.72), 6))
+
+
+func _style_panel(panel: Node) -> void:
+	if panel == null or not (panel is PanelContainer):
+		return
+	panel.add_theme_stylebox_override("panel", _make_hud_style(Color(0.04, 0.07, 0.10, 0.76), Color(0.36, 0.58, 0.78, 0.78), 6))
+
+
+func _set_control_rect(control: Control, position: Vector2, size: Vector2) -> void:
+	control.anchor_left = 0.0
+	control.anchor_top = 0.0
+	control.anchor_right = 0.0
+	control.anchor_bottom = 0.0
+	control.offset_left = position.x
+	control.offset_top = position.y
+	control.offset_right = size.x
+	control.offset_bottom = size.y
+
+
+func _make_hud_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = 10.0
+	style.content_margin_right = 10.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	return style
 
 
 func _build_player_statuses(world: SimWorld) -> Array[Dictionary]:

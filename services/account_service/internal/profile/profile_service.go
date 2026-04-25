@@ -24,6 +24,8 @@ type ProfileResponse struct {
 	ProfileID              string   `json:"profile_id"`
 	AccountID              string   `json:"account_id"`
 	Nickname               string   `json:"nickname"`
+	AvatarID               string   `json:"avatar_id"`
+	TitleID                string   `json:"title_id"`
 	DefaultCharacterID     string   `json:"default_character_id"`
 	DefaultCharacterSkinID string   `json:"default_character_skin_id"`
 	DefaultBubbleStyleID   string   `json:"default_bubble_style_id"`
@@ -53,6 +55,8 @@ type UpdateLoadoutInput struct {
 	DefaultCharacterSkinID string
 	DefaultBubbleStyleID   string
 	DefaultBubbleSkinID    string
+	AvatarID               *string
+	TitleID                *string
 }
 
 func NewService(profileRepo *storage.ProfileRepository) *Service {
@@ -129,10 +133,22 @@ func (s *Service) UpdateMyLoadout(ctx context.Context, input UpdateLoadoutInput)
 		!isOwned(ownedLookup, "bubble_skin", input.DefaultBubbleSkinID) {
 		return ProfileResponse{}, ErrLoadoutNotOwned
 	}
+	if input.AvatarID != nil && !isOptionalOwned(ownedLookup, "avatar", *input.AvatarID) {
+		return ProfileResponse{}, ErrLoadoutNotOwned
+	}
+	if input.TitleID != nil && !isOptionalOwned(ownedLookup, "title", *input.TitleID) {
+		return ProfileResponse{}, ErrLoadoutNotOwned
+	}
 	profileRecord.DefaultCharacterID = input.DefaultCharacterID
 	profileRecord.DefaultCharacterSkinID = input.DefaultCharacterSkinID
 	profileRecord.DefaultBubbleStyleID = input.DefaultBubbleStyleID
 	profileRecord.DefaultBubbleSkinID = input.DefaultBubbleSkinID
+	if input.AvatarID != nil {
+		profileRecord.AvatarID = toNullString(*input.AvatarID)
+	}
+	if input.TitleID != nil {
+		profileRecord.TitleID = toNullString(*input.TitleID)
+	}
 	profileRecord.ProfileVersion++
 	profileRecord.UpdatedAt = time.Now().UTC()
 	if err := s.profileRepo.UpdateLoadout(ctx, profileRecord); err != nil {
@@ -146,6 +162,8 @@ func toProfileResponse(profileRecord storage.Profile, assets []storage.OwnedAsse
 		ProfileID:              profileRecord.ProfileID,
 		AccountID:              profileRecord.AccountID,
 		Nickname:               profileRecord.Nickname,
+		AvatarID:               nullableString(profileRecord.AvatarID),
+		TitleID:                nullableString(profileRecord.TitleID),
 		DefaultCharacterID:     profileRecord.DefaultCharacterID,
 		DefaultCharacterSkinID: profileRecord.DefaultCharacterSkinID,
 		DefaultBubbleStyleID:   profileRecord.DefaultBubbleStyleID,
@@ -197,4 +215,12 @@ func isOwned(lookup map[string]map[string]struct{}, assetType string, assetID st
 	}
 	_, ok = assets[assetID]
 	return ok
+}
+
+func isOptionalOwned(lookup map[string]map[string]struct{}, assetType string, assetID string) bool {
+	trimmed := strings.TrimSpace(assetID)
+	if trimmed == "" {
+		return true
+	}
+	return isOwned(lookup, assetType, trimmed)
 }

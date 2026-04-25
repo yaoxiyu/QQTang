@@ -30,6 +30,8 @@ func (h *ProfileHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		"profile_id":                result.ProfileID,
 		"account_id":                result.AccountID,
 		"nickname":                  result.Nickname,
+		"avatar_id":                 result.AvatarID,
+		"title_id":                  result.TitleID,
 		"default_character_id":      result.DefaultCharacterID,
 		"default_character_skin_id": result.DefaultCharacterSkinID,
 		"default_bubble_style_id":   result.DefaultBubbleStyleID,
@@ -81,10 +83,12 @@ func (h *ProfileHandler) PatchMe(w http.ResponseWriter, r *http.Request) {
 func (h *ProfileHandler) PatchLoadout(w http.ResponseWriter, r *http.Request) {
 	authResult := getAuthResult(r.Context())
 	var request struct {
-		DefaultCharacterID     string `json:"default_character_id"`
-		DefaultCharacterSkinID string `json:"default_character_skin_id"`
-		DefaultBubbleStyleID   string `json:"default_bubble_style_id"`
-		DefaultBubbleSkinID    string `json:"default_bubble_skin_id"`
+		DefaultCharacterID     string  `json:"default_character_id"`
+		DefaultCharacterSkinID string  `json:"default_character_skin_id"`
+		DefaultBubbleStyleID   string  `json:"default_bubble_style_id"`
+		DefaultBubbleSkinID    string  `json:"default_bubble_skin_id"`
+		AvatarID               *string `json:"avatar_id"`
+		TitleID                *string `json:"title_id"`
 	}
 	if err := httpx.DecodeJSONBody(w, r, &request); err != nil {
 		httpx.WriteInvalidRequestBody(w)
@@ -96,6 +100,8 @@ func (h *ProfileHandler) PatchLoadout(w http.ResponseWriter, r *http.Request) {
 		DefaultCharacterSkinID: request.DefaultCharacterSkinID,
 		DefaultBubbleStyleID:   request.DefaultBubbleStyleID,
 		DefaultBubbleSkinID:    request.DefaultBubbleSkinID,
+		AvatarID:               request.AvatarID,
+		TitleID:                request.TitleID,
 	})
 	if err != nil {
 		status, code := mapProfileError(err)
@@ -109,6 +115,8 @@ func (h *ProfileHandler) PatchLoadout(w http.ResponseWriter, r *http.Request) {
 		"default_character_skin_id": result.DefaultCharacterSkinID,
 		"default_bubble_style_id":   result.DefaultBubbleStyleID,
 		"default_bubble_skin_id":    result.DefaultBubbleSkinID,
+		"avatar_id":                 result.AvatarID,
+		"title_id":                  result.TitleID,
 		"profile_version":           result.ProfileVersion,
 		"owned_asset_revision":      result.OwnedAssetRevision,
 	})

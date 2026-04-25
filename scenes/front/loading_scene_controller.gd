@@ -74,6 +74,7 @@ func _redirect_to_boot_if_missing() -> void:
 
 
 func _configure_layout() -> void:
+	_ensure_loading_background()
 	loading_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main_layout.anchor_right = 1.0
 	main_layout.anchor_bottom = 1.0
@@ -83,14 +84,20 @@ func _configure_layout() -> void:
 	main_layout.offset_bottom = -64.0
 	main_layout.add_theme_constant_override("separation", 18)
 	player_loading_list.add_theme_constant_override("separation", 8)
+	manifest_summary_panel.add_theme_stylebox_override("panel", _make_loading_style(Color(0.12, 0.17, 0.22, 0.94), Color(0.34, 0.50, 0.66, 0.75), 8))
+	manifest_summary_panel.set_meta("ui_asset_id", "ui.loading.panel.task")
 	loading_label.text = "Loading Match..."
+	loading_label.add_theme_font_size_override("font_size", 34)
 	player_loadout_title_label.text = "Players"
+	player_loadout_title_label.add_theme_font_size_override("font_size", 20)
 	timeout_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	timeout_hint.text = "Preparing runtime..."
 	if loading_phase_label != null:
 		loading_phase_label.text = "Phase: initializing"
 	if loading_status_label != null:
 		loading_status_label.text = "Preparing..."
+		loading_status_label.set_meta("ui_asset_id", "ui.loading.progress.fill")
+	loading_root.set_meta("ui_asset_id", "ui.loading.bg.main")
 
 
 func _refresh_loading_view() -> void:
@@ -108,7 +115,7 @@ func _refresh_loading_view() -> void:
 	character_summary_label.text = "角色: %s" % String(view_state.character_brief)
 	bubble_summary_label.text = "泡泡: %s" % String(view_state.bubble_brief)
 	loading_phase_label.text = "Phase: %s" % String(view_state.loading_phase_text)
-	loading_status_label.text = String(view_state.waiting_summary_text)
+	loading_status_label.text = "%s | %s" % [String(view_state.waiting_summary_text), String(view_state.progress_detail_text)]
 	timeout_hint.text = String(view_state.status_message)
 	if loading_mode_label != null:
 		loading_mode_label.text = "Mode: %s" % String(view_state.loading_mode)
@@ -317,3 +324,34 @@ func _set_loading_status(text: String) -> void:
 
 func _log_battle_entry(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[loading_scene] %s %s" % [BATTLE_ENTRY_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.loading.scene")
+
+
+func _ensure_loading_background() -> void:
+	var background: ColorRect = loading_root.get_node_or_null("FormalBackground")
+	if background == null:
+		background = ColorRect.new()
+		background.name = "FormalBackground"
+		loading_root.add_child(background)
+		loading_root.move_child(background, 0)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.color = Color(0.055, 0.09, 0.13, 1.0)
+	background.set_meta("ui_asset_id", "ui.loading.bg.main")
+
+
+func _make_loading_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 14.0
+	style.content_margin_bottom = 14.0
+	return style

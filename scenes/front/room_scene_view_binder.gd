@@ -64,6 +64,10 @@ func update_preview(
 	_set_text_by_name(scene_controller, "character_skin_preview_label", "Character Skin: %s" % String(profile.default_character_skin_id))
 	_set_text_by_name(scene_controller, "bubble_preview_label", "Bubble: %s" % String(profile.default_bubble_style_id))
 	_set_text_by_name(scene_controller, "bubble_skin_preview_label", "Bubble Skin: %s" % String(profile.default_bubble_skin_id))
+	if String(profile.get("title_id")).strip_edges() != "":
+		_set_text_by_name(scene_controller, "mode_preview_label", "Mode: %s | Title: %s" % [snapshot.mode_id, String(profile.get("title_id"))])
+	if String(profile.get("avatar_id")).strip_edges() != "":
+		_set_text_by_name(scene_controller, "team_preview_label", "Team: %d | Avatar: %s" % [selected_team_id, String(profile.get("avatar_id"))])
 	_configure_preview(
 		scene_controller,
 		_resolve_preview_character_id(String(profile.default_character_id)),

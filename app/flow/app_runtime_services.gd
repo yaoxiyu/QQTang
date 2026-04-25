@@ -15,6 +15,12 @@ const HttpCareerGatewayScript = preload("res://app/front/career/http_career_gate
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const FrontSettingsRepositoryScript = preload("res://app/front/profile/front_settings_repository.gd")
 const HttpProfileGatewayScript = preload("res://app/front/profile/http_profile_gateway.gd")
+const HttpWalletGatewayScript = preload("res://app/front/economy/http_wallet_gateway.gd")
+const HttpInventoryGatewayScript = preload("res://app/front/inventory/http_inventory_gateway.gd")
+const HttpShopGatewayScript = preload("res://app/front/shop/http_shop_gateway.gd")
+const WalletUseCaseScript = preload("res://app/front/economy/wallet_use_case.gd")
+const InventoryUseCaseScript = preload("res://app/front/inventory/inventory_use_case.gd")
+const ShopUseCaseScript = preload("res://app/front/shop/shop_use_case.gd")
 const LocalFrontSettingsRepositoryScript = preload("res://app/front/profile/local_front_settings_repository.gd")
 const LocalProfileRepositoryScript = preload("res://app/front/profile/local_profile_repository.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
@@ -103,6 +109,12 @@ static func ensure_front_services(runtime: Node) -> void:
 		runtime.auth_gateway = PassThroughAuthGatewayScript.new()
 	if runtime.profile_gateway == null:
 		runtime.profile_gateway = HttpProfileGatewayScript.new()
+	if runtime.wallet_gateway == null:
+		runtime.wallet_gateway = HttpWalletGatewayScript.new()
+	if runtime.inventory_gateway == null:
+		runtime.inventory_gateway = HttpInventoryGatewayScript.new()
+	if runtime.shop_gateway == null:
+		runtime.shop_gateway = HttpShopGatewayScript.new()
 	if runtime.room_ticket_gateway == null:
 		runtime.room_ticket_gateway = HttpRoomTicketGatewayScript.new()
 	if runtime.career_gateway == null:
@@ -160,6 +172,33 @@ static func ensure_front_use_cases(runtime: Node) -> void:
 			runtime.auth_session_state,
 			runtime.front_settings_state,
 			runtime.career_gateway
+		)
+
+	if runtime.wallet_use_case == null:
+		runtime.wallet_use_case = WalletUseCaseScript.new()
+	if runtime.wallet_use_case != null and runtime.wallet_use_case.has_method("configure"):
+		runtime.wallet_use_case.configure(
+			runtime.auth_session_state,
+			runtime.front_settings_state,
+			runtime.wallet_gateway
+		)
+
+	if runtime.inventory_use_case == null:
+		runtime.inventory_use_case = InventoryUseCaseScript.new()
+	if runtime.inventory_use_case != null and runtime.inventory_use_case.has_method("configure"):
+		runtime.inventory_use_case.configure(
+			runtime.auth_session_state,
+			runtime.front_settings_state,
+			runtime.inventory_gateway
+		)
+
+	if runtime.shop_use_case == null:
+		runtime.shop_use_case = ShopUseCaseScript.new()
+	if runtime.shop_use_case != null and runtime.shop_use_case.has_method("configure"):
+		runtime.shop_use_case.configure(
+			runtime.auth_session_state,
+			runtime.front_settings_state,
+			runtime.shop_gateway
 		)
 
 	if runtime.room_use_case == null:

@@ -1,0 +1,145 @@
+{
+  "catalog_revision": 1,
+  "currencies": [
+    {
+      "currency_id": "soft_gold",
+      "display_name": "Gold",
+      "icon_ui_asset_id": "ui.currency.soft_gold.icon",
+      "sort_order": 10,
+      "enabled": true
+    },
+    {
+      "currency_id": "premium_gem",
+      "display_name": "Gem",
+      "icon_ui_asset_id": "ui.currency.premium_gem.icon",
+      "sort_order": 20,
+      "enabled": true
+    }
+  ],
+  "tabs": [
+    {
+      "tab_id": "characters",
+      "display_name": "Characters",
+      "icon_ui_asset_id": "ui.shop.tab.characters.icon",
+      "sort_order": 10,
+      "enabled": true
+    },
+    {
+      "tab_id": "skins",
+      "display_name": "Skins",
+      "icon_ui_asset_id": "ui.shop.tab.skins.icon",
+      "sort_order": 20,
+      "enabled": true
+    },
+    {
+      "tab_id": "bubbles",
+      "display_name": "Bubbles",
+      "icon_ui_asset_id": "ui.shop.tab.bubbles.icon",
+      "sort_order": 30,
+      "enabled": true
+    },
+    {
+      "tab_id": "titles",
+      "display_name": "Titles",
+      "icon_ui_asset_id": "ui.shop.tab.titles.icon",
+      "sort_order": 40,
+      "enabled": true
+    }
+  ],
+  "goods": [
+    {
+      "goods_id": "goods.char.huoying",
+      "goods_type": "asset",
+      "target_asset_type": "character",
+      "target_asset_id": "char_huoying",
+      "display_name": "Huoying",
+      "icon_ui_asset_id": "ui.character.huoying.icon",
+      "sort_order": 10,
+      "enabled": true
+    },
+    {
+      "goods_id": "goods.skin.gold",
+      "goods_type": "asset",
+      "target_asset_type": "character_skin",
+      "target_asset_id": "skin_gold",
+      "display_name": "Gold Skin",
+      "icon_ui_asset_id": "ui.skin.gold.icon",
+      "sort_order": 20,
+      "enabled": true
+    },
+    {
+      "goods_id": "goods.bubble.round",
+      "goods_type": "asset",
+      "target_asset_type": "bubble",
+      "target_asset_id": "bubble_round",
+      "display_name": "Round Bubble",
+      "icon_ui_asset_id": "ui.bubble.round.icon",
+      "sort_order": 30,
+      "enabled": true
+    },
+    {
+      "goods_id": "goods.title.rookie",
+      "goods_type": "asset",
+      "target_asset_type": "title",
+      "target_asset_id": "title_rookie",
+      "display_name": "Rookie Title",
+      "icon_ui_asset_id": "ui.title.rookie.icon",
+      "sort_order": 40,
+      "enabled": true
+    }
+  ],
+  "offers": [
+    {
+      "offer_id": "offer.char.huoying",
+      "tab_id": "characters",
+      "goods_id": "goods.char.huoying",
+      "currency_id": "soft_gold",
+      "price": 3000,
+      "limit_type": "once",
+      "limit_count": 1,
+      "display_name": "Huoying",
+      "icon_ui_asset_id": "ui.character.huoying.icon",
+      "sort_order": 10,
+      "enabled": true
+    },
+    {
+      "offer_id": "offer.skin.gold",
+      "tab_id": "skins",
+      "goods_id": "goods.skin.gold",
+      "currency_id": "soft_gold",
+      "price": 1200,
+      "limit_type": "once",
+      "limit_count": 1,
+      "display_name": "Gold Skin",
+      "icon_ui_asset_id": "ui.skin.gold.icon",
+      "sort_order": 20,
+      "enabled": true
+    },
+    {
+      "offer_id": "offer.bubble.round",
+      "tab_id": "bubbles",
+      "goods_id": "goods.bubble.round",
+      "currency_id": "soft_gold",
+      "price": 800,
+      "limit_type": "once",
+      "limit_count": 1,
+      "display_name": "Round Bubble",
+      "icon_ui_asset_id": "ui.bubble.round.icon",
+      "sort_order": 30,
+      "enabled": true
+    },
+    {
+      "offer_id": "offer.title.rookie",
+      "tab_id": "titles",
+      "goods_id": "goods.title.rookie",
+      "currency_id": "soft_gold",
+      "price": 100,
+      "limit_type": "once",
+      "limit_count": 1,
+      "display_name": "Rookie Title",
+      "icon_ui_asset_id": "ui.title.rookie.icon",
+      "sort_order": 40,
+      "enabled": true
+    }
+  ]
+}

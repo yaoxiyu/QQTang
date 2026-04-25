@@ -10,6 +10,8 @@ var session_state: String = ""
 var profile_source: String = ""
 var last_sync_msec: int = 0
 var profile_name: String = ""
+var avatar_id: String = ""
+var title_id: String = ""
 var default_character_id: String = ""
 var default_character_skin_id: String = ""
 var default_bubble_style_id: String = ""
@@ -49,6 +51,9 @@ var queue_type: String = ""
 var queue_status_text: String = ""
 var assignment_id: String = ""
 var assignment_status_text: String = ""
+var wallet_summary_text: String = ""
+var shop_status_text: String = ""
+var inventory_status_text: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -60,6 +65,8 @@ func to_dict() -> Dictionary:
 		"profile_source": profile_source,
 		"last_sync_msec": last_sync_msec,
 		"profile_name": profile_name,
+		"avatar_id": avatar_id,
+		"title_id": title_id,
 		"default_character_id": default_character_id,
 		"default_character_skin_id": default_character_skin_id,
 		"default_bubble_style_id": default_bubble_style_id,
@@ -94,4 +101,7 @@ func to_dict() -> Dictionary:
 		"queue_status_text": queue_status_text,
 		"assignment_id": assignment_id,
 		"assignment_status_text": assignment_status_text,
+		"wallet_summary_text": wallet_summary_text,
+		"shop_status_text": shop_status_text,
+		"inventory_status_text": inventory_status_text,
 	}

@@ -15,10 +15,17 @@ const ROOM_SCENE_LOG_TAG := "front.room.scene"
 
 @onready var room_hud_controller: Node = get_node_or_null("RoomHudController")
 @onready var room_root: Control = get_node_or_null("RoomRoot")
+@onready var room_scroll: ScrollContainer = get_node_or_null("RoomRoot/RoomScroll")
 @onready var main_layout: VBoxContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout")
+@onready var top_bar: HBoxContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar")
 @onready var title_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/TitleLabel")
 @onready var back_to_lobby_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/BackToLobbyButton")
 @onready var room_meta_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/TopBar/RoomMetaLabel")
+@onready var summary_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard")
+@onready var local_loadout_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard")
+@onready var room_selection_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard")
+@onready var member_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/MemberCard")
+@onready var preview_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard")
 @onready var room_kind_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel")
 @onready var room_display_name_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomDisplayNameLabel")
 @onready var room_id_value_label: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel")
@@ -84,6 +91,7 @@ var _suppress_selection_callbacks: bool = false
 
 
 func _ready() -> void:
+	_apply_formal_room_layout()
 	_bind_runtime()
 	_populate_selectors()
 	_connect_ui_signals()
@@ -404,3 +412,107 @@ func _try_consume_pending_room_action() -> void:
 	_app_runtime.pending_room_action = ""
 	if _app_runtime.room_session_controller != null and _app_runtime.room_session_controller.has_method("set_pending_room_action"):
 		_app_runtime.room_session_controller.set_pending_room_action("")
+
+
+func _apply_formal_room_layout() -> void:
+	_ensure_room_background()
+	if room_scroll != null:
+		room_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	if main_layout != null:
+		main_layout.custom_minimum_size = Vector2(860, 0)
+		main_layout.add_theme_constant_override("separation", 14)
+	if top_bar != null:
+		top_bar.add_theme_constant_override("separation", 12)
+	if title_label != null:
+		title_label.text = "Room"
+		title_label.add_theme_font_size_override("font_size", 28)
+	if room_meta_label != null:
+		room_meta_label.add_theme_font_size_override("font_size", 16)
+	for card in [summary_card, local_loadout_card, room_selection_card, member_card, preview_card]:
+		_apply_room_card_style(card)
+	for button in [back_to_lobby_button, leave_room_button, ready_button, start_button, enter_queue_button, cancel_queue_button, add_opponent_button, copy_invite_code_button]:
+		_apply_room_button_style(button)
+	for input in [room_id_value_label, player_name_input, invite_code_value_label]:
+		_apply_room_input_style(input)
+	for selector in [team_selector, character_selector, character_skin_selector, bubble_selector, bubble_skin_selector, map_selector, game_mode_selector, match_format_selector]:
+		if selector != null:
+			selector.custom_minimum_size = Vector2(max(selector.custom_minimum_size.x, 220.0), 38.0)
+			selector.set_meta("ui_asset_id", "ui.room.panel.config")
+	if room_debug_panel != null:
+		room_debug_panel.visible = false
+	_apply_room_asset_ids()
+
+
+func _ensure_room_background() -> void:
+	if room_root == null:
+		return
+	var background: ColorRect = room_root.get_node_or_null("FormalBackground")
+	if background == null:
+		background = ColorRect.new()
+		background.name = "FormalBackground"
+		room_root.add_child(background)
+		room_root.move_child(background, 0)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.color = Color(0.055, 0.095, 0.13, 1.0)
+	background.set_meta("ui_asset_id", "ui.room.bg.main")
+
+
+func _apply_room_card_style(card: PanelContainer) -> void:
+	if card == null:
+		return
+	card.add_theme_stylebox_override("panel", _make_room_style(Color(0.12, 0.17, 0.22, 0.95), Color(0.30, 0.47, 0.62, 0.72), 8))
+	card.set_meta("ui_asset_id", "ui.room.panel.config")
+
+
+func _apply_room_button_style(button: Button) -> void:
+	if button == null:
+		return
+	button.custom_minimum_size = Vector2(max(button.custom_minimum_size.x, 128.0), 40.0)
+	button.add_theme_stylebox_override("normal", _make_room_style(Color(0.24, 0.32, 0.40, 1.0), Color(0.48, 0.64, 0.78, 0.85), 6))
+	button.add_theme_stylebox_override("hover", _make_room_style(Color(0.32, 0.42, 0.52, 1.0), Color(0.64, 0.82, 0.98, 1.0), 6))
+	button.add_theme_stylebox_override("pressed", _make_room_style(Color(0.16, 0.22, 0.28, 1.0), Color(0.56, 0.72, 0.88, 1.0), 6))
+
+
+func _apply_room_input_style(input: LineEdit) -> void:
+	if input == null:
+		return
+	input.custom_minimum_size = Vector2(max(input.custom_minimum_size.x, 220.0), 38.0)
+	input.add_theme_stylebox_override("normal", _make_room_style(Color(0.07, 0.10, 0.13, 1.0), Color(0.26, 0.38, 0.50, 0.8), 6))
+	input.add_theme_stylebox_override("focus", _make_room_style(Color(0.08, 0.12, 0.16, 1.0), Color(0.96, 0.76, 0.28, 1.0), 6))
+
+
+func _apply_room_asset_ids() -> void:
+	_set_room_asset_meta(room_root, "ui.room.bg.main")
+	_set_room_asset_meta(summary_card, "ui.room.panel.config")
+	_set_room_asset_meta(local_loadout_card, "ui.room.panel.loadout_preview")
+	_set_room_asset_meta(room_selection_card, "ui.room.panel.map_select")
+	_set_room_asset_meta(member_card, "ui.room.slot.occupied")
+	_set_room_asset_meta(preview_card, "ui.room.preview.character_frame")
+	_set_room_asset_meta(start_button, "ui.room.button.start.normal")
+	_set_room_asset_meta(ready_button, "ui.room.button.ready.normal")
+	_set_room_asset_meta(back_to_lobby_button, "ui.room.button.back.normal")
+
+
+func _make_room_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 12.0
+	style.content_margin_bottom = 12.0
+	return style
+
+
+func _set_room_asset_meta(node: Node, asset_id: String) -> void:
+	if node == null:
+		return
+	node.set_meta("ui_asset_id", asset_id)

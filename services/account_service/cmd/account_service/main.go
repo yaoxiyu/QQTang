@@ -11,8 +11,12 @@ import (
 
 	"qqtang/services/account_service/internal/auth"
 	"qqtang/services/account_service/internal/config"
+	"qqtang/services/account_service/internal/economy"
 	"qqtang/services/account_service/internal/httpapi"
+	"qqtang/services/account_service/internal/inventory"
 	"qqtang/services/account_service/internal/profile"
+	"qqtang/services/account_service/internal/purchase"
+	"qqtang/services/account_service/internal/shop"
 	"qqtang/services/account_service/internal/storage"
 	"qqtang/services/account_service/internal/ticket"
 )
@@ -34,6 +38,8 @@ func main() {
 
 	accountRepo := storage.NewAccountRepository(store.Pool)
 	profileRepo := storage.NewProfileRepository(store.Pool)
+	walletRepo := storage.NewWalletRepository(store.Pool)
+	inventoryRepo := storage.NewInventoryRepository(store.Pool)
 	sessionRepo := storage.NewSessionRepository(store.Pool)
 	ticketRepo := storage.NewTicketRepository(store.Pool)
 
@@ -52,6 +58,10 @@ func main() {
 		time.Duration(cfg.RefreshTokenTTLSeconds)*time.Second,
 	)
 	profileService := profile.NewService(profileRepo)
+	walletService := economy.NewWalletService(profileRepo, walletRepo)
+	inventoryService := inventory.NewInventoryService(profileRepo, inventoryRepo)
+	shopCatalogProvider := shop.NewDefaultCatalogProvider()
+	purchaseService := purchase.NewService(store.Pool, shopCatalogProvider, tokenIssuer)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer(cfg.RoomTicketSignSecret)
 	battleTicketIssuer := ticket.NewRoomTicketIssuer(cfg.BattleTicketSignSecret)
 	assignmentGrantClient := ticket.NewAssignmentGrantClient(cfg.GameServiceBaseURL, cfg.GameInternalAuthKeyID, cfg.GameInternalSharedSecret)
@@ -63,6 +73,10 @@ func main() {
 		AuthService:         authService,
 		AuthHandler:         httpapi.NewAuthHandler(authService),
 		ProfileHandler:      httpapi.NewProfileHandler(profileService),
+		WalletHandler:       httpapi.NewWalletHandler(walletService),
+		InventoryHandler:    httpapi.NewInventoryHandler(inventoryService),
+		ShopHandler:         httpapi.NewShopHandler(shopCatalogProvider),
+		PurchaseHandler:     httpapi.NewPurchaseHandler(purchaseService),
 		RoomTicketHandler:   httpapi.NewRoomTicketHandler(roomTicketService),
 		BattleTicketHandler: httpapi.NewBattleTicketHandler(battleTicketService),
 		ReadinessCheck:      store.Ping,

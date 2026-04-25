@@ -60,6 +60,8 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.profile_source = String(player_profile_state.get("profile_source")) if _has_object_property(player_profile_state, "profile_source") else ""
 		view_state.last_sync_msec = int(player_profile_state.get("last_sync_msec")) if _has_object_property(player_profile_state, "last_sync_msec") else 0
 		view_state.profile_name = player_profile_state.nickname
+		view_state.avatar_id = String(player_profile_state.avatar_id) if _has_object_property(player_profile_state, "avatar_id") else ""
+		view_state.title_id = String(player_profile_state.title_id) if _has_object_property(player_profile_state, "title_id") else ""
 		view_state.default_character_id = player_profile_state.default_character_id
 		view_state.default_character_skin_id = player_profile_state.default_character_skin_id
 		view_state.default_bubble_style_id = player_profile_state.default_bubble_style_id
@@ -83,6 +85,7 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.reconnect_token = front_settings_state.reconnect_token
 		view_state.reconnect_state = front_settings_state.reconnect_state
 		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
+	_try_attach_phase34_front_state(view_state)
 	_try_attach_career_summary(view_state, refresh_career_summary)
 	return {
 		"ok": true,
@@ -458,6 +461,30 @@ func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool
 	view_state.career_total_losses = int(career_view_state.career_total_losses)
 	view_state.career_total_draws = int(career_view_state.career_total_draws)
 	view_state.career_win_rate_bp = int(career_view_state.career_win_rate_bp)
+
+
+func _try_attach_phase34_front_state(view_state: LobbyViewState) -> void:
+	if view_state == null or app_runtime == null:
+		return
+	if app_runtime.wallet_use_case != null:
+		var wallet = app_runtime.wallet_use_case.get_current_wallet()
+		if wallet == null and app_runtime.wallet_use_case.has_method("refresh_wallet"):
+			var wallet_result: Dictionary = app_runtime.wallet_use_case.refresh_wallet()
+			if bool(wallet_result.get("ok", false)):
+				wallet = wallet_result.get("wallet", null)
+		if wallet != null:
+			var parts: Array[String] = []
+			for balance in wallet.balances:
+				parts.append("%s:%d" % [balance.currency_id, int(balance.balance)])
+			view_state.wallet_summary_text = ", ".join(parts) if not parts.is_empty() else "-"
+	if app_runtime.inventory_use_case != null:
+		var inventory = app_runtime.inventory_use_case.get_current_inventory()
+		if inventory != null:
+			view_state.inventory_status_text = "%d asset(s)" % inventory.assets.size()
+	if app_runtime.shop_use_case != null:
+		var catalog = app_runtime.shop_use_case.current_catalog
+		if catalog != null:
+			view_state.shop_status_text = "%d offer(s)" % catalog.offers.size()
 
 
 func _attach_matchmaking_state(view_state: LobbyViewState) -> void:

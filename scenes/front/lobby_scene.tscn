@@ -57,66 +57,66 @@ layout_mode = 2
 [node name="AccountVBox" type="VBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=903497506]
 layout_mode = 2
 
-[node name="AccountTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=1749952357]
+[node name="AccountTitleLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=1749952357]
 layout_mode = 2
 text = "Account Summary"
 
-[node name="AccountIdRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=1084174109]
+[node name="AccountIdRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=1084174109]
 layout_mode = 2
 
-[node name="AccountIdLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountIdRow" unique_id=265682940]
+[node name="AccountIdLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AccountIdRow" unique_id=265682940]
 layout_mode = 2
 text = "Account ID"
 
-[node name="AccountIdValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountIdRow" unique_id=2027818227]
+[node name="AccountIdValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AccountIdRow" unique_id=2027818227]
 layout_mode = 2
 text = "-"
 
-[node name="ProfileIdRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=1168196338]
+[node name="ProfileIdRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=1168196338]
 layout_mode = 2
 
-[node name="ProfileIdLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/ProfileIdRow" unique_id=951904048]
+[node name="ProfileIdLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileIdRow" unique_id=951904048]
 layout_mode = 2
 text = "Profile ID"
 
-[node name="ProfileIdValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/ProfileIdRow" unique_id=1275005013]
+[node name="ProfileIdValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileIdRow" unique_id=1275005013]
 layout_mode = 2
 text = "-"
 
-[node name="AuthModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=817963732]
+[node name="AuthModeRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=817963732]
 layout_mode = 2
 
-[node name="AuthModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AuthModeRow" unique_id=1969417814]
+[node name="AuthModeLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AuthModeRow" unique_id=1969417814]
 layout_mode = 2
 text = "Auth Mode"
 
-[node name="AuthModeValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AuthModeRow" unique_id=503113075]
+[node name="AuthModeValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AuthModeRow" unique_id=503113075]
 layout_mode = 2
 text = "-"
 
-[node name="SessionStateRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=715561022]
+[node name="SessionStateRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=715561022]
 layout_mode = 2
 
-[node name="SessionStateLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/SessionStateRow" unique_id=1130649471]
+[node name="SessionStateLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/SessionStateRow" unique_id=1130649471]
 layout_mode = 2
 text = "Session"
 
-[node name="SessionStateValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/SessionStateRow" unique_id=498974404]
+[node name="SessionStateValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/SessionStateRow" unique_id=498974404]
 layout_mode = 2
 text = "-"
 
-[node name="ProfileSyncRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=706792195]
+[node name="ProfileSyncRow" type="HBoxContainer" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=706792195]
 layout_mode = 2
 
-[node name="ProfileSyncLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/ProfileSyncRow" unique_id=570161354]
+[node name="ProfileSyncLabel" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileSyncRow" unique_id=570161354]
 layout_mode = 2
 text = "Profile Sync"
 
-[node name="ProfileSyncValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/ProfileSyncRow" unique_id=1469144272]
+[node name="ProfileSyncValue" type="Label" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileSyncRow" unique_id=1469144272]
 layout_mode = 2
 text = "-"
 
-[node name="RefreshProfileButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard" unique_id=1467019583]
+[node name="RefreshProfileButton" type="Button" parent="LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox" unique_id=1467019583]
 layout_mode = 2
 text = "Refresh Profile"
 

@@ -4,6 +4,8 @@ extends RefCounted
 var profile_id: String = ""
 var account_id: String = ""
 var nickname: String = "Player1"
+var avatar_id: String = ""
+var title_id: String = ""
 var default_character_id: String = ""
 var default_character_skin_id: String = ""
 var default_bubble_style_id: String = ""
@@ -26,6 +28,8 @@ func to_dict() -> Dictionary:
 		"profile_id": profile_id,
 		"account_id": account_id,
 		"nickname": nickname,
+		"avatar_id": avatar_id,
+		"title_id": title_id,
 		"default_character_id": default_character_id,
 		"default_character_skin_id": default_character_skin_id,
 		"default_bubble_style_id": default_bubble_style_id,
@@ -49,6 +53,8 @@ static func from_dict(data: Dictionary) -> PlayerProfileState:
 	state.profile_id = String(data.get("profile_id", ""))
 	state.account_id = String(data.get("account_id", ""))
 	state.nickname = String(data.get("nickname", "Player1"))
+	state.avatar_id = String(data.get("avatar_id", ""))
+	state.title_id = String(data.get("title_id", ""))
 	state.default_character_id = String(data.get("default_character_id", ""))
 	state.default_character_skin_id = String(data.get("default_character_skin_id", ""))
 	state.default_bubble_style_id = String(data.get("default_bubble_style_id", ""))

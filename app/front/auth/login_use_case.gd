@@ -167,6 +167,8 @@ func _fetch_and_apply_profile() -> Dictionary:
 	player_profile_state.profile_id = String(result.get("profile_id", auth_session_state.profile_id))
 	player_profile_state.account_id = String(result.get("account_id", auth_session_state.account_id))
 	player_profile_state.nickname = String(result.get("nickname", auth_session_state.display_name))
+	player_profile_state.avatar_id = String(result.get("avatar_id", player_profile_state.avatar_id))
+	player_profile_state.title_id = String(result.get("title_id", player_profile_state.title_id))
 	player_profile_state.default_character_id = String(result.get("default_character_id", player_profile_state.default_character_id))
 	player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", player_profile_state.default_character_skin_id))
 	player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", player_profile_state.default_bubble_style_id))

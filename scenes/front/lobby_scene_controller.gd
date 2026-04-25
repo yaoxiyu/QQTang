@@ -7,14 +7,32 @@ const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LOBBY_SCENE_LOG_PREFIX := "[QQT_LOBBY_SCENE]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
+@onready var lobby_root: Control = get_node_or_null("LobbyRoot")
+@onready var main_layout: VBoxContainer = get_node_or_null("LobbyRoot/MainLayout")
+@onready var header_row: HBoxContainer = get_node_or_null("LobbyRoot/MainLayout/HeaderRow")
+@onready var title_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/TitleLabel")
+@onready var scroll_area: ScrollContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea")
+@onready var scroll_content: VBoxContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent")
+@onready var account_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard")
+@onready var profile_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard")
+@onready var career_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/CareerCard")
+@onready var practice_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard")
+@onready var online_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard")
+@onready var match_room_entry_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/MatchRoomEntryCard")
+@onready var recent_card: PanelContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/RecentCard")
 @onready var current_profile_label: Label = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
 @onready var logout_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/LogoutButton")
+@onready var shop_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/ShopButton")
+@onready var inventory_button: Button = get_node_or_null("LobbyRoot/MainLayout/HeaderRow/InventoryButton")
 @onready var account_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AccountIdRow/AccountIdValue")
 @onready var profile_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileIdRow/ProfileIdValue")
 @onready var auth_mode_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AuthModeRow/AuthModeValue")
 @onready var session_state_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/SessionStateRow/SessionStateValue")
 @onready var profile_sync_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileSyncRow/ProfileSyncValue")
 @onready var refresh_profile_button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/RefreshProfileButton")
+@onready var wallet_summary_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/WalletSummaryRow/WalletSummaryValue")
+@onready var inventory_status_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/InventoryStatusRow/InventoryStatusValue")
+@onready var shop_status_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ShopStatusRow/ShopStatusValue")
 @onready var default_character_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterRow/DefaultCharacterValue")
 @onready var default_character_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterSkinRow/DefaultCharacterSkinValue")
 @onready var default_bubble_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleRow/DefaultBubbleValue")
@@ -63,6 +81,7 @@ var _queue_assignment_consuming: bool = false
 
 
 func _ready() -> void:
+	_apply_formal_lobby_layout()
 	_bind_runtime()
 
 
@@ -80,6 +99,10 @@ func _bind_runtime() -> void:
 
 
 func _on_runtime_ready() -> void:
+	_refresh_account_node_refs()
+	_ensure_phase34_entry_buttons()
+	_ensure_phase34_summary_rows()
+	_apply_phase34_lobby_asset_ids()
 	_populate_practice_selectors()
 	_configure_custom_room_controls()
 	_populate_custom_room_mode_filter()
@@ -159,6 +182,12 @@ func _refresh_view() -> void:
 		if int(view_state.last_sync_msec) > 0:
 			sync_text = "%s @ %d" % [String(view_state.profile_source if not String(view_state.profile_source).is_empty() else "cache"), int(view_state.last_sync_msec)]
 		profile_sync_value.text = sync_text
+	if wallet_summary_value != null:
+		wallet_summary_value.text = String(view_state.wallet_summary_text if not String(view_state.wallet_summary_text).is_empty() else "-")
+	if inventory_status_value != null:
+		inventory_status_value.text = String(view_state.inventory_status_text if not String(view_state.inventory_status_text).is_empty() else "-")
+	if shop_status_value != null:
+		shop_status_value.text = String(view_state.shop_status_text if not String(view_state.shop_status_text).is_empty() else "-")
 	if default_character_value != null:
 		default_character_value.text = String(view_state.default_character_id)
 	if default_character_skin_value != null:
@@ -251,6 +280,10 @@ func _connect_signals() -> void:
 		reconnect_button.pressed.connect(_on_reconnect_pressed)
 	if logout_button != null and not logout_button.pressed.is_connected(_on_logout_pressed):
 		logout_button.pressed.connect(_on_logout_pressed)
+	if shop_button != null and not shop_button.pressed.is_connected(_on_shop_pressed):
+		shop_button.pressed.connect(_on_shop_pressed)
+	if inventory_button != null and not inventory_button.pressed.is_connected(_on_inventory_pressed):
+		inventory_button.pressed.connect(_on_inventory_pressed)
 	if refresh_profile_button != null and not refresh_profile_button.pressed.is_connected(_on_refresh_profile_pressed):
 		refresh_profile_button.pressed.connect(_on_refresh_profile_pressed)
 	if refresh_career_button != null and not refresh_career_button.pressed.is_connected(_on_refresh_career_pressed):
@@ -411,6 +444,194 @@ func _on_logout_pressed() -> void:
 	_app_runtime.lobby_use_case.logout()
 	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_login"):
 		_app_runtime.front_flow.enter_login()
+
+
+func _on_shop_pressed() -> void:
+	if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_shop"):
+		_app_runtime.front_flow.enter_shop()
+
+
+func _on_inventory_pressed() -> void:
+	if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_inventory"):
+		_app_runtime.front_flow.enter_inventory()
+
+
+func _ensure_phase34_entry_buttons() -> void:
+	if header_row == null:
+		return
+	if shop_button == null:
+		shop_button = Button.new()
+		shop_button.name = "ShopButton"
+		shop_button.text = "Shop"
+		header_row.add_child(shop_button)
+	if inventory_button == null:
+		inventory_button = Button.new()
+		inventory_button.name = "InventoryButton"
+		inventory_button.text = "Inventory"
+		header_row.add_child(inventory_button)
+
+
+func _ensure_phase34_summary_rows() -> void:
+	var account_vbox: VBoxContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox")
+	if account_vbox == null:
+		return
+	if wallet_summary_value == null:
+		wallet_summary_value = _create_summary_row(account_vbox, "WalletSummaryRow", "Wallet")
+	if inventory_status_value == null:
+		inventory_status_value = _create_summary_row(account_vbox, "InventoryStatusRow", "Inventory")
+	if shop_status_value == null:
+		shop_status_value = _create_summary_row(account_vbox, "ShopStatusRow", "Shop")
+
+
+func _create_summary_row(parent: VBoxContainer, row_name: String, label_text: String) -> Label:
+	var row := HBoxContainer.new()
+	row.name = row_name
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = label_text
+	row.add_child(label)
+	var value := Label.new()
+	value.name = "%sValue" % label_text.replace(" ", "")
+	value.text = "-"
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(value)
+	return value
+
+
+func _apply_formal_lobby_layout() -> void:
+	_reparent_account_card_children()
+	_refresh_account_node_refs()
+	_ensure_lobby_background()
+	if main_layout != null:
+		main_layout.set_anchors_preset(Control.PRESET_FULL_RECT)
+		main_layout.offset_left = 56.0
+		main_layout.offset_top = 40.0
+		main_layout.offset_right = -56.0
+		main_layout.offset_bottom = -36.0
+		main_layout.add_theme_constant_override("separation", 18)
+	if header_row != null:
+		header_row.add_theme_constant_override("separation", 10)
+	if title_label != null:
+		title_label.text = "QQTang Lobby"
+		title_label.add_theme_font_size_override("font_size", 28)
+	if current_profile_label != null:
+		current_profile_label.add_theme_font_size_override("font_size", 18)
+	if scroll_area != null:
+		scroll_area.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	if scroll_content != null:
+		scroll_content.custom_minimum_size = Vector2(0, 0)
+		scroll_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll_content.add_theme_constant_override("separation", 14)
+	for card in [account_card, profile_card, career_card, practice_card, online_card, match_room_entry_card, recent_card]:
+		_apply_lobby_card_style(card)
+	for button in [
+		logout_button,
+		shop_button,
+		inventory_button,
+		refresh_profile_button,
+		refresh_career_button,
+		start_practice_button,
+		join_room_button,
+		connect_directory_button,
+		refresh_room_list_button,
+		join_selected_public_room_button,
+		create_casual_match_room_button,
+		create_ranked_match_room_button,
+		reconnect_button,
+	]:
+		_apply_lobby_button_style(button)
+	_apply_phase34_lobby_asset_ids()
+
+
+func _reparent_account_card_children() -> void:
+	if account_card == null:
+		return
+	var account_vbox: VBoxContainer = account_card.get_node_or_null("AccountVBox")
+	if account_vbox == null:
+		account_vbox = VBoxContainer.new()
+		account_vbox.name = "AccountVBox"
+		account_card.add_child(account_vbox)
+	account_vbox.add_theme_constant_override("separation", 8)
+	var children := account_card.get_children()
+	for child in children:
+		if child == account_vbox:
+			continue
+		account_card.remove_child(child)
+		account_vbox.add_child(child)
+
+
+func _refresh_account_node_refs() -> void:
+	account_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AccountIdRow/AccountIdValue")
+	profile_id_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileIdRow/ProfileIdValue")
+	auth_mode_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/AuthModeRow/AuthModeValue")
+	session_state_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/SessionStateRow/SessionStateValue")
+	profile_sync_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ProfileSyncRow/ProfileSyncValue")
+	refresh_profile_button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/RefreshProfileButton")
+	wallet_summary_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/WalletSummaryRow/WalletSummaryValue")
+	inventory_status_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/InventoryStatusRow/InventoryStatusValue")
+	shop_status_value = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ShopStatusRow/ShopStatusValue")
+
+
+func _ensure_lobby_background() -> void:
+	if lobby_root == null:
+		return
+	var background: ColorRect = lobby_root.get_node_or_null("FormalBackground")
+	if background == null:
+		background = ColorRect.new()
+		background.name = "FormalBackground"
+		lobby_root.add_child(background)
+		lobby_root.move_child(background, 0)
+	background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	background.color = Color(0.06, 0.10, 0.14, 1.0)
+	background.set_meta("ui_asset_id", "ui.lobby.bg.main")
+
+
+func _apply_lobby_card_style(card: PanelContainer) -> void:
+	if card == null:
+		return
+	card.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.12, 0.17, 0.22, 0.94), Color(0.30, 0.43, 0.56, 0.7), 8))
+	card.set_meta("ui_asset_id", "ui.lobby.panel.player_summary")
+
+
+func _apply_lobby_button_style(button: Button) -> void:
+	if button == null:
+		return
+	button.custom_minimum_size = Vector2(max(button.custom_minimum_size.x, 112.0), 38.0)
+	button.add_theme_stylebox_override("normal", _make_lobby_style(Color(0.23, 0.31, 0.39, 1.0), Color(0.42, 0.58, 0.72, 0.8), 6))
+	button.add_theme_stylebox_override("hover", _make_lobby_style(Color(0.30, 0.40, 0.50, 1.0), Color(0.58, 0.76, 0.92, 1.0), 6))
+	button.add_theme_stylebox_override("pressed", _make_lobby_style(Color(0.16, 0.22, 0.29, 1.0), Color(0.54, 0.70, 0.86, 1.0), 6))
+
+
+func _apply_phase34_lobby_asset_ids() -> void:
+	_set_lobby_asset_meta(lobby_root, "ui.lobby.bg.main")
+	_set_lobby_asset_meta(account_card, "ui.lobby.panel.player_summary")
+	_set_lobby_asset_meta(shop_button, "ui.lobby.button.shop.normal")
+	_set_lobby_asset_meta(inventory_button, "ui.lobby.button.inventory.normal")
+
+
+func _make_lobby_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.border_color = border_color
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 12.0
+	style.content_margin_bottom = 12.0
+	return style
+
+
+func _set_lobby_asset_meta(node: Node, asset_id: String) -> void:
+	if node == null:
+		return
+	node.set_meta("ui_asset_id", asset_id)
 
 
 func _on_refresh_profile_pressed() -> void:

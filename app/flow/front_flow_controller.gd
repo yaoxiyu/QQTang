@@ -22,6 +22,8 @@ enum FlowState {
 	BOOT,
 	LOGIN,
 	LOBBY,
+	SHOP,
+	INVENTORY,
 	ROOM,
 	MATCH_LOADING,
 	BATTLE,
@@ -61,6 +63,18 @@ func enter_lobby() -> void:
 	if scene_flow_controller != null:
 		scene_flow_controller.change_to_lobby_scene()
 	lobby_entered.emit()
+
+
+func enter_shop() -> void:
+	_change_state(FlowState.SHOP)
+	if scene_flow_controller != null and scene_flow_controller.has_method("change_to_shop_scene"):
+		scene_flow_controller.change_to_shop_scene()
+
+
+func enter_inventory() -> void:
+	_change_state(FlowState.INVENTORY)
+	if scene_flow_controller != null and scene_flow_controller.has_method("change_to_inventory_scene"):
+		scene_flow_controller.change_to_inventory_scene()
 
 
 func enter_room() -> void:
@@ -218,6 +232,10 @@ func get_state_name() -> StringName:
 			return &"LOGIN"
 		FlowState.LOBBY:
 			return &"LOBBY"
+		FlowState.SHOP:
+			return &"SHOP"
+		FlowState.INVENTORY:
+			return &"INVENTORY"
 		FlowState.ROOM:
 			return &"ROOM"
 		FlowState.MATCH_LOADING:

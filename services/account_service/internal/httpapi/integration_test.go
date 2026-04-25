@@ -13,7 +13,11 @@ import (
 	"time"
 
 	"qqtang/services/account_service/internal/auth"
+	"qqtang/services/account_service/internal/economy"
+	"qqtang/services/account_service/internal/inventory"
 	"qqtang/services/account_service/internal/profile"
+	"qqtang/services/account_service/internal/purchase"
+	"qqtang/services/account_service/internal/shop"
 	"qqtang/services/account_service/internal/storage"
 	"qqtang/services/account_service/internal/ticket"
 )
@@ -71,6 +75,79 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 		t.Fatalf("profile response missing defaults: %+v", profileResp)
 	}
 
+	var walletResp walletPayload
+	mustExpectStatus(t, http.MethodGet, server.URL+"/api/v1/wallet/me", nil, authHeader, http.StatusOK, &walletResp)
+	if walletResp.ProfileID != profileResp.ProfileID || walletResp.WalletRevision < 0 || walletResp.Balances == nil {
+		t.Fatalf("wallet response missing state: %+v", walletResp)
+	}
+
+	var inventoryResp inventoryPayload
+	mustExpectStatus(t, http.MethodGet, server.URL+"/api/v1/inventory/me", nil, authHeader, http.StatusOK, &inventoryResp)
+	if inventoryResp.ProfileID != profileResp.ProfileID || len(inventoryResp.Assets) == 0 {
+		t.Fatalf("inventory response missing assets: %+v", inventoryResp)
+	}
+
+	var shopResp shopCatalogPayload
+	mustExpectStatus(t, http.MethodGet, server.URL+"/api/v1/shop/catalog", nil, authHeader, http.StatusOK, &shopResp)
+	if shopResp.CatalogRevision <= 0 || len(shopResp.Currencies) == 0 || len(shopResp.Tabs) == 0 || len(shopResp.Goods) == 0 || len(shopResp.Offers) == 0 {
+		t.Fatalf("shop catalog response missing content: %+v", shopResp)
+	}
+
+	var shopCachedResp shopCatalogPayload
+	mustExpectStatus(t, http.MethodGet, fmt.Sprintf("%s/api/v1/shop/catalog?if_none_match=%d", server.URL, shopResp.CatalogRevision), nil, authHeader, http.StatusOK, &shopCachedResp)
+	if !shopCachedResp.NotModified {
+		t.Fatalf("expected not_modified shop response, got %+v", shopCachedResp)
+	}
+
+	seedWalletBalance(t, env.store.Pool, profileResp.ProfileID, "soft_gold", 500)
+	var purchaseResp purchasePayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.title.rookie",
+		"idempotency_key":           "itest-title-rookie",
+		"expected_catalog_revision": shopResp.CatalogRevision,
+	}, authHeader, http.StatusOK, &purchaseResp)
+	if purchaseResp.PurchaseID == "" || purchaseResp.Status != "completed" || purchaseResp.WalletRevision <= 0 || purchaseResp.OwnedAssetRevision <= 0 {
+		t.Fatalf("purchase response missing completed state: %+v", purchaseResp)
+	}
+	if !purchaseResp.Inventory.HasAsset("title", "title_rookie") {
+		t.Fatalf("purchase did not grant title asset: %+v", purchaseResp.Inventory)
+	}
+	if got := purchaseResp.Wallet.BalanceOf("soft_gold"); got != 400 {
+		t.Fatalf("expected soft_gold balance 400 after purchase, got %d; wallet=%+v", got, purchaseResp.Wallet)
+	}
+
+	var loadoutResp profilePayload
+	mustExpectStatus(t, http.MethodPatch, server.URL+"/api/v1/profile/me/loadout", map[string]any{
+		"default_character_id":      "char_huoying",
+		"default_character_skin_id": "skin_gold",
+		"default_bubble_style_id":   "bubble_round",
+		"default_bubble_skin_id":    "bubble_skin_gold",
+		"title_id":                  "title_rookie",
+	}, authHeader, http.StatusOK, &loadoutResp)
+	if loadoutResp.TitleID != "title_rookie" {
+		t.Fatalf("expected title loadout to update, got %+v", loadoutResp)
+	}
+
+	var replayResp purchasePayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.title.rookie",
+		"idempotency_key":           "itest-title-rookie",
+		"expected_catalog_revision": shopResp.CatalogRevision,
+	}, authHeader, http.StatusOK, &replayResp)
+	if replayResp.PurchaseID != purchaseResp.PurchaseID || !replayResp.IdempotentReplay {
+		t.Fatalf("expected idempotent replay of %s, got %+v", purchaseResp.PurchaseID, replayResp)
+	}
+
+	var alreadyOwnedErr errorPayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.title.rookie",
+		"idempotency_key":           "itest-title-rookie-again",
+		"expected_catalog_revision": shopResp.CatalogRevision,
+	}, authHeader, http.StatusConflict, &alreadyOwnedErr)
+	if alreadyOwnedErr.ErrorCode != purchase.ErrPurchaseAlreadyOwned.Error() {
+		t.Fatalf("expected already owned error, got %+v", alreadyOwnedErr)
+	}
+
 	var ticketResp ticketPayload
 	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/tickets/room-entry", map[string]any{
 		"purpose":                    "create",
@@ -124,6 +201,60 @@ func TestRegisterDuplicateReturnsConflict(t *testing.T) {
 	}
 }
 
+func TestPurchaseValidationIntegration(t *testing.T) {
+	env := newIntegrationEnv(t)
+	t.Cleanup(env.cleanup)
+
+	mustResetDatabase(t, env.store.Pool)
+
+	server := httptest.NewServer(env.router)
+	defer server.Close()
+
+	authHeader, shopRevision := registerForPurchaseTest(t, server.URL)
+
+	var revisionErr errorPayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.title.rookie",
+		"idempotency_key":           "bad-revision",
+		"expected_catalog_revision": shopRevision + 1,
+	}, authHeader, http.StatusConflict, &revisionErr)
+	if revisionErr.ErrorCode != purchase.ErrPurchaseCatalogRevision.Error() {
+		t.Fatalf("expected revision mismatch, got %+v", revisionErr)
+	}
+
+	var ownedErr errorPayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.char.huoying",
+		"idempotency_key":           "owned-character",
+		"expected_catalog_revision": shopRevision,
+	}, authHeader, http.StatusConflict, &ownedErr)
+	if ownedErr.ErrorCode != purchase.ErrPurchaseAlreadyOwned.Error() {
+		t.Fatalf("expected already owned, got %+v", ownedErr)
+	}
+
+	var fundsErr errorPayload
+	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/shop/purchases", map[string]any{
+		"offer_id":                  "offer.title.rookie",
+		"idempotency_key":           "no-funds",
+		"expected_catalog_revision": shopRevision,
+	}, authHeader, http.StatusConflict, &fundsErr)
+	if fundsErr.ErrorCode != purchase.ErrPurchaseInsufficientFunds.Error() {
+		t.Fatalf("expected insufficient funds, got %+v", fundsErr)
+	}
+
+	var loadoutErr errorPayload
+	mustExpectStatus(t, http.MethodPatch, server.URL+"/api/v1/profile/me/loadout", map[string]any{
+		"default_character_id":      "char_huoying",
+		"default_character_skin_id": "skin_gold",
+		"default_bubble_style_id":   "bubble_round",
+		"default_bubble_skin_id":    "bubble_skin_gold",
+		"avatar_id":                 "avatar_missing",
+	}, authHeader, http.StatusConflict, &loadoutErr)
+	if loadoutErr.ErrorCode != profile.ErrLoadoutNotOwned.Error() {
+		t.Fatalf("expected loadout not owned, got %+v", loadoutErr)
+	}
+}
+
 type integrationEnv struct {
 	store  *storage.PostgresStore
 	router http.Handler
@@ -147,6 +278,8 @@ func newIntegrationEnv(t *testing.T) *integrationEnv {
 
 	accountRepo := storage.NewAccountRepository(store.Pool)
 	profileRepo := storage.NewProfileRepository(store.Pool)
+	walletRepo := storage.NewWalletRepository(store.Pool)
+	inventoryRepo := storage.NewInventoryRepository(store.Pool)
 	sessionRepo := storage.NewSessionRepository(store.Pool)
 	ticketRepo := storage.NewTicketRepository(store.Pool)
 
@@ -155,6 +288,10 @@ func newIntegrationEnv(t *testing.T) *integrationEnv {
 	sessionService := auth.NewSessionService(sessionRepo, false)
 	authService := auth.NewAuthService(store.Pool, accountRepo, profileRepo, sessionRepo, passwordHasher, tokenIssuer, sessionService, 15*time.Minute, 14*24*time.Hour)
 	profileService := profile.NewService(profileRepo)
+	walletService := economy.NewWalletService(profileRepo, walletRepo)
+	inventoryService := inventory.NewInventoryService(profileRepo, inventoryRepo)
+	shopCatalogProvider := shop.NewDefaultCatalogProvider()
+	purchaseService := purchase.NewService(store.Pool, shopCatalogProvider, tokenIssuer)
 	roomTicketIssuer := ticket.NewRoomTicketIssuer("replace_me_room_ticket_secret")
 	roomTicketService := ticket.NewService(profileService, ticketRepo, roomTicketIssuer, nil, 60*time.Second)
 
@@ -162,6 +299,10 @@ func newIntegrationEnv(t *testing.T) *integrationEnv {
 		AuthService:       authService,
 		AuthHandler:       NewAuthHandler(authService),
 		ProfileHandler:    NewProfileHandler(profileService),
+		WalletHandler:     NewWalletHandler(walletService),
+		InventoryHandler:  NewInventoryHandler(inventoryService),
+		ShopHandler:       NewShopHandler(shopCatalogProvider),
+		PurchaseHandler:   NewPurchaseHandler(purchaseService),
 		RoomTicketHandler: NewRoomTicketHandler(roomTicketService),
 		ReadinessCheck:    store.Ping,
 	})
@@ -186,6 +327,10 @@ func mustResetDatabase(t *testing.T, db storage.DBTX) {
 
 	if _, err := db.Exec(ctx, `
 TRUNCATE TABLE
+	purchase_grants,
+	purchase_orders,
+	wallet_ledger_entries,
+	wallet_balances,
 	room_entry_tickets,
 	account_sessions,
 	player_owned_assets,
@@ -195,6 +340,43 @@ CASCADE
 `); err != nil {
 		t.Fatalf("reset database: %v", err)
 	}
+}
+
+func seedWalletBalance(t *testing.T, db storage.DBTX, profileID string, currencyID string, balance int64) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	walletRepo := storage.NewWalletRepository(db)
+	if _, err := walletRepo.CreditBalance(ctx, profileID, currencyID, balance, time.Now().UTC()); err != nil {
+		t.Fatalf("seed wallet balance: %v", err)
+	}
+	if _, err := walletRepo.BumpProfileWalletRevision(ctx, profileID); err != nil {
+		t.Fatalf("seed wallet revision: %v", err)
+	}
+}
+
+func registerForPurchaseTest(t *testing.T, serverURL string) (map[string]string, int64) {
+	t.Helper()
+	account := fmt.Sprintf("purchase_%d", time.Now().UnixNano())
+	var registerResp authPayload
+	mustExpectStatus(t, http.MethodPost, serverURL+"/api/v1/auth/register", map[string]any{
+		"account":         account,
+		"password":        "12345678",
+		"nickname":        account,
+		"client_platform": "windows",
+	}, nil, http.StatusOK, &registerResp)
+
+	var loginResp authPayload
+	mustExpectStatus(t, http.MethodPost, serverURL+"/api/v1/auth/login", map[string]any{
+		"account":         account,
+		"password":        "12345678",
+		"client_platform": "windows",
+	}, nil, http.StatusOK, &loginResp)
+
+	authHeader := map[string]string{"Authorization": "Bearer " + loginResp.AccessToken}
+	var shopResp shopCatalogPayload
+	mustExpectStatus(t, http.MethodGet, serverURL+"/api/v1/shop/catalog", nil, authHeader, http.StatusOK, &shopResp)
+	return authHeader, shopResp.CatalogRevision
 }
 
 func mustExpectStatus(t *testing.T, method string, url string, body any, headers map[string]string, wantStatus int, out any) {
@@ -279,9 +461,82 @@ type profilePayload struct {
 	OK                    bool     `json:"ok"`
 	ProfileID             string   `json:"profile_id"`
 	AccountID             string   `json:"account_id"`
+	AvatarID              string   `json:"avatar_id"`
+	TitleID               string   `json:"title_id"`
 	DefaultCharacterID    string   `json:"default_character_id"`
 	OwnedCharacterIDs     []string `json:"owned_character_ids"`
 	OwnedCharacterSkinIDs []string `json:"owned_character_skin_ids"`
+}
+
+type walletPayload struct {
+	OK             bool                   `json:"ok"`
+	ProfileID      string                 `json:"profile_id"`
+	WalletRevision int64                  `json:"wallet_revision"`
+	Balances       []walletBalancePayload `json:"balances"`
+}
+
+func (p walletPayload) BalanceOf(currencyID string) int64 {
+	for _, balance := range p.Balances {
+		if balance.CurrencyID == currencyID {
+			return balance.Balance
+		}
+	}
+	return 0
+}
+
+type walletBalancePayload struct {
+	CurrencyID string `json:"currency_id"`
+	Balance    int64  `json:"balance"`
+	Revision   int64  `json:"revision"`
+}
+
+type inventoryPayload struct {
+	OK                 bool                    `json:"ok"`
+	ProfileID          string                  `json:"profile_id"`
+	OwnedAssetRevision int64                   `json:"owned_asset_revision"`
+	Assets             []inventoryAssetPayload `json:"assets"`
+}
+
+func (p inventoryPayload) HasAsset(assetType string, assetID string) bool {
+	for _, asset := range p.Assets {
+		if asset.AssetType == assetType && asset.AssetID == assetID {
+			return true
+		}
+	}
+	return false
+}
+
+type inventoryAssetPayload struct {
+	AssetType  string `json:"asset_type"`
+	AssetID    string `json:"asset_id"`
+	State      string `json:"state"`
+	Quantity   int64  `json:"quantity"`
+	SourceType string `json:"source_type"`
+	Revision   int64  `json:"revision"`
+}
+
+type shopCatalogPayload struct {
+	OK              bool             `json:"ok"`
+	NotModified     bool             `json:"not_modified"`
+	CatalogRevision int64            `json:"catalog_revision"`
+	Currencies      []map[string]any `json:"currencies"`
+	Tabs            []map[string]any `json:"tabs"`
+	Goods           []map[string]any `json:"goods"`
+	Offers          []map[string]any `json:"offers"`
+}
+
+type purchasePayload struct {
+	OK                 bool             `json:"ok"`
+	PurchaseID         string           `json:"purchase_id"`
+	OfferID            string           `json:"offer_id"`
+	CatalogRevision    int64            `json:"catalog_revision"`
+	Status             string           `json:"status"`
+	Wallet             walletPayload    `json:"wallet"`
+	Inventory          inventoryPayload `json:"inventory"`
+	ProfileVersion     int64            `json:"profile_version"`
+	OwnedAssetRevision int64            `json:"owned_asset_revision"`
+	WalletRevision     int64            `json:"wallet_revision"`
+	IdempotentReplay   bool             `json:"idempotent_replay"`
 }
 
 type ticketPayload struct {

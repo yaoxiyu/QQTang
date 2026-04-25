@@ -6,6 +6,8 @@ signal scene_changed(target_path: String)
 const BOOT_SCENE_PATH: String = "res://scenes/front/boot_scene.tscn"
 const LOGIN_SCENE_PATH: String = "res://scenes/front/login_scene.tscn"
 const LOBBY_SCENE_PATH: String = "res://scenes/front/lobby_scene.tscn"
+const SHOP_SCENE_PATH: String = "res://scenes/front/shop_scene.tscn"
+const INVENTORY_SCENE_PATH: String = "res://scenes/front/inventory_scene.tscn"
 const ROOM_SCENE_PATH: String = "res://scenes/front/room_scene.tscn"
 const LOADING_SCENE_PATH: String = "res://scenes/front/loading_scene.tscn"
 const BATTLE_SCENE_PATH: String = "res://scenes/battle/battle_main.tscn"
@@ -23,6 +25,14 @@ func change_to_login_scene() -> Error:
 
 func change_to_lobby_scene() -> Error:
 	return change_scene_to_path(LOBBY_SCENE_PATH)
+
+
+func change_to_shop_scene() -> Error:
+	return change_scene_to_path(SHOP_SCENE_PATH)
+
+
+func change_to_inventory_scene() -> Error:
+	return change_scene_to_path(INVENTORY_SCENE_PATH)
 
 
 func change_to_room_scene() -> Error:

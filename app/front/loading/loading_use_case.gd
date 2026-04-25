@@ -6,6 +6,8 @@ const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
+const AsyncLoadingPlanScript = preload("res://app/front/loading/async_loading_plan.gd")
+const LoadingProgressAggregatorScript = preload("res://app/front/loading/loading_progress_aggregator.gd")
 
 var _app_runtime: Node = null
 var _room_client_gateway: RefCounted = null
@@ -14,6 +16,8 @@ var _local_ready_submitted: bool = false
 var _loading_mode: String = "normal_start"  # LegacyMigration
 
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
+var _loading_plan = null
+var _progress_aggregator = LoadingProgressAggregatorScript.new()
 
 
 func configure(app_runtime: Node, room_client_gateway: RefCounted) -> void:
@@ -23,6 +27,7 @@ func configure(app_runtime: Node, room_client_gateway: RefCounted) -> void:
 
 func begin_loading() -> Dictionary:
 	_local_ready_submitted = false
+	_build_loading_plan()
 	# LegacyMigration: Determine loading mode from app_runtime
 	_loading_mode = "normal_start"
 	if _app_runtime != null and "current_loading_mode" in _app_runtime:
@@ -114,6 +119,8 @@ func build_view_state() -> LoadingViewState:
 		state.loading_phase_text = "initializing"
 		state.status_message = "Missing BattleStartConfig. Preparing runtime..."
 
+	_apply_progress_state(state)
+
 	return state
 
 
@@ -156,6 +163,43 @@ func submit_local_ready() -> Dictionary:
 func reset() -> void:
 	_current_snapshot = null
 	_local_ready_submitted = false
+	_loading_plan = null
+
+
+func _build_loading_plan() -> void:
+	_loading_plan = AsyncLoadingPlanScript.create(_loading_mode)
+	var ui_task = _loading_plan.add_task_values("ui_assets", "UI resources", 1.0)
+	ui_task.complete()
+	var manifest_task = _loading_plan.add_task_values("content_manifest", "Content manifest", 2.0)
+	manifest_task.set_progress(0.5)
+	var snapshot_task = _loading_plan.add_task_values("room_snapshot", "Room snapshot", 1.0)
+	if _app_runtime != null and _app_runtime.current_room_snapshot != null:
+		snapshot_task.complete()
+	var ready_task = _loading_plan.add_task_values("network_ready", "Network ready", 2.0)
+	if _loading_mode == "resume_match":
+		ready_task.complete()
+
+
+func _apply_progress_state(state: LoadingViewState) -> void:
+	if _loading_plan == null:
+		_build_loading_plan()
+	var manifest_task = _loading_plan.find_task("content_manifest")
+	if manifest_task != null:
+		manifest_task.complete()
+	var snapshot_task = _loading_plan.find_task("room_snapshot")
+	if snapshot_task != null and _app_runtime != null and _app_runtime.current_room_snapshot != null:
+		snapshot_task.complete()
+	var ready_task = _loading_plan.find_task("network_ready")
+	if ready_task != null:
+		if state.is_commit_ready:
+			ready_task.complete()
+		elif _current_snapshot != null:
+			var expected: int = max(_current_snapshot.expected_peer_ids.size(), 1)
+			ready_task.set_progress(float(_current_snapshot.ready_peer_ids.size()) / float(expected))
+	var result := _progress_aggregator.aggregate(_loading_plan)
+	state.progress = float(result.get("progress", 0.0))
+	state.progress_percent = int(result.get("progress_percent", 0))
+	state.progress_detail_text = "%d%%" % state.progress_percent
 
 
 func _resolve_manifest(config: BattleStartConfig) -> Dictionary:

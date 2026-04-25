@@ -1,0 +1,15 @@
+kind,id,tab_id,goods_id,goods_type,target_asset_type,target_asset_id,currency_id,price,limit_type,limit_count,display_name,icon_ui_asset_id,sort_order,enabled
+currency,soft_gold,,,,,,soft_gold,0,,,Gold,ui.currency.soft_gold.icon,10,true
+currency,premium_gem,,,,,,premium_gem,0,,,Gem,ui.currency.premium_gem.icon,20,true
+tab,characters,,,,,,,,,,Characters,ui.shop.tab.characters.icon,10,true
+tab,skins,,,,,,,,,,Skins,ui.shop.tab.skins.icon,20,true
+tab,bubbles,,,,,,,,,,Bubbles,ui.shop.tab.bubbles.icon,30,true
+tab,titles,,,,,,,,,,Titles,ui.shop.tab.titles.icon,40,true
+goods,goods.char.huoying,,goods.char.huoying,asset,character,char_huoying,,,1,Huoying,ui.character.huoying.icon,10,true
+goods,goods.skin.gold,,goods.skin.gold,asset,character_skin,skin_gold,,,1,Gold Skin,ui.skin.gold.icon,20,true
+goods,goods.bubble.round,,goods.bubble.round,asset,bubble,bubble_round,,,1,Round Bubble,ui.bubble.round.icon,30,true
+goods,goods.title.rookie,,goods.title.rookie,asset,title,title_rookie,,,1,Rookie Title,ui.title.rookie.icon,40,true
+offer,offer.char.huoying,characters,goods.char.huoying,,,,soft_gold,3000,once,1,Huoying,ui.character.huoying.icon,10,true
+offer,offer.skin.gold,skins,goods.skin.gold,,,,soft_gold,1200,once,1,Gold Skin,ui.skin.gold.icon,20,true
+offer,offer.bubble.round,bubbles,goods.bubble.round,,,,soft_gold,800,once,1,Round Bubble,ui.bubble.round.icon,30,true
+offer,offer.title.rookie,titles,goods.title.rookie,,,,soft_gold,100,once,1,Rookie Title,ui.title.rookie.icon,40,true

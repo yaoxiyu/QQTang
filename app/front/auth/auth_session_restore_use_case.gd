@@ -101,6 +101,10 @@ func _try_sync_profile() -> Dictionary:
 		app_runtime.player_profile_state.profile_id = String(result.get("profile_id", app_runtime.auth_session_state.profile_id))
 		app_runtime.player_profile_state.account_id = String(result.get("account_id", app_runtime.auth_session_state.account_id))
 		app_runtime.player_profile_state.nickname = String(result.get("nickname", app_runtime.auth_session_state.display_name))
+		if _has_object_property(app_runtime.player_profile_state, "avatar_id"):
+			app_runtime.player_profile_state.avatar_id = String(result.get("avatar_id", app_runtime.player_profile_state.avatar_id))
+		if _has_object_property(app_runtime.player_profile_state, "title_id"):
+			app_runtime.player_profile_state.title_id = String(result.get("title_id", app_runtime.player_profile_state.title_id))
 		app_runtime.player_profile_state.default_character_id = String(result.get("default_character_id", app_runtime.player_profile_state.default_character_id))
 		app_runtime.player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", app_runtime.player_profile_state.default_character_skin_id))
 		app_runtime.player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", app_runtime.player_profile_state.default_bubble_style_id))
