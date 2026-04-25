@@ -56,23 +56,41 @@ func _build_ui() -> void:
 	var panel_vbox := VBoxContainer.new()
 	panel_vbox.add_theme_constant_override("separation", 12)
 	_detail_panel.add_child(panel_vbox)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	panel_vbox.add_child(tabs)
+	for tab_text in ["角色", "皮肤", "泡泡", "推荐"]:
+		var tab := Button.new()
+		tab.text = tab_text
+		tab.custom_minimum_size = Vector2(96, 34)
+		_apply_button_style(tab)
+		tab.set_meta("ui_asset_id", "ui.shop.tab.characters.normal")
+		tabs.add_child(tab)
 
 	_offer_list = ItemList.new()
 	_offer_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_offer_list.max_columns = 3
+	_offer_list.fixed_column_width = 260
+	_offer_list.same_column_width = true
+	_offer_list.custom_minimum_size = Vector2(0, 420)
 	_offer_list.set_meta("ui_asset_id", "ui.shop.card.offer.normal")
 	panel_vbox.add_child(_offer_list)
 
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 10)
+	panel_vbox.add_child(action_row)
 	_buy_button = Button.new()
 	_buy_button.text = "Buy"
 	_apply_button_style(_buy_button)
 	_buy_button.set_meta("ui_asset_id", "ui.shop.button.buy.normal")
 	_buy_button.pressed.connect(_on_buy_pressed)
-	panel_vbox.add_child(_buy_button)
+	action_row.add_child(_buy_button)
 
 	_status_label = Label.new()
+	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.set_meta("ui_asset_id", "ui.shop.toast.error")
-	panel_vbox.add_child(_status_label)
+	action_row.add_child(_status_label)
 
 
 func _refresh() -> void:

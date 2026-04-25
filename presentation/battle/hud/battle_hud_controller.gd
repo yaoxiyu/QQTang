@@ -37,6 +37,7 @@ var _pending_match_meta_text: String = ""
 var _pending_character_display_name: String = ""
 var _pending_bubble_display_name: String = ""
 var _hud_asset_bindings: Dictionary = {}
+var _reference_item_bar: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -206,6 +207,7 @@ func _apply_formal_hud_layout() -> void:
 		_set_control_rect(battle_meta_panel, Vector2(28, 238), Vector2(360, 360))
 	if local_player_ability_panel is Control:
 		_set_control_rect(local_player_ability_panel, Vector2(28, 372), Vector2(440, 424))
+	_ensure_reference_item_bar()
 
 
 func _style_label_panel(label_node: Label, position: Vector2, size: Vector2, font_size: int, alignment: int) -> void:
@@ -252,6 +254,43 @@ func _make_hud_style(color: Color, border_color: Color, radius: int) -> StyleBox
 	style.content_margin_top = 8.0
 	style.content_margin_bottom = 8.0
 	return style
+
+
+func _ensure_reference_item_bar() -> void:
+	var hud_parent := get_parent()
+	if hud_parent == null:
+		return
+	_reference_item_bar = hud_parent.get_node_or_null("ReferenceItemBar")
+	if _reference_item_bar != null:
+		return
+	_reference_item_bar = HBoxContainer.new()
+	_reference_item_bar.name = "ReferenceItemBar"
+	_reference_item_bar.anchor_left = 0.5
+	_reference_item_bar.anchor_right = 0.5
+	_reference_item_bar.anchor_top = 1.0
+	_reference_item_bar.anchor_bottom = 1.0
+	_reference_item_bar.offset_left = -250.0
+	_reference_item_bar.offset_top = -72.0
+	_reference_item_bar.offset_right = 250.0
+	_reference_item_bar.offset_bottom = -18.0
+	_reference_item_bar.add_theme_constant_override("separation", 8)
+	hud_parent.add_child(_reference_item_bar)
+	for index in range(7):
+		_reference_item_bar.add_child(_create_reference_item_slot(index + 1))
+
+
+func _create_reference_item_slot(slot_index: int) -> Control:
+	var slot := PanelContainer.new()
+	slot.custom_minimum_size = Vector2(54, 54)
+	slot.add_theme_stylebox_override("panel", _make_hud_style(Color(0.92, 0.96, 1.0, 0.92), Color(0.22, 0.58, 0.86, 1.0), 6))
+	slot.set_meta("ui_asset_id", "ui.battle.item_slot.empty")
+	var label := Label.new()
+	label.text = str(slot_index)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.20, 0.35, 0.48, 1.0))
+	slot.add_child(label)
+	return slot
 
 
 func _build_player_statuses(world: SimWorld) -> Array[Dictionary]:

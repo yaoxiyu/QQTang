@@ -78,6 +78,13 @@ var _room_directory_builder = LobbyRoomDirectoryBuilderScript.new()
 var _last_room_directory_snapshot = null
 var _directory_connect_requested: bool = false
 var _queue_assignment_consuming: bool = false
+var _formal_profile_label: Label = null
+var _formal_wallet_label: Label = null
+var _formal_inventory_label: Label = null
+var _formal_shop_label: Label = null
+var _formal_status_label: Label = null
+var _formal_room_grid: GridContainer = null
+var _formal_chat_log: Label = null
 
 
 func _ready() -> void:
@@ -188,6 +195,7 @@ func _refresh_view() -> void:
 		inventory_status_value.text = String(view_state.inventory_status_text if not String(view_state.inventory_status_text).is_empty() else "-")
 	if shop_status_value != null:
 		shop_status_value.text = String(view_state.shop_status_text if not String(view_state.shop_status_text).is_empty() else "-")
+	_refresh_reference_lobby_summary(view_state)
 	if default_character_value != null:
 		default_character_value.text = String(view_state.default_character_id)
 	if default_character_skin_value != null:
@@ -502,7 +510,9 @@ func _apply_formal_lobby_layout() -> void:
 	_reparent_account_card_children()
 	_refresh_account_node_refs()
 	_ensure_lobby_background()
+	_build_reference_lobby_layout()
 	if main_layout != null:
+		main_layout.visible = false
 		main_layout.set_anchors_preset(Control.PRESET_FULL_RECT)
 		main_layout.offset_left = 56.0
 		main_layout.offset_top = 40.0
@@ -541,6 +551,195 @@ func _apply_formal_lobby_layout() -> void:
 	]:
 		_apply_lobby_button_style(button)
 	_apply_phase34_lobby_asset_ids()
+
+
+func _build_reference_lobby_layout() -> void:
+	if lobby_root == null:
+		return
+	var existing: Control = lobby_root.get_node_or_null("ReferenceLobbyLayout")
+	if existing != null:
+		return
+	var layout := VBoxContainer.new()
+	layout.name = "ReferenceLobbyLayout"
+	layout.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layout.offset_left = 18.0
+	layout.offset_top = 12.0
+	layout.offset_right = -18.0
+	layout.offset_bottom = -14.0
+	layout.add_theme_constant_override("separation", 8)
+	lobby_root.add_child(layout)
+
+	var top_bar := HBoxContainer.new()
+	top_bar.custom_minimum_size = Vector2(0, 42)
+	top_bar.add_theme_constant_override("separation", 8)
+	layout.add_child(top_bar)
+	var tabs := [
+		"交易中心",
+		"装备商城",
+		"任务中心",
+		"成为高手",
+		"个人资料",
+		"宠物之家",
+	]
+	for tab_text in tabs:
+		var tab := Button.new()
+		tab.text = tab_text
+		tab.custom_minimum_size = Vector2(116, 34)
+		_apply_lobby_button_style(tab)
+		top_bar.add_child(tab)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.add_child(spacer)
+	var menu_button := Button.new()
+	menu_button.text = "菜单"
+	menu_button.custom_minimum_size = Vector2(82, 34)
+	_apply_lobby_button_style(menu_button)
+	top_bar.add_child(menu_button)
+
+	var body := HBoxContainer.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 10)
+	layout.add_child(body)
+
+	var room_panel := PanelContainer.new()
+	room_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	room_panel.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.58, 0.85, 0.94, 0.92), Color(0.05, 0.50, 0.74, 1.0), 8))
+	room_panel.set_meta("ui_asset_id", "ui.lobby.panel.room_list")
+	body.add_child(room_panel)
+	var room_vbox := VBoxContainer.new()
+	room_vbox.add_theme_constant_override("separation", 8)
+	room_panel.add_child(room_vbox)
+	var room_tabs := HBoxContainer.new()
+	room_tabs.add_theme_constant_override("separation", 6)
+	room_vbox.add_child(room_tabs)
+	for tab_text in ["家具商城", "经典模式", "探险模式", "聊天房间"]:
+		var tab := Button.new()
+		tab.text = tab_text
+		tab.custom_minimum_size = Vector2(112, 30)
+		_apply_lobby_button_style(tab)
+		room_tabs.add_child(tab)
+	_formal_room_grid = GridContainer.new()
+	_formal_room_grid.columns = 2
+	_formal_room_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_formal_room_grid.add_theme_constant_override("h_separation", 12)
+	_formal_room_grid.add_theme_constant_override("v_separation", 12)
+	room_vbox.add_child(_formal_room_grid)
+
+	var side_panel := VBoxContainer.new()
+	side_panel.custom_minimum_size = Vector2(300, 0)
+	side_panel.add_theme_constant_override("separation", 8)
+	body.add_child(side_panel)
+	var player_panel := PanelContainer.new()
+	player_panel.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.11, 0.18, 0.24, 0.96), Color(0.12, 0.58, 0.82, 1.0), 8))
+	player_panel.set_meta("ui_asset_id", "ui.lobby.panel.player_summary")
+	side_panel.add_child(player_panel)
+	var player_vbox := VBoxContainer.new()
+	player_vbox.add_theme_constant_override("separation", 6)
+	player_panel.add_child(player_vbox)
+	_formal_profile_label = Label.new()
+	_formal_profile_label.text = "Player"
+	_formal_profile_label.add_theme_font_size_override("font_size", 20)
+	player_vbox.add_child(_formal_profile_label)
+	_formal_wallet_label = Label.new()
+	player_vbox.add_child(_formal_wallet_label)
+	_formal_inventory_label = Label.new()
+	player_vbox.add_child(_formal_inventory_label)
+	_formal_shop_label = Label.new()
+	player_vbox.add_child(_formal_shop_label)
+
+	var chat_panel := PanelContainer.new()
+	chat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	chat_panel.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.08, 0.12, 0.16, 0.96), Color(0.12, 0.46, 0.65, 1.0), 8))
+	chat_panel.set_meta("ui_asset_id", "ui.lobby.panel.chat")
+	side_panel.add_child(chat_panel)
+	var chat_vbox := VBoxContainer.new()
+	chat_vbox.add_theme_constant_override("separation", 6)
+	chat_panel.add_child(chat_vbox)
+	var chat_title := Label.new()
+	chat_title.text = "好友 / 聊天"
+	chat_vbox.add_child(chat_title)
+	_formal_chat_log = Label.new()
+	_formal_chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_formal_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	chat_vbox.add_child(_formal_chat_log)
+
+	var bottom_bar := HBoxContainer.new()
+	bottom_bar.custom_minimum_size = Vector2(0, 58)
+	bottom_bar.add_theme_constant_override("separation", 8)
+	layout.add_child(bottom_bar)
+	_add_reference_action_button(bottom_bar, "创建房间", _on_create_custom_room_pressed)
+	_add_reference_action_button(bottom_bar, "开始练习", _on_start_practice_pressed)
+	_add_reference_action_button(bottom_bar, "商城", _on_shop_pressed, "ui.lobby.button.shop.normal")
+	_add_reference_action_button(bottom_bar, "背包", _on_inventory_pressed, "ui.lobby.button.inventory.normal")
+	_add_reference_action_button(bottom_bar, "登出", _on_logout_pressed)
+	_formal_status_label = Label.new()
+	_formal_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_formal_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	bottom_bar.add_child(_formal_status_label)
+	_render_reference_room_cards()
+
+
+func _add_reference_action_button(parent: HBoxContainer, label_text: String, callback: Callable, asset_id: String = "") -> void:
+	var button := Button.new()
+	button.text = label_text
+	button.custom_minimum_size = Vector2(118, 42)
+	_apply_lobby_button_style(button)
+	if not asset_id.is_empty():
+		button.set_meta("ui_asset_id", asset_id)
+	button.pressed.connect(callback)
+	parent.add_child(button)
+
+
+func _render_reference_room_cards() -> void:
+	if _formal_room_grid == null:
+		return
+	for child in _formal_room_grid.get_children():
+		child.queue_free()
+	var cards := [
+		{"title": "新手练习", "subtitle": "Practice", "state": "可进入"},
+		{"title": "自定义房间", "subtitle": "Custom Room", "state": "创建或加入"},
+		{"title": "普通匹配", "subtitle": "Casual", "state": "组队准备"},
+		{"title": "排位匹配", "subtitle": "Ranked", "state": "赛季积分"},
+		{"title": "道具模式", "subtitle": "Items", "state": "准备中"},
+		{"title": "好友房间", "subtitle": "Friends", "state": "等待邀请"},
+		{"title": "推荐房间", "subtitle": "Recommended", "state": "同步中"},
+		{"title": "活动房间", "subtitle": "Event", "state": "开放中"},
+	]
+	for card_data in cards:
+		_formal_room_grid.add_child(_create_reference_room_card(card_data))
+
+
+func _create_reference_room_card(card_data: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(250, 96)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.88, 0.92, 0.92, 0.95), Color(0.35, 0.61, 0.70, 1.0), 8))
+	card.set_meta("ui_asset_id", "ui.lobby.room_card.normal")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	card.add_child(row)
+	var icon := ColorRect.new()
+	icon.custom_minimum_size = Vector2(64, 64)
+	icon.color = Color(0.62, 0.68, 0.68, 1.0)
+	row.add_child(icon)
+	var text_box := VBoxContainer.new()
+	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text_box)
+	var title := Label.new()
+	title.text = String(card_data.get("title", "Room"))
+	title.add_theme_color_override("font_color", Color(0.08, 0.14, 0.18, 1.0))
+	title.add_theme_font_size_override("font_size", 18)
+	text_box.add_child(title)
+	var subtitle := Label.new()
+	subtitle.text = String(card_data.get("subtitle", ""))
+	subtitle.add_theme_color_override("font_color", Color(0.16, 0.28, 0.34, 1.0))
+	text_box.add_child(subtitle)
+	var state := Label.new()
+	state.text = String(card_data.get("state", ""))
+	state.add_theme_color_override("font_color", Color(0.25, 0.42, 0.48, 1.0))
+	text_box.add_child(state)
+	return card
 
 
 func _reparent_account_card_children() -> void:
@@ -740,11 +939,28 @@ func _select_metadata(selector: OptionButton, target: String) -> void:
 func _set_message(text: String) -> void:
 	if message_label != null:
 		message_label.text = text
+	if _formal_status_label != null:
+		_formal_status_label.text = text
 
 
 func _set_directory_status(text: String) -> void:
 	if directory_status_label != null:
 		directory_status_label.text = text
+	if _formal_chat_log != null and not text.is_empty():
+		_formal_chat_log.text = text
+
+
+func _refresh_reference_lobby_summary(view_state) -> void:
+	if _formal_profile_label != null:
+		_formal_profile_label.text = String(view_state.profile_name if not String(view_state.profile_name).is_empty() else "Player")
+	if _formal_wallet_label != null:
+		_formal_wallet_label.text = "Wallet: %s" % String(view_state.wallet_summary_text if not String(view_state.wallet_summary_text).is_empty() else "-")
+	if _formal_inventory_label != null:
+		_formal_inventory_label.text = "Inventory: %s" % String(view_state.inventory_status_text if not String(view_state.inventory_status_text).is_empty() else "-")
+	if _formal_shop_label != null:
+		_formal_shop_label.text = "Shop: %s" % String(view_state.shop_status_text if not String(view_state.shop_status_text).is_empty() else "-")
+	if _formal_chat_log != null and _formal_chat_log.text.is_empty():
+		_formal_chat_log.text = "系统: 欢迎回来\n好友: 暂无消息\n房间: 选择左侧房间卡片或底部入口"
 
 
 func _on_room_error(_error_code: String, user_message: String) -> void:

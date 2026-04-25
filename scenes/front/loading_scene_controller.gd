@@ -31,6 +31,8 @@ var _room_client_gateway: RefCounted = null
 var _local_prepare_completed: bool = false
 var _transition_handled: bool = false
 var _battle_entry_context = null
+var _reference_progress_fill: ColorRect = null
+var _reference_progress_label: Label = null
 
 
 func _ready() -> void:
@@ -75,6 +77,7 @@ func _redirect_to_boot_if_missing() -> void:
 
 func _configure_layout() -> void:
 	_ensure_loading_background()
+	_build_reference_loading_layout()
 	loading_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main_layout.anchor_right = 1.0
 	main_layout.anchor_bottom = 1.0
@@ -116,6 +119,7 @@ func _refresh_loading_view() -> void:
 	bubble_summary_label.text = "泡泡: %s" % String(view_state.bubble_brief)
 	loading_phase_label.text = "Phase: %s" % String(view_state.loading_phase_text)
 	loading_status_label.text = "%s | %s" % [String(view_state.waiting_summary_text), String(view_state.progress_detail_text)]
+	_update_reference_progress(float(view_state.progress))
 	timeout_hint.text = String(view_state.status_message)
 	if loading_mode_label != null:
 		loading_mode_label.text = "Mode: %s" % String(view_state.loading_mode)
@@ -336,6 +340,79 @@ func _ensure_loading_background() -> void:
 	background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	background.color = Color(0.055, 0.09, 0.13, 1.0)
 	background.set_meta("ui_asset_id", "ui.loading.bg.main")
+
+
+func _build_reference_loading_layout() -> void:
+	var existing: Control = loading_root.get_node_or_null("ReferenceLoadingLayout")
+	if existing != null:
+		return
+	var layout := CenterContainer.new()
+	layout.name = "ReferenceLoadingLayout"
+	layout.set_anchors_preset(Control.PRESET_FULL_RECT)
+	loading_root.add_child(layout)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(560, 270)
+	panel.add_theme_stylebox_override("panel", _make_loading_style(Color(0.68, 0.90, 1.0, 0.92), Color(0.14, 0.58, 0.86, 1.0), 8))
+	panel.set_meta("ui_asset_id", "ui.loading.panel.task")
+	layout.add_child(panel)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	panel.add_child(vbox)
+	_move_loading_node(loading_label, vbox)
+	if loading_label != null:
+		loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		loading_label.add_theme_color_override("font_color", Color(0.05, 0.32, 0.50, 1.0))
+	_move_loading_node(loading_status_label, vbox)
+	_reference_progress_label = Label.new()
+	_reference_progress_label.text = "0%"
+	_reference_progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_reference_progress_label.add_theme_color_override("font_color", Color(0.06, 0.35, 0.55, 1.0))
+	vbox.add_child(_reference_progress_label)
+
+	var progress_frame := PanelContainer.new()
+	progress_frame.custom_minimum_size = Vector2(480, 34)
+	progress_frame.add_theme_stylebox_override("panel", _make_loading_style(Color(0.35, 0.73, 0.94, 1.0), Color(0.08, 0.45, 0.72, 1.0), 6))
+	progress_frame.set_meta("ui_asset_id", "ui.loading.progress.frame")
+	vbox.add_child(progress_frame)
+	var progress_clip := Control.new()
+	progress_clip.clip_contents = true
+	progress_clip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_clip.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	progress_frame.add_child(progress_clip)
+	_reference_progress_fill = ColorRect.new()
+	_reference_progress_fill.color = Color(0.08, 0.86, 1.0, 0.95)
+	_reference_progress_fill.set_meta("ui_asset_id", "ui.loading.progress.fill")
+	progress_clip.add_child(_reference_progress_fill)
+
+	_move_loading_node(manifest_summary_panel, vbox)
+	_move_loading_node(player_loadout_title_label, vbox)
+	_move_loading_node(player_loading_list, vbox)
+	_move_loading_node(timeout_hint, vbox)
+	if main_layout != null:
+		main_layout.visible = false
+
+
+func _update_reference_progress(progress: float) -> void:
+	var clamped = clamp(progress, 0.0, 1.0)
+	if _reference_progress_label != null:
+		_reference_progress_label.text = "%d%%" % int(round(clamped * 100.0))
+	if _reference_progress_fill != null:
+		_reference_progress_fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
+		_reference_progress_fill.offset_left = 0.0
+		_reference_progress_fill.offset_top = 0.0
+		_reference_progress_fill.offset_right = 480.0 * clamped
+		_reference_progress_fill.offset_bottom = 28.0
+
+
+func _move_loading_node(node: Node, new_parent: Node) -> void:
+	if node == null or new_parent == null or node.get_parent() == new_parent:
+		return
+	var old_parent := node.get_parent()
+	if old_parent != null:
+		old_parent.remove_child(node)
+	new_parent.add_child(node)
 
 
 func _make_loading_style(color: Color, border_color: Color, radius: int) -> StyleBoxFlat:

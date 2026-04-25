@@ -26,6 +26,7 @@ const ROOM_SCENE_LOG_TAG := "front.room.scene"
 @onready var room_selection_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard")
 @onready var member_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/MemberCard")
 @onready var preview_card: PanelContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard")
+@onready var action_row: HBoxContainer = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow")
 @onready var room_kind_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomKindLabel")
 @onready var room_display_name_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomDisplayNameLabel")
 @onready var room_id_value_label: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel")
@@ -416,6 +417,7 @@ func _try_consume_pending_room_action() -> void:
 
 func _apply_formal_room_layout() -> void:
 	_ensure_room_background()
+	_build_reference_room_layout()
 	if room_scroll != null:
 		room_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	if main_layout != null:
@@ -441,6 +443,80 @@ func _apply_formal_room_layout() -> void:
 	if room_debug_panel != null:
 		room_debug_panel.visible = false
 	_apply_room_asset_ids()
+
+
+func _build_reference_room_layout() -> void:
+	if room_root == null:
+		return
+	var existing: Control = room_root.get_node_or_null("ReferenceRoomLayout")
+	if existing != null:
+		return
+	var layout := VBoxContainer.new()
+	layout.name = "ReferenceRoomLayout"
+	layout.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layout.offset_left = 18.0
+	layout.offset_top = 12.0
+	layout.offset_right = -18.0
+	layout.offset_bottom = -14.0
+	layout.add_theme_constant_override("separation", 8)
+	room_root.add_child(layout)
+
+	var reference_top_bar := HBoxContainer.new()
+	reference_top_bar.custom_minimum_size = Vector2(0, 46)
+	reference_top_bar.add_theme_constant_override("separation", 10)
+	layout.add_child(reference_top_bar)
+	_move_node_to(back_to_lobby_button, reference_top_bar)
+	_move_node_to(title_label, reference_top_bar)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reference_top_bar.add_child(spacer)
+	_move_node_to(room_meta_label, reference_top_bar)
+
+	var body := HBoxContainer.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", 10)
+	layout.add_child(body)
+
+	var left_panel := VBoxContainer.new()
+	left_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left_panel.add_theme_constant_override("separation", 10)
+	body.add_child(left_panel)
+	_move_node_to(member_card, left_panel)
+	if member_card != null:
+		member_card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		member_card.custom_minimum_size = Vector2(0, 340)
+	_move_node_to(preview_card, left_panel)
+	if preview_card != null:
+		preview_card.custom_minimum_size = Vector2(0, 210)
+
+	var right_panel := VBoxContainer.new()
+	right_panel.custom_minimum_size = Vector2(360, 0)
+	right_panel.add_theme_constant_override("separation", 10)
+	body.add_child(right_panel)
+	_move_node_to(summary_card, right_panel)
+	_move_node_to(local_loadout_card, right_panel)
+	_move_node_to(room_selection_card, right_panel)
+
+	var bottom_bar := HBoxContainer.new()
+	bottom_bar.custom_minimum_size = Vector2(0, 58)
+	bottom_bar.add_theme_constant_override("separation", 10)
+	layout.add_child(bottom_bar)
+	_move_node_to(action_row, bottom_bar)
+	if action_row != null:
+		action_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		action_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	if main_layout != null:
+		main_layout.visible = false
+
+
+func _move_node_to(node: Node, new_parent: Node) -> void:
+	if node == null or new_parent == null or node.get_parent() == new_parent:
+		return
+	var old_parent := node.get_parent()
+	if old_parent != null:
+		old_parent.remove_child(node)
+	new_parent.add_child(node)
 
 
 func _ensure_room_background() -> void:

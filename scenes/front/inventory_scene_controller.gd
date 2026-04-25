@@ -56,22 +56,40 @@ func _build_ui() -> void:
 	var panel_vbox := VBoxContainer.new()
 	panel_vbox.add_theme_constant_override("separation", 12)
 	_detail_panel.add_child(panel_vbox)
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	panel_vbox.add_child(tabs)
+	for tab_text in ["角色", "皮肤", "泡泡", "头像", "称号"]:
+		var tab := Button.new()
+		tab.text = tab_text
+		tab.custom_minimum_size = Vector2(88, 34)
+		_apply_button_style(tab)
+		tab.set_meta("ui_asset_id", "ui.inventory.tab.characters.normal")
+		tabs.add_child(tab)
 
 	_asset_list = ItemList.new()
 	_asset_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_asset_list.max_columns = 4
+	_asset_list.fixed_column_width = 180
+	_asset_list.same_column_width = true
+	_asset_list.custom_minimum_size = Vector2(0, 430)
 	_asset_list.set_meta("ui_asset_id", "ui.inventory.card.asset.normal")
 	panel_vbox.add_child(_asset_list)
 
+	var action_row := HBoxContainer.new()
+	action_row.add_theme_constant_override("separation", 10)
+	panel_vbox.add_child(action_row)
 	_equip_button = Button.new()
 	_equip_button.text = "Equip"
 	_apply_button_style(_equip_button)
 	_equip_button.set_meta("ui_asset_id", "ui.inventory.button.equip.normal")
 	_equip_button.pressed.connect(_on_equip_pressed)
-	panel_vbox.add_child(_equip_button)
+	action_row.add_child(_equip_button)
 
 	_status_label = Label.new()
+	_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel_vbox.add_child(_status_label)
+	action_row.add_child(_status_label)
 
 
 func _refresh() -> void:
