@@ -37,10 +37,14 @@ func EncodeOperationRejected(conn *Connection, requestID, operation, code, userM
 }
 
 func EncodeSnapshotPush(conn *Connection, requestID string, snapshot *roomapp.SnapshotProjection) []byte {
+	encodedSnapshot := encodeSnapshot(snapshot)
+	if conn != nil {
+		encodedSnapshot.LocalMemberId = conn.BoundMemberID()
+	}
 	return mustMarshalServerEnvelope(conn, requestID, &roomv1.ServerEnvelope{
 		Payload: &roomv1.ServerEnvelope_RoomSnapshotPush{
 			RoomSnapshotPush: &roomv1.RoomSnapshotPush{
-				Snapshot: encodeSnapshot(snapshot),
+				Snapshot: encodedSnapshot,
 			},
 		},
 	})
@@ -135,6 +139,10 @@ func encodeSnapshot(snapshot *roomapp.SnapshotProjection) *roomv1.RoomSnapshot {
 		CanCancelQueue:           snapshot.Capabilities.CanCancelQueue,
 		CanLeaveRoom:             snapshot.Capabilities.CanLeaveRoom,
 		BattleEntry:              encodeBattleEntryFromSnapshot(snapshot),
+		MaxPlayerCount:           int32(snapshot.MaxPlayerCount),
+	}
+	for _, slotIndex := range snapshot.OpenSlotIndices {
+		result.OpenSlotIndices = append(result.OpenSlotIndices, int32(slotIndex))
 	}
 	result.Members = make([]*roomv1.RoomMember, 0, len(snapshot.Members))
 	for _, member := range snapshot.Members {
@@ -164,6 +172,7 @@ func encodeMember(member domain.RoomMember) *roomv1.RoomMember {
 		Loadout:         mapLoadout(member.Loadout),
 		ConnectionState: member.ConnectionState,
 		MemberPhase:     member.MemberPhase,
+		SlotIndex:       int32(member.SlotIndex),
 	}
 }
 

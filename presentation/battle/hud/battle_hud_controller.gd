@@ -274,7 +274,10 @@ func _ensure_reference_item_bar() -> void:
 	_reference_item_bar.offset_right = 250.0
 	_reference_item_bar.offset_bottom = -18.0
 	_reference_item_bar.add_theme_constant_override("separation", 8)
-	hud_parent.add_child(_reference_item_bar)
+	if hud_parent.is_node_ready():
+		hud_parent.add_child(_reference_item_bar)
+	else:
+		hud_parent.add_child.call_deferred(_reference_item_bar)
 	for index in range(7):
 		_reference_item_bar.add_child(_create_reference_item_slot(index + 1))
 

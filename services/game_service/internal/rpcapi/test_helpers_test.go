@@ -72,6 +72,15 @@ func (f *fakeAssignmentService) CommitBattleEntryReady(_ context.Context, input 
 	return f.result, f.err
 }
 
+func (f *fakeAssignmentService) GetStatus(_ context.Context, roomID string, assignmentID string) (assignment.StatusResult, error) {
+	return assignment.StatusResult{
+		AssignmentID: assignmentID,
+		RoomID:       roomID,
+		QueueState:   "battle_ready",
+		QueuePhase:   "entry_ready",
+	}, f.err
+}
+
 func startTestRPCServer(t *testing.T, svc *RoomControlService) (gamev1.RoomControlServiceClient, func()) {
 	t.Helper()
 	grpcServer := grpc.NewServer()

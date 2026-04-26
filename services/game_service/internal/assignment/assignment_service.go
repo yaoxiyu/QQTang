@@ -190,6 +190,49 @@ func (s *Service) CommitBattleEntryReady(ctx context.Context, input CommitInput)
 	}, nil
 }
 
+func (s *Service) GetStatus(ctx context.Context, roomID string, assignmentID string) (StatusResult, error) {
+	assignmentRecord, err := s.repo.FindByID(ctx, assignmentID)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return StatusResult{}, ErrAssignmentNotFound
+		}
+		return StatusResult{}, err
+	}
+	if roomID != "" && assignmentRecord.RoomID != roomID {
+		return StatusResult{}, ErrAssignmentGrantForbidden
+	}
+	queueState := "battle_ready"
+	queuePhase := "entry_ready"
+	queueTerminalReason := "none"
+	queueStatusText := "battle_ready"
+	if assignmentRecord.State == "finalized" {
+		queueState = "finalized"
+		queuePhase = "completed"
+		queueTerminalReason = "match_finalized"
+		queueStatusText = "Match finalized"
+	} else if assignmentRecord.AllocationState == "alloc_failed" || assignmentRecord.AllocationState == "allocation_failed" {
+		queueState = "failed"
+		queuePhase = "completed"
+		queueTerminalReason = "allocation_failed"
+		queueStatusText = "Battle allocation failed"
+	}
+	return StatusResult{
+		AssignmentID:        assignmentRecord.AssignmentID,
+		AssignmentRevision:  assignmentRecord.AssignmentRevision,
+		RoomID:              assignmentRecord.RoomID,
+		RoomKind:            assignmentRecord.RoomKind,
+		MatchID:             assignmentRecord.MatchID,
+		BattleID:            assignmentRecord.BattleID,
+		ServerHost:          assignmentRecord.BattleServerHost,
+		ServerPort:          assignmentRecord.BattleServerPort,
+		QueueState:          queueState,
+		QueuePhase:          queuePhase,
+		QueueTerminalReason: queueTerminalReason,
+		QueueStatusText:     queueStatusText,
+		AllocationState:     assignmentRecord.AllocationState,
+	}, nil
+}
+
 func (s *Service) reElectCaptainIfNeeded(ctx context.Context, assignmentRecord storage.Assignment, member storage.AssignmentMember) (storage.Assignment, storage.AssignmentMember, error) {
 	now := time.Now().UTC()
 	if assignmentRecord.State == "committed" || assignmentRecord.CaptainDeadlineUnixSec >= now.Unix() {

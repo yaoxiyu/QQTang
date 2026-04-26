@@ -21,6 +21,7 @@ type RoomMember struct {
 	ProfileID       string
 	PlayerName      string
 	TeamID          int
+	SlotIndex       int
 	MemberPhase     string
 	ConnectionState string
 	ConnectionID    string
@@ -103,6 +104,7 @@ type RoomAggregate struct {
 	Members          map[string]RoomMember
 	ResumeBindings   map[string]ResumeBinding
 	MaxPlayerCount   int
+	OpenSlotIndices  []int
 
 	RoomState          RoomFSMState
 	QueueState         QueueFSMProjection

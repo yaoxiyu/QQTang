@@ -153,6 +153,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
+		previousRoomID := conn.BoundRoomID()
 		outbound, err := s.dispatcher.Dispatch(conn, env)
 		if err != nil {
 			_ = conn.SendBinary(EncodeOperationRejected(conn, env.RequestID, "Dispatch", "OPERATION_REJECTED", err.Error()))
@@ -165,6 +166,9 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		}
 		if isDirectoryAffectingPayload(env.PayloadType) && hasOperationAccepted(outbound) {
 			s.broadcastDirectorySnapshot("")
+		}
+		if isRoomSnapshotAffectingPayload(env.PayloadType) && hasOperationAccepted(outbound) {
+			s.broadcastLatestRoomSnapshot(conn, previousRoomID)
 		}
 	}
 }
@@ -213,6 +217,42 @@ func (s *Server) broadcastRoomSnapshot(roomID string, snapshot *roomapp.Snapshot
 	}
 	targets := s.roomConnections(roomID)
 	for _, conn := range targets {
+		_ = conn.SendBinary(EncodeSnapshotPush(conn, "", snapshot))
+	}
+}
+
+func (s *Server) broadcastLatestRoomSnapshot(source *Connection, fallbackRoomID string) {
+	if s == nil || s.dispatcher == nil || s.dispatcher.app == nil {
+		return
+	}
+	roomID := ""
+	sourceID := ""
+	if source != nil {
+		roomID = source.BoundRoomID()
+		sourceID = source.ID()
+	}
+	if roomID == "" {
+		roomID = fallbackRoomID
+	}
+	if roomID == "" {
+		return
+	}
+	snapshot, err := s.dispatcher.app.SnapshotProjection(roomID)
+	if err != nil || snapshot == nil {
+		return
+	}
+	s.broadcastRoomSnapshotExcept(roomID, snapshot, sourceID)
+}
+
+func (s *Server) broadcastRoomSnapshotExcept(roomID string, snapshot *roomapp.SnapshotProjection, excludedConnID string) {
+	if roomID == "" || snapshot == nil {
+		return
+	}
+	targets := s.roomConnections(roomID)
+	for _, conn := range targets {
+		if conn == nil || conn.ID() == excludedConnID {
+			continue
+		}
 		_ = conn.SendBinary(EncodeSnapshotPush(conn, "", snapshot))
 	}
 }
@@ -275,6 +315,26 @@ func splitHostPort(addr string) (string, int32) {
 func isDirectoryAffectingPayload(payloadType PayloadType) bool {
 	switch payloadType {
 	case PayloadCreateRoom, PayloadJoinRoom, PayloadLeaveRoom, PayloadUpdateSelection, PayloadUpdateMatchRoomConfig:
+		return true
+	default:
+		return false
+	}
+}
+
+func isRoomSnapshotAffectingPayload(payloadType PayloadType) bool {
+	switch payloadType {
+	case PayloadCreateRoom,
+		PayloadJoinRoom,
+		PayloadResumeRoom,
+		PayloadUpdateProfile,
+		PayloadUpdateSelection,
+		PayloadUpdateMatchRoomConfig,
+		PayloadToggleReady,
+		PayloadLeaveRoom,
+		PayloadStartManualRoomBattle,
+		PayloadEnterMatchQueue,
+		PayloadCancelMatchQueue,
+		PayloadAckBattleEntry:
 		return true
 	default:
 		return false

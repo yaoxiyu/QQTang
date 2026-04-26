@@ -30,7 +30,7 @@ func projectRoomCapabilities(room *domain.RoomAggregate, ownerMemberID string, q
 	capabilities.CanToggleReady = isStableIdleForMemberOps(phase)
 	capabilities.CanUpdateSelection = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle
 	capabilities.CanUpdateMatchRoomConfig = isOwnerPresent && isMatchRoom && phase == RoomPhaseIdle
-	capabilities.CanStartManualBattle = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle && allMembersReadyByPhase(room.Members) && hasCompleteManualSelection(room)
+	capabilities.CanStartManualBattle = isOwnerPresent && isManualRoom && phase == RoomPhaseIdle && nonOwnerMembersReadyByPhase(room.Members, ownerMemberID) && hasCompleteManualSelection(room) && canStartManualRoom(room)
 	requiredPartySize := 0
 	if query != nil {
 		requiredPartySize = query.RequiredPartySize(room.Selection.MatchFormatID)
@@ -56,6 +56,21 @@ func allMembersReadyByPhase(members map[string]domain.RoomMember) bool {
 	return true
 }
 
+func nonOwnerMembersReadyByPhase(members map[string]domain.RoomMember, ownerMemberID string) bool {
+	if len(members) < 2 {
+		return false
+	}
+	for memberID, member := range members {
+		if memberID == ownerMemberID {
+			continue
+		}
+		if member.MemberPhase != MemberPhaseReady {
+			return false
+		}
+	}
+	return true
+}
+
 func hasMatchQueueConfig(room *domain.RoomAggregate) bool {
 	if room == nil {
 		return false
@@ -71,4 +86,29 @@ func hasCompleteManualSelection(room *domain.RoomAggregate) bool {
 		return false
 	}
 	return room.Selection.MapID != "" && room.Selection.RuleSetID != "" && room.Selection.ModeID != ""
+}
+
+func canStartManualRoom(room *domain.RoomAggregate) bool {
+	if room == nil {
+		return false
+	}
+	memberCount := len(room.Members)
+	if memberCount < 2 {
+		return false
+	}
+	if room.MaxPlayerCount > 0 && memberCount > room.MaxPlayerCount {
+		return false
+	}
+	return countDistinctReadyTeams(room.Members) > 1
+}
+
+func countDistinctReadyTeams(members map[string]domain.RoomMember) int {
+	teams := map[int]struct{}{}
+	for _, member := range members {
+		if member.TeamID <= 0 {
+			continue
+		}
+		teams[member.TeamID] = struct{}{}
+	}
+	return len(teams)
 }

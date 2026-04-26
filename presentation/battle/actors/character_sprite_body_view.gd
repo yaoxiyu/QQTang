@@ -6,7 +6,7 @@ const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
 
-@onready var _body_sprite: AnimatedSprite2D = $BodySprite
+@onready var _body_sprite: AnimatedSprite2D = get_node_or_null("BodySprite")
 
 var _animation_set: CharacterAnimationSetDef = null
 var _current_animation_name: String = ""
@@ -14,6 +14,10 @@ var _current_pose_state: String = "normal"
 
 
 func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
+	_body_sprite = get_node_or_null("BodySprite")
+	if _body_sprite == null:
+		LogPresentationScript.warn("CharacterSpriteBodyView.setup_from_animation_set missing BodySprite", "", 0, "presentation.character_body")
+		return
 	_animation_set = animation_set
 	if _animation_set == null:
 		_body_sprite.sprite_frames = null
@@ -33,7 +37,9 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 
 
 func apply_actor_state(view_state: Dictionary) -> void:
-	if _animation_set == null or _body_sprite.sprite_frames == null:
+	if _body_sprite == null:
+		_body_sprite = get_node_or_null("BodySprite")
+	if _body_sprite == null or _animation_set == null or _body_sprite.sprite_frames == null:
 		return
 
 	var cell_size := float(view_state.get("cell_size", BattleViewMetrics.DEFAULT_CELL_PIXELS))

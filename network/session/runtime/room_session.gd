@@ -8,7 +8,9 @@ var room_id: String = ""
 var room_kind: String = ""
 var topology: String = ""
 var peers: Array[int] = []
+var peer_slots: Dictionary = {}
 var ready_state: Dictionary = {}
+var open_slot_indices: Array[int] = []
 var selected_map_id: String = ""
 var selected_rule_set_id: String = ""
 var selected_mode_id: String = ""
@@ -54,12 +56,15 @@ func _init(p_room_id: String = "") -> void:
 	room_id = p_room_id
 
 
-func add_peer(peer_id: int) -> void:
+func add_peer(peer_id: int, slot_index: int = -1) -> void:
 	if peer_id in peers:
+		if slot_index >= 0:
+			peer_slots[peer_id] = slot_index
 		return
 
 	peers.append(peer_id)
 	ready_state[peer_id] = false
+	peer_slots[peer_id] = slot_index if slot_index >= 0 else _first_available_slot()
 
 
 func remove_peer(peer_id: int) -> void:
@@ -68,6 +73,7 @@ func remove_peer(peer_id: int) -> void:
 
 	peers.remove_at(peers.find(peer_id))
 	ready_state.erase(peer_id)
+	peer_slots.erase(peer_id)
 
 
 func set_ready(peer_id: int, ready: bool) -> void:
@@ -118,5 +124,16 @@ func lock_config() -> void:
 func build_peer_slots() -> Dictionary:
 	var slots: Dictionary = {}
 	for index in range(peers.size()):
-		slots[peers[index]] = index
+		var peer_id: int = peers[index]
+		slots[peer_id] = int(peer_slots.get(peer_id, index))
 	return slots
+
+
+func _first_available_slot() -> int:
+	var occupied: Dictionary = {}
+	for value in peer_slots.values():
+		occupied[int(value)] = true
+	for slot_index in range(max(peers.size() + 1, 8)):
+		if not occupied.has(slot_index):
+			return slot_index
+	return peers.size()

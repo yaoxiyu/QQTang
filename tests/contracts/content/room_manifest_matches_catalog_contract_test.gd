@@ -43,7 +43,7 @@ func test_room_manifest_matches_catalog_contract() -> void:
 		assert_eq(bool(manifest_map.get("casual_enabled", false)), bool(map_entry.get("matchmaking_casual_enabled", false)), "casual flag should match map %s" % map_id)
 		assert_eq(bool(manifest_map.get("ranked_enabled", false)), bool(map_entry.get("matchmaking_ranked_enabled", false)), "ranked flag should match map %s" % map_id)
 		assert_eq(int(manifest_map.get("required_team_count", 0)), int(map_entry.get("required_team_count", 0)), "required_team_count should match map %s" % map_id)
-		assert_eq(int(manifest_map.get("max_player_count", 0)), int(map_entry.get("max_player_count", 0)), "max_player_count should match map %s" % map_id)
+		assert_eq(int(manifest_map.get("max_player_count", 0)), _expected_custom_room_max_player_count(map_entry), "max_player_count should match custom room capacity for map %s" % map_id)
 
 	var match_formats = manifest.get("match_formats", [])
 	assert_true(match_formats is Array, "manifest match_formats should be array")
@@ -149,6 +149,17 @@ func _expected_legal_mode_ids(match_format_id: String) -> Array[String]:
 		mode_ids.append(mode_id)
 	mode_ids.sort()
 	return mode_ids
+
+
+func _expected_custom_room_max_player_count(map_entry: Dictionary) -> int:
+	var max_player_count := int(map_entry.get("max_player_count", 0))
+	var variants = map_entry.get("match_format_variants", [])
+	if variants is Array:
+		for variant in variants:
+			if not variant is Dictionary:
+				continue
+			max_player_count = maxi(max_player_count, int((variant as Dictionary).get("max_player_count", 0)))
+	return max_player_count
 
 
 func _character_skin_ids() -> Array[String]:

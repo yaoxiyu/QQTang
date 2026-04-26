@@ -32,14 +32,18 @@ func newTestServerAndSocket(t *testing.T) (*Server, *testSocket) {
 		t.Fatalf("start ws server: %v", err)
 	}
 
+	return server, newTestSocketForServer(t, server)
+}
+
+func newTestSocketForServer(t *testing.T, server *Server) *testSocket {
+	t.Helper()
 	wsURL := url.URL{Scheme: "ws", Host: server.Addr(), Path: "/ws"}
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL.String(), nil)
 	if err != nil {
-		_ = server.Shutdown(t.Context())
 		t.Fatalf("dial ws server: %v", err)
 	}
 	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	return server, &testSocket{conn: conn}
+	return &testSocket{conn: conn}
 }
 
 func newTestRoomApp(t *testing.T) *roomapp.Service {
@@ -186,6 +190,27 @@ func encodeClientEnvelopeJoin(requestID, roomID string) []byte {
 	return env
 }
 
+func encodeClientEnvelopeUpdateSelection(requestID string, openSlotIndices []int32) []byte {
+	payload, _ := proto.Marshal(&roomv1.ClientEnvelope{
+		ProtocolVersion: "room.v1",
+		RequestId:       requestID,
+		Sequence:        1,
+		SentAtUnixMs:    1,
+		Payload: &roomv1.ClientEnvelope_UpdateSelection{
+			UpdateSelection: &roomv1.UpdateSelectionRequest{
+				Selection: &roomv1.RoomSelection{
+					MapId:         "map_arcade",
+					RuleSetId:     "ruleset_classic",
+					ModeId:        "mode_classic",
+					MatchFormatId: "2v2",
+				},
+				OpenSlotIndices: append([]int32{}, openSlotIndices...),
+			},
+		},
+	})
+	return payload
+}
+
 func encodeClientEnvelopeResume(requestID, roomID, memberID, reconnectToken string) []byte {
 	resume := make([]byte, 0, 96)
 	resume = appendPBString(resume, 1, roomID)
@@ -300,6 +325,45 @@ func decodeSnapshotMeta(payload []byte) (roomID string, memberID string, reconne
 		payload = payload[m:]
 	}
 	return "", "", ""
+}
+
+func decodeSnapshotMemberCount(t *testing.T, payload []byte) int {
+	t.Helper()
+	env := &roomv1.ServerEnvelope{}
+	if err := proto.Unmarshal(payload, env); err != nil {
+		t.Fatalf("unmarshal snapshot push: %v", err)
+	}
+	push := env.GetRoomSnapshotPush()
+	if push == nil || push.GetSnapshot() == nil {
+		t.Fatalf("expected room snapshot push")
+	}
+	return len(push.GetSnapshot().GetMembers())
+}
+
+func decodeSnapshotLocalMemberID(t *testing.T, payload []byte) string {
+	t.Helper()
+	env := &roomv1.ServerEnvelope{}
+	if err := proto.Unmarshal(payload, env); err != nil {
+		t.Fatalf("unmarshal snapshot push: %v", err)
+	}
+	push := env.GetRoomSnapshotPush()
+	if push == nil || push.GetSnapshot() == nil {
+		t.Fatalf("expected room snapshot push")
+	}
+	return push.GetSnapshot().GetLocalMemberId()
+}
+
+func decodeSnapshotOpenSlotIndices(t *testing.T, payload []byte) []int32 {
+	t.Helper()
+	env := &roomv1.ServerEnvelope{}
+	if err := proto.Unmarshal(payload, env); err != nil {
+		t.Fatalf("unmarshal snapshot push: %v", err)
+	}
+	push := env.GetRoomSnapshotPush()
+	if push == nil || push.GetSnapshot() == nil {
+		t.Fatalf("expected room snapshot push")
+	}
+	return append([]int32{}, push.GetSnapshot().GetOpenSlotIndices()...)
 }
 
 func decodeSnapshotPush(payload []byte) (roomID string, memberID string, reconnectToken string) {

@@ -42,7 +42,7 @@ func generate() -> void:
 			"rule_set_id": String(entry.get("bound_rule_set_id", "")),
 			"match_format_ids": format_ids,
 			"required_team_count": int(entry.get("required_team_count", 2)),
-			"max_player_count": int(entry.get("max_player_count", 0)),
+			"max_player_count": _resolve_custom_room_max_player_count(entry),
 			"custom_room_enabled": bool(entry.get("custom_room_enabled", true)),
 			"casual_enabled": bool(entry.get("matchmaking_casual_enabled", true)),
 			"ranked_enabled": bool(entry.get("matchmaking_ranked_enabled", false)),
@@ -133,6 +133,17 @@ func _resolve_map_match_format_ids(map_entry: Dictionary) -> Array[String]:
 
 	format_ids.sort()
 	return format_ids
+
+
+func _resolve_custom_room_max_player_count(map_entry: Dictionary) -> int:
+	var max_player_count := int(map_entry.get("max_player_count", 0))
+	var variants = map_entry.get("match_format_variants", [])
+	if variants is Array:
+		for variant in variants:
+			if not variant is Dictionary:
+				continue
+			max_player_count = maxi(max_player_count, int((variant as Dictionary).get("max_player_count", 0)))
+	return max_player_count
 
 
 func _add_mode_for_format(format_to_modes: Dictionary, format_id: String, mode_id: String) -> void:

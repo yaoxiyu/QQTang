@@ -179,6 +179,12 @@ public partial class RoomWsClient : Node
 
     private string ResolveLocalMemberId(Godot.Collections.Dictionary snapshot)
     {
+        var snapshotLocalMemberId = ReadString(snapshot, "local_member_id");
+        if (!string.IsNullOrWhiteSpace(snapshotLocalMemberId))
+        {
+            return snapshotLocalMemberId;
+        }
+
         if (!string.IsNullOrWhiteSpace(SessionState.BoundMemberId))
         {
             return SessionState.BoundMemberId;

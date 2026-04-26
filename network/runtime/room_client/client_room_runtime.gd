@@ -215,13 +215,16 @@ func request_update_profile(
 	})
 
 
-func request_update_selection(map_id: String, rule_set_id: String, mode_id: String) -> void:
-	_send_to_server({
+func request_update_selection(map_id: String, rule_set_id: String, mode_id: String, open_slot_indices: Array[int] = []) -> void:
+	var message := {
 		"message_type": TransportMessageTypesScript.ROOM_UPDATE_SELECTION,
 		"map_id": map_id,
 		"rule_set_id": rule_set_id,
 		"mode_id": mode_id,
-	})
+	}
+	if not open_slot_indices.is_empty():
+		message["open_slot_indices"] = open_slot_indices.duplicate()
+	_send_to_server(message)
 
 
 func request_update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> void:

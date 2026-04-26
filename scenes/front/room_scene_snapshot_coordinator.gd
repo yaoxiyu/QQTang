@@ -62,6 +62,8 @@ func refresh_room(controller: Node, snapshot: RoomSnapshot) -> void:
 	update_auth_binding_summary(controller, snapshot)
 	update_preview(controller, snapshot)
 	update_debug_text(controller, snapshot, view_model)
+	if controller.has_method("_refresh_reference_room_panels"):
+		controller._refresh_reference_room_panels(snapshot, view_model)
 
 
 func update_preview(controller: Node, snapshot: RoomSnapshot) -> void:

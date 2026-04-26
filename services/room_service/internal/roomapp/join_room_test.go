@@ -42,4 +42,7 @@ func TestJoinRoom(t *testing.T) {
 	if len(snapshot.Members) != 2 {
 		t.Fatalf("expected 2 members after join, got %d", len(snapshot.Members))
 	}
+	if snapshot.Members[0].SlotIndex == snapshot.Members[1].SlotIndex {
+		t.Fatalf("expected distinct member slots, got %d", snapshot.Members[0].SlotIndex)
+	}
 }

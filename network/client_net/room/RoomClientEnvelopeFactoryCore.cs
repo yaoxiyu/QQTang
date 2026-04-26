@@ -155,10 +155,12 @@ public sealed class RoomClientEnvelopeFactoryCore
 
     private static UpdateSelectionRequest BuildUpdateSelection(IDictionary<string, object?> message)
     {
-        return new UpdateSelectionRequest
+        var request = new UpdateSelectionRequest
         {
             Selection = BuildSelection(message),
         };
+        request.OpenSlotIndices.Add(ReadInt32Array(message, "open_slot_indices"));
+        return request;
     }
 
     private static UpdateMatchRoomConfigRequest BuildUpdateMatchRoomConfig(IDictionary<string, object?> message)
@@ -263,12 +265,43 @@ public sealed class RoomClientEnvelopeFactoryCore
         return [];
     }
 
+    private static int[] ReadInt32Array(IDictionary<string, object?> source, string key)
+    {
+        if (!source.TryGetValue(key, out var value) || value == null || value is string)
+        {
+            return [];
+        }
+        if (value is IEnumerable enumerable)
+        {
+            var list = new List<int>();
+            foreach (var item in enumerable)
+            {
+                list.Add(ToInt32Value(item));
+            }
+            return list.ToArray();
+        }
+        return [];
+    }
+
     private static int ReadInt32(IDictionary<string, object?> source, string key)
     {
         if (!source.TryGetValue(key, out var value) || value == null)
         {
             return 0;
         }
+        return value switch
+        {
+            int v => v,
+            long v => (int)v,
+            double v => (int)v,
+            float v => (int)v,
+            string v when int.TryParse(v, out var parsed) => parsed,
+            _ => 0,
+        };
+    }
+
+    private static int ToInt32Value(object? value)
+    {
         return value switch
         {
             int v => v,

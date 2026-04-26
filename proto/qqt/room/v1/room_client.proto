@@ -52,6 +52,7 @@ message UpdateProfileRequest {
 
 message UpdateSelectionRequest {
   RoomSelection selection = 1;
+  repeated int32 open_slot_indices = 2;
 }
 
 message UpdateMatchRoomConfigRequest {

@@ -52,50 +52,51 @@ namespace QQT.Room.V1 {
             "bl9pZBgJIAEoCVIPZGV2aWNlU2Vzc2lvbklkIoQBChRVcGRhdGVQcm9maWxl",
             "UmVxdWVzdBIfCgtwbGF5ZXJfbmFtZRgBIAEoCVIKcGxheWVyTmFtZRIXCgd0",
             "ZWFtX2lkGAIgASgFUgZ0ZWFtSWQSMgoHbG9hZG91dBgDIAEoCzIYLnFxdC5y",
-            "b29tLnYxLlJvb21Mb2Fkb3V0Ugdsb2Fkb3V0IlIKFlVwZGF0ZVNlbGVjdGlv",
+            "b29tLnYxLlJvb21Mb2Fkb3V0Ugdsb2Fkb3V0In4KFlVwZGF0ZVNlbGVjdGlv",
             "blJlcXVlc3QSOAoJc2VsZWN0aW9uGAEgASgLMhoucXF0LnJvb20udjEuUm9v",
-            "bVNlbGVjdGlvblIJc2VsZWN0aW9uInIKHFVwZGF0ZU1hdGNoUm9vbUNvbmZp",
-            "Z1JlcXVlc3QSJgoPbWF0Y2hfZm9ybWF0X2lkGAEgASgJUg1tYXRjaEZvcm1h",
-            "dElkEioKEXNlbGVjdGVkX21vZGVfaWRzGAIgAygJUg9zZWxlY3RlZE1vZGVJ",
-            "ZHMiOwoSVG9nZ2xlUmVhZHlSZXF1ZXN0EiUKDmV4cGVjdGVkX3JlYWR5GAEg",
-            "ASgIUg1leHBlY3RlZFJlYWR5Ih4KHFN0YXJ0TWFudWFsUm9vbUJhdHRsZVJl",
-            "cXVlc3QiXwoWRW50ZXJNYXRjaFF1ZXVlUmVxdWVzdBIdCgpxdWV1ZV90eXBl",
-            "GAEgASgJUglxdWV1ZVR5cGUSJgoPbWF0Y2hfZm9ybWF0X2lkGAIgASgJUg1t",
-            "YXRjaEZvcm1hdElkIhkKF0NhbmNlbE1hdGNoUXVldWVSZXF1ZXN0IhIKEExl",
-            "YXZlUm9vbVJlcXVlc3QiGwoZU3Vic2NyaWJlRGlyZWN0b3J5UmVxdWVzdCId",
-            "ChtVbnN1YnNjcmliZURpcmVjdG9yeVJlcXVlc3QiWQoVQWNrQmF0dGxlRW50",
-            "cnlSZXF1ZXN0EiMKDWFzc2lnbm1lbnRfaWQYASABKAlSDGFzc2lnbm1lbnRJ",
-            "ZBIbCgliYXR0bGVfaWQYAiABKAlSCGJhdHRsZUlkIpAKCg5DbGllbnRFbnZl",
-            "bG9wZRIpChBwcm90b2NvbF92ZXJzaW9uGAEgASgJUg9wcm90b2NvbFZlcnNp",
-            "b24SHQoKcmVxdWVzdF9pZBgCIAEoCVIJcmVxdWVzdElkEhoKCHNlcXVlbmNl",
-            "GAMgASgDUghzZXF1ZW5jZRIlCg9zZW50X2F0X3VuaXhfbXMYBCABKANSDHNl",
-            "bnRBdFVuaXhNcxJBCgtjcmVhdGVfcm9vbRgKIAEoCzIeLnFxdC5yb29tLnYx",
-            "LkNyZWF0ZVJvb21SZXF1ZXN0SABSCmNyZWF0ZVJvb20SOwoJam9pbl9yb29t",
-            "GAsgASgLMhwucXF0LnJvb20udjEuSm9pblJvb21SZXF1ZXN0SABSCGpvaW5S",
-            "b29tEkEKC3Jlc3VtZV9yb29tGAwgASgLMh4ucXF0LnJvb20udjEuUmVzdW1l",
-            "Um9vbVJlcXVlc3RIAFIKcmVzdW1lUm9vbRJKCg51cGRhdGVfcHJvZmlsZRgN",
-            "IAEoCzIhLnFxdC5yb29tLnYxLlVwZGF0ZVByb2ZpbGVSZXF1ZXN0SABSDXVw",
-            "ZGF0ZVByb2ZpbGUSUAoQdXBkYXRlX3NlbGVjdGlvbhgOIAEoCzIjLnFxdC5y",
-            "b29tLnYxLlVwZGF0ZVNlbGVjdGlvblJlcXVlc3RIAFIPdXBkYXRlU2VsZWN0",
-            "aW9uEmQKGHVwZGF0ZV9tYXRjaF9yb29tX2NvbmZpZxgPIAEoCzIpLnFxdC5y",
-            "b29tLnYxLlVwZGF0ZU1hdGNoUm9vbUNvbmZpZ1JlcXVlc3RIAFIVdXBkYXRl",
-            "TWF0Y2hSb29tQ29uZmlnEkQKDHRvZ2dsZV9yZWFkeRgQIAEoCzIfLnFxdC5y",
-            "b29tLnYxLlRvZ2dsZVJlYWR5UmVxdWVzdEgAUgt0b2dnbGVSZWFkeRJkChhz",
-            "dGFydF9tYW51YWxfcm9vbV9iYXR0bGUYESABKAsyKS5xcXQucm9vbS52MS5T",
-            "dGFydE1hbnVhbFJvb21CYXR0bGVSZXF1ZXN0SABSFXN0YXJ0TWFudWFsUm9v",
-            "bUJhdHRsZRJRChFlbnRlcl9tYXRjaF9xdWV1ZRgSIAEoCzIjLnFxdC5yb29t",
-            "LnYxLkVudGVyTWF0Y2hRdWV1ZVJlcXVlc3RIAFIPZW50ZXJNYXRjaFF1ZXVl",
-            "ElQKEmNhbmNlbF9tYXRjaF9xdWV1ZRgTIAEoCzIkLnFxdC5yb29tLnYxLkNh",
-            "bmNlbE1hdGNoUXVldWVSZXF1ZXN0SABSEGNhbmNlbE1hdGNoUXVldWUSPgoK",
-            "bGVhdmVfcm9vbRgUIAEoCzIdLnFxdC5yb29tLnYxLkxlYXZlUm9vbVJlcXVl",
-            "c3RIAFIJbGVhdmVSb29tElkKE3N1YnNjcmliZV9kaXJlY3RvcnkYFSABKAsy",
-            "Ji5xcXQucm9vbS52MS5TdWJzY3JpYmVEaXJlY3RvcnlSZXF1ZXN0SABSEnN1",
-            "YnNjcmliZURpcmVjdG9yeRJfChV1bnN1YnNjcmliZV9kaXJlY3RvcnkYFiAB",
-            "KAsyKC5xcXQucm9vbS52MS5VbnN1YnNjcmliZURpcmVjdG9yeVJlcXVlc3RI",
-            "AFIUdW5zdWJzY3JpYmVEaXJlY3RvcnkSTgoQYWNrX2JhdHRsZV9lbnRyeRgX",
-            "IAEoCzIiLnFxdC5yb29tLnYxLkFja0JhdHRsZUVudHJ5UmVxdWVzdEgAUg5h",
-            "Y2tCYXR0bGVFbnRyeUIJCgdwYXlsb2FkQixaHHFxdC9wcm90by9xcXQvcm9v",
-            "bS92MTtyb29tdjGqAgtRUVQuUm9vbS5WMWIGcHJvdG8z"));
+            "bVNlbGVjdGlvblIJc2VsZWN0aW9uEioKEW9wZW5fc2xvdF9pbmRpY2VzGAIg",
+            "AygFUg9vcGVuU2xvdEluZGljZXMicgocVXBkYXRlTWF0Y2hSb29tQ29uZmln",
+            "UmVxdWVzdBImCg9tYXRjaF9mb3JtYXRfaWQYASABKAlSDW1hdGNoRm9ybWF0",
+            "SWQSKgoRc2VsZWN0ZWRfbW9kZV9pZHMYAiADKAlSD3NlbGVjdGVkTW9kZUlk",
+            "cyI7ChJUb2dnbGVSZWFkeVJlcXVlc3QSJQoOZXhwZWN0ZWRfcmVhZHkYASAB",
+            "KAhSDWV4cGVjdGVkUmVhZHkiHgocU3RhcnRNYW51YWxSb29tQmF0dGxlUmVx",
+            "dWVzdCJfChZFbnRlck1hdGNoUXVldWVSZXF1ZXN0Eh0KCnF1ZXVlX3R5cGUY",
+            "ASABKAlSCXF1ZXVlVHlwZRImCg9tYXRjaF9mb3JtYXRfaWQYAiABKAlSDW1h",
+            "dGNoRm9ybWF0SWQiGQoXQ2FuY2VsTWF0Y2hRdWV1ZVJlcXVlc3QiEgoQTGVh",
+            "dmVSb29tUmVxdWVzdCIbChlTdWJzY3JpYmVEaXJlY3RvcnlSZXF1ZXN0Ih0K",
+            "G1Vuc3Vic2NyaWJlRGlyZWN0b3J5UmVxdWVzdCJZChVBY2tCYXR0bGVFbnRy",
+            "eVJlcXVlc3QSIwoNYXNzaWdubWVudF9pZBgBIAEoCVIMYXNzaWdubWVudElk",
+            "EhsKCWJhdHRsZV9pZBgCIAEoCVIIYmF0dGxlSWQikAoKDkNsaWVudEVudmVs",
+            "b3BlEikKEHByb3RvY29sX3ZlcnNpb24YASABKAlSD3Byb3RvY29sVmVyc2lv",
+            "bhIdCgpyZXF1ZXN0X2lkGAIgASgJUglyZXF1ZXN0SWQSGgoIc2VxdWVuY2UY",
+            "AyABKANSCHNlcXVlbmNlEiUKD3NlbnRfYXRfdW5peF9tcxgEIAEoA1IMc2Vu",
+            "dEF0VW5peE1zEkEKC2NyZWF0ZV9yb29tGAogASgLMh4ucXF0LnJvb20udjEu",
+            "Q3JlYXRlUm9vbVJlcXVlc3RIAFIKY3JlYXRlUm9vbRI7Cglqb2luX3Jvb20Y",
+            "CyABKAsyHC5xcXQucm9vbS52MS5Kb2luUm9vbVJlcXVlc3RIAFIIam9pblJv",
+            "b20SQQoLcmVzdW1lX3Jvb20YDCABKAsyHi5xcXQucm9vbS52MS5SZXN1bWVS",
+            "b29tUmVxdWVzdEgAUgpyZXN1bWVSb29tEkoKDnVwZGF0ZV9wcm9maWxlGA0g",
+            "ASgLMiEucXF0LnJvb20udjEuVXBkYXRlUHJvZmlsZVJlcXVlc3RIAFINdXBk",
+            "YXRlUHJvZmlsZRJQChB1cGRhdGVfc2VsZWN0aW9uGA4gASgLMiMucXF0LnJv",
+            "b20udjEuVXBkYXRlU2VsZWN0aW9uUmVxdWVzdEgAUg91cGRhdGVTZWxlY3Rp",
+            "b24SZAoYdXBkYXRlX21hdGNoX3Jvb21fY29uZmlnGA8gASgLMikucXF0LnJv",
+            "b20udjEuVXBkYXRlTWF0Y2hSb29tQ29uZmlnUmVxdWVzdEgAUhV1cGRhdGVN",
+            "YXRjaFJvb21Db25maWcSRAoMdG9nZ2xlX3JlYWR5GBAgASgLMh8ucXF0LnJv",
+            "b20udjEuVG9nZ2xlUmVhZHlSZXF1ZXN0SABSC3RvZ2dsZVJlYWR5EmQKGHN0",
+            "YXJ0X21hbnVhbF9yb29tX2JhdHRsZRgRIAEoCzIpLnFxdC5yb29tLnYxLlN0",
+            "YXJ0TWFudWFsUm9vbUJhdHRsZVJlcXVlc3RIAFIVc3RhcnRNYW51YWxSb29t",
+            "QmF0dGxlElEKEWVudGVyX21hdGNoX3F1ZXVlGBIgASgLMiMucXF0LnJvb20u",
+            "djEuRW50ZXJNYXRjaFF1ZXVlUmVxdWVzdEgAUg9lbnRlck1hdGNoUXVldWUS",
+            "VAoSY2FuY2VsX21hdGNoX3F1ZXVlGBMgASgLMiQucXF0LnJvb20udjEuQ2Fu",
+            "Y2VsTWF0Y2hRdWV1ZVJlcXVlc3RIAFIQY2FuY2VsTWF0Y2hRdWV1ZRI+Cgps",
+            "ZWF2ZV9yb29tGBQgASgLMh0ucXF0LnJvb20udjEuTGVhdmVSb29tUmVxdWVz",
+            "dEgAUglsZWF2ZVJvb20SWQoTc3Vic2NyaWJlX2RpcmVjdG9yeRgVIAEoCzIm",
+            "LnFxdC5yb29tLnYxLlN1YnNjcmliZURpcmVjdG9yeVJlcXVlc3RIAFISc3Vi",
+            "c2NyaWJlRGlyZWN0b3J5El8KFXVuc3Vic2NyaWJlX2RpcmVjdG9yeRgWIAEo",
+            "CzIoLnFxdC5yb29tLnYxLlVuc3Vic2NyaWJlRGlyZWN0b3J5UmVxdWVzdEgA",
+            "UhR1bnN1YnNjcmliZURpcmVjdG9yeRJOChBhY2tfYmF0dGxlX2VudHJ5GBcg",
+            "ASgLMiIucXF0LnJvb20udjEuQWNrQmF0dGxlRW50cnlSZXF1ZXN0SABSDmFj",
+            "a0JhdHRsZUVudHJ5QgkKB3BheWxvYWRCLFoccXF0L3Byb3RvL3FxdC9yb29t",
+            "L3YxO3Jvb212MaoCC1FRVC5Sb29tLlYxYgZwcm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::QQT.Room.V1.RoomModelsReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
@@ -103,7 +104,7 @@ namespace QQT.Room.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.JoinRoomRequest), global::QQT.Room.V1.JoinRoomRequest.Parser, new[]{ "RoomId", "RoomTicket", "RoomTicketId", "AccountId", "ProfileId", "DeviceSessionId", "PlayerName", "Loadout" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.ResumeRoomRequest), global::QQT.Room.V1.ResumeRoomRequest.Parser, new[]{ "RoomId", "MemberId", "ReconnectToken", "MatchId", "RoomTicket", "RoomTicketId", "AccountId", "ProfileId", "DeviceSessionId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.UpdateProfileRequest), global::QQT.Room.V1.UpdateProfileRequest.Parser, new[]{ "PlayerName", "TeamId", "Loadout" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.UpdateSelectionRequest), global::QQT.Room.V1.UpdateSelectionRequest.Parser, new[]{ "Selection" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.UpdateSelectionRequest), global::QQT.Room.V1.UpdateSelectionRequest.Parser, new[]{ "Selection", "OpenSlotIndices" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.UpdateMatchRoomConfigRequest), global::QQT.Room.V1.UpdateMatchRoomConfigRequest.Parser, new[]{ "MatchFormatId", "SelectedModeIds" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.ToggleReadyRequest), global::QQT.Room.V1.ToggleReadyRequest.Parser, new[]{ "ExpectedReady" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::QQT.Room.V1.StartManualRoomBattleRequest), global::QQT.Room.V1.StartManualRoomBattleRequest.Parser, null, null, null, null, null),
@@ -1983,6 +1984,7 @@ namespace QQT.Room.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public UpdateSelectionRequest(UpdateSelectionRequest other) : this() {
       selection_ = other.selection_ != null ? other.selection_.Clone() : null;
+      openSlotIndices_ = other.openSlotIndices_.Clone();
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -2004,6 +2006,17 @@ namespace QQT.Room.V1 {
       }
     }
 
+    /// <summary>Field number for the "open_slot_indices" field.</summary>
+    public const int OpenSlotIndicesFieldNumber = 2;
+    private static readonly pb::FieldCodec<int> _repeated_openSlotIndices_codec
+        = pb::FieldCodec.ForInt32(18);
+    private readonly pbc::RepeatedField<int> openSlotIndices_ = new pbc::RepeatedField<int>();
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pbc::RepeatedField<int> OpenSlotIndices {
+      get { return openSlotIndices_; }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -2020,6 +2033,7 @@ namespace QQT.Room.V1 {
         return true;
       }
       if (!object.Equals(Selection, other.Selection)) return false;
+      if(!openSlotIndices_.Equals(other.openSlotIndices_)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -2028,6 +2042,7 @@ namespace QQT.Room.V1 {
     public override int GetHashCode() {
       int hash = 1;
       if (selection_ != null) hash ^= Selection.GetHashCode();
+      hash ^= openSlotIndices_.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -2050,6 +2065,7 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(10);
         output.WriteMessage(Selection);
       }
+      openSlotIndices_.WriteTo(output, _repeated_openSlotIndices_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -2064,6 +2080,7 @@ namespace QQT.Room.V1 {
         output.WriteRawTag(10);
         output.WriteMessage(Selection);
       }
+      openSlotIndices_.WriteTo(ref output, _repeated_openSlotIndices_codec);
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -2077,6 +2094,7 @@ namespace QQT.Room.V1 {
       if (selection_ != null) {
         size += 1 + pb::CodedOutputStream.ComputeMessageSize(Selection);
       }
+      size += openSlotIndices_.CalculateSize(_repeated_openSlotIndices_codec);
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
       }
@@ -2095,6 +2113,7 @@ namespace QQT.Room.V1 {
         }
         Selection.MergeFrom(other.Selection);
       }
+      openSlotIndices_.Add(other.openSlotIndices_);
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
 
@@ -2121,6 +2140,11 @@ namespace QQT.Room.V1 {
             input.ReadMessage(Selection);
             break;
           }
+          case 18:
+          case 16: {
+            openSlotIndices_.AddEntriesFrom(input, _repeated_openSlotIndices_codec);
+            break;
+          }
         }
       }
     #endif
@@ -2145,6 +2169,11 @@ namespace QQT.Room.V1 {
               Selection = new global::QQT.Room.V1.RoomSelection();
             }
             input.ReadMessage(Selection);
+            break;
+          }
+          case 18:
+          case 16: {
+            openSlotIndices_.AddEntriesFrom(ref input, _repeated_openSlotIndices_codec);
             break;
           }
         }

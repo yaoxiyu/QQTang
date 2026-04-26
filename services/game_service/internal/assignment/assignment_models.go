@@ -44,3 +44,19 @@ type CommitResult struct {
 	CommitState        string `json:"commit_state"`
 	RoomID             string `json:"room_id"`
 }
+
+type StatusResult struct {
+	AssignmentID        string
+	AssignmentRevision  int
+	RoomID              string
+	RoomKind            string
+	MatchID             string
+	BattleID            string
+	ServerHost          string
+	ServerPort          int
+	QueueState          string
+	QueuePhase          string
+	QueueTerminalReason string
+	QueueStatusText     string
+	AllocationState     string
+}

@@ -191,8 +191,9 @@ func (d *Dispatcher) handleUpdateSelection(conn *Connection, env *ClientEnvelope
 	}
 	payload := env.UpdateSelection.Selection
 	snapshot, err := d.app.UpdateSelection(roomapp.UpdateSelectionInput{
-		RoomID:   roomID,
-		MemberID: memberID,
+		RoomID:          roomID,
+		MemberID:        memberID,
+		OpenSlotIndices: append([]int{}, env.UpdateSelection.OpenSlotIndices...),
 		Selection: roomapp.Selection{
 			MapID:           payload.MapID,
 			RuleSetID:       payload.RuleSetID,
@@ -202,8 +203,10 @@ func (d *Dispatcher) handleUpdateSelection(conn *Connection, env *ClientEnvelope
 		},
 	})
 	if err != nil {
+		d.logOperationRejected("UpdateSelection", conn, roomID, memberID, err)
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "UpdateSelection", "ROOM_UPDATE_SELECTION_REJECTED", err.Error())}, nil
 	}
+	d.logSnapshotCapabilities("UpdateSelection", conn, snapshot)
 	return [][]byte{EncodeOperationAccepted(conn, env.RequestID, "UpdateSelection"), EncodeSnapshotPush(conn, env.RequestID, snapshot)}, nil
 }
 
@@ -245,15 +248,12 @@ func (d *Dispatcher) handleLeaveRoom(conn *Connection, env *ClientEnvelope) ([][
 	if err != nil {
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "LeaveRoom", "ROOM_LEAVE_REJECTED", err.Error())}, nil
 	}
-	snapshot, err := d.app.LeaveRoom(roomapp.LeaveRoomInput{RoomID: roomID, MemberID: memberID})
+	_, err = d.app.LeaveRoom(roomapp.LeaveRoomInput{RoomID: roomID, MemberID: memberID})
 	if err != nil {
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "LeaveRoom", "ROOM_LEAVE_REJECTED", err.Error())}, nil
 	}
 	conn.ClearRoomBinding()
 	out := [][]byte{EncodeOperationAccepted(conn, env.RequestID, "LeaveRoom")}
-	if snapshot != nil {
-		out = append(out, EncodeSnapshotPush(conn, env.RequestID, snapshot))
-	}
 	return out, nil
 }
 
@@ -283,8 +283,10 @@ func (d *Dispatcher) handleStartManualRoomBattle(conn *Connection, env *ClientEn
 	}
 	snapshot, err := d.app.StartManualRoomBattle(roomapp.StartManualRoomBattleInput{RoomID: roomID, MemberID: memberID})
 	if err != nil {
+		d.logOperationRejected("StartManualRoomBattle", conn, roomID, memberID, err)
 		return [][]byte{EncodeOperationRejected(conn, env.RequestID, "StartManualRoomBattle", "ROOM_START_REJECTED", err.Error())}, nil
 	}
+	d.logSnapshotCapabilities("StartManualRoomBattle", conn, snapshot)
 	return [][]byte{
 		EncodeOperationAccepted(conn, env.RequestID, "StartManualRoomBattle"),
 		EncodeSnapshotPush(conn, env.RequestID, snapshot),
@@ -351,7 +353,7 @@ func (d *Dispatcher) logSnapshotCapabilities(operation string, conn *Connection,
 	if conn != nil {
 		connID = conn.ID()
 	}
-	d.logger.Info(
+	d.logger.Debug(
 		"room snapshot capabilities",
 		"operation", operation,
 		"conn_id", connID,
@@ -359,6 +361,8 @@ func (d *Dispatcher) logSnapshotCapabilities(operation string, conn *Connection,
 		"room_kind", snapshot.RoomKind,
 		"owner_member_id", snapshot.OwnerMemberID,
 		"member_count", len(snapshot.Members),
+		"max_player_count", snapshot.MaxPlayerCount,
+		"open_slot_indices", snapshot.OpenSlotIndices,
 		"room_phase", snapshot.RoomPhase,
 		"match_format_id", snapshot.Selection.MatchFormatID,
 		"selected_mode_ids", snapshot.Selection.SelectedModeIDs,

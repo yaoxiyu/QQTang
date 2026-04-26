@@ -99,7 +99,8 @@ type UpdateProfilePayload struct {
 }
 
 type UpdateSelectionPayload struct {
-	Selection SelectionPayload
+	Selection       SelectionPayload
+	OpenSlotIndices []int
 }
 
 type UpdateMatchRoomConfigPayload struct {
@@ -194,7 +195,8 @@ func DecodeClientEnvelope(payload []byte) (*ClientEnvelope, error) {
 		update := pbEnv.GetUpdateSelection()
 		env.PayloadType = PayloadUpdateSelection
 		env.UpdateSelection = &UpdateSelectionPayload{
-			Selection: decodeSelection(update.GetSelection()),
+			Selection:       decodeSelection(update.GetSelection()),
+			OpenSlotIndices: decodeInt32List(update.GetOpenSlotIndices()),
 		}
 	case *roomv1.ClientEnvelope_UpdateMatchRoomConfig:
 		update := pbEnv.GetUpdateMatchRoomConfig()
@@ -245,6 +247,14 @@ func DecodeClientEnvelope(payload []byte) (*ClientEnvelope, error) {
 		return nil, fmt.Errorf("envelope payload is empty")
 	}
 	return env, nil
+}
+
+func decodeInt32List(values []int32) []int {
+	result := make([]int, 0, len(values))
+	for _, value := range values {
+		result = append(result, int(value))
+	}
+	return result
 }
 
 func isSupportedProtocolVersion(version string) bool {

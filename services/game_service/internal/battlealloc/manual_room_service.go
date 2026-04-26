@@ -110,6 +110,7 @@ func (s *ManualRoomService) Create(ctx context.Context, input ManualRoomBattleIn
 		RoomID:                 input.SourceRoomID,
 		RoomKind:               input.SourceRoomKind,
 		MatchID:                matchID,
+		SeasonID:               "season_s1",
 		ModeID:                 input.ModeID,
 		RuleSetID:              input.RuleSetID,
 		MapID:                  input.MapID,

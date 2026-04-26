@@ -53,6 +53,7 @@ var can_update_match_room_config: bool = false
 var can_enter_queue: bool = false
 var can_cancel_queue: bool = false
 var can_leave_room: bool = false
+var open_slot_indices: Array[int] = []
 
 
 func to_dict() -> Dictionary:
@@ -113,6 +114,7 @@ func to_dict() -> Dictionary:
 		"can_enter_queue": can_enter_queue,
 		"can_cancel_queue": can_cancel_queue,
 		"can_leave_room": can_leave_room,
+		"open_slot_indices": open_slot_indices.duplicate(),
 	}
 
 
@@ -167,6 +169,7 @@ static func from_dict(data: Dictionary) -> RoomSnapshot:
 	snapshot.can_enter_queue = bool(data.get("can_enter_queue", false))
 	snapshot.can_cancel_queue = bool(data.get("can_cancel_queue", false))
 	snapshot.can_leave_room = bool(data.get("can_leave_room", false))
+	snapshot.open_slot_indices = _to_int_array(data.get("open_slot_indices", []))
 
 	var member_entries: Array = data.get("members", [])
 	for entry in member_entries:
@@ -210,4 +213,12 @@ static func _to_string_array(value: Variant) -> Array[String]:
 	if value is Array:
 		for item in value:
 			result.append(String(item))
+	return result
+
+
+static func _to_int_array(value: Variant) -> Array[int]:
+	var result: Array[int] = []
+	if value is Array:
+		for item in value:
+			result.append(int(item))
 	return result

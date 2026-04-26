@@ -2,6 +2,7 @@ package rpcapi
 
 import (
 	"context"
+	"strings"
 
 	gamev1 "qqtang/services/game_service/internal/gen/qqt/gamev1shim"
 
@@ -23,6 +24,7 @@ type ManualRoomBattleService interface {
 type AssignmentCommitService interface {
 	CommitRoom(ctx context.Context, input assignment.CommitInput) (assignment.CommitResult, error)
 	CommitBattleEntryReady(ctx context.Context, input assignment.CommitInput) (assignment.CommitResult, error)
+	GetStatus(ctx context.Context, roomID string, assignmentID string) (assignment.StatusResult, error)
 }
 
 type RoomControlService struct {
@@ -64,14 +66,28 @@ func (s *RoomControlService) CancelPartyQueue(ctx context.Context, req *gamev1.C
 }
 
 func (s *RoomControlService) GetPartyQueueStatus(ctx context.Context, req *gamev1.GetPartyQueueStatusRequest) (*gamev1.GetPartyQueueStatusResponse, error) {
-	if s.queue == nil {
+	if s.queue == nil && s.assignment == nil {
 		return errorGetPartyQueueStatus("QUEUE_SERVICE_MISSING", "queue service is not configured"), nil
 	}
-	status, err := s.queue.GetPartyQueueStatus(ctx, roomIDFromContext(req.GetContext()), req.GetQueueEntryId())
-	if err != nil {
-		return errorGetPartyQueueStatus("GET_PARTY_QUEUE_STATUS_FAILED", err.Error()), nil
+	roomID := roomIDFromContext(req.GetContext())
+	queueEntryID := req.GetQueueEntryId()
+	if s.queue != nil && !strings.HasPrefix(queueEntryID, "assign_") {
+		status, err := s.queue.GetPartyQueueStatus(ctx, roomID, queueEntryID)
+		if err == nil {
+			return successGetPartyQueueStatus(status), nil
+		}
+		if s.assignment == nil {
+			return errorGetPartyQueueStatus("GET_PARTY_QUEUE_STATUS_FAILED", err.Error()), nil
+		}
 	}
-	return successGetPartyQueueStatus(status), nil
+	if s.assignment == nil {
+		return errorGetPartyQueueStatus("ASSIGNMENT_SERVICE_MISSING", "assignment service is not configured"), nil
+	}
+	status, err := s.assignment.GetStatus(ctx, roomID, queueEntryID)
+	if err != nil {
+		return errorGetPartyQueueStatus("GET_ASSIGNMENT_STATUS_FAILED", err.Error()), nil
+	}
+	return successAssignmentStatus(status), nil
 }
 
 func (s *RoomControlService) CreateManualRoomBattle(ctx context.Context, req *gamev1.CreateManualRoomBattleRequest) (*gamev1.CreateManualRoomBattleResponse, error) {

@@ -102,9 +102,10 @@ func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
 			Phase: RoomPhaseIdle,
 		},
 		Members: map[string]domain.RoomMember{
-			"owner": {MemberID: "owner", MemberPhase: MemberPhaseReady, Ready: true},
-			"guest": {MemberID: "guest", MemberPhase: MemberPhaseReady, Ready: true},
+			"owner": {MemberID: "owner", TeamID: 1, MemberPhase: MemberPhaseReady, Ready: true},
+			"guest": {MemberID: "guest", TeamID: 2, MemberPhase: MemberPhaseReady, Ready: true},
 		},
+		MaxPlayerCount: 4,
 	}
 
 	rebuildRoomCapabilities(room, "owner", query)
@@ -120,6 +121,29 @@ func TestRebuildRoomCapabilities_IdleMatchRoomReadyMembers(t *testing.T) {
 	}
 	if !room.Capabilities.CanUpdateMatchRoomConfig {
 		t.Fatalf("expected can_update_match_room_config for owner in match room idle")
+	}
+}
+
+func TestRebuildRoomCapabilities_ManualRoomRejectsSingleTeam(t *testing.T) {
+	room := &domain.RoomAggregate{
+		RoomKind: "private_room",
+		Selection: domain.RoomSelection{
+			MapID:     "map_classic_square",
+			RuleSetID: "ruleset_classic",
+			ModeID:    "mode_classic",
+		},
+		RoomState: domain.RoomFSMState{Phase: RoomPhaseIdle},
+		Members: map[string]domain.RoomMember{
+			"owner": {MemberID: "owner", TeamID: 1, MemberPhase: MemberPhaseReady, Ready: true},
+			"guest": {MemberID: "guest", TeamID: 1, MemberPhase: MemberPhaseReady, Ready: true},
+		},
+		MaxPlayerCount: 4,
+	}
+
+	rebuildRoomCapabilities(room, "owner", nil)
+
+	if room.Capabilities.CanStartManualBattle {
+		t.Fatalf("expected can_start_manual_battle false for one team")
 	}
 }
 
@@ -187,9 +211,10 @@ func TestRebuildRoomCapabilities_ManualRoomRules(t *testing.T) {
 			Phase: RoomPhaseIdle,
 		},
 		Members: map[string]domain.RoomMember{
-			"owner": {MemberID: "owner", MemberPhase: MemberPhaseReady, Ready: true},
-			"guest": {MemberID: "guest", MemberPhase: MemberPhaseReady, Ready: true},
+			"owner": {MemberID: "owner", TeamID: 1, MemberPhase: MemberPhaseReady, Ready: true},
+			"guest": {MemberID: "guest", TeamID: 2, MemberPhase: MemberPhaseReady, Ready: true},
 		},
+		MaxPlayerCount: 4,
 	}
 
 	rebuildRoomCapabilities(room, "owner", nil)
@@ -202,5 +227,30 @@ func TestRebuildRoomCapabilities_ManualRoomRules(t *testing.T) {
 	}
 	if !room.Capabilities.CanUpdateSelection {
 		t.Fatalf("expected can_update_selection true for owner in manual room idle")
+	}
+}
+
+func TestRebuildRoomCapabilities_ManualRoomDoesNotRequireOwnerReady(t *testing.T) {
+	room := &domain.RoomAggregate{
+		RoomKind: "private_room",
+		Selection: domain.RoomSelection{
+			MapID:     "map_classic_square",
+			RuleSetID: "ruleset_classic",
+			ModeID:    "mode_classic",
+		},
+		RoomState: domain.RoomFSMState{
+			Phase: RoomPhaseIdle,
+		},
+		Members: map[string]domain.RoomMember{
+			"owner": {MemberID: "owner", TeamID: 1, MemberPhase: MemberPhaseIdle, Ready: false},
+			"guest": {MemberID: "guest", TeamID: 2, MemberPhase: MemberPhaseReady, Ready: true},
+		},
+		MaxPlayerCount: 4,
+	}
+
+	rebuildRoomCapabilities(room, "owner", nil)
+
+	if !room.Capabilities.CanStartManualBattle {
+		t.Fatalf("expected owner to start manual room when non-host members are ready")
 	}
 }

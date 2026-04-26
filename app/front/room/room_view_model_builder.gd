@@ -49,10 +49,12 @@ func build_view_model(
 	if required_team_count <= 0:
 		required_team_count = max(1, min_start_players)
 	var max_player_count := int(binding.get("max_player_count", safe_snapshot.max_players))
+	if safe_snapshot.max_players > 0:
+		max_player_count = safe_snapshot.max_players
 	if max_player_count <= 0:
 		max_player_count = safe_snapshot.max_players
-	var can_edit_selection := bool(safe_snapshot.can_update_selection)
-	var can_edit_match_room_config := bool(safe_snapshot.can_update_match_room_config)
+	var can_edit_selection := is_host and bool(safe_snapshot.can_update_selection)
+	var can_edit_match_room_config := is_host and bool(safe_snapshot.can_update_match_room_config)
 	var can_enter_queue := bool(safe_snapshot.can_enter_queue)
 	var can_cancel_queue := bool(safe_snapshot.can_cancel_queue)
 	var rule_display_name := String(binding.get("rule_set_name", safe_snapshot.rule_set_id))
@@ -272,12 +274,12 @@ func _build_blocker_text(
 	var max_player_count := int(binding.get("max_player_count", snapshot.max_players))
 	if max_player_count > 0 and member_count > max_player_count:
 		return "Room is over capacity"
-	if member_count < min_start_players:
-		return "Need at least %d player(s)" % min_start_players
+	if member_count < 2:
+		return "Need at least 2 player(s)"
 	if _count_distinct_team_ids(snapshot) < required_team_count:
 		return "Need at least %d teams" % required_team_count
-	if not snapshot.all_ready:
-		return "All players must be ready"
+	if not _non_owner_members_ready(snapshot):
+		return "All non-host players must be ready"
 	return ""
 
 
@@ -291,6 +293,17 @@ func _count_distinct_team_ids(snapshot: RoomSnapshot) -> int:
 		if not team_ids.has(member.team_id):
 			team_ids.append(member.team_id)
 	return team_ids.size()
+
+
+func _non_owner_members_ready(snapshot: RoomSnapshot) -> bool:
+	if snapshot == null or snapshot.members.size() < 2:
+		return false
+	for member in snapshot.members:
+		if member == null or member.is_owner:
+			continue
+		if not member.ready:
+			return false
+	return true
 
 
 func _resolve_owner_name(snapshot: RoomSnapshot, player_profile_state: PlayerProfileState) -> String:

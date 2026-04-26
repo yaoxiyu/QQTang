@@ -15,7 +15,7 @@ const PREVIEW_STATES := [
 	{"facing": 0, "input_move_x": 0, "input_move_y": -1},
 ]
 
-@onready var _preview_root: Node2D = $PreviewViewport/PreviewRoot
+@onready var _preview_root: Node2D = get_node_or_null("PreviewViewport/PreviewRoot")
 
 var _body_view: Node2D = null
 var _preview_state_index: int = 0
@@ -34,6 +34,10 @@ func _process(delta: float) -> void:
 
 
 func configure_preview(character_id: String, character_skin_id: String = "") -> void:
+	_preview_root = get_node_or_null("PreviewViewport/PreviewRoot")
+	if _preview_root == null:
+		push_error("RoomCharacterPreview.configure_preview failed: missing PreviewRoot for %s" % character_id)
+		return
 	_clear_current_body_view()
 	_preview_state_index = 0
 	_preview_state_elapsed = 0.0

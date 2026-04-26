@@ -71,6 +71,8 @@ func TestEncodeSnapshotPush_ContainsFieldsAndNoReconnectTokenLeak(t *testing.T) 
 		RoomDisplayName:  "Room 1",
 		SnapshotRevision: 42,
 		OwnerMemberID:    "member-1",
+		MaxPlayerCount:   4,
+		OpenSlotIndices:  []int{0, 1, 2, 3},
 		Selection: domain.RoomSelection{
 			MapID:         "map_arcade",
 			RuleSetID:     "ruleset_classic",
@@ -114,6 +116,12 @@ func TestEncodeSnapshotPush_ContainsFieldsAndNoReconnectTokenLeak(t *testing.T) 
 	}
 	if mappedSnapshot.GetSelection().GetMapId() != "map_arcade" {
 		t.Fatalf("expected map_arcade, got %s", mappedSnapshot.GetSelection().GetMapId())
+	}
+	if mappedSnapshot.GetMaxPlayerCount() != 4 {
+		t.Fatalf("expected max_player_count 4, got %d", mappedSnapshot.GetMaxPlayerCount())
+	}
+	if len(mappedSnapshot.GetOpenSlotIndices()) != 4 {
+		t.Fatalf("expected four open slots, got %d", len(mappedSnapshot.GetOpenSlotIndices()))
 	}
 	if len(mappedSnapshot.GetMembers()) != 1 {
 		t.Fatalf("expected one member, got %d", len(mappedSnapshot.GetMembers()))

@@ -30,6 +30,7 @@ public class RoomSnapshotMapperTests
             CanEnterQueue = false,
             CanCancelQueue = true,
             CanLeaveRoom = true,
+            MaxPlayerCount = 4,
             Selection = new RoomSelection
             {
                 MapId = "map_arcade",
@@ -62,13 +63,17 @@ public class RoomSnapshotMapperTests
                 StatusText = "Battle ready",
             },
         };
+        snapshot.OpenSlotIndices.AddRange(new[] { 0, 1, 2, 3 });
 
         var mapped = RoomSnapshotMapperCore.ToSnapshotDictionary(snapshot);
         var members = Assert.IsType<List<object?>>(mapped["members"]);
         var firstMember = Assert.IsType<Dictionary<string, object?>>(members[0]);
+        var openSlotIndices = Assert.IsType<List<object?>>(mapped["open_slot_indices"]);
 
         Assert.Equal("room_1", mapped["room_id"]);
         Assert.Equal("mode_classic", mapped["mode_id"]);
+        Assert.Equal(4, mapped["max_players"]);
+        Assert.Equal(4, openSlotIndices.Count);
         Assert.Equal("queue_active", mapped["room_phase"]);
         Assert.Equal("none", mapped["room_phase_reason"]);
         Assert.Equal("queued", mapped["queue_phase"]);

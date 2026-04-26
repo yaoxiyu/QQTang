@@ -15,13 +15,14 @@ public static class RoomSnapshotMapperCore
         var selection = snapshot.Selection ?? new RoomSelection();
         var battleEntry = snapshot.BattleEntry ?? new BattleEntryState();
         var ownerMemberId = snapshot.OwnerMemberId ?? string.Empty;
+        var localMemberId = snapshot.LocalMemberId ?? string.Empty;
         var roomKind = snapshot.RoomKind ?? string.Empty;
         var members = new List<object?>(snapshot.Members.Count);
         var allReady = snapshot.Members.Count > 0;
         for (var i = 0; i < snapshot.Members.Count; i++)
         {
             var roomMember = snapshot.Members[i];
-            members.Add(ToMemberDictionary(roomMember, ownerMemberId, i));
+            members.Add(ToMemberDictionary(roomMember, ownerMemberId, localMemberId, i));
             if (allReady && !(roomMember?.Ready ?? false))
             {
                 allReady = false;
@@ -35,6 +36,7 @@ public static class RoomSnapshotMapperCore
             { "topology", "dedicated_server" },
             { "room_display_name", snapshot.RoomDisplayName ?? string.Empty },
             { "owner_member_id", ownerMemberId },
+            { "local_member_id", localMemberId },
             { "owner_peer_id", ResolvePeerId(ownerMemberId) },
             { "room_phase", snapshot.RoomPhase ?? string.Empty },
             { "room_phase_reason", snapshot.RoomPhaseReason ?? string.Empty },
@@ -69,14 +71,17 @@ public static class RoomSnapshotMapperCore
             { "selected_map_id", selection.MapId ?? string.Empty },
             { "rule_set_id", selection.RuleSetId ?? string.Empty },
             { "mode_id", selection.ModeId ?? string.Empty },
+            { "max_players", snapshot.MaxPlayerCount },
+            { "open_slot_indices", ToIntList(snapshot.OpenSlotIndices) },
             { "members", members },
         };
     }
 
-    private static Dictionary<string, object?> ToMemberDictionary(RoomMember member, string ownerMemberId, int slotIndex)
+    private static Dictionary<string, object?> ToMemberDictionary(RoomMember member, string ownerMemberId, string localMemberId, int fallbackSlotIndex)
     {
         var loadout = member?.Loadout ?? new RoomLoadout();
         var memberId = member?.MemberId ?? string.Empty;
+        var slotIndex = member?.SlotIndex ?? fallbackSlotIndex;
         return new Dictionary<string, object?>
         {
             { "peer_id", ResolvePeerId(memberId) },
@@ -94,7 +99,7 @@ public static class RoomSnapshotMapperCore
             { "member_phase", member?.MemberPhase ?? string.Empty },
             { "slot_index", slotIndex },
             { "is_owner", string.Equals(memberId, ownerMemberId ?? string.Empty, StringComparison.Ordinal) },
-            { "is_local_player", false },
+            { "is_local_player", string.Equals(memberId, localMemberId ?? string.Empty, StringComparison.Ordinal) },
         };
     }
 
@@ -104,6 +109,16 @@ public static class RoomSnapshotMapperCore
         foreach (var value in values)
         {
             result.Add(value ?? string.Empty);
+        }
+        return result;
+    }
+
+    private static List<object?> ToIntList(Google.Protobuf.Collections.RepeatedField<int> values)
+    {
+        var result = new List<object?>(values.Count);
+        foreach (var value in values)
+        {
+            result.Add(value);
         }
         return result;
     }

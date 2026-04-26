@@ -130,6 +130,25 @@ func successGetPartyQueueStatus(status queue.PartyQueueStatus) *gamev1.GetPartyQ
 	}
 }
 
+func successAssignmentStatus(status assignment.StatusResult) *gamev1.GetPartyQueueStatusResponse {
+	return &gamev1.GetPartyQueueStatusResponse{
+		Ok:                   true,
+		QueueState:           status.QueueState,
+		AssignmentId:         status.AssignmentID,
+		MatchId:              status.MatchID,
+		BattleId:             status.BattleID,
+		ServerHost:           status.ServerHost,
+		ServerPort:           int32(status.ServerPort),
+		QueuePhase:           status.QueuePhase,
+		QueueTerminalReason:  status.QueueTerminalReason,
+		QueueStatusText:      status.QueueStatusText,
+		AssignmentStatusText: status.QueueStatusText,
+		AllocationPhase:      status.AllocationState,
+		BattleEntryReady:     status.QueuePhase == "entry_ready",
+		AssignmentRevision:   int32(status.AssignmentRevision),
+	}
+}
+
 func errorGetPartyQueueStatus(code, message string) *gamev1.GetPartyQueueStatusResponse {
 	return &gamev1.GetPartyQueueStatusResponse{
 		Ok:          false,

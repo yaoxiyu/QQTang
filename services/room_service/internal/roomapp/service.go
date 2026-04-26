@@ -94,9 +94,10 @@ type UpdateProfileInput struct {
 }
 
 type UpdateSelectionInput struct {
-	RoomID    string
-	MemberID  string
-	Selection Selection
+	RoomID          string
+	MemberID        string
+	Selection       Selection
+	OpenSlotIndices []int
 }
 
 type UpdateMatchRoomConfigInput struct {
@@ -145,6 +146,8 @@ type SnapshotProjection struct {
 	OwnerMemberID        string
 	Selection            domain.RoomSelection
 	Members              []domain.RoomMember
+	MaxPlayerCount       int
+	OpenSlotIndices      []int
 	QueuePhase           string
 	QueueTerminalReason  string
 	QueueStatusText      string
@@ -228,6 +231,7 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 		ProfileID:       input.ProfileID,
 		PlayerName:      input.PlayerName,
 		TeamID:          1,
+		SlotIndex:       0,
 		MemberPhase:     MemberPhaseIdle,
 		ConnectionState: "connected",
 		ConnectionID:    input.ConnectionID,
@@ -277,7 +281,8 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 			Phase:          BattlePhaseIdle,
 			TerminalReason: BattleReasonNone,
 		},
-		MaxPlayerCount: mapEntry.MaxPlayerCount,
+		MaxPlayerCount:  mapEntry.MaxPlayerCount,
+		OpenSlotIndices: defaultOpenSlotIndices(mapEntry.MaxPlayerCount),
 	}
 	roomTransitionEngine.ApplyCreateRoom(agg, memberID)
 
@@ -306,7 +311,8 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 	if room == nil {
 		return nil, ErrRoomNotFound
 	}
-	if len(room.Members) >= room.MaxPlayerCount {
+	slotIndex, ok := firstAvailableSlot(room.OpenSlotIndices, room.Members)
+	if !ok {
 		return nil, ErrRoomNotJoinable
 	}
 
@@ -318,6 +324,7 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 		ProfileID:       input.ProfileID,
 		PlayerName:      input.PlayerName,
 		TeamID:          1,
+		SlotIndex:       slotIndex,
 		MemberPhase:     MemberPhaseIdle,
 		ConnectionState: "connected",
 		ConnectionID:    input.ConnectionID,
@@ -400,6 +407,9 @@ func (s *Service) LeaveRoom(input LeaveRoomInput) (*SnapshotProjection, error) {
 	delete(room.Members, input.MemberID)
 	delete(room.ResumeBindings, input.MemberID)
 	delete(s.roomByMemberID, input.MemberID)
+	if s.roomOwnerByID[input.RoomID] == input.MemberID {
+		s.roomOwnerByID[input.RoomID] = selectNextRoomOwner(room.Members)
+	}
 
 	if len(room.Members) == 0 {
 		s.registry.RemoveRoomEntry(input.RoomID)
@@ -479,6 +489,15 @@ func (s *Service) UpdateSelection(input UpdateSelectionInput) (*SnapshotProjecti
 		SelectedModeIDs: append([]string{}, resolvedSelection.SelectedModeIDs...),
 	}
 	room.MaxPlayerCount = mapEntry.MaxPlayerCount
+	if len(input.OpenSlotIndices) > 0 {
+		normalizedSlots, normalizeErr := normalizeOpenSlotIndices(input.OpenSlotIndices, mapEntry.MaxPlayerCount, room.Members)
+		if normalizeErr != nil {
+			return nil, normalizeErr
+		}
+		room.OpenSlotIndices = normalizedSlots
+	} else {
+		room.OpenSlotIndices = expandOpenSlotIndices(room.OpenSlotIndices, mapEntry.MaxPlayerCount, room.Members)
+	}
 	s.touchRoomSnapshotLocked(room)
 	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
@@ -716,7 +735,10 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 	if room.RoomState.Phase != RoomPhaseIdle {
 		return nil, ErrRoomPhaseInvalid
 	}
-	if !allMembersReady(room.Members) {
+	if !nonOwnerMembersReady(room.Members, s.roomOwnerByID[input.RoomID]) {
+		return nil, ErrMembersNotReady
+	}
+	if !canStartManualRoom(room) {
 		return nil, ErrMembersNotReady
 	}
 	if s.game == nil {
@@ -752,6 +774,10 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		TerminalReason:     BattleReasonManualStart,
 		Ready:              true,
 	})
+	room.QueueState.Phase = QueuePhaseEntryReady
+	room.QueueState.TerminalReason = QueueReasonNone
+	room.QueueState.QueueEntryID = result.AssignmentID
+	room.QueueState.StatusText = "battle_ready"
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -1022,6 +1048,8 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 		OwnerMemberID:        s.roomOwnerByID[room.RoomID],
 		Selection:            room.Selection,
 		Members:              members,
+		MaxPlayerCount:       room.MaxPlayerCount,
+		OpenSlotIndices:      append([]int{}, room.OpenSlotIndices...),
 		QueuePhase:           room.QueueState.Phase,
 		QueueTerminalReason:  room.QueueState.TerminalReason,
 		QueueStatusText:      room.QueueState.StatusText,
@@ -1127,10 +1155,10 @@ func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
 		if room == nil {
 			continue
 		}
-		if !isMatchRoomKind(room.RoomKind) {
+		if room.QueueState.QueueEntryID == "" {
 			continue
 		}
-		if room.QueueState.QueueEntryID == "" {
+		if !isMatchRoomKind(room.RoomKind) && !isManualRoomKind(room.RoomKind) {
 			continue
 		}
 		if !shouldSyncQueueState(room.QueueState.Phase) {
@@ -1215,6 +1243,37 @@ func allMembersReady(members map[string]domain.RoomMember) bool {
 	return true
 }
 
+func nonOwnerMembersReady(members map[string]domain.RoomMember, ownerMemberID string) bool {
+	if len(members) < 2 {
+		return false
+	}
+	for memberID, member := range members {
+		if memberID == ownerMemberID {
+			continue
+		}
+		if member.MemberPhase != MemberPhaseReady {
+			return false
+		}
+	}
+	return true
+}
+
+func selectNextRoomOwner(members map[string]domain.RoomMember) string {
+	nextOwnerID := ""
+	nextSlot := int(^uint(0) >> 1)
+	for memberID, member := range members {
+		slotIndex := member.SlotIndex
+		if slotIndex < 0 {
+			slotIndex = nextSlot
+		}
+		if nextOwnerID == "" || slotIndex < nextSlot || (slotIndex == nextSlot && memberID < nextOwnerID) {
+			nextOwnerID = memberID
+			nextSlot = slotIndex
+		}
+	}
+	return nextOwnerID
+}
+
 func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyMember {
 	result := make([]gameclient.PartyMember, 0, len(members))
 	for _, member := range members {
@@ -1294,7 +1353,8 @@ func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 		return
 	}
 	memberCount := len(room.Members)
-	joinable := memberCount < room.MaxPlayerCount &&
+	_, hasAvailableSlot := firstAvailableSlot(room.OpenSlotIndices, room.Members)
+	joinable := hasAvailableSlot &&
 		!canCancelQueueFromState(room.QueueState.Phase) &&
 		room.RoomState.Phase != RoomPhaseBattleEntryReady &&
 		room.RoomState.Phase != RoomPhaseBattleEntering &&
@@ -1309,6 +1369,114 @@ func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 		MaxPlayerCount:  int32(room.MaxPlayerCount),
 		Joinable:        joinable,
 	})
+}
+
+func defaultOpenSlotIndices(maxPlayerCount int) []int {
+	if maxPlayerCount <= 0 {
+		return []int{}
+	}
+	result := make([]int, 0, maxPlayerCount)
+	for slotIndex := 0; slotIndex < maxPlayerCount; slotIndex++ {
+		result = append(result, slotIndex)
+	}
+	return result
+}
+
+func firstAvailableSlot(openSlotIndices []int, members map[string]domain.RoomMember) (int, bool) {
+	occupied := occupiedSlotSet(members)
+	normalized := normalizeSlotSet(openSlotIndices)
+	for _, slotIndex := range normalized {
+		if !occupied[slotIndex] {
+			return slotIndex, true
+		}
+	}
+	return 0, false
+}
+
+func normalizeOpenSlotIndices(requested []int, maxPlayerCount int, members map[string]domain.RoomMember) ([]int, error) {
+	if maxPlayerCount <= 0 {
+		return nil, ErrInvalidSelection
+	}
+	occupied := occupiedSlotSet(members)
+	slotSet := map[int]struct{}{}
+	for _, slotIndex := range requested {
+		if slotIndex < 0 || slotIndex >= maxPlayerCount {
+			return nil, ErrInvalidSelection
+		}
+		slotSet[slotIndex] = struct{}{}
+	}
+	for slotIndex := range occupied {
+		if slotIndex < 0 || slotIndex >= maxPlayerCount {
+			return nil, ErrInvalidSelection
+		}
+		slotSet[slotIndex] = struct{}{}
+	}
+	requiredOpenCount := len(occupied)
+	if requiredOpenCount < 2 {
+		requiredOpenCount = 2
+	}
+	if len(slotSet) < requiredOpenCount {
+		return nil, ErrInvalidSelection
+	}
+	return sortedSlotSet(slotSet), nil
+}
+
+func expandOpenSlotIndices(current []int, maxPlayerCount int, members map[string]domain.RoomMember) []int {
+	if maxPlayerCount <= 0 {
+		return []int{}
+	}
+	slotSet := map[int]struct{}{}
+	for _, slotIndex := range current {
+		if slotIndex >= 0 && slotIndex < maxPlayerCount {
+			slotSet[slotIndex] = struct{}{}
+		}
+	}
+	for slotIndex := range occupiedSlotSet(members) {
+		if slotIndex >= 0 && slotIndex < maxPlayerCount {
+			slotSet[slotIndex] = struct{}{}
+		}
+	}
+	for slotIndex := 0; len(slotSet) < 2 && slotIndex < maxPlayerCount; slotIndex++ {
+		slotSet[slotIndex] = struct{}{}
+	}
+	return sortedSlotSet(slotSet)
+}
+
+func occupiedSlotSet(members map[string]domain.RoomMember) map[int]bool {
+	result := map[int]bool{}
+	for _, member := range members {
+		if member.SlotIndex >= 0 {
+			result[member.SlotIndex] = true
+		}
+	}
+	return result
+}
+
+func normalizeSlotSet(slots []int) []int {
+	slotSet := map[int]struct{}{}
+	for _, slotIndex := range slots {
+		if slotIndex >= 0 {
+			slotSet[slotIndex] = struct{}{}
+		}
+	}
+	return sortedSlotSet(slotSet)
+}
+
+func sortedSlotSet(slotSet map[int]struct{}) []int {
+	result := make([]int, 0, len(slotSet))
+	for slotIndex := range slotSet {
+		result = append(result, slotIndex)
+	}
+	for i := 1; i < len(result); i++ {
+		value := result[i]
+		j := i - 1
+		for j >= 0 && result[j] > value {
+			result[j+1] = result[j]
+			j--
+		}
+		result[j+1] = value
+	}
+	return result
 }
 
 func (s *Service) touchRoomSnapshotLocked(room *domain.RoomAggregate) {

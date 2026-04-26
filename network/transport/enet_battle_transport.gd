@@ -7,6 +7,8 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = false
 const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
+const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = 1200
+const MTU_PROMOTION_WARN_INTERVAL_MSEC: int = 3000
 
 var _peer: ENetMultiplayerPeer = null
 var _local_peer_id: int = 0
@@ -24,6 +26,7 @@ var _sent_count_by_channel: Dictionary = {}
 var _sent_bytes_by_channel: Dictionary = {}
 var _sent_count_by_type: Dictionary = {}
 var _received_count_by_channel: Dictionary = {}
+var _last_mtu_promotion_warn_msec_by_type: Dictionary = {}
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -274,6 +277,9 @@ func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type:
 		return
 	_peer.transfer_channel = BattleTransportChannelsScript.resolve_channel(message_type)
 	_peer.transfer_mode = BattleTransportChannelsScript.resolve_transfer_mode(message_type)
+	if _peer.transfer_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and payload.size() > UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES:
+		_log_mtu_promotion_if_needed(message_type, payload.size(), peer_id)
+		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	_peer.set_target_peer(peer_id)
 	var result := _peer.put_packet(payload)
 	if result == OK:
@@ -306,6 +312,20 @@ func _reset_transport_metrics() -> void:
 	_sent_bytes_by_channel.clear()
 	_sent_count_by_type.clear()
 	_received_count_by_channel.clear()
+	_last_mtu_promotion_warn_msec_by_type.clear()
+
+
+func _log_mtu_promotion_if_needed(message_type: String, payload_size: int, peer_id: int) -> void:
+	var now_msec := Time.get_ticks_msec()
+	var last_msec := int(_last_mtu_promotion_warn_msec_by_type.get(message_type, -MTU_PROMOTION_WARN_INTERVAL_MSEC))
+	if now_msec - last_msec < MTU_PROMOTION_WARN_INTERVAL_MSEC:
+		return
+	_last_mtu_promotion_warn_msec_by_type[message_type] = now_msec
+	LogNetScript.warn("battle unreliable payload promoted to reliable type=%s bytes=%d peer=%d" % [
+		message_type,
+		payload_size,
+		peer_id,
+	], "", 0, "net.battle_transport.mtu")
 
 
 func _report_connection_failure(code: int, message: String) -> void:

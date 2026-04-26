@@ -1,5 +1,16 @@
 # Architecture Debt Register
 
+## DEBT-011 manual battle status sync uses queue-shaped polling contract
+- Risk level: P2
+- Status: open
+- Related dirs: `services/room_service/internal/roomapp/`, `services/room_service/internal/gameclient/`, `services/game_service/internal/assignment/`, `services/game_service/internal/rpcapi/`, `proto/qqt/internal/game/v1/`
+- Forbidden new-logic dirs: new manual battle lifecycle logic that treats matchmaking queue state as the semantic source of truth; frontend-only room phase recovery after battle finalize; direct room FSM writes outside `RoomTransitionEngine`
+- Current compromise: Custom-room battles write `room.QueueState.QueueEntryID = assignment_id` and reuse `GetPartyQueueStatus` / queue-shaped projection to poll manual assignment finalization. This is functionally correct because `game_service.assignment` is the authoritative finalized source and room_service still converges through `ApplyQueueProjection`, `clearBattleStateProjection`, `releaseMembersToIdle`, and `finalizeRoomTransition`. The naming is not clean: a manual battle assignment is not a matchmaking queue entry.
+- Planned phase: room-battle-state-cleanup
+- Done definition: introduce a neutral typed control-plane operation such as `GetBattleAssignmentStatus` or `SyncBattleStatus`; room_service tracks manual battle return through battle/assignment status fields instead of queue naming; `QueueState` remains reserved for real matchmaking queues; finalized manual battle returns room to `idle` through `RoomTransitionEngine`; host leave and post-battle ready/start regressions remain covered by committed roomapp/wsapi tests; docs `docs/architecture/room_state_machine.md` and `docs/architecture/network_control_plane.md` describe the split explicitly.
+- Owner: room-state-machine
+- Linked tests/docs: `services/room_service/internal/roomapp/start_manual_room_battle_test.go`, `services/room_service/internal/roomapp/battle_handoff_projection_test.go`, `services/game_service/internal/assignment/assignment_service.go`, `services/game_service/internal/rpcapi/room_control_service.go`, `docs/architecture/room_state_machine.md`, `docs/architecture/network_control_plane.md`
+
 ## DEBT-010 battle authority batch consumption not coalesced
 - Risk level: P1
 - Status: closed

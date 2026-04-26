@@ -414,10 +414,11 @@ func (x *UpdateProfileRequest) GetLoadout() *RoomLoadout {
 }
 
 type UpdateSelectionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Selection     *RoomSelection         `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Selection       *RoomSelection         `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
+	OpenSlotIndices []int32                `protobuf:"varint,2,rep,packed,name=open_slot_indices,json=openSlotIndices,proto3" json:"open_slot_indices,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateSelectionRequest) Reset() {
@@ -453,6 +454,13 @@ func (*UpdateSelectionRequest) Descriptor() ([]byte, []int) {
 func (x *UpdateSelectionRequest) GetSelection() *RoomSelection {
 	if x != nil {
 		return x.Selection
+	}
+	return nil
+}
+
+func (x *UpdateSelectionRequest) GetOpenSlotIndices() []int32 {
+	if x != nil {
+		return x.OpenSlotIndices
 	}
 	return nil
 }
@@ -1196,9 +1204,10 @@ const file_qqt_room_v1_room_client_proto_rawDesc = "" +
 	"\vplayer_name\x18\x01 \x01(\tR\n" +
 	"playerName\x12\x17\n" +
 	"\ateam_id\x18\x02 \x01(\x05R\x06teamId\x122\n" +
-	"\aloadout\x18\x03 \x01(\v2\x18.qqt.room.v1.RoomLoadoutR\aloadout\"R\n" +
+	"\aloadout\x18\x03 \x01(\v2\x18.qqt.room.v1.RoomLoadoutR\aloadout\"~\n" +
 	"\x16UpdateSelectionRequest\x128\n" +
-	"\tselection\x18\x01 \x01(\v2\x1a.qqt.room.v1.RoomSelectionR\tselection\"r\n" +
+	"\tselection\x18\x01 \x01(\v2\x1a.qqt.room.v1.RoomSelectionR\tselection\x12*\n" +
+	"\x11open_slot_indices\x18\x02 \x03(\x05R\x0fopenSlotIndices\"r\n" +
 	"\x1cUpdateMatchRoomConfigRequest\x12&\n" +
 	"\x0fmatch_format_id\x18\x01 \x01(\tR\rmatchFormatId\x12*\n" +
 	"\x11selected_mode_ids\x18\x02 \x03(\tR\x0fselectedModeIds\";\n" +

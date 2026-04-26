@@ -176,6 +176,7 @@ type RoomMember struct {
 	Loadout         *RoomLoadout           `protobuf:"bytes,7,opt,name=loadout,proto3" json:"loadout,omitempty"`
 	ConnectionState string                 `protobuf:"bytes,8,opt,name=connection_state,json=connectionState,proto3" json:"connection_state,omitempty"`
 	MemberPhase     string                 `protobuf:"bytes,9,opt,name=member_phase,json=memberPhase,proto3" json:"member_phase,omitempty"`
+	SlotIndex       int32                  `protobuf:"varint,10,opt,name=slot_index,json=slotIndex,proto3" json:"slot_index,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -271,6 +272,13 @@ func (x *RoomMember) GetMemberPhase() string {
 		return x.MemberPhase
 	}
 	return ""
+}
+
+func (x *RoomMember) GetSlotIndex() int32 {
+	if x != nil {
+		return x.SlotIndex
+	}
+	return 0
 }
 
 type BattleEntryState struct {
@@ -468,6 +476,9 @@ type RoomSnapshot struct {
 	CanEnterQueue            bool                   `protobuf:"varint,23,opt,name=can_enter_queue,json=canEnterQueue,proto3" json:"can_enter_queue,omitempty"`
 	CanCancelQueue           bool                   `protobuf:"varint,24,opt,name=can_cancel_queue,json=canCancelQueue,proto3" json:"can_cancel_queue,omitempty"`
 	CanLeaveRoom             bool                   `protobuf:"varint,25,opt,name=can_leave_room,json=canLeaveRoom,proto3" json:"can_leave_room,omitempty"`
+	LocalMemberId            string                 `protobuf:"bytes,26,opt,name=local_member_id,json=localMemberId,proto3" json:"local_member_id,omitempty"`
+	OpenSlotIndices          []int32                `protobuf:"varint,27,rep,packed,name=open_slot_indices,json=openSlotIndices,proto3" json:"open_slot_indices,omitempty"`
+	MaxPlayerCount           int32                  `protobuf:"varint,28,opt,name=max_player_count,json=maxPlayerCount,proto3" json:"max_player_count,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -675,6 +686,27 @@ func (x *RoomSnapshot) GetCanLeaveRoom() bool {
 		return x.CanLeaveRoom
 	}
 	return false
+}
+
+func (x *RoomSnapshot) GetLocalMemberId() string {
+	if x != nil {
+		return x.LocalMemberId
+	}
+	return ""
+}
+
+func (x *RoomSnapshot) GetOpenSlotIndices() []int32 {
+	if x != nil {
+		return x.OpenSlotIndices
+	}
+	return nil
+}
+
+func (x *RoomSnapshot) GetMaxPlayerCount() int32 {
+	if x != nil {
+		return x.MaxPlayerCount
+	}
+	return 0
 }
 
 type RoomDirectoryEntry struct {
@@ -920,7 +952,7 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\vrule_set_id\x18\x02 \x01(\tR\truleSetId\x12\x17\n" +
 	"\amode_id\x18\x03 \x01(\tR\x06modeId\x12&\n" +
 	"\x0fmatch_format_id\x18\x04 \x01(\tR\rmatchFormatId\x12*\n" +
-	"\x11selected_mode_ids\x18\x05 \x03(\tR\x0fselectedModeIds\"\xb9\x02\n" +
+	"\x11selected_mode_ids\x18\x05 \x03(\tR\x0fselectedModeIds\"\xd8\x02\n" +
 	"\n" +
 	"RoomMember\x12\x1b\n" +
 	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12\x1d\n" +
@@ -934,7 +966,10 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\x05ready\x18\x06 \x01(\bR\x05ready\x122\n" +
 	"\aloadout\x18\a \x01(\v2\x18.qqt.room.v1.RoomLoadoutR\aloadout\x12)\n" +
 	"\x10connection_state\x18\b \x01(\tR\x0fconnectionState\x12!\n" +
-	"\fmember_phase\x18\t \x01(\tR\vmemberPhase\"\xbf\x02\n" +
+	"\fmember_phase\x18\t \x01(\tR\vmemberPhase\x12\x1d\n" +
+	"\n" +
+	"slot_index\x18\n" +
+	" \x01(\x05R\tslotIndex\"\xbf\x02\n" +
 	"\x10BattleEntryState\x12#\n" +
 	"\rassignment_id\x18\x01 \x01(\tR\fassignmentId\x12\x1b\n" +
 	"\tbattle_id\x18\x02 \x01(\tR\bbattleId\x12\x19\n" +
@@ -951,7 +986,7 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\rResumeBinding\x12\x1b\n" +
 	"\tmember_id\x18\x01 \x01(\tR\bmemberId\x12'\n" +
 	"\x0freconnect_token\x18\x02 \x01(\tR\x0ereconnectToken\x12;\n" +
-	"\x1areconnect_deadline_unix_ms\x18\x03 \x01(\x03R\x17reconnectDeadlineUnixMs\"\xd3\b\n" +
+	"\x1areconnect_deadline_unix_ms\x18\x03 \x01(\x03R\x17reconnectDeadlineUnixMs\"\xd1\t\n" +
 	"\fRoomSnapshot\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
 	"\troom_kind\x18\x02 \x01(\tR\broomKind\x12*\n" +
@@ -981,7 +1016,10 @@ const file_qqt_room_v1_room_models_proto_rawDesc = "" +
 	"\x1ccan_update_match_room_config\x18\x16 \x01(\bR\x18canUpdateMatchRoomConfig\x12&\n" +
 	"\x0fcan_enter_queue\x18\x17 \x01(\bR\rcanEnterQueue\x12(\n" +
 	"\x10can_cancel_queue\x18\x18 \x01(\bR\x0ecanCancelQueue\x12$\n" +
-	"\x0ecan_leave_room\x18\x19 \x01(\bR\fcanLeaveRoom\"\x8f\x02\n" +
+	"\x0ecan_leave_room\x18\x19 \x01(\bR\fcanLeaveRoom\x12&\n" +
+	"\x0flocal_member_id\x18\x1a \x01(\tR\rlocalMemberId\x12*\n" +
+	"\x11open_slot_indices\x18\x1b \x03(\x05R\x0fopenSlotIndices\x12(\n" +
+	"\x10max_player_count\x18\x1c \x01(\x05R\x0emaxPlayerCount\"\x8f\x02\n" +
 	"\x12RoomDirectoryEntry\x12\x17\n" +
 	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12*\n" +
 	"\x11room_display_name\x18\x02 \x01(\tR\x0froomDisplayName\x12\x1b\n" +

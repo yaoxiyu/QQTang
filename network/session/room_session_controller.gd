@@ -93,6 +93,7 @@ func build_room_snapshot() -> RoomSnapshot:
 	snapshot.can_enter_queue = room_session.can_enter_queue
 	snapshot.can_cancel_queue = room_session.can_cancel_queue
 	snapshot.can_leave_room = room_session.can_leave_room
+	snapshot.open_slot_indices = room_session.open_slot_indices.duplicate()
 
 	var slot_map := room_session.build_peer_slots()
 	for peer_id in room_session.peers:
@@ -125,6 +126,7 @@ func create_room(owner_peer_id: int) -> void:
 	room_session.topology = "dedicated_server"
 	self.owner_peer_id = owner_peer_id
 	member_profiles.clear()
+	room_session.open_slot_indices = _default_open_slot_indices(max_players)
 	room_session.add_peer(owner_peer_id)
 	set_room_selection("", "", "")
 	set_room_flow_state(RoomFlowStateScript.Value.HOSTING, "room_created")
@@ -195,7 +197,7 @@ func can_start_match() -> bool:
 		return false
 	var required_team_count := int(binding.get("required_team_count", room_session.min_start_players))
 	var max_player_count := int(binding.get("max_player_count", max_players))
-	if room_session.peers.size() < room_session.min_start_players:
+	if room_session.peers.size() < 2:
 		return false
 	if max_player_count > 0 and room_session.peers.size() > max_player_count:
 		return false
@@ -207,7 +209,7 @@ func can_start_match() -> bool:
 		return false
 	if not ModeCatalogScript.has_mode(_resolve_mode_id()):
 		return false
-	return _are_all_members_ready()
+	return _are_non_owner_members_ready()
 
 
 func can_request_start_match(requester_peer_id: int) -> bool:
@@ -237,10 +239,10 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 		}
 	var required_team_count := int(binding.get("required_team_count", room_session.min_start_players))
 	var max_player_count := int(binding.get("max_player_count", max_players))
-	if room_session.peers.size() < room_session.min_start_players:
+	if room_session.peers.size() < 2:
 		return {
 			"error_code": "ROOM_MEMBER_NOT_READY",
-			"user_message": "At least %d player(s) are required to start" % room_session.min_start_players,
+			"user_message": "At least 2 player(s) are required to start",
 		}
 	if max_player_count > 0 and room_session.peers.size() > max_player_count:
 		return {
@@ -262,10 +264,10 @@ func get_start_match_blocker(requester_peer_id: int) -> Dictionary:
 			"error_code": "ROOM_SELECTION_INVALID",
 			"user_message": "Mode selection is invalid",
 		}
-	if not _are_all_members_ready():
+	if not _are_non_owner_members_ready():
 		return {
 			"error_code": "ROOM_MEMBER_NOT_READY",
-			"user_message": "All players must be ready before starting",
+			"user_message": "All non-host players must be ready before starting",
 		}
 	return {}
 
@@ -401,7 +403,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	max_players = snapshot.max_players
 	member_profiles.clear()
 	for member in snapshot.sorted_members():
-		room_session.add_peer(member.peer_id)
+		room_session.add_peer(member.peer_id, member.slot_index)
 		room_session.set_ready(member.peer_id, member.ready)
 		member_profiles[member.peer_id] = {
 			"player_name": member.player_name,
@@ -449,6 +451,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	room_session.can_enter_queue = snapshot.can_enter_queue
 	room_session.can_cancel_queue = snapshot.can_cancel_queue
 	room_session.can_leave_room = snapshot.can_leave_room
+	room_session.open_slot_indices = snapshot.open_slot_indices.duplicate()
 	set_room_flow_state(_map_room_phase_to_room_flow_state(snapshot.room_phase), "authoritative_snapshot")
 	set_session_lifecycle_state(_map_room_phase_to_session_lifecycle_state(snapshot.room_phase), "authoritative_snapshot")
 	room_runtime_context.last_error = {}
@@ -816,6 +819,17 @@ func _are_all_members_ready() -> bool:
 	return true
 
 
+func _are_non_owner_members_ready() -> bool:
+	if room_session.peers.size() < 2:
+		return false
+	for peer_id in room_session.peers:
+		if peer_id == owner_peer_id:
+			continue
+		if not bool(room_session.ready_state.get(peer_id, false)):
+			return false
+	return true
+
+
 func _collect_distinct_team_ids() -> Array[int]:
 	var team_ids: Array[int] = []
 	var slot_map := room_session.build_peer_slots()
@@ -841,6 +855,13 @@ func _can_interact_in_room() -> bool:
 
 func _reassign_owner() -> void:
 	owner_peer_id = room_session.peers[0] if not room_session.peers.is_empty() else 0
+
+
+func _default_open_slot_indices(slot_count: int) -> Array[int]:
+	var result: Array[int] = []
+	for slot_index in range(maxi(slot_count, 0)):
+		result.append(slot_index)
+	return result
 
 
 func _resolve_custom_room_map_id(preferred_map_id: String) -> String:

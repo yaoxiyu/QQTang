@@ -30,6 +30,7 @@ message RoomMember {
   RoomLoadout loadout = 7;
   string connection_state = 8;
   string member_phase = 9;
+  int32 slot_index = 10;
 }
 
 message BattleEntryState {
@@ -76,6 +77,9 @@ message RoomSnapshot {
   bool can_enter_queue = 23;
   bool can_cancel_queue = 24;
   bool can_leave_room = 25;
+  string local_member_id = 26;
+  repeated int32 open_slot_indices = 27;
+  int32 max_player_count = 28;
 }
 
 message RoomDirectoryEntry {

@@ -18,8 +18,15 @@ func TestAckBattleEntryLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create room failed: %v", err)
 	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
 		t.Fatalf("toggle ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
 	}
 	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
 	if err != nil {

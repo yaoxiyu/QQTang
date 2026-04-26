@@ -130,10 +130,10 @@ func request_update_profile(
 	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
 
 
-func request_update_selection(map_id: String, rule_id: String, mode_id: String) -> void:
+func request_update_selection(map_id: String, rule_id: String, mode_id: String, open_slot_indices: Array[int] = []) -> void:
 	if client_room_runtime == null:
 		return
-	client_room_runtime.request_update_selection(map_id, rule_id, mode_id)
+	client_room_runtime.request_update_selection(map_id, rule_id, mode_id, open_slot_indices)
 
 
 func request_update_match_room_config(match_format_id: String, selected_mode_ids: Array[String]) -> void:
