@@ -1,5 +1,16 @@
 # Architecture Debt Register
 
+## DEBT-012 battle input batch redundancy is fixed-window instead of ack-trimmed
+- Risk level: P1
+- Status: open
+- Related dirs: `network/session/runtime/`, `network/transport/`, `gameplay/simulation/input/`, `gameplay/native_bridge/`, `addons/qqt_native/src/sync/`, `docs/architecture/battle_sync.md`
+- Forbidden new-logic dirs: ad-hoc client-only input packet size hacks; lowering redundancy without using authoritative acknowledgement; duplicate-input filtering outside the input buffer or authority ingestion boundary
+- Current compromise: Clients send `INPUT_BATCH` with a fixed recent-frame window. Authority sends `INPUT_ACK` and clients record the latest confirmed tick, while authority batch coalescing drops stale authority snapshots. This confirms progress, but input resend size is not trimmed from an ack-driven send window and duplicate input frames are not modeled as a first-class protocol concern.
+- Planned phase: battle-input-ack-window-cleanup
+- Done definition: define an ack-driven input resend window; client only resends frames newer than the latest authoritative ack with a bounded safety margin; authority input ingestion treats duplicate `(peer_id, tick_id, seq)` frames idempotently; packet metrics expose batch frame count and encoded byte size; MTU promotion warnings no longer occur under normal battle input rates; regression tests cover duplicate input batch delivery, out-of-order ack, stale ack, and packet-size budget.
+- Owner: battle-sync
+- Linked tests/docs: `network/session/runtime/client_runtime.gd`, `network/session/runtime/authority_runtime.gd`, `network/session/runtime/server_session.gd`, `gameplay/simulation/input/input_buffer.gd`, `docs/architecture/battle_sync.md`
+
 ## DEBT-011 manual battle status sync uses queue-shaped polling contract
 - Risk level: P2
 - Status: open
