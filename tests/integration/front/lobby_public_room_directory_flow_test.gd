@@ -12,10 +12,10 @@ func test_main() -> void:
 
 
 func _main_body() -> void:
-	var ok := await _test_lobby_renders_public_room_directory_without_auto_connect()
+	var ok := await _test_lobby_renders_public_room_directory_with_auto_connect()
 
 
-func _test_lobby_renders_public_room_directory_without_auto_connect() -> bool:
+func _test_lobby_renders_public_room_directory_with_auto_connect() -> bool:
 	var runtime: Node = AppRuntimeRootScript.ensure_in_tree(get_tree())
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -34,17 +34,17 @@ func _test_lobby_renders_public_room_directory_without_auto_connect() -> bool:
 
 	var prefix := "lobby_public_room_directory_flow_test"
 	var ok := true
-	ok = qqt_check(runtime.client_room_runtime._connecting == false, "entering lobby should not auto-connect directory transport", prefix) and ok
-	ok = qqt_check(runtime.client_room_runtime._directory_subscribed == false, "entering lobby should not auto-subscribe directory", prefix) and ok
+	ok = qqt_check(runtime.client_room_runtime._connecting == true or runtime.client_room_runtime._directory_subscribed == true, "entering lobby should auto-connect directory transport", prefix) and ok
 	ok = qqt_check(lobby_scene.public_room_list != null and lobby_scene.public_room_list.item_count == 1, "lobby should render one public room entry", prefix) and ok
+	ok = qqt_check(lobby_scene._formal_room_grid != null and lobby_scene._formal_room_grid.get_child_count() == 8, "formal lobby should render eight room slots per page", prefix) and ok
 	ok = qqt_check(
 		String(lobby_scene.public_room_list.get_item_metadata(0)) == "ROOM-PUBLIC-1",
 		"public room list metadata should keep room id",
 		prefix
 	) and ok
 	ok = qqt_check(
-		String(lobby_scene.directory_status_label.text).contains("Loaded 1 public room"),
-		"directory status should report loaded public rooms",
+		String(lobby_scene.directory_status_label.text).contains("Loaded 1 custom room"),
+		"directory status should report loaded custom rooms",
 		prefix
 	) and ok
 
@@ -72,4 +72,3 @@ func _make_directory_entry():
 	entry.match_active = false
 	entry.joinable = true
 	return entry
-

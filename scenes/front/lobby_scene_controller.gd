@@ -6,6 +6,7 @@ const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_select
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LOBBY_SCENE_LOG_PREFIX := "[QQT_LOBBY_SCENE]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const CUSTOM_ROOM_PAGE_SIZE := 8
 
 @onready var lobby_root: Control = get_node_or_null("LobbyRoot")
 @onready var main_layout: VBoxContainer = get_node_or_null("LobbyRoot/MainLayout")
@@ -83,8 +84,18 @@ var _formal_wallet_label: Label = null
 var _formal_inventory_label: Label = null
 var _formal_shop_label: Label = null
 var _formal_status_label: Label = null
+var _formal_mode_filter: OptionButton = null
 var _formal_room_grid: GridContainer = null
+var _formal_custom_room_empty_label: Label = null
+var _formal_room_page_label: Label = null
+var _formal_room_prev_button: Button = null
+var _formal_room_next_button: Button = null
+var _formal_player_list: VBoxContainer = null
 var _formal_chat_log: Label = null
+var _profile_popup: PopupPanel = null
+var _profile_popup_content: VBoxContainer = null
+var _create_room_popup: PopupMenu = null
+var _formal_custom_room_page: int = 0
 
 
 func _ready() -> void:
@@ -115,6 +126,7 @@ func _on_runtime_ready() -> void:
 	_populate_custom_room_mode_filter()
 	_refresh_view()
 	_connect_signals()
+	_auto_connect_room_directory()
 	_log_online_lobby("runtime_ready", _build_online_debug_context())
 
 
@@ -131,11 +143,11 @@ func _populate_practice_selectors() -> void:
 
 func _configure_custom_room_controls() -> void:
 	if room_visibility_label != null:
-		room_visibility_label.text = "房间可见性"
+		room_visibility_label.text = "房间类型"
 	if custom_room_name_label != null:
 		custom_room_name_label.text = "自定义房间名"
 	if custom_room_name_input != null:
-		custom_room_name_input.placeholder_text = "公开房间必填"
+		custom_room_name_input.placeholder_text = "自定义房间名"
 	if create_custom_room_button != null:
 		create_custom_room_button.text = "创建自定义房间"
 	if join_selected_public_room_button != null:
@@ -144,27 +156,38 @@ func _configure_custom_room_controls() -> void:
 		custom_room_mode_filter_label.text = "玩法筛选"
 	if room_visibility_selector == null:
 		return
-	var current_value := _selected_metadata(room_visibility_selector)
 	room_visibility_selector.clear()
-	room_visibility_selector.add_item("Private")
-	room_visibility_selector.set_item_metadata(0, "private")
-	room_visibility_selector.add_item("Public")
-	room_visibility_selector.set_item_metadata(1, "public")
-	_select_metadata(room_visibility_selector, current_value if not current_value.is_empty() else "private")
+	room_visibility_selector.add_item("Custom Room")
+	room_visibility_selector.set_item_metadata(0, "public")
+	room_visibility_selector.select(0)
 
 
 func _populate_custom_room_mode_filter() -> void:
 	if custom_room_mode_filter_selector == null:
+		_populate_formal_mode_filter()
 		return
-	custom_room_mode_filter_selector.clear()
-	custom_room_mode_filter_selector.add_item("All")
-	custom_room_mode_filter_selector.set_item_metadata(0, "")
+	_populate_mode_filter_selector(custom_room_mode_filter_selector)
+	_populate_formal_mode_filter()
+
+
+func _populate_formal_mode_filter() -> void:
+	if _formal_mode_filter == null:
+		return
+	_populate_mode_filter_selector(_formal_mode_filter)
+
+
+func _populate_mode_filter_selector(selector: OptionButton) -> void:
+	if selector == null:
+		return
+	selector.clear()
+	selector.add_item("所有房间")
+	selector.set_item_metadata(0, "")
 	for entry in MapSelectionCatalogScript.get_custom_room_mode_entries():
 		var mode_id := String(entry.get("mode_id", ""))
-		custom_room_mode_filter_selector.add_item(String(entry.get("display_name", mode_id)))
-		custom_room_mode_filter_selector.set_item_metadata(custom_room_mode_filter_selector.item_count - 1, mode_id)
-	if custom_room_mode_filter_selector.item_count > 0:
-		custom_room_mode_filter_selector.select(0)
+		selector.add_item(String(entry.get("display_name", mode_id)))
+		selector.set_item_metadata(selector.item_count - 1, mode_id)
+	if selector.item_count > 0:
+		selector.select(0)
 
 
 func _refresh_view() -> void:
@@ -328,21 +351,27 @@ func _on_create_custom_room_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var visibility := _selected_metadata(room_visibility_selector)
+	var visibility := "public"
+	if room_visibility_selector != null:
+		_select_metadata(room_visibility_selector, visibility)
+	var room_display_name := custom_room_name_input.text.strip_edges() if custom_room_name_input != null else ""
+	if room_display_name.is_empty():
+		var self_payload := _build_self_profile_payload()
+		room_display_name = "%s的房间" % String(self_payload.get("name", "Player"))
 	var default_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id()
 	var default_binding := MapSelectionCatalogScript.get_map_binding(default_map_id)
 	_log_lobby_scene("custom_room_create_requested", {
-		"visibility": visibility,
+		"room_type": "custom_room",
 		"default_map_id": default_map_id,
 		"derived_mode_id": String(default_binding.get("bound_mode_id", "")),
 		"derived_rule_set_id": String(default_binding.get("bound_rule_set_id", "")),
-		"room_display_name": custom_room_name_input.text.strip_edges() if custom_room_name_input != null else "",
+		"room_display_name": room_display_name,
 	})
 	var result: Dictionary = _app_runtime.lobby_use_case.create_custom_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0,
 		visibility,
-		custom_room_name_input.text.strip_edges() if custom_room_name_input != null else ""
+		room_display_name
 	)
 	_handle_room_entry_result(result)
 
@@ -382,34 +411,41 @@ func _on_join_room_pressed() -> void:
 
 
 func _on_connect_directory_pressed() -> void:
-	if _app_runtime == null or _app_runtime.lobby_directory_use_case == null:
-		_set_directory_status("Directory flow is not available.")
-		return
-	_directory_connect_requested = true
 	_log_lobby_scene("ui_connect_directory_pressed", {
 		"host": host_input.text.strip_edges() if host_input != null else "",
 		"port": int(port_input.text.to_int()) if port_input != null else 0,
 	})
-	var result: Dictionary = _app_runtime.lobby_directory_use_case.connect_directory(
-		host_input.text.strip_edges() if host_input != null else "",
-		int(port_input.text.to_int()) if port_input != null else 0
-	)
-	_apply_directory_result(result)
+	_connect_or_refresh_room_directory(false)
 
 
 func _on_refresh_room_list_pressed() -> void:
-	if _app_runtime == null or _app_runtime.lobby_directory_use_case == null:
-		_set_directory_status("Directory flow is not available.")
-		return
-	_directory_connect_requested = true
 	_log_lobby_scene("ui_refresh_room_list_pressed", {
 		"host": host_input.text.strip_edges() if host_input != null else "",
 		"port": int(port_input.text.to_int()) if port_input != null else 0,
 	})
-	var result: Dictionary = _app_runtime.lobby_directory_use_case.refresh_directory(
-		host_input.text.strip_edges() if host_input != null else "",
-		int(port_input.text.to_int()) if port_input != null else 0
-	)
+	_connect_or_refresh_room_directory(true)
+
+
+func _auto_connect_room_directory() -> void:
+	_log_lobby_scene("auto_connect_room_directory_requested", {
+		"host": host_input.text.strip_edges() if host_input != null else "",
+		"port": int(port_input.text.to_int()) if port_input != null else 0,
+	})
+	_connect_or_refresh_room_directory(true)
+
+
+func _connect_or_refresh_room_directory(refresh_only: bool) -> void:
+	if _app_runtime == null or _app_runtime.lobby_directory_use_case == null:
+		_set_directory_status("Directory flow is not available.")
+		return
+	_directory_connect_requested = true
+	var host := host_input.text.strip_edges() if host_input != null else ""
+	var port := int(port_input.text.to_int()) if port_input != null else 0
+	var result: Dictionary = {}
+	if refresh_only:
+		result = _app_runtime.lobby_directory_use_case.refresh_directory(host, port)
+	else:
+		result = _app_runtime.lobby_directory_use_case.connect_directory(host, port)
 	_apply_directory_result(result)
 
 
@@ -417,14 +453,38 @@ func _on_join_selected_public_room_pressed() -> void:
 	if public_room_list == null or public_room_list.get_selected_items().is_empty():
 		_set_directory_status("Select a custom room first.")
 		return
-	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
-		_set_directory_status("Lobby room flow is not available.")
-		return
 	var selected_index := int(public_room_list.get_selected_items()[0])
 	var room_id := String(public_room_list.get_item_metadata(selected_index))
 	_log_lobby_scene("ui_join_selected_public_room_pressed", {
 		"room_id": room_id,
 		"selected_index": selected_index,
+	})
+	_join_custom_room_by_id(room_id)
+
+
+func _on_custom_room_mode_filter_changed() -> void:
+	if custom_room_mode_filter_selector != null and _formal_mode_filter != null:
+		_select_metadata(_formal_mode_filter, _selected_metadata(custom_room_mode_filter_selector))
+	_formal_custom_room_page = 0
+	_refresh_directory_list()
+
+
+func _on_formal_mode_filter_changed() -> void:
+	if custom_room_mode_filter_selector != null and _formal_mode_filter != null:
+		_select_metadata(custom_room_mode_filter_selector, _selected_metadata(_formal_mode_filter))
+	_formal_custom_room_page = 0
+	_refresh_directory_list()
+
+
+func _join_custom_room_by_id(room_id: String) -> void:
+	if room_id.strip_edges().is_empty():
+		_set_directory_status("Select a custom room first.")
+		return
+	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
+		_set_directory_status("Lobby room flow is not available.")
+		return
+	_log_lobby_scene("ui_join_custom_room_pressed", {
+		"room_id": room_id,
 	})
 	var result: Dictionary = _app_runtime.lobby_use_case.join_public_room(
 		host_input.text.strip_edges() if host_input != null else "",
@@ -434,8 +494,20 @@ func _on_join_selected_public_room_pressed() -> void:
 	_handle_room_entry_result(result)
 
 
-func _on_custom_room_mode_filter_changed() -> void:
-	_refresh_directory_list()
+func _on_create_room_menu_pressed() -> void:
+	_ensure_create_room_popup()
+	if _create_room_popup != null:
+		_create_room_popup.popup_centered(Vector2i(220, 128))
+
+
+func _on_create_room_menu_id_pressed(id: int) -> void:
+	match id:
+		0:
+			_on_create_custom_room_pressed()
+		1:
+			_on_create_casual_match_room_pressed()
+		2:
+			_on_create_ranked_match_room_pressed()
 
 
 func _on_reconnect_pressed() -> void:
@@ -573,28 +645,20 @@ func _build_reference_lobby_layout() -> void:
 	top_bar.custom_minimum_size = Vector2(0, 42)
 	top_bar.add_theme_constant_override("separation", 8)
 	layout.add_child(top_bar)
-	var tabs := [
-		"交易中心",
-		"装备商城",
-		"任务中心",
-		"成为高手",
-		"个人资料",
-		"宠物之家",
-	]
-	for tab_text in tabs:
-		var tab := Button.new()
-		tab.text = tab_text
-		tab.custom_minimum_size = Vector2(116, 34)
-		_apply_lobby_button_style(tab)
-		top_bar.add_child(tab)
+	var title := Label.new()
+	title.text = "QQTang Lobby"
+	title.add_theme_font_size_override("font_size", 22)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_bar.add_child(title)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_bar.add_child(spacer)
-	var menu_button := Button.new()
-	menu_button.text = "菜单"
-	menu_button.custom_minimum_size = Vector2(82, 34)
-	_apply_lobby_button_style(menu_button)
-	top_bar.add_child(menu_button)
+	var profile_button := Button.new()
+	profile_button.text = "个人资料"
+	profile_button.custom_minimum_size = Vector2(118, 34)
+	_apply_lobby_button_style(profile_button)
+	profile_button.pressed.connect(func() -> void: _show_profile_popup(_build_self_profile_payload()))
+	top_bar.add_child(profile_button)
 
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -610,15 +674,29 @@ func _build_reference_lobby_layout() -> void:
 	var room_vbox := VBoxContainer.new()
 	room_vbox.add_theme_constant_override("separation", 8)
 	room_panel.add_child(room_vbox)
-	var room_tabs := HBoxContainer.new()
-	room_tabs.add_theme_constant_override("separation", 6)
-	room_vbox.add_child(room_tabs)
-	for tab_text in ["家具商城", "经典模式", "探险模式", "聊天房间"]:
-		var tab := Button.new()
-		tab.text = tab_text
-		tab.custom_minimum_size = Vector2(112, 30)
-		_apply_lobby_button_style(tab)
-		room_tabs.add_child(tab)
+	var room_header := HBoxContainer.new()
+	room_header.add_theme_constant_override("separation", 6)
+	room_vbox.add_child(room_header)
+	var classic_tab := Button.new()
+	classic_tab.text = "经典模式"
+	classic_tab.custom_minimum_size = Vector2(112, 30)
+	_apply_lobby_button_style(classic_tab)
+	room_header.add_child(classic_tab)
+	var adventure_tab := Button.new()
+	adventure_tab.text = "探险模式"
+	adventure_tab.disabled = true
+	adventure_tab.custom_minimum_size = Vector2(112, 30)
+	_apply_lobby_button_style(adventure_tab)
+	room_header.add_child(adventure_tab)
+	var room_header_spacer := Control.new()
+	room_header_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room_header.add_child(room_header_spacer)
+	_formal_mode_filter = OptionButton.new()
+	_formal_mode_filter.custom_minimum_size = Vector2(160, 30)
+	_formal_mode_filter.item_selected.connect(func(_index: int) -> void: _on_formal_mode_filter_changed())
+	room_header.add_child(_formal_mode_filter)
+	_populate_formal_mode_filter()
+
 	_formal_room_grid = GridContainer.new()
 	_formal_room_grid.columns = 2
 	_formal_room_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -626,27 +704,47 @@ func _build_reference_lobby_layout() -> void:
 	_formal_room_grid.add_theme_constant_override("v_separation", 12)
 	room_vbox.add_child(_formal_room_grid)
 
+	var room_pager := HBoxContainer.new()
+	room_pager.add_theme_constant_override("separation", 8)
+	room_vbox.add_child(room_pager)
+	_formal_room_page_label = Label.new()
+	_formal_room_page_label.text = "1 / 1"
+	_formal_room_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_formal_room_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	room_pager.add_child(_formal_room_page_label)
+	_formal_room_prev_button = Button.new()
+	_formal_room_prev_button.text = "<"
+	_formal_room_prev_button.custom_minimum_size = Vector2(54, 42)
+	_apply_lobby_button_style(_formal_room_prev_button)
+	_formal_room_prev_button.pressed.connect(func() -> void: _change_custom_room_page(-1))
+	room_pager.add_child(_formal_room_prev_button)
+	_formal_room_next_button = Button.new()
+	_formal_room_next_button.text = ">"
+	_formal_room_next_button.custom_minimum_size = Vector2(54, 42)
+	_apply_lobby_button_style(_formal_room_next_button)
+	_formal_room_next_button.pressed.connect(func() -> void: _change_custom_room_page(1))
+	room_pager.add_child(_formal_room_next_button)
+
 	var side_panel := VBoxContainer.new()
-	side_panel.custom_minimum_size = Vector2(300, 0)
+	side_panel.custom_minimum_size = Vector2(380, 0)
 	side_panel.add_theme_constant_override("separation", 8)
 	body.add_child(side_panel)
 	var player_panel := PanelContainer.new()
+	player_panel.custom_minimum_size = Vector2(0, 190)
 	player_panel.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.11, 0.18, 0.24, 0.96), Color(0.12, 0.58, 0.82, 1.0), 8))
 	player_panel.set_meta("ui_asset_id", "ui.lobby.panel.player_summary")
 	side_panel.add_child(player_panel)
 	var player_vbox := VBoxContainer.new()
 	player_vbox.add_theme_constant_override("separation", 6)
 	player_panel.add_child(player_vbox)
-	_formal_profile_label = Label.new()
-	_formal_profile_label.text = "Player"
-	_formal_profile_label.add_theme_font_size_override("font_size", 20)
-	player_vbox.add_child(_formal_profile_label)
-	_formal_wallet_label = Label.new()
-	player_vbox.add_child(_formal_wallet_label)
-	_formal_inventory_label = Label.new()
-	player_vbox.add_child(_formal_inventory_label)
-	_formal_shop_label = Label.new()
-	player_vbox.add_child(_formal_shop_label)
+	var player_title := Label.new()
+	player_title.text = "大厅玩家"
+	player_title.add_theme_font_size_override("font_size", 18)
+	player_vbox.add_child(player_title)
+	_formal_player_list = VBoxContainer.new()
+	_formal_player_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_formal_player_list.add_theme_constant_override("separation", 5)
+	player_vbox.add_child(_formal_player_list)
 
 	var chat_panel := PanelContainer.new()
 	chat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -657,9 +755,10 @@ func _build_reference_lobby_layout() -> void:
 	chat_vbox.add_theme_constant_override("separation", 6)
 	chat_panel.add_child(chat_vbox)
 	var chat_title := Label.new()
-	chat_title.text = "好友 / 聊天"
+	chat_title.text = "大厅聊天"
 	chat_vbox.add_child(chat_title)
 	_formal_chat_log = Label.new()
+	_formal_chat_log.text = "大厅聊天频道待接入"
 	_formal_chat_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_formal_chat_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	chat_vbox.add_child(_formal_chat_log)
@@ -668,16 +767,18 @@ func _build_reference_lobby_layout() -> void:
 	bottom_bar.custom_minimum_size = Vector2(0, 58)
 	bottom_bar.add_theme_constant_override("separation", 8)
 	layout.add_child(bottom_bar)
-	_add_reference_action_button(bottom_bar, "创建房间", _on_create_custom_room_pressed)
-	_add_reference_action_button(bottom_bar, "开始练习", _on_start_practice_pressed)
-	_add_reference_action_button(bottom_bar, "商城", _on_shop_pressed, "ui.lobby.button.shop.normal")
-	_add_reference_action_button(bottom_bar, "背包", _on_inventory_pressed, "ui.lobby.button.inventory.normal")
-	_add_reference_action_button(bottom_bar, "登出", _on_logout_pressed)
 	_formal_status_label = Label.new()
 	_formal_status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_formal_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_formal_status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bottom_bar.add_child(_formal_status_label)
-	_render_reference_room_cards()
+	_add_reference_action_button(bottom_bar, "道具商城", _on_shop_pressed, "ui.lobby.button.shop.normal")
+	_add_reference_action_button(bottom_bar, "新手练习", _on_start_practice_pressed)
+	_add_reference_action_button(bottom_bar, "创建房间", _on_create_room_menu_pressed)
+	_add_reference_action_button(bottom_bar, "登出", _on_logout_pressed)
+	_ensure_create_room_popup()
+	_ensure_profile_popup()
+	_refresh_reference_custom_room_list()
+	_refresh_reference_lobby_players()
 
 
 func _add_reference_action_button(parent: HBoxContainer, label_text: String, callback: Callable, asset_id: String = "") -> void:
@@ -691,55 +792,226 @@ func _add_reference_action_button(parent: HBoxContainer, label_text: String, cal
 	parent.add_child(button)
 
 
-func _render_reference_room_cards() -> void:
+func _refresh_reference_custom_room_list() -> void:
 	if _formal_room_grid == null:
 		return
 	for child in _formal_room_grid.get_children():
 		child.queue_free()
-	var cards := [
-		{"title": "新手练习", "subtitle": "Practice", "state": "可进入"},
-		{"title": "自定义房间", "subtitle": "Custom Room", "state": "创建或加入"},
-		{"title": "普通匹配", "subtitle": "Casual", "state": "组队准备"},
-		{"title": "排位匹配", "subtitle": "Ranked", "state": "赛季积分"},
-		{"title": "道具模式", "subtitle": "Items", "state": "准备中"},
-		{"title": "好友房间", "subtitle": "Friends", "state": "等待邀请"},
-		{"title": "推荐房间", "subtitle": "Recommended", "state": "同步中"},
-		{"title": "活动房间", "subtitle": "Event", "state": "开放中"},
+	var view_models := _get_filtered_custom_room_view_models()
+	var max_page := _get_custom_room_max_page(view_models.size())
+	_formal_custom_room_page = clampi(_formal_custom_room_page, 0, max_page)
+	var start_index := _formal_custom_room_page * CUSTOM_ROOM_PAGE_SIZE
+	for slot_index in range(CUSTOM_ROOM_PAGE_SIZE):
+		var item_index := start_index + slot_index
+		if item_index < view_models.size():
+			_formal_room_grid.add_child(_create_custom_room_list_row(view_models[item_index]))
+		else:
+			_formal_room_grid.add_child(_create_custom_room_placeholder(slot_index))
+	_update_custom_room_pager(view_models.size(), max_page)
+
+
+func _get_filtered_custom_room_view_models() -> Array:
+	var snapshot = _last_room_directory_snapshot
+	if snapshot == null:
+		return []
+	var view_models := _room_directory_builder.build_view_models(snapshot)
+	var filtered_mode_id := _selected_metadata(_formal_mode_filter)
+	var filtered: Array = []
+	for view_model in view_models:
+		var room_kind := String(view_model.get("room_kind", ""))
+		if room_kind != "custom_room" and room_kind != "public_room":
+			continue
+		var mode_id := String(view_model.get("mode_id", ""))
+		if not filtered_mode_id.is_empty() and mode_id != filtered_mode_id:
+			continue
+		filtered.append(view_model)
+	return filtered
+
+
+func _get_custom_room_max_page(room_count: int) -> int:
+	if room_count <= 0:
+		return 0
+	return int(ceil(float(room_count) / float(CUSTOM_ROOM_PAGE_SIZE))) - 1
+
+
+func _update_custom_room_pager(room_count: int, max_page: int) -> void:
+	if _formal_room_page_label != null:
+		_formal_room_page_label.text = "%d / %d" % [_formal_custom_room_page + 1, max_page + 1]
+	if _formal_room_prev_button != null:
+		_formal_room_prev_button.disabled = _formal_custom_room_page <= 0
+	if _formal_room_next_button != null:
+		_formal_room_next_button.disabled = _formal_custom_room_page >= max_page or room_count <= CUSTOM_ROOM_PAGE_SIZE
+
+
+func _change_custom_room_page(delta: int) -> void:
+	var view_models := _get_filtered_custom_room_view_models()
+	var max_page := _get_custom_room_max_page(view_models.size())
+	_formal_custom_room_page = clampi(_formal_custom_room_page + delta, 0, max_page)
+	_refresh_reference_custom_room_list()
+
+
+func _create_custom_room_list_row(view_model: Dictionary) -> Control:
+	var room_id := String(view_model.get("room_id", ""))
+	var display_name := String(view_model.get("room_display_name", room_id))
+	var summary := String(view_model.get("summary_text", ""))
+	var mode_id := String(view_model.get("mode_id", ""))
+	var button := Button.new()
+	button.text = "%s\n%s%s" % [
+		display_name if not display_name.is_empty() else "自定义房间",
+		summary if not summary.is_empty() else "等待玩家加入",
+		("  %s" % mode_id) if not mode_id.is_empty() else "",
 	]
-	for card_data in cards:
-		_formal_room_grid.add_child(_create_reference_room_card(card_data))
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.custom_minimum_size = Vector2(0, 78)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.set_meta("room_id", room_id)
+	button.set_meta("ui_asset_id", "ui.lobby.room_card.normal")
+	_apply_lobby_button_style(button)
+	button.pressed.connect(func() -> void: _join_custom_room_by_id(room_id))
+	return button
 
 
-func _create_reference_room_card(card_data: Dictionary) -> Control:
+func _create_custom_room_placeholder(slot_index: int) -> Control:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(250, 96)
+	card.custom_minimum_size = Vector2(250, 112)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.88, 0.92, 0.92, 0.95), Color(0.35, 0.61, 0.70, 1.0), 8))
-	card.set_meta("ui_asset_id", "ui.lobby.room_card.normal")
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	card.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.82, 0.88, 0.90, 0.72), Color(0.50, 0.68, 0.75, 0.82), 8))
+	card.set_meta("ui_asset_id", "ui.lobby.room_card.empty")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	card.add_child(row)
 	var icon := ColorRect.new()
 	icon.custom_minimum_size = Vector2(64, 64)
-	icon.color = Color(0.62, 0.68, 0.68, 1.0)
+	icon.color = Color(0.56, 0.60, 0.61, 0.72)
 	row.add_child(icon)
 	var text_box := VBoxContainer.new()
 	text_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(text_box)
 	var title := Label.new()
-	title.text = String(card_data.get("title", "Room"))
-	title.add_theme_color_override("font_color", Color(0.08, 0.14, 0.18, 1.0))
-	title.add_theme_font_size_override("font_size", 18)
+	title.text = "空房间位"
+	title.add_theme_color_override("font_color", Color(0.35, 0.40, 0.42, 1.0))
 	text_box.add_child(title)
 	var subtitle := Label.new()
-	subtitle.text = String(card_data.get("subtitle", ""))
-	subtitle.add_theme_color_override("font_color", Color(0.16, 0.28, 0.34, 1.0))
+	subtitle.text = "等待创建"
+	subtitle.add_theme_color_override("font_color", Color(0.48, 0.54, 0.56, 1.0))
 	text_box.add_child(subtitle)
-	var state := Label.new()
-	state.text = String(card_data.get("state", ""))
-	state.add_theme_color_override("font_color", Color(0.25, 0.42, 0.48, 1.0))
-	text_box.add_child(state)
+	card.set_meta("slot_index", slot_index)
 	return card
+
+
+func _refresh_reference_lobby_players(view_state = null) -> void:
+	if _formal_player_list == null:
+		return
+	for child in _formal_player_list.get_children():
+		child.queue_free()
+	var self_payload := _build_self_profile_payload(view_state)
+	_formal_player_list.add_child(_create_player_list_row(self_payload, true))
+
+
+func _create_player_list_row(player_data: Dictionary, pinned: bool) -> Control:
+	var button := Button.new()
+	var player_name := String(player_data.get("name", "Player"))
+	var level := int(player_data.get("level", 1))
+	var win_rate := String(player_data.get("win_rate", "-"))
+	button.text = "%s%s    Lv.%d    %s" % [
+		"本人  " if pinned else "",
+		player_name,
+		level,
+		win_rate,
+	]
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.custom_minimum_size = Vector2(0, 36)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_apply_lobby_button_style(button)
+	button.pressed.connect(func() -> void: _show_profile_popup(player_data))
+	return button
+
+
+func _build_self_profile_payload(view_state = null) -> Dictionary:
+	if view_state == null and _app_runtime != null and _app_runtime.lobby_use_case != null:
+		view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
+	if view_state == null:
+		return {
+			"name": current_profile_label.text if current_profile_label != null else "Player",
+			"level": 1,
+			"win_rate": "-",
+			"rating": "-",
+			"rank": "-",
+			"wallet": "-",
+			"inventory": "-",
+		}
+	var win_rate_text := "-"
+	if int(view_state.career_total_matches) > 0:
+		win_rate_text = "%.1f%%" % (float(view_state.career_total_wins) * 100.0 / float(view_state.career_total_matches))
+	return {
+		"name": String(view_state.profile_name if not String(view_state.profile_name).is_empty() else "Player"),
+		"level": max(1, int(int(view_state.current_rating) / 100)),
+		"win_rate": win_rate_text,
+		"rating": str(int(view_state.current_rating)),
+		"rank": String(view_state.current_rank_tier if not String(view_state.current_rank_tier).is_empty() else "-"),
+		"wallet": String(view_state.wallet_summary_text if not String(view_state.wallet_summary_text).is_empty() else "-"),
+		"inventory": String(view_state.inventory_status_text if not String(view_state.inventory_status_text).is_empty() else "-"),
+	}
+
+
+func _ensure_profile_popup() -> void:
+	if _profile_popup != null:
+		return
+	_profile_popup = PopupPanel.new()
+	_profile_popup.name = "ProfilePopup"
+	_profile_popup.add_theme_stylebox_override("panel", _make_lobby_style(Color(0.10, 0.16, 0.21, 0.98), Color(0.21, 0.67, 0.86, 1.0), 8))
+	lobby_root.add_child(_profile_popup)
+	_profile_popup_content = VBoxContainer.new()
+	_profile_popup_content.add_theme_constant_override("separation", 8)
+	_profile_popup.add_child(_profile_popup_content)
+
+
+func _show_profile_popup(player_data: Dictionary) -> void:
+	_ensure_profile_popup()
+	if _profile_popup == null or _profile_popup_content == null:
+		return
+	for child in _profile_popup_content.get_children():
+		child.queue_free()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_profile_popup_content.add_child(row)
+	var avatar := ColorRect.new()
+	avatar.custom_minimum_size = Vector2(96, 96)
+	avatar.color = Color(0.54, 0.71, 0.77, 1.0)
+	row.add_child(avatar)
+	var info := VBoxContainer.new()
+	info.add_theme_constant_override("separation", 6)
+	row.add_child(info)
+	var name_label := Label.new()
+	name_label.text = String(player_data.get("name", "Player"))
+	name_label.add_theme_font_size_override("font_size", 20)
+	info.add_child(name_label)
+	for line in [
+		"等级: Lv.%d" % int(player_data.get("level", 1)),
+		"胜率: %s" % String(player_data.get("win_rate", "-")),
+		"段位: %s" % String(player_data.get("rank", "-")),
+		"评分: %s" % String(player_data.get("rating", "-")),
+		"钱包: %s" % String(player_data.get("wallet", "-")),
+		"资产: %s" % String(player_data.get("inventory", "-")),
+	]:
+		var label := Label.new()
+		label.text = line
+		info.add_child(label)
+	_profile_popup.popup_centered(Vector2i(360, 190))
+
+
+func _ensure_create_room_popup() -> void:
+	if _create_room_popup != null:
+		return
+	_create_room_popup = PopupMenu.new()
+	_create_room_popup.name = "CreateRoomPopup"
+	_create_room_popup.add_item("自定义房间", 0)
+	_create_room_popup.add_item("匹配房间", 1)
+	_create_room_popup.add_item("排位房间", 2)
+	_create_room_popup.id_pressed.connect(_on_create_room_menu_id_pressed)
+	lobby_root.add_child(_create_room_popup)
 
 
 func _reparent_account_card_children() -> void:
@@ -946,8 +1218,8 @@ func _set_message(text: String) -> void:
 func _set_directory_status(text: String) -> void:
 	if directory_status_label != null:
 		directory_status_label.text = text
-	if _formal_chat_log != null and not text.is_empty():
-		_formal_chat_log.text = text
+	if _formal_status_label != null and not text.is_empty():
+		_formal_status_label.text = text
 
 
 func _refresh_reference_lobby_summary(view_state) -> void:
@@ -959,8 +1231,9 @@ func _refresh_reference_lobby_summary(view_state) -> void:
 		_formal_inventory_label.text = "Inventory: %s" % String(view_state.inventory_status_text if not String(view_state.inventory_status_text).is_empty() else "-")
 	if _formal_shop_label != null:
 		_formal_shop_label.text = "Shop: %s" % String(view_state.shop_status_text if not String(view_state.shop_status_text).is_empty() else "-")
+	_refresh_reference_lobby_players(view_state)
 	if _formal_chat_log != null and _formal_chat_log.text.is_empty():
-		_formal_chat_log.text = "系统: 欢迎回来\n好友: 暂无消息\n房间: 选择左侧房间卡片或底部入口"
+		_formal_chat_log.text = "大厅聊天频道待接入"
 
 
 func _on_room_error(_error_code: String, user_message: String) -> void:
@@ -1003,26 +1276,20 @@ func _on_room_directory_snapshot_received(snapshot) -> void:
 
 
 func _refresh_directory_list() -> void:
-	if public_room_list == null:
-		return
-	public_room_list.clear()
+	if public_room_list != null:
+		public_room_list.clear()
+	_refresh_reference_custom_room_list()
 	var snapshot = _last_room_directory_snapshot
 	if snapshot == null:
 		_set_directory_status("No custom rooms available.")
 		return
-	var view_models := _room_directory_builder.build_view_models(snapshot)
-	var filtered_mode_id := _selected_metadata(custom_room_mode_filter_selector)
+	var view_models := _get_filtered_custom_room_view_models()
 	var rendered_count := 0
 	for view_model in view_models:
-		var room_kind := String(view_model.get("room_kind", ""))
-		if room_kind != "public_room" and room_kind != "custom_room":
-			continue
-		var mode_id := String(view_model.get("mode_id", ""))
-		if not filtered_mode_id.is_empty() and mode_id != filtered_mode_id:
-			continue
 		var label_text := String(view_model.get("summary_text", view_model.get("room_display_name", "")))
-		public_room_list.add_item(label_text)
-		public_room_list.set_item_metadata(public_room_list.item_count - 1, String(view_model.get("room_id", "")))
+		if public_room_list != null:
+			public_room_list.add_item(label_text)
+			public_room_list.set_item_metadata(public_room_list.item_count - 1, String(view_model.get("room_id", "")))
 		rendered_count += 1
 	_set_directory_status("Loaded %d custom room(s)." % rendered_count)
 
