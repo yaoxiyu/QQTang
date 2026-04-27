@@ -55,7 +55,7 @@ Invoke-Step "Run C# room client tests" {
 }
 
 if ($WithGut) {
-    Invoke-Step "Run GUT suite (Phase25 related directories)" {
+    Invoke-Step "Run GUT suite (room related directories)" {
         & (Join-Path $repoRoot "tests\\scripts\\run_gut_suite.ps1")
     }
 }
@@ -63,4 +63,4 @@ else {
     Write-Host "==> Skip GUT suite (pass -WithGut to enable)"
 }
 
-Write-Host "Phase25 validation completed."
+Write-Host "Room validation completed."

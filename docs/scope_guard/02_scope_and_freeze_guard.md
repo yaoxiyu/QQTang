@@ -1,8 +1,8 @@
-# Phase34 Scope And Freeze Guard
+# Scope And Freeze Guard
 
 ## Purpose
 
-Phase34 only implements the player asset, wallet, shop, purchase, front UI resource, and async loading foundation.
+This scope only implements the player asset, wallet, shop, purchase, front UI resource, and async loading foundation.
 
 The implementation must keep matchmaking, room authority semantics, battle runtime, battle simulation, battle sync, DS authority, gameplay rules, and settlement semantics unchanged.
 
@@ -13,7 +13,7 @@ The implementation must keep matchmaking, room authority semantics, battle runti
 - Content source and generated runtime catalog for economy, shop, and UI assets.
 - Login, lobby, room, shop, inventory, loading, and Battle HUD presentation formalization.
 - Battle HUD resource binding only, using existing presentation state or existing runtime snapshots.
-- Project guard, contract tests, and Phase34 acceptance documentation.
+- Project guard, contract tests, and acceptance documentation.
 
 ## Frozen Scope
 
@@ -53,13 +53,13 @@ Client front code may request, cache, display, preview, and bind state. It must 
 Use the guard before review:
 
 ```powershell
-python tools/project_guard/phase34_forbidden_paths.py --base <base_branch>
+python tools/project_guard/forbidden_paths.py --base <base_branch>
 ```
 
 For ad-hoc path checks:
 
 ```powershell
-python tools/project_guard/phase34_forbidden_paths.py --paths services/game_service/internal/queue/example.go
+python tools/project_guard/forbidden_paths.py --paths services/game_service/internal/queue/example.go
 ```
 
 For GDScript pipelines or GDScript tests, run syntax preflight first:
@@ -72,4 +72,4 @@ If syntax preflight reports parse or load errors, stop and fix syntax before run
 
 ## Review Gate
 
-A Phase34 change is blocked if `git diff --name-only <base_branch>...HEAD` contains a forbidden path and there is no explicit approved exception record.
+A scoped change is blocked if `git diff --name-only <base_branch>...HEAD` contains a forbidden path and there is no explicit approved exception record.

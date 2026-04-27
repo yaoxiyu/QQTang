@@ -1,20 +1,20 @@
 # 统一 Animation 规范文档
 更新时间：2026-04-04 13:34
 
-> 文档定位：本文件用于在当前 QQ 堂重置项目中，统一 **角色动画** 与 **泡泡动画** 的资源目录、生产方式、导入方式、运行期消费方式与命名规范。  
-> 依据：本规范参考 `Phase8 角色动画资源流水线与首个角色落地` 文档中的角色动画处理思路，并结合当前泡泡资源的实际情况，补全为一套统一 animation 规范。
+> 文档定位：本文件用于在当前 QQ 堂重置项目中，统一 **角色动画** 与 **泡泡动画** 的资源目录、生产方式、导入方式、运行期消费方式与命名规范。
+> 依据：本规范参考 `角色动画资源流水线与首个角色落地` 文档中的角色动画处理思路，并结合当前泡泡资源的实际情况，补全为一套统一 animation 规范。
 
 ---
 
 # 1. 当前项目情况与本规范的目标
 
-根据 Phase8 文档，当前项目已经具备以下前提：
+根据 文档，当前项目已经具备以下前提：
 
-1. `Room -> Battle -> DS` 主链路已经建立  
-2. `res://content/` 已经是正式内容真相层  
-3. `res://content_source/` 已经承担内容生产源文件职责  
-4. `res://tools/content_pipeline/` 已经承担 CSV -> `.tres` 的生产职责  
-5. 角色主体动画在 Phase8 被明确要求从“占位几何体表现”升级为“正式动画资源流水线”  
+1. `Room -> Battle -> DS` 主链路已经建立
+2. `res://content/` 已经是正式内容真相层
+3. `res://content_source/` 已经承担内容生产源文件职责
+4. `res://tools/content_pipeline/` 已经承担 CSV -> `.tres` 的生产职责
+5. 角色主体动画在 被明确要求从“占位几何体表现”升级为“正式动画资源流水线”
 6. 当前泡泡资源也已经进入内容系统，不应继续停留在临时图片直连阶段
 
 因此，本规范的目标是：
@@ -342,7 +342,7 @@ Compression = Lossless
 
 ## 8.1 角色动画内容定义
 
-已在 Phase8 中确立：
+已在 中确立：
 
 ```gdscript
 CharacterAnimationSetDef
@@ -398,7 +398,7 @@ class_name BubbleAnimationSetDef
 
 ## 9.1 角色动画 CSV
 
-延续 Phase8 文档中建议的：
+延续 文档中建议的：
 
 ```text
 animation_set_id,
@@ -457,7 +457,7 @@ bubble_anim_normal,普通泡泡,strip,res://assets/animation/bubbles/normal/bubb
 
 ## 10.1 角色动画 Generator
 
-沿用 Phase8 思路：
+沿用 思路：
 
 ```text
 res://tools/content_pipeline/generators/generate_character_animation_sets.gd
@@ -658,7 +658,7 @@ Room -> Battle 链路验证
 
 # 16. 最终结论
 
-当前项目的 animation 体系不应该再分裂成“角色一套、泡泡一套、每次都手工做”的状态。  
+当前项目的 animation 体系不应该再分裂成“角色一套、泡泡一套、每次都手工做”的状态。
 正确方向是：
 
 - **角色动画**：走 `character_animation_sets`

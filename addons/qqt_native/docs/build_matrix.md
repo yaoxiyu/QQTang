@@ -19,7 +19,7 @@ Generated artifacts:
 - `tools/native/build_native.ps1` and `tools/native/build_native.sh` rebuild the extension from source.
 - If the matching `godot-cpp` static library is absent, the build script builds it first.
 - `tools/run-services.ps1` and `scripts/run-battle-ds-local.ps1` call the native build before launching Godot-driven runtime.
-- `deploy/docker/build_phase24_dev.ps1` prepares local generated inputs before Docker Compose build.
+- `deploy/docker/build_dev.ps1` prepares local generated inputs before Docker Compose build.
 
 Current non-goals in this repo state:
 
@@ -39,9 +39,9 @@ Before enabling another platform, all of the following must be added together:
 3. Correct output artifact naming that matches `qqt_native.gdextension`.
 4. A platform-specific verification path that actually builds and loads the extension.
 
-## Phase31 Linux Matrix Entry
+## Linux Matrix Entry
 
-Phase31 adds Linux build scripts and `.gdextension` library mapping for:
+adds Linux build scripts and `.gdextension` library mapping for:
 
 - `linux.template_debug.x86_64`
 - `linux.template_release.x86_64`

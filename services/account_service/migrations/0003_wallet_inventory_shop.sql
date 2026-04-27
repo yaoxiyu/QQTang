@@ -1,4 +1,4 @@
--- Phase34: wallet, inventory extension, and shop purchase transaction schema.
+-- Wallet, inventory extension, and shop purchase transaction schema.
 
 BEGIN;
 

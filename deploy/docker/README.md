@@ -1,6 +1,6 @@
 # Docker Deployment Scope
 
-The Phase24 Docker Compose files validate Go service image readiness for:
+The Docker Compose files validate Go service image readiness for:
 
 - `account_service`
 - `room_service`

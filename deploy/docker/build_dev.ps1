@@ -1,7 +1,7 @@
 param(
     [string]$ProjectPath = '',
     [string]$GodotExecutable = 'Godot_console.exe',
-    [string]$ComposeFile = 'deploy/docker/docker-compose.phase24.dev.yml',
+    [string]$ComposeFile = 'deploy/docker/docker-compose.dev.yml',
     [switch]$SkipDotnetBuild,
     [switch]$SkipNativeBuild
 )

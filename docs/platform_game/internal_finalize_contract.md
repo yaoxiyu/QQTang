@@ -28,7 +28,7 @@ Purpose:
 
 - Allow `battle_ds` to submit authoritative match results.
 - Commit match result, player result, rating delta, reward ledger, and career summary in one service boundary.
-- Phase23: After finalize commits, `game_service` notifies `room_service` that the source room can transition from `in_battle_frozen` to `awaiting_return`. This enables the post-battle return-to-source-room flow.
+- : After finalize commits, `game_service` notifies `room_service` that the source room can transition from `in_battle_frozen` to `awaiting_return`. This enables the post-battle return-to-source-room flow.
 
 Finalize semantics:
 

@@ -1,4 +1,4 @@
-# Phase34 forbidden path seed. Any diff under these paths requires explicit change request.
+# Forbidden path seed. Any diff under these paths requires explicit change request.
 services/game_service/internal/queue/
 services/game_service/internal/assignment/
 services/game_service/internal/battlealloc/

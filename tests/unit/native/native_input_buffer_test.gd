@@ -5,7 +5,7 @@ func test_native_input_buffer_instantiates_and_reports_version() -> void:
 	assert_true(ClassDB.can_instantiate("QQTNativeInputBuffer"))
 	var kernel: Object = ClassDB.instantiate("QQTNativeInputBuffer")
 	assert_not_null(kernel)
-	assert_eq(String(kernel.call("get_kernel_version")), "phase32_sync_kernel_v1")
+	assert_eq(String(kernel.call("get_kernel_version")), "sync_kernel_v1")
 
 
 func test_same_identity_duplicate_ignored() -> void:

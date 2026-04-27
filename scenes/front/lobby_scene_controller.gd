@@ -118,9 +118,9 @@ func _bind_runtime() -> void:
 
 func _on_runtime_ready() -> void:
 	_refresh_account_node_refs()
-	_ensure_phase34_entry_buttons()
-	_ensure_phase34_summary_rows()
-	_apply_phase34_lobby_asset_ids()
+	_ensure_formal_entry_buttons()
+	_ensure_account_summary_rows()
+	_apply_lobby_asset_ids()
 	_populate_practice_selectors()
 	_configure_custom_room_controls()
 	_populate_custom_room_mode_filter()
@@ -536,7 +536,7 @@ func _on_inventory_pressed() -> void:
 		_app_runtime.front_flow.enter_inventory()
 
 
-func _ensure_phase34_entry_buttons() -> void:
+func _ensure_formal_entry_buttons() -> void:
 	if header_row == null:
 		return
 	if shop_button == null:
@@ -551,7 +551,7 @@ func _ensure_phase34_entry_buttons() -> void:
 		header_row.add_child(inventory_button)
 
 
-func _ensure_phase34_summary_rows() -> void:
+func _ensure_account_summary_rows() -> void:
 	var account_vbox: VBoxContainer = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox")
 	if account_vbox == null:
 		return
@@ -622,7 +622,7 @@ func _apply_formal_lobby_layout() -> void:
 		reconnect_button,
 	]:
 		_apply_lobby_button_style(button)
-	_apply_phase34_lobby_asset_ids()
+	_apply_lobby_asset_ids()
 
 
 func _build_reference_lobby_layout() -> void:
@@ -1073,7 +1073,7 @@ func _apply_lobby_button_style(button: Button) -> void:
 	button.add_theme_stylebox_override("pressed", _make_lobby_style(Color(0.16, 0.22, 0.29, 1.0), Color(0.54, 0.70, 0.86, 1.0), 6))
 
 
-func _apply_phase34_lobby_asset_ids() -> void:
+func _apply_lobby_asset_ids() -> void:
 	_set_lobby_asset_meta(lobby_root, "ui.lobby.bg.main")
 	_set_lobby_asset_meta(account_card, "ui.lobby.panel.player_summary")
 	_set_lobby_asset_meta(shop_button, "ui.lobby.button.shop.normal")

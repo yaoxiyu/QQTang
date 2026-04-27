@@ -118,10 +118,10 @@ foreach ($check in $checks) {
     }
 
     if (-not [string]::IsNullOrWhiteSpace(($result | Out-String))) {
-        Write-Host ("[phase29-sanity] FAIL {0}" -f $check.Name)
+        Write-Host ("[content-sanity] FAIL {0}" -f $check.Name)
         Write-Host ($result | Out-String)
         exit 1
     }
 }
 
-Write-Host '[phase29-sanity] PASS'
+Write-Host '[content-sanity] PASS'

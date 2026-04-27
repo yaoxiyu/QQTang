@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
-class Phase34FrontSceneContractTests(unittest.TestCase):
+class FrontSceneContractTests(unittest.TestCase):
     def test_shop_and_inventory_scenes_are_registered(self) -> None:
         scene_flow = (ROOT / "app" / "flow" / "scene_flow_controller.gd").read_text(encoding="utf-8")
         self.assertIn('SHOP_SCENE_PATH: String = "res://scenes/front/shop_scene.tscn"', scene_flow)
@@ -22,18 +22,18 @@ class Phase34FrontSceneContractTests(unittest.TestCase):
         self.assertIn("func enter_shop()", front_flow)
         self.assertIn("func enter_inventory()", front_flow)
 
-    def test_lobby_and_room_bind_phase34_front_state(self) -> None:
+    def test_lobby_and_room_bind_front_state(self) -> None:
         lobby_state = (ROOT / "app" / "front" / "lobby" / "lobby_view_state.gd").read_text(encoding="utf-8")
         lobby_controller = (ROOT / "scenes" / "front" / "lobby_scene_controller.gd").read_text(encoding="utf-8")
         room_binder = (ROOT / "scenes" / "front" / "room_scene_view_binder.gd").read_text(encoding="utf-8")
         self.assertIn("wallet_summary_text", lobby_state)
         self.assertIn("inventory_status_text", lobby_state)
         self.assertIn("shop_status_text", lobby_state)
-        self.assertIn("_ensure_phase34_summary_rows", lobby_controller)
+        self.assertIn("_ensure_account_summary_rows", lobby_controller)
         self.assertIn('profile.get("title_id")', room_binder)
         self.assertIn('profile.get("avatar_id")', room_binder)
 
-    def test_lobby_scene_is_phase34_formalized(self) -> None:
+    def test_lobby_scene_is_formalized(self) -> None:
         lobby_controller = (ROOT / "scenes" / "front" / "lobby_scene_controller.gd").read_text(encoding="utf-8")
         self.assertIn("_apply_formal_lobby_layout", lobby_controller)
         self.assertIn("_build_reference_lobby_layout", lobby_controller)
@@ -49,7 +49,7 @@ class Phase34FrontSceneContractTests(unittest.TestCase):
         self.assertIn("_auto_connect_room_directory", lobby_controller)
         self.assertIn("_connect_or_refresh_room_directory", lobby_controller)
         self.assertIn("_reparent_account_card_children", lobby_controller)
-        self.assertIn("_apply_phase34_lobby_asset_ids", lobby_controller)
+        self.assertIn("_apply_lobby_asset_ids", lobby_controller)
         self.assertIn('set_meta("ui_asset_id"', lobby_controller)
         self.assertIn("ui.lobby.bg.main", lobby_controller)
         self.assertIn("ui.lobby.button.shop.normal", lobby_controller)
@@ -88,8 +88,17 @@ class Phase34FrontSceneContractTests(unittest.TestCase):
         self.assertIn('set_meta("ui_asset_id"', hud_binder)
         self.assertNotIn("res://assets/ui/battle", hud_controller)
 
-    def test_room_loading_shop_inventory_are_phase34_formalized(self) -> None:
-        room_controller = (ROOT / "scenes" / "front" / "room_scene_controller.gd").read_text(encoding="utf-8")
+    def test_room_loading_shop_inventory_are_formalized(self) -> None:
+        room_controller = "\n".join(
+            [
+                (ROOT / "scenes" / "front" / "room" / "room_scene_controller_impl.gd").read_text(encoding="utf-8"),
+                (ROOT / "scenes" / "front" / "room" / "room_formal_layout_builder.gd").read_text(encoding="utf-8"),
+                (ROOT / "scenes" / "front" / "room" / "room_formal_loadout_presenter.gd").read_text(encoding="utf-8"),
+                (ROOT / "scenes" / "front" / "room" / "room_formal_popup_controller.gd").read_text(encoding="utf-8"),
+                (ROOT / "scenes" / "front" / "room" / "room_formal_slot_presenter.gd").read_text(encoding="utf-8"),
+                (ROOT / "scenes" / "front" / "room" / "room_formal_theme_applier.gd").read_text(encoding="utf-8"),
+            ]
+        )
         loading_controller = (ROOT / "scenes" / "front" / "loading_scene_controller.gd").read_text(encoding="utf-8")
         shop_controller = (ROOT / "scenes" / "front" / "shop_scene_controller.gd").read_text(encoding="utf-8")
         inventory_controller = (ROOT / "scenes" / "front" / "inventory_scene_controller.gd").read_text(encoding="utf-8")
@@ -152,7 +161,7 @@ class Phase34FrontSceneContractTests(unittest.TestCase):
         self.assertIn("res://scenes/front/shop_scene_controller.gd", shop_scene)
         self.assertIn("res://scenes/front/inventory_scene_controller.gd", inventory_scene)
 
-    def test_login_scene_is_phase34_formalized(self) -> None:
+    def test_login_scene_is_formalized(self) -> None:
         login_controller = (ROOT / "scenes" / "front" / "login_scene_controller.gd").read_text(encoding="utf-8")
         self.assertIn("_apply_formal_login_layout", login_controller)
         self.assertIn('set_meta("ui_asset_id"', login_controller)

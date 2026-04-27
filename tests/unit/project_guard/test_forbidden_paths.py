@@ -6,19 +6,19 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = ROOT / "tools" / "project_guard" / "phase34_forbidden_paths.py"
+SCRIPT_PATH = ROOT / "tools" / "project_guard" / "forbidden_paths.py"
 
 
 def load_guard_module():
-    spec = importlib.util.spec_from_file_location("phase34_forbidden_paths", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location("forbidden_paths", SCRIPT_PATH)
     if spec is None or spec.loader is None:
-        raise RuntimeError("failed to load phase34 guard module")
+        raise RuntimeError("failed to load forbidden path guard module")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-class Phase34ForbiddenPathTests(unittest.TestCase):
+class ForbiddenPathTests(unittest.TestCase):
     def setUp(self) -> None:
         self.guard = load_guard_module()
 

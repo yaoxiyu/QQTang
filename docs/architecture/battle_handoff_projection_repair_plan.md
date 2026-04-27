@@ -1,14 +1,14 @@
 # Battle Handoff Projection Repair Plan
 
 ## Purpose
-记录 2026-04-22 双客户端实测中出现的 battle 过程中 Room 状态回流问题，说明前因后果、当前短期保护、为什么它不满足 Phase28 目标态，以及后续正确落地路径。
+记录 2026-04-22 双客户端实测中出现的 battle 过程中 Room 状态回流问题，说明前因后果、当前短期保护、为什么它不满足 目标态，以及后续正确落地路径。
 
 这份文档用于交接给后续会话：新会话应优先修服务端 `room_service` 状态机投影，而不是继续在客户端叠加 guard。
 
-## Phase28 Design Context
-Phase28 的状态机设计原则来自：
+## Design Context
+的状态机设计原则来自：
 
-`F:\Obsidian\02-项目\QQ堂重置\31_Phase28_状态机收敛工程化方案\02_Phase28_详细工程化系统设计.md`
+`F:\Obsidian\02-项目\QQ堂重置\31__状态机收敛工程化方案\02__详细工程化系统设计.md`
 
 关键约束：
 
@@ -65,7 +65,7 @@ Phase28 的状态机设计原则来自：
 - `app/front/room/room_use_case.gd`
   - `current_room_snapshot` 改为使用 `room_session_controller.build_room_snapshot()`，避免其他 UI 读到未经规整的 stale snapshot。
 
-这些修复有测试保护，但不是 Phase28 目标态：
+这些修复有测试保护，但不是 目标态：
 
 - 它让客户端根据本地状态判断服务端 snapshot 是否 stale，违反“前端只消费服务端投影”。
 - 它把 Room FSM 与 Battle Handoff FSM 的跨域解释放到了客户端。

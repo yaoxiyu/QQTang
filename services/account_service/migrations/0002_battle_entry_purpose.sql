@@ -1,4 +1,4 @@
--- Phase23: Allow 'battle_entry' purpose for battle ticket flow
+-- Allow 'battle_entry' purpose for battle ticket flow
 ALTER TABLE room_entry_tickets
     DROP CONSTRAINT IF EXISTS ck_room_entry_tickets_purpose;
 

@@ -199,7 +199,7 @@ def main() -> int:
     ]
 
     failed = 0
-    print("[release_sanity] Phase27 release sanity check")
+    print("[release_sanity] release sanity check")
     for check in checks:
         if check.ok:
             print(f"[PASS] {check.name}")

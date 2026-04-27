@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SEED = ROOT / "docs" / "phase34" / "appendices" / "E_forbidden_path_guard_seed.txt"
+DEFAULT_SEED = ROOT / "docs" / "scope_guard" / "appendices" / "E_forbidden_path_guard_seed.txt"
 
 
 def normalize_path(value: str) -> str:
@@ -71,7 +71,7 @@ def find_violations(changed_paths: list[str], forbidden_paths: list[str]) -> lis
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Phase34 forbidden path guard.")
+    parser = argparse.ArgumentParser(description="Forbidden path guard.")
     parser.add_argument("--base", help="Base ref for git diff, for example origin/main.")
     parser.add_argument("--seed", default=str(DEFAULT_SEED), help="Forbidden path seed file.")
     parser.add_argument("--paths", nargs="*", help="Explicit changed paths to validate.")
@@ -84,7 +84,7 @@ def main(argv: list[str]) -> int:
     if not seed_path.is_absolute():
         seed_path = ROOT / seed_path
     if not seed_path.exists():
-        print(f"[phase34_guard] seed file not found: {seed_path}", file=sys.stderr)
+        print(f"[path_guard] seed file not found: {seed_path}", file=sys.stderr)
         return 2
 
     forbidden_paths = load_forbidden_paths(seed_path)
@@ -95,27 +95,27 @@ def main(argv: list[str]) -> int:
         try:
             changed_paths = changed_paths_from_base(args.base)
         except RuntimeError as exc:
-            print(f"[phase34_guard] failed to diff against {args.base}: {exc}", file=sys.stderr)
+            print(f"[path_guard] failed to diff against {args.base}: {exc}", file=sys.stderr)
             return 2
         source = f"git diff {args.base}...HEAD"
     else:
         try:
             changed_paths = changed_paths_from_status()
         except RuntimeError as exc:
-            print(f"[phase34_guard] failed to read git status: {exc}", file=sys.stderr)
+            print(f"[path_guard] failed to read git status: {exc}", file=sys.stderr)
             return 2
         source = "git status"
 
     violations = find_violations(changed_paths, forbidden_paths)
-    print(f"[phase34_guard] source={source} changed={len(changed_paths)} forbidden={len(forbidden_paths)}")
+    print(f"[path_guard] source={source} changed={len(changed_paths)} forbidden={len(forbidden_paths)}")
     if not violations:
-        print("[phase34_guard] PASS")
+        print("[path_guard] PASS")
         return 0
 
-    print("[phase34_guard] FAIL forbidden Phase34 path changes detected:")
+    print("[path_guard] FAIL forbidden path changes detected:")
     for violation in violations:
         print(f"  - {violation}")
-    print("[phase34_guard] These paths require an explicit approved Phase34 exception.")
+    print("[path_guard] These paths require an explicit approved exception.")
     return 1
 
 

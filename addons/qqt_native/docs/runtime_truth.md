@@ -2,7 +2,7 @@
 
 ## Mainline Policy
 
-- Phase30 native kernels are now the default battle runtime path.
+- native kernels are now the default battle runtime path.
 - `NativeFeatureFlags.require_native_kernels` defaults to `true`.
 - If checksum, snapshot ring, movement, or explosion native kernels are requested but unavailable, the mainline code reports an error instead of silently using the legacy path.
 - Legacy GDScript implementations remain only behind explicit test flags for parity and regression tests.
@@ -30,7 +30,7 @@ Local scripts regenerate the required pieces:
 - `tools/native/build_native.ps1` rebuilds `godot-cpp` static libraries when missing, then `qqt_native`.
 - `tools/run-services.ps1` builds native and regenerates the room manifest before launching services.
 - `scripts/run-battle-ds-local.ps1` builds native before launching the dedicated server scene.
-- `deploy/docker/build_phase24_dev.ps1` builds native and regenerates the room manifest before `docker compose build`.
+- `deploy/docker/build_dev.ps1` builds native and regenerates the room manifest before `docker compose build`.
 
 ## Docker Limitation
 

@@ -5,7 +5,7 @@
 
 namespace qqt_native {
 
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "kernel_v1";
 
 struct IVec2 {
     int32_t x = 0;

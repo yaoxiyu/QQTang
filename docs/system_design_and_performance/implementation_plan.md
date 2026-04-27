@@ -1,8 +1,8 @@
-# Phase31 Implementation Plan
+# Implementation Plan
 
 ## Order
 
-1. Write Phase31 docs and truth update.
+1. Write docs and truth update.
 2. Add first-batch Room UseCase command/projection/recovery/error split.
 3. Add Generated Catalog Index loader, contract helper, and generator.
 4. Make Character and Bubble catalogs prefer generated index with scan fallback.

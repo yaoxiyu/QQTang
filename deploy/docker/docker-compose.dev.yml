@@ -1,35 +1,31 @@
-name: qqtang_phase24_test
+name: qqtang_services_dev
 
 services:
-  account_postgres_test:
+  account_postgres:
     image: bitnami/postgresql@sha256:155a5ff04d5059d8076a85dca404d8a3bc2d765db0fea1afd25ae68e9ac38903
     environment:
-      POSTGRESQL_USERNAME: qqtang_test
-      POSTGRESQL_PASSWORD: qqtang_test_pass
-      POSTGRESQL_DATABASE: qqtang_account_test
-    ports:
-      - "54330:5432"
+      POSTGRESQL_USERNAME: qqtang
+      POSTGRESQL_PASSWORD: qqtang_dev_pass
+      POSTGRESQL_DATABASE: qqtang_account_dev
     volumes:
-      - account_pgdata_test:/bitnami/postgresql
+      - account_pgdata_dev:/bitnami/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qqtang_test -d qqtang_account_test -h 127.0.0.1 -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U qqtang -d qqtang_account_dev -h 127.0.0.1 -p 5432"]
       interval: 10s
       timeout: 3s
       retries: 10
       start_period: 15s
 
-  game_postgres_test:
+  game_postgres:
     image: bitnami/postgresql@sha256:155a5ff04d5059d8076a85dca404d8a3bc2d765db0fea1afd25ae68e9ac38903
     environment:
-      POSTGRESQL_USERNAME: qqtang_game_test
-      POSTGRESQL_PASSWORD: qqtang_game_test_pass
-      POSTGRESQL_DATABASE: qqtang_game_test
-    ports:
-      - "54332:5432"
+      POSTGRESQL_USERNAME: qqtang_game
+      POSTGRESQL_PASSWORD: qqtang_game_dev_pass
+      POSTGRESQL_DATABASE: qqtang_game_dev
     volumes:
-      - game_pgdata_test:/bitnami/postgresql
+      - game_pgdata_dev:/bitnami/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U qqtang_game_test -d qqtang_game_test -h 127.0.0.1 -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U qqtang_game -d qqtang_game_dev -h 127.0.0.1 -p 5432"]
       interval: 10s
       timeout: 3s
       retries: 10
@@ -42,17 +38,17 @@ services:
     environment:
       DSM_HTTP_ADDR: 0.0.0.0:18090
       DSM_INTERNAL_AUTH_KEY_ID: primary
-      DSM_INTERNAL_AUTH_SHARED_SECRET: phase24_test_internal_shared_secret
+      DSM_INTERNAL_AUTH_SHARED_SECRET: dev_internal_shared_secret
       DSM_GODOT_EXECUTABLE: godot4
       DSM_PROJECT_ROOT: /workspace
       DSM_BATTLE_SCENE_PATH: res://scenes/network/dedicated_server_scene.tscn
-      DSM_BATTLE_TICKET_SECRET: phase24_test_battle_ticket_secret
-      DSM_BATTLE_LOG_DIR: /tmp/qqt_battle_logs_test
+      DSM_BATTLE_TICKET_SECRET: dev_battle_ticket_secret
+      DSM_BATTLE_LOG_DIR: /tmp/qqt_battle_logs
       DSM_DS_HOST: 127.0.0.1
-      DSM_PORT_RANGE_START: 19110
-      DSM_PORT_RANGE_END: 19180
+      DSM_PORT_RANGE_START: 19010
+      DSM_PORT_RANGE_END: 19050
     ports:
-      - "28090:18090"
+      - "18090:18090"
 
   game_service:
     build:
@@ -61,22 +57,22 @@ services:
     environment:
       GAME_HTTP_ADDR: 0.0.0.0:18081
       GAME_GRPC_ADDR: 0.0.0.0:19081
-      GAME_POSTGRES_DSN: postgres://qqtang_game_test:qqtang_game_test_pass@game_postgres_test:5432/qqtang_game_test?sslmode=disable
-      GAME_JWT_SHARED_SECRET: phase24_test_game_jwt_secret
+      GAME_POSTGRES_DSN: postgres://qqtang_game:qqtang_game_dev_pass@game_postgres:5432/qqtang_game_dev?sslmode=disable
+      GAME_JWT_SHARED_SECRET: dev_game_jwt_secret
       GAME_INTERNAL_AUTH_KEY_ID: primary
-      GAME_INTERNAL_AUTH_SHARED_SECRET: phase24_test_internal_shared_secret
+      GAME_INTERNAL_AUTH_SHARED_SECRET: dev_internal_shared_secret
       GAME_DS_MANAGER_URL: http://ds_manager_service:18090
       GAME_DEFAULT_DS_HOST: ds_manager_service
-      GAME_DEFAULT_DS_PORT: 19110
+      GAME_DEFAULT_DS_PORT: 19010
       GAME_LOG_SQL: "false"
     depends_on:
-      game_postgres_test:
+      game_postgres:
         condition: service_healthy
       ds_manager_service:
         condition: service_healthy
     ports:
-      - "28081:18081"
-      - "29081:19081"
+      - "18081:18081"
+      - "19081:19081"
 
   account_service:
     build:
@@ -84,20 +80,20 @@ services:
       dockerfile: services/account_service/Dockerfile
     environment:
       ACCOUNT_HTTP_LISTEN_ADDR: 0.0.0.0:18080
-      ACCOUNT_POSTGRES_DSN: postgres://qqtang_test:qqtang_test_pass@account_postgres_test:5432/qqtang_account_test?sslmode=disable
-      ACCOUNT_TOKEN_SIGN_SECRET: phase24_test_account_access_secret
-      ACCOUNT_ROOM_TICKET_SIGN_SECRET: phase24_test_room_ticket_secret
+      ACCOUNT_POSTGRES_DSN: postgres://qqtang:qqtang_dev_pass@account_postgres:5432/qqtang_account_dev?sslmode=disable
+      ACCOUNT_TOKEN_SIGN_SECRET: dev_account_access_secret
+      ACCOUNT_ROOM_TICKET_SIGN_SECRET: dev_room_ticket_secret
       ACCOUNT_GAME_SERVICE_BASE_URL: http://game_service:18081
       ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID: primary
-      ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET: phase24_test_internal_shared_secret
+      ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET: dev_internal_shared_secret
       ACCOUNT_LOG_SQL: "false"
     depends_on:
-      account_postgres_test:
+      account_postgres:
         condition: service_healthy
       game_service:
         condition: service_healthy
     ports:
-      - "28080:18080"
+      - "18080:18080"
 
   room_service:
     build:
@@ -107,19 +103,19 @@ services:
       ROOM_HTTP_ADDR: 0.0.0.0:19100
       ROOM_WS_ADDR: 0.0.0.0:9100
       ROOM_DEFAULT_PORT: 9100
-      ROOM_TICKET_SECRET: phase24_test_room_ticket_secret
+      ROOM_TICKET_SECRET: dev_room_ticket_secret
       ROOM_MANIFEST_PATH: /app/build/generated/room_manifest/room_manifest.json
       ROOM_GAME_SERVICE_GRPC_ADDR: game_service:19081
       ROOM_LOG_LEVEL: info
-      ROOM_SHARD_ID: room-shard-test-01
-      ROOM_INSTANCE_ID: room-instance-test-01
+      ROOM_SHARD_ID: room-shard-dev-01
+      ROOM_INSTANCE_ID: room-instance-dev-01
     depends_on:
       game_service:
         condition: service_healthy
     ports:
-      - "29100:19100"
-      - "29101:9100"
+      - "19100:19100"
+      - "9100:9100"
 
 volumes:
-  account_pgdata_test:
-  game_pgdata_test:
+  account_pgdata_dev:
+  game_pgdata_dev:

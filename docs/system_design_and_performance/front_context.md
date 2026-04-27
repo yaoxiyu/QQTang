@@ -1,4 +1,4 @@
-# Phase31 Front Context
+# Front Context
 
 ## Current State
 
@@ -9,7 +9,7 @@ The project has moved from demo architecture toward formal engineering architect
 - Room, Lobby, Auth, Profile, Matchmaking, and Settlement already have first-pass use case / gateway / state separation.
 - Room Service is Go-based and consumes the generated Room Manifest as the cross-language legality snapshot.
 - Content data flows from `content_source/csv/` through `tools/content_pipeline/` into `content/*/data`, runtime catalogs, and `build/generated/room_manifest/room_manifest.json`.
-- Phase30 introduced `addons/qqt_native` native kernels for checksum, snapshot ring, movement, and explosion.
+- Native kernels were introduced for checksum, snapshot ring, movement, and explosion.
 - `NativeFeatureFlags.require_native_kernels` defaults to true, so native kernels are now the default local battle runtime path.
 - Current native build validation is Windows x86_64 only; Linux Godot runtime plus Linux `qqt_native` artifact is not closed.
 
@@ -21,9 +21,9 @@ The project has moved from demo architecture toward formal engineering architect
 - The native snapshot ring copies `PackedByteArray` values without exposing enough metrics.
 - Docker currently proves Go service image readiness, not Linux Godot DS native runtime readiness.
 
-## Phase Boundary
+## Boundary
 
-Phase31 is a hardening phase:
+This is a hardening scope:
 
 - Split the first batch of Room/Lobby front logic behind stable facades.
 - Add generated catalog index support while keeping scan fallback.

@@ -12,7 +12,7 @@
 using namespace godot;
 
 namespace {
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "kernel_v1";
 constexpr uint32_t SNAPSHOT_PAYLOAD_VERSION = static_cast<uint32_t>(qqt::packed_schema::SCHEMA_VERSION);
 static_assert(qqt::packed_schema::PLAYER_STRIDE == 16, "battle packed schema player stride changed unexpectedly");
 static_assert(qqt::packed_schema::BUBBLE_STRIDE == 12, "battle packed schema bubble stride changed unexpectedly");

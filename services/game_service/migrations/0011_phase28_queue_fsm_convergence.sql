@@ -6,7 +6,7 @@ ALTER TABLE matchmaking_queue_entries
 ALTER TABLE matchmaking_party_queue_entries
     ADD COLUMN IF NOT EXISTS terminal_reason TEXT NOT NULL DEFAULT '';
 
--- Drop legacy state constraints before rewriting rows to the Phase28 FSM names.
+-- Drop legacy state constraints before rewriting rows to the canonical FSM names.
 ALTER TABLE matchmaking_queue_entries
     DROP CONSTRAINT IF EXISTS chk_matchmaking_queue_entries_state;
 ALTER TABLE matchmaking_party_queue_entries

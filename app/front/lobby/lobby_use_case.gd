@@ -85,7 +85,7 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.reconnect_token = front_settings_state.reconnect_token
 		view_state.reconnect_state = front_settings_state.reconnect_state
 		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
-	_try_attach_phase34_front_state(view_state)
+	_try_attach_front_state(view_state)
 	_try_attach_career_summary(view_state, refresh_career_summary)
 	return {
 		"ok": true,
@@ -463,7 +463,7 @@ func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool
 	view_state.career_win_rate_bp = int(career_view_state.career_win_rate_bp)
 
 
-func _try_attach_phase34_front_state(view_state: LobbyViewState) -> void:
+func _try_attach_front_state(view_state: LobbyViewState) -> void:
 	if view_state == null or app_runtime == null:
 		return
 	if app_runtime.wallet_use_case != null:

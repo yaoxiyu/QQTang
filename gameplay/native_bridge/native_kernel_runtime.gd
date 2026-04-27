@@ -13,8 +13,8 @@ const INPUT_BUFFER_CLASS := "QQTNativeInputBuffer"
 const SNAPSHOT_DIFF_CLASS := "QQTNativeSnapshotDiff"
 const ROLLBACK_PLANNER_CLASS := "QQTNativeRollbackPlanner"
 const BATTLE_MESSAGE_CODEC_CLASS := "QQTNativeBattleMessageCodec"
-const EXPECTED_KERNEL_VERSION := "phase30_kernel_v1"
-const EXPECTED_SYNC_KERNEL_VERSION := "phase32_sync_kernel_v1"
+const EXPECTED_KERNEL_VERSION := "kernel_v1"
+const EXPECTED_SYNC_KERNEL_VERSION := "sync_kernel_v1"
 
 static var _availability_checked: bool = false
 static var _is_available_cached: bool = false

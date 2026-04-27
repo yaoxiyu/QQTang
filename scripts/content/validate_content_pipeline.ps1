@@ -13,11 +13,11 @@ if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
 
 $gutScript = Join-Path $repoRoot 'tests\scripts\run_gut_suite.ps1'
 $syntaxPreflightScript = Join-Path $repoRoot 'tests\scripts\check_gdscript_syntax.ps1'
-$phase29SanityScript = Join-Path $repoRoot 'scripts\content\check_phase29_sanity.ps1'
+$contentSanityScript = Join-Path $repoRoot 'scripts\content\check_content_sanity.ps1'
 $reportPath = Join-Path $repoRoot 'build\generated\content_reports\content_pipeline_report.json'
 
 & $syntaxPreflightScript -GodotExe $GodotExe -ProjectPath $repoRoot
-& $phase29SanityScript -ProjectPath $repoRoot
+& $contentSanityScript -ProjectPath $repoRoot
 
 & $gutScript -GodotExe $GodotExe -ProjectPath $repoRoot -SuiteName 'content_pipeline_contracts' -ReportBaseName 'content_pipeline_contracts' -TestFiles @(
     'res://tests/contracts/content/map_resource_generation_contract_test.gd',

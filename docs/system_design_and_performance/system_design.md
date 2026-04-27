@@ -1,4 +1,4 @@
-# Phase31 System Design
+# System Design
 
 ## Design Summary
 
@@ -55,7 +55,7 @@ Directory scanning and `.tres` loading stay as editor/dev fallback. The generate
 
 ## Battle Packed Runtime Schema
 
-Native kernels are already the default path. Phase31 adds a formal schema so future native work can move from Variant/Dictionary parsing toward packed stride access.
+Native kernels are already the default path. This scope adds a formal schema so future native work can move from Variant/Dictionary parsing toward packed stride access.
 
 The initial schema uses:
 
@@ -70,7 +70,7 @@ The old Dictionary codec remains for parity and regression tests.
 
 ## Snapshot Ring Governance
 
-Phase31 adds metrics and limits, not delta snapshots or custom allocators:
+This scope adds metrics and limits, not delta snapshots or custom allocators:
 
 - capacity
 - max snapshot bytes

@@ -17,7 +17,7 @@
 using namespace godot;
 
 namespace {
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "kernel_v1";
 constexpr int64_t WIRE_VERSION = 2;
 constexpr int32_t EXPLOSION_PAYLOAD_MAGIC = 1163153745;
 

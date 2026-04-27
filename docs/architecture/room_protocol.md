@@ -1,7 +1,7 @@
 # Room Protocol
 
 ## Scope
-Define Phase25 room protocol truth from client to Room Service and Room Service to game control plane.
+Define room protocol truth from client to Room Service and Room Service to game control plane.
 
 ## Client <-> Room Service
 - Transport: WebSocket.

@@ -1,4 +1,4 @@
-# Phase35 Manual Acceptance
+# Manual Acceptance
 
 This file tracks the remaining checks that require running real battle flows outside the unit/contract suites.
 

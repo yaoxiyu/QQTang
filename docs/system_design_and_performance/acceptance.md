@@ -1,12 +1,12 @@
-# Phase31 Acceptance
+# Acceptance
 
 ## Required Files
 
-- `docs/phases/phase31_system_design_and_performance/README.md`
-- `docs/phases/phase31_system_design_and_performance/phase31_front_context.md`
-- `docs/phases/phase31_system_design_and_performance/phase31_system_design.md`
-- `docs/phases/phase31_system_design_and_performance/phase31_implementation_plan.md`
-- `docs/phases/phase31_system_design_and_performance/phase31_acceptance.md`
+- `docs/system_design_and_performance/README.md`
+- `docs/system_design_and_performance/front_context.md`
+- `docs/system_design_and_performance/system_design.md`
+- `docs/system_design_and_performance/implementation_plan.md`
+- `docs/system_design_and_performance/acceptance.md`
 - `addons/qqt_native/docs/battle_packed_runtime_schema.md`
 
 ## Front Split

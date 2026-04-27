@@ -1,7 +1,7 @@
 # Room State Machine
 
 ## Purpose
-Define Phase28 canonical state-machine truth for Room/Member/Queue/Battle domains, capability projection, and legacy alias compatibility rules.
+Define canonical state-machine truth for Room/Member/Queue/Battle domains, capability projection, and legacy alias compatibility rules.
 
 ## 1. Canonical State Dictionary
 

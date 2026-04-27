@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[3]
 MIGRATION = ROOT / "services" / "account_service" / "migrations" / "0003_wallet_inventory_shop.sql"
 
 
-class Phase34MigrationContractTests(unittest.TestCase):
+class AccountMigrationContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.sql = MIGRATION.read_text(encoding="utf-8")

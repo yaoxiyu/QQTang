@@ -2,10 +2,10 @@
 
 ## Status
 
-This public client queue API is **legacy** after Phase22.
+This public client queue API is **legacy** after .
 `MatchmakingUseCase` is retained only for old tests and backend smoke coverage.
 
-Formal Phase22 flow:
+Formal flow:
 
 ```text
 Lobby -> match room -> DS room authority -> internal party queue -> hidden matchmade_room -> loading -> battle
@@ -31,7 +31,7 @@ Legacy semantics:
 - Request may include `mode_id`, `rule_set_id`, and `selected_map_ids`.
 - This path is retained for old tests and compatibility only.
 
-Phase22 formal constraints:
+formal constraints:
 
 - Do not use `selected_map_ids[]` as formal matchmaking input.
 - Do not let Lobby directly enter queue.
