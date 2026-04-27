@@ -152,8 +152,8 @@ func _to_player_command(frame: PlayerInputFrame) -> PlayerCommand:
 	var command := PlayerCommand.neutral()
 	command.move_x = frame.move_x
 	command.move_y = frame.move_y
-	command.place_bubble = frame.action_place
-	command.remote_trigger = frame.action_skill1 or frame.action_skill2
+	command.place_bubble = (frame.action_bits & PlayerInputFrame.BIT_PLACE) != 0
+	command.remote_trigger = (frame.action_bits & (PlayerInputFrame.BIT_SKILL1 | PlayerInputFrame.BIT_SKILL2)) != 0
 	command.sequence_id = frame.seq
 	return command
 

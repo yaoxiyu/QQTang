@@ -8,6 +8,7 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const RoomFlowStateScript = preload("res://network/session/runtime/room_flow_state.gd")
 const SessionLifecycleStateScript = preload("res://network/session/runtime/session_lifecycle_state.gd")
 const RoomRuntimeContextScript = preload("res://network/session/runtime/room_runtime_context.gd")
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ROOM_SESSION_LOG_PREFIX := "[QQT_ROOM_SESSION]"
 signal room_snapshot_changed(snapshot: RoomSnapshot)
@@ -415,7 +416,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"member_phase": member.member_phase,
 		}
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
-	# LegacyMigration: For matchmade rooms with an assignment, the server overrides
+	# LegacyMigration: For match rooms with an assignment, the server overrides
 	# map/mode/rule via the assignment payload. set_selection blanks them for
 	# match rooms, so re-apply the snapshot values when an assignment exists.
 	if not snapshot.current_assignment_id.is_empty():
@@ -865,7 +866,7 @@ func _default_open_slot_indices(slot_count: int) -> Array[int]:
 
 
 func _resolve_custom_room_map_id(preferred_map_id: String) -> String:
-	if room_session != null and room_session.room_kind == "matchmade_room":
+	if room_session != null and FrontRoomKindScript.is_match_room(room_session.room_kind):
 		return preferred_map_id if not preferred_map_id.is_empty() else MapCatalogScript.get_default_map_id()
 	var resolved_map_id := MapSelectionCatalogScript.get_default_custom_room_map_id(preferred_map_id)
 	if not resolved_map_id.is_empty():

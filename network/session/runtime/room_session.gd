@@ -3,6 +3,7 @@ extends RefCounted
 
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 
 var room_id: String = ""
 var room_kind: String = ""
@@ -92,7 +93,7 @@ func set_selection(map_id: String, rule_set_id: String, mode_id: String) -> void
 		selected_mode_id = ""
 		return
 	var resolved_map_id := map_id
-	if resolved_map_id.is_empty() and room_kind != "matchmade_room":
+	if resolved_map_id.is_empty() and not FrontRoomKindScript.is_match_room(room_kind):
 		resolved_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
 	if resolved_map_id.is_empty():
 		resolved_map_id = MapCatalogScript.get_default_map_id()

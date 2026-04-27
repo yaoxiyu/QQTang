@@ -257,7 +257,7 @@ func buildInternalAssignmentCommitHandler(t *testing.T) (http.Handler, *fakeAssi
 		QueueType:              "casual",
 		SeasonID:               "s1",
 		RoomID:                 "room_1",
-		RoomKind:               "matchmade_room",
+		RoomKind:               "ranked_match_room",
 		MatchID:                "match_1",
 		ModeID:                 "mode_1",
 		RuleSetID:              "rule_1",

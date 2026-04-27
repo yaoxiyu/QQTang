@@ -10,8 +10,6 @@ func can_update_selection(app_runtime: Object) -> Dictionary:
 		return RoomErrorMapperScript.to_front_error("ROOM_CONTROLLER_MISSING", "Room controller is not available")
 	if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return RoomErrorMapperScript.to_front_error("MATCH_ROOM_SELECTION_FORBIDDEN", "Match room selection is controlled by match format and mode pool")
-	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
-		return RoomErrorMapperScript.to_front_error("MATCHMADE_SELECTION_LOCKED", "Matchmade room selection is locked")
 	return {"ok": true}
 
 

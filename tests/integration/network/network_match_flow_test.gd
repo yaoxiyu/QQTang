@@ -53,7 +53,7 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 		var local_input := {
 			"move_x": 1 if tick_index < 2 else 0,
 			"move_y": 0,
-			"action_place": false,
+			"action_bits": 0,
 		}
 		var input_message := client.build_local_input_message(local_input)
 		ok = qqt_check(not input_message.is_empty(), "client should emit an input frame while match is active", prefix) and ok
@@ -123,4 +123,3 @@ func _make_room_snapshot() -> RoomSnapshot:
 	client.team_id = 2
 	snapshot.members.append(client)
 	return snapshot
-

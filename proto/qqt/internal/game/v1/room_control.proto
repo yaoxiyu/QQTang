@@ -118,10 +118,41 @@ message CommitAssignmentReadyResponse {
   string user_message = 4;
 }
 
+message GetBattleAssignmentStatusRequest {
+  string room_id = 1;
+  string room_kind = 2;
+  string assignment_id = 3;
+  int64 known_revision = 4;
+}
+
+message GetBattleAssignmentStatusResponse {
+  bool ok = 1;
+  string error_code = 2;
+  string user_message = 3;
+
+  string room_id = 10;
+  string assignment_id = 11;
+  int64 assignment_revision = 12;
+
+  string match_id = 20;
+  string battle_id = 21;
+  string server_host = 22;
+  int32 server_port = 23;
+
+  string battle_phase = 30;
+  string terminal_reason = 31;
+  string allocation_state = 32;
+  string status_text = 33;
+
+  bool battle_entry_ready = 40;
+  bool finalized = 41;
+}
+
 service RoomControlService {
   rpc EnterPartyQueue(EnterPartyQueueRequest) returns (EnterPartyQueueResponse);
   rpc CancelPartyQueue(CancelPartyQueueRequest) returns (CancelPartyQueueResponse);
   rpc GetPartyQueueStatus(GetPartyQueueStatusRequest) returns (GetPartyQueueStatusResponse);
+  rpc GetBattleAssignmentStatus(GetBattleAssignmentStatusRequest) returns (GetBattleAssignmentStatusResponse);
   rpc CreateManualRoomBattle(CreateManualRoomBattleRequest) returns (CreateManualRoomBattleResponse);
   rpc CommitAssignmentReady(CommitAssignmentReadyRequest) returns (CommitAssignmentReadyResponse);
 }

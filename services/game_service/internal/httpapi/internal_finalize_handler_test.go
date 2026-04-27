@@ -182,7 +182,7 @@ func mustFinalizeRequestJSON(t *testing.T) []byte {
 		"match_id":      "match_1",
 		"assignment_id": "assign_1",
 		"room_id":       "room_1",
-		"room_kind":     "matchmade_room",
+		"room_kind":     "ranked_match_room",
 		"season_id":     "s1",
 		"mode_id":       "mode_1",
 		"rule_set_id":   "rule_1",

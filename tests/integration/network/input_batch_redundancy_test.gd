@@ -27,7 +27,7 @@ func test_input_batch_redundancy_recovers_recent_dropped_input_frame() -> void:
 		messages.append(client.build_local_input_message({
 			"move_x": 1,
 			"move_y": 0,
-			"action_place": false,
+			"action_bits": 0,
 		}))
 	var dropped_tick := 6
 	var recovery_message: Dictionary = messages[7]

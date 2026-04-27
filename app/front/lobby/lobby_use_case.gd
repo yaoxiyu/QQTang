@@ -349,8 +349,8 @@ func resume_recent_room() -> Dictionary:
 	return _attach_room_ticket(entry_context, "resume")
 
 
-func build_matchmade_entry_context() -> Dictionary:
-	return _fail("LEGACY_MATCHMADE_ENTRY_DISABLED", "Enter matchmaking from match rooms")
+func build_match_room_entry_context() -> Dictionary:
+	return _fail("LEGACY_MATCH_ROOM_ENTRY_DISABLED", "Enter matchmaking from match rooms")
 
 
 func _build_online_entry_context(

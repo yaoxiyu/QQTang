@@ -17,10 +17,15 @@ var start_config: BattleStartConfig = null
 var local_peer_id: int = 1
 var server_session: ServerSession = null
 var _finished: bool = false
+const INPUT_BATCH_MAX_FRAMES := 16
+const INPUT_BATCH_WARN_FRAMES := 10
+const INPUT_BATCH_WARN_BYTES := 900
+
 var _opening_input_freeze_drop_count: int = 0
 var _opening_input_freeze_end_logged: bool = false
 var _native_input_policy: RefCounted = NativeInputBufferBridgeScript.new()
 var _native_input_policy_metrics: Dictionary = {}
+var invalid_batch_drop_count: int = 0
 
 
 func configure(peer_id: int) -> void:
@@ -86,13 +91,54 @@ func ingest_network_message(message: Dictionary) -> void:
 
 
 func _ingest_input_batch(message: Dictionary) -> void:
+	if not _validate_input_batch_envelope(message):
+		invalid_batch_drop_count += 1
+		return
 	var frames: Variant = message.get("frames", [])
 	if not (frames is Array):
 		return
+	var batch_peer_id := int(message.get("peer_id", 0))
+	var first_tick := int(message.get("first_tick", 0))
+	var latest_tick := int(message.get("latest_tick", 0))
+	var authority_tick := _get_authority_tick()
 	for frame_data in frames:
 		if not (frame_data is Dictionary):
 			continue
-		_ingest_input_frame(PlayerInputFrame.from_dict(frame_data), message)
+		var frame_tick_id := int((frame_data as Dictionary).get("tick_id", -1))
+		if frame_tick_id < first_tick or frame_tick_id > latest_tick:
+			continue
+		var frame := PlayerInputFrame.from_dict(frame_data)
+		if frame.peer_id <= 0:
+			frame.peer_id = batch_peer_id
+		_ingest_input_frame(frame, message)
+
+
+func _validate_input_batch_envelope(message: Dictionary) -> bool:
+	var protocol_version := int(message.get("protocol_version", 0))
+	if protocol_version != 1:
+		return false
+	var peer_id := int(message.get("peer_id", 0))
+	if peer_id <= 0:
+		return false
+	var frame_count := int(message.get("frame_count", 0))
+	var frames: Variant = message.get("frames", [])
+	if not (frames is Array):
+		return false
+	if frame_count != (frames as Array).size():
+		return false
+	var first_tick := int(message.get("first_tick", 0))
+	var latest_tick := int(message.get("latest_tick", 0))
+	if first_tick > latest_tick:
+		return false
+	if frame_count > INPUT_BATCH_MAX_FRAMES:
+		return false
+	var batch_peer_id := peer_id
+	for frame_data in frames:
+		if not (frame_data is Dictionary):
+			return false
+		if int((frame_data as Dictionary).get("peer_id", -1)) != batch_peer_id:
+			return false
+	return true
 
 
 func _ingest_input_frame(frame: PlayerInputFrame, message: Dictionary) -> void:
@@ -180,7 +226,7 @@ func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerIn
 	frame.seq = tick_id
 	frame.move_x = clamp(int(local_input.get("move_x", 0)), -1, 1)
 	frame.move_y = clamp(int(local_input.get("move_y", 0)), -1, 1)
-	frame.action_place = bool(local_input.get("action_place", false))
+	frame.action_bits = int(local_input.get("action_bits", 0))
 	frame.sanitize()
 	return frame
 

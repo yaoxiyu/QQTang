@@ -109,6 +109,32 @@ type CommitAssignmentReadyInput struct {
 	MatchID            string
 }
 
+type GetBattleAssignmentStatusInput struct {
+	RoomID        string
+	RoomKind      string
+	AssignmentID  string
+	KnownRevision int64
+}
+
+type GetBattleAssignmentStatusResult struct {
+	OK                 bool
+	ErrorCode          string
+	UserMessage        string
+	RoomID             string
+	AssignmentID       string
+	AssignmentRevision int64
+	MatchID            string
+	BattleID           string
+	ServerHost         string
+	ServerPort         int32
+	BattlePhase        string
+	TerminalReason     string
+	AllocationState    string
+	StatusText         string
+	BattleEntryReady   bool
+	Finalized          bool
+}
+
 type CommitAssignmentReadyResult struct {
 	OK             bool
 	CommittedState string

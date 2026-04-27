@@ -19,7 +19,6 @@ var is_public_room: bool = false
 var assignment_id: String = ""
 var season_id: String = ""
 var expected_member_count: int = 0
-var is_matchmade_room: bool = false
 var locked_map_id: String = ""
 var locked_rule_set_id: String = ""
 var locked_mode_id: String = ""
@@ -52,7 +51,7 @@ var battle_server_port: int = 0
 var room_return_policy: String = "return_to_source_room"
 
 # LegacyMigration compatibility (deprecated in LegacyMigration — do not use for new logic)
-# is_matchmade_room, locked_map_id, locked_rule_set_id, locked_mode_id retained above
+# is_match_room(), locked_map_id, locked_rule_set_id, locked_mode_id retained above
 
 # LegacyMigration: Stable member identity model
 var member_bindings_by_member_id: Dictionary = {}
@@ -71,7 +70,6 @@ func reset() -> void:
 	assignment_id = ""
 	season_id = ""
 	expected_member_count = 0
-	is_matchmade_room = false
 	locked_map_id = ""
 	locked_rule_set_id = ""
 	locked_mode_id = ""
@@ -113,12 +111,10 @@ func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "p
 	var resolved_room_kind := String(next_room_kind).strip_edges().to_lower()
 	if resolved_room_kind != "public_room" \
 		and resolved_room_kind != "private_room" \
-		and resolved_room_kind != "matchmade_room" \
 		and resolved_room_kind != "casual_match_room" \
 		and resolved_room_kind != "ranked_match_room":
 		resolved_room_kind = "private_room"
 	room_kind = resolved_room_kind
-	is_matchmade_room = room_kind == "matchmade_room"
 	is_public_room = room_kind == "public_room"
 	if is_match_room():
 		queue_type = "ranked" if room_kind == "ranked_match_room" else "casual"
@@ -131,9 +127,7 @@ func ensure_room(next_room_id: String, peer_id: int, next_room_kind: String = "p
 		room_queue_error_code = ""
 		room_queue_error_message = ""
 	var normalized_display_name := next_room_display_name.strip_edges()
-	if is_matchmade_room:
-		room_display_name = "Matchmade Room"
-	elif is_match_room():
+	if is_match_room():
 		room_display_name = "Ranked Match Room" if room_kind == "ranked_match_room" else "Casual Match Room"
 	elif is_public_room:
 		room_display_name = normalized_display_name if not normalized_display_name.is_empty() else room_id
@@ -241,7 +235,7 @@ func update_profile(
 ) -> void:
 	if not members.has(peer_id):
 		return
-	if is_matchmade_room:
+	if is_match_room():
 		var profile_for_team: Dictionary = members.get(peer_id, {})
 		team_id = int(profile_for_team.get("team_id", _resolve_team_id(peer_id, team_id)))
 	if bool(ready_map.get(peer_id, false)):
@@ -279,7 +273,7 @@ func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
 		max_players = required_party_size
 		return
 	var resolved_map_id := map_id
-	if is_matchmade_room:
+	if is_match_room():
 		resolved_map_id = locked_map_id if not locked_map_id.is_empty() else resolved_map_id
 	elif resolved_map_id.is_empty():
 		resolved_map_id = MapSelectionCatalogScript.get_default_custom_room_map_id()
@@ -293,8 +287,8 @@ func set_selection(map_id: String, rule_id: String, mode_id: String) -> void:
 		min_start_players = int(binding.get("required_team_count", 2))
 		max_players = int(binding.get("max_player_count", max_players))
 		return
-	selected_rule_id = locked_rule_set_id if is_matchmade_room and not locked_rule_set_id.is_empty() else (rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id())
-	selected_mode_id = locked_mode_id if is_matchmade_room and not locked_mode_id.is_empty() else (mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id())
+	selected_rule_id = locked_rule_set_id if is_match_room() and not locked_rule_set_id.is_empty() else (rule_id if not rule_id.is_empty() else RuleSetCatalogScript.get_default_rule_id())
+	selected_mode_id = locked_mode_id if is_match_room() and not locked_mode_id.is_empty() else (mode_id if not mode_id.is_empty() else ModeCatalogScript.get_default_mode_id())
 	min_start_players = 2
 
 
@@ -306,7 +300,7 @@ func can_start() -> bool:
 		return false
 	var required_team_count := int(binding.get("required_team_count", min_start_players))
 	var max_player_count := int(binding.get("max_player_count", max_players))
-	if is_matchmade_room and expected_member_count > 0 and members.size() != expected_member_count:
+	if is_match_room() and expected_member_count > 0 and members.size() != expected_member_count:
 		return false
 	if members.size() < min_start_players:
 		return false
@@ -454,10 +448,6 @@ func is_custom_room() -> bool:
 	return room_kind == "practice" or room_kind == "private_room" or room_kind == "public_room"
 
 
-func is_assigned_room() -> bool:
-	return room_kind == "matchmade_room"
-
-
 func resolve_required_party_size(next_match_format_id: String) -> int:
 	match String(next_match_format_id):
 		"1v1":
@@ -510,7 +500,7 @@ func can_update_match_room_config(peer_id: int) -> bool:
 
 
 func _resolve_team_id(peer_id: int, team_id: int) -> int:
-	if is_matchmade_room and team_id > 0:
+	if is_match_room() and team_id > 0:
 		return team_id
 	if team_id > 0:
 		return team_id

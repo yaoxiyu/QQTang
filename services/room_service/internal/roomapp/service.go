@@ -174,9 +174,35 @@ type Service struct {
 	roomByMemberID map[string]string
 	roomOwnerByID  map[string]string
 	idCounter      atomic.Int64
+	metrics        ControlPlaneMetrics
 }
 
 var roomTransitionEngine = RoomTransitionEngine{}
+
+type ControlPlaneMetrics struct {
+	manualBattleAssignmentSyncCount        atomic.Int64
+	manualBattleQueueStatusCallCount       atomic.Int64
+	battleAssignmentStatusErrorCount       atomic.Int64
+	battleAssignmentRevisionStaleDropCount atomic.Int64
+	queueSyncTargetCount                   atomic.Int64
+	battleSyncTargetCount                  atomic.Int64
+	queueStateManualRoomWriteCount         atomic.Int64
+}
+
+func (s *Service) GetControlPlaneMetrics() map[string]int64 {
+	if s == nil {
+		return map[string]int64{}
+	}
+	return map[string]int64{
+		"manual_battle_assignment_sync_count":         s.metrics.manualBattleAssignmentSyncCount.Load(),
+		"manual_battle_queue_status_call_count":       s.metrics.manualBattleQueueStatusCallCount.Load(),
+		"battle_assignment_status_error_count":        s.metrics.battleAssignmentStatusErrorCount.Load(),
+		"battle_assignment_revision_stale_drop_count": s.metrics.battleAssignmentRevisionStaleDropCount.Load(),
+		"queue_sync_target_count":                     s.metrics.queueSyncTargetCount.Load(),
+		"battle_sync_target_count":                    s.metrics.battleSyncTargetCount.Load(),
+		"queue_state_manual_room_write_count":         s.metrics.queueStateManualRoomWriteCount.Load(),
+	}
+}
 
 func NewService(reg *registry.Registry, man *manifest.Loader, verifier *auth.TicketVerifier, game *gameclient.Client) *Service {
 	return &Service{
@@ -690,6 +716,7 @@ func (s *Service) SyncMatchQueueStatus() []QueueStatusSyncResult {
 	}
 
 	targets := s.collectQueueSyncTargets()
+	s.metrics.queueSyncTargetCount.Add(int64(len(targets)))
 	if len(targets) == 0 {
 		return nil
 	}
@@ -774,10 +801,10 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		TerminalReason:     BattleReasonManualStart,
 		Ready:              true,
 	})
-	room.QueueState.Phase = QueuePhaseEntryReady
-	room.QueueState.TerminalReason = QueueReasonNone
-	room.QueueState.QueueEntryID = result.AssignmentID
-	room.QueueState.StatusText = "battle_ready"
+	if isManualRoomKind(room.RoomKind) && room.QueueState.QueueEntryID != "" {
+		s.metrics.queueStateManualRoomWriteCount.Add(1)
+		panic("DEBT-011: manual room must not write QueueState")
+	}
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -829,7 +856,7 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	}
 
 	roomTransitionEngine.ApplyBattleEntryAckRequested(room, s.roomOwnerByID[input.RoomID])
-	room.QueueState.StatusText = "battle_entry_acknowledged"
+	room.BattleState.StatusText = "battle_entry_acknowledged"
 	roomTransitionEngine.ApplyBattleEntryAcked(room, s.roomOwnerByID[input.RoomID])
 	if strings.TrimSpace(result.CommittedState) == "committed" {
 		roomTransitionEngine.ApplyBattleStarted(room, s.roomOwnerByID[input.RoomID])
@@ -1031,6 +1058,10 @@ func (s *Service) snapshotProjectionLocked(room *domain.RoomAggregate) *Snapshot
 	if room == nil {
 		return nil
 	}
+	if isManualRoomKind(room.RoomKind) && room.QueueState.QueueEntryID != "" {
+		s.metrics.queueStateManualRoomWriteCount.Add(1)
+		panic("DEBT-011: manual room QueueState must remain empty")
+	}
 	members := make([]domain.RoomMember, 0, len(room.Members))
 	for _, member := range room.Members {
 		member.ReconnectToken = ""
@@ -1158,7 +1189,7 @@ func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
 		if room.QueueState.QueueEntryID == "" {
 			continue
 		}
-		if !isMatchRoomKind(room.RoomKind) && !isManualRoomKind(room.RoomKind) {
+		if !isMatchRoomKind(room.RoomKind) {
 			continue
 		}
 		if !shouldSyncQueueState(room.QueueState.Phase) {
@@ -1171,6 +1202,147 @@ func (s *Service) collectQueueSyncTargets() []queueSyncTarget {
 		})
 	}
 	return targets
+}
+
+type battleSyncTarget struct {
+	roomID             string
+	roomKind           string
+	assignmentID       string
+	assignmentRevision int
+}
+
+func (s *Service) collectBattleSyncTargets() []battleSyncTarget {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	targets := make([]battleSyncTarget, 0)
+	for _, room := range s.roomsByID {
+		if room == nil {
+			continue
+		}
+		if room.BattleState.AssignmentID == "" {
+			continue
+		}
+		if room.BattleState.Phase == "" || room.BattleState.Phase == "completed" || room.BattleState.Phase == "cancelled" || room.BattleState.Phase == "failed" {
+			continue
+		}
+		targets = append(targets, battleSyncTarget{
+			roomID:             room.RoomID,
+			roomKind:           room.RoomKind,
+			assignmentID:       room.BattleState.AssignmentID,
+			assignmentRevision: room.BattleState.AssignmentRevision,
+		})
+	}
+	return targets
+}
+
+func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
+	if s == nil || s.game == nil {
+		return nil
+	}
+
+	targets := s.collectBattleSyncTargets()
+	s.metrics.battleSyncTargetCount.Add(int64(len(targets)))
+	if len(targets) == 0 {
+		return nil
+	}
+
+	updates := make([]QueueStatusSyncResult, 0, len(targets))
+	for _, target := range targets {
+		result, err := s.game.GetBattleAssignmentStatus(gameclient.GetBattleAssignmentStatusInput{
+			RoomID:        target.roomID,
+			RoomKind:      target.roomKind,
+			AssignmentID:  target.assignmentID,
+			KnownRevision: int64(target.assignmentRevision),
+		})
+		if err != nil {
+			s.metrics.battleAssignmentStatusErrorCount.Add(1)
+			continue
+		}
+		if !result.OK {
+			s.metrics.battleAssignmentStatusErrorCount.Add(1)
+			continue
+		}
+		room := s.applyBattleAssignmentProjection(target, result)
+		if room != nil {
+			if isManualRoomKind(target.roomKind) {
+				s.metrics.manualBattleAssignmentSyncCount.Add(1)
+			}
+			updates = append(updates, QueueStatusSyncResult{
+				RoomID:   target.roomID,
+				Snapshot: room,
+			})
+		}
+	}
+	return updates
+}
+
+func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, result gameclient.GetBattleAssignmentStatusResult) *SnapshotProjection {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[target.roomID]
+	if room == nil {
+		return nil
+	}
+	if room.BattleState.AssignmentID != target.assignmentID {
+		return nil
+	}
+	if result.AssignmentRevision > 0 && room.BattleState.AssignmentRevision > int(result.AssignmentRevision) {
+		s.metrics.battleAssignmentRevisionStaleDropCount.Add(1)
+		return nil
+	}
+
+	room.BattleState.Phase = result.BattlePhase
+	room.BattleState.TerminalReason = result.TerminalReason
+	room.BattleState.Ready = result.BattleEntryReady
+	if result.AssignmentID != "" {
+		room.BattleState.AssignmentID = result.AssignmentID
+	}
+	if result.AssignmentRevision > 0 {
+		room.BattleState.AssignmentRevision = int(result.AssignmentRevision)
+	}
+	if result.MatchID != "" {
+		room.BattleState.MatchID = result.MatchID
+	}
+	if result.BattleID != "" {
+		room.BattleState.BattleID = result.BattleID
+	}
+	if result.ServerHost != "" {
+		room.BattleState.ServerHost = result.ServerHost
+	}
+	if result.ServerPort > 0 {
+		room.BattleState.ServerPort = int(result.ServerPort)
+	}
+
+	switch result.BattlePhase {
+	case "allocating":
+		room.RoomState.Phase = RoomPhaseBattleAllocating
+	case "ready":
+		room.RoomState.Phase = RoomPhaseBattleEntryReady
+	case "entering":
+		room.RoomState.Phase = RoomPhaseBattleEntering
+	case "active":
+		room.RoomState.Phase = RoomPhaseInBattle
+		promoteMembersToBattle(room)
+	case "returning":
+		room.RoomState.Phase = RoomPhaseReturningToRoom
+	case "completed", "failed", "cancelled":
+		room.RoomState.Phase = RoomPhaseIdle
+		if result.TerminalReason == QueueReasonMatchFinalized {
+			room.RoomState.LastReason = RoomReasonMatchFinalized
+		}
+		room.BattleState.Ready = false
+		releaseMembersToIdle(room)
+	default:
+		if room.RoomState.Phase == RoomPhaseBattleAllocating || room.RoomState.Phase == RoomPhaseBattleEntryReady || room.RoomState.Phase == RoomPhaseBattleEntering {
+			lockMembersForQueue(room)
+		}
+	}
+
+	finalizeRoomTransition(room, s.roomOwnerByID[target.roomID])
+	s.syncDirectoryEntryLocked(room)
+	return s.snapshotProjectionLocked(room)
 }
 
 func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclient.GetPartyQueueStatusResult) (*SnapshotProjection, bool) {

@@ -17,7 +17,7 @@ var (
 	ErrTargetInvalid               = errors.New("ROOM_TICKET_TARGET_INVALID")
 	ErrRequestedMatchInvalid       = errors.New("ROOM_TICKET_REQUESTED_MATCH_INVALID")
 	ErrLoadoutNotOwned             = errors.New("ROOM_TICKET_LOADOUT_NOT_OWNED")
-	ErrMatchmadeAssignmentRequired = errors.New("ROOM_TICKET_MATCHMADE_ASSIGNMENT_REQUIRED")
+	ErrMatchRoomAssignmentRequired = errors.New("ROOM_TICKET_MATCH_ROOM_ASSIGNMENT_REQUIRED")
 )
 
 type Service struct {
@@ -97,9 +97,9 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 	}
 
 	lockedClaim := AssignmentGrantResult{}
-	if input.RoomKind == "matchmade_room" {
+	if isMatchRoomKind(input.RoomKind) {
 		if strings.TrimSpace(input.AssignmentID) == "" {
-			return CreateTicketResult{}, ErrMatchmadeAssignmentRequired
+			return CreateTicketResult{}, ErrMatchRoomAssignmentRequired
 		}
 		if s.grantClient == nil {
 			return CreateTicketResult{}, ErrAssignmentGrantFailed
@@ -231,4 +231,13 @@ func toNullString(value string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: trimmed, Valid: true}
+}
+
+func isMatchRoomKind(roomKind string) bool {
+	switch strings.TrimSpace(strings.ToLower(roomKind)) {
+	case "casual_match_room", "ranked_match_room":
+		return true
+	default:
+		return false
+	}
 }

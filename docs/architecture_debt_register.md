@@ -1,26 +1,142 @@
 # Architecture Debt Register
 
-## DEBT-012 battle input batch redundancy is fixed-window instead of ack-trimmed
+## DEBT-016 Godot runtime shutdown leaves leaked objects/resources
+- Risk level: P2
+- Status: open
+- Related dirs: `app/flow/`, `network/session/`, `network/runtime/`, `scenes/battle/`, `tests/unit/front/`, `tests/integration/`
+- Forbidden new-logic dirs: shutdown handling hidden in ad-hoc scene `_exit_tree` code without a shared lifecycle owner
+- Planned phase: milestone-2026-q2-runtime-shutdown-hygiene
+- Current evidence:
+  - Latest manual run `logs/clients_dev_20260427_160402/client*.godot.log` reports `ObjectDB instances leaked at exit` and `3 resources still in use at exit` after process shutdown
+  - Latest interrupted DS `logs/battle_ds/battle_33a33a968ec1b7d1.log` reports `Thread object is being destroyed without its completion having been realized`, RID leaks, and `BUG: Unreferenced static string` at exit
+  - Existing test reports under `tests/reports/latest/phase31_*` already show recurring Godot orphan/RID/resource leaks even when tests pass
+- Initial solution:
+  - Add a shared shutdown coordinator that orders transport disconnect, runtime module unregister, thread join, timer stop, and scene-owned resource release
+  - Add test helpers that explicitly `queue_free` fake runtime/controller nodes used by front room unit tests
+  - Make dev launcher stop DS through a graceful control-plane shutdown before killing processes; keep forced kill as fallback only
+  - Add a log classifier so expected forced-shutdown exit noise is separated from real runtime leak regressions
+- Done definition:
+  - Normal client exit after lobby -> battle -> return -> lobby has no `ObjectDB instances leaked`, `resources still in use`, or CanvasItem/RID leak warnings
+  - Normal DS finalize and shutdown joins all threads and has no RID/resource leak warnings
+  - Forced-stop logs are classified as expected interruption and do not mask non-shutdown errors
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1` passes before runtime tests
+  - Front room/runtime targeted suites pass with zero Godot orphan/resource leak warnings
+- Owner: runtime-lifecycle
+- Last updated: 2026-04-27
+- Linked tests/docs: `app/flow/app_runtime_root.gd`, `network/session/room_session_controller.gd`, `network/runtime/battle_dedicated_server_bootstrap.gd`, `scenes/battle/battle_main_controller.gd`, `tests/reports/latest/phase31_current_review_latest.txt`
+
+## DEBT-015 room frontend receives placeholder authoritative snapshots during battle
+- Risk level: P2
+- Status: open
+- Related dirs: `app/front/room/`, `network/runtime/room_client/`, `network/session/`, `scenes/front/`
+- Forbidden new-logic dirs: UI code that treats `member_count=0 phase="" revision=0` as a real room snapshot
+- Planned phase: milestone-2026-q2-room-snapshot-boundary
+- Current evidence:
+  - Latest run repeatedly logs `authoritative_room_snapshot_received {"member_count":0,"phase":"","revision":0,...}` while battle is active
+  - Room recovery still succeeds, but these placeholder snapshots add noise and can confuse blocker text, start/ready gating, or future diagnostics
+  - Latest run also logs `transport_connected_without_pending_entry` 3 times during lobby/room connection startup, indicating room entry connection state is still loosely coupled to transport events
+- Initial solution:
+  - Introduce an explicit snapshot validity contract: room snapshots with empty phase and revision 0 are placeholders and must not be applied as authoritative state
+  - During battle-active flow, pause room snapshot application or route it through a battle-safe cache that cannot overwrite current room members/capabilities
+  - Split room transport connection events from room-entry pending state; log `transport_connected_without_pending_entry` only when it is actionable, not for benign reconnect/reuse paths
+  - Add regression tests for battle-active room snapshot suppression and room return recovery preserving members/capabilities
+- Done definition:
+  - Battle-active logs no longer emit repeated empty authoritative room snapshots
+  - Empty placeholder snapshots cannot overwrite non-empty room state in view model/runtime state
+  - Benign room directory/room transport reconnects no longer produce anomaly warnings
+  - Room return recovery still emits `can_toggle_ready=true` with correct member state
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1` passes before runtime tests
+- Owner: front-runtime
+- Last updated: 2026-04-27
+- Linked tests/docs: `app/front/room/room_use_case.gd`, `app/front/room/room_use_case_runtime_state.gd`, `app/front/room/room_view_model_builder.gd`, `app/front/room/recovery/room_enter_flow.gd`, `network/runtime/room_client/client_room_runtime.gd`, `scenes/front/room_scene_snapshot_coordinator.gd`
+
+## DEBT-014 battle payload budget still exceeds unreliable MTU under normal play
 - Risk level: P1
 - Status: open
-- Related dirs: `network/session/runtime/`, `network/transport/`, `gameplay/simulation/input/`, `gameplay/native_bridge/`, `addons/qqt_native/src/sync/`, `docs/architecture/battle_sync.md`
-- Forbidden new-logic dirs: ad-hoc client-only input packet size hacks; lowering redundancy without using authoritative acknowledgement; duplicate-input filtering outside the input buffer or authority ingestion boundary
-- Current compromise: Clients send `INPUT_BATCH` with a fixed recent-frame window. Authority sends `INPUT_ACK` and clients record the latest confirmed tick, while authority batch coalescing drops stale authority snapshots. This confirms progress, but input resend size is not trimmed from an ack-driven send window and duplicate input frames are not modeled as a first-class protocol concern.
-- Planned phase: battle-input-ack-window-cleanup
-- Done definition: define an ack-driven input resend window; client only resends frames newer than the latest authoritative ack with a bounded safety margin; authority input ingestion treats duplicate `(peer_id, tick_id, seq)` frames idempotently; packet metrics expose batch frame count and encoded byte size; MTU promotion warnings no longer occur under normal battle input rates; regression tests cover duplicate input batch delivery, out-of-order ack, stale ack, and packet-size budget.
+- Related dirs: `network/session/runtime/`, `network/transport/`, `gameplay/simulation/`, `gameplay/native_bridge/`, `addons/qqt_native/src/sync/`
+- Forbidden new-logic dirs: ad-hoc reliability promotion decisions outside the battle transport/batch codec boundary
+- Planned phase: milestone-2026-q2-battle-payload-budget
+- Current evidence:
+  - Latest run `logs/clients_dev_20260427_160402/client*.godot.log` contains 2549 `QQT_INPUT_BATCH_BUDGET_WARN` entries
+  - Latest run contains 31 client-side and 16 DS-side `battle unreliable payload promoted to reliable` entries
+  - DS `STATE_SUMMARY` payloads reached roughly 1696-2856 bytes; client `INPUT_BATCH` payloads reached roughly 1200-1352 bytes, causing reliable-channel promotion
+- Initial solution:
+  - Measure encoded section sizes separately for input batch envelope, per-frame payload, state summary header, player updates, grid/bubble/jelly sections, and debug metadata
+  - Reduce `INPUT_BATCH` by sending sparse changed frames only, compacting tick deltas, and lowering safety-margin resend once ack health is stable
+  - Reduce `STATE_SUMMARY` by delta-compressing unchanged sections and splitting large non-critical summary sections away from per-tick unreliable updates
+  - Add MTU budget tests that fail when common 2-player and 4-player payloads exceed the target unreliable budget
+  - Keep reliability promotion metric, but make it an exceptional fallback instead of an expected steady-state path
+- Done definition:
+  - Normal 2-player battle produces zero steady-state `QQT_INPUT_BATCH_BUDGET_WARN`
+  - Normal 2-player battle produces zero steady-state unreliable-to-reliable promotions after initial bootstrap
+  - 4-player soak keeps p95 `INPUT_BATCH` and `STATE_SUMMARY` encoded size under the configured unreliable MTU budget
+  - Metrics expose per-section byte contribution for input and state summary packets
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1` passes before runtime tests
 - Owner: battle-sync
-- Linked tests/docs: `network/session/runtime/client_runtime.gd`, `network/session/runtime/authority_runtime.gd`, `network/session/runtime/server_session.gd`, `gameplay/simulation/input/input_buffer.gd`, `docs/architecture/battle_sync.md`
+- Last updated: 2026-04-27
+- Linked tests/docs: `network/session/runtime/client_runtime.gd`, `network/session/runtime/authority_runtime.gd`, `network/transport/enet_battle_transport.gd`, `gameplay/simulation/input/player_input_frame.gd`, `tests/performance/native/native_frame_sync_soak_test.gd`, `docs/architecture/battle_sync.md`
+
+## DEBT-013 runtime/front boundary line-limit contracts regressed
+- Risk level: P1
+- Status: open
+- Related dirs: `app/flow/`, `network/session/runtime/`, `scenes/front/`
+- Forbidden new-logic dirs: `app/flow/app_runtime_root.gd`, `network/session/runtime/client_runtime.gd`, `scenes/front/room_scene_controller.gd`
+- Planned phase: milestone-2026-q2-runtime-boundary-reclosure
+- Current evidence:
+  - `tests/contracts/runtime/app_runtime_root_boundary_contract_test.gd` fails because `app/flow/app_runtime_root.gd` is 451 lines, limit is 450
+  - `tests/contracts/runtime/battle_runtime_boundary_contract_test.gd` fails because `network/session/runtime/client_runtime.gd` is 807 lines, limit is 650
+  - `tests/contracts/runtime/room_scene_controller_boundary_contract_test.gd` fails because `scenes/front/room_scene_controller.gd` is 1341 lines, limit is 420
+- Done definition:
+  - `app/flow/app_runtime_root.gd` is reduced to <= 450 lines without moving orchestration responsibilities back into root
+  - `network/session/runtime/client_runtime.gd` is reduced to <= 650 lines by moving cohesive input-batch/metrics/runtime helper logic into collaborators
+  - `scenes/front/room_scene_controller.gd` is reduced to <= 420 lines by moving view wiring and UI event glue into dedicated collaborators or scene-owned nodes
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1` passes before runtime tests
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/run_refactor_validation.ps1` passes with 0 failures
+- Owner: front-runtime
+- Last updated: 2026-04-27
+- Linked tests/docs: `tests/contracts/runtime/app_runtime_root_boundary_contract_test.gd`, `tests/contracts/runtime/battle_runtime_boundary_contract_test.gd`, `tests/contracts/runtime/room_scene_controller_boundary_contract_test.gd`, `app/flow/app_runtime_root.gd`, `network/session/runtime/client_runtime.gd`, `scenes/front/room_scene_controller.gd`
+
+## DEBT-012 battle input batch redundancy is fixed-window instead of ack-trimmed
+- Risk level: P1
+- Status: closed
+- Related dirs: `network/session/runtime/`, `network/transport/`, `gameplay/simulation/input/`, `gameplay/native_bridge/`, `addons/qqt_native/src/sync/`, `docs/architecture/battle_sync.md`
+- Closed by: phase_debt_ack_battle_assignment_cleanup (Phase32)
+- Closing conditions:
+  - INPUT_BATCH_RECENT_FRAME_COUNT removed, replaced by ack-trimmed window (INPUT_ACK_SAFETY_MARGIN_TICKS + INPUT_BATCH_MAX_FRAMES hard cap)
+  - Client ack cursor (last_confirmed_tick) is monotonic, stale ack counted
+  - INPUT_BATCH envelope carries first_tick/latest_tick/ack_base_tick/frame_count
+  - Wire frames use action_bits encoding (bit0=place, bit1=skill1, bit2=skill2)
+  - Native input buffer: identity dedup (peer_id/tick_id/seq), payload hash conflict detection, higher-seq replacement, stale seq drop, too-late drop (no retarget), ack monotonic
+  - Packet budget metrics (INPUT_BATCH_BUDGET_WARN), frame_count/encoded_bytes against thresholds
+  - Authority INPUT_BATCH envelope validation (protocol_version, peer_id, frame_count, first_tick/latest_tick, per-frame peer_id)
+  - Tests: duplicate_ignored, duplicate_conflict, higher_seq replacement, stale_seq drop, too_late no retarget, ack monotonic, fallback action cleared
+  - merge_input_frame removed, late_retarget removed (metrics frozen at 0)
+- Owner: battle-sync
+- Last updated: 2026-04-27
+- Linked tests/docs: `network/session/runtime/client_runtime.gd`, `network/session/runtime/authority_runtime.gd`, `gameplay/simulation/input/player_input_frame.gd`, `addons/qqt_native/src/sync/native_input_buffer.h`, `addons/qqt_native/src/sync/native_input_buffer.cpp`, `tests/unit/native/native_input_buffer_test.gd`
 
 ## DEBT-011 manual battle status sync uses queue-shaped polling contract
 - Risk level: P2
-- Status: open
+- Status: closed
 - Related dirs: `services/room_service/internal/roomapp/`, `services/room_service/internal/gameclient/`, `services/game_service/internal/assignment/`, `services/game_service/internal/rpcapi/`, `proto/qqt/internal/game/v1/`
-- Forbidden new-logic dirs: new manual battle lifecycle logic that treats matchmaking queue state as the semantic source of truth; frontend-only room phase recovery after battle finalize; direct room FSM writes outside `RoomTransitionEngine`
-- Current compromise: Custom-room battles write `room.QueueState.QueueEntryID = assignment_id` and reuse `GetPartyQueueStatus` / queue-shaped projection to poll manual assignment finalization. This is functionally correct because `game_service.assignment` is the authoritative finalized source and room_service still converges through `ApplyQueueProjection`, `clearBattleStateProjection`, `releaseMembersToIdle`, and `finalizeRoomTransition`. The naming is not clean: a manual battle assignment is not a matchmaking queue entry.
-- Planned phase: room-battle-state-cleanup
-- Done definition: introduce a neutral typed control-plane operation such as `GetBattleAssignmentStatus` or `SyncBattleStatus`; room_service tracks manual battle return through battle/assignment status fields instead of queue naming; `QueueState` remains reserved for real matchmaking queues; finalized manual battle returns room to `idle` through `RoomTransitionEngine`; host leave and post-battle ready/start regressions remain covered by committed roomapp/wsapi tests; docs `docs/architecture/room_state_machine.md` and `docs/architecture/network_control_plane.md` describe the split explicitly.
+- Closed by: phase_debt_ack_battle_assignment_cleanup (Phase32)
+- Closing conditions:
+  - StartManualRoomBattle no longer writes QueueState (QueueEntryID/Phase/StatusText)
+  - collectQueueSyncTargets only collects match rooms (casual_match_room/ranked_match_room), skips manual rooms
+  - New RPC GetBattleAssignmentStatus added to proto and generated (Go + C#)
+  - game_service RoomControlService implements GetBattleAssignmentStatus via assignment.GetStatus
+  - room_service gameclient adds GetBattleAssignmentStatus with typed input/result models
+  - collectBattleSyncTargets and SyncBattleAssignmentStatus added, calling GetBattleAssignmentStatus instead of GetPartyQueueStatus
+  - applyBattleAssignmentProjection only modifies BattleState/RoomPhase, never QueueState
+  - Frontend: MATCHMADE_ROOM constant deleted, is_assigned_room removed
+  - Frontend: get_current_room_queue_state removed, get_current_queue_phase no longer derives from room_queue_state
+  - Frontend: RoomQueueCommand no longer uses room_phase fallback for queue ack
+  - Frontend: RoomViewModelBuilder queue_status_text/queue_error_text only for match rooms, matchmade_room title removed
+  - Frontend: battle_result_transition, room_selection_policy, room_session, room_session_controller use is_match_room instead of matchmade_room literal
+  - room_queue_state field retained for serialization compat but frontend no longer reads it
 - Owner: room-state-machine
-- Linked tests/docs: `services/room_service/internal/roomapp/start_manual_room_battle_test.go`, `services/room_service/internal/roomapp/battle_handoff_projection_test.go`, `services/game_service/internal/assignment/assignment_service.go`, `services/game_service/internal/rpcapi/room_control_service.go`, `docs/architecture/room_state_machine.md`, `docs/architecture/network_control_plane.md`
+- Last updated: 2026-04-27
+- Linked tests/docs: `proto/qqt/internal/game/v1/room_control.proto`, `services/game_service/internal/rpcapi/room_control_service.go`, `services/game_service/internal/rpcapi/mapper.go`, `services/room_service/internal/gameclient/client.go`, `services/room_service/internal/roomapp/service.go`, `app/front/navigation/front_room_kind.gd`, `app/front/room/room_use_case_runtime_state.gd`, `docs/architecture/room_state_machine.md`, `docs/architecture/network_control_plane.md`
 
 ## DEBT-010 battle authority batch consumption not coalesced
 - Risk level: P1

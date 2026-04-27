@@ -28,6 +28,9 @@ type CreateManualRoomBattleResponse = inner.CreateManualRoomBattleResponse
 type CommitAssignmentReadyRequest = inner.CommitAssignmentReadyRequest
 type CommitAssignmentReadyResponse = inner.CommitAssignmentReadyResponse
 
+type GetBattleAssignmentStatusRequest = inner.GetBattleAssignmentStatusRequest
+type GetBattleAssignmentStatusResponse = inner.GetBattleAssignmentStatusResponse
+
 func NewRoomControlServiceClient(conn grpc.ClientConnInterface) RoomControlServiceClient {
 	return inner.NewRoomControlServiceClient(conn)
 }

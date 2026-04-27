@@ -2,7 +2,6 @@ package rpcapi
 
 import (
 	"context"
-	"strings"
 
 	gamev1 "qqtang/services/game_service/internal/gen/qqt/gamev1shim"
 
@@ -66,28 +65,16 @@ func (s *RoomControlService) CancelPartyQueue(ctx context.Context, req *gamev1.C
 }
 
 func (s *RoomControlService) GetPartyQueueStatus(ctx context.Context, req *gamev1.GetPartyQueueStatusRequest) (*gamev1.GetPartyQueueStatusResponse, error) {
-	if s.queue == nil && s.assignment == nil {
+	if s.queue == nil {
 		return errorGetPartyQueueStatus("QUEUE_SERVICE_MISSING", "queue service is not configured"), nil
 	}
 	roomID := roomIDFromContext(req.GetContext())
 	queueEntryID := req.GetQueueEntryId()
-	if s.queue != nil && !strings.HasPrefix(queueEntryID, "assign_") {
-		status, err := s.queue.GetPartyQueueStatus(ctx, roomID, queueEntryID)
-		if err == nil {
-			return successGetPartyQueueStatus(status), nil
-		}
-		if s.assignment == nil {
-			return errorGetPartyQueueStatus("GET_PARTY_QUEUE_STATUS_FAILED", err.Error()), nil
-		}
-	}
-	if s.assignment == nil {
-		return errorGetPartyQueueStatus("ASSIGNMENT_SERVICE_MISSING", "assignment service is not configured"), nil
-	}
-	status, err := s.assignment.GetStatus(ctx, roomID, queueEntryID)
+	status, err := s.queue.GetPartyQueueStatus(ctx, roomID, queueEntryID)
 	if err != nil {
-		return errorGetPartyQueueStatus("GET_ASSIGNMENT_STATUS_FAILED", err.Error()), nil
+		return errorGetPartyQueueStatus("GET_PARTY_QUEUE_STATUS_FAILED", err.Error()), nil
 	}
-	return successAssignmentStatus(status), nil
+	return successGetPartyQueueStatus(status), nil
 }
 
 func (s *RoomControlService) CreateManualRoomBattle(ctx context.Context, req *gamev1.CreateManualRoomBattleRequest) (*gamev1.CreateManualRoomBattleResponse, error) {
@@ -99,6 +86,29 @@ func (s *RoomControlService) CreateManualRoomBattle(ctx context.Context, req *ga
 		return errorCreateManualRoomBattle("CREATE_MANUAL_ROOM_BATTLE_FAILED", err.Error()), nil
 	}
 	return successCreateManualRoomBattle(result), nil
+}
+
+func (s *RoomControlService) GetBattleAssignmentStatus(ctx context.Context, req *gamev1.GetBattleAssignmentStatusRequest) (*gamev1.GetBattleAssignmentStatusResponse, error) {
+	if req.GetRoomId() == "" {
+		return errorGetBattleAssignmentStatus("ROOM_ID_MISSING", "room_id is required"), nil
+	}
+	if req.GetAssignmentId() == "" {
+		return errorGetBattleAssignmentStatus("ASSIGNMENT_ID_MISSING", "assignment_id is required"), nil
+	}
+	if s.assignment == nil {
+		return errorGetBattleAssignmentStatus("ASSIGNMENT_SERVICE_MISSING", "assignment service is not configured"), nil
+	}
+	status, err := s.assignment.GetStatus(ctx, req.GetRoomId(), req.GetAssignmentId())
+	if err != nil {
+		return errorGetBattleAssignmentStatus("GET_ASSIGNMENT_STATUS_FAILED", err.Error()), nil
+	}
+	if status.AssignmentID == "" {
+		return errorGetBattleAssignmentStatus("ASSIGNMENT_NOT_FOUND", "assignment not found"), nil
+	}
+	if status.RoomID != "" && status.RoomID != req.GetRoomId() {
+		return errorGetBattleAssignmentStatus("ASSIGNMENT_ROOM_MISMATCH", "assignment does not belong to room"), nil
+	}
+	return successGetBattleAssignmentStatus(status), nil
 }
 
 func (s *RoomControlService) CommitAssignmentReady(ctx context.Context, req *gamev1.CommitAssignmentReadyRequest) (*gamev1.CommitAssignmentReadyResponse, error) {

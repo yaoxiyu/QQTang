@@ -1,6 +1,10 @@
 class_name PlayerInputFrame
 extends RefCounted
 
+const BIT_PLACE  := 1 << 0
+const BIT_SKILL1 := 1 << 1
+const BIT_SKILL2 := 1 << 2
+
 var peer_id: int = 0
 var tick_id: int = 0
 var seq: int = 0
@@ -8,9 +12,7 @@ var seq: int = 0
 var move_x: int = 0
 var move_y: int = 0
 
-var action_place: bool = false
-var action_skill1: bool = false
-var action_skill2: bool = false
+var action_bits: int = 0
 
 
 func sanitize() -> void:
@@ -19,6 +21,7 @@ func sanitize() -> void:
 
 	if move_x != 0 and move_y != 0:
 		move_y = 0
+	action_bits &= 0x7
 
 
 func duplicate_for_tick(new_tick_id: int) -> PlayerInputFrame:
@@ -28,9 +31,7 @@ func duplicate_for_tick(new_tick_id: int) -> PlayerInputFrame:
 	copied.seq = seq
 	copied.move_x = move_x
 	copied.move_y = move_y
-	copied.action_place = action_place
-	copied.action_skill1 = action_skill1
-	copied.action_skill2 = action_skill2
+	copied.action_bits = action_bits
 	return copied
 
 
@@ -41,9 +42,7 @@ func to_dict() -> Dictionary:
 		"seq": seq,
 		"move_x": move_x,
 		"move_y": move_y,
-		"action_place": action_place,
-		"action_skill1": action_skill1,
-		"action_skill2": action_skill2,
+		"action_bits": action_bits,
 	}
 
 
@@ -54,8 +53,6 @@ static func from_dict(data: Dictionary) -> PlayerInputFrame:
 	frame.seq = int(data.get("seq", frame.tick_id))
 	frame.move_x = int(data.get("move_x", 0))
 	frame.move_y = int(data.get("move_y", 0))
-	frame.action_place = bool(data.get("action_place", false))
-	frame.action_skill1 = bool(data.get("action_skill1", false))
-	frame.action_skill2 = bool(data.get("action_skill2", false))
+	frame.action_bits = int(data.get("action_bits", 0))
 	frame.sanitize()
 	return frame

@@ -57,13 +57,13 @@ func test_update_local_profile_rejects_missing_controller() -> void:
 	runtime.free()
 
 
-func test_update_local_profile_uses_locked_matchmade_team_and_sends_gateway() -> void:
+func test_update_local_profile_uses_locked_match_room_team_and_sends_gateway() -> void:
 	var command := RoomProfileCommandScript.new()
 	var runtime := FakeRuntime.new()
 	var controller := FakeController.new()
 	var gateway := FakeGateway.new()
 	var entry := RoomEntryContextScript.new()
-	entry.room_kind = "matchmade_room"
+	entry.room_kind = "ranked_match_room"
 	entry.topology = "dedicated_server"
 	entry.assigned_team_id = 2
 	runtime.current_room_entry_context = entry
@@ -72,7 +72,7 @@ func test_update_local_profile_uses_locked_matchmade_team_and_sends_gateway() ->
 	var result: Dictionary = command.update_local_profile(runtime, gateway, "p", "c", "", "b", "", 1)
 
 	assert_true(bool(result.get("ok", false)), "profile update should succeed")
-	assert_eq(controller.last_team_id, 2, "matchmade profile update should use locked team")
+	assert_eq(controller.last_team_id, 2, "match room profile update should use locked team")
 	assert_true(gateway.update_called, "online profile update should notify gateway")
 	assert_eq(gateway.last_team_id, 2, "gateway profile update should use locked team")
 	controller.free()

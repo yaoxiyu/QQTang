@@ -6,7 +6,7 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 
 
 static func resolve_default_selection(entry_context: RoomEntryContext, preferred_map_id: String = "") -> Dictionary:
-	if entry_context != null and String(entry_context.room_kind) == FrontRoomKindScript.MATCHMADE_ROOM:
+	if entry_context != null and FrontRoomKindScript.is_match_room(String(entry_context.room_kind)):
 		return {
 			"map_id": String(entry_context.locked_map_id),
 			"rule_set_id": String(entry_context.locked_rule_set_id),

@@ -9,7 +9,10 @@ const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtim
 const ClientRuntimeResumeCoordinatorScript = preload("res://network/session/runtime/client_runtime_resume_coordinator.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
-const INPUT_BATCH_RECENT_FRAME_COUNT := 6
+const INPUT_BATCH_MAX_FRAMES := 16
+const INPUT_BATCH_WARN_FRAMES := 10
+const INPUT_BATCH_WARN_BYTES := 900
+const INPUT_ACK_SAFETY_MARGIN_TICKS := 2
 const PLACE_REDUNDANCY_TICKS := 3
 const MIN_INPUT_LEAD_TICKS := 3
 const MAX_INPUT_LEAD_TICKS := 12
@@ -39,6 +42,14 @@ var _resume_coordinator: RefCounted = ClientRuntimeResumeCoordinatorScript.new()
 var _input_send_seq: int = 0
 var _runtime_input_lead_ticks: int = 0
 var _place_redundancy_ticks_remaining: int = 0
+var _last_input_batch_frame_count: int = 0
+var _last_input_batch_encoded_bytes: int = 0
+var _last_input_batch_first_tick: int = 0
+var _last_input_batch_latest_tick: int = 0
+var _last_input_batch_ack_base_tick: int = -1
+var _input_batch_budget_warn_count: int = 0
+var _max_observed_batch_frame_count: int = 0
+var _max_observed_batch_encoded_bytes: int = 0
 
 
 func configure(peer_id: int) -> void:
@@ -102,17 +113,23 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 	if not _active or _finished or client_session == null:
 		return {}
 	var next_tick := _resolve_next_local_input_tick()
-	var requested_place := bool(local_input.get("action_place", false))
-	var effective_place := _resolve_redundant_place_action(requested_place, next_tick)
+	var requested_bits := int(local_input.get("action_bits", 0))
+	var has_place := (requested_bits & PlayerInputFrame.BIT_PLACE) != 0
+	var effective_place := _resolve_redundant_place_action(has_place, next_tick)
+	var effective_bits := requested_bits
+	if effective_place:
+		effective_bits |= PlayerInputFrame.BIT_PLACE
+	else:
+		effective_bits &= ~PlayerInputFrame.BIT_PLACE
 	var frame := client_session.sample_input_for_tick(
 		next_tick,
 		clamp(int(local_input.get("move_x", 0)), -1, 1),
 		clamp(int(local_input.get("move_y", 0)), -1, 1),
-		effective_place
+		effective_bits
 	)
 	var prediction_frame: PlayerInputFrame = _build_prediction_frame(frame)
 	client_session.send_input(frame, prediction_frame)
-	if frame.action_place:
+	if (frame.action_bits & PlayerInputFrame.BIT_PLACE) != 0:
 		_resume_coordinator.track_local_place_request(prediction_controller.predicted_sim_world if prediction_controller != null else null, frame.tick_id)
 	if prediction_controller != null:
 		prediction_controller.predict_to_tick(next_tick)
@@ -123,13 +140,18 @@ func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
 	if latest_frame == null:
 		return {}
 	_input_send_seq += 1
+	var latest_tick := latest_frame.tick_id
+	var first_tick := _compute_input_batch_first_tick(latest_tick)
 	var frames: Array = []
-	var start_tick: int = max(0, latest_frame.tick_id - INPUT_BATCH_RECENT_FRAME_COUNT + 1)
-	for tick in range(start_tick, latest_frame.tick_id + 1):
+	for tick in range(first_tick, latest_tick + 1):
 		var buffered_frame: PlayerInputFrame = client_session.get_network_frame(tick) if client_session != null else null
 		if buffered_frame != null:
-			frames.append(buffered_frame.to_dict())
-	return {
+			frames.append(_encode_input_frame_for_wire(buffered_frame))
+		else:
+			var fallback := _build_deterministic_missing_input_frame(tick)
+			if not fallback.is_empty():
+				frames.append(fallback)
+	var batch := {
 		"message_type": TransportMessageTypesScript.INPUT_BATCH,
 		"msg_type": TransportMessageTypesScript.INPUT_BATCH,
 		"protocol_version": int(start_config.protocol_version) if start_config != null else 1,
@@ -137,10 +159,63 @@ func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
 		"sender_peer_id": local_peer_id,
 		"peer_id": local_peer_id,
 		"client_seq": _input_send_seq,
-		"latest_tick": latest_frame.tick_id,
-		"tick": latest_frame.tick_id,
+		"client_batch_seq": _input_send_seq,
+		"ack_base_tick": client_session.last_confirmed_tick if client_session != null else -1,
+		"first_tick": first_tick,
+		"latest_tick": latest_tick,
+		"tick": latest_tick,
+		"frame_count": frames.size(),
 		"frames": frames,
 	}
+	_record_input_batch_metrics(batch)
+	return batch
+
+
+func _compute_input_batch_first_tick(latest_tick: int) -> int:
+	var ack_tick := client_session.last_confirmed_tick if client_session != null else -1
+	var first_tick := ack_tick + 1 - INPUT_ACK_SAFETY_MARGIN_TICKS
+	first_tick = max(0, first_tick)
+	var hard_cap_first_tick := latest_tick - INPUT_BATCH_MAX_FRAMES + 1
+	first_tick = max(first_tick, hard_cap_first_tick)
+	return first_tick
+
+
+func _encode_input_frame_for_wire(frame: PlayerInputFrame) -> Dictionary:
+	return frame.to_dict()
+
+
+func _build_deterministic_missing_input_frame(tick: int) -> Dictionary:
+	return {}
+
+
+func _record_input_batch_metrics(batch: Dictionary) -> void:
+	var frame_count := int(batch.get("frame_count", 0))
+	var first_tick := int(batch.get("first_tick", 0))
+	var latest_tick := int(batch.get("latest_tick", 0))
+	var ack_base_tick := int(batch.get("ack_base_tick", -1))
+	_last_input_batch_frame_count = frame_count
+	_last_input_batch_first_tick = first_tick
+	_last_input_batch_latest_tick = latest_tick
+	_last_input_batch_ack_base_tick = ack_base_tick
+	var encoded_bytes := var_to_bytes(batch).size()
+	_last_input_batch_encoded_bytes = encoded_bytes
+	_max_observed_batch_frame_count = max(_max_observed_batch_frame_count, frame_count)
+	_max_observed_batch_encoded_bytes = max(_max_observed_batch_encoded_bytes, encoded_bytes)
+	if frame_count > INPUT_BATCH_WARN_FRAMES or encoded_bytes > INPUT_BATCH_WARN_BYTES:
+		_input_batch_budget_warn_count += 1
+		LogSyncScript.warn(
+			"QQT_INPUT_BATCH_BUDGET_WARN peer_id=%d frame_count=%d encoded_bytes=%d first_tick=%d latest_tick=%d ack_base_tick=%d" % [
+				local_peer_id,
+				frame_count,
+				encoded_bytes,
+				first_tick,
+				latest_tick,
+				ack_base_tick,
+			],
+			"",
+			0,
+			"%s sync.client_runtime" % TRACE_TAG
+		)
 
 
 func _resolve_next_local_input_tick() -> int:
@@ -181,12 +256,12 @@ func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
 	if frame == null:
 		return null
 	var prediction_frame: PlayerInputFrame = frame.duplicate_for_tick(frame.tick_id)
-	if _should_suppress_action_place_prediction():
-		prediction_frame.action_place = false
+	if _should_suppress_place_prediction():
+		prediction_frame.action_bits = 0
 	return prediction_frame
 
 
-func _should_suppress_action_place_prediction() -> bool:
+func _should_suppress_place_prediction() -> bool:
 	if start_config == null:
 		return false
 	return String(start_config.topology) == "dedicated_server"
@@ -272,6 +347,16 @@ func build_metrics() -> Dictionary:
 		"authority_batch": get_last_authority_batch_metrics(),
 		"rollback": rollback_metrics,
 		"input_lead_ticks": _resolve_runtime_input_lead_ticks() if start_config != null and prediction_controller != null else 0,
+		"stale_input_ack_count": client_session.stale_input_ack_count if client_session != null else 0,
+		"input_batch_frame_count": _last_input_batch_frame_count,
+		"input_batch_encoded_bytes": _last_input_batch_encoded_bytes,
+		"input_batch_first_tick": _last_input_batch_first_tick,
+		"input_batch_latest_tick": _last_input_batch_latest_tick,
+		"input_batch_ack_base_tick": _last_input_batch_ack_base_tick,
+		"input_batch_budget_warn_count": _input_batch_budget_warn_count,
+		"max_observed_batch_frame_count": _max_observed_batch_frame_count,
+		"max_observed_batch_encoded_bytes": _max_observed_batch_encoded_bytes,
+		"input_batch_send_count": _input_send_seq,
 	}
 
 
@@ -327,6 +412,14 @@ func shutdown_runtime() -> void:
 	_input_send_seq = 0
 	_runtime_input_lead_ticks = 0
 	_place_redundancy_ticks_remaining = 0
+	_last_input_batch_frame_count = 0
+	_last_input_batch_encoded_bytes = 0
+	_last_input_batch_first_tick = 0
+	_last_input_batch_latest_tick = 0
+	_last_input_batch_ack_base_tick = -1
+	_input_batch_budget_warn_count = 0
+	_max_observed_batch_frame_count = 0
+	_max_observed_batch_encoded_bytes = 0
 
 
 # LegacyMigration: Inject resume checkpoint for battle recovery

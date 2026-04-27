@@ -57,9 +57,10 @@ func (f *fakeManualRoomService) Create(_ context.Context, input battlealloc.Manu
 }
 
 type fakeAssignmentService struct {
-	lastInput assignment.CommitInput
-	result    assignment.CommitResult
-	err       error
+	lastInput    assignment.CommitInput
+	result       assignment.CommitResult
+	statusResult assignment.StatusResult
+	err          error
 }
 
 func (f *fakeAssignmentService) CommitRoom(_ context.Context, input assignment.CommitInput) (assignment.CommitResult, error) {
@@ -73,6 +74,16 @@ func (f *fakeAssignmentService) CommitBattleEntryReady(_ context.Context, input 
 }
 
 func (f *fakeAssignmentService) GetStatus(_ context.Context, roomID string, assignmentID string) (assignment.StatusResult, error) {
+	if f.statusResult.AssignmentID != "" || f.statusResult.RoomID != "" || f.statusResult.QueuePhase != "" {
+		status := f.statusResult
+		if status.AssignmentID == "" {
+			status.AssignmentID = assignmentID
+		}
+		if status.RoomID == "" {
+			status.RoomID = roomID
+		}
+		return status, f.err
+	}
 	return assignment.StatusResult{
 		AssignmentID: assignmentID,
 		RoomID:       roomID,

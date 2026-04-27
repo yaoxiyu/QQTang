@@ -129,7 +129,7 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 	})
 	var request = RoomTicketRequestScript.new()
 	request.purpose = "create" if _current_assignment_state.ticket_role == "create" else "join"
-	request.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
+	request.room_kind = _resolve_match_room_kind()
 	request.room_id = _current_assignment_state.room_id
 	request.assignment_id = _current_assignment_state.assignment_id
 	var loadout_result = LoadoutNormalizerScript.apply_to_ticket_request(request, player_profile_state)
@@ -142,21 +142,21 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 	if ticket_result == null or not bool(ticket_result.ok):
 		_log_matchmaking("consume_assignment_ticket_failed", {
 			"assignment_id": _current_assignment_state.assignment_id,
-			"error_code": String(ticket_result.error_code if ticket_result != null else "MATCHMADE_TICKET_FAILED"),
+			"error_code": String(ticket_result.error_code if ticket_result != null else "MATCH_ROOM_TICKET_FAILED"),
 			"user_message": String(ticket_result.user_message if ticket_result != null else "Failed to issue room ticket"),
 		})
 		return _fail(
-			String(ticket_result.error_code if ticket_result != null else "MATCHMADE_TICKET_FAILED"),
+			String(ticket_result.error_code if ticket_result != null else "MATCH_ROOM_TICKET_FAILED"),
 			String(ticket_result.user_message if ticket_result != null else "Failed to issue room ticket")
 		)
 	var entry_context := RoomEntryContextScript.new()
 	entry_context.entry_kind = FrontEntryKindScript.ONLINE_CREATE if request.purpose == "create" else FrontEntryKindScript.ONLINE_JOIN
-	entry_context.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
+	entry_context.room_kind = _resolve_match_room_kind()
 	entry_context.topology = FrontTopologyScript.DEDICATED_SERVER
 	entry_context.server_host = _normalize_host(_current_assignment_state.server_host)
 	entry_context.server_port = _normalize_port(_current_assignment_state.server_port, 9100)
 	entry_context.target_room_id = ticket_result.room_id
-	entry_context.room_display_name = "Matchmade Room"
+	entry_context.room_display_name = "Match Room"
 	entry_context.room_ticket = ticket_result.ticket
 	entry_context.room_ticket_id = ticket_result.ticket_id
 	entry_context.account_id = ticket_result.account_id
@@ -198,6 +198,15 @@ func get_queue_state() -> MatchmakingQueueState:
 
 func get_assignment_state() -> MatchmakingAssignmentState:
 	return _current_assignment_state
+
+
+func _resolve_match_room_kind() -> String:
+	var queue_type := String(front_settings_state.last_queue_type if front_settings_state != null else "").strip_edges().to_lower()
+	match queue_type:
+		"ranked":
+			return FrontRoomKindScript.RANKED_MATCH_ROOM
+		_:
+			return FrontRoomKindScript.CASUAL_MATCH_ROOM
 
 
 func _configure_gateways() -> void:

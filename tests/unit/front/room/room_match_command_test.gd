@@ -129,17 +129,17 @@ func test_update_match_room_config_requests_gateway() -> void:
 	runtime.free()
 
 
-func test_request_rematch_rejects_matchmade_room() -> void:
+func test_request_rematch_rejects_match_room() -> void:
 	var command := RoomMatchCommandScript.new()
 	var runtime := FakeRuntime.new()
 	var gateway := FakeGateway.new()
 	var entry := RoomEntryContextScript.new()
-	entry.room_kind = "matchmade_room"
+	entry.room_kind = "ranked_match_room"
 	entry.topology = "dedicated_server"
 	runtime.current_room_entry_context = entry
 
 	var result: Dictionary = command.request_rematch(runtime, gateway)
 
-	assert_false(bool(result.get("ok", true)), "matchmade room should reject rematch")
-	assert_eq(String(result.get("error_code", "")), "MATCHMADE_REMATCH_FORBIDDEN", "matchmade rematch should use stable error code")
+	assert_false(bool(result.get("ok", true)), "match room should reject rematch")
+	assert_eq(String(result.get("error_code", "")), "MATCH_ROOM_REMATCH_FORBIDDEN", "match room rematch should use stable error code")
 	runtime.free()

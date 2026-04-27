@@ -23,7 +23,7 @@ func enter_room(
 	if not bool(enter_check.get("ok", false)):
 		_log_anomaly(log_sink, "enter_room_rejected", enter_check)
 		return enter_check
-	_apply_matchmade_return_policy(app_runtime, entry_context)
+	_apply_match_room_return_policy(app_runtime, entry_context)
 	app_runtime.current_room_entry_context = entry_context.duplicate_deep() if entry_context != null else RoomEntryContext.new()
 
 	if not _enter_command.should_use_online_dedicated_room(entry_context):
@@ -92,8 +92,8 @@ func dispatch_transport_connected(
 	})
 
 
-func _apply_matchmade_return_policy(app_runtime: Object, entry_context: RoomEntryContext) -> void:
-	if not RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime, entry_context):
+func _apply_match_room_return_policy(app_runtime: Object, entry_context: RoomEntryContext) -> void:
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime, entry_context):
 		return
 	if RoomUseCaseRuntimeStateScript.has_source_room_return_policy(app_runtime, entry_context):
 		return

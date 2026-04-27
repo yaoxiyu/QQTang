@@ -9,7 +9,7 @@ func test_main() -> void:
 		"match_id": "match_probe",
 		"assignment_id": "assign_probe",
 		"room_id": "room_probe",
-		"room_kind": "matchmade_room",
+		"room_kind": "casual_match_room",
 		"season_id": "season_s1",
 		"mode_id": "mode_ranked",
 		"rule_set_id": "rule_standard",
@@ -29,4 +29,3 @@ func test_main() -> void:
 	var hash_first := reporter._build_result_hash(payload)
 	var hash_second := reporter._build_result_hash(payload)
 	var ok := qqt_check(hash_first == hash_second and hash_first.begins_with("sha256:"), "duplicate finalize payload should keep same result hash", "match_finalize_idempotence_probe_test")
-

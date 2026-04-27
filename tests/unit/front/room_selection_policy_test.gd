@@ -8,18 +8,18 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const ClientConnectionConfigScript = preload("res://network/runtime/client_connection_config.gd")
 
 
-func test_matchmade_selection_uses_locked_values() -> void:
+func test_match_room_selection_uses_locked_values() -> void:
 	var entry_context := RoomEntryContextScript.new()
-	entry_context.room_kind = FrontRoomKindScript.MATCHMADE_ROOM
+	entry_context.room_kind = FrontRoomKindScript.CASUAL_MATCH_ROOM
 	entry_context.locked_map_id = "locked_map"
 	entry_context.locked_rule_set_id = "locked_rule"
 	entry_context.locked_mode_id = "locked_mode"
 
 	var result := RoomSelectionPolicyScript.resolve_default_selection(entry_context, "ignored_map")
 
-	assert_eq(String(result.get("map_id", "")), "locked_map", "matchmade room should keep locked map")
-	assert_eq(String(result.get("rule_set_id", "")), "locked_rule", "matchmade room should keep locked rule")
-	assert_eq(String(result.get("mode_id", "")), "locked_mode", "matchmade room should keep locked mode")
+	assert_eq(String(result.get("map_id", "")), "locked_map", "match room should keep locked map")
+	assert_eq(String(result.get("rule_set_id", "")), "locked_rule", "match room should keep locked rule")
+	assert_eq(String(result.get("mode_id", "")), "locked_mode", "match room should keep locked mode")
 
 
 func test_custom_selection_prefers_valid_preferred_map_binding() -> void:

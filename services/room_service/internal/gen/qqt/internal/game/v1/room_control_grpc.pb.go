@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RoomControlService_EnterPartyQueue_FullMethodName        = "/qqt.internal.game.v1.RoomControlService/EnterPartyQueue"
-	RoomControlService_CancelPartyQueue_FullMethodName       = "/qqt.internal.game.v1.RoomControlService/CancelPartyQueue"
-	RoomControlService_GetPartyQueueStatus_FullMethodName    = "/qqt.internal.game.v1.RoomControlService/GetPartyQueueStatus"
-	RoomControlService_CreateManualRoomBattle_FullMethodName = "/qqt.internal.game.v1.RoomControlService/CreateManualRoomBattle"
-	RoomControlService_CommitAssignmentReady_FullMethodName  = "/qqt.internal.game.v1.RoomControlService/CommitAssignmentReady"
+	RoomControlService_EnterPartyQueue_FullMethodName           = "/qqt.internal.game.v1.RoomControlService/EnterPartyQueue"
+	RoomControlService_CancelPartyQueue_FullMethodName          = "/qqt.internal.game.v1.RoomControlService/CancelPartyQueue"
+	RoomControlService_GetPartyQueueStatus_FullMethodName       = "/qqt.internal.game.v1.RoomControlService/GetPartyQueueStatus"
+	RoomControlService_GetBattleAssignmentStatus_FullMethodName = "/qqt.internal.game.v1.RoomControlService/GetBattleAssignmentStatus"
+	RoomControlService_CreateManualRoomBattle_FullMethodName    = "/qqt.internal.game.v1.RoomControlService/CreateManualRoomBattle"
+	RoomControlService_CommitAssignmentReady_FullMethodName     = "/qqt.internal.game.v1.RoomControlService/CommitAssignmentReady"
 )
 
 // RoomControlServiceClient is the client API for RoomControlService service.
@@ -33,6 +34,7 @@ type RoomControlServiceClient interface {
 	EnterPartyQueue(ctx context.Context, in *EnterPartyQueueRequest, opts ...grpc.CallOption) (*EnterPartyQueueResponse, error)
 	CancelPartyQueue(ctx context.Context, in *CancelPartyQueueRequest, opts ...grpc.CallOption) (*CancelPartyQueueResponse, error)
 	GetPartyQueueStatus(ctx context.Context, in *GetPartyQueueStatusRequest, opts ...grpc.CallOption) (*GetPartyQueueStatusResponse, error)
+	GetBattleAssignmentStatus(ctx context.Context, in *GetBattleAssignmentStatusRequest, opts ...grpc.CallOption) (*GetBattleAssignmentStatusResponse, error)
 	CreateManualRoomBattle(ctx context.Context, in *CreateManualRoomBattleRequest, opts ...grpc.CallOption) (*CreateManualRoomBattleResponse, error)
 	CommitAssignmentReady(ctx context.Context, in *CommitAssignmentReadyRequest, opts ...grpc.CallOption) (*CommitAssignmentReadyResponse, error)
 }
@@ -75,6 +77,16 @@ func (c *roomControlServiceClient) GetPartyQueueStatus(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *roomControlServiceClient) GetBattleAssignmentStatus(ctx context.Context, in *GetBattleAssignmentStatusRequest, opts ...grpc.CallOption) (*GetBattleAssignmentStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBattleAssignmentStatusResponse)
+	err := c.cc.Invoke(ctx, RoomControlService_GetBattleAssignmentStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *roomControlServiceClient) CreateManualRoomBattle(ctx context.Context, in *CreateManualRoomBattleRequest, opts ...grpc.CallOption) (*CreateManualRoomBattleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateManualRoomBattleResponse)
@@ -102,6 +114,7 @@ type RoomControlServiceServer interface {
 	EnterPartyQueue(context.Context, *EnterPartyQueueRequest) (*EnterPartyQueueResponse, error)
 	CancelPartyQueue(context.Context, *CancelPartyQueueRequest) (*CancelPartyQueueResponse, error)
 	GetPartyQueueStatus(context.Context, *GetPartyQueueStatusRequest) (*GetPartyQueueStatusResponse, error)
+	GetBattleAssignmentStatus(context.Context, *GetBattleAssignmentStatusRequest) (*GetBattleAssignmentStatusResponse, error)
 	CreateManualRoomBattle(context.Context, *CreateManualRoomBattleRequest) (*CreateManualRoomBattleResponse, error)
 	CommitAssignmentReady(context.Context, *CommitAssignmentReadyRequest) (*CommitAssignmentReadyResponse, error)
 	mustEmbedUnimplementedRoomControlServiceServer()
@@ -122,6 +135,9 @@ func (UnimplementedRoomControlServiceServer) CancelPartyQueue(context.Context, *
 }
 func (UnimplementedRoomControlServiceServer) GetPartyQueueStatus(context.Context, *GetPartyQueueStatusRequest) (*GetPartyQueueStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPartyQueueStatus not implemented")
+}
+func (UnimplementedRoomControlServiceServer) GetBattleAssignmentStatus(context.Context, *GetBattleAssignmentStatusRequest) (*GetBattleAssignmentStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBattleAssignmentStatus not implemented")
 }
 func (UnimplementedRoomControlServiceServer) CreateManualRoomBattle(context.Context, *CreateManualRoomBattleRequest) (*CreateManualRoomBattleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateManualRoomBattle not implemented")
@@ -204,6 +220,24 @@ func _RoomControlService_GetPartyQueueStatus_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RoomControlService_GetBattleAssignmentStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBattleAssignmentStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomControlServiceServer).GetBattleAssignmentStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RoomControlService_GetBattleAssignmentStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomControlServiceServer).GetBattleAssignmentStatus(ctx, req.(*GetBattleAssignmentStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RoomControlService_CreateManualRoomBattle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateManualRoomBattleRequest)
 	if err := dec(in); err != nil {
@@ -258,6 +292,10 @@ var RoomControlService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPartyQueueStatus",
 			Handler:    _RoomControlService_GetPartyQueueStatus_Handler,
+		},
+		{
+			MethodName: "GetBattleAssignmentStatus",
+			Handler:    _RoomControlService_GetBattleAssignmentStatus_Handler,
 		},
 		{
 			MethodName: "CreateManualRoomBattle",

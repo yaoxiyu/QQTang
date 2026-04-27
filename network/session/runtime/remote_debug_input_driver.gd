@@ -41,7 +41,7 @@ func enqueue_inputs(tick_id: int, use_debug_pattern: bool) -> void:
 				tick_id,
 				int(remote_input.get("move_x", 0)),
 				int(remote_input.get("move_y", 0)),
-				bool(remote_input.get("action_place", false))
+				int(remote_input.get("action_bits", 0))
 			)
 		)
 
@@ -73,9 +73,9 @@ func _sample_debug_input(peer_id: int, tick_id: int) -> Dictionary:
 			move_x = -1
 		3:
 			move_y = -1
-	var action_place: bool = tick_id > 20 and tick_id % 45 == (peer_id % 5)
+	var place_action: bool = tick_id > 20 and tick_id % 45 == (peer_id % 5)
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
-		"action_place": action_place,
+		"action_bits": PlayerInputFrame.BIT_PLACE if place_action else 0,
 	}

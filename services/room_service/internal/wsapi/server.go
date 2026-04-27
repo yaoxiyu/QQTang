@@ -371,17 +371,18 @@ func (s *Server) startBackgroundWorkers() {
 			case <-s.bgCtx.Done():
 				return
 			case <-ticker.C:
-				s.syncMatchQueueSnapshots()
+				s.syncControlPlaneSnapshots()
 			}
 		}
 	}()
 }
 
-func (s *Server) syncMatchQueueSnapshots() {
+func (s *Server) syncControlPlaneSnapshots() {
 	if s == nil || s.dispatcher == nil || s.dispatcher.app == nil {
 		return
 	}
 	updates := s.dispatcher.app.SyncMatchQueueStatus()
+	updates = append(updates, s.dispatcher.app.SyncBattleAssignmentStatus()...)
 	for _, update := range updates {
 		if update.Snapshot == nil || update.RoomID == "" {
 			continue

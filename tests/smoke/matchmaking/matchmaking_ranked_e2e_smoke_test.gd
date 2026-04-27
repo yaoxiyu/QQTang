@@ -55,7 +55,7 @@ class FakeMatchmakingGateway:
 				"assignment_revision": 1,
 				"ticket_role": "create",
 				"room_id": "room_smoke",
-				"room_kind": "matchmade_room",
+				"room_kind": "casual_match_room",
 				"server_host": "127.0.0.1",
 				"server_port": 9100,
 				"mode_id": "mode_ranked",
@@ -84,7 +84,7 @@ class FakeRoomTicketGateway:
 			"account_id": "account_smoke",
 			"profile_id": "profile_smoke",
 			"room_id": "room_smoke",
-			"room_kind": "matchmade_room",
+			"room_kind": "casual_match_room",
 			"assignment_id": "assign_smoke",
 			"match_source": "matchmaking",
 			"locked_map_id": "map_arcade",
@@ -190,4 +190,3 @@ func _build_controller() -> Control:
 	rematch_button.name = "RematchButton"
 	action_row.add_child(rematch_button)
 	return controller
-

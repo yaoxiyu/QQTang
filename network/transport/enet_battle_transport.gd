@@ -27,6 +27,7 @@ var _sent_bytes_by_channel: Dictionary = {}
 var _sent_count_by_type: Dictionary = {}
 var _received_count_by_channel: Dictionary = {}
 var _last_mtu_promotion_warn_msec_by_type: Dictionary = {}
+var _unreliable_promoted_to_reliable_count: int = 0
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -183,6 +184,8 @@ func get_transport_metrics() -> Dictionary:
 		"sent_bytes_by_channel": _sent_bytes_by_channel.duplicate(true),
 		"sent_count_by_type": _sent_count_by_type.duplicate(true),
 		"received_count_by_channel": _received_count_by_channel.duplicate(true),
+		"unreliable_promoted_to_reliable_count": _unreliable_promoted_to_reliable_count,
+		"transport_unreliable_promoted_to_reliable_count": _unreliable_promoted_to_reliable_count,
 	}
 
 
@@ -278,6 +281,7 @@ func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type:
 	_peer.transfer_channel = BattleTransportChannelsScript.resolve_channel(message_type)
 	_peer.transfer_mode = BattleTransportChannelsScript.resolve_transfer_mode(message_type)
 	if _peer.transfer_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and payload.size() > UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES:
+		_unreliable_promoted_to_reliable_count += 1
 		_log_mtu_promotion_if_needed(message_type, payload.size(), peer_id)
 		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	_peer.set_target_peer(peer_id)
@@ -313,6 +317,7 @@ func _reset_transport_metrics() -> void:
 	_sent_count_by_type.clear()
 	_received_count_by_channel.clear()
 	_last_mtu_promotion_warn_msec_by_type.clear()
+	_unreliable_promoted_to_reliable_count = 0
 
 
 func _log_mtu_promotion_if_needed(message_type: String, payload_size: int, peer_id: int) -> void:

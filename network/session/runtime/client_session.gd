@@ -3,7 +3,9 @@ extends Node
 
 var local_peer_id: int = 0
 var controlled_peer_id: int = 0  # LegacyMigration: Battle control identity
-var last_confirmed_tick: int = 0
+var last_confirmed_tick: int = -1
+var last_confirmed_seq: int = -1
+var stale_input_ack_count: int = 0
 var latest_snapshot_tick: int = 0
 var latest_checksum: int = 0
 var outgoing_input_frames: Array[PlayerInputFrame] = []
@@ -17,7 +19,9 @@ func configure(peer_id: int, p_controlled_peer_id: int = 0, ring_capacity: int =
 	controlled_peer_id = p_controlled_peer_id if p_controlled_peer_id > 0 else peer_id
 	local_input_buffer = InputRingBuffer.new(ring_capacity)
 	network_input_buffer = InputRingBuffer.new(ring_capacity)
-	last_confirmed_tick = 0
+	last_confirmed_tick = -1
+	last_confirmed_seq = -1
+	stale_input_ack_count = 0
 	latest_snapshot_tick = 0
 	latest_checksum = 0
 	latest_player_summary.clear()
@@ -44,8 +48,13 @@ func flush_outgoing_inputs() -> Array[PlayerInputFrame]:
 	return frames
 
 
-func on_input_ack(ack_tick: int) -> void:
+func on_input_ack(ack_tick: int, ack_seq: int = -1) -> void:
+	if ack_tick <= last_confirmed_tick:
+		stale_input_ack_count += 1
+		return
 	last_confirmed_tick = ack_tick
+	if ack_seq >= 0:
+		last_confirmed_seq = max(last_confirmed_seq, ack_seq)
 
 
 func on_state_summary(summary: Dictionary) -> void:
@@ -58,15 +67,14 @@ func on_snapshot(snapshot: Dictionary) -> void:
 	on_state_summary(snapshot)
 
 
-func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_place: bool = false) -> PlayerInputFrame:
+func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_bits: int = 0) -> PlayerInputFrame:
 	var frame := PlayerInputFrame.new()
-	# LegacyMigration: Use controlled_peer_id for battle control identity
 	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
 	frame.tick_id = tick_id
 	frame.seq = tick_id
 	frame.move_x = move_x
 	frame.move_y = move_y
-	frame.action_place = action_place
+	frame.action_bits = action_bits
 	frame.sanitize()
 	return frame
 

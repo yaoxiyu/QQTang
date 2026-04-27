@@ -114,7 +114,7 @@ func TestGetGrantRejectsAllocFailedAssignment(t *testing.T) {
 			AssignmentID:          "assign_a",
 			QueueType:             "ranked",
 			RoomID:                "room_a",
-			RoomKind:              "matchmade_room",
+			RoomKind:              "ranked_match_room",
 			MatchID:               "match_a",
 			ModeID:                "mode_a",
 			RuleSetID:             "rule_a",
@@ -138,7 +138,7 @@ func TestGetGrantRejectsAllocFailedAssignment(t *testing.T) {
 		},
 	}
 	service := NewService(storage.NewAssignmentRepository(db), time.Minute)
-	_, err := service.GetGrant(context.Background(), "assign_a", "account_a", "profile_a", "matchmade_room", "", "room")
+	_, err := service.GetGrant(context.Background(), "assign_a", "account_a", "profile_a", "ranked_match_room", "", "room")
 	if err != ErrAssignmentAllocFailed {
 		t.Fatalf("expected ErrAssignmentAllocFailed, got %v", err)
 	}
@@ -151,7 +151,7 @@ func TestCommitRoomRejectsAllocFailedAssignment(t *testing.T) {
 			AssignmentID:           "assign_b",
 			QueueType:              "ranked",
 			RoomID:                 "room_b",
-			RoomKind:               "matchmade_room",
+			RoomKind:               "ranked_match_room",
 			MatchID:                "match_b",
 			ModeID:                 "mode_b",
 			RuleSetID:              "rule_b",

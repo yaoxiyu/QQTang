@@ -84,7 +84,7 @@ func test_main() -> void:
 
 func _build_finalize_fixture() -> Dictionary:
 	var state = RoomServerStateScript.new()
-	state.ensure_room("room_alpha", 2, "matchmade_room", "E2E Room")
+	state.ensure_room("room_alpha", 2, "ranked_match_room", "E2E Room")
 	state.assignment_id = "assign_alpha"
 	state.season_id = "season_s1"
 	state.upsert_member(11, "Alpha", "", "", "", "", 1, "account_a", "profile_a")

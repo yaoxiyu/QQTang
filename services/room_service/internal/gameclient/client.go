@@ -104,6 +104,20 @@ func (c *Client) CreateManualRoomBattle(input CreateManualRoomBattleInput) (Crea
 	return fromPBCreateManualRoomBattle(response), nil
 }
 
+func (c *Client) GetBattleAssignmentStatus(input GetBattleAssignmentStatusInput) (GetBattleAssignmentStatusResult, error) {
+	if input.RoomID == "" {
+		return GetBattleAssignmentStatusResult{}, fmt.Errorf("room_id is required")
+	}
+	if input.AssignmentID == "" {
+		return GetBattleAssignmentStatusResult{}, fmt.Errorf("assignment_id is required")
+	}
+	response, err := c.callGetBattleAssignmentStatus(input)
+	if err != nil {
+		return GetBattleAssignmentStatusResult{}, err
+	}
+	return fromPBGetBattleAssignmentStatus(response), nil
+}
+
 func (c *Client) CommitAssignmentReady(input CommitAssignmentReadyInput) (CommitAssignmentReadyResult, error) {
 	if input.RoomID == "" {
 		return CommitAssignmentReadyResult{}, fmt.Errorf("room_id is required")
@@ -188,6 +202,25 @@ func (c *Client) callCreateManualRoomBattle(input CreateManualRoomBattleInput) (
 	})
 	if rpcErr != nil {
 		return nil, mapRPCError("CreateManualRoomBattle", rpcErr)
+	}
+	return response, nil
+}
+
+func (c *Client) callGetBattleAssignmentStatus(input GetBattleAssignmentStatusInput) (*gamev1.GetBattleAssignmentStatusResponse, error) {
+	stub, err := c.stubClient()
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), c.rpcTimeout)
+	defer cancel()
+	response, rpcErr := stub.GetBattleAssignmentStatus(ctx, &gamev1.GetBattleAssignmentStatusRequest{
+		RoomId:        input.RoomID,
+		RoomKind:      input.RoomKind,
+		AssignmentId:  input.AssignmentID,
+		KnownRevision: input.KnownRevision,
+	})
+	if rpcErr != nil {
+		return nil, mapRPCError("GetBattleAssignmentStatus", rpcErr)
 	}
 	return response, nil
 }

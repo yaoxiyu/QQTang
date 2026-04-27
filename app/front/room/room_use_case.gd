@@ -83,7 +83,8 @@ func enter_room(entry_context: RoomEntryContext) -> Dictionary:
 
 func leave_room() -> Dictionary:
 	_clear_enter_match_queue_pending("leave_room")
-	var result: Dictionary = _leave_command.leave_room(app_runtime, room_client_gateway)
+	var can_cancel_current_queue := RoomUseCaseRuntimeStateScript.can_cancel_current_queue(app_runtime)
+	var result: Dictionary = _leave_command.leave_room(app_runtime, room_client_gateway, can_cancel_current_queue)
 	if not bool(result.get("ok", false)):
 		return result
 	_last_projected_room_view_state.clear()

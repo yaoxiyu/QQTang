@@ -96,7 +96,7 @@ func TestFinalizeDataIntegrityConstraints(t *testing.T) {
 		MatchID:           "match_constraints",
 		AssignmentID:      "assign_constraints",
 		RoomID:            "room_alpha",
-		RoomKind:          "matchmade_room",
+		RoomKind:          "ranked_match_room",
 		SeasonID:          "season_s1",
 		ModeID:            "mode_ranked",
 		RuleSetID:         "rule_standard",
@@ -116,7 +116,7 @@ func TestFinalizeDataIntegrityConstraints(t *testing.T) {
 		MatchID:           "match_constraints_second",
 		AssignmentID:      "assign_constraints",
 		RoomID:            "room_alpha",
-		RoomKind:          "matchmade_room",
+		RoomKind:          "ranked_match_room",
 		SeasonID:          "season_s1",
 		ModeID:            "mode_ranked",
 		RuleSetID:         "rule_standard",
@@ -282,7 +282,7 @@ func seedFinalizeAssignment(t *testing.T, ctx context.Context, pool *pgxpool.Poo
 			assignment_revision, expected_member_count, state, captain_deadline_unix_sec,
 			commit_deadline_unix_sec, created_at, updated_at
 		) VALUES (
-			$1, 'ranked:mode:rule', 'ranked', 'season_s1', 'room_alpha', 'matchmade_room', $2,
+			$1, 'ranked:mode:rule', 'ranked', 'season_s1', 'room_alpha', 'ranked_match_room', $2,
 			'mode_ranked', 'rule_standard', 'map_arcade', '127.0.0.1', 9000, 'account_a',
 			1, 2, 'assigned', $3, $4, NOW(), NOW()
 		)
@@ -308,7 +308,7 @@ func buildFinalizeInput(assignmentID string, matchID string, resultHash string) 
 		MatchID:      matchID,
 		AssignmentID: assignmentID,
 		RoomID:       "room_alpha",
-		RoomKind:     "matchmade_room",
+		RoomKind:     "ranked_match_room",
 		SeasonID:     "season_s1",
 		ModeID:       "mode_ranked",
 		RuleSetID:    "rule_standard",

@@ -23,6 +23,8 @@ func _init() -> void:
 		"QQTNativeSnapshotRing",
 		"QQTNativeMovementKernel",
 		"QQTNativeExplosionKernel",
+		"QQTNativeInputBuffer",
+		"QQTNativeBattleMessageCodec",
 	]
 	var ok := true
 	for native_class_name in classes:

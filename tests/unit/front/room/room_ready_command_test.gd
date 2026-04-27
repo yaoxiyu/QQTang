@@ -25,33 +25,33 @@ func test_can_toggle_ready_rejects_missing_controller() -> void:
 	runtime.free()
 
 
-func test_can_toggle_ready_rejects_matchmade_room() -> void:
+func test_can_toggle_ready_rejects_match_room() -> void:
 	var command := RoomReadyCommandScript.new()
 	var runtime := FakeRuntime.new()
 	var entry := RoomEntryContextScript.new()
-	entry.room_kind = "matchmade_room"
+	entry.room_kind = "ranked_match_room"
 	runtime.current_room_entry_context = entry
 
 	var result: Dictionary = command.can_toggle_ready(runtime)
 
-	assert_false(bool(result.get("ok", true)), "matchmade room should reject manual ready")
-	assert_eq(String(result.get("error_code", "")), "MATCHMADE_READY_LOCKED", "matchmade ready should use stable error code")
+	assert_false(bool(result.get("ok", true)), "match room should reject manual ready")
+	assert_eq(String(result.get("error_code", "")), "MATCH_ROOM_READY_LOCKED", "match room ready should use stable error code")
 	runtime.room_session_controller.free()
 	runtime.free()
 
 
-func test_can_toggle_ready_prefers_authoritative_match_room_snapshot() -> void:
+func test_can_toggle_ready_prefers_authoritative_custom_room_snapshot() -> void:
 	var command := RoomReadyCommandScript.new()
 	var runtime := FakeRuntime.new()
 	var entry := RoomEntryContextScript.new()
-	entry.room_kind = "matchmade_room"
+	entry.room_kind = "ranked_match_room"
 	var snapshot := RoomSnapshot.new()
-	snapshot.room_kind = "casual_match_room"
+	snapshot.room_kind = "private_room"
 	runtime.current_room_entry_context = entry
 	runtime.current_room_snapshot = snapshot
 
 	var result: Dictionary = command.can_toggle_ready(runtime)
 
-	assert_true(bool(result.get("ok", false)), "authoritative match room snapshot should allow manual ready")
+	assert_true(bool(result.get("ok", false)), "authoritative custom room snapshot should allow manual ready")
 	runtime.room_session_controller.free()
 	runtime.free()

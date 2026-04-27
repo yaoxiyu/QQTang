@@ -14,7 +14,6 @@ func test_main() -> void:
 	var ok := true
 	ok = qqt_check(FrontRoomKindScript.is_match_room("casual_match_room"), "casual match room should be match room", prefix) and ok
 	ok = qqt_check(FrontRoomKindScript.is_match_room("ranked_match_room"), "ranked match room should be match room", prefix) and ok
-	ok = qqt_check(FrontRoomKindScript.is_assigned_room("matchmade_room"), "matchmade room should be assigned room", prefix) and ok
 
 	var state := RoomServerStateScript.new()
 	state.ensure_room("ROOM-KIND", 1, "ranked_match_room", "")

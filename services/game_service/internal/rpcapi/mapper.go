@@ -130,25 +130,6 @@ func successGetPartyQueueStatus(status queue.PartyQueueStatus) *gamev1.GetPartyQ
 	}
 }
 
-func successAssignmentStatus(status assignment.StatusResult) *gamev1.GetPartyQueueStatusResponse {
-	return &gamev1.GetPartyQueueStatusResponse{
-		Ok:                   true,
-		QueueState:           status.QueueState,
-		AssignmentId:         status.AssignmentID,
-		MatchId:              status.MatchID,
-		BattleId:             status.BattleID,
-		ServerHost:           status.ServerHost,
-		ServerPort:           int32(status.ServerPort),
-		QueuePhase:           status.QueuePhase,
-		QueueTerminalReason:  status.QueueTerminalReason,
-		QueueStatusText:      status.QueueStatusText,
-		AssignmentStatusText: status.QueueStatusText,
-		AllocationPhase:      status.AllocationState,
-		BattleEntryReady:     status.QueuePhase == "entry_ready",
-		AssignmentRevision:   int32(status.AssignmentRevision),
-	}
-}
-
 func errorGetPartyQueueStatus(code, message string) *gamev1.GetPartyQueueStatusResponse {
 	return &gamev1.GetPartyQueueStatusResponse{
 		Ok:          false,
@@ -181,6 +162,65 @@ func successCommitAssignmentReady(result assignment.CommitResult) *gamev1.Commit
 	return &gamev1.CommitAssignmentReadyResponse{
 		Ok:             true,
 		CommittedState: result.CommitState,
+	}
+}
+
+func successGetBattleAssignmentStatus(status assignment.StatusResult) *gamev1.GetBattleAssignmentStatusResponse {
+	battlePhase := assignmentStatusBattlePhase(status)
+	return &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		RoomId:             status.RoomID,
+		AssignmentId:       status.AssignmentID,
+		AssignmentRevision: int64(status.AssignmentRevision),
+		MatchId:            status.MatchID,
+		BattleId:           status.BattleID,
+		ServerHost:         status.ServerHost,
+		ServerPort:         int32(status.ServerPort),
+		BattlePhase:        battlePhase,
+		TerminalReason:     status.QueueTerminalReason,
+		AllocationState:    status.AllocationState,
+		StatusText:         status.QueueStatusText,
+		BattleEntryReady:   battlePhase == "ready" || battlePhase == "entering",
+		Finalized:          battlePhase == "completed" || battlePhase == "failed" || battlePhase == "cancelled",
+	}
+}
+
+func assignmentStatusBattlePhase(status assignment.StatusResult) string {
+	switch status.QueuePhase {
+	case "assignment_pending", "allocating_battle":
+		return "allocating"
+	case "entry_ready":
+		return "ready"
+	case "active":
+		return "active"
+	case "returning":
+		return "returning"
+	case "failed", "cancelled":
+		return status.QueuePhase
+	case "completed":
+		switch status.QueueTerminalReason {
+		case "allocation_failed":
+			return "failed"
+		case "client_cancelled", "assignment_expired":
+			return "cancelled"
+		default:
+			return "completed"
+		}
+	case "":
+		if status.AssignmentID == "" {
+			return ""
+		}
+		return "ready"
+	default:
+		return status.QueuePhase
+	}
+}
+
+func errorGetBattleAssignmentStatus(code, message string) *gamev1.GetBattleAssignmentStatusResponse {
+	return &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:          false,
+		ErrorCode:   code,
+		UserMessage: message,
 	}
 }
 

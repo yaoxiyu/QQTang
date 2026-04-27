@@ -176,18 +176,19 @@ func TestManualRoomFinalizedSyncReturnsRoomToIdle(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("owner ack failed: %v", err)
 	}
-	fakeGame.statusResp = &gamev1.GetPartyQueueStatusResponse{
-		Ok:                  true,
-		QueueState:          "finalized",
-		QueuePhase:          QueuePhaseCompleted,
-		QueueTerminalReason: QueueReasonMatchFinalized,
-		QueueStatusText:     "Match finalized",
-		AssignmentId:        started.BattleHandoff.AssignmentID,
-		MatchId:             started.BattleHandoff.MatchID,
-		BattleId:            started.BattleHandoff.BattleID,
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		BattlePhase:        "completed",
+		TerminalReason:     QueueReasonMatchFinalized,
+		StatusText:         "Match finalized",
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: int64(started.BattleHandoff.AssignmentRevision),
+		MatchId:            started.BattleHandoff.MatchID,
+		BattleId:           started.BattleHandoff.BattleID,
+		Finalized:          true,
 	}
 
-	updates := svc.SyncMatchQueueStatus()
+	updates := svc.SyncBattleAssignmentStatus()
 	if len(updates) != 1 {
 		t.Fatalf("expected finalized sync update, got %d", len(updates))
 	}
@@ -196,6 +197,34 @@ func TestManualRoomFinalizedSyncReturnsRoomToIdle(t *testing.T) {
 	}
 	if !updates[0].Snapshot.Capabilities.CanToggleReady {
 		t.Fatalf("expected ready capability restored")
+	}
+	for _, member := range updates[0].Snapshot.Members {
+		if member.MemberPhase != MemberPhaseIdle || member.Ready {
+			t.Fatalf("expected member released to idle after finalized sync, got %+v", member)
+		}
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("guest should be able to ready after finalized sync: %v", err)
+	}
+	restarted, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("owner should be able to restart after guest readies: %v", err)
+	}
+	if restarted.RoomPhase != RoomPhaseBattleEntryReady {
+		t.Fatalf("expected restarted room phase battle_entry_ready, got %s", restarted.RoomPhase)
+	}
+	if fakeGame.lastBattleAssignReq == nil {
+		t.Fatalf("expected battle assignment status request")
+	}
+	if fakeGame.lastBattleAssignReq.GetKnownRevision() != int64(started.BattleHandoff.AssignmentRevision) {
+		t.Fatalf("expected known revision %d, got %d", started.BattleHandoff.AssignmentRevision, fakeGame.lastBattleAssignReq.GetKnownRevision())
+	}
+	metrics := svc.GetControlPlaneMetrics()
+	if metrics["manual_battle_assignment_sync_count"] != 1 {
+		t.Fatalf("expected one manual battle assignment sync, got metrics %+v", metrics)
+	}
+	if metrics["manual_battle_queue_status_call_count"] != 0 || metrics["queue_state_manual_room_write_count"] != 0 {
+		t.Fatalf("manual battle queue metrics must stay zero, got %+v", metrics)
 	}
 }
 
@@ -227,4 +256,151 @@ func joinReadyManualBattleGuest(t *testing.T, svc *Service, roomID string) strin
 		t.Fatalf("update guest team failed: %v", err)
 	}
 	return guestID
+}
+
+func TestManualRoomNotInQueueSyncTargets(t *testing.T) {
+	svc := newTestServiceWithFakeGame(t, nil)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guestID := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle owner ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guestID}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+
+	_, err = svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual battle failed: %v", err)
+	}
+
+	targets := svc.collectQueueSyncTargets()
+	if len(targets) != 0 {
+		t.Fatalf("manual room must not appear in queue sync targets, got %d", len(targets))
+	}
+
+	battleTargets := svc.collectBattleSyncTargets()
+	if len(battleTargets) != 1 {
+		t.Fatalf("manual room must appear in battle sync targets, got %d", len(battleTargets))
+	}
+}
+
+func TestManualRoomQueueStateCleanFullLifecycle(t *testing.T) {
+	svc := newTestServiceWithFakeGame(t, nil)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guestID := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle owner ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guestID}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+
+	// Phase 1: StartManualRoomBattle
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual battle failed: %v", err)
+	}
+	if started.QueueEntryID != "" {
+		t.Fatalf("QueueEntryID must be empty after start, got %s", started.QueueEntryID)
+	}
+
+	// Phase 2: AckBattleEntry
+	acked, err := svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: started.BattleHandoff.AssignmentID,
+		BattleID:     started.BattleHandoff.BattleID,
+		MatchID:      started.BattleHandoff.MatchID,
+	})
+	if err != nil {
+		t.Fatalf("ack battle entry failed: %v", err)
+	}
+	if acked.QueueEntryID != "" {
+		t.Fatalf("QueueEntryID must be empty after ack, got %s", acked.QueueEntryID)
+	}
+
+	// Phase 3: collectQueueSyncTargets must skip manual rooms
+	queueTargets := svc.collectQueueSyncTargets()
+	if len(queueTargets) != 0 {
+		t.Fatalf("queue sync targets must be empty for manual room, got %d", len(queueTargets))
+	}
+
+	// Phase 4: collectBattleSyncTargets must include manual rooms
+	battleTargets := svc.collectBattleSyncTargets()
+	if len(battleTargets) != 1 {
+		t.Fatalf("battle sync targets must include manual room, got %d", len(battleTargets))
+	}
+}
+
+func TestBattleAssignmentSyncDropsStaleRevision(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guestID := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle owner ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guestID}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual battle failed: %v", err)
+	}
+
+	svc.mu.Lock()
+	svc.roomsByID[created.RoomID].BattleState.AssignmentRevision = 3
+	svc.mu.Unlock()
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: 2,
+		BattlePhase:        "completed",
+		Finalized:          true,
+	}
+
+	if updates := svc.SyncBattleAssignmentStatus(); len(updates) != 0 {
+		t.Fatalf("expected stale revision sync to be dropped, got %d updates", len(updates))
+	}
+	metrics := svc.GetControlPlaneMetrics()
+	if metrics["battle_assignment_revision_stale_drop_count"] != 1 {
+		t.Fatalf("expected stale revision drop metric, got %+v", metrics)
+	}
 }

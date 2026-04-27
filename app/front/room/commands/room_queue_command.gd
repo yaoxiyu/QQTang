@@ -62,13 +62,10 @@ func _is_queue_enter_acknowledged(snapshot: RoomSnapshot) -> bool:
 		"queued",
 		"assignment_pending",
 		"allocating_battle",
-		"entry_ready",
 	]
 	var queue_phase := String(snapshot.queue_phase)
-	var room_queue_state := String(snapshot.room_queue_state)
-	if active_states.has(queue_phase) or active_states.has(room_queue_state):
+	if active_states.has(queue_phase):
 		return true
 	if bool(snapshot.can_cancel_queue):
 		return true
-	var room_phase := String(snapshot.room_phase)
-	return not room_phase.is_empty() and room_phase != "idle"
+	return false

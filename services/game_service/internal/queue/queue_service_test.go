@@ -715,7 +715,7 @@ func TestEnterQueueFormsAssignmentWhenFourthMemberArrives(t *testing.T) {
 	for _, record := range db.assignmentsByID {
 		assignment = record
 	}
-	if assignment.ExpectedMemberCount != 4 || assignment.RoomKind != "matchmade_room" {
+	if assignment.ExpectedMemberCount != 4 || assignment.RoomKind != "ranked_match_room" {
 		t.Fatalf("unexpected assignment policy: %+v", assignment)
 	}
 	if assignment.ServerHost != "10.0.0.2" || assignment.ServerPort != 9100 {
@@ -890,7 +890,7 @@ func TestQueueAndAssignmentDataIntegrityConstraints(t *testing.T) {
 		QueueType:              "ranked",
 		SeasonID:               "season_s1",
 		RoomID:                 "room_invalid",
-		RoomKind:               "matchmade_room",
+		RoomKind:               "ranked_match_room",
 		MatchID:                "match_invalid",
 		ModeID:                 "ranked_mode",
 		RuleSetID:              "rule_standard",
@@ -1092,7 +1092,7 @@ func TestGetStatusReelectsCaptainAfterDeadline(t *testing.T) {
 		QueueType:              "ranked",
 		SeasonID:               "season_s1",
 		RoomID:                 "room_alpha",
-		RoomKind:               "matchmade_room",
+		RoomKind:               "ranked_match_room",
 		MatchID:                "match_alpha",
 		ModeID:                 "ranked_mode",
 		RuleSetID:              "rule_standard",
@@ -1172,7 +1172,7 @@ func TestGetStatusConvergesAllocationFailureToTerminalQueueState(t *testing.T) {
 		QueueType:              "ranked",
 		SeasonID:               "season_s1",
 		RoomID:                 "room_alpha",
-		RoomKind:               "matchmade_room",
+		RoomKind:               "ranked_match_room",
 		MatchID:                "match_alpha",
 		ModeID:                 "ranked_mode",
 		RuleSetID:              "rule_standard",
@@ -1301,7 +1301,7 @@ func TestAssignmentAllocationStateRetryTransition(t *testing.T) {
 		QueueType:              "ranked",
 		SeasonID:               "season_s1",
 		RoomID:                 "room_alpha",
-		RoomKind:               "matchmade_room",
+		RoomKind:               "ranked_match_room",
 		MatchID:                "match_alpha",
 		ModeID:                 "ranked_mode",
 		RuleSetID:              "rule_standard",

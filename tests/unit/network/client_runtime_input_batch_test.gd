@@ -21,7 +21,7 @@ func test_build_local_input_message_sends_recent_input_batch() -> void:
 		latest_message = runtime.build_local_input_message({
 			"move_x": 1 if index % 2 == 0 else 0,
 			"move_y": 0,
-			"action_place": index == 7,
+			"action_bits": 1 if index == 7 else 0,
 		})
 
 	assert_eq(String(latest_message.get("message_type", "")), TransportMessageTypesScript.INPUT_BATCH)
@@ -30,10 +30,10 @@ func test_build_local_input_message_sends_recent_input_batch() -> void:
 	assert_eq(int(latest_message.get("tick", 0)), 13)
 	assert_false(latest_message.has("frame"))
 	var frames: Array = latest_message.get("frames", [])
-	assert_eq(frames.size(), 6)
-	assert_eq(int((frames[0] as Dictionary).get("tick_id", 0)), 8)
-	assert_eq(int((frames[5] as Dictionary).get("tick_id", 0)), 13)
-	assert_true(bool((frames[5] as Dictionary).get("action_place", false)))
+	assert_eq(frames.size(), 8)
+	assert_eq(int((frames[0] as Dictionary).get("tick_id", 0)), 6)
+	assert_eq(int((frames[7] as Dictionary).get("tick_id", 0)), 13)
+	assert_true((int((frames[7] as Dictionary).get("action_bits", 0)) & 1) != 0)
 	assert_eq(int(runtime.build_metrics().get("input_lead_ticks", 0)), 6)
 
 	runtime.shutdown_runtime()
@@ -50,29 +50,29 @@ func test_place_action_is_redundantly_sent_after_edge() -> void:
 	var first_message := runtime.build_local_input_message({
 		"move_x": 0,
 		"move_y": 0,
-		"action_place": true,
+		"action_bits": 1,
 	})
 	var second_message := runtime.build_local_input_message({
 		"move_x": 0,
 		"move_y": 0,
-		"action_place": false,
+		"action_bits": 0,
 	})
 	var third_message := runtime.build_local_input_message({
 		"move_x": 0,
 		"move_y": 0,
-		"action_place": false,
+		"action_bits": 0,
 	})
 	var fourth_message := runtime.build_local_input_message({
 		"move_x": 0,
 		"move_y": 0,
-		"action_place": false,
+		"action_bits": 0,
 	})
 
-	assert_true(bool(((first_message.get("frames", []) as Array)[0] as Dictionary).get("action_place", false)))
-	assert_true(bool(((second_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
-	assert_true(bool(((third_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
-	assert_false(bool(((fourth_message.get("frames", []) as Array).back() as Dictionary).get("action_place", false)))
-	assert_false(runtime.client_session.get_local_frame(int(first_message.get("tick", 0))).action_place)
+	assert_true((int(((first_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
+	assert_true((int(((second_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
+	assert_true((int(((third_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
+	assert_false((int(((fourth_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
+	assert_eq(runtime.client_session.get_local_frame(int(first_message.get("tick", 0))).action_bits, 0)
 
 	runtime.shutdown_runtime()
 	runtime.queue_free()
@@ -89,7 +89,7 @@ func test_runtime_input_lead_keeps_dedicated_minimum_after_opening_window() -> v
 	assert_true(runtime.start_match(config))
 	runtime.prediction_controller.authoritative_tick = 10
 
-	runtime.build_local_input_message({"move_x": 1, "move_y": 0, "action_place": false})
+	runtime.build_local_input_message({"move_x": 1, "move_y": 0, "action_bits": 0})
 
 	assert_eq(int(runtime.build_metrics().get("input_lead_ticks", 0)), 3)
 	runtime.shutdown_runtime()

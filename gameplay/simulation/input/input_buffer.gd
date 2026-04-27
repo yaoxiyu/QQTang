@@ -77,6 +77,9 @@ func collect_inputs_for_tick(peer_ids: Array[int], tick_id: int) -> Dictionary:
 
 
 func ack_peer(peer_id: int, ack_tick: int) -> void:
+	var current := int(last_ack_tick_by_peer.get(peer_id, -1))
+	if ack_tick <= current:
+		return
 	last_ack_tick_by_peer[peer_id] = ack_tick
 	_ack_native_peer(peer_id, ack_tick)
 
@@ -92,9 +95,7 @@ func _make_idle_input(peer_id: int, tick_id: int) -> PlayerInputFrame:
 	idle.seq = 0
 	idle.move_x = 0
 	idle.move_y = 0
-	idle.action_place = false
-	idle.action_skill1 = false
-	idle.action_skill2 = false
+	idle.action_bits = 0
 	return idle
 
 

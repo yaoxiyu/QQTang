@@ -48,7 +48,7 @@ func TestEnterAndCancelAndGetPartyQueueRPC(t *testing.T) {
 	defer cancel()
 
 	enter, err := conn.EnterPartyQueue(ctx, &gamev1.EnterPartyQueueRequest{
-		Context:         &gamev1.RoomContext{RoomId: "room_1", RoomKind: "matchmade_room"},
+		Context:         &gamev1.RoomContext{RoomId: "room_1", RoomKind: "casual_match_room"},
 		QueueType:       "casual",
 		MatchFormatId:   "2v2",
 		SelectedModeIds: []string{"mode_a"},

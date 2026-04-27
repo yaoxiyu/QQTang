@@ -121,22 +121,19 @@ func _verify_ticket(message: Dictionary):
 func _validate_target(message: Dictionary, claim) -> bool:
 	if claim == null:
 		return false
-	if String(claim.room_kind).strip_edges().to_lower() == "matchmade_room" and not _is_valid_matchmade_claim(claim):
+	var claim_room_kind := String(claim.room_kind).strip_edges().to_lower()
+	if _is_match_room_kind(claim_room_kind) and not _is_valid_match_room_claim(claim):
 		return false
 	var requested_room_id := String(message.get("room_id", message.get("room_id_hint", ""))).strip_edges()
 	var requested_room_kind := String(message.get("room_kind", "")).strip_edges().to_lower()
 	var requested_match_id := String(message.get("match_id", "")).strip_edges()
-	var claim_room_kind := String(claim.room_kind).strip_edges().to_lower()
 	match claim.purpose:
 		"create":
-			if claim_room_kind == "matchmade_room":
-				if requested_room_kind != "matchmade_room":
-					return false
-			elif not requested_room_kind.is_empty() and not claim_room_kind.is_empty() and requested_room_kind != claim_room_kind:
+			if not requested_room_kind.is_empty() and not claim_room_kind.is_empty() and requested_room_kind != claim_room_kind:
 				return false
 			return requested_room_id.is_empty() or claim.room_id.is_empty() or requested_room_id == claim.room_id
 		"join":
-			if claim_room_kind == "matchmade_room" and requested_room_kind != "matchmade_room":
+			if not requested_room_kind.is_empty() and not claim_room_kind.is_empty() and requested_room_kind != claim_room_kind:
 				return false
 			if requested_room_id.is_empty() or claim.room_id.is_empty():
 				return false
@@ -151,7 +148,11 @@ func _validate_target(message: Dictionary, claim) -> bool:
 			return false
 
 
-func _is_valid_matchmade_claim(claim) -> bool:
+func _is_match_room_kind(room_kind: String) -> bool:
+	return room_kind == "casual_match_room" or room_kind == "ranked_match_room"
+
+
+func _is_valid_match_room_claim(claim) -> bool:
 	if String(claim.assignment_id).strip_edges().is_empty():
 		return false
 	if int(claim.assignment_revision) <= 0:

@@ -287,7 +287,7 @@ func _collect_local_input() -> Dictionary:
 	return {
 		"move_x": move_x,
 		"move_y": move_y,
-		"action_place": place_just_pressed,
+		"action_bits": PlayerInputFrame.BIT_PLACE if place_just_pressed else 0,
 	}
 
 

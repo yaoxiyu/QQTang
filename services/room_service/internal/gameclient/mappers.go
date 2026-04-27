@@ -110,6 +110,30 @@ func fromPBCreateManualRoomBattle(response *gamev1.CreateManualRoomBattleRespons
 	}
 }
 
+func fromPBGetBattleAssignmentStatus(response *gamev1.GetBattleAssignmentStatusResponse) GetBattleAssignmentStatusResult {
+	if response == nil {
+		return GetBattleAssignmentStatusResult{}
+	}
+	return GetBattleAssignmentStatusResult{
+		OK:                 response.GetOk(),
+		ErrorCode:          response.GetErrorCode(),
+		UserMessage:        response.GetUserMessage(),
+		RoomID:             response.GetRoomId(),
+		AssignmentID:       response.GetAssignmentId(),
+		AssignmentRevision: response.GetAssignmentRevision(),
+		MatchID:            response.GetMatchId(),
+		BattleID:           response.GetBattleId(),
+		ServerHost:         response.GetServerHost(),
+		ServerPort:         response.GetServerPort(),
+		BattlePhase:        response.GetBattlePhase(),
+		TerminalReason:     response.GetTerminalReason(),
+		AllocationState:    response.GetAllocationState(),
+		StatusText:         response.GetStatusText(),
+		BattleEntryReady:   response.GetBattleEntryReady(),
+		Finalized:          response.GetFinalized(),
+	}
+}
+
 func fromPBCommitAssignmentReady(response *gamev1.CommitAssignmentReadyResponse) CommitAssignmentReadyResult {
 	if response == nil {
 		return CommitAssignmentReadyResult{}

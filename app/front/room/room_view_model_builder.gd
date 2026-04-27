@@ -24,7 +24,6 @@ func build_view_model(
 	var is_practice := resolved_room_kind == "practice"
 	var is_custom_room := FrontRoomKind.is_custom_room(resolved_room_kind)
 	var is_match_room := FrontRoomKind.is_match_room(resolved_room_kind)
-	var is_assigned_room := FrontRoomKind.is_assigned_room(resolved_room_kind)
 	var member_count := safe_snapshot.member_count()
 	var min_start_players := int(safe_snapshot.min_start_players if safe_snapshot.min_start_players > 0 else safe_context.min_start_players)
 	if min_start_players <= 0:
@@ -66,7 +65,6 @@ func build_view_model(
 		"room_kind": resolved_room_kind,
 		"is_custom_room": is_custom_room,
 		"is_match_room": is_match_room,
-		"is_assigned_room": is_assigned_room,
 		"room_display_name": resolved_room_display_name,
 		"room_id_text": _resolve_room_id_text(safe_snapshot, safe_entry_context, is_practice),
 		"room_kind_text": _format_room_kind(resolved_room_kind),
@@ -93,8 +91,8 @@ func build_view_model(
 		"match_room_party_status_text": _build_match_room_party_status_text(safe_snapshot, member_count) if is_match_room else "",
 		"eligible_map_pool_hint_text": eligible_map_pool_hint_text,
 		"invite_code_text": String(safe_snapshot.room_id),
-		"queue_status_text": _build_queue_status_text(safe_snapshot),
-		"queue_error_text": _build_queue_error_text(safe_snapshot),
+		"queue_status_text": _build_queue_status_text(safe_snapshot) if is_match_room else "",
+		"queue_error_text": _build_queue_error_text(safe_snapshot) if is_match_room else "",
 		"show_network_summary": not is_practice,
 		"show_room_id": not is_practice,
 		"show_connection_status": not is_practice,
@@ -164,8 +162,6 @@ func _build_title_text(room_kind: String, room_display_name: String) -> String:
 	match room_kind:
 		"practice":
 			return "Practice Room"
-		"matchmade_room":
-			return "Matchmade Room"
 		"casual_match_room":
 			return "Casual Match Room"
 		"ranked_match_room":
@@ -335,8 +331,6 @@ func _format_room_kind(room_kind: String) -> String:
 	match room_kind:
 		"practice":
 			return "Practice"
-		"matchmade_room":
-			return "Matchmade Room"
 		"casual_match_room":
 			return "Casual Match Room"
 		"ranked_match_room":

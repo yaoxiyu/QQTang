@@ -1077,6 +1077,238 @@ func (x *CommitAssignmentReadyResponse) GetUserMessage() string {
 	return ""
 }
 
+type GetBattleAssignmentStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	RoomKind      string                 `protobuf:"bytes,2,opt,name=room_kind,json=roomKind,proto3" json:"room_kind,omitempty"`
+	AssignmentId  string                 `protobuf:"bytes,3,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
+	KnownRevision int64                  `protobuf:"varint,4,opt,name=known_revision,json=knownRevision,proto3" json:"known_revision,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBattleAssignmentStatusRequest) Reset() {
+	*x = GetBattleAssignmentStatusRequest{}
+	mi := &file_qqt_internal_game_v1_room_control_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBattleAssignmentStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBattleAssignmentStatusRequest) ProtoMessage() {}
+
+func (x *GetBattleAssignmentStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_qqt_internal_game_v1_room_control_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBattleAssignmentStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetBattleAssignmentStatusRequest) Descriptor() ([]byte, []int) {
+	return file_qqt_internal_game_v1_room_control_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetBattleAssignmentStatusRequest) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusRequest) GetRoomKind() string {
+	if x != nil {
+		return x.RoomKind
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusRequest) GetAssignmentId() string {
+	if x != nil {
+		return x.AssignmentId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusRequest) GetKnownRevision() int64 {
+	if x != nil {
+		return x.KnownRevision
+	}
+	return 0
+}
+
+type GetBattleAssignmentStatusResponse struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Ok                 bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	ErrorCode          string                 `protobuf:"bytes,2,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	UserMessage        string                 `protobuf:"bytes,3,opt,name=user_message,json=userMessage,proto3" json:"user_message,omitempty"`
+	RoomId             string                 `protobuf:"bytes,10,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	AssignmentId       string                 `protobuf:"bytes,11,opt,name=assignment_id,json=assignmentId,proto3" json:"assignment_id,omitempty"`
+	AssignmentRevision int64                  `protobuf:"varint,12,opt,name=assignment_revision,json=assignmentRevision,proto3" json:"assignment_revision,omitempty"`
+	MatchId            string                 `protobuf:"bytes,20,opt,name=match_id,json=matchId,proto3" json:"match_id,omitempty"`
+	BattleId           string                 `protobuf:"bytes,21,opt,name=battle_id,json=battleId,proto3" json:"battle_id,omitempty"`
+	ServerHost         string                 `protobuf:"bytes,22,opt,name=server_host,json=serverHost,proto3" json:"server_host,omitempty"`
+	ServerPort         int32                  `protobuf:"varint,23,opt,name=server_port,json=serverPort,proto3" json:"server_port,omitempty"`
+	BattlePhase        string                 `protobuf:"bytes,30,opt,name=battle_phase,json=battlePhase,proto3" json:"battle_phase,omitempty"`
+	TerminalReason     string                 `protobuf:"bytes,31,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
+	AllocationState    string                 `protobuf:"bytes,32,opt,name=allocation_state,json=allocationState,proto3" json:"allocation_state,omitempty"`
+	StatusText         string                 `protobuf:"bytes,33,opt,name=status_text,json=statusText,proto3" json:"status_text,omitempty"`
+	BattleEntryReady   bool                   `protobuf:"varint,40,opt,name=battle_entry_ready,json=battleEntryReady,proto3" json:"battle_entry_ready,omitempty"`
+	Finalized          bool                   `protobuf:"varint,41,opt,name=finalized,proto3" json:"finalized,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GetBattleAssignmentStatusResponse) Reset() {
+	*x = GetBattleAssignmentStatusResponse{}
+	mi := &file_qqt_internal_game_v1_room_control_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBattleAssignmentStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBattleAssignmentStatusResponse) ProtoMessage() {}
+
+func (x *GetBattleAssignmentStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_qqt_internal_game_v1_room_control_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBattleAssignmentStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetBattleAssignmentStatusResponse) Descriptor() ([]byte, []int) {
+	return file_qqt_internal_game_v1_room_control_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetErrorCode() string {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetUserMessage() string {
+	if x != nil {
+		return x.UserMessage
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetAssignmentId() string {
+	if x != nil {
+		return x.AssignmentId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetAssignmentRevision() int64 {
+	if x != nil {
+		return x.AssignmentRevision
+	}
+	return 0
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetMatchId() string {
+	if x != nil {
+		return x.MatchId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetBattleId() string {
+	if x != nil {
+		return x.BattleId
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetServerHost() string {
+	if x != nil {
+		return x.ServerHost
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetServerPort() int32 {
+	if x != nil {
+		return x.ServerPort
+	}
+	return 0
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetBattlePhase() string {
+	if x != nil {
+		return x.BattlePhase
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetTerminalReason() string {
+	if x != nil {
+		return x.TerminalReason
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetAllocationState() string {
+	if x != nil {
+		return x.AllocationState
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetStatusText() string {
+	if x != nil {
+		return x.StatusText
+	}
+	return ""
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetBattleEntryReady() bool {
+	if x != nil {
+		return x.BattleEntryReady
+	}
+	return false
+}
+
+func (x *GetBattleAssignmentStatusResponse) GetFinalized() bool {
+	if x != nil {
+		return x.Finalized
+	}
+	return false
+}
+
 var File_qqt_internal_game_v1_room_control_proto protoreflect.FileDescriptor
 
 const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
@@ -1192,11 +1424,39 @@ const file_qqt_internal_game_v1_room_control_proto_rawDesc = "" +
 	"\x0fcommitted_state\x18\x02 \x01(\tR\x0ecommittedState\x12\x1d\n" +
 	"\n" +
 	"error_code\x18\x03 \x01(\tR\terrorCode\x12!\n" +
-	"\fuser_message\x18\x04 \x01(\tR\vuserMessage2\xfc\x04\n" +
+	"\fuser_message\x18\x04 \x01(\tR\vuserMessage\"\xa4\x01\n" +
+	" GetBattleAssignmentStatusRequest\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1b\n" +
+	"\troom_kind\x18\x02 \x01(\tR\broomKind\x12#\n" +
+	"\rassignment_id\x18\x03 \x01(\tR\fassignmentId\x12%\n" +
+	"\x0eknown_revision\x18\x04 \x01(\x03R\rknownRevision\"\xc2\x04\n" +
+	"!GetBattleAssignmentStatusResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x1d\n" +
+	"\n" +
+	"error_code\x18\x02 \x01(\tR\terrorCode\x12!\n" +
+	"\fuser_message\x18\x03 \x01(\tR\vuserMessage\x12\x17\n" +
+	"\aroom_id\x18\n" +
+	" \x01(\tR\x06roomId\x12#\n" +
+	"\rassignment_id\x18\v \x01(\tR\fassignmentId\x12/\n" +
+	"\x13assignment_revision\x18\f \x01(\x03R\x12assignmentRevision\x12\x19\n" +
+	"\bmatch_id\x18\x14 \x01(\tR\amatchId\x12\x1b\n" +
+	"\tbattle_id\x18\x15 \x01(\tR\bbattleId\x12\x1f\n" +
+	"\vserver_host\x18\x16 \x01(\tR\n" +
+	"serverHost\x12\x1f\n" +
+	"\vserver_port\x18\x17 \x01(\x05R\n" +
+	"serverPort\x12!\n" +
+	"\fbattle_phase\x18\x1e \x01(\tR\vbattlePhase\x12'\n" +
+	"\x0fterminal_reason\x18\x1f \x01(\tR\x0eterminalReason\x12)\n" +
+	"\x10allocation_state\x18  \x01(\tR\x0fallocationState\x12\x1f\n" +
+	"\vstatus_text\x18! \x01(\tR\n" +
+	"statusText\x12,\n" +
+	"\x12battle_entry_ready\x18( \x01(\bR\x10battleEntryReady\x12\x1c\n" +
+	"\tfinalized\x18) \x01(\bR\tfinalized2\x8b\x06\n" +
 	"\x12RoomControlService\x12n\n" +
 	"\x0fEnterPartyQueue\x12,.qqt.internal.game.v1.EnterPartyQueueRequest\x1a-.qqt.internal.game.v1.EnterPartyQueueResponse\x12q\n" +
 	"\x10CancelPartyQueue\x12-.qqt.internal.game.v1.CancelPartyQueueRequest\x1a..qqt.internal.game.v1.CancelPartyQueueResponse\x12z\n" +
-	"\x13GetPartyQueueStatus\x120.qqt.internal.game.v1.GetPartyQueueStatusRequest\x1a1.qqt.internal.game.v1.GetPartyQueueStatusResponse\x12\x83\x01\n" +
+	"\x13GetPartyQueueStatus\x120.qqt.internal.game.v1.GetPartyQueueStatusRequest\x1a1.qqt.internal.game.v1.GetPartyQueueStatusResponse\x12\x8c\x01\n" +
+	"\x19GetBattleAssignmentStatus\x126.qqt.internal.game.v1.GetBattleAssignmentStatusRequest\x1a7.qqt.internal.game.v1.GetBattleAssignmentStatusResponse\x12\x83\x01\n" +
 	"\x16CreateManualRoomBattle\x123.qqt.internal.game.v1.CreateManualRoomBattleRequest\x1a4.qqt.internal.game.v1.CreateManualRoomBattleResponse\x12\x80\x01\n" +
 	"\x15CommitAssignmentReady\x122.qqt.internal.game.v1.CommitAssignmentReadyRequest\x1a3.qqt.internal.game.v1.CommitAssignmentReadyResponseB'Z%qqt/proto/qqt/internal/game/v1;gamev1b\x06proto3"
 
@@ -1212,20 +1472,22 @@ func file_qqt_internal_game_v1_room_control_proto_rawDescGZIP() []byte {
 	return file_qqt_internal_game_v1_room_control_proto_rawDescData
 }
 
-var file_qqt_internal_game_v1_room_control_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_qqt_internal_game_v1_room_control_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_qqt_internal_game_v1_room_control_proto_goTypes = []any{
-	(*RoomContext)(nil),                    // 0: qqt.internal.game.v1.RoomContext
-	(*PartyMember)(nil),                    // 1: qqt.internal.game.v1.PartyMember
-	(*EnterPartyQueueRequest)(nil),         // 2: qqt.internal.game.v1.EnterPartyQueueRequest
-	(*EnterPartyQueueResponse)(nil),        // 3: qqt.internal.game.v1.EnterPartyQueueResponse
-	(*CancelPartyQueueRequest)(nil),        // 4: qqt.internal.game.v1.CancelPartyQueueRequest
-	(*CancelPartyQueueResponse)(nil),       // 5: qqt.internal.game.v1.CancelPartyQueueResponse
-	(*GetPartyQueueStatusRequest)(nil),     // 6: qqt.internal.game.v1.GetPartyQueueStatusRequest
-	(*GetPartyQueueStatusResponse)(nil),    // 7: qqt.internal.game.v1.GetPartyQueueStatusResponse
-	(*CreateManualRoomBattleRequest)(nil),  // 8: qqt.internal.game.v1.CreateManualRoomBattleRequest
-	(*CreateManualRoomBattleResponse)(nil), // 9: qqt.internal.game.v1.CreateManualRoomBattleResponse
-	(*CommitAssignmentReadyRequest)(nil),   // 10: qqt.internal.game.v1.CommitAssignmentReadyRequest
-	(*CommitAssignmentReadyResponse)(nil),  // 11: qqt.internal.game.v1.CommitAssignmentReadyResponse
+	(*RoomContext)(nil),                       // 0: qqt.internal.game.v1.RoomContext
+	(*PartyMember)(nil),                       // 1: qqt.internal.game.v1.PartyMember
+	(*EnterPartyQueueRequest)(nil),            // 2: qqt.internal.game.v1.EnterPartyQueueRequest
+	(*EnterPartyQueueResponse)(nil),           // 3: qqt.internal.game.v1.EnterPartyQueueResponse
+	(*CancelPartyQueueRequest)(nil),           // 4: qqt.internal.game.v1.CancelPartyQueueRequest
+	(*CancelPartyQueueResponse)(nil),          // 5: qqt.internal.game.v1.CancelPartyQueueResponse
+	(*GetPartyQueueStatusRequest)(nil),        // 6: qqt.internal.game.v1.GetPartyQueueStatusRequest
+	(*GetPartyQueueStatusResponse)(nil),       // 7: qqt.internal.game.v1.GetPartyQueueStatusResponse
+	(*CreateManualRoomBattleRequest)(nil),     // 8: qqt.internal.game.v1.CreateManualRoomBattleRequest
+	(*CreateManualRoomBattleResponse)(nil),    // 9: qqt.internal.game.v1.CreateManualRoomBattleResponse
+	(*CommitAssignmentReadyRequest)(nil),      // 10: qqt.internal.game.v1.CommitAssignmentReadyRequest
+	(*CommitAssignmentReadyResponse)(nil),     // 11: qqt.internal.game.v1.CommitAssignmentReadyResponse
+	(*GetBattleAssignmentStatusRequest)(nil),  // 12: qqt.internal.game.v1.GetBattleAssignmentStatusRequest
+	(*GetBattleAssignmentStatusResponse)(nil), // 13: qqt.internal.game.v1.GetBattleAssignmentStatusResponse
 }
 var file_qqt_internal_game_v1_room_control_proto_depIdxs = []int32{
 	0,  // 0: qqt.internal.game.v1.EnterPartyQueueRequest.context:type_name -> qqt.internal.game.v1.RoomContext
@@ -1238,15 +1500,17 @@ var file_qqt_internal_game_v1_room_control_proto_depIdxs = []int32{
 	2,  // 7: qqt.internal.game.v1.RoomControlService.EnterPartyQueue:input_type -> qqt.internal.game.v1.EnterPartyQueueRequest
 	4,  // 8: qqt.internal.game.v1.RoomControlService.CancelPartyQueue:input_type -> qqt.internal.game.v1.CancelPartyQueueRequest
 	6,  // 9: qqt.internal.game.v1.RoomControlService.GetPartyQueueStatus:input_type -> qqt.internal.game.v1.GetPartyQueueStatusRequest
-	8,  // 10: qqt.internal.game.v1.RoomControlService.CreateManualRoomBattle:input_type -> qqt.internal.game.v1.CreateManualRoomBattleRequest
-	10, // 11: qqt.internal.game.v1.RoomControlService.CommitAssignmentReady:input_type -> qqt.internal.game.v1.CommitAssignmentReadyRequest
-	3,  // 12: qqt.internal.game.v1.RoomControlService.EnterPartyQueue:output_type -> qqt.internal.game.v1.EnterPartyQueueResponse
-	5,  // 13: qqt.internal.game.v1.RoomControlService.CancelPartyQueue:output_type -> qqt.internal.game.v1.CancelPartyQueueResponse
-	7,  // 14: qqt.internal.game.v1.RoomControlService.GetPartyQueueStatus:output_type -> qqt.internal.game.v1.GetPartyQueueStatusResponse
-	9,  // 15: qqt.internal.game.v1.RoomControlService.CreateManualRoomBattle:output_type -> qqt.internal.game.v1.CreateManualRoomBattleResponse
-	11, // 16: qqt.internal.game.v1.RoomControlService.CommitAssignmentReady:output_type -> qqt.internal.game.v1.CommitAssignmentReadyResponse
-	12, // [12:17] is the sub-list for method output_type
-	7,  // [7:12] is the sub-list for method input_type
+	12, // 10: qqt.internal.game.v1.RoomControlService.GetBattleAssignmentStatus:input_type -> qqt.internal.game.v1.GetBattleAssignmentStatusRequest
+	8,  // 11: qqt.internal.game.v1.RoomControlService.CreateManualRoomBattle:input_type -> qqt.internal.game.v1.CreateManualRoomBattleRequest
+	10, // 12: qqt.internal.game.v1.RoomControlService.CommitAssignmentReady:input_type -> qqt.internal.game.v1.CommitAssignmentReadyRequest
+	3,  // 13: qqt.internal.game.v1.RoomControlService.EnterPartyQueue:output_type -> qqt.internal.game.v1.EnterPartyQueueResponse
+	5,  // 14: qqt.internal.game.v1.RoomControlService.CancelPartyQueue:output_type -> qqt.internal.game.v1.CancelPartyQueueResponse
+	7,  // 15: qqt.internal.game.v1.RoomControlService.GetPartyQueueStatus:output_type -> qqt.internal.game.v1.GetPartyQueueStatusResponse
+	13, // 16: qqt.internal.game.v1.RoomControlService.GetBattleAssignmentStatus:output_type -> qqt.internal.game.v1.GetBattleAssignmentStatusResponse
+	9,  // 17: qqt.internal.game.v1.RoomControlService.CreateManualRoomBattle:output_type -> qqt.internal.game.v1.CreateManualRoomBattleResponse
+	11, // 18: qqt.internal.game.v1.RoomControlService.CommitAssignmentReady:output_type -> qqt.internal.game.v1.CommitAssignmentReadyResponse
+	13, // [13:19] is the sub-list for method output_type
+	7,  // [7:13] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1263,7 +1527,7 @@ func file_qqt_internal_game_v1_room_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_qqt_internal_game_v1_room_control_proto_rawDesc), len(file_qqt_internal_game_v1_room_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

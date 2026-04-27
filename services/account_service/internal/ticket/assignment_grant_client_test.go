@@ -43,7 +43,7 @@ func TestAssignmentGrantClientSignsInternalRequest(t *testing.T) {
 	defer server.Close()
 
 	client := NewAssignmentGrantClient(server.URL, "primary", "shared-secret")
-	result, err := client.GetGrant(context.Background(), "assign_a", "account_a", "profile_a", "matchmade_room")
+	result, err := client.GetGrant(context.Background(), "assign_a", "account_a", "profile_a", "ranked_match_room")
 	if err != nil {
 		t.Fatalf("GetGrant returned error: %v", err)
 	}

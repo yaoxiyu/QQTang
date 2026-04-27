@@ -31,12 +31,12 @@ func request_gateway_leave(app_runtime: Object, room_client_gateway: RefCounted,
 		room_client_gateway.request_leave_room()
 
 
-func leave_room(app_runtime: Object, room_client_gateway: RefCounted) -> Dictionary:
+func leave_room(app_runtime: Object, room_client_gateway: RefCounted, can_cancel_current_queue: bool = false) -> Dictionary:
 	var leave_check: Dictionary = can_leave(app_runtime)
 	if not bool(leave_check.get("ok", false)):
 		return leave_check
-	_apply_matchmade_return_policy(app_runtime)
-	request_gateway_leave(app_runtime, room_client_gateway, RoomUseCaseRuntimeStateScript.can_cancel_current_queue(app_runtime))
+	_apply_match_room_return_policy(app_runtime)
+	request_gateway_leave(app_runtime, room_client_gateway, can_cancel_current_queue)
 	var room_controller: Node = app_runtime.room_session_controller
 	if room_controller != null and room_controller.has_method("reset_room_state"):
 		room_controller.reset_room_state()
@@ -51,8 +51,8 @@ func leave_room(app_runtime: Object, room_client_gateway: RefCounted) -> Diction
 	return {"ok": true, "error_code": "", "user_message": ""}
 
 
-func _apply_matchmade_return_policy(app_runtime: Object) -> void:
-	if not RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
+func _apply_match_room_return_policy(app_runtime: Object) -> void:
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return
 	var return_policy := ""
 	if app_runtime.current_room_snapshot != null:

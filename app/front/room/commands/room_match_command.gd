@@ -37,8 +37,8 @@ func update_match_room_config(app_runtime: Object, room_client_gateway: RefCount
 func request_rematch(app_runtime: Object, room_client_gateway: RefCounted) -> Dictionary:
 	if app_runtime == null or room_client_gateway == null:
 		return RoomErrorMapperScript.to_front_error("ROOM_USE_CASE_MISSING", "App runtime or gateway is not configured")
-	if RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
-		return RoomErrorMapperScript.to_front_error("MATCHMADE_REMATCH_FORBIDDEN", "Matchmade rooms return to lobby after settlement")
+	if RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
+		return RoomErrorMapperScript.to_front_error("MATCH_ROOM_REMATCH_FORBIDDEN", "Match rooms return to lobby after settlement")
 	if not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return RoomErrorMapperScript.to_front_error("NOT_ONLINE_ROOM", "Rematch is only supported in online rooms")
 	room_client_gateway.request_rematch()

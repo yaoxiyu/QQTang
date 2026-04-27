@@ -885,7 +885,7 @@ func (s *Service) tryFormAssignmentWithRepos(ctx context.Context, entry storage.
 		QueueType:              entry.QueueType,
 		SeasonID:               entry.SeasonID,
 		RoomID:                 roomID,
-		RoomKind:               "matchmade_room",
+		RoomKind:               resolveMatchRoomKind(entry.QueueType),
 		MatchID:                matchID,
 		ModeID:                 entry.ModeID,
 		RuleSetID:              entry.RuleSetID,

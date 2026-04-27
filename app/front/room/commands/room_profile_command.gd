@@ -34,7 +34,7 @@ func update_local_profile(
 
 
 func _resolve_effective_team_id(app_runtime: Object, fallback_team_id: int) -> int:
-	if not RoomUseCaseRuntimeStateScript.is_matchmade_room(app_runtime):
+	if not RoomUseCaseRuntimeStateScript.is_match_room(app_runtime):
 		return fallback_team_id
 	return RoomSelectionPolicyScript.resolve_locked_team_id(
 		app_runtime.current_room_snapshot,

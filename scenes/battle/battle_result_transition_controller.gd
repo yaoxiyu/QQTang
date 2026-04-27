@@ -1,5 +1,7 @@
 extends RefCounted
 
+const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
+
 
 func resolve_current_match_id(app_runtime: Node) -> String:
 	if app_runtime != null and app_runtime.current_start_config != null:
@@ -12,9 +14,9 @@ func should_return_to_lobby_after_settlement(app_runtime: Node) -> bool:
 		return false
 	if app_runtime.current_room_entry_context != null and bool(app_runtime.current_room_entry_context.return_to_lobby_after_settlement):
 		return true
-	if app_runtime.current_room_entry_context != null and String(app_runtime.current_room_entry_context.room_kind) == "matchmade_room":
+	if app_runtime.current_room_entry_context != null and FrontRoomKindScript.is_match_room(String(app_runtime.current_room_entry_context.room_kind)):
 		return true
-	if app_runtime.current_room_snapshot != null and String(app_runtime.current_room_snapshot.room_kind) == "matchmade_room":
+	if app_runtime.current_room_snapshot != null and FrontRoomKindScript.is_match_room(String(app_runtime.current_room_snapshot.room_kind)):
 		return true
 	return false
 

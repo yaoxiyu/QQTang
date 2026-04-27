@@ -1,9 +1,17 @@
 param(
     [string]$GodotExe = 'D:\Godot\Godot.exe',
-    [string]$ProjectPath = 'D:\code\QQTang'
+    [string]$ProjectPath = ''
 )
 
-$wrapper = Join-Path $ProjectPath 'tests\scripts\run_gut_suite.ps1'
+$ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
+    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+} else {
+    $repoRoot = Resolve-Path -LiteralPath $ProjectPath
+}
+
+$wrapper = Join-Path $repoRoot 'tests\scripts\run_gut_suite.ps1'
 if (-not (Test-Path -LiteralPath $wrapper)) {
     Write-Error "missing wrapper script: $wrapper"
     exit 1
@@ -11,7 +19,7 @@ if (-not (Test-Path -LiteralPath $wrapper)) {
 
 & $wrapper `
     -GodotExe $GodotExe `
-    -ProjectPath $ProjectPath `
+    -ProjectPath $repoRoot `
     -SuiteName 'network_suite' `
     -ReportBaseName 'network_suite' `
     -TestDirs @(

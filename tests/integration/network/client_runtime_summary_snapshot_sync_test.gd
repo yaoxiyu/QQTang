@@ -141,14 +141,15 @@ func _test_dedicated_server_place_input_does_not_spawn_predicted_bubble_entities
 	var input_message := client.build_local_input_message({
 		"move_x": 0,
 		"move_y": 0,
-		"action_place": true,
+		"action_bits": 1,
 	})
 	var bubbles_after := world.state.bubbles.active_ids.size()
-	var input_frame : Dictionary = input_message.get("frame", {})
+	var input_frames: Array = input_message.get("frames", [])
+	var input_frame: Dictionary = input_frames.back() if not input_frames.is_empty() else {}
 
 	ok = qqt_check(not input_message.is_empty(), "client should emit an input message for place prediction", prefix) and ok
 	ok = qqt_check(
-		bool(input_frame.get("action_place", false)),
+		(int(input_frame.get("action_bits", 0)) & 1) != 0,
 		"dedicated server client should still send authoritative place intent",
 		prefix
 	) and ok

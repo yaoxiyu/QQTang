@@ -213,14 +213,16 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 type fakeGameControlServer struct {
 	gamev1.UnimplementedRoomControlServiceServer
 
-	enterResp     *gamev1.EnterPartyQueueResponse
-	cancelResp    *gamev1.CancelPartyQueueResponse
-	statusResp    *gamev1.GetPartyQueueStatusResponse
-	createResp    *gamev1.CreateManualRoomBattleResponse
-	commitResp    *gamev1.CommitAssignmentReadyResponse
-	lastEnterReq  *gamev1.EnterPartyQueueRequest
-	lastCreateReq *gamev1.CreateManualRoomBattleRequest
-	lastCommitReq *gamev1.CommitAssignmentReadyRequest
+	enterResp           *gamev1.EnterPartyQueueResponse
+	cancelResp          *gamev1.CancelPartyQueueResponse
+	statusResp          *gamev1.GetPartyQueueStatusResponse
+	createResp          *gamev1.CreateManualRoomBattleResponse
+	commitResp          *gamev1.CommitAssignmentReadyResponse
+	battleAssignResp    *gamev1.GetBattleAssignmentStatusResponse
+	lastEnterReq        *gamev1.EnterPartyQueueRequest
+	lastCreateReq       *gamev1.CreateManualRoomBattleRequest
+	lastCommitReq       *gamev1.CommitAssignmentReadyRequest
+	lastBattleAssignReq *gamev1.GetBattleAssignmentStatusRequest
 }
 
 func (f *fakeGameControlServer) EnterPartyQueue(_ context.Context, req *gamev1.EnterPartyQueueRequest) (*gamev1.EnterPartyQueueResponse, error) {
@@ -267,4 +269,12 @@ func (f *fakeGameControlServer) CommitAssignmentReady(_ context.Context, req *ga
 		return f.commitResp, nil
 	}
 	return &gamev1.CommitAssignmentReadyResponse{Ok: true, CommittedState: "committed"}, nil
+}
+
+func (f *fakeGameControlServer) GetBattleAssignmentStatus(_ context.Context, req *gamev1.GetBattleAssignmentStatusRequest) (*gamev1.GetBattleAssignmentStatusResponse, error) {
+	f.lastBattleAssignReq = req
+	if f.battleAssignResp != nil {
+		return f.battleAssignResp, nil
+	}
+	return &gamev1.GetBattleAssignmentStatusResponse{Ok: true, BattlePhase: "ready", BattleEntryReady: true}, nil
 }

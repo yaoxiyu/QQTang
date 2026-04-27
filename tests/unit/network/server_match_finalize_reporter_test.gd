@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_unit_test.gd"
+extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime/server_match_finalize_reporter.gd")
 const RoomServerStateScript = preload("res://network/session/runtime/room_server_state.gd")
@@ -48,7 +48,7 @@ class FakeRoomRuntime:
 func test_finalize_payload_contains_member_results() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var state = RoomServerStateScript.new()
-	state.ensure_room("room_alpha", 1, "matchmade_room", "")
+	state.ensure_room("room_alpha", 1, "casual_match_room", "")
 	state.assignment_id = "assign_alpha"
 	state.season_id = "season_s1"
 	state.upsert_member(1, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
@@ -81,7 +81,7 @@ func test_finalize_payload_contains_member_results() -> void:
 func test_finalize_payload_falls_back_to_current_assignment_id() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
 	var state = RoomServerStateScript.new()
-	state.ensure_room("room_alpha", 1, "matchmade_room", "")
+	state.ensure_room("room_alpha", 1, "casual_match_room", "")
 	state.assignment_id = ""
 	state.current_assignment_id = "assign_current"
 	state.season_id = "season_s1"
@@ -111,7 +111,7 @@ func test_result_hash_is_stable_for_same_payload() -> void:
 		"match_id": "match_hash",
 		"assignment_id": "assign_hash",
 		"room_id": "room_hash",
-		"room_kind": "matchmade_room",
+		"room_kind": "casual_match_room",
 		"season_id": "season_s1",
 		"mode_id": "mode_ranked",
 		"rule_set_id": "rule_standard",

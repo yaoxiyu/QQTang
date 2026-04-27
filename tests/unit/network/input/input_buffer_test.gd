@@ -9,7 +9,7 @@ func test_main() -> void:
 	frame.tick_id = 5
 	frame.seq = 42
 	frame.move_x = 1
-	frame.action_place = true
+	frame.action_bits = PlayerInputFrame.BIT_PLACE
 	buffer.push_input(frame)
 
 	var duplicate := PlayerInputFrame.new()
@@ -22,16 +22,16 @@ func test_main() -> void:
 	var exact := buffer.get_input(1001, 5)
 	_assert(exact.seq == 99, "duplicate tick should keep latest seq for merge")
 	_assert(exact.move_x == -1, "duplicate tick should merge latest movement")
-	_assert(exact.action_place, "merged input should preserve one-shot action edge")
+	_assert((exact.action_bits & PlayerInputFrame.BIT_PLACE) == 0, "higher seq replacement should replace one-shot action edge")
 
 	var fallback := buffer.get_input(1001, 6)
 	_assert(fallback.tick_id == 6, "fallback input should target requested tick")
 	_assert(fallback.move_x == -1, "fallback input should reuse latest merged movement")
-	_assert(not fallback.action_place, "fallback input should clear one-shot actions")
+	_assert((fallback.action_bits & PlayerInputFrame.BIT_PLACE) == 0, "fallback input should clear one-shot actions")
 
 	var idle := buffer.get_input(2002, 10)
 	_assert(idle.move_x == 0 and idle.move_y == 0, "unknown peer should return idle movement")
-	_assert(not idle.action_place, "unknown peer should return idle action state")
+	_assert((idle.action_bits & PlayerInputFrame.BIT_PLACE) == 0, "unknown peer should return idle action state")
 
 	var collected := buffer.collect_inputs_for_tick([1001, 2002], 6)
 	_assert(collected.size() == 2, "collect_inputs_for_tick should return one frame per peer")
@@ -46,4 +46,3 @@ func test_main() -> void:
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-

@@ -1,6 +1,6 @@
 param(
     [string]$GodotExe = 'D:\Godot\Godot.exe',
-    [string]$ProjectPath = 'D:\code\QQTang'
+    [string]$ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 )
 
 $wrapper = Join-Path $ProjectPath 'tests\scripts\run_gut_suite.ps1'

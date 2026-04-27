@@ -45,7 +45,7 @@ class FakeMatchmakingGateway:
 			"assignment_revision": 1,
 			"ticket_role": "create",
 			"room_id": "room_alpha",
-			"room_kind": "matchmade_room",
+			"room_kind": "casual_match_room",
 			"server_host": "127.0.0.1",
 			"server_port": 9100,
 			"mode_id": "mode_ranked",
@@ -69,7 +69,7 @@ class FakeRoomTicketGateway:
 			"account_id": "account_alpha",
 			"profile_id": "profile_alpha",
 			"room_id": "room_alpha",
-			"room_kind": "matchmade_room",
+			"room_kind": "casual_match_room",
 			"assignment_id": "assign_alpha",
 			"match_source": "matchmaking",
 			"locked_map_id": "map_arcade",
@@ -103,6 +103,5 @@ func test_main() -> void:
 	ok = qqt_check(bool(consume_result.get("ok", false)), "assignment consumption should succeed", prefix) and ok
 	var entry_context = consume_result.get("entry_context", null)
 	ok = qqt_check(entry_context != null and entry_context.target_room_id == "room_alpha", "assignment should build room entry context", prefix) and ok
-	ok = qqt_check(entry_context != null and entry_context.return_to_lobby_after_settlement, "matchmade entry should return to lobby after settlement", prefix) and ok
-	ok = qqt_check(entry_context != null and entry_context.auto_ready_on_join, "matchmade entry should auto ready on join", prefix) and ok
-
+	ok = qqt_check(entry_context != null and entry_context.return_to_lobby_after_settlement, "match entry should return to lobby after settlement", prefix) and ok
+	ok = qqt_check(entry_context != null and entry_context.auto_ready_on_join, "match entry should auto ready on join", prefix) and ok
