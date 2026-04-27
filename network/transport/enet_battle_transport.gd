@@ -3,11 +3,12 @@ extends IBattleTransport
 
 const TransportMessageCodecScript = preload("res://network/transport/transport_message_codec.gd")
 const BattleTransportChannelsScript = preload("res://network/transport/battle_transport_channels.gd")
+const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = false
 const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
-const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = 1200
+const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = BattleWireBudgetContractScript.UNRELIABLE_SOFT_LIMIT_BYTES
 const MTU_PROMOTION_WARN_INTERVAL_MSEC: int = 3000
 
 var _peer: ENetMultiplayerPeer = null
@@ -25,9 +26,13 @@ var _last_client_packet_probe_msec: int = 0
 var _sent_count_by_channel: Dictionary = {}
 var _sent_bytes_by_channel: Dictionary = {}
 var _sent_count_by_type: Dictionary = {}
+var _max_payload_bytes_by_type: Dictionary = {}
+var _payload_samples_by_type: Dictionary = {}
 var _received_count_by_channel: Dictionary = {}
 var _last_mtu_promotion_warn_msec_by_type: Dictionary = {}
 var _unreliable_promoted_to_reliable_count: int = 0
+var _unreliable_promoted_to_reliable_count_by_type: Dictionary = {}
+var _last_promoted_payload_bytes_by_type: Dictionary = {}
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -78,7 +83,7 @@ func initialize(config: Dictionary = {}) -> void:
 		_debug_log("initialized client target=%s:%d" % [String(config.get("host", "127.0.0.1")), int(config.get("port", 9000))])
 
 
-func shutdown() -> void:
+func shutdown(_context: Variant = null) -> void:
 	if _peer != null:
 		_peer.close()
 	_peer = null
@@ -183,9 +188,13 @@ func get_transport_metrics() -> Dictionary:
 		"sent_count_by_channel": _sent_count_by_channel.duplicate(true),
 		"sent_bytes_by_channel": _sent_bytes_by_channel.duplicate(true),
 		"sent_count_by_type": _sent_count_by_type.duplicate(true),
+		"max_payload_bytes_by_type": _max_payload_bytes_by_type.duplicate(true),
+		"p95_payload_bytes_by_type": _build_p95_payload_bytes_by_type(),
 		"received_count_by_channel": _received_count_by_channel.duplicate(true),
 		"unreliable_promoted_to_reliable_count": _unreliable_promoted_to_reliable_count,
 		"transport_unreliable_promoted_to_reliable_count": _unreliable_promoted_to_reliable_count,
+		"unreliable_promoted_to_reliable_count_by_type": _unreliable_promoted_to_reliable_count_by_type.duplicate(true),
+		"last_promoted_payload_bytes_by_type": _last_promoted_payload_bytes_by_type.duplicate(true),
 	}
 
 
@@ -280,8 +289,11 @@ func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type:
 		return
 	_peer.transfer_channel = BattleTransportChannelsScript.resolve_channel(message_type)
 	_peer.transfer_mode = BattleTransportChannelsScript.resolve_transfer_mode(message_type)
+	_record_payload_size(message_type, payload.size())
 	if _peer.transfer_mode != MultiplayerPeer.TRANSFER_MODE_RELIABLE and payload.size() > UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES:
 		_unreliable_promoted_to_reliable_count += 1
+		_increment_metric(_unreliable_promoted_to_reliable_count_by_type, message_type, 1)
+		_last_promoted_payload_bytes_by_type[message_type] = payload.size()
 		_log_mtu_promotion_if_needed(message_type, payload.size(), peer_id)
 		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	_peer.set_target_peer(peer_id)
@@ -315,9 +327,50 @@ func _reset_transport_metrics() -> void:
 	_sent_count_by_channel.clear()
 	_sent_bytes_by_channel.clear()
 	_sent_count_by_type.clear()
+	_max_payload_bytes_by_type.clear()
+	_payload_samples_by_type.clear()
 	_received_count_by_channel.clear()
 	_last_mtu_promotion_warn_msec_by_type.clear()
 	_unreliable_promoted_to_reliable_count = 0
+	_unreliable_promoted_to_reliable_count_by_type.clear()
+	_last_promoted_payload_bytes_by_type.clear()
+
+
+func _record_payload_size(message_type: String, payload_size: int) -> void:
+	_max_payload_bytes_by_type[message_type] = max(int(_max_payload_bytes_by_type.get(message_type, 0)), payload_size)
+	var samples: Array = _payload_samples_by_type.get(message_type, [])
+	samples.append(payload_size)
+	if samples.size() > 128:
+		samples.remove_at(0)
+	_payload_samples_by_type[message_type] = samples
+
+
+func _build_p95_payload_bytes_by_type() -> Dictionary:
+	var result: Dictionary = {}
+	for message_type in _payload_samples_by_type.keys():
+		var samples: Array = (_payload_samples_by_type[message_type] as Array).duplicate()
+		if samples.is_empty():
+			continue
+		samples.sort()
+		var index := clampi(int(ceil(float(samples.size()) * 0.95)) - 1, 0, samples.size() - 1)
+		result[message_type] = int(samples[index])
+	return result
+
+
+func get_shutdown_name() -> String:
+	return "enet_battle_transport"
+
+
+func get_shutdown_priority() -> int:
+	return 50
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"connected": _connected,
+		"queued_incoming": _incoming_queue.size(),
+	}
 
 
 func _log_mtu_promotion_if_needed(message_type: String, payload_size: int, peer_id: int) -> void:

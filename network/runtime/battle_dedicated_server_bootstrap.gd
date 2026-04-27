@@ -15,6 +15,7 @@ const LogSystemInitializerScript = preload("res://app/logging/log_system_initial
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
 
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
@@ -24,6 +25,8 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 
 var _transport: ENetBattleTransport = null
 var _battle_runtime: Node = null
+var _shutdown_coordinator: RefCounted = RuntimeShutdownCoordinatorScript.new()
+var _shutdown_complete: bool = false
 
 # Battle manifest fields from command line.
 var _battle_id: String = ""
@@ -50,6 +53,7 @@ var _battle_ticket_verifier: BattleTicketVerifier = null
 
 func _ready() -> void:
 	LogSystemInitializerScript.initialize_dedicated_server()
+	_shutdown_coordinator.register_handle(self)
 	_apply_command_line_overrides()
 	_ds_manager_base_url = _resolve_ds_manager_base_url()
 	_ds_manager_auth_signer = _build_ds_manager_auth_signer()
@@ -70,6 +74,8 @@ func _ready() -> void:
 	_battle_runtime.room_kind = _source_room_kind
 	_battle_runtime.season_id = _season_id
 	_connect_battle_runtime_signals()
+	if _battle_runtime.has_method("get_shutdown_name"):
+		_shutdown_coordinator.register_handle(_battle_runtime)
 
 	_transport = ENetBattleTransportScript.new()
 	add_child(_transport)
@@ -79,6 +85,7 @@ func _ready() -> void:
 		"max_clients": max_clients,
 	})
 	_connect_transport_signals()
+	_shutdown_coordinator.register_handle(_transport)
 	LogNetScript.info("battle_ds started on %s:%d battle_id=%s assignment_id=%s" % [authority_host, listen_port, _battle_id, _assignment_id], "", 0, "net.battle_ds_bootstrap")
 
 	_fetch_manifest()
@@ -128,8 +135,32 @@ func _process(_delta: float) -> void:
 
 
 func _exit_tree() -> void:
-	if _transport != null:
-		_transport.shutdown()
+	_shutdown_coordinator.shutdown_all("battle_ds_exit", false)
+
+
+func get_shutdown_name() -> String:
+	return "battle_dedicated_server_bootstrap"
+
+
+func get_shutdown_priority() -> int:
+	return 40
+
+
+func shutdown(_context: Variant) -> void:
+	if _shutdown_complete:
+		return
+	_disconnect_transport_signals()
+	_disconnect_battle_runtime_signals()
+	_shutdown_complete = true
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"shutdown_complete": _shutdown_complete,
+		"has_transport": _transport != null,
+		"has_battle_runtime": _battle_runtime != null,
+	}
 
 
 func _connect_battle_runtime_signals() -> void:
@@ -143,6 +174,17 @@ func _connect_battle_runtime_signals() -> void:
 		_battle_runtime.match_finished.connect(_on_match_finished)
 
 
+func _disconnect_battle_runtime_signals() -> void:
+	if _battle_runtime == null:
+		return
+	if _battle_runtime.send_to_peer.is_connected(_send_to_peer):
+		_battle_runtime.send_to_peer.disconnect(_send_to_peer)
+	if _battle_runtime.broadcast_message.is_connected(_broadcast_message):
+		_battle_runtime.broadcast_message.disconnect(_broadcast_message)
+	if _battle_runtime.has_signal("match_finished") and _battle_runtime.match_finished.is_connected(_on_match_finished):
+		_battle_runtime.match_finished.disconnect(_on_match_finished)
+
+
 func _connect_transport_signals() -> void:
 	if _transport == null:
 		return
@@ -154,6 +196,17 @@ func _connect_transport_signals() -> void:
 		_transport.transport_error.connect(_on_transport_error)
 
 
+func _disconnect_transport_signals() -> void:
+	if _transport == null:
+		return
+	if _transport.peer_connected.is_connected(_on_transport_peer_connected):
+		_transport.peer_connected.disconnect(_on_transport_peer_connected)
+	if _transport.peer_disconnected.is_connected(_on_transport_peer_disconnected):
+		_transport.peer_disconnected.disconnect(_on_transport_peer_disconnected)
+	if _transport.transport_error.is_connected(_on_transport_error):
+		_transport.transport_error.disconnect(_on_transport_error)
+
+
 func _route_message(message: Dictionary) -> void:
 	if _battle_runtime == null:
 		return
@@ -163,8 +216,6 @@ func _route_message(message: Dictionary) -> void:
 			_handle_battle_entry_request(message)
 		TransportMessageTypesScript.BATTLE_RESUME_REQUEST:
 			_handle_battle_resume_request(message)
-		TransportMessageTypesScript.INPUT_FRAME:
-			_battle_runtime.handle_battle_message(message)
 		TransportMessageTypesScript.INPUT_BATCH:
 			_battle_runtime.handle_battle_message(message)
 		TransportMessageTypesScript.OPENING_SNAPSHOT_ACK, TransportMessageTypesScript.BATTLE_READY:

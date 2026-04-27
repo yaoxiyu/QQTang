@@ -65,6 +65,43 @@ func TestStartManualRoomBattleLifecycle(t *testing.T) {
 	svc.mu.RUnlock()
 }
 
+func TestDirectorySnapshotHidesManualRoomAfterBattleStart(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "custom_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	if got := len(svc.DirectorySnapshot("127.0.0.1", 9100).GetEntries()); got != 1 {
+		t.Fatalf("expected room visible before battle start, got %d entries", got)
+	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("toggle owner ready failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	if _, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if got := len(svc.DirectorySnapshot("127.0.0.1", 9100).GetEntries()); got != 0 {
+		t.Fatalf("expected room hidden after battle start, got %d entries", got)
+	}
+}
+
 func TestStartManualRoomBattleDoesNotRequireOwnerReady(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{

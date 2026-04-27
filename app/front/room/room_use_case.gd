@@ -15,6 +15,8 @@ const RoomProfileCommandScript = preload("res://app/front/room/commands/room_pro
 const RoomMatchCommandScript = preload("res://app/front/room/commands/room_match_command.gd")
 const RoomErrorMapperScript = preload("res://app/front/room/errors/room_error_mapper.gd")
 const RoomSnapshotFlowScript = preload("res://app/front/room/projection/room_snapshot_flow.gd")
+const RoomSnapshotValidityScript = preload("res://app/front/room/room_snapshot_validity.gd")
+const RoomSnapshotCacheScript = preload("res://app/front/room/room_snapshot_cache.gd")
 const RoomEnterFlowScript = preload("res://app/front/room/recovery/room_enter_flow.gd")
 const RoomReconnectFlowScript = preload("res://app/front/room/recovery/room_reconnect_flow.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -36,6 +38,7 @@ var _battle_entry_command: RefCounted = RoomBattleEntryCommandScript.new()
 var _profile_command: RefCounted = RoomProfileCommandScript.new()
 var _match_command: RefCounted = RoomMatchCommandScript.new()
 var _snapshot_flow: RefCounted = RoomSnapshotFlowScript.new()
+var _snapshot_cache: RefCounted = RoomSnapshotCacheScript.new()
 var _enter_flow: RefCounted = RoomEnterFlowScript.new()
 var _reconnect_flow: RefCounted = RoomReconnectFlowScript.new()
 var _last_projected_room_view_state: Dictionary = {}
@@ -62,6 +65,7 @@ func dispose() -> void:
 	app_runtime = null
 	_last_projected_room_view_state.clear()
 	_last_room_resume_context.clear()
+	_snapshot_cache.reset()
 	_snapshot_flow.reset_revision_guard()
 	_clear_enter_match_queue_pending("dispose")
 	_clear_pending_online_entry_state()
@@ -149,6 +153,15 @@ func request_rematch() -> Dictionary:
 
 
 func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
+	var context := _build_snapshot_validity_context(snapshot)
+	var accept_result: Dictionary = _snapshot_cache.try_accept(snapshot, context)
+	if not bool(accept_result.get("accepted", false)):
+		_log_room("ignored_authoritative_room_snapshot", accept_result)
+		return
+	_apply_authoritative_snapshot(snapshot, context)
+
+
+func _apply_authoritative_snapshot(snapshot: RoomSnapshot, context: Dictionary) -> void:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return
 	_sync_pending_state_from_orchestrator()
@@ -157,7 +170,7 @@ func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	var queue_ack_reason: String = _queue_command.acknowledge_enter_match_queue_pending(_runtime_state, snapshot)
 	if not queue_ack_reason.is_empty():
 		_clear_enter_match_queue_pending(queue_ack_reason)
-	var flow_result: Dictionary = _snapshot_flow.consume_authoritative_snapshot(app_runtime, snapshot, _last_projected_room_view_state)
+	var flow_result: Dictionary = _snapshot_flow.consume_authoritative_snapshot(app_runtime, snapshot, _last_projected_room_view_state, _snapshot_cache, context)
 	_last_projected_room_view_state = flow_result.get("view_state", {}) if flow_result.has("view_state") else {}
 	_last_room_resume_context = flow_result.get("resume_context", {}) if flow_result.has("resume_context") else {}
 
@@ -239,11 +252,12 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	if snapshot == null:
 		_log_room_anomaly("received_null_room_snapshot", _build_pending_connection_context())
 		return
-	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.room_id.is_empty():
-		_log_room_anomaly("received_snapshot_without_room_id", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
-	if String(snapshot.topology) == FrontTopologyScript.DEDICATED_SERVER and snapshot.members.is_empty():
-		_log_room_anomaly("received_snapshot_without_members", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
-	on_authoritative_snapshot(snapshot)
+	var context := _build_snapshot_validity_context(snapshot)
+	var accept_result: Dictionary = _snapshot_cache.try_accept(snapshot, context)
+	if not bool(accept_result.get("accepted", false)):
+		_log_room("ignored_authoritative_room_snapshot", accept_result)
+		return
+	_apply_authoritative_snapshot(snapshot, context)
 	_log_room("authoritative_room_snapshot_received", {
 		"room_id": String(snapshot.room_id),
 		"room_kind": String(snapshot.room_kind),
@@ -410,6 +424,14 @@ func _log_room(event_name: String, details: Dictionary) -> void:
 func _build_pending_connection_context() -> Dictionary:
 	_sync_pending_state_from_orchestrator()
 	return _connection_orchestrator.build_pending_connection_context()
+
+
+func _build_snapshot_validity_context(snapshot: RoomSnapshot) -> Dictionary:
+	var context := _build_pending_connection_context()
+	context["battle_active"] = RoomUseCaseRuntimeStateScript.is_battle_active(app_runtime)
+	context["topology"] = String(snapshot.topology) if snapshot != null else String(context.get("topology", ""))
+	_snapshot_cache.mark_battle_active(bool(context.get("battle_active", false)))
+	return context
 
 
 func _room_log_sample_every(event_name: String) -> int:

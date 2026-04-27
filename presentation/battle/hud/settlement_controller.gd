@@ -413,6 +413,8 @@ func _build_career_summary_text() -> String:
 
 
 func _resolve_current_start_config():
+	if not is_inside_tree():
+		return null
 	var tree := get_tree()
 	if tree == null:
 		return null
@@ -425,6 +427,8 @@ func _resolve_current_start_config():
 
 
 func _resolve_current_manifest() -> Dictionary:
+	if not is_inside_tree():
+		return {}
 	var tree := get_tree()
 	if tree == null:
 		return {}

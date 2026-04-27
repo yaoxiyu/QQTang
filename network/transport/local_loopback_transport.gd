@@ -8,6 +8,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const DEFAULT_DROPPABLE_MESSAGE_TYPES: Array[String] = [
 	TransportMessageTypesScript.INPUT_ACK,
 	TransportMessageTypesScript.STATE_SUMMARY,
+	TransportMessageTypesScript.STATE_DELTA,
 	TransportMessageTypesScript.CHECKPOINT,
 ]
 
@@ -156,9 +157,14 @@ func _enqueue_message(message: Dictionary) -> void:
 	if _debug_simulator.should_drop_message(message_type, _droppable_message_types):
 		_debug_simulator.record_dropped()
 		return
+	var payload := TransportMessageCodecScript.encode_message(normalized)
+	var decoded := TransportMessageCodecScript.decode_message(payload)
+	if decoded.is_empty():
+		_debug_simulator.record_dropped()
+		return
 	var deliver_tick := _current_tick + _debug_simulator.current_latency_ticks()
 	_pending_entries.append({
 		"deliver_tick": deliver_tick,
-		"message": normalized,
+		"message": decoded,
 	})
 	_debug_simulator.record_enqueued()

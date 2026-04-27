@@ -18,6 +18,7 @@ const SessionDiagnosticsScript = preload("res://network/runtime/session_diagnost
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 const FrontRuntimeContextScript = preload("res://app/flow/front_runtime_context.gd")
 const BattleRuntimeContextScript = preload("res://app/flow/battle_runtime_context.gd")
+const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
@@ -97,12 +98,13 @@ var current_battle_camera_controller: Node = null
 var current_settlement_controller: Node = null
 var current_settlement_popup_summary: Dictionary = {}
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
+var _shutdown_coordinator: RefCounted = RuntimeShutdownCoordinatorScript.new()
+var _last_shutdown_metrics: Dictionary = {}
 
 # Resume payload storage for room and battle return flow.
 var current_resume_snapshot = null
 var current_loading_mode: String = "normal_start"
 var _resume_state_store: RefCounted = AppResumeStateStoreScript.new()
-
 
 static func get_existing(tree: SceneTree):
 	if tree == null or tree.root == null:
@@ -117,7 +119,6 @@ static func get_existing(tree: SceneTree):
 			return pending
 		tree.root.remove_meta(PENDING_RUNTIME_META_KEY)
 	return null
-
 
 static func ensure_in_tree(tree: SceneTree):
 	if tree == null:
@@ -148,15 +149,13 @@ static func ensure_in_tree(tree: SceneTree):
 	runtime.request_initialize("ensure_in_tree")
 	return runtime
 
-
 func _ready() -> void:
 	_clear_pending_runtime_meta()
+	_shutdown_coordinator.register_handle(self)
 	request_initialize("_ready")
-
 
 func initialize_runtime() -> void:
 	request_initialize("initialize_runtime")
-
 
 func request_initialize(reason: String = "manual") -> void:
 	_initialization_requested = true
@@ -185,18 +184,14 @@ func request_initialize(reason: String = "manual") -> void:
 		_ready_emitted = true
 		runtime_ready.emit()
 
-
 func is_runtime_ready() -> bool:
 	return runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.READY
-
 
 func is_runtime_initializing() -> bool:
 	return _initialization_in_progress or runtime_lifecycle_state == RuntimeLifecycleStateScript.Value.INITIALIZING
 
-
 func get_runtime_state_name() -> String:
 	return RuntimeLifecycleStateScript.state_to_string(runtime_lifecycle_state)
-
 
 func _set_runtime_state(next_state: int, reason: String) -> void:
 	if runtime_lifecycle_state == next_state:
@@ -204,7 +199,6 @@ func _set_runtime_state(next_state: int, reason: String) -> void:
 	var previous_state := runtime_lifecycle_state
 	runtime_lifecycle_state = next_state
 	runtime_state_changed.emit(previous_state, next_state, reason)
-
 
 func build_and_store_start_config(snapshot):
 	if snapshot == null or match_start_coordinator == null:
@@ -244,13 +238,11 @@ func build_and_store_start_config(snapshot):
 		battle_session_adapter.setup_from_start_config(current_start_config)
 	return current_start_config
 
-
 func clear_battle_payload() -> void:
 	_log_online_runtime("clear_battle_payload", debug_dump_online_runtime_state())
 	AppBattleModuleRegistryScript.clear_battle_payload(self)
 	if battle_session_adapter != null:
 		battle_session_adapter.setup_from_start_config(null)
-
 
 func apply_canonical_start_config(config) -> void:
 	current_start_config = config.duplicate_deep() if config != null else null
@@ -260,7 +252,6 @@ func apply_canonical_start_config(config) -> void:
 		battle_session_adapter.setup_from_start_config(current_start_config)
 	_log_online_runtime("apply_canonical_start_config", debug_dump_online_runtime_state())
 
-
 # Apply match resume payload.
 func apply_match_resume_payload(config, resume_snapshot) -> void:
 	apply_canonical_start_config(config)
@@ -269,11 +260,9 @@ func apply_match_resume_payload(config, resume_snapshot) -> void:
 	_sync_resume_fields_from_store()
 	_sync_front_context_from_fields()
 
-
 # Clear resume payload.
 func clear_resume_payload() -> void:
 	AppBattleModuleRegistryScript.clear_resume_payload(self)
-
 
 func set_local_peer_id(peer_id: int) -> void:
 	if peer_id <= 0:
@@ -281,7 +270,6 @@ func set_local_peer_id(peer_id: int) -> void:
 	local_peer_id = peer_id
 	if room_session_controller != null and room_session_controller.has_method("set_local_player_id"):
 		room_session_controller.set_local_player_id(local_peer_id)
-
 
 func register_battle_modules(
 	battle_scene: Node,
@@ -302,11 +290,9 @@ func register_battle_modules(
 	)
 	_log_online_runtime("register_battle_modules", debug_dump_online_runtime_state())
 
-
 func unregister_battle_modules(battle_scene: Node) -> void:
 	AppBattleModuleRegistryScript.unregister_modules(self, battle_scene)
 	_log_online_runtime("unregister_battle_modules", debug_dump_online_runtime_state())
-
 
 func debug_dump_online_runtime_state() -> Dictionary:
 	return {
@@ -323,32 +309,25 @@ func debug_dump_online_runtime_state() -> Dictionary:
 		"settlement_popup_summary": current_settlement_popup_summary.duplicate(true),
 	}
 
-
 func debug_dump_runtime_structure() -> Dictionary:
 	if session_diagnostics == null:
 		return {}
 	return session_diagnostics.build_app_runtime_structure_dump(self)
 
-
 func _on_network_error_routed(payload: Dictionary) -> void:
 	AppRuntimeNetworkBridgeScript.on_network_error_routed(self, payload)
-
 
 func _on_client_runtime_battle_message_received(message: Dictionary) -> void:
 	AppRuntimeNetworkBridgeScript.on_client_runtime_battle_message_received(self, message)
 
-
 func _on_client_runtime_transport_connected() -> void:
 	AppRuntimeNetworkBridgeScript.on_client_runtime_transport_connected(self)
-
 
 func _on_client_runtime_transport_disconnected() -> void:
 	AppRuntimeNetworkBridgeScript.on_client_runtime_transport_disconnected(self)
 
-
 func _on_client_runtime_room_error(error_code: String, user_message: String) -> void:
 	AppRuntimeNetworkBridgeScript.on_client_runtime_room_error(self, error_code, user_message)
-
 
 func _ensure_root_nodes() -> void:
 	if session_root == null or not is_instance_valid(session_root):
@@ -375,7 +354,6 @@ func _ensure_root_nodes() -> void:
 			debug_tools.name = "DebugTools"
 			add_child(debug_tools)
 
-
 func _reparent_to(node: Node, new_parent: Node) -> void:
 	if node == null or new_parent == null:
 		return
@@ -386,7 +364,6 @@ func _reparent_to(node: Node, new_parent: Node) -> void:
 		old_parent.remove_child(node)
 	new_parent.add_child(node)
 
-
 func _update_current_battle_content_manifest() -> void:
 	if current_start_config == null:
 		current_battle_content_manifest = {}
@@ -395,13 +372,11 @@ func _update_current_battle_content_manifest() -> void:
 	current_battle_content_manifest = _content_manifest_builder.build_for_start_config(current_start_config)
 	battle_context.current_battle_content_manifest = current_battle_content_manifest.duplicate(true)
 
-
 func _ensure_resume_state_store() -> void:
 	if _resume_state_store == null:
 		_resume_state_store = AppResumeStateStoreScript.new()
 	if _resume_state_store != null and _resume_state_store.has_method("set_state"):
 		_resume_state_store.set_state(current_resume_snapshot, current_loading_mode)
-
 
 func _sync_resume_fields_from_store() -> void:
 	if _resume_state_store == null:
@@ -409,16 +384,22 @@ func _sync_resume_fields_from_store() -> void:
 	current_resume_snapshot = _resume_state_store.current_resume_snapshot
 	current_loading_mode = _resume_state_store.current_loading_mode
 
-
 func _sync_front_context_from_fields() -> void:
 	AppRuntimeContextSyncScript.sync_front_context(self)
-
 
 func _sync_battle_context_from_fields() -> void:
 	AppRuntimeContextSyncScript.sync_battle_context(self)
 
-
 func _exit_tree() -> void:
+	_last_shutdown_metrics = _shutdown_coordinator.shutdown_all("app_runtime_exit", false)
+
+func get_shutdown_name() -> String:
+	return "app_runtime_root"
+
+func get_shutdown_priority() -> int:
+	return 40
+
+func shutdown(_context: Variant) -> void:
 	_clear_pending_runtime_meta()
 	_initialization_in_progress = false
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.DISPOSING, "_exit_tree")
@@ -428,6 +409,13 @@ func _exit_tree() -> void:
 	_set_runtime_state(RuntimeLifecycleStateScript.Value.DISPOSED, "_exit_tree")
 	runtime_disposed.emit()
 
+func get_shutdown_metrics() -> Dictionary:
+	if not _last_shutdown_metrics.is_empty():
+		return _last_shutdown_metrics.duplicate(true)
+	return {
+		"shutdown_failed": false,
+		"runtime_state": runtime_lifecycle_state,
+	}
 
 func _clear_pending_runtime_meta() -> void:
 	var tree := get_tree()
@@ -439,13 +427,11 @@ func _clear_pending_runtime_meta() -> void:
 	if pending == self:
 		tree.root.remove_meta(PENDING_RUNTIME_META_KEY)
 
-
 func _try_load_script(path: String):
 	if not ResourceLoader.exists(path):
 		return null
 	var script = load(path)
 	return script
-
 
 func _log_online_runtime(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[app_runtime_root] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.runtime.online")

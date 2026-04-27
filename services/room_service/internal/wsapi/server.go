@@ -314,7 +314,15 @@ func splitHostPort(addr string) (string, int32) {
 
 func isDirectoryAffectingPayload(payloadType PayloadType) bool {
 	switch payloadType {
-	case PayloadCreateRoom, PayloadJoinRoom, PayloadLeaveRoom, PayloadUpdateSelection, PayloadUpdateMatchRoomConfig:
+	case PayloadCreateRoom,
+		PayloadJoinRoom,
+		PayloadLeaveRoom,
+		PayloadUpdateSelection,
+		PayloadUpdateMatchRoomConfig,
+		PayloadStartManualRoomBattle,
+		PayloadAckBattleEntry,
+		PayloadEnterMatchQueue,
+		PayloadCancelMatchQueue:
 		return true
 	default:
 		return false

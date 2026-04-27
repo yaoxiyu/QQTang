@@ -335,6 +335,7 @@ func _is_client_authority_sync_message(message: Dictionary) -> bool:
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
 	return message_type == TransportMessageTypesScript.INPUT_ACK \
 		or message_type == TransportMessageTypesScript.STATE_SUMMARY \
+		or message_type == TransportMessageTypesScript.STATE_DELTA \
 		or message_type == TransportMessageTypesScript.CHECKPOINT \
 		or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT \
 		or message_type == TransportMessageTypesScript.MATCH_FINISHED

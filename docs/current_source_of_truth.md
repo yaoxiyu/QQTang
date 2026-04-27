@@ -25,6 +25,7 @@ do not re-merge domain semantics into this index.
 - Testing strategy: [`docs/architecture/testing_strategy.md`](./architecture/testing_strategy.md)
 - Room service runtime contract: [`docs/platform_room/room_service_runtime_contract.md`](./platform_room/room_service_runtime_contract.md)
 - Architecture debt register: [`docs/architecture_debt_register.md`](./architecture_debt_register.md)
+- Phase35 manual acceptance: [`docs/phase35_manual_acceptance.md`](./phase35_manual_acceptance.md)
 
 ## 3. Boundary Of Documentation Authority
 1. `docs/current_source_of_truth.md`:
@@ -44,3 +45,5 @@ phase records and historical decisions only.
 5. Map gameplay binding fields must not be manually maintained in `.tres`; source truth stays in `content_source/csv/maps/*`.
 6. Any new or changed `match_format` must update the formal content domain and matching contract tests in the same change set.
 7. Go and Godot match-format logic must align to the generated manifest as the shared consumption truth.
+8. Phase35 runtime/front boundary truth:
+`client_runtime.gd`, `app_runtime_root.gd`, and `room_scene_controller.gd` must stay under their boundary contracts; formal room layout/loadout/slot/popup/theme code lives in `scenes/front/room/room_formal_*.gd`; battle high-frequency protocol is V2/QQTS-only for formal paths, with no `INPUT_FRAME` network message and no high-frequency Dictionary decode fallback; placeholder authoritative room snapshots are rejected before projection.

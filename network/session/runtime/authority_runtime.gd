@@ -6,6 +6,8 @@ const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battl
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const NativeInputBufferBridgeScript = preload("res://gameplay/native_bridge/native_input_buffer_bridge.gd")
+const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
+const RuntimeShutdownContextScript = preload("res://app/runtime/runtime_shutdown_context.gd")
 const TRACE_TAG := "sync.trace"
 
 signal match_started(config: BattleStartConfig)
@@ -17,9 +19,6 @@ var start_config: BattleStartConfig = null
 var local_peer_id: int = 1
 var server_session: ServerSession = null
 var _finished: bool = false
-const INPUT_BATCH_MAX_FRAMES := 16
-const INPUT_BATCH_WARN_FRAMES := 10
-const INPUT_BATCH_WARN_BYTES := 900
 
 var _opening_input_freeze_drop_count: int = 0
 var _opening_input_freeze_end_logged: bool = false
@@ -85,9 +84,6 @@ func ingest_network_message(message: Dictionary) -> void:
 	if message_type == TransportMessageTypesScript.INPUT_BATCH:
 		_ingest_input_batch(message)
 		return
-	if message_type != TransportMessageTypesScript.INPUT_FRAME:
-		return
-	_ingest_input_frame(PlayerInputFrame.from_dict(message.get("frame", {})), message)
 
 
 func _ingest_input_batch(message: Dictionary) -> void:
@@ -100,52 +96,58 @@ func _ingest_input_batch(message: Dictionary) -> void:
 	var batch_peer_id := int(message.get("peer_id", 0))
 	var first_tick := int(message.get("first_tick", 0))
 	var latest_tick := int(message.get("latest_tick", 0))
-	var authority_tick := _get_authority_tick()
 	for frame_data in frames:
 		if not (frame_data is Dictionary):
 			continue
-		var frame_tick_id := int((frame_data as Dictionary).get("tick_id", -1))
+		var frame_tick_id := first_tick + int((frame_data as Dictionary).get("tick_delta", -1))
 		if frame_tick_id < first_tick or frame_tick_id > latest_tick:
 			continue
-		var frame := PlayerInputFrame.from_dict(frame_data)
-		if frame.peer_id <= 0:
-			frame.peer_id = batch_peer_id
-		_ingest_input_frame(frame, message)
+		var frame := PlayerInputFrame.new()
+		frame.peer_id = batch_peer_id
+		frame.tick_id = frame_tick_id
+		frame.seq = int((frame_data as Dictionary).get("seq", frame_tick_id))
+		frame.move_x = int((frame_data as Dictionary).get("move_x", 0))
+		frame.move_y = int((frame_data as Dictionary).get("move_y", 0))
+		frame.action_bits = int((frame_data as Dictionary).get("action_bits", 0))
+		frame.sanitize()
+		_submit_input_frame(frame)
 
 
 func _validate_input_batch_envelope(message: Dictionary) -> bool:
-	var protocol_version := int(message.get("protocol_version", 0))
-	if protocol_version != 1:
+	if int(message.get("wire_version", 0)) != BattleWireBudgetContractScript.WIRE_VERSION:
+		return false
+	if String(message.get("message_type", "")) != TransportMessageTypesScript.INPUT_BATCH:
 		return false
 	var peer_id := int(message.get("peer_id", 0))
 	if peer_id <= 0:
 		return false
-	var frame_count := int(message.get("frame_count", 0))
 	var frames: Variant = message.get("frames", [])
 	if not (frames is Array):
 		return false
+	var frame_count := int(message.get("frame_count", -1))
 	if frame_count != (frames as Array).size():
 		return false
 	var first_tick := int(message.get("first_tick", 0))
 	var latest_tick := int(message.get("latest_tick", 0))
 	if first_tick > latest_tick:
 		return false
-	if frame_count > INPUT_BATCH_MAX_FRAMES:
+	if frame_count > BattleWireBudgetContractScript.MAX_INPUT_FRAMES_PER_BATCH:
 		return false
-	var batch_peer_id := peer_id
 	for frame_data in frames:
 		if not (frame_data is Dictionary):
 			return false
-		if int((frame_data as Dictionary).get("peer_id", -1)) != batch_peer_id:
+		var frame := frame_data as Dictionary
+		if not frame.has("tick_delta") or not frame.has("move_x") or not frame.has("move_y") or not frame.has("action_bits"):
+			return false
+		var tick_id := first_tick + int(frame.get("tick_delta", -1))
+		if tick_id < first_tick or tick_id > latest_tick:
 			return false
 	return true
 
 
-func _ingest_input_frame(frame: PlayerInputFrame, message: Dictionary) -> void:
+func _submit_input_frame(frame: PlayerInputFrame) -> void:
 	if frame == null:
 		return
-	if frame.peer_id <= 0:
-		frame.peer_id = int(message.get("sender_peer_id", 0))
 	if _is_opening_input_frozen():
 		_opening_input_freeze_drop_count += 1
 		return
@@ -208,7 +210,21 @@ func is_match_running() -> bool:
 
 
 func shutdown_runtime() -> void:
+	shutdown(RuntimeShutdownContextScript.new("authority_runtime_shutdown", false))
+
+
+func get_shutdown_name() -> String:
+	return "authority_runtime"
+
+
+func get_shutdown_priority() -> int:
+	return 60
+
+
+func shutdown(_context: Variant) -> void:
 	if server_session != null and is_instance_valid(server_session):
+		if server_session.has_method("shutdown_runtime"):
+			server_session.shutdown_runtime()
 		server_session.free()
 	server_session = null
 	start_config = null
@@ -217,6 +233,14 @@ func shutdown_runtime() -> void:
 	_opening_input_freeze_end_logged = false
 	_native_input_policy = NativeInputBufferBridgeScript.new()
 	_native_input_policy_metrics.clear()
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"has_server_session": server_session != null,
+		"finished": _finished,
+	}
 
 
 func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerInputFrame:

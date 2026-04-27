@@ -18,17 +18,25 @@ func test_state_summary_is_lightweight_and_checkpoint_keeps_full_state() -> void
 		session.tick_once()
 	var messages := session.poll_messages()
 	var summary := _latest_message(messages, TransportMessageTypesScript.STATE_SUMMARY)
+	var delta := _latest_message(messages, TransportMessageTypesScript.STATE_DELTA)
 	var checkpoint := _latest_message(messages, TransportMessageTypesScript.CHECKPOINT)
 
 	assert_false(summary.is_empty())
 	assert_false(summary.has("walls"))
 	assert_true(summary.has("tick"))
 	assert_true(summary.has("player_summary"))
-	assert_true(summary.has("bubbles"))
-	assert_true(summary.has("items"))
-	assert_true(summary.has("match_state"))
+	assert_false(summary.has("bubbles"))
+	assert_false(summary.has("items"))
+	assert_false(summary.has("match_state"))
+	assert_true(summary.has("match_phase"))
 	assert_true(summary.has("events"))
 	assert_true(summary.has("checksum"))
+
+	if not delta.is_empty():
+		assert_true(delta.has("changed_bubbles"))
+		assert_true(delta.has("removed_bubble_ids"))
+		assert_true(delta.has("changed_items"))
+		assert_true(delta.has("removed_item_ids"))
 
 	assert_false(checkpoint.is_empty())
 	assert_true(checkpoint.has("walls"))

@@ -3,6 +3,8 @@ extends RefCounted
 
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const FrontTopologyScript = preload("res://app/front/navigation/front_topology.gd")
+const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
+const RoomTransportConnectionReasonScript = preload("res://app/front/room/room_transport_connection_reason.gd")
 
 var pending_online_entry_context: RoomEntryContext = null
 var pending_connection_config: ClientConnectionConfig = null
@@ -101,6 +103,36 @@ static func can_cancel_current_queue(app_runtime: Node) -> bool:
 			return true
 		_:
 			return false
+
+
+static func is_battle_active(app_runtime: Node) -> bool:
+	if app_runtime == null:
+		return false
+	if app_runtime.current_battle_entry_context != null:
+		return true
+	if app_runtime.current_start_config != null:
+		return true
+	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("is_battle_active"):
+		return bool(app_runtime.front_flow.is_battle_active())
+	return false
+
+
+static func resolve_transport_connection_reason(app_runtime: Node, runtime_state: RoomUseCaseRuntimeState) -> String:
+	if runtime_state != null and runtime_state.pending_online_entry_context != null:
+		if bool(runtime_state.pending_online_entry_context.use_resume_flow):
+			return RoomTransportConnectionReasonScript.CONNECTED_FOR_RECOVER
+		match String(runtime_state.pending_online_entry_context.entry_kind):
+			FrontEntryKindScript.ONLINE_CREATE:
+				return RoomTransportConnectionReasonScript.CONNECTED_FOR_CREATE
+			FrontEntryKindScript.ONLINE_JOIN:
+				return RoomTransportConnectionReasonScript.CONNECTED_FOR_JOIN
+	if is_battle_active(app_runtime):
+		return RoomTransportConnectionReasonScript.CONNECTED_FOR_BATTLE_RETURN
+	if app_runtime != null and app_runtime.current_room_snapshot != null:
+		return RoomTransportConnectionReasonScript.CONNECTED_FOR_REUSE
+	if app_runtime != null and app_runtime.front_flow != null:
+		return RoomTransportConnectionReasonScript.CONNECTED_FOR_DIRECTORY
+	return RoomTransportConnectionReasonScript.UNKNOWN
 
 
 static func build_entry_context_context(entry_context: RoomEntryContext) -> Dictionary:

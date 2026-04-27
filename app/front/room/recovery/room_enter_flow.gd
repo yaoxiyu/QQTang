@@ -6,6 +6,7 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const RoomConnectionOrchestratorScript = preload("res://app/front/room/room_connection_orchestrator.gd")
 const RoomEnterCommandScript = preload("res://app/front/room/commands/room_enter_command.gd")
 const RoomUseCaseRuntimeStateScript = preload("res://app/front/room/room_use_case_runtime_state.gd")
+const RoomTransportConnectionReasonScript = preload("res://app/front/room/room_transport_connection_reason.gd")
 
 var _enter_command: RefCounted = RoomEnterCommandScript.new()
 
@@ -77,11 +78,17 @@ func dispatch_transport_connected(
 		_log_anomaly(log_sink, "transport_connected_without_gateway", {})
 		return
 	runtime_state.sync_pending_connection(orchestrator)
+	var reason := RoomUseCaseRuntimeStateScript.resolve_transport_connection_reason(app_runtime, runtime_state)
 	if runtime_state.pending_online_entry_context == null or runtime_state.pending_connection_config == null:
-		_log_anomaly(log_sink, "transport_connected_without_pending_entry", {
+		var payload := {
 			"has_pending_entry": runtime_state.pending_online_entry_context != null,
 			"has_pending_config": runtime_state.pending_connection_config != null,
-		})
+			"connection_reason": reason,
+		}
+		if RoomTransportConnectionReasonScript.is_pending_entry_reason(reason):
+			_log_anomaly(log_sink, "transport_connected_without_pending_entry", payload)
+		else:
+			_log(log_sink, "transport_connected_without_pending_entry_ignored", payload)
 		return
 	if orchestrator.dispatch_transport_connected(room_client_gateway, log_sink):
 		return

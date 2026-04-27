@@ -9,6 +9,7 @@ func _main_body() -> void:
 	_test_settlement_show_and_reset()
 	_test_settlement_draw_result_uses_draw_title()
 	_test_settlement_team_victory_uses_victory_title()
+	_test_settlement_reset_outside_tree_does_not_resolve_runtime()
 	_test_battle_hud_debug_dump_reports_text_state()
 	_test_battle_hud_reports_item_pickup_message()
 
@@ -121,6 +122,35 @@ func _test_settlement_team_victory_uses_victory_title() -> void:
 	settlement.queue_free()
 
 
+func _test_settlement_reset_outside_tree_does_not_resolve_runtime() -> void:
+	var settlement := SettlementController.new()
+	var result_label := Label.new()
+	result_label.name = "ResultLabel"
+	var map_summary_label := Label.new()
+	map_summary_label.name = "MapSummaryLabel"
+	var rule_summary_label := Label.new()
+	rule_summary_label.name = "RuleSummaryLabel"
+	var mode_summary_label := Label.new()
+	mode_summary_label.name = "ModeSummaryLabel"
+	var character_summary_label := Label.new()
+	character_summary_label.name = "CharacterSummaryLabel"
+	var bubble_summary_label := Label.new()
+	bubble_summary_label.name = "BubbleSummaryLabel"
+	settlement.add_child(result_label)
+	settlement.add_child(map_summary_label)
+	settlement.add_child(rule_summary_label)
+	settlement.add_child(mode_summary_label)
+	settlement.add_child(character_summary_label)
+	settlement.add_child(bubble_summary_label)
+
+	settlement._ready()
+	settlement.reset_settlement()
+	var reset_dump := settlement.debug_dump_settlement_state()
+	_assert_true(not bool(reset_dump.get("visible", true)), "settlement reset outside tree remains hidden")
+
+	settlement.free()
+
+
 func _test_battle_hud_debug_dump_reports_text_state() -> void:
 	var hud := BattleHudController.new()
 	var countdown := CountdownPanel.new()
@@ -203,5 +233,4 @@ func _test_battle_hud_reports_item_pickup_message() -> void:
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
 		return
-
 

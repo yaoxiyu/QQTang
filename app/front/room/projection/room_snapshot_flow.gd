@@ -8,6 +8,7 @@ const RoomCapabilityProjectorScript = preload("res://app/front/room/projection/r
 const RoomMemberProjectorScript = preload("res://app/front/room/projection/room_member_projector.gd")
 const RoomResumeFlowScript = preload("res://app/front/room/recovery/room_resume_flow.gd")
 const ViewRevisionGuardScript = preload("res://app/front/common/view_revision_guard.gd")
+const RoomSnapshotValidityScript = preload("res://app/front/room/room_snapshot_validity.gd")
 
 var _snapshot_projector: RefCounted = RoomSnapshotProjectorScript.new()
 var _capability_projector: RefCounted = RoomCapabilityProjectorScript.new()
@@ -16,9 +17,16 @@ var _resume_flow: RefCounted = RoomResumeFlowScript.new()
 var _projection_revision_guard: RefCounted = ViewRevisionGuardScript.new()
 
 
-func consume_authoritative_snapshot(app_runtime: Object, snapshot: RoomSnapshot, previous_view_state: Dictionary = {}) -> Dictionary:
+func consume_authoritative_snapshot(app_runtime: Object, snapshot: RoomSnapshot, previous_view_state: Dictionary = {}, cache: RefCounted = null, context: Dictionary = {}) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return {}
+	if not RoomSnapshotValidityScript.can_apply_authoritative(snapshot, cache, context):
+		return {
+			"view_state": previous_view_state,
+			"resume_context": _resume_flow.build_resume_context(previous_view_state),
+			"projection_skipped": true,
+			"skip_reason": "invalid_or_placeholder_snapshot",
+		}
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = app_runtime.room_session_controller.build_room_snapshot() if snapshot != null else null
 	if _should_skip_projection(snapshot):

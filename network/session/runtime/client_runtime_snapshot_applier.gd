@@ -105,10 +105,35 @@ static func apply_authority_sideband(
 	return message_tick
 
 
+static func apply_authority_delta_sideband(world: SimWorld, message: Dictionary) -> int:
+	if world == null or message.is_empty():
+		return -1
+	var message_tick := int(message.get("tick", 0))
+	for bubble_id in _coerce_int_array(message.get("removed_bubble_ids", [])):
+		world.state.bubbles.despawn_bubble(bubble_id)
+	for item_id in _coerce_int_array(message.get("removed_item_ids", [])):
+		world.state.items.despawn_item(item_id)
+	for bubble in coerce_dictionary_array(message.get("changed_bubbles", [])):
+		world.state.bubbles.restore_bubble_from_snapshot(bubble)
+	for item in coerce_dictionary_array(message.get("changed_items", [])):
+		world.state.items.restore_item_from_snapshot(item)
+	world.rebuild_runtime_indexes()
+	return message_tick
+
+
 static func restore_bubbles(world: SimWorld, bubbles: Array[Dictionary]) -> void:
 	world.state.bubbles.clear()
 	for data in bubbles:
 		world.state.bubbles.restore_bubble_from_snapshot(data)
+
+
+static func _coerce_int_array(raw_value: Variant) -> Array[int]:
+	var result: Array[int] = []
+	if not (raw_value is Array):
+		return result
+	for entry in raw_value:
+		result.append(int(entry))
+	return result
 
 
 static func restore_items(world: SimWorld, items: Array[Dictionary]) -> void:

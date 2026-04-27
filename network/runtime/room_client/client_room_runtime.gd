@@ -576,7 +576,9 @@ func _shutdown_transport() -> void:
 	_pending_join_snapshot = false
 	_pending_join_snapshot_deadline_msec = 0
 	_last_snapshot = null
-	if _ws_client != null and _ws_client.has_method("DisconnectFromServer"):
+	if _ws_client != null and _ws_client.has_method("Shutdown"):
+		_ws_client.Shutdown()
+	elif _ws_client != null and _ws_client.has_method("DisconnectFromServer"):
 		_ws_client.DisconnectFromServer()
 	if _ws_client != null:
 		if _ws_client.get_parent() == self:

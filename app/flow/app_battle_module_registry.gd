@@ -21,7 +21,11 @@ static func register_modules(
 	if runtime.has_method("_sync_battle_context_from_fields"):
 		runtime._sync_battle_context_from_fields()
 	if battle_scene != null and runtime.battle_root != null and battle_scene.get_parent() != runtime.battle_root and runtime.has_method("_reparent_to"):
+		if battle_scene.has_method("begin_runtime_reparent"):
+			battle_scene.begin_runtime_reparent()
 		runtime._reparent_to(battle_scene, runtime.battle_root)
+		if battle_scene.has_method("end_runtime_reparent"):
+			battle_scene.end_runtime_reparent()
 
 
 static func unregister_modules(runtime: Node, battle_scene: Node) -> void:

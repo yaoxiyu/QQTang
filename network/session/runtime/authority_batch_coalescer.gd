@@ -11,12 +11,15 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 	var ack_by_peer: Dictionary = {}
 	var summary_message: Dictionary = {}
 	var summary_tick := -1
+	var delta_message: Dictionary = {}
+	var delta_tick := -1
 	var snapshot_message: Dictionary = {}
 	var snapshot_tick := -1
 	var events_by_tick: Dictionary = {}
 	var event_ids: Dictionary = {}
 	var raw_ack_count := 0
 	var raw_summary_count := 0
+	var raw_delta_count := 0
 	var raw_checkpoint_count := 0
 	var raw_auth_snapshot_count := 0
 	var dropped_stale_count := 0
@@ -55,6 +58,14 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 				summary_message = message.duplicate(true)
 			else:
 				dropped_intermediate_summary_count += 1
+		elif message_type == TransportMessageTypesScript.STATE_DELTA:
+			raw_delta_count += 1
+			var tick: int = _message_tick(message)
+			if tick <= known_tick:
+				dropped_stale_summary_count += 1
+			elif delta_message.is_empty() or tick >= delta_tick:
+				delta_tick = tick
+				delta_message = message.duplicate(true)
 		elif _is_snapshot_type(message_type):
 			if message_type == TransportMessageTypesScript.CHECKPOINT:
 				raw_checkpoint_count += 1
@@ -80,6 +91,7 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 
 	result["input_acks"] = _ack_array_from_peer_map(ack_by_peer)
 	result["latest_state_summary"] = summary_message
+	result["latest_state_delta"] = delta_message
 	result["latest_snapshot_message"] = snapshot_message
 	result["authority_events_by_tick"] = _events_array_from_tick_map(events_by_tick)
 	result["dropped_snapshot_ticks"] = dropped_snapshot_ticks
@@ -87,10 +99,12 @@ func coalesce_client_authority_batch(messages: Array, cursor: Dictionary = {}) -
 		messages.size(),
 		raw_ack_count,
 		raw_summary_count,
+		raw_delta_count,
 		raw_checkpoint_count,
 		raw_auth_snapshot_count,
 		result["input_acks"].size(),
 		summary_tick,
+		delta_tick,
 		snapshot_tick,
 		dropped_stale_summary_count,
 		dropped_intermediate_summary_count,
@@ -109,6 +123,7 @@ func _empty_result() -> Dictionary:
 	return {
 		"input_acks": [],
 		"latest_state_summary": {},
+		"latest_state_delta": {},
 		"latest_snapshot_message": {},
 		"authority_events_by_tick": [],
 		"terminal_messages": [],
@@ -171,6 +186,7 @@ func _event_id(event: Dictionary, event_tick: int, original_index: int, event_in
 func _is_authority_sync_type(message_type: String) -> bool:
 	return message_type == TransportMessageTypesScript.INPUT_ACK \
 		or message_type == TransportMessageTypesScript.STATE_SUMMARY \
+		or message_type == TransportMessageTypesScript.STATE_DELTA \
 		or _is_snapshot_type(message_type) \
 		or _is_terminal_type(message_type)
 
@@ -222,10 +238,12 @@ func _make_metrics(
 	incoming_batch_size: int,
 	raw_ack_count: int,
 	raw_summary_count: int,
+	raw_delta_count: int,
 	raw_checkpoint_count: int,
 	raw_auth_snapshot_count: int,
 	coalesced_ack_count: int,
 	coalesced_summary_tick: int,
+	coalesced_delta_tick: int,
 	coalesced_snapshot_tick: int,
 	dropped_stale_summary_count: int,
 	dropped_intermediate_summary_count: int,
@@ -241,10 +259,12 @@ func _make_metrics(
 		"incoming_batch_size": incoming_batch_size,
 		"raw_ack_count": raw_ack_count,
 		"raw_summary_count": raw_summary_count,
+		"raw_delta_count": raw_delta_count,
 		"raw_checkpoint_count": raw_checkpoint_count,
 		"raw_auth_snapshot_count": raw_auth_snapshot_count,
 		"coalesced_ack_count": coalesced_ack_count,
 		"coalesced_summary_tick": coalesced_summary_tick,
+		"coalesced_delta_tick": coalesced_delta_tick,
 		"coalesced_snapshot_tick": coalesced_snapshot_tick,
 		"dropped_stale_summary_count": dropped_stale_summary_count,
 		"dropped_intermediate_summary_count": dropped_intermediate_summary_count,

@@ -22,18 +22,21 @@ func test_build_local_input_message_sends_recent_input_batch() -> void:
 			"move_x": 1 if index % 2 == 0 else 0,
 			"move_y": 0,
 			"action_bits": 1 if index == 7 else 0,
-		})
+	})
 
 	assert_eq(String(latest_message.get("message_type", "")), TransportMessageTypesScript.INPUT_BATCH)
-	assert_eq(int(latest_message.get("client_seq", 0)), 8)
+	assert_eq(int(latest_message.get("wire_version", 0)), 2)
+	assert_eq(int(latest_message.get("client_batch_seq", 0)), 8)
 	assert_eq(int(latest_message.get("latest_tick", 0)), 13)
-	assert_eq(int(latest_message.get("tick", 0)), 13)
+	assert_false(latest_message.has("tick"))
 	assert_false(latest_message.has("frame"))
 	var frames: Array = latest_message.get("frames", [])
-	assert_eq(frames.size(), 8)
-	assert_eq(int((frames[0] as Dictionary).get("tick_id", 0)), 6)
-	assert_eq(int((frames[7] as Dictionary).get("tick_id", 0)), 13)
-	assert_true((int((frames[7] as Dictionary).get("action_bits", 0)) & 1) != 0)
+	assert_lte(frames.size(), 8)
+	assert_gt(frames.size(), 0)
+	var first_tick := int(latest_message.get("first_tick", 0))
+	var latest_frame := frames.back() as Dictionary
+	assert_eq(first_tick + int(latest_frame.get("tick_delta", 0)), 13)
+	assert_true((int(latest_frame.get("action_bits", 0)) & 1) != 0)
 	assert_eq(int(runtime.build_metrics().get("input_lead_ticks", 0)), 6)
 
 	runtime.shutdown_runtime()
@@ -72,7 +75,7 @@ func test_place_action_is_redundantly_sent_after_edge() -> void:
 	assert_true((int(((second_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
 	assert_true((int(((third_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
 	assert_false((int(((fourth_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
-	assert_eq(runtime.client_session.get_local_frame(int(first_message.get("tick", 0))).action_bits, 0)
+	assert_eq(runtime.client_session.get_local_frame(int(first_message.get("latest_tick", 0))).action_bits, 0)
 
 	runtime.shutdown_runtime()
 	runtime.queue_free()

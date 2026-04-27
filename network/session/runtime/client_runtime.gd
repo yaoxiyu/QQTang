@@ -7,16 +7,14 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtime/client_runtime_snapshot_applier.gd")
 const ClientRuntimeResumeCoordinatorScript = preload("res://network/session/runtime/client_runtime_resume_coordinator.gd")
+const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
+const ClientInputBatchBuilderScript = preload("res://network/session/runtime/client_input_batch_builder.gd")
+const ClientAuthorityIngestionScript = preload("res://network/session/runtime/client_authority_ingestion.gd")
+const ClientPredictionPolicyScript = preload("res://network/session/runtime/client_prediction_policy.gd")
+const ClientRuntimeShutdownHandleScript = preload("res://network/session/runtime/client_runtime_shutdown_handle.gd")
+const RuntimeShutdownContextScript = preload("res://app/runtime/runtime_shutdown_context.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
-const INPUT_BATCH_MAX_FRAMES := 16
-const INPUT_BATCH_WARN_FRAMES := 10
-const INPUT_BATCH_WARN_BYTES := 900
-const INPUT_ACK_SAFETY_MARGIN_TICKS := 2
-const PLACE_REDUNDANCY_TICKS := 3
-const MIN_INPUT_LEAD_TICKS := 3
-const MAX_INPUT_LEAD_TICKS := 12
-const OPENING_INPUT_LEAD_TICKS := 6
 
 signal config_accepted(config: BattleStartConfig)
 signal prediction_event(event: Dictionary)
@@ -35,21 +33,11 @@ var _active: bool = false
 var _finished: bool = false
 var latest_authoritative_events: Array = []
 var pending_authoritative_events_by_tick: Dictionary = {}
-var _latest_authoritative_event_tick: int = -1
-var _last_consumed_authoritative_event_tick: int = -1
-var _last_authority_batch_metrics: Dictionary = {}
 var _resume_coordinator: RefCounted = ClientRuntimeResumeCoordinatorScript.new()
-var _input_send_seq: int = 0
-var _runtime_input_lead_ticks: int = 0
-var _place_redundancy_ticks_remaining: int = 0
-var _last_input_batch_frame_count: int = 0
-var _last_input_batch_encoded_bytes: int = 0
-var _last_input_batch_first_tick: int = 0
-var _last_input_batch_latest_tick: int = 0
-var _last_input_batch_ack_base_tick: int = -1
-var _input_batch_budget_warn_count: int = 0
-var _max_observed_batch_frame_count: int = 0
-var _max_observed_batch_encoded_bytes: int = 0
+var _input_batch_builder: RefCounted = ClientInputBatchBuilderScript.new()
+var _authority_ingestion: RefCounted = ClientAuthorityIngestionScript.new()
+var _prediction_policy: RefCounted = ClientPredictionPolicyScript.new()
+var _shutdown_handle: RefCounted = ClientRuntimeShutdownHandleScript.new()
 
 
 func configure(peer_id: int) -> void:
@@ -66,12 +54,20 @@ func start_match(config: BattleStartConfig) -> bool:
 		return false
 
 	start_config = config.duplicate_deep()
+	_prediction_policy.configure(start_config, prediction_controller)
 	controlled_peer_id = int(start_config.controlled_peer_id) if start_config != null and int(start_config.controlled_peer_id) > 0 else local_peer_id
 	client_session = ClientSession.new()
 	client_session.configure(local_peer_id, controlled_peer_id)
 	add_child(client_session)
+	_input_batch_builder.configure(
+		local_peer_id,
+		controlled_peer_id,
+		int(start_config.protocol_version),
+		String(start_config.match_id)
+	)
 	snapshot_service = SnapshotService.new()
 	prediction_controller = PredictionController.new()
+	_prediction_policy.configure(start_config, prediction_controller)
 	add_child(prediction_controller)
 
 	var predicted_world := SimWorld.new()
@@ -114,13 +110,12 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 		return {}
 	var next_tick := _resolve_next_local_input_tick()
 	var requested_bits := int(local_input.get("action_bits", 0))
-	var has_place := (requested_bits & PlayerInputFrame.BIT_PLACE) != 0
-	var effective_place := _resolve_redundant_place_action(has_place, next_tick)
-	var effective_bits := requested_bits
-	if effective_place:
-		effective_bits |= PlayerInputFrame.BIT_PLACE
-	else:
-		effective_bits &= ~PlayerInputFrame.BIT_PLACE
+	var effective_bits: int = _input_batch_builder.resolve_effective_action_bits(
+		requested_bits,
+		next_tick,
+		_resume_coordinator,
+		prediction_controller.predicted_sim_world if prediction_controller != null else null
+	)
 	var frame := client_session.sample_input_for_tick(
 		next_tick,
 		clamp(int(local_input.get("move_x", 0)), -1, 1),
@@ -133,89 +128,7 @@ func build_local_input_message(local_input: Dictionary = {}) -> Dictionary:
 		_resume_coordinator.track_local_place_request(prediction_controller.predicted_sim_world if prediction_controller != null else null, frame.tick_id)
 	if prediction_controller != null:
 		prediction_controller.predict_to_tick(next_tick)
-	return _build_input_batch_message(frame)
-
-
-func _build_input_batch_message(latest_frame: PlayerInputFrame) -> Dictionary:
-	if latest_frame == null:
-		return {}
-	_input_send_seq += 1
-	var latest_tick := latest_frame.tick_id
-	var first_tick := _compute_input_batch_first_tick(latest_tick)
-	var frames: Array = []
-	for tick in range(first_tick, latest_tick + 1):
-		var buffered_frame: PlayerInputFrame = client_session.get_network_frame(tick) if client_session != null else null
-		if buffered_frame != null:
-			frames.append(_encode_input_frame_for_wire(buffered_frame))
-		else:
-			var fallback := _build_deterministic_missing_input_frame(tick)
-			if not fallback.is_empty():
-				frames.append(fallback)
-	var batch := {
-		"message_type": TransportMessageTypesScript.INPUT_BATCH,
-		"msg_type": TransportMessageTypesScript.INPUT_BATCH,
-		"protocol_version": int(start_config.protocol_version) if start_config != null else 1,
-		"match_id": String(start_config.match_id) if start_config != null else "",
-		"sender_peer_id": local_peer_id,
-		"peer_id": local_peer_id,
-		"client_seq": _input_send_seq,
-		"client_batch_seq": _input_send_seq,
-		"ack_base_tick": client_session.last_confirmed_tick if client_session != null else -1,
-		"first_tick": first_tick,
-		"latest_tick": latest_tick,
-		"tick": latest_tick,
-		"frame_count": frames.size(),
-		"frames": frames,
-	}
-	_record_input_batch_metrics(batch)
-	return batch
-
-
-func _compute_input_batch_first_tick(latest_tick: int) -> int:
-	var ack_tick := client_session.last_confirmed_tick if client_session != null else -1
-	var first_tick := ack_tick + 1 - INPUT_ACK_SAFETY_MARGIN_TICKS
-	first_tick = max(0, first_tick)
-	var hard_cap_first_tick := latest_tick - INPUT_BATCH_MAX_FRAMES + 1
-	first_tick = max(first_tick, hard_cap_first_tick)
-	return first_tick
-
-
-func _encode_input_frame_for_wire(frame: PlayerInputFrame) -> Dictionary:
-	return frame.to_dict()
-
-
-func _build_deterministic_missing_input_frame(tick: int) -> Dictionary:
-	return {}
-
-
-func _record_input_batch_metrics(batch: Dictionary) -> void:
-	var frame_count := int(batch.get("frame_count", 0))
-	var first_tick := int(batch.get("first_tick", 0))
-	var latest_tick := int(batch.get("latest_tick", 0))
-	var ack_base_tick := int(batch.get("ack_base_tick", -1))
-	_last_input_batch_frame_count = frame_count
-	_last_input_batch_first_tick = first_tick
-	_last_input_batch_latest_tick = latest_tick
-	_last_input_batch_ack_base_tick = ack_base_tick
-	var encoded_bytes := var_to_bytes(batch).size()
-	_last_input_batch_encoded_bytes = encoded_bytes
-	_max_observed_batch_frame_count = max(_max_observed_batch_frame_count, frame_count)
-	_max_observed_batch_encoded_bytes = max(_max_observed_batch_encoded_bytes, encoded_bytes)
-	if frame_count > INPUT_BATCH_WARN_FRAMES or encoded_bytes > INPUT_BATCH_WARN_BYTES:
-		_input_batch_budget_warn_count += 1
-		LogSyncScript.warn(
-			"QQT_INPUT_BATCH_BUDGET_WARN peer_id=%d frame_count=%d encoded_bytes=%d first_tick=%d latest_tick=%d ack_base_tick=%d" % [
-				local_peer_id,
-				frame_count,
-				encoded_bytes,
-				first_tick,
-				latest_tick,
-				ack_base_tick,
-			],
-			"",
-			0,
-			"%s sync.client_runtime" % TRACE_TAG
-		)
+	return _input_batch_builder.build_batch(client_session, frame)
 
 
 func _resolve_next_local_input_tick() -> int:
@@ -231,25 +144,11 @@ func _resolve_next_local_input_tick() -> int:
 
 
 func _resolve_runtime_input_lead_ticks() -> int:
-	var base_lead := int(start_config.network_input_lead_ticks) if start_config != null else 3
-	if base_lead <= 0:
-		base_lead = 3
-	if _runtime_input_lead_ticks <= 0:
-		_runtime_input_lead_ticks = clamp(base_lead, MIN_INPUT_LEAD_TICKS, MAX_INPUT_LEAD_TICKS)
-	if _is_dedicated_opening_lead_window():
-		return max(_runtime_input_lead_ticks, OPENING_INPUT_LEAD_TICKS)
-	return _runtime_input_lead_ticks
+	return _prediction_policy.resolve_runtime_input_lead_ticks()
 
 
 func _is_dedicated_opening_lead_window() -> bool:
-	if start_config == null or prediction_controller == null:
-		return false
-	if String(start_config.topology) != "dedicated_server":
-		return false
-	if String(start_config.session_mode) != "network_client":
-		return false
-	var opening_ticks: int = max(int(start_config.opening_input_freeze_ticks), OPENING_INPUT_LEAD_TICKS)
-	return int(prediction_controller.authoritative_tick) < int(start_config.start_tick) + opening_ticks
+	return _prediction_policy.is_dedicated_opening_lead_window()
 
 
 func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
@@ -262,19 +161,15 @@ func _build_prediction_frame(frame: PlayerInputFrame) -> PlayerInputFrame:
 
 
 func _should_suppress_place_prediction() -> bool:
-	if start_config == null:
-		return false
-	return String(start_config.topology) == "dedicated_server"
+	return _prediction_policy.should_suppress_place_prediction()
 
 
 func _should_suppress_authority_only_entity_prediction() -> bool:
-	if start_config == null:
-		return false
-	return String(start_config.topology) == "dedicated_server"
+	return _prediction_policy.should_suppress_authority_only_entity_prediction()
 
 
 func _should_compare_authority_only_entities_in_rollback() -> bool:
-	return not _should_suppress_authority_only_entity_prediction()
+	return _prediction_policy.should_compare_authority_only_entities_in_rollback()
 
 
 func _should_apply_authority_sideband_to_current_world(message_tick: int) -> bool:
@@ -286,23 +181,8 @@ func _should_apply_authority_sideband_to_current_world(message_tick: int) -> boo
 
 
 func ingest_network_message(message: Dictionary) -> void:
-	if client_session == null:
-		return
-	var message_type := str(message.get("message_type", message.get("msg_type", "")))
-	match message_type:
-		TransportMessageTypesScript.INPUT_ACK:
-			_apply_batch_input_acks([message])
-		TransportMessageTypesScript.STATE_SUMMARY:
-			_apply_latest_state_summary(message)
-			_store_authoritative_events(message)
-			_inspect_pending_place_request(int(message.get("tick", 0)), "summary")
-		TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
-			_apply_latest_authoritative_snapshot(message)
-			_inspect_pending_place_request(int(message.get("tick", 0)), "checkpoint")
-		TransportMessageTypesScript.MATCH_FINISHED:
-			_apply_terminal_message(message)
-		_:
-			pass
+	_authority_ingestion.configure(self)
+	_authority_ingestion.ingest_network_message(message)
 
 
 func build_authority_cursor() -> Dictionary:
@@ -313,29 +193,23 @@ func build_authority_cursor() -> Dictionary:
 		"predicted_until_tick": prediction_controller.predicted_until_tick if prediction_controller != null else 0,
 		"controlled_peer_id": controlled_peer_id,
 		"local_peer_id": local_peer_id,
-		"last_consumed_event_tick": _last_consumed_authoritative_event_tick,
+		"last_consumed_event_tick": _authority_ingestion.get_last_consumed_event_tick(),
 	}
 
 
 func ingest_authority_batch(batch: Dictionary) -> void:
-	if client_session == null or batch.is_empty():
-		return
-	_apply_batch_input_acks(batch.get("input_acks", []))
-	_apply_latest_state_summary(batch.get("latest_state_summary", {}))
-	_store_authoritative_events_by_tick(batch.get("authority_events_by_tick", []))
-	_apply_latest_authoritative_snapshot(batch.get("latest_snapshot_message", {}))
-	_apply_terminal_messages(batch.get("terminal_messages", []))
-	var raw_metrics = batch.get("metrics", {})
-	_last_authority_batch_metrics = raw_metrics.duplicate(true) if raw_metrics is Dictionary else {}
+	_authority_ingestion.configure(self)
+	_authority_ingestion.ingest_authority_batch(batch)
 
 
 func get_last_authority_batch_metrics() -> Dictionary:
-	return _last_authority_batch_metrics.duplicate(true)
+	return _authority_ingestion.get_last_authority_batch_metrics()
 
 
 func build_metrics() -> Dictionary:
 	var rollback_metrics := _build_rollback_metrics()
-	return {
+	var input_batch_metrics: Dictionary = _input_batch_builder.get_metrics()
+	var metrics := {
 		"ack_tick": client_session.last_confirmed_tick if client_session != null else 0,
 		"snapshot_tick": client_session.latest_snapshot_tick if client_session != null else 0,
 		"predicted_tick": prediction_controller.predicted_until_tick if prediction_controller != null else 0,
@@ -348,16 +222,9 @@ func build_metrics() -> Dictionary:
 		"rollback": rollback_metrics,
 		"input_lead_ticks": _resolve_runtime_input_lead_ticks() if start_config != null and prediction_controller != null else 0,
 		"stale_input_ack_count": client_session.stale_input_ack_count if client_session != null else 0,
-		"input_batch_frame_count": _last_input_batch_frame_count,
-		"input_batch_encoded_bytes": _last_input_batch_encoded_bytes,
-		"input_batch_first_tick": _last_input_batch_first_tick,
-		"input_batch_latest_tick": _last_input_batch_latest_tick,
-		"input_batch_ack_base_tick": _last_input_batch_ack_base_tick,
-		"input_batch_budget_warn_count": _input_batch_budget_warn_count,
-		"max_observed_batch_frame_count": _max_observed_batch_frame_count,
-		"max_observed_batch_encoded_bytes": _max_observed_batch_encoded_bytes,
-		"input_batch_send_count": _input_send_seq,
 	}
+	metrics.merge(input_batch_metrics, true)
+	return metrics
 
 
 func _build_rollback_metrics() -> Dictionary:
@@ -388,6 +255,26 @@ func is_active() -> bool:
 
 
 func shutdown_runtime() -> void:
+	_shutdown_handle.configure(self)
+	_shutdown_handle.shutdown(RuntimeShutdownContextScript.new("client_runtime_shutdown", false))
+
+
+func get_shutdown_name() -> String:
+	_shutdown_handle.configure(self)
+	return _shutdown_handle.get_shutdown_name()
+
+
+func get_shutdown_priority() -> int:
+	_shutdown_handle.configure(self)
+	return _shutdown_handle.get_shutdown_priority()
+
+
+func shutdown(_context: Variant) -> void:
+	_shutdown_handle.configure(self)
+	_shutdown_handle.shutdown(_context)
+
+
+func _shutdown_runtime_internal(_context: Variant) -> void:
 	_active = false
 	_finished = false
 	start_config = null
@@ -405,21 +292,23 @@ func shutdown_runtime() -> void:
 	_last_resync_tick = -1
 	latest_authoritative_events.clear()
 	pending_authoritative_events_by_tick.clear()
-	_latest_authoritative_event_tick = -1
-	_last_consumed_authoritative_event_tick = -1
-	_last_authority_batch_metrics.clear()
+	_authority_ingestion.reset()
 	_resume_coordinator.reset()
-	_input_send_seq = 0
-	_runtime_input_lead_ticks = 0
-	_place_redundancy_ticks_remaining = 0
-	_last_input_batch_frame_count = 0
-	_last_input_batch_encoded_bytes = 0
-	_last_input_batch_first_tick = 0
-	_last_input_batch_latest_tick = 0
-	_last_input_batch_ack_base_tick = -1
-	_input_batch_budget_warn_count = 0
-	_max_observed_batch_frame_count = 0
-	_max_observed_batch_encoded_bytes = 0
+	_input_batch_builder.reset()
+	_prediction_policy.reset()
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return _build_shutdown_metrics()
+
+
+func _build_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"active": _active,
+		"has_client_session": client_session != null,
+		"has_prediction_controller": prediction_controller != null,
+	}
 
 
 # LegacyMigration: Inject resume checkpoint for battle recovery
@@ -451,328 +340,12 @@ func _mark_predicted_players_as_network(predicted_world: SimWorld) -> void:
 
 
 func consume_pending_authoritative_events() -> Array:
-	if pending_authoritative_events_by_tick.is_empty():
-		return []
-	var ticks := pending_authoritative_events_by_tick.keys()
-	ticks.sort()
-	var consumed_events: Array = []
-	var max_consumed_tick := _last_consumed_authoritative_event_tick
-	for tick_value in ticks:
-		var tick_id := int(tick_value)
-		if tick_id <= _last_consumed_authoritative_event_tick:
-			continue
-		consumed_events.append_array((pending_authoritative_events_by_tick[tick_value] as Array).duplicate())
-		max_consumed_tick = max(max_consumed_tick, tick_id)
-	if consumed_events.is_empty():
-		return []
-	_last_consumed_authoritative_event_tick = max_consumed_tick
-	latest_authoritative_events = consumed_events.duplicate()
-	_latest_authoritative_event_tick = max_consumed_tick
-	return consumed_events
-
-
-func _store_authoritative_events(message: Dictionary) -> void:
-	var tick_id := int(message.get("tick", 0))
-	var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events(message.get("events", []))
-	latest_authoritative_events = decoded_events
-	_latest_authoritative_event_tick = tick_id if not decoded_events.is_empty() else -1
-	if decoded_events.is_empty():
-		return
-	pending_authoritative_events_by_tick[tick_id] = decoded_events
-	_log_missing_bubble_state_after_place(tick_id, decoded_events)
-
-
-func _store_authoritative_events_by_tick(entries: Array) -> void:
-	for entry in entries:
-		if not (entry is Dictionary):
-			continue
-		var tick_id := int((entry as Dictionary).get("tick", -1))
-		if tick_id < 0:
-			continue
-		var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events((entry as Dictionary).get("events", []))
-		if decoded_events.is_empty():
-			continue
-		if not pending_authoritative_events_by_tick.has(tick_id):
-			pending_authoritative_events_by_tick[tick_id] = []
-		(pending_authoritative_events_by_tick[tick_id] as Array).append_array(decoded_events)
-		latest_authoritative_events = decoded_events
-		_latest_authoritative_event_tick = max(_latest_authoritative_event_tick, tick_id)
-		_log_missing_bubble_state_after_place(tick_id, decoded_events)
-
-
-func _apply_batch_input_acks(input_acks: Array) -> void:
-	if client_session == null:
-		return
-	var expected_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
-	for ack in input_acks:
-		if not (ack is Dictionary):
-			continue
-		var ack_peer_id := int((ack as Dictionary).get("peer_id", -1))
-		if ack_peer_id == expected_peer_id or ack_peer_id == local_peer_id:
-			client_session.on_input_ack(int((ack as Dictionary).get("ack_tick", 0)))
-
-
-func _apply_ack_by_peer(ack_by_peer: Variant) -> void:
-	if client_session == null or not (ack_by_peer is Dictionary):
-		return
-	var expected_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
-	for key in (ack_by_peer as Dictionary).keys():
-		var peer_id := int(key)
-		if peer_id != expected_peer_id and peer_id != local_peer_id:
-			continue
-		client_session.on_input_ack(int((ack_by_peer as Dictionary).get(key, 0)))
-
-
-func _apply_latest_state_summary(message: Dictionary) -> void:
-	if client_session == null or message.is_empty():
-		return
-	_apply_ack_by_peer(message.get("ack_by_peer", {}))
-	client_session.on_state_summary(message)
-	_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
-	if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
-		_apply_authority_sideband_from_message(message, false, false)
-
-
-func _apply_latest_authoritative_snapshot(message: Dictionary) -> void:
-	if client_session == null or message.is_empty():
-		return
-	client_session.on_snapshot(message)
-	_apply_remote_player_summary_to_predicted_world(client_session.latest_player_summary)
-	if _should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
-		_apply_authority_sideband_from_message(message, true, true)
-	if prediction_controller != null:
-		var authoritative_snapshot := ClientRuntimeSnapshotApplierScript.snapshot_from_message(message)
-		_log_snapshot_mismatch(authoritative_snapshot)
-		prediction_controller.on_authoritative_snapshot(authoritative_snapshot)
-
-
-func _apply_terminal_messages(messages: Array) -> void:
-	for message in messages:
-		if message is Dictionary:
-			_apply_terminal_message(message)
-
-
-func _apply_terminal_message(message: Dictionary) -> void:
-	if message.is_empty():
-		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
-	if message_type != TransportMessageTypesScript.MATCH_FINISHED:
-		return
-	_finished = true
-	var result := BattleResult.from_dict(message.get("result", {}))
-	var resolved_local_peer_id := controlled_peer_id if controlled_peer_id > 0 else local_peer_id
-	result.bind_local_peer_context(resolved_local_peer_id)
-	_apply_match_finished_to_predicted_world(result)
-	battle_finished.emit(result)
-
-
-func _extract_event_types(events: Array) -> Array[int]:
-	var event_types: Array[int] = []
-	for event in events:
-		if event == null:
-			continue
-		event_types.append(int(event.event_type))
-	return event_types
-
-
-func _log_missing_bubble_state_after_place(tick_id: int, events: Array) -> void:
-	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
-		return
-	var world := prediction_controller.predicted_sim_world
-	for event in events:
-		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_PLACED:
-			continue
-		var bubble_id := int(event.payload.get("bubble_id", -1))
-		if bubble_id < 0:
-			LogSyncScript.warn(
-				"anomaly=placed_event_missing_bubble_id tick=%d payload=%s" % [
-					tick_id,
-					str(event.payload),
-				],
-				"",
-				0,
-				"%s sync.client_runtime" % TRACE_TAG
-			)
-			continue
-		var bubble = world.state.bubbles.get_bubble(bubble_id)
-		if bubble == null:
-			LogSyncScript.warn(
-				"anomaly=placed_event_without_world_bubble tick=%d bubble_id=%d payload=%s" % [
-					tick_id,
-					bubble_id,
-					str(event.payload),
-				],
-				"",
-				0,
-				"%s sync.client_runtime" % TRACE_TAG
-			)
-
-
-func _apply_authority_sideband_from_message(message: Dictionary, include_walls: bool, include_mode_state: bool) -> void:
-	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
-		return
-	var applied_tick := ClientRuntimeSnapshotApplierScript.apply_authority_sideband(
-		prediction_controller.predicted_sim_world,
-		message,
-		include_walls,
-		include_mode_state
-	)
-	_resume_coordinator.note_applied_authority_sideband(applied_tick)
-
-
-func _resolve_local_place_action(requested_place: bool, local_tick: int) -> bool:
-	return _resume_coordinator.resolve_local_place_action(
-		requested_place,
-		local_tick,
-		prediction_controller.predicted_sim_world if prediction_controller != null else null
-	)
-
-
-func _resolve_redundant_place_action(requested_place: bool, local_tick: int) -> bool:
-	if _resolve_local_place_action(requested_place, local_tick):
-		_place_redundancy_ticks_remaining = PLACE_REDUNDANCY_TICKS
-	if _place_redundancy_ticks_remaining <= 0:
-		return false
-	_place_redundancy_ticks_remaining -= 1
-	return true
-
-
-func _inspect_pending_place_request(authoritative_tick: int, source: String) -> void:
-	_resume_coordinator.inspect_pending_place_request(
-		authoritative_tick,
-		source,
-		prediction_controller.predicted_sim_world if prediction_controller != null else null
-	)
-
-
-func _apply_match_finished_to_predicted_world(result: BattleResult) -> void:
-	if prediction_controller == null or prediction_controller.predicted_sim_world == null or result == null:
-		return
-	var world := prediction_controller.predicted_sim_world
-	world.state.match_state.phase = MatchState.Phase.ENDED
-	world.state.match_state.winner_team_id = int(result.winner_team_ids[0]) if not result.winner_team_ids.is_empty() else -1
-	world.state.match_state.winner_player_id = _resolve_winner_player_id_from_result(world, result)
-	world.state.match_state.ended_reason = _finish_reason_to_match_end_reason(result.finish_reason)
-	if result.finish_tick > 0:
-		world.state.match_state.tick = result.finish_tick
-
-
-func _resolve_winner_player_id_from_result(world: SimWorld, result: BattleResult) -> int:
-	if world == null or result == null or result.winner_peer_ids.is_empty() or start_config == null:
-		return -1
-	var winner_peer_id := int(result.winner_peer_ids[0])
-	var winner_slot := -1
-	for player_entry in start_config.player_slots:
-		if int(player_entry.get("peer_id", -1)) == winner_peer_id:
-			winner_slot = int(player_entry.get("slot_index", -1))
-			break
-	if winner_slot < 0:
-		return -1
-	for player_id in range(world.state.players.size()):
-		var player := world.state.players.get_player(player_id)
-		if player != null and player.player_slot == winner_slot:
-			return player.entity_id
-	return -1
-
-
-func _finish_reason_to_match_end_reason(finish_reason: String) -> int:
-	match finish_reason:
-		"last_survivor":
-			return MatchState.EndReason.LAST_SURVIVOR
-		"team_eliminated":
-			return MatchState.EndReason.TEAM_ELIMINATED
-		"time_up":
-			return MatchState.EndReason.TIME_UP
-		"mode_objective":
-			return MatchState.EndReason.MODE_OBJECTIVE
-		"force_end":
-			return MatchState.EndReason.FORCE_END
-		_:
-			return MatchState.EndReason.FORCE_END
-
-
-func _apply_remote_player_summary_to_predicted_world(player_summary: Array[Dictionary]) -> void:
-	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
-		return
-	ClientRuntimeSnapshotApplierScript.apply_remote_player_summary(prediction_controller.predicted_sim_world, player_summary)
+	_authority_ingestion.configure(self)
+	return _authority_ingestion.consume_pending_authoritative_events()
 
 
 func _resolve_ignored_local_player_keys_for_rollback() -> Array[String]:
-	if start_config == null:
-		return []
-	if String(start_config.topology) != "dedicated_server":
-		return []
-	return [
-		"last_place_bubble_pressed",
-		"bomb_available",
-	]
-
-
-func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
-	if authoritative_snapshot == null or prediction_controller == null or prediction_controller.rollback_controller == null:
-		return
-	var local_snapshot := prediction_controller.rollback_controller.snapshot_buffer.get_snapshot(authoritative_snapshot.tick_id)
-	if local_snapshot == null:
-		log_event.emit("Checkpoint mismatch tick %d: local_snapshot missing" % authoritative_snapshot.tick_id)
-		return
-	var rollback := prediction_controller.rollback_controller
-	var reasons: Array[String] = []
-	var diff: Dictionary = rollback.describe_snapshot_diff(local_snapshot, authoritative_snapshot)
-	if bool(diff.get("equal", false)):
-		return
-	var section := String(diff.get("first_diff_section", ""))
-	if not section.is_empty():
-		reasons.append(section)
-	var field := String(diff.get("first_diff_field", ""))
-	if not field.is_empty():
-		reasons.append("key %s local=%s auth=%s" % [
-			field,
-			str(diff.get("local_value", null)),
-			str(diff.get("authority_value", null)),
-		])
-	if reasons.is_empty():
-		return
-	if _should_suppress_rollback_probe_log(reasons):
-		return
-	LogSyncScript.info(
-		"rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
-			authoritative_snapshot.tick_id,
-			", ".join(reasons),
-			prediction_controller.predicted_until_tick if prediction_controller != null else -1,
-			client_session.last_confirmed_tick if client_session != null else -1,
-			_find_player_entry_for_log(local_snapshot.players),
-			_find_player_entry_for_log(authoritative_snapshot.players),
-			local_snapshot.bubbles.size(),
-			authoritative_snapshot.bubbles.size(),
-			local_snapshot.items.size(),
-			authoritative_snapshot.items.size(),
-		],
-		"",
-		0,
-		"%s sync.client_runtime.rollback" % TRACE_TAG
-	)
-	log_event.emit("Checkpoint mismatch tick %d: %s" % [authoritative_snapshot.tick_id, ", ".join(reasons)])
-
-
-func _should_suppress_rollback_probe_log(reasons: Array[String]) -> bool:
-	if reasons.is_empty():
-		return true
-	if reasons.has("bubbles") or reasons.has("items"):
-		return false
-	for reason in reasons:
-		if not reason.begins_with("key "):
-			continue
-		if reason.begins_with("key move_phase_ticks "):
-			return true
-	return false
-
-
-func _find_player_entry_for_log(values: Array[Dictionary]) -> String:
-	var target_slot := _resolve_controlled_slot(start_config)
-	for entry in values:
-		if int(entry.get("player_slot", -1)) == target_slot:
-			return str(entry)
-	return "{}"
+	return _prediction_policy.resolve_ignored_local_player_keys_for_rollback()
 
 
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:

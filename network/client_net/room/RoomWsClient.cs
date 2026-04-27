@@ -24,11 +24,16 @@ public partial class RoomWsClient : Node
     private readonly RoomProtoCodec _codec = new();
     private readonly RoomClientEnvelopeFactory _envelopeFactory = new();
     private readonly RoomCanonicalMessageMapper _messageMapper = new();
+    private bool _shutdown;
 
     public RoomClientSessionState SessionState { get; } = new();
 
     public Error ConnectToServer(string host, int port)
     {
+        if (_shutdown)
+        {
+            return Error.Unavailable;
+        }
         var normalizedHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
         var normalizedPort = port > 0 ? port : 9100;
         var url = $"ws://{normalizedHost}:{normalizedPort}/ws";
@@ -48,6 +53,10 @@ public partial class RoomWsClient : Node
 
     public void DisconnectFromServer()
     {
+        if (_shutdown)
+        {
+            return;
+        }
         _socket.Close();
         if (SessionState.Connected)
         {
@@ -57,8 +66,25 @@ public partial class RoomWsClient : Node
         }
     }
 
+    public void Shutdown()
+    {
+        if (_shutdown)
+        {
+            return;
+        }
+        _shutdown = true;
+        _socket.Close();
+        SessionState.Connected = false;
+        SessionState.ConnectionState = "disconnected";
+        _socket.Dispose();
+    }
+
     public Error SendBinary(byte[] payload)
     {
+        if (_shutdown)
+        {
+            return Error.Unavailable;
+        }
         if (_socket.GetReadyState() != WebSocketPeer.State.Open)
         {
             return Error.Unavailable;
@@ -68,6 +94,10 @@ public partial class RoomWsClient : Node
 
     public Error SendMessage(Godot.Collections.Dictionary message)
     {
+        if (_shutdown)
+        {
+            return Error.Unavailable;
+        }
         if (message == null)
         {
             return Error.InvalidData;
@@ -94,6 +124,10 @@ public partial class RoomWsClient : Node
 
     public override void _Process(double delta)
     {
+        if (_shutdown)
+        {
+            return;
+        }
         _socket.Poll();
         var state = _socket.GetReadyState();
 
@@ -132,6 +166,11 @@ public partial class RoomWsClient : Node
                 EmitSignal(SignalName.RoomError, "ROOM_MESSAGE_MAP_FAILED", ex.Message);
             }
         }
+    }
+
+    public override void _ExitTree()
+    {
+        Shutdown();
     }
 
     private void UpdateSessionStateOnOutgoingMessage(Godot.Collections.Dictionary message)

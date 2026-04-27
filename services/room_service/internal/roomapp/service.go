@@ -783,10 +783,12 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 	})
 	if err != nil {
 		roomTransitionEngine.ApplyManualBattleAllocationFailed(room, s.roomOwnerByID[input.RoomID], "MANUAL_BATTLE_ALLOCATE_RPC_ERROR", err.Error())
+		s.syncDirectoryEntryLocked(room)
 		return nil, err
 	}
 	if !result.OK {
 		roomTransitionEngine.ApplyManualBattleAllocationFailed(room, s.roomOwnerByID[input.RoomID], result.ErrorCode, result.UserMessage)
+		s.syncDirectoryEntryLocked(room)
 		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
 	}
 
@@ -805,6 +807,7 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		s.metrics.queueStateManualRoomWriteCount.Add(1)
 		panic("DEBT-011: manual room must not write QueueState")
 	}
+	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -820,14 +823,23 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	if !ok {
 		return nil, ErrMemberNotFound
 	}
+	handoff := room.BattleState
+	if room.RoomState.Phase == RoomPhaseInBattle && room.BattleState.Phase == BattlePhaseActive {
+		if handoff.AssignmentID == "" || handoff.AssignmentID != input.AssignmentID {
+			return nil, fmt.Errorf("assignment mismatch")
+		}
+		if handoff.BattleID != "" && input.BattleID != "" && handoff.BattleID != input.BattleID {
+			return nil, fmt.Errorf("battle mismatch")
+		}
+		if handoff.MatchID != "" && input.MatchID != "" && handoff.MatchID != input.MatchID {
+			return nil, fmt.Errorf("match mismatch")
+		}
+		s.syncDirectoryEntryLocked(room)
+		return s.snapshotProjectionLocked(room), nil
+	}
 	if room.RoomState.Phase != RoomPhaseBattleEntryReady || room.BattleState.Phase != BattlePhaseReady {
 		return nil, ErrRoomPhaseInvalid
 	}
-	if s.game == nil {
-		return nil, fmt.Errorf("game client not configured")
-	}
-
-	handoff := room.BattleState
 	if handoff.AssignmentID == "" || handoff.AssignmentID != input.AssignmentID {
 		return nil, fmt.Errorf("assignment mismatch")
 	}
@@ -836,6 +848,9 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	}
 	if handoff.MatchID != "" && input.MatchID != "" && handoff.MatchID != input.MatchID {
 		return nil, fmt.Errorf("match mismatch")
+	}
+	if s.game == nil {
+		return nil, fmt.Errorf("game client not configured")
 	}
 
 	result, err := s.game.CommitAssignmentReady(gameclient.CommitAssignmentReadyInput{
@@ -861,6 +876,7 @@ func (s *Service) AckBattleEntry(input AckBattleEntryInput) (*SnapshotProjection
 	if strings.TrimSpace(result.CommittedState) == "committed" {
 		roomTransitionEngine.ApplyBattleStarted(room, s.roomOwnerByID[input.RoomID])
 	}
+	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
 
@@ -1524,13 +1540,16 @@ func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 		s.registry.RemoveRoomEntry(room.RoomID)
 		return
 	}
+	if room.RoomState.Phase == RoomPhaseBattleEntryReady ||
+		room.RoomState.Phase == RoomPhaseBattleEntering ||
+		room.RoomState.Phase == RoomPhaseInBattle {
+		s.registry.RemoveRoomEntry(room.RoomID)
+		return
+	}
 	memberCount := len(room.Members)
 	_, hasAvailableSlot := firstAvailableSlot(room.OpenSlotIndices, room.Members)
 	joinable := hasAvailableSlot &&
-		!canCancelQueueFromState(room.QueueState.Phase) &&
-		room.RoomState.Phase != RoomPhaseBattleEntryReady &&
-		room.RoomState.Phase != RoomPhaseBattleEntering &&
-		room.RoomState.Phase != RoomPhaseInBattle
+		!canCancelQueueFromState(room.QueueState.Phase)
 	s.registry.UpsertRoomEntry(registry.DirectoryEntry{
 		RoomID:          room.RoomID,
 		RoomDisplayName: room.RoomDisplayName,

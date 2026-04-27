@@ -2,6 +2,10 @@ class_name ServerSession
 extends Node
 
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const AuthorityStateSummaryBuilderScript = preload("res://network/session/runtime/authority_state_summary_builder.gd")
+const AuthorityStateDeltaBuilderScript = preload("res://network/session/runtime/authority_state_delta_builder.gd")
+const AuthorityCheckpointBuilderScript = preload("res://network/session/runtime/authority_checkpoint_builder.gd")
+const RuntimeShutdownContextScript = preload("res://app/runtime/runtime_shutdown_context.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
 const DEBUG_SYNC_EVENT_LOGS := false
@@ -9,6 +13,9 @@ const DEBUG_SYNC_EVENT_LOGS := false
 var room_session: RoomSession = RoomSession.new()
 var active_match: BattleMatch = null
 var outgoing_messages: Array[Dictionary] = []
+var _state_summary_builder: RefCounted = AuthorityStateSummaryBuilderScript.new()
+var _state_delta_builder: RefCounted = AuthorityStateDeltaBuilderScript.new()
+var _checkpoint_builder: RefCounted = AuthorityCheckpointBuilderScript.new()
 
 
 func create_room(room_id: String, map_id: String = "", mode_id: String = "") -> void:
@@ -66,6 +73,14 @@ func poll_messages() -> Array[Dictionary]:
 	return messages
 
 
+func build_wire_budget_metrics() -> Dictionary:
+	return {
+		"state_summary": _state_summary_builder.build_metrics() if _state_summary_builder != null else {},
+		"state_delta": _state_delta_builder.build_metrics() if _state_delta_builder != null else {},
+		"checkpoint": _checkpoint_builder.build_metrics() if _checkpoint_builder != null else {},
+	}
+
+
 func _tick_collect_inputs(_tick_id: int) -> void:
 	if active_match == null:
 		return
@@ -85,16 +100,10 @@ func _tick_world(_tick_id: int) -> void:
 		snapshot = active_match.get_snapshot(tick_id)
 	var events: Array = _serialize_events(result.get("events", []))
 	_log_bubble_placed_events(tick_id, events, snapshot)
-	_queue_message({
-		"msg_type": "STATE_SUMMARY",
-		"tick": tick_id,
-		"player_summary": active_match.build_player_position_summary(),
-		"bubbles": snapshot.bubbles if snapshot != null else [],
-		"items": snapshot.items if snapshot != null else [],
-		"match_state": snapshot.match_state.duplicate(true) if snapshot != null else {},
-		"events": events,
-		"checksum": snapshot.checksum if snapshot != null else 0
-	})
+	_queue_message(_state_summary_builder.build_core(active_match, snapshot, tick_id, events))
+	var delta: Dictionary = _state_delta_builder.build_delta(active_match, snapshot, tick_id, events)
+	if not delta.is_empty():
+		_queue_message(delta)
 
 func _tick_snapshot(tick_id: int) -> void:
 	if active_match == null or tick_id % 5 != 0:
@@ -107,19 +116,7 @@ func _tick_snapshot(tick_id: int) -> void:
 		snapshot = active_match.snapshot_service.build_standard_snapshot(active_match.sim_world, tick_id, false)
 		snapshot.checksum = active_match.compute_checksum(tick_id)
 
-	_queue_message({
-		"msg_type": "CHECKPOINT",
-		"tick": snapshot.tick_id,
-		"players": snapshot.players,
-		"player_summary": active_match.build_player_position_summary(),
-		"bubbles": snapshot.bubbles,
-		"items": snapshot.items,
-		"walls": snapshot.walls,
-		"match_state": snapshot.match_state.duplicate(true),
-		"mode_state": snapshot.mode_state.duplicate(true),
-		"rng_state": snapshot.rng_state,
-		"checksum": snapshot.checksum
-	})
+	_queue_message(_checkpoint_builder.build_checkpoint(active_match, snapshot))
 
 
 func _tick_ack_inputs(tick_id: int) -> void:
@@ -197,6 +194,34 @@ func _normalize_variant(value: Variant) -> Variant:
 
 
 func _exit_tree() -> void:
+	shutdown_runtime()
+
+
+func shutdown_runtime() -> void:
+	shutdown(RuntimeShutdownContextScript.new("server_session_shutdown", false))
+
+
+func get_shutdown_name() -> String:
+	return "server_session"
+
+
+func get_shutdown_priority() -> int:
+	return 60
+
+
+func shutdown(_context: Variant) -> void:
 	if active_match != null:
 		active_match.dispose()
 		active_match = null
+	outgoing_messages.clear()
+	_state_summary_builder.reset()
+	_state_delta_builder.reset()
+	_checkpoint_builder.reset()
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"has_active_match": active_match != null,
+		"pending_outgoing_messages": outgoing_messages.size(),
+	}

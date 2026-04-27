@@ -8,6 +8,7 @@ const RoomReturnRecoveryScript = preload("res://network/session/runtime/room_ret
 const NetworkErrorCodesScript = preload("res://network/runtime/network_error_codes.gd")
 const BattleFlowCoordinatorScript = preload("res://scenes/battle/battle_flow_coordinator.gd")
 const BattleResultTransitionControllerScript = preload("res://scenes/battle/battle_result_transition_controller.gd")
+const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -47,15 +48,19 @@ var _battle_exit_recovery: BattleExitRecovery = BattleExitRecoveryScript.new()
 var _room_return_recovery: RoomReturnRecovery = RoomReturnRecoveryScript.new()
 var _battle_flow_coordinator = BattleFlowCoordinatorScript.new()
 var _battle_result_transition_controller = BattleResultTransitionControllerScript.new()
+var _shutdown_coordinator: RefCounted = RuntimeShutdownCoordinatorScript.new()
+var _shutdown_complete: bool = false
 var _pressed_direction_stack: Array[String] = []
 var _direction_tap_stack: Array[String] = []
 var _last_place_pressed: bool = false
 var _place_action_latched: bool = false
 var _runtime_bound: bool = false
 var _battle_visuals_released: bool = false
+var _runtime_reparenting: bool = false
 
 
 func _ready() -> void:
+	_shutdown_coordinator.register_handle(self)
 	_set_battle_visuals_available(false)
 	call_deferred("_bind_runtime")
 
@@ -125,6 +130,31 @@ func _initialize_runtime() -> void:
 
 
 func _exit_tree() -> void:
+	if _runtime_reparenting:
+		return
+	_shutdown_coordinator.shutdown_all("battle_main_exit", false)
+
+
+func begin_runtime_reparent() -> void:
+	_runtime_reparenting = true
+
+
+func end_runtime_reparent() -> void:
+	_runtime_reparenting = false
+
+
+func get_shutdown_name() -> String:
+	return "battle_main_controller"
+
+
+func get_shutdown_priority() -> int:
+	return 70
+
+
+func shutdown(_context: Variant) -> void:
+	if _shutdown_complete:
+		return
+	_shutdown_complete = true
 	if _app_runtime != null:
 		_app_runtime.unregister_battle_modules(self)
 	if settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
@@ -132,6 +162,15 @@ func _exit_tree() -> void:
 	if settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
 		settlement_controller.rematch_requested.disconnect(_on_settlement_rematch_requested)
 	_disconnect_session_signals(true)
+	_shutdown_active_battle()
+
+
+func get_shutdown_metrics() -> Dictionary:
+	return {
+		"shutdown_failed": false,
+		"shutdown_complete": _shutdown_complete,
+		"session_bound": _session_adapter != null,
+	}
 
 
 func _unhandled_input(event: InputEvent) -> void:

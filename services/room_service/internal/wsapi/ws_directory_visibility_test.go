@@ -168,6 +168,19 @@ func TestWSDirectorySubscriberNoUnrelatedNoise(t *testing.T) {
 	_ = memberID // keep explicit use from create snapshot validation path
 }
 
+func TestDirectoryAffectingPayloadIncludesBattleLifecycle(t *testing.T) {
+	for _, payloadType := range []PayloadType{
+		PayloadStartManualRoomBattle,
+		PayloadAckBattleEntry,
+		PayloadEnterMatchQueue,
+		PayloadCancelMatchQueue,
+	} {
+		if !isDirectoryAffectingPayload(payloadType) {
+			t.Fatalf("expected payload %v to affect directory visibility", payloadType)
+		}
+	}
+}
+
 func newAdditionalSocket(t *testing.T, addr string) *testSocket {
 	t.Helper()
 	wsURL := url.URL{Scheme: "ws", Host: addr, Path: "/ws"}

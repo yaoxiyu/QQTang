@@ -14,11 +14,10 @@ func test_routes_critical_messages_to_reliable_critical_channel() -> void:
 
 func test_routes_state_messages_to_unreliable_ordered_state_channel() -> void:
 	_assert_route(TransportMessageTypesScript.STATE_SUMMARY, BattleTransportChannelsScript.CH_STATE, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
-	_assert_route("AUTHORITY_DELTA", BattleTransportChannelsScript.CH_STATE, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
+	_assert_route(TransportMessageTypesScript.STATE_DELTA, BattleTransportChannelsScript.CH_STATE, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
 
 
 func test_routes_input_messages_to_unreliable_ordered_input_channel() -> void:
-	_assert_route(TransportMessageTypesScript.INPUT_FRAME, BattleTransportChannelsScript.CH_INPUT, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
 	_assert_route(TransportMessageTypesScript.INPUT_BATCH, BattleTransportChannelsScript.CH_INPUT, MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED)
 
 

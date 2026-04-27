@@ -1,6 +1,7 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const RoomSnapshotFlowScript = preload("res://app/front/room/projection/room_snapshot_flow.gd")
+const RoomSnapshotCacheScript = preload("res://app/front/room/room_snapshot_cache.gd")
 
 
 class FakeController:
@@ -97,5 +98,31 @@ func test_consume_authoritative_snapshot_projects_new_revision_after_duplicate()
 
 	assert_false(bool(second_result.get("projection_skipped", true)), "new revision should rebuild projection")
 	assert_eq(String(second_view_state.get("phase", "")), "battle_entry_ready", "new revision should update projected phase")
+	controller.free()
+	runtime.free()
+
+
+func test_consume_authoritative_snapshot_rejects_empty_room_state_placeholder() -> void:
+	var flow := RoomSnapshotFlowScript.new()
+	var runtime := FakeRuntime.new()
+	var controller := FakeController.new()
+	var cache := RoomSnapshotCacheScript.new()
+	var previous_view_state := {
+		"room_id": "room_alpha",
+		"phase": "in_battle",
+		"revision": 12,
+	}
+	var snapshot := RoomSnapshot.new()
+	snapshot.room_id = "room_alpha"
+	snapshot.snapshot_revision = 0
+	snapshot.room_phase = ""
+	runtime.room_session_controller = controller
+
+	var result: Dictionary = flow.consume_authoritative_snapshot(runtime, snapshot, previous_view_state, cache, {})
+	var view_state: Dictionary = result.get("view_state", {})
+
+	assert_true(bool(result.get("projection_skipped", false)), "empty room state placeholder should skip projection")
+	assert_eq(controller.applied_snapshot, null, "empty room state placeholder should not apply to room controller")
+	assert_eq(String(view_state.get("phase", "")), "in_battle", "placeholder should preserve previous phase")
 	controller.free()
 	runtime.free()

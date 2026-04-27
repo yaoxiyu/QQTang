@@ -68,7 +68,7 @@ Dedicated-server battle sync follows these invariants:
 6. ENet transport is UDP-based and must route battle messages by type:
    - critical handshake, opening, finish: reliable critical channel,
    - `STATE_SUMMARY` / authority delta: unreliable ordered state channel,
-   - `INPUT_FRAME` / `INPUT_BATCH`: unreliable ordered input channel,
+   - `INPUT_BATCH`: unreliable ordered input channel,
    - checkpoint / authoritative snapshot: isolated reliable checkpoint channel,
    - ping, pong, debug: unreliable debug channel.
 7. Opening full authority state is barriered. DS sends opening state, waits for client ready or timeout, then starts authority ticks with the first active delta ignored.

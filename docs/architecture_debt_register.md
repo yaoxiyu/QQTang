@@ -7,6 +7,9 @@
 - Forbidden new-logic dirs: shutdown handling hidden in ad-hoc scene `_exit_tree` code without a shared lifecycle owner
 - Planned phase: milestone-2026-q2-runtime-shutdown-hygiene
 - Current evidence:
+  - Phase35 partial fix added `RuntimeShutdownCoordinator`, `RuntimeShutdownContext`, `RuntimeShutdownHandle`, and `RuntimeShutdownLogClassifier`
+  - `ClientRuntimeShutdownHandle` now owns client runtime shutdown cleanup; `client_runtime.gd`, `authority_runtime.gd`, `server_session.gd`, `app_runtime_root.gd`, `enet_battle_transport.gd`, `battle_main_controller.gd`, and `battle_dedicated_server_bootstrap.gd` now expose shutdown-handle style APIs
+  - `battle_dedicated_server_bootstrap.gd` no longer has an `_exit_tree()` path that only shuts down `_transport`; it routes through the coordinator and disconnects runtime/transport signals first
   - Latest manual run `logs/clients_dev_20260427_160402/client*.godot.log` reports `ObjectDB instances leaked at exit` and `3 resources still in use at exit` after process shutdown
   - Latest interrupted DS `logs/battle_ds/battle_33a33a968ec1b7d1.log` reports `Thread object is being destroyed without its completion having been realized`, RID leaks, and `BUG: Unreferenced static string` at exit
   - Existing test reports under `tests/reports/latest/phase31_*` already show recurring Godot orphan/RID/resource leaks even when tests pass
@@ -27,14 +30,16 @@
 
 ## DEBT-015 room frontend receives placeholder authoritative snapshots during battle
 - Risk level: P2
-- Status: open
+- Status: closed
 - Related dirs: `app/front/room/`, `network/runtime/room_client/`, `network/session/`, `scenes/front/`
 - Forbidden new-logic dirs: UI code that treats `member_count=0 phase="" revision=0` as a real room snapshot
 - Planned phase: milestone-2026-q2-room-snapshot-boundary
 - Current evidence:
-  - Latest run repeatedly logs `authoritative_room_snapshot_received {"member_count":0,"phase":"","revision":0,...}` while battle is active
-  - Room recovery still succeeds, but these placeholder snapshots add noise and can confuse blocker text, start/ready gating, or future diagnostics
-  - Latest run also logs `transport_connected_without_pending_entry` 3 times during lobby/room connection startup, indicating room entry connection state is still loosely coupled to transport events
+  - Closed by Phase35 room snapshot validity boundary
+  - `RoomSnapshotValidity` classifies null/empty/dedicated missing-room placeholders before projection
+  - `RoomSnapshotCache` preserves last-good room snapshots and rejects placeholder/stale snapshots
+  - `room_use_case.gd` and `room_snapshot_flow.gd` both guard authoritative snapshot application
+  - `RoomTransportConnectionReason` separates create/join/recover warnings from reuse/battle_return/directory reconnect noise
 - Initial solution:
   - Introduce an explicit snapshot validity contract: room snapshots with empty phase and revision 0 are placeholders and must not be applied as authoritative state
   - During battle-active flow, pause room snapshot application or route it through a battle-safe cache that cannot overwrite current room members/capabilities
@@ -57,6 +62,11 @@
 - Forbidden new-logic dirs: ad-hoc reliability promotion decisions outside the battle transport/batch codec boundary
 - Planned phase: milestone-2026-q2-battle-payload-budget
 - Current evidence:
+  - Phase35 partial fix added `BattleWireBudgetContract`, `BattleWireBudgetProfiler`, `InputBatchV2`, `StateSummaryV2` core/delta/checkpoint builders, and native QQTS v2 high-frequency codec entrypoints
+  - Legacy `INPUT_FRAME` network protocol references were removed from authority runtime, DS routing, battle transport channels, and message type constants
+  - `TransportMessageCodec.decode_message(Dictionary)` now rejects high-frequency message dictionaries, so INPUT_BATCH/STATE_SUMMARY/STATE_DELTA must pass through QQTS payload decode
+  - Transport metrics now expose type-level promotion counts, last promoted payload bytes, max payload bytes, and p95 payload bytes
+  - Debt remains open until 2P steady-state and 4P soak MTU evidence is captured
   - Latest run `logs/clients_dev_20260427_160402/client*.godot.log` contains 2549 `QQT_INPUT_BATCH_BUDGET_WARN` entries
   - Latest run contains 31 client-side and 16 DS-side `battle unreliable payload promoted to reliable` entries
   - DS `STATE_SUMMARY` payloads reached roughly 1696-2856 bytes; client `INPUT_BATCH` payloads reached roughly 1200-1352 bytes, causing reliable-channel promotion
@@ -78,14 +88,16 @@
 
 ## DEBT-013 runtime/front boundary line-limit contracts regressed
 - Risk level: P1
-- Status: open
+- Status: closed
 - Related dirs: `app/flow/`, `network/session/runtime/`, `scenes/front/`
 - Forbidden new-logic dirs: `app/flow/app_runtime_root.gd`, `network/session/runtime/client_runtime.gd`, `scenes/front/room_scene_controller.gd`
 - Planned phase: milestone-2026-q2-runtime-boundary-reclosure
 - Current evidence:
-  - `tests/contracts/runtime/app_runtime_root_boundary_contract_test.gd` fails because `app/flow/app_runtime_root.gd` is 451 lines, limit is 450
-  - `tests/contracts/runtime/battle_runtime_boundary_contract_test.gd` fails because `network/session/runtime/client_runtime.gd` is 807 lines, limit is 650
-  - `tests/contracts/runtime/room_scene_controller_boundary_contract_test.gd` fails because `scenes/front/room_scene_controller.gd` is 1341 lines, limit is 420
+  - Closed by Phase35 boundary reclosure
+  - `app/flow/app_runtime_root.gd` is 437 lines, under the 450-line contract
+  - `network/session/runtime/client_runtime.gd` is under the 650-line contract after extracting input batch, authority ingestion, prediction policy, and shutdown handle collaborators
+  - `scenes/front/room_scene_controller.gd` is a thin scene script entrypoint under the 420-line contract, and formal room layout/loadout/slot/popup/theme logic lives under `scenes/front/room/room_formal_*.gd`
+  - `powershell -ExecutionPolicy Bypass -File tests/scripts/run_refactor_validation.ps1` passed with 113/113 tests
 - Done definition:
   - `app/flow/app_runtime_root.gd` is reduced to <= 450 lines without moving orchestration responsibilities back into root
   - `network/session/runtime/client_runtime.gd` is reduced to <= 650 lines by moving cohesive input-batch/metrics/runtime helper logic into collaborators
