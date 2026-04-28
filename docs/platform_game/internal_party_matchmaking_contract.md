@@ -2,9 +2,9 @@
 
 ## Scope
 
-Phase22 formal matchmaking uses internal DS -> game_service party queue APIs.
+Current formal matchmaking uses internal DS -> game_service party queue APIs.
 
-Phase23 note: After successful assignment, `game_service` now triggers battle allocation via `ds_manager_service` before reporting `battle_ready`. The assigned response no longer implies a direct DS endpoint for the `matchmade_room` pattern. Instead, `battle_server_host/port` come from the allocation flow. See `internal_battle_allocation_contract.md`.
+Current note: After successful assignment, `game_service` now triggers battle allocation via `ds_manager_service` before reporting `battle_ready`. The assigned response no longer implies a direct DS endpoint for the `matchmade_room` pattern. Instead, `battle_server_host/port` come from the allocation flow. See `internal_battle_allocation_contract.md`.
 
 Base paths:
 
@@ -136,4 +136,5 @@ selected_mode_ids[] intersection -> final mode_id -> random legal map_id -> boun
 ```
 
 The client and pre-queue match room never choose the final map.
+
 

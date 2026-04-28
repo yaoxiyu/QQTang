@@ -14,7 +14,7 @@
 using namespace godot;
 
 namespace {
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "native_kernel_v1";
 
 constexpr int32_t CELL_UNITS = 1000;
 constexpr int32_t HALF_CELL_UNITS = CELL_UNITS / 2;
@@ -827,3 +827,4 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     result["version"] = WIRE_VERSION;
     return UtilityFunctions::var_to_bytes(result);
 }
+

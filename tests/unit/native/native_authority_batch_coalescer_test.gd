@@ -7,7 +7,7 @@ func test_native_class_instantiates_and_reports_version() -> void:
 	assert_true(ClassDB.can_instantiate("QQTNativeAuthorityBatchCoalescer"))
 	var kernel: Object = ClassDB.instantiate("QQTNativeAuthorityBatchCoalescer")
 	assert_not_null(kernel)
-	assert_eq(String(kernel.call("get_kernel_version")), "phase32_sync_kernel_v1")
+	assert_eq(String(kernel.call("get_kernel_version")), "sync_kernel_v1")
 
 
 func test_native_coalesces_multiple_snapshots_to_latest() -> void:
@@ -117,3 +117,4 @@ func _packed_to_array(value: Variant) -> Array:
 	for item in value:
 		result.append(int(item))
 	return result
+

@@ -2,8 +2,8 @@
 
 > Archival note: this document is retained as historical route context. Still-valid lifecycle debt has been merged into `docs/current_source_of_truth.md`; do not treat this archived file as current truth.
 
-> 文档定位：记录 Phase13 完成后，建议单独立项处理的运行时生命周期架构优化项。  
-> 状态：`Phase14 Route A Implemented`  
+> 文档定位：记录 Current 完成后，建议单独立项处理的运行时生命周期架构优化项。  
+> 状态：`Current Route A Implemented`  
 > 优先级：`Medium`  
 > 原则：本文件记录 runtime lifecycle 架构专题的落地结果与剩余事项；若与 [`current_source_of_truth.md`](D:\code\QQTang\docs\current_source_of_truth.md) 冲突，以当前真相文档为准。
 
@@ -11,7 +11,7 @@
 
 # 1. 落地结果
 
-Phase14 已按 Route A 落地以下结果：
+Current 已按 Route A 落地以下结果：
 
 - `AppRuntimeRoot` 仍保持普通节点, 未升级为 Autoload
 - `AppRuntimeRoot` 已具备显式生命周期状态:
@@ -66,7 +66,7 @@ Phase14 已按 Route A 落地以下结果：
 
 # 4. 路线结论
 
-Phase14 已选择并落地下面路线：
+Current 已选择并落地下面路线：
 
 ## 路线 A：保留非 Autoload，但补全显式 initialized 生命周期
 
@@ -105,7 +105,7 @@ Phase14 已选择并落地下面路线：
 
 - 会波及测试、battle、network、runtime cleanup
 - 需要系统级回归验证
-- 不适合和 Phase13 验收混在一起做
+- 不适合和 Current 验收混在一起做
 
 ---
 
@@ -113,7 +113,7 @@ Phase14 已选择并落地下面路线：
 
 当前建议是：
 
-- **不要在 Phase14 收尾期间直接切路线 B**
+- **不要在 Current 收尾期间直接切路线 B**
 - 当前继续以已落地的**路线 A**为正式真相
 - 当测试系统、DS 链路、Battle 生命周期都稳定后，再决定是否继续升级到路线 B
 
@@ -185,6 +185,7 @@ Phase14 已选择并落地下面路线：
 
 # 10. 一句话结论
 
-Phase14 已完成 Route A:
+Current 已完成 Route A:
 
 > `AppRuntimeRoot` 已从隐式全局节点收口为显式生命周期运行时根, 后续只需在此基础上继续验证与评估是否升级为 Autoload。
+

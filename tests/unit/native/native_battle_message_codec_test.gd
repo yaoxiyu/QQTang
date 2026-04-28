@@ -6,7 +6,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 func test_native_battle_message_codec_roundtrips_low_frequency_generic_message() -> void:
 	var codec: Object = ClassDB.instantiate("QQTNativeBattleMessageCodec")
 	assert_not_null(codec)
-	assert_eq(String(codec.call("get_kernel_version")), "phase32_sync_kernel_v1")
+	assert_eq(String(codec.call("get_kernel_version")), "sync_kernel_v1")
 	var original := {
 		"message_type": TransportMessageTypesScript.PING,
 		"tick": 12,
@@ -94,3 +94,4 @@ func test_native_battle_message_codec_malformed_payload_returns_empty() -> void:
 	var metrics: Dictionary = codec.call("get_metrics")
 	assert_true(decoded.is_empty())
 	assert_eq(int(metrics.get("malformed_count", 0)), 1)
+

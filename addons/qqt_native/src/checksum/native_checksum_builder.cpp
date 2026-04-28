@@ -9,7 +9,7 @@ using namespace godot;
 namespace {
 constexpr uint64_t FNV_OFFSET_BASIS = 1469598103934665603ULL;
 constexpr uint64_t FNV_PRIME = 1099511628211ULL;
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "native_kernel_v1";
 
 inline void fnv_mix(uint64_t &hash_accumulator, int64_t value) {
     hash_accumulator = (hash_accumulator ^ static_cast<uint64_t>(value)) * FNV_PRIME;
@@ -73,3 +73,4 @@ int64_t QQTNativeChecksumBuilder::build_checksum(
 
     return static_cast<int64_t>(hash_value_u64);
 }
+

@@ -4,7 +4,7 @@
 
 This document defines the internal battle allocation HTTP contracts between `game_service`, `ds_manager_service`, and `battle_ds`.
 
-Phase23 introduces a three-step allocation flow:
+Current introduces a three-step allocation flow:
 
 1. `game_service` requests `ds_manager_service` to allocate a battle DS instance.
 2. `battle_ds` reports ready to both `ds_manager_service` and `game_service`.
@@ -267,3 +267,4 @@ assigned -> starting -> ready -> active -> finished
 
 - Instances in `starting` state for longer than `DSM_READY_TIMEOUT_SEC` are killed and released.
 - Instances idle for longer than `DSM_IDLE_REAP_TIMEOUT_SEC` are killed and released.
+

@@ -15,12 +15,12 @@
 
 ## Front Runtime Contract
 
-- Phase16 新增 Lobby RecentCard 节点: RecentRoomKindLabel, RecentRoomDisplayNameLabel
-- Phase16 新增 Room SummaryCard 节点: LifecycleStatusLabel, PendingActionStatusLabel
-- Phase16 新增 Loading MainLayout 节点: LoadingPhaseLabel, LoadingStatusLabel
-- Phase17 新增 Lobby RecentCard 节点: ReconnectMatchLabel, ReconnectStateLabel
-- Phase17 新增 Room SummaryCard 节点: ReconnectWindowLabel, ActiveMatchResumeLabel
-- Phase17 新增 Loading MainLayout 节点: LoadingModeLabel, ResumeHintLabel
+- Current 新增 Lobby RecentCard 节点: RecentRoomKindLabel, RecentRoomDisplayNameLabel
+- Current 新增 Room SummaryCard 节点: LifecycleStatusLabel, PendingActionStatusLabel
+- Current 新增 Loading MainLayout 节点: LoadingPhaseLabel, LoadingStatusLabel
+- Current 新增 Lobby RecentCard 节点: ReconnectMatchLabel, ReconnectStateLabel
+- Current 新增 Room SummaryCard 节点: ReconnectWindowLabel, ActiveMatchResumeLabel
+- Current 新增 Loading MainLayout 节点: LoadingModeLabel, ResumeHintLabel
 - 本阶段只统一了前台控制器初始化顺序
 - `boot_scene.tscn` 对应控制器负责 runtime bootstrap
 - `login_scene.tscn`
@@ -98,13 +98,13 @@
 
 路径：`res://scenes/front/loading_scene.tscn`
 
-Phase17 约定：
+Current 约定：
 - 普通开局通过 `FrontFlowController.request_start_match()` 从 Room 进入 Loading，并继续提交 `MATCH_LOADING_READY`。
 - 战中恢复通过 `FrontFlowController.request_resume_match()` 从 Lobby 或 Room 进入 Loading，`LoadingUseCase.loading_mode` 必须为 `resume_match`。
 - `resume_match` 模式不提交 `MATCH_LOADING_READY`，只做本地 payload 准备，随后进入 Battle。
 - Battle 启动前必须把 `AppRuntimeRoot.current_resume_snapshot` 交给 `BattleSessionAdapter`，由 adapter 注入 checkpoint。
 
-## Phase17 Room Resume UI Contract
+## Current Room Resume UI Contract
 
 - `ReconnectWindowLabel` 与 `ActiveMatchResumeLabel` 只由 `RoomViewModelBuilder -> RoomScenePresenter` 写入。
 - `RoomSceneController` 不得再绕过 presenter 自行拼接恢复窗口文本。
@@ -172,3 +172,4 @@ BattleMain 是当前正式战斗入口，前台流程层只允许切入正式 Ba
 - 正式流程层只允许使用 `SceneFlowController.BATTLE_SCENE_PATH = res://scenes/battle/battle_main.tscn`
 - 正式路径不得反向依赖任何 sandbox 场景或 sandbox 表现组件
 - sandbox 场景只能用于原型验证、测试或开发期调试
+

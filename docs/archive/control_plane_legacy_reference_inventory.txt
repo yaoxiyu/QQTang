@@ -1,0 +1,79 @@
+# Current Legacy/Compat Reference Inventory
+GeneratedAt: 2026-04-20 10:45:14 +08:00
+
+## Pattern: res://gameplay/front/flow/
+.\tests\contracts\path\canonical_path_contract_test.gd:37:		_assert_true(not text.contains("res://gameplay/front/flow/"), "%s contains no legacy front wrapper path" % scene_path)
+
+## Pattern: res://gameplay/network/session/
+.\network\README.md:16:- 禁写目录: `res://gameplay/network/session/`
+.\tests\contracts\path\canonical_path_contract_test.gd:38:		_assert_true(not text.contains("res://gameplay/network/session/"), "%s contains no legacy session wrapper path" % scene_path)
+.\tests\contracts\path\legacy_wrapper_guard_test.gd:3:const LEGACY_SESSION_PREFIX := "res://gameplay/network/session/"
+.\tests\contracts\path\legacy_wrapper_guard_test.gd:14:	"res://gameplay/network/session/",
+
+## Pattern: res://network/runtime/legacy/
+.\network\runtime\dedicated_server_bootstrap.gd:1:extends "res://network/runtime/legacy/room_service_bootstrap.gd"
+.\network\runtime\dedicated_server_bootstrap.gd:5:## - res://network/runtime/legacy/room_service_bootstrap.gd
+.\tests\contracts\runtime\room_default_port_contract_test.gd:3:const ROOM_SERVICE_BOOTSTRAP_PATH := "res://network/runtime/legacy/room_service_bootstrap.gd"
+
+## Pattern: res://network/session/legacy/
+.\docs\archive\baseline_report.md:344:- `res://network/session/legacy/server_room_service.gd`
+.\network\session\runtime\server_room_runtime_compat_impl.gd:6:## - res://network/session/legacy/room_authority_runtime.gd
+.\network\runtime\legacy\room_service_bootstrap.gd:8:const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
+.\network\session\runtime\legacy_room_runtime_bridge.gd:8:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\network\session\legacy\server_room_service.gd:14:const ServerRoomMemberServiceScript = preload("res://network/session/legacy/server_room_member_service.gd")
+.\network\session\legacy\server_room_service.gd:15:const ServerRoomMessageDispatcherScript = preload("res://network/session/legacy/server_room_message_dispatcher.gd")
+.\network\session\legacy\server_room_service.gd:16:const ServerRoomResumeServiceScript = preload("res://network/session/legacy/server_room_resume_service.gd")
+.\network\session\legacy\server_room_service.gd:17:const ServerRoomBattleHandoffServiceScript = preload("res://network/session/legacy/server_room_battle_handoff_service.gd")
+.\network\session\legacy\server_room_registry.gd:5:const RoomAuthorityRuntimeScript = preload("res://network/session/legacy/room_authority_runtime.gd")
+.\tests\smoke\multi_match\multi_room_public_lobby_smoke_test.gd:12:const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
+.\network\session\legacy\room_authority_runtime.gd:10:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\integration\network\server_disconnect_recovery_test.gd:6:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\integration\network\matchmade_room_auto_start_test.gd:3:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\integration\network\dedicated_server_multi_room_test.gd:8:const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
+.\tests\integration\network\private_room_not_in_directory_test.gd:5:const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
+.\tests\unit\network\match_room_queue_guard_test.gd:3:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\unit\network\match_room_config_guard_test.gd:3:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\unit\network\room_team_start_guard_test.gd:7:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\unit\network\room_server_service_lifecycle_test.gd:3:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\unit\network\server_room_service_ticket_guard_test.gd:5:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+.\tests\unit\network\server_room_registry_test.gd:5:const ServerRoomRegistryScript = preload("res://network/session/legacy/server_room_registry.gd")
+.\tests\integration\front\battle_settlement_rematch_flow_test.gd:3:const ServerRoomServiceScript = preload("res://network/session/legacy/server_room_service.gd")
+
+## Pattern: server_room_runtime_compat_impl
+.\network\session\runtime\server_room_runtime.gd:2:extends "res://network/session/runtime/server_room_runtime_compat_impl.gd"
+.\network\session\runtime\server_room_runtime.gd:6:## - res://network/session/runtime/server_room_runtime_compat_impl.gd
+.\docs\architecture_debt_register.md:51:- Forbidden new-logic dirs: `network/session/runtime/server_room_runtime_compat_impl.gd`
+.\docs\archive\phase_comment_inventory.txt:34:.\network\session\runtime\server_room_runtime_compat_impl.gd:3:## DEPRECATED (Current): This is a compatibility wrapper.
+.\docs\archive\phase_comment_inventory.txt:35:.\network\session\runtime\server_room_runtime_compat_impl.gd:32:var _resume_coordinator: ServerMatchResumeCoordinator = null  # Current
+.\docs\archive\phase_comment_inventory.txt:36:.\network\session\runtime\server_room_runtime_compat_impl.gd:41:	# Current: Poll resume window expiration
+.\docs\archive\phase_comment_inventory.txt:37:.\network\session\runtime\server_room_runtime_compat_impl.gd:114:	# Current: Validate battle input sender
+.\docs\archive\phase_comment_inventory.txt:38:.\network\session\runtime\server_room_runtime_compat_impl.gd:159:	# Current: Active match disconnect - enter resume window instead of immediate abort
+.\docs\archive\phase_comment_inventory.txt:39:.\network\session\runtime\server_room_runtime_compat_impl.gd:272:	# Current: Initialize resume coordinator
+.\docs\archive\phase_comment_inventory.txt:40:.\network\session\runtime\server_room_runtime_compat_impl.gd:307:	# Current: Connect resume request signal
+.\docs\archive\phase_comment_inventory.txt:41:.\network\session\runtime\server_room_runtime_compat_impl.gd:325:# Current: Connect resume coordinator signals
+.\docs\archive\phase_comment_inventory.txt:42:.\network\session\runtime\server_room_runtime_compat_impl.gd:353:	# Current: Clear resume state on match finish
+.\docs\archive\phase_comment_inventory.txt:43:.\network\session\runtime\server_room_runtime_compat_impl.gd:364:# Current: Handle resume timeout abort request
+.\docs\archive\phase_comment_inventory.txt:44:.\network\session\runtime\server_room_runtime_compat_impl.gd:370:# Current: Handle resume request from ServerRoomService
+.\docs\archive\legacy_inventory.txt:50:## Target: network/session/runtime/server_room_runtime_compat_impl.gd
+.\docs\archive\legacy_inventory.txt:52:.\network\session\runtime\server_room_runtime_compat_impl.gd
+.\tests\contracts\path\legacy_runtime_bridge_guard_test.gd:9:	var compat_lines := _line_count("res://network/session/runtime/server_room_runtime_compat_impl.gd")
+.\tests\contracts\path\legacy_runtime_bridge_guard_test.gd:11:	ok = qqt_check(_contains("res://network/session/runtime/server_room_runtime_compat_impl.gd", "legacy_room_runtime_bridge.gd"), "compat wrapper should forward to legacy bridge", prefix) and ok
+
+## Pattern: legacy_room_runtime_bridge
+.\docs\archive\legacy_inventory.txt:54:## Target: network/session/runtime/legacy_room_runtime_bridge.gd
+.\docs\archive\legacy_inventory.txt:56:.\network\session\runtime\legacy_room_runtime_bridge.gd
+.\network\session\runtime\server_room_runtime_compat_impl.gd:1:extends "res://network/session/runtime/legacy_room_runtime_bridge.gd"
+.\network\session\runtime\server_room_runtime_compat_impl.gd:5:## - res://network/session/runtime/legacy_room_runtime_bridge.gd
+.\tests\contracts\path\legacy_runtime_bridge_guard_test.gd:8:	ok = qqt_check(ResourceLoader.exists("res://network/session/runtime/legacy_room_runtime_bridge.gd"), "legacy runtime bridge script should exist", prefix) and ok
+.\tests\contracts\path\legacy_runtime_bridge_guard_test.gd:11:	ok = qqt_check(_contains("res://network/session/runtime/server_room_runtime_compat_impl.gd", "legacy_room_runtime_bridge.gd"), "compat wrapper should forward to legacy bridge", prefix) and ok
+
+## Pattern: network/runtime/dedicated_server_bootstrap.gd
+.\network\README.md:18:`res://network/runtime/dedicated_server_bootstrap.gd`
+.\app\logging\USAGE.md:39:# network/runtime/dedicated_server_bootstrap.gd
+.\docs\archive\baseline_report.md:58:- Root script: `res://network/runtime/dedicated_server_bootstrap.gd`
+.\docs\archive\baseline_report.md:323:- `res://network/runtime/dedicated_server_bootstrap.gd`
+.\docs\archive\legacy_inventory.txt:58:## Target: network/runtime/dedicated_server_bootstrap.gd
+.\docs\archive\log_migration.md:18:| `network/runtime/dedicated_server_bootstrap.gd` | 3 | LogNet | INFO/WARN |
+.\docs\archive\cleanup_baseline.md:68:- `res://network/runtime/dedicated_server_bootstrap.gd`
+
+

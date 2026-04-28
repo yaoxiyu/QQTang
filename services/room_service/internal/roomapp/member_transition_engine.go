@@ -63,6 +63,23 @@ func releaseMembersToIdle(room *domain.RoomAggregate) {
 	}
 }
 
+func releaseMembersPreservingReady(room *domain.RoomAggregate) {
+	if room == nil {
+		return
+	}
+	for memberID, member := range room.Members {
+		if member.MemberPhase == MemberPhaseDisconnected {
+			continue
+		}
+		if member.Ready {
+			member.MemberPhase = MemberPhaseReady
+		} else {
+			member.MemberPhase = MemberPhaseIdle
+		}
+		room.Members[memberID] = member
+	}
+}
+
 func markMemberDisconnected(room *domain.RoomAggregate, memberID string) {
 	if room == nil {
 		return

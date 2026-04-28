@@ -1,0 +1,23 @@
+# Forbidden path seed. Any diff under these paths requires explicit change request.
+services/game_service/internal/queue/
+services/game_service/internal/assignment/
+services/game_service/internal/battlealloc/
+services/room_service/internal/roomapp/
+services/room_service/internal/gameclient/
+network/session/runtime/server_match_service.gd
+network/runtime/battle_dedicated_server_bootstrap.gd
+network/transport/
+network/client_net/room/
+proto/qqt/room/
+proto/qqt/internal/game/
+content_source/csv/match_formats/
+content_source/csv/rulesets/
+content_source/csv/maps/
+gameplay/battle/
+gameplay/simulation/
+gameplay/network/prediction/
+gameplay/network/rollback/
+scenes/battle/battle_flow_coordinator.gd
+# battle_main_controller is allowed only for HUD resource binding, not flow or simulation changes.
+scenes/battle/battle_main_controller.gd
+

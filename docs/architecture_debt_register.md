@@ -7,12 +7,12 @@
 - Forbidden new-logic dirs: shutdown handling hidden in ad-hoc scene `_exit_tree` code without a shared lifecycle owner
 - Planned phase: milestone-2026-q2-runtime-shutdown-hygiene
 - Current evidence:
-  - Phase35 partial fix added `RuntimeShutdownCoordinator`, `RuntimeShutdownContext`, `RuntimeShutdownHandle`, and `RuntimeShutdownLogClassifier`
+  - Current partial fix added `RuntimeShutdownCoordinator`, `RuntimeShutdownContext`, `RuntimeShutdownHandle`, and `RuntimeShutdownLogClassifier`
   - `ClientRuntimeShutdownHandle` now owns client runtime shutdown cleanup; `client_runtime.gd`, `authority_runtime.gd`, `server_session.gd`, `app_runtime_root.gd`, `enet_battle_transport.gd`, `battle_main_controller.gd`, and `battle_dedicated_server_bootstrap.gd` now expose shutdown-handle style APIs
   - `battle_dedicated_server_bootstrap.gd` no longer has an `_exit_tree()` path that only shuts down `_transport`; it routes through the coordinator and disconnects runtime/transport signals first
   - Latest manual run `logs/clients_dev_20260427_160402/client*.godot.log` reports `ObjectDB instances leaked at exit` and `3 resources still in use at exit` after process shutdown
   - Latest interrupted DS `logs/battle_ds/battle_33a33a968ec1b7d1.log` reports `Thread object is being destroyed without its completion having been realized`, RID leaks, and `BUG: Unreferenced static string` at exit
-  - Existing test reports under `tests/reports/latest/phase31_*` already show recurring Godot orphan/RID/resource leaks even when tests pass
+  - Existing test reports under `tests/reports/latest/*` already show recurring Godot orphan/RID/resource leaks even when tests pass
 - Initial solution:
   - Add a shared shutdown coordinator that orders transport disconnect, runtime module unregister, thread join, timer stop, and scene-owned resource release
   - Add test helpers that explicitly `queue_free` fake runtime/controller nodes used by front room unit tests
@@ -26,7 +26,7 @@
   - Front room/runtime targeted suites pass with zero Godot orphan/resource leak warnings
 - Owner: runtime-lifecycle
 - Last updated: 2026-04-27
-- Linked tests/docs: `app/flow/app_runtime_root.gd`, `network/session/room_session_controller.gd`, `network/runtime/battle_dedicated_server_bootstrap.gd`, `scenes/battle/battle_main_controller.gd`, `tests/reports/latest/phase31_current_review_latest.txt`
+- Linked tests/docs: `app/flow/app_runtime_root.gd`, `network/session/room_session_controller.gd`, `network/runtime/battle_dedicated_server_bootstrap.gd`, `scenes/battle/battle_main_controller.gd`, `tests/reports/latest/current_review_latest.txt`
 
 ## DEBT-015 room frontend receives placeholder authoritative snapshots during battle
 - Risk level: P2
@@ -35,7 +35,7 @@
 - Forbidden new-logic dirs: UI code that treats `member_count=0 phase="" revision=0` as a real room snapshot
 - Planned phase: milestone-2026-q2-room-snapshot-boundary
 - Current evidence:
-  - Closed by Phase35 room snapshot validity boundary
+  - Closed by Current room snapshot validity boundary
   - `RoomSnapshotValidity` classifies null/empty/dedicated missing-room placeholders before projection
   - `RoomSnapshotCache` preserves last-good room snapshots and rejects placeholder/stale snapshots
   - `room_use_case.gd` and `room_snapshot_flow.gd` both guard authoritative snapshot application
@@ -62,7 +62,7 @@
 - Forbidden new-logic dirs: ad-hoc reliability promotion decisions outside the battle transport/batch codec boundary
 - Planned phase: milestone-2026-q2-battle-payload-budget
 - Current evidence:
-  - Phase35 partial fix added `BattleWireBudgetContract`, `BattleWireBudgetProfiler`, `InputBatchV2`, `StateSummaryV2` core/delta/checkpoint builders, and native QQTS v2 high-frequency codec entrypoints
+  - Current partial fix added `BattleWireBudgetContract`, `BattleWireBudgetProfiler`, `InputBatchV2`, `StateSummaryV2` core/delta/checkpoint builders, and native QQTS v2 high-frequency codec entrypoints
   - Legacy `INPUT_FRAME` network protocol references were removed from authority runtime, DS routing, battle transport channels, and message type constants
   - `TransportMessageCodec.decode_message(Dictionary)` now rejects high-frequency message dictionaries, so INPUT_BATCH/STATE_SUMMARY/STATE_DELTA must pass through QQTS payload decode
   - Transport metrics now expose type-level promotion counts, last promoted payload bytes, max payload bytes, and p95 payload bytes
@@ -93,7 +93,7 @@
 - Forbidden new-logic dirs: `app/flow/app_runtime_root.gd`, `network/session/runtime/client_runtime.gd`, `scenes/front/room_scene_controller.gd`
 - Planned phase: milestone-2026-q2-runtime-boundary-reclosure
 - Current evidence:
-  - Closed by Phase35 boundary reclosure
+  - Closed by Current boundary reclosure
   - `app/flow/app_runtime_root.gd` is 437 lines, under the 450-line contract
   - `network/session/runtime/client_runtime.gd` is under the 650-line contract after extracting input batch, authority ingestion, prediction policy, and shutdown handle collaborators
   - `scenes/front/room_scene_controller.gd` is a thin scene script entrypoint under the 420-line contract, and formal room layout/loadout/slot/popup/theme logic lives under `scenes/front/room/room_formal_*.gd`
@@ -112,7 +112,7 @@
 - Risk level: P1
 - Status: closed
 - Related dirs: `network/session/runtime/`, `network/transport/`, `gameplay/simulation/input/`, `gameplay/native_bridge/`, `addons/qqt_native/src/sync/`, `docs/architecture/battle_sync.md`
-- Closed by: phase_debt_ack_battle_assignment_cleanup (Phase32)
+- Closed by: phase_debt_ack_battle_assignment_cleanup (Current)
 - Closing conditions:
   - INPUT_BATCH_RECENT_FRAME_COUNT removed, replaced by ack-trimmed window (INPUT_ACK_SAFETY_MARGIN_TICKS + INPUT_BATCH_MAX_FRAMES hard cap)
   - Client ack cursor (last_confirmed_tick) is monotonic, stale ack counted
@@ -131,7 +131,7 @@
 - Risk level: P2
 - Status: closed
 - Related dirs: `services/room_service/internal/roomapp/`, `services/room_service/internal/gameclient/`, `services/game_service/internal/assignment/`, `services/game_service/internal/rpcapi/`, `proto/qqt/internal/game/v1/`
-- Closed by: phase_debt_ack_battle_assignment_cleanup (Phase32)
+- Closed by: phase_debt_ack_battle_assignment_cleanup (Current)
 - Closing conditions:
   - StartManualRoomBattle no longer writes QueueState (QueueEntryID/Phase/StatusText)
   - collectQueueSyncTargets only collects match rooms (casual_match_room/ranked_match_room), skips manual rooms
@@ -155,7 +155,7 @@
 - Status: closed
 - Related dirs: `network/session/runtime/`, `network/session/`, `gameplay/network/rollback/`
 - Forbidden new-logic dirs: per-message authority rollback paths that bypass a batch coalescing boundary
-- Planned phase: phase32-native-frame-sync-refactor
+- Planned phase: native-frame-sync-refactor
 - Done definition: client transport poll batches are coalesced before runtime ingestion; stale authority snapshots are dropped; one rendered client frame runs at most one rollback/resync from the latest useful authority snapshot; authority events remain ordered and are not lost when intermediate snapshots are skipped; profiling counters cover incoming batch size, checkpoint count, rollback count, replay ticks, and late input handling; native shadow parity is covered before execute mode is enabled.
 - Owner: battle-sync
 - Last updated: 2026-04-24
@@ -243,7 +243,7 @@
 - Status: closed
 - Related dirs: `network/client_net/`, `network/runtime/room_client/`, `services/room_service/internal/wsapi/`, `proto/qqt/room/v1/`
 - Forbidden new-logic dirs: `network/runtime/legacy/`, `network/session/legacy/`, `network/session/runtime/server_room_*`, `network/runtime/room_service_bootstrap.gd`
-- Planned phase: phase25-room-protocol-closure
+- Planned phase: room-protocol-closure
 - Done definition: room client send and receive path use generated protobuf envelope end-to-end, room_service wsapi no longer uses hand-written protowire as formal path, snapshot projection excludes reconnect token fields
 - Owner: room-protocol
 - Last updated: 2026-04-19
@@ -254,7 +254,7 @@
 - Status: closed
 - Related dirs: `services/room_service/internal/gameclient/`, `services/game_service/internal/rpcapi/`, `proto/qqt/internal/game/v1/`
 - Forbidden new-logic dirs: `services/game_service/internal/rpcapi/grpc_server.go` manual `grpc.ServiceDesc` and `structpb.Struct` formal request path
-- Planned phase: phase25-room-protocol-closure
+- Planned phase: room-protocol-closure
 - Done definition: room_service gameclient uses generated typed grpc client, game_service rpcapi uses generated service registration and typed request and response only, room control operations pass through typed mapper
 - Owner: control-plane
 - Last updated: 2026-04-19
@@ -265,8 +265,10 @@
 - Status: closed
 - Related dirs: `tests/csharp/QQTang.RoomClient.Tests/`, `network/client_net/room/`, `network/client_net/generated/`
 - Forbidden new-logic dirs: protocol changes in `network/client_net/room/` without committed csharp tests
-- Planned phase: phase25-room-protocol-closure
+- Planned phase: room-protocol-closure
 - Done definition: dedicated csharp test project exists in solution, envelope factory and codec and parser and snapshot mapper and canonical mapper are covered, tests run in local validation and CI entry
 - Owner: client-sdk
 - Last updated: 2026-04-19
 - Linked tests/docs: `tests/csharp/QQTang.RoomClient.Tests/RoomClientEnvelopeFactoryTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomProtoCodecTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomServerEnvelopeParserTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomSnapshotMapperTests.cs`, `tests/csharp/QQTang.RoomClient.Tests/RoomCanonicalMessageMapperTests.cs`, `scripts/validation/run_validation.ps1`, `.github/workflows/validate.yml`
+
+

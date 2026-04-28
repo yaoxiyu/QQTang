@@ -48,7 +48,7 @@ func _init() -> void:
 	])
 	if not NativeKernelRuntimeScript.is_available():
 		ok = false
-	if NativeKernelRuntimeScript.get_kernel_version() != "phase30_kernel_v1":
+	if NativeKernelRuntimeScript.get_kernel_version() != "native_kernel_v1":
 		ok = false
 	if not NativeFeatureFlagsScript.require_native_kernels:
 		ok = false
@@ -75,3 +75,4 @@ finally {
         Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
     }
 }
+

@@ -10,7 +10,7 @@
 
 本文是盘点文档，不是最终方案设计文档。
 
-Phase28 canonical state dictionary and formal FSM truth are now maintained in:
+Current canonical state dictionary and formal FSM truth are now maintained in:
 `docs/architecture/room_state_machine.md`.
 This inventory remains baseline/reference material and must not override canonical FSM rules.
 
@@ -203,3 +203,4 @@ This inventory remains baseline/reference material and must not override canonic
 15. `network/session/runtime/session_lifecycle_state.gd`
 16. `gameplay/battle/runtime/battle_flow_state.gd`
 17. `app/flow/runtime_lifecycle_state.gd`
+

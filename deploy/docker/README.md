@@ -1,11 +1,13 @@
 # Docker Deployment Scope
 
-The Phase24 Docker Compose files validate Go service image readiness for:
+The service Docker Compose files validate Go service image readiness for:
 
 - `account_service`
 - `room_service`
 - `game_service`
 - `ds_manager_service`
+
+They do not start Postgres. Local DB containers remain managed by `tools/db-up.ps1`.
 
 They do not validate Linux Godot dedicated-server native runtime readiness by themselves.
 

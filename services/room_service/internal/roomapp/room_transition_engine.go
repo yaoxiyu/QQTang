@@ -283,7 +283,7 @@ func (RoomTransitionEngine) ApplyManualBattleAllocationFailed(room *domain.RoomA
 	room.BattleState.StatusText = userMessage
 	room.QueueState.ErrorCode = errorCode
 	room.QueueState.UserMessage = userMessage
-	releaseMembersToIdle(room)
+	releaseMembersPreservingReady(room)
 	finalizeRoomTransition(room, ownerMemberID)
 }
 

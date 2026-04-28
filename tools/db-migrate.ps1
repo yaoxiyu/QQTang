@@ -144,5 +144,3 @@ if ($Service -eq 'all' -or $Service -eq 'game') {
 }
 
 Write-Host "[db-migrate] done ($Profile, service=$Service)"
-
-Pause

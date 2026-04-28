@@ -8,7 +8,7 @@
 using namespace godot;
 
 namespace {
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "native_kernel_v1";
 
 inline int64_t normalize_slot_index(int64_t tick_id, int32_t capacity) {
     const int64_t capacity_i64 = static_cast<int64_t>(capacity);
@@ -136,3 +136,4 @@ void QQTNativeSnapshotRing::write_slot_bytes(SnapshotSlot &slot, const PackedByt
     }
     std::memcpy(slot.bytes.ptrw(), snapshot_bytes.ptr(), static_cast<size_t>(size));
 }
+

@@ -1,4 +1,4 @@
--- Phase34: wallet, inventory extension, and shop purchase transaction schema.
+-- Wallet/inventory/shop, inventory extension, and shop purchase transaction schema.
 
 BEGIN;
 
@@ -139,3 +139,4 @@ CREATE TABLE IF NOT EXISTS purchase_grants (
 );
 
 COMMIT;
+

@@ -1,13 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
 FROM golang:1.24-alpine AS builder
-WORKDIR /src/services/room_service
+WORKDIR /src/services
 
-COPY services/room_service/go.mod services/room_service/go.sum ./
-RUN go mod download
+COPY services/room_service/go.mod services/room_service/go.sum room_service/
+COPY services/shared/contentmanifest/go.mod shared/contentmanifest/
+RUN cd room_service && go mod download
 
-COPY services/room_service/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/room_service ./cmd/room_service
+COPY services/shared/contentmanifest/ shared/contentmanifest/
+COPY services/room_service/ room_service/
+RUN cd room_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/room_service ./cmd/room_service
 
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates tzdata wget \

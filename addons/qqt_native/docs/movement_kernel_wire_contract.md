@@ -3,7 +3,7 @@
 ## Purpose
 Define the packed input/output contract for `QQTNativeMovementKernel.step_players_packed(...)` and the compatibility `step_players(input_blob)` entry point.
 
-This contract is Phase30 mainline native execution:
+This contract is Current mainline native execution:
 - GDScript remains the orchestration owner.
 - Native consumes packed batch input and returns packed batch results.
 - No Node/Scene/Resource references cross the bridge.
@@ -117,7 +117,7 @@ Rules:
 - One record per cell in `y-major -> x-major` order.
 - `tile_block_move` is `0/1`.
 - `bubble_id` is `-1` when no bubble occupies the cell.
-- `rail_mask_reserved` is reserved for future precomputed lane metadata; Phase30 writes `0`.
+- `rail_mask_reserved` is reserved for future precomputed lane metadata; Current writes `0`.
 
 ## Output Strides
 
@@ -210,7 +210,7 @@ Rules:
 - Grid traversal stays `y-major -> x-major`.
 - Result ordering must be fully deterministic for identical input blobs.
 
-## Phase30 Boundary Notes
+## Current Boundary Notes
 
 - This contract is intentionally coarse-grained to avoid high-frequency GDScript/native round trips.
 - GDScript bridge remains responsible for:
@@ -220,3 +220,4 @@ Rules:
   - emitting `SimEvent`
   - updating `ctx.state.indexes`
 - Native remains responsible only for batch movement hot-loop computation.
+

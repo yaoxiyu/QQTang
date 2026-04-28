@@ -17,7 +17,7 @@
 using namespace godot;
 
 namespace {
-constexpr const char *KERNEL_VERSION = "phase30_kernel_v1";
+constexpr const char *KERNEL_VERSION = "native_kernel_v1";
 constexpr int64_t WIRE_VERSION = 2;
 constexpr int32_t EXPLOSION_PAYLOAD_MAGIC = 1163153745;
 
@@ -471,3 +471,4 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
     result["version"] = WIRE_VERSION;
     return UtilityFunctions::var_to_bytes(result);
 }
+

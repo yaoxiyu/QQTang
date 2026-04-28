@@ -17,58 +17,58 @@
 ## 已完成 Rename
 
 ### 正式源码
-- `res://app/flow/phase3_debug_tools.gd` -> `res://app/debug/runtime_debug_tools.gd`
-- `Phase3DebugTools` -> `RuntimeDebugTools`
+- `res://app/flow/debug_tools.gd` -> `res://app/debug/runtime_debug_tools.gd`
+- `CurrentDebugTools` -> `RuntimeDebugTools`
 - `res://gameplay/config/map_defs/test_square_map_def.gd` -> `res://gameplay/config/map_defs/square_map_def.gd`
 - `TestSquareMapDef` -> `SquareMapDef`
 - `res://gameplay/simulation/runtime/test_map_factory.gd` -> `res://gameplay/simulation/runtime/builtin_map_factory.gd`
 - `TestMapFactory` -> `BuiltinMapFactory`
-- `res://scenes/phase3_scene_contract.md` -> `res://docs/scene_contract.md`
-- `res://scenes/test/phase0_prototype.tscn` -> `res://scenes/sandbox/simulation_prototype.tscn`
+- `res://scenes/scene_contract.md` -> `res://docs/scene_contract.md`
+- `res://scenes/test/prototype.tscn` -> `res://scenes/sandbox/simulation_prototype.tscn`
 
 ### 测试目录与脚本
-- `res://tests/phase2/helpers/fake_transport.gd` -> `res://tests/helpers/fake_transport.gd`
-- `res://tests/phase2/helpers/test_assert.gd` -> `res://tests/helpers/test_assert.gd`
-- `res://tests/simulation/phase0_gameplay_test_suite.gd` -> `res://tests/unit/simulation/gameplay_test_suite.gd`
-- `Phase0GameplayTestSuite` -> `GameplayTestSuite`
-- `res://tests/simulation/phase0_test_context.gd` -> `res://tests/unit/simulation/test_context.gd`
-- `Phase0TestContext` -> `TestContext`
+- `res://tests/current/helpers/fake_transport.gd` -> `res://tests/helpers/fake_transport.gd`
+- `res://tests/current/helpers/test_assert.gd` -> `res://tests/helpers/test_assert.gd`
+- `res://tests/simulation/gameplay_test_suite.gd` -> `res://tests/unit/simulation/gameplay_test_suite.gd`
+- `CurrentGameplayTestSuite` -> `GameplayTestSuite`
+- `res://tests/simulation/test_context.gd` -> `res://tests/unit/simulation/test_context.gd`
+- `CurrentTestContext` -> `TestContext`
 - `res://tests/simulation/test_input_layer.gd` -> `res://tests/unit/simulation/input_layer_test.gd`
 - `res://tests/simulation/test_queries.gd` -> `res://tests/unit/simulation/queries_test.gd`
 - `res://tests/simulation/test_state_layer.gd` -> `res://tests/unit/simulation/state_layer_test.gd`
 - `res://tests/simulation/test_system_flow.gd` -> `res://tests/unit/simulation/system_flow_test.gd`
-- `res://tests/phase2/unit/checksum/test_checksum_builder_phase2.gd` -> `res://tests/unit/network/checksum/checksum_builder_test.gd`
-- `res://tests/phase2/unit/input/test_input_buffer_phase2.gd` -> `res://tests/unit/network/input/input_buffer_test.gd`
-- `res://tests/phase2/unit/input/test_input_buffer_missing_fallback.gd` -> `res://tests/unit/network/input/input_buffer_missing_fallback_test.gd`
-- `res://tests/phase2/unit/prediction/test_prediction_controller.gd` -> `res://tests/unit/network/prediction/prediction_controller_test.gd`
-- `res://tests/phase2/unit/rollback/test_checksum_mismatch_recovery.gd` -> `res://tests/unit/network/rollback/checksum_mismatch_recovery_test.gd`
-- `res://tests/phase2/unit/rollback/test_force_resync_window.gd` -> `res://tests/unit/network/rollback/force_resync_window_test.gd`
-- `res://tests/phase2/recovery/test_rollback_controller.gd` -> `res://tests/unit/network/rollback/rollback_controller_test.gd`
-- `res://tests/phase2/unit/snapshot/test_snapshot_buffer_eviction.gd` -> `res://tests/unit/network/snapshot/snapshot_buffer_eviction_test.gd`
-- `res://tests/phase2/unit/snapshot/test_snapshot_service.gd` -> `res://tests/unit/network/snapshot/snapshot_service_test.gd`
-- `res://tests/phase4/unit/config/battle_start_config_test.gd` -> `res://tests/unit/network/config/battle_start_config_test.gd`
-- `res://tests/phase4/unit/transport/local_loopback_transport_test.gd` -> `res://tests/unit/network/transport/local_loopback_transport_test.gd`
-- `res://tests/phase4/unit/transport/transport_codec_test.gd` -> `res://tests/unit/network/transport/transport_codec_test.gd`
-- `res://tests/phase2/network/test_network_sim_runner.gd` -> `res://tests/integration/network/network_sim_runner_test.gd`
-- `res://tests/phase2/sim/test_replay_determinism.gd` -> `res://tests/integration/network/replay_determinism_test.gd`
-- `res://tests/phase2/sync/test_server_client_authoritative_loop.gd` -> `res://tests/integration/network/server_client_authoritative_loop_test.gd`
-- `res://tests/phase4/integration/network/host_client_bootstrap_test.gd` -> `res://tests/integration/network/host_client_bootstrap_test.gd`
-- `res://tests/phase4/integration/network/network_match_flow_test.gd` -> `res://tests/integration/network/network_match_flow_test.gd`
-- `res://tests/phase3/room_flow_test_runner.gd` -> `res://tests/integration/flow/room_flow_test.gd`
-- `res://tests/phase3/battle_flow_test_runner.gd` -> `res://tests/integration/battle/battle_flow_test.gd`
-- `res://tests/phase3/presentation_sync_test_runner.gd` -> `res://tests/integration/battle/presentation_sync_test.gd`
-- `res://tests/phase3/settlement_test_runner.gd` -> `res://tests/integration/battle/settlement_test.gd`
-- `res://tests/phase3/debug_room_bootstrap_test_runner.gd` -> `res://tests/contracts/runtime/debug_room_bootstrap_contract_test.gd`
-- `res://tests/phase3/battle_lifecycle_contract_test_runner.gd` -> `res://tests/contracts/runtime/battle_lifecycle_contract_test.gd`
-- `res://tests/phase3/runtime_cleanup_contract_test_runner.gd` -> `res://tests/contracts/runtime/runtime_cleanup_contract_test.gd`
-- `res://tests/phase3/canonical_path_contract_test_runner.gd` -> `res://tests/contracts/path/canonical_path_contract_test.gd`
-- `res://tests/phase4/unit/compat/legacy_wrapper_guard_test.gd` -> `res://tests/contracts/path/legacy_wrapper_guard_test.gd`
-- `res://tests/phase3/multi_match_stability_test_runner.gd` -> `res://tests/smoke/multi_match/multi_match_stability_test.gd`
-- `res://tests/phase2/runners/dual_client_runner.gd` -> `res://tests/integration/network/dual_client_runner.gd`
-- `res://tests/phase2/runners/network_sim_runner.gd` -> `res://tests/integration/network/network_sim_runner.gd`
-- `res://tests/phase2/runners/replay_runner.gd` -> `res://tests/integration/network/replay_runner.gd`
-- `res://tests/phase2/run_all_phase2.ps1` -> `res://tests/scripts/run_network_suite.ps1`
-- `res://tests/phase4/run_all_phase4.ps1` -> `res://tests/scripts/run_integration_suite.ps1`
+- `res://tests/current/unit/checksum/test_checksum_builder_current.gd` -> `res://tests/unit/network/checksum/checksum_builder_test.gd`
+- `res://tests/current/unit/input/test_input_buffer_current.gd` -> `res://tests/unit/network/input/input_buffer_test.gd`
+- `res://tests/current/unit/input/test_input_buffer_missing_fallback.gd` -> `res://tests/unit/network/input/input_buffer_missing_fallback_test.gd`
+- `res://tests/current/unit/prediction/test_prediction_controller.gd` -> `res://tests/unit/network/prediction/prediction_controller_test.gd`
+- `res://tests/current/unit/rollback/test_checksum_mismatch_recovery.gd` -> `res://tests/unit/network/rollback/checksum_mismatch_recovery_test.gd`
+- `res://tests/current/unit/rollback/test_force_resync_window.gd` -> `res://tests/unit/network/rollback/force_resync_window_test.gd`
+- `res://tests/current/recovery/test_rollback_controller.gd` -> `res://tests/unit/network/rollback/rollback_controller_test.gd`
+- `res://tests/current/unit/snapshot/test_snapshot_buffer_eviction.gd` -> `res://tests/unit/network/snapshot/snapshot_buffer_eviction_test.gd`
+- `res://tests/current/unit/snapshot/test_snapshot_service.gd` -> `res://tests/unit/network/snapshot/snapshot_service_test.gd`
+- `res://tests/current/unit/config/battle_start_config_test.gd` -> `res://tests/unit/network/config/battle_start_config_test.gd`
+- `res://tests/current/unit/transport/local_loopback_transport_test.gd` -> `res://tests/unit/network/transport/local_loopback_transport_test.gd`
+- `res://tests/current/unit/transport/transport_codec_test.gd` -> `res://tests/unit/network/transport/transport_codec_test.gd`
+- `res://tests/current/network/test_network_sim_runner.gd` -> `res://tests/integration/network/network_sim_runner_test.gd`
+- `res://tests/current/sim/test_replay_determinism.gd` -> `res://tests/integration/network/replay_determinism_test.gd`
+- `res://tests/current/sync/test_server_client_authoritative_loop.gd` -> `res://tests/integration/network/server_client_authoritative_loop_test.gd`
+- `res://tests/current/integration/network/host_client_bootstrap_test.gd` -> `res://tests/integration/network/host_client_bootstrap_test.gd`
+- `res://tests/current/integration/network/network_match_flow_test.gd` -> `res://tests/integration/network/network_match_flow_test.gd`
+- `res://tests/current/room_flow_test_runner.gd` -> `res://tests/integration/flow/room_flow_test.gd`
+- `res://tests/current/battle_flow_test_runner.gd` -> `res://tests/integration/battle/battle_flow_test.gd`
+- `res://tests/current/presentation_sync_test_runner.gd` -> `res://tests/integration/battle/presentation_sync_test.gd`
+- `res://tests/current/settlement_test_runner.gd` -> `res://tests/integration/battle/settlement_test.gd`
+- `res://tests/current/debug_room_bootstrap_test_runner.gd` -> `res://tests/contracts/runtime/debug_room_bootstrap_contract_test.gd`
+- `res://tests/current/battle_lifecycle_contract_test_runner.gd` -> `res://tests/contracts/runtime/battle_lifecycle_contract_test.gd`
+- `res://tests/current/runtime_cleanup_contract_test_runner.gd` -> `res://tests/contracts/runtime/runtime_cleanup_contract_test.gd`
+- `res://tests/current/canonical_path_contract_test_runner.gd` -> `res://tests/contracts/path/canonical_path_contract_test.gd`
+- `res://tests/current/unit/compat/legacy_wrapper_guard_test.gd` -> `res://tests/contracts/path/legacy_wrapper_guard_test.gd`
+- `res://tests/current/multi_match_stability_test_runner.gd` -> `res://tests/smoke/multi_match/multi_match_stability_test.gd`
+- `res://tests/current/runners/dual_client_runner.gd` -> `res://tests/integration/network/dual_client_runner.gd`
+- `res://tests/current/runners/network_sim_runner.gd` -> `res://tests/integration/network/network_sim_runner.gd`
+- `res://tests/current/runners/replay_runner.gd` -> `res://tests/integration/network/replay_runner.gd`
+- `res://tests/current/run_all_current.ps1` -> `res://tests/scripts/run_network_suite.ps1`
+- `res://tests/current/run_all_current.ps1` -> `res://tests/scripts/run_integration_suite.ps1`
 
 ---
 
@@ -79,11 +79,11 @@
 - `.vscode/`
 - `.claude/`
 - `tests/cli/appdata/`
-- `tests/phase2/reports/`
-- `tests/phase4/reports/`
-- `tests/phase2/`
-- `tests/phase3/`
-- `tests/phase4/`
+- `tests/current/reports/`
+- `tests/current/reports/`
+- `tests/current/`
+- `tests/current/`
+- `tests/current/`
 - `tests/simulation/`
 - `scenes/test/`
 
@@ -187,4 +187,5 @@
 
 Current reading note:
 - The conclusion above applies to the cleanup milestone at the time of writing.
-- Later Phase7 resource-system changes may supersede specific validation details in this report.
+- Later Current resource-system changes may supersede specific validation details in this report.
+

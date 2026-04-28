@@ -1,6 +1,6 @@
 # Current Source Of Truth (Index)
 
-Scope: current repository implementation after Phase27 directory governance and single-path convergence.
+Scope: current repository implementation after Current directory governance and single-path convergence.
 Positioning: this file is index and governance only. Domain truth is in split architecture docs.
 
 ## 1. Global Rules
@@ -25,7 +25,7 @@ do not re-merge domain semantics into this index.
 - Testing strategy: [`docs/architecture/testing_strategy.md`](./architecture/testing_strategy.md)
 - Room service runtime contract: [`docs/platform_room/room_service_runtime_contract.md`](./platform_room/room_service_runtime_contract.md)
 - Architecture debt register: [`docs/architecture_debt_register.md`](./architecture_debt_register.md)
-- Phase35 manual acceptance: [`docs/phase35_manual_acceptance.md`](./phase35_manual_acceptance.md)
+- Current manual acceptance: [`docs/manual_acceptance.md`](./manual_acceptance.md)
 
 ## 3. Boundary Of Documentation Authority
 1. `docs/current_source_of_truth.md`:
@@ -39,11 +39,12 @@ phase records and historical decisions only.
 1. Any runtime or protocol change must update matched domain docs in the same change set.
 2. New architecture domains must be added to `docs/architecture/` first, then indexed here.
 3. Every normative statement must map to concrete code paths and committed tests.
-4. Phase28 state-machine governance must keep contract guardrails green:
+4. Current state-machine governance must keep contract guardrails green:
 `tests/contracts/runtime/room_state_machine_projection_contract_test.gd`,
 `tests/contracts/path/no_raw_room_state_whitelist_contract_test.gd`.
 5. Map gameplay binding fields must not be manually maintained in `.tres`; source truth stays in `content_source/csv/maps/*`.
 6. Any new or changed `match_format` must update the formal content domain and matching contract tests in the same change set.
 7. Go and Godot match-format logic must align to the generated manifest as the shared consumption truth.
-8. Phase35 runtime/front boundary truth:
+8. Current runtime/front boundary truth:
 `client_runtime.gd`, `app_runtime_root.gd`, and `room_scene_controller.gd` must stay under their boundary contracts; formal room layout/loadout/slot/popup/theme code lives in `scenes/front/room/room_formal_*.gd`; battle high-frequency protocol is V2/QQTS-only for formal paths, with no `INPUT_FRAME` network message and no high-frequency Dictionary decode fallback; placeholder authoritative room snapshots are rejected before projection.
+

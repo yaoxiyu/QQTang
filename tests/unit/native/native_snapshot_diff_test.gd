@@ -4,7 +4,7 @@ extends QQTUnitTest
 func test_native_snapshot_diff_reports_equal_snapshot() -> void:
 	var kernel: Object = ClassDB.instantiate("QQTNativeSnapshotDiff")
 	assert_not_null(kernel)
-	assert_eq(String(kernel.call("get_kernel_version")), "phase32_sync_kernel_v1")
+	assert_eq(String(kernel.call("get_kernel_version")), "sync_kernel_v1")
 	var diff: Dictionary = kernel.call("diff_snapshots", _snapshot(1), _snapshot(1), _options())
 	assert_true(bool(diff.get("equal", false)))
 	assert_eq(int(diff.get("reason_mask", -1)), 0)
@@ -102,3 +102,4 @@ func _options() -> Dictionary:
 		"compare_items": true,
 		"ignored_local_player_keys": [],
 	}
+

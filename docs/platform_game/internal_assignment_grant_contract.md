@@ -28,7 +28,7 @@ Purpose:
 
 - Allow `account_service` to fetch authoritative assignment lock data before issuing a room ticket for `matchmade_room` or a battle ticket for `battle_entry`.
 - Prevent client-supplied map/rule/mode/team fields from being trusted in matchmaking or battle-entry flows.
-- Phase23: When `ticket_type=battle` and `battle_id` are provided, grant response additionally includes `battle_server_host`, `battle_server_port`, and `allocation_state`.
+- Current: When `ticket_type=battle` and `battle_id` are provided, grant response additionally includes `battle_server_host`, `battle_server_port`, and `allocation_state`.
 
 Grant semantics:
 
@@ -67,7 +67,7 @@ profile_id=<required>
 room_kind=matchmade_room
 ```
 
-Phase23 battle-entry grant additional query parameters:
+Current battle-entry grant additional query parameters:
 
 ```text
 ticket_type=battle
@@ -126,3 +126,4 @@ Expiry semantics:
 - Returned grant is valid only for the current `assignment_revision`.
 - Ticket issuance must fail if revision changes before account_service signs the ticket.
 - Once `commit_deadline_unix_sec` is exceeded, grant must be considered expired.
+

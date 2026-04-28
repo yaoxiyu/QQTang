@@ -53,6 +53,31 @@ func TestRoomTransitionEngine_QueueCompletedAllocationFailedReturnsIdle(t *testi
 	}
 }
 
+func TestRoomTransitionEngine_ManualBattleAllocationFailedPreservesReady(t *testing.T) {
+	engine := RoomTransitionEngine{}
+	room := &domain.RoomAggregate{
+		RoomKind: "private_room",
+		Members: map[string]domain.RoomMember{
+			"owner": {MemberID: "owner", MemberPhase: MemberPhaseIdle, Ready: false},
+			"guest": {MemberID: "guest", MemberPhase: MemberPhaseReady, Ready: true},
+		},
+	}
+	engine.ApplyCreateRoom(room, "owner")
+	engine.ApplyManualBattleRequested(room, "owner")
+
+	engine.ApplyManualBattleAllocationFailed(room, "owner", "ALLOC_FAILED", "allocation failed")
+
+	if room.RoomState.Phase != RoomPhaseIdle {
+		t.Fatalf("expected room phase idle, got %s", room.RoomState.Phase)
+	}
+	if owner := room.Members["owner"]; owner.MemberPhase != MemberPhaseIdle || owner.Ready {
+		t.Fatalf("expected owner to remain idle/not-ready, got phase=%s ready=%v", owner.MemberPhase, owner.Ready)
+	}
+	if guest := room.Members["guest"]; guest.MemberPhase != MemberPhaseReady || !guest.Ready {
+		t.Fatalf("expected guest ready state preserved, got phase=%s ready=%v", guest.MemberPhase, guest.Ready)
+	}
+}
+
 func TestRoomTransitionEngine_BattleFullCycle(t *testing.T) {
 	engine := RoomTransitionEngine{}
 	room := &domain.RoomAggregate{

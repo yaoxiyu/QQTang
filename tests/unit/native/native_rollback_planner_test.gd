@@ -47,7 +47,7 @@ func test_native_rollback_planner_drops_stale_authority() -> void:
 func _planner() -> Object:
 	var kernel: Object = ClassDB.instantiate("QQTNativeRollbackPlanner")
 	assert_not_null(kernel)
-	assert_eq(String(kernel.call("get_kernel_version")), "phase32_sync_kernel_v1")
+	assert_eq(String(kernel.call("get_kernel_version")), "sync_kernel_v1")
 	return kernel
 
 
@@ -59,3 +59,4 @@ func _cursor() -> Dictionary:
 		"max_rollback_window": 16,
 		"local_snapshot_exists": true,
 	}
+

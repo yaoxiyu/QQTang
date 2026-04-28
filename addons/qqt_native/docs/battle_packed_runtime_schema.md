@@ -1,6 +1,6 @@
 # Battle Packed Runtime Schema
 
-Phase31 introduces this schema as the formal packed wire contract between GDScript battle runtime code and `qqt_native` kernels.
+Current introduces this schema as the formal packed wire contract between GDScript battle runtime code and `qqt_native` kernels.
 
 The current Dictionary/Variant codec remains for parity and regression testing. New native hot-path work should prefer this schema and direct stride access.
 
@@ -123,9 +123,10 @@ Breaking changes require a new schema version and explicit adapter support on bo
 
 ## Migration Policy
 
-Phase31 does not require replacing all simulation objects with structure-of-arrays data. The intended migration path is:
+Current does not require replacing all simulation objects with structure-of-arrays data. The intended migration path is:
 
 1. Keep current `WorldSnapshot` and simulation objects.
 2. Build packed state through `NativeBattlePackedStateBuilder`.
 3. Let future native kernels consume packed arrays by schema constants.
 4. Keep the old Dictionary codec only as an explicit parity/regression path.
+

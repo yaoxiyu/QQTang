@@ -112,7 +112,7 @@ func _on_enter_lobby_pressed() -> void:
 		return
 	_set_message("")
 	_refresh_session_summary()
-	_refresh_phase34_front_state()
+	_refresh_front_state()
 	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_lobby"):
 		_app_runtime.front_flow.enter_lobby()
 
@@ -160,7 +160,7 @@ func _refresh_session_summary() -> void:
 		last_account_label.text = "Last Account: %s" % account_text
 
 
-func _refresh_phase34_front_state() -> void:
+func _refresh_front_state() -> void:
 	if _app_runtime == null:
 		return
 	if _app_runtime.wallet_use_case != null and _app_runtime.wallet_use_case.has_method("refresh_wallet"):
@@ -324,3 +324,4 @@ func _set_asset_meta(node: Node, asset_id: String) -> void:
 	if node == null:
 		return
 	node.set_meta("ui_asset_id", asset_id)
+

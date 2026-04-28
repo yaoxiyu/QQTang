@@ -1,7 +1,7 @@
 # Room Manifest
 
 ## Scope
-Define Room legality source of truth and generation pipeline for Phase24.
+Define Room legality source of truth and generation pipeline for the service runtime.
 
 ## Source And Artifact
 - Source data: content pipeline catalog inputs under `content_source/csv/`.

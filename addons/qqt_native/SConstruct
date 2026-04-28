@@ -37,7 +37,7 @@ dev_build: str = ARGUMENTS.get("dev_build", "no")
 
 if platform not in ["windows", "linux"]:
     fail(
-        "unsupported platform: %s. Supported Phase31 qqt_native build matrix entries are windows and linux; "
+        "unsupported platform: %s. Supported Current qqt_native build matrix entries are windows and linux; "
         % platform
         + "add matching godot-cpp static libraries and platform-specific output wiring before enabling another platform."
     )
@@ -112,3 +112,4 @@ library = env.SharedLibrary(
 )
 
 Default(library)
+

@@ -1,7 +1,7 @@
 # Room State Machine
 
 ## Purpose
-Define Phase28 canonical state-machine truth for Room/Member/Queue/Battle domains, capability projection, and legacy alias compatibility rules.
+Define Current canonical state-machine truth for Room/Member/Queue/Battle domains, capability projection, and legacy alias compatibility rules.
 
 ## 1. Canonical State Dictionary
 
@@ -151,3 +151,4 @@ To prevent fallback into raw-string whitelist logic, the following contract test
   - Guards that leave-room queue-cancel decision is canonical queue-phase driven.
 
 Any change to room/queue/battle/member state contracts must update these guardrails in the same change set.
+

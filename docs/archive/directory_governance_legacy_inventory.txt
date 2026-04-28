@@ -1,0 +1,38 @@
+# Current Legacy Inventory
+generated_at: 2026-04-21 09:25:08 +08:00
+branch: directory-governance-single-path
+commit: 1d250314770572e9321c87e5ed91fcf4544427b0
+
+## target: gameplay/front/flow
+exists: false
+
+## target: gameplay/network/session
+exists: false
+
+## target: network/runtime/legacy
+exists: false
+
+## target: network/session/legacy
+exists: false
+
+## target: network/runtime/dedicated_server_bootstrap.gd
+exists: false
+
+## target: network/session/runtime/server_room_runtime.gd
+exists: false
+
+## target: network/session/runtime/server_room_runtime_compat_impl.gd
+exists: false
+
+## target: network/session/runtime/legacy_room_runtime_bridge.gd
+exists: false
+
+## target: app/http
+exists: true
+type: directory
+tree:
+  app/http/
+  app\http\http_response_reader.gd
+  app\http\http_response_reader.gd.uid
+
+

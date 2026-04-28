@@ -1,13 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
 FROM golang:1.24-alpine AS builder
-WORKDIR /src/services/game_service
+WORKDIR /src/services
 
-COPY services/game_service/go.mod services/game_service/go.sum ./
-RUN go mod download
+COPY services/game_service/go.mod services/game_service/go.sum game_service/
+COPY services/shared/contentmanifest/go.mod shared/contentmanifest/
+RUN cd game_service && go mod download
 
-COPY services/game_service/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/game_service ./cmd/game_service
+COPY services/shared/contentmanifest/ shared/contentmanifest/
+COPY services/game_service/ game_service/
+RUN cd game_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/game_service ./cmd/game_service
 
 FROM alpine:3.22
 RUN apk add --no-cache ca-certificates tzdata wget \
@@ -16,10 +18,12 @@ RUN apk add --no-cache ca-certificates tzdata wget \
 
 WORKDIR /app
 COPY --from=builder /out/game_service /app/game_service
+COPY build/generated/room_manifest/room_manifest.json /app/build/generated/room_manifest/room_manifest.json
 
 ENV GAME_HTTP_ADDR=0.0.0.0:18081
 ENV GAME_GRPC_ADDR=0.0.0.0:19081
 ENV GAME_POSTGRES_DSN=postgres://qqtang_game:qqtang_game_dev_pass@game_postgres:5432/qqtang_game_dev?sslmode=disable
+ENV GAME_ROOM_MANIFEST_PATH=/app/build/generated/room_manifest/room_manifest.json
 ENV GAME_JWT_SHARED_SECRET=dev_game_jwt_shared_secret
 ENV GAME_INTERNAL_AUTH_KEY_ID=primary
 ENV GAME_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret

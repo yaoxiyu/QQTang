@@ -4,7 +4,7 @@
 
 This document defines the room ticket HTTP contract and the ticket claim model used by room_service.
 
-Phase23 note: Room tickets are consumed only by `room_service`. Battle-entry tickets are a separate contract; see `battle_ticket_contract.md`.
+Current note: Room tickets are consumed only by `room_service`. Battle-entry tickets are a separate contract; see `battle_ticket_contract.md`.
 
 Base path:
 
@@ -25,7 +25,7 @@ Purpose:
 
 - Client must obtain a short-lived room ticket before online create, join, or resume on `room_service`.
 - `room_service` only verifies ticket claims. It does not process password or refresh token.
-- Phase23: `room_service` must reject `battle_entry` purpose tickets. Use `IsRoomOnlyTicket(purpose)` to validate.
+- Current: `room_service` must reject `battle_entry` purpose tickets. Use `IsRoomOnlyTicket(purpose)` to validate.
 
 Ticket semantics:
 
@@ -188,9 +188,9 @@ Possible error codes:
   - `ticket.account_id == binding.account_id`
   - `ticket.profile_id == binding.profile_id`
 
-### Matchmade ticket (Phase23: deprecated flow)
+### Matchmade ticket (Current: deprecated flow)
 
-Phase23 note: `matchmade_room` is deprecated. New battle flows use the battle-entry ticket contract instead of room tickets with `matchmade_room` kind. The following is retained for migration compatibility only.
+Current note: `matchmade_room` is deprecated. New battle flows use the battle-entry ticket contract instead of room tickets with `matchmade_room` kind. The following is retained for migration compatibility only.
 
 - `room_kind = "matchmade_room"`
 - `assignment_id` required
@@ -204,3 +204,4 @@ Phase23 note: `matchmade_room` is deprecated. New battle flows use the battle-en
 - Ticket becomes invalid after `expire_at_unix_sec`.
 - Ticket becomes invalid after first successful consume.
 - DS should reject stale, replayed, or mismatched target ticket.
+

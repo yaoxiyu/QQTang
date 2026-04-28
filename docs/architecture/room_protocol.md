@@ -1,7 +1,7 @@
 # Room Protocol
 
 ## Scope
-Define Phase25 room protocol truth from client to Room Service and Room Service to game control plane.
+Define Room protocol truth from client to Room Service and Room Service to game control plane.
 
 ## Client <-> Room Service
 - Transport: WebSocket.
@@ -48,3 +48,4 @@ Define Phase25 room protocol truth from client to Room Service and Room Service 
   - `proto/qqt/room/v1/room_server.proto`
 - No new hand-written ad-hoc binary room wire structure is allowed.
 - Room snapshot projection must not expose reconnect token fields in client-visible canonical messages.
+
