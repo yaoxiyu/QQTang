@@ -18,10 +18,25 @@ func generate() -> void:
 		var row := split_csv_line(lines[i])
 		var def := CharacterStatsDef.new()
 		def.stats_id = get_cell(row, header_index, "stats_id")
-		def.base_bomb_count = int(get_cell(row, header_index, "base_bomb_count").to_int())
-		def.base_firepower = int(get_cell(row, header_index, "base_power").to_int())
-		def.base_move_speed = maxi(1, int(roundf(get_cell(row, header_index, "base_speed").to_float())))
+		def.initial_bubble_count = _read_int(row, header_index, "initial_bubble_count", "base_bomb_count", 1)
+		def.max_bubble_count = maxi(def.initial_bubble_count, _read_int(row, header_index, "max_bubble_count", "", 5))
+		def.initial_bubble_power = _read_int(row, header_index, "initial_bubble_power", "base_power", 1)
+		def.max_bubble_power = maxi(def.initial_bubble_power, _read_int(row, header_index, "max_bubble_power", "", 5))
+		def.initial_move_speed = maxi(1, _read_int(row, header_index, "initial_move_speed", "base_speed", 1))
+		def.max_move_speed = maxi(def.initial_move_speed, _read_int(row, header_index, "max_move_speed", "", 9))
 		def.content_hash = "char_stats_%s_csv_v1" % def.stats_id
 
 		var output_path := OUTPUT_DIR + def.stats_id + ".tres"
 		save_resource(def, output_path)
+
+
+func _read_int(row: PackedStringArray, header_index: Dictionary, primary_key: String, fallback_key: String, default_value: int) -> int:
+	if header_index.has(primary_key):
+		var primary := get_cell(row, header_index, primary_key)
+		if not primary.is_empty():
+			return int(roundf(primary.to_float()))
+	if not fallback_key.is_empty() and header_index.has(fallback_key):
+		var fallback := get_cell(row, header_index, fallback_key)
+		if not fallback.is_empty():
+			return int(roundf(fallback.to_float()))
+	return default_value

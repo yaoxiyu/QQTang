@@ -226,6 +226,7 @@ static func apply_remote_player_summary(predicted_world: SimWorld, player_summar
 		player.life_state = int(entry.get("life_state", player.life_state))
 		player.facing = int(entry.get("facing", player.facing))
 		player.move_state = int(entry.get("move_state", player.move_state))
+		player.move_remainder_units = int(entry.get("move_remainder_units", player.move_remainder_units))
 		predicted_world.state.players.update_player(player)
 		any_updated = true
 	if any_updated:
@@ -238,12 +239,18 @@ static func apply_local_authoritative_player_resource_summary(player: PlayerStat
 		return
 	if entry.has("speed_level"):
 		player.speed_level = int(entry.get("speed_level", player.speed_level))
+	if entry.has("max_speed_level"):
+		player.max_speed_level = int(entry.get("max_speed_level", player.max_speed_level))
 	if entry.has("bomb_capacity"):
 		player.bomb_capacity = int(entry.get("bomb_capacity", player.bomb_capacity))
+	if entry.has("max_bomb_capacity"):
+		player.max_bomb_capacity = int(entry.get("max_bomb_capacity", player.max_bomb_capacity))
 	if entry.has("bomb_available"):
 		player.bomb_available = int(entry.get("bomb_available", player.bomb_available))
 	if entry.has("bomb_range"):
 		player.bomb_range = int(entry.get("bomb_range", player.bomb_range))
+	if entry.has("max_bomb_range"):
+		player.max_bomb_range = int(entry.get("max_bomb_range", player.max_bomb_range))
 
 
 static func resolve_summary_vector2i(

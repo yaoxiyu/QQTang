@@ -26,7 +26,7 @@ public:
         const PackedInt32Array &bubbles,
         const PackedInt32Array &ignore_values,
         const PackedInt32Array &blocked_grid,
-        int32_t movement_step_units,
+        int32_t movement_substep_units,
         int32_t turn_snap_window_units,
         int32_t pass_absorb_window_units
     ) const;

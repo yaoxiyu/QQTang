@@ -110,12 +110,15 @@ func build_player_position_summary() -> Array[Dictionary]:
 			"move_progress_y": player.offset_y,
 			"facing": player.facing,
 			"move_state": player.move_state,
-			"move_phase_ticks": player.move_phase_ticks,
+			"move_remainder_units": player.move_remainder_units,
 			"last_place_bubble_pressed": player.last_place_bubble_pressed,
 			"speed_level": player.speed_level,
+			"max_speed_level": player.max_speed_level,
 			"bomb_capacity": player.bomb_capacity,
+			"max_bomb_capacity": player.max_bomb_capacity,
 			"bomb_available": player.bomb_available,
 			"bomb_range": player.bomb_range,
+			"max_bomb_range": player.max_bomb_range,
 		})
 
 	return summary

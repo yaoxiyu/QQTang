@@ -11,7 +11,9 @@ param(
     [int]$DSMPortRangeStart = 19010,
     [int]$DSMPortRangeEnd = 19050,
     [string]$LogDir = '',
-    [switch]$SkipDSPoolCleanup
+    [switch]$SkipDSPoolCleanup,
+    [switch]$SkipNativeBuild,
+    [switch]$SkipBattleDSImageBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,9 +32,16 @@ if (-not $SkipDb) {
 if (-not $SkipMigration) {
     & (Join-Path $PSScriptRoot 'db-migrate.ps1') -Profile $Profile -ProjectPath $root -SkipDbUp
 }
-& (Join-Path $root 'tools\native\build_native.ps1') -Target template_debug
+if (-not $SkipNativeBuild) {
+    & (Join-Path $root 'tools\native\build_native.ps1') -Target template_debug
+    & (Join-Path $root 'tools\native\build_native.ps1') -Target template_release
+}
 & (Join-Path $root 'tests\scripts\check_gdscript_syntax.ps1')
 & (Join-Path $root 'scripts\content\generate_room_manifest.ps1') -ProjectPath $root -GodotExecutable $GodotExecutable
+
+if ($Profile -eq 'dev' -and -not $SkipBattleDSImageBuild) {
+    & (Join-Path $root 'scripts\docker\prepare_battle_ds_image.ps1') -GodotExe $GodotExecutable
+}
 
 if ([string]::IsNullOrWhiteSpace($LogDir)) {
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'

@@ -13,7 +13,9 @@ if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
 }
 
 if (-not $SkipBuild) {
-    & (Join-Path $repoRoot 'tools\native\build_native.ps1') -Target template_debug
+    $nativeBuild = Join-Path $repoRoot 'tools\native\build_native.ps1'
+    & $nativeBuild -Target template_debug
+    & $nativeBuild -Target template_release
 }
 
 $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) ("qqt_check_native_runtime_{0}.gd" -f ([guid]::NewGuid().ToString('N')))

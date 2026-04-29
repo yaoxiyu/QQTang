@@ -395,7 +395,7 @@ func _should_suppress_rollback_probe_log(reasons: Array[String]) -> bool:
 	for reason in reasons:
 		if not reason.begins_with("key "):
 			continue
-		if reason.begins_with("key move_phase_ticks "):
+		if reason.begins_with("key move_remainder_units "):
 			return true
 	return false
 

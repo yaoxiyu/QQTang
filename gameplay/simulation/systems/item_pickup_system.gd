@@ -53,12 +53,12 @@ func _apply_item_effect(ctx: SimContext, player, item_type: int) -> void:
 	if not item_definition.is_empty():
 		match String(item_definition.get("pickup_effect_type", "")):
 			"modify_bomb_range":
-				player.bomb_range = min(player.bomb_range + 1, int(item_definition.get("max_stack", 5)))
+				player.bomb_range = min(player.bomb_range + 1, player.max_bomb_range)
 			"modify_bomb_capacity":
-				player.bomb_capacity = min(player.bomb_capacity + 1, int(item_definition.get("max_stack", 5)))
+				player.bomb_capacity = min(player.bomb_capacity + 1, player.max_bomb_capacity)
 				player.bomb_available = min(player.bomb_available + 1, player.bomb_capacity)
 			"modify_speed":
-				player.speed_level = min(player.speed_level + 1, int(item_definition.get("max_stack", 3)))
+				player.speed_level = min(player.speed_level + 1, player.max_speed_level)
 			"grant_kick":
 				player.has_kick = true
 			_:
@@ -70,12 +70,12 @@ func _apply_item_effect(ctx: SimContext, player, item_type: int) -> void:
 func _apply_legacy_item_effect(player, item_type: int) -> void:
 	match item_type:
 		1:
-			player.bomb_range = min(player.bomb_range + 1, 5)
+			player.bomb_range = min(player.bomb_range + 1, player.max_bomb_range)
 		2:
-			player.bomb_capacity = min(player.bomb_capacity + 1, 5)
+			player.bomb_capacity = min(player.bomb_capacity + 1, player.max_bomb_capacity)
 			player.bomb_available = min(player.bomb_available + 1, player.bomb_capacity)
 		3:
-			player.speed_level = min(player.speed_level + 1, 3)
+			player.speed_level = min(player.speed_level + 1, player.max_speed_level)
 		_:
 			pass
 

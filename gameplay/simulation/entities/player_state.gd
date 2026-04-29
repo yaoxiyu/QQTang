@@ -87,9 +87,12 @@ var last_non_zero_move_y: int = 0
 # 战斗属性
 # ====================
 var speed_level: int = 1
+var max_speed_level: int = 9
 var bomb_capacity: int = 1
+var max_bomb_capacity: int = 5
 var bomb_available: int = 1
 var bomb_range: int = 1
+var max_bomb_range: int = 5
 var bomb_fuse_ticks: int = 60  # 默认引信时间（tick）
 
 # ====================
@@ -130,4 +133,4 @@ var score: int = 0
 var pending_command: PlayerCommand = PlayerCommand.new()
 var last_applied_command: PlayerCommand = PlayerCommand.new()
 var last_place_bubble_pressed: bool = false
-var move_phase_ticks: int = 0
+var move_remainder_units: int = 0

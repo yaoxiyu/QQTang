@@ -3,7 +3,10 @@ param(
     [string]$Preset = 'Linux Dedicated Server',
     [string]$OutputPath = 'build/docker/battle_ds/qqtang_battle_ds.x86_64',
     [string]$PackOutputPath = 'build/docker/battle_ds/qqtang_battle_ds.pck',
-    [string]$MainScene = 'res://scenes/network/dedicated_server_scene.tscn'
+    [string]$MainScene = 'res://scenes/network/dedicated_server_scene.tscn',
+    [string]$NativeLibSource = 'addons/qqt_native/bin/qqt_native.linux.template_release.x86_64.so',
+    [string]$NativeLibOutputPath = 'build/docker/battle_ds/qqt_native.linux.template_release.x86_64.so',
+    [switch]$SkipNativeLibCopy
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +14,8 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $absoluteOutput = Join-Path $repoRoot $OutputPath
 $absolutePackOutput = Join-Path $repoRoot $PackOutputPath
+$absoluteNativeSource = Join-Path $repoRoot $NativeLibSource
+$absoluteNativeOutput = Join-Path $repoRoot $NativeLibOutputPath
 $outputDir = Split-Path -Parent $absoluteOutput
 $presetPath = Join-Path $repoRoot 'export_presets.cfg'
 $presetTemplatePath = Join-Path $repoRoot 'scripts/docker/export_presets.battle_ds.cfg'
@@ -70,6 +75,12 @@ try {
     if (-not (Test-Path -LiteralPath $absolutePackOutput)) {
         throw "Export completed but pack was not created: $absolutePackOutput"
     }
+    if (-not $SkipNativeLibCopy) {
+        if (-not (Test-Path -LiteralPath $absoluteNativeSource)) {
+            throw "Native Linux release library not found: $absoluteNativeSource"
+        }
+        Copy-Item -LiteralPath $absoluteNativeSource -Destination $absoluteNativeOutput -Force
+    }
 }
 finally {
     if ($backedUpProject -and (Test-Path -LiteralPath $projectBackupPath)) {
@@ -88,3 +99,6 @@ finally {
 
 Write-Host "[battle-ds-export] created $absoluteOutput"
 Write-Host "[battle-ds-export] created $absolutePackOutput"
+if (-not $SkipNativeLibCopy) {
+    Write-Host "[battle-ds-export] synced $absoluteNativeOutput"
+}

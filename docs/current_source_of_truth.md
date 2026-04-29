@@ -1,50 +1,15 @@
-# Current Source Of Truth (Index)
+# 当前文档入口
 
-Scope: current repository implementation after Current directory governance and single-path convergence.
-Positioning: this file is index and governance only. Domain truth is in split architecture docs.
+设计文档已迁移到仓库外部归档。本仓库 `docs/` 只保留当前仍需随代码维护的平台 API 与内部协议契约。
 
-## 1. Global Rules
-1. Authority layering:
-global governance in this file, domain semantics in `docs/architecture/*.md`.
-2. Conflict resolution:
-prefer narrower and code-nearer domain doc. If still conflicting, repository code and committed contract tests win.
-3. Archive policy:
-`docs/archive/*` is historical evidence, not current implementation truth.
-4. No monolith rollback:
-do not re-merge domain semantics into this index.
+## 保留范围
 
-## 2. Architecture Index
-- Runtime topology: [`docs/architecture/runtime_topology.md`](./architecture/runtime_topology.md)
-- Front flow: [`docs/architecture/front_flow.md`](./architecture/front_flow.md)
-- Network control plane: [`docs/architecture/network_control_plane.md`](./architecture/network_control_plane.md)
-- Battle sync: [`docs/architecture/battle_sync.md`](./architecture/battle_sync.md)
-- Room protocol: [`docs/architecture/room_protocol.md`](./architecture/room_protocol.md)
-- Room state machine: [`docs/architecture/room_state_machine.md`](./architecture/room_state_machine.md)
-- Room manifest: [`docs/architecture/room_manifest.md`](./architecture/room_manifest.md)
-- Content pipeline: [`docs/architecture/content_pipeline.md`](./architecture/content_pipeline.md)
-- Testing strategy: [`docs/architecture/testing_strategy.md`](./architecture/testing_strategy.md)
-- Room service runtime contract: [`docs/platform_room/room_service_runtime_contract.md`](./platform_room/room_service_runtime_contract.md)
-- Architecture debt register: [`docs/architecture_debt_register.md`](./architecture_debt_register.md)
-- Current manual acceptance: [`docs/manual_acceptance.md`](./manual_acceptance.md)
+- `docs/platform_auth/`：账号、资料、票据与错误码契约。
+- `docs/platform_game/`：匹配、职业、结算、Battle 分配与内部 Game Service 契约。
+- `docs/platform_room/`：Room Service runtime 契约。
 
-## 3. Boundary Of Documentation Authority
-1. `docs/current_source_of_truth.md`:
-index, governance rules, and doc ownership boundaries only.
-2. `docs/architecture/*.md` and `docs/platform_room/*.md`:
-formal domain semantics and constraints for implementation alignment.
-3. `docs/archive/*.md`:
-phase records and historical decisions only.
+## 解释权
 
-## 4. Maintenance Requirements
-1. Any runtime or protocol change must update matched domain docs in the same change set.
-2. New architecture domains must be added to `docs/architecture/` first, then indexed here.
-3. Every normative statement must map to concrete code paths and committed tests.
-4. Current state-machine governance must keep contract guardrails green:
-`tests/contracts/runtime/room_state_machine_projection_contract_test.gd`,
-`tests/contracts/path/no_raw_room_state_whitelist_contract_test.gd`.
-5. Map gameplay binding fields must not be manually maintained in `.tres`; source truth stays in `content_source/csv/maps/*`.
-6. Any new or changed `match_format` must update the formal content domain and matching contract tests in the same change set.
-7. Go and Godot match-format logic must align to the generated manifest as the shared consumption truth.
-8. Current runtime/front boundary truth:
-`client_runtime.gd`, `app_runtime_root.gd`, and `room_scene_controller.gd` must stay under their boundary contracts; formal room layout/loadout/slot/popup/theme code lives in `scenes/front/room/room_formal_*.gd`; battle high-frequency protocol is V2/QQTS-only for formal paths, with no `INPUT_FRAME` network message and no high-frequency Dictionary decode fallback; placeholder authoritative room snapshots are rejected before projection.
-
+1. 协议契约文档描述服务边界和调用语义。
+2. 设计、阶段、验收、债务、运行时说明不在仓库内维护。
+3. 如果文档与代码冲突，以仓库代码和已提交测试为准。

@@ -11,6 +11,8 @@
 class_name SimWorld
 extends RefCounted
 
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+
 # ====================
 # 核心组件
 # ====================
@@ -102,6 +104,7 @@ func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 	var spawn_points: Array[Vector2i] = []
 	var player_slots := _coerce_dict_array(bootstrap_data.get("player_slots", []))
 	var spawn_assignments := _coerce_dict_array(bootstrap_data.get("spawn_assignments", []))
+	var character_loadouts := _coerce_dict_array(bootstrap_data.get("character_loadouts", config.system_flags.get("character_loadouts", [])))
 
 	for y in range(grid.height):
 		for x in range(grid.width):
@@ -147,6 +150,7 @@ func _initialize_spawned_players(bootstrap_data: Dictionary = {}) -> void:
 		if player != null:
 			player.alive = true
 			player.life_state = PlayerState.LifeState.NORMAL
+			_apply_character_stats_to_player(player, player_entry, character_loadouts)
 			player.bomb_available = player.bomb_capacity
 
 
@@ -159,6 +163,47 @@ func _resolve_spawn_point(slot_index: int, fallback_index: int, spawn_assignment
 			int(assignment.get("spawn_cell_y", 1))
 		)
 	return spawn_points[fallback_index % spawn_points.size()]
+
+
+func _apply_character_stats_to_player(player: PlayerState, player_entry: Dictionary, character_loadouts: Array[Dictionary]) -> void:
+	var loadout := _find_character_loadout(player_entry, character_loadouts)
+	if loadout.is_empty():
+		return
+	player.bomb_capacity = maxi(1, int(loadout.get("initial_bubble_count", loadout.get("base_bomb_count", player.bomb_capacity))))
+	player.max_bomb_capacity = maxi(player.bomb_capacity, int(loadout.get("max_bubble_count", player.max_bomb_capacity)))
+	player.bomb_range = maxi(1, int(loadout.get("initial_bubble_power", loadout.get("base_firepower", player.bomb_range))))
+	player.max_bomb_range = maxi(player.bomb_range, int(loadout.get("max_bubble_power", player.max_bomb_range)))
+	player.speed_level = maxi(1, int(loadout.get("initial_move_speed", loadout.get("base_move_speed", player.speed_level))))
+	player.max_speed_level = maxi(player.speed_level, int(loadout.get("max_move_speed", player.max_speed_level)))
+	LogSimulationScript.debug(
+		"player=%d slot=%d bubbles=%d/%d power=%d/%d speed=%d/%d character=%s" % [
+			player.entity_id,
+			player.player_slot,
+			player.bomb_capacity,
+			player.max_bomb_capacity,
+			player.bomb_range,
+			player.max_bomb_range,
+			player.speed_level,
+			player.max_speed_level,
+			String(loadout.get("character_id", "")),
+		],
+		"",
+		0,
+		"simulation.content.character_stats"
+	)
+
+
+func _find_character_loadout(player_entry: Dictionary, character_loadouts: Array[Dictionary]) -> Dictionary:
+	var peer_id := int(player_entry.get("peer_id", -1))
+	if peer_id >= 0:
+		for loadout in character_loadouts:
+			if int(loadout.get("peer_id", -2)) == peer_id:
+				return loadout
+	var slot_index := int(player_entry.get("slot_index", -1))
+	for loadout in character_loadouts:
+		if int(loadout.get("slot_index", -2)) == slot_index:
+			return loadout
+	return {}
 
 
 func _coerce_dict_array(raw_value: Variant) -> Array[Dictionary]:

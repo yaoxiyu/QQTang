@@ -23,6 +23,9 @@ const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_k
 const NativeMovementBridgeScript = preload("res://gameplay/native_bridge/native_movement_bridge.gd")
 
 const DEBUG_MOVEMENT_SNAP := true
+const DEBUG_MOVEMENT_SPEED := true
+const DEBUG_MOVEMENT_SUBSTEP := true
+const DEBUG_MOVEMENT_BLOCK := true
 const DEBUG_REMOTE_ANIM_LOG := false
 
 var _native_movement_bridge: NativeMovementBridge = NativeMovementBridgeScript.new()
@@ -48,7 +51,7 @@ func execute(ctx: SimContext) -> void:
 			continue
 		if player.life_state != PlayerState.LifeState.NORMAL:
 			player.move_state = PlayerState.MoveState.IDLE
-			player.move_phase_ticks = 0
+			player.move_remainder_units = 0
 			ctx.state.players.update_player(player)
 			continue
 		if _should_preserve_authoritative_remote_state(ctx, player):
@@ -63,7 +66,7 @@ func execute(ctx: SimContext) -> void:
 		var old_foot_cell := PlayerLocator.get_foot_cell(player)
 
 		if move_x == 0 and move_y == 0:
-			player.move_phase_ticks = 0
+			player.move_remainder_units = 0
 			player.move_state = PlayerState.MoveState.IDLE
 			ctx.state.players.update_player(player)
 			continue
@@ -116,7 +119,7 @@ func _execute_native_path(ctx: SimContext) -> bool:
 			continue
 		if player.life_state != PlayerState.LifeState.NORMAL:
 			player.move_state = PlayerState.MoveState.IDLE
-			player.move_phase_ticks = 0
+			player.move_remainder_units = 0
 			ctx.state.players.update_player(player)
 			continue
 		if _should_preserve_authoritative_remote_state(ctx, player):
@@ -152,7 +155,7 @@ func _apply_native_player_updates(ctx: SimContext, player_updates: Array) -> voi
 		player.offset_y = int(update.get("offset_y", player.offset_y))
 		player.facing = int(update.get("facing", player.facing))
 		player.move_state = int(update.get("move_state", player.move_state))
-		player.move_phase_ticks = int(update.get("move_phase_ticks", player.move_phase_ticks))
+		player.move_remainder_units = int(update.get("move_remainder_units", player.move_remainder_units))
 		player.last_non_zero_move_x = int(update.get("last_non_zero_move_x", player.last_non_zero_move_x))
 		player.last_non_zero_move_y = int(update.get("last_non_zero_move_y", player.last_non_zero_move_y))
 		ctx.state.players.update_player(player)
@@ -238,14 +241,19 @@ func _execute_move_substeps(
 	var blocked := false
 	var turn_only := false
 	var blocked_cell := Vector2i.ZERO
-	var fixed_step_units := MovementTuning.movement_step_units()
-	var required_ticks : int = max(MovementTuning.ticks_per_step(player.speed_level), 1)
-	player.move_phase_ticks += 1
-	var step_count := int(player.move_phase_ticks / required_ticks)
-	player.move_phase_ticks = player.move_phase_ticks % required_ticks
+	var max_substep_units := MovementTuning.movement_substep_units()
+	var units_per_tick := MovementTuning.movement_units_per_tick(player.speed_level)
+	var enter_remainder := player.move_remainder_units
+	var units_to_consume := enter_remainder + units_per_tick
+	var consumed_units := 0
+	var substep_count := 0
+	player.move_remainder_units = 0
 
-	for _i in range(step_count):
-		var step_units := fixed_step_units
+	_debug_speed(player_id, player.speed_level, units_per_tick, max_substep_units)
+
+	while units_to_consume > 0:
+		var step_units := mini(max_substep_units, units_to_consume)
+		substep_count += 1
 
 		var foot_cell := PlayerLocator.get_foot_cell(player)
 		var target_cell := foot_cell + Vector2i(move_x, move_y)
@@ -259,17 +267,22 @@ func _execute_move_substeps(
 		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
 		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y):
 			turn_only = true
+			player.move_remainder_units = 0
 			break
 
-		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, fixed_step_units)
+		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, max_substep_units)
 		var resolved_abs_pos: Vector2i = move_result["abs_pos"]
 		GridMotionMath.write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y)
 
+		consumed_units += step_units
+		units_to_consume -= step_units
 		if bool(move_result["blocked"]):
 			blocked = true
 			blocked_cell = move_result["blocked_cell"]
+			player.move_remainder_units = 0
 			break
 
+	_debug_substep(ctx.tick, player_id, move_x, move_y, enter_remainder, consumed_units, player.move_remainder_units, substep_count)
 	return {
 		"blocked": blocked,
 		"blocked_cell": blocked_cell,
@@ -317,10 +330,12 @@ func _try_apply_turn_snap(
 	move_y: int
 ) -> bool:
 	if rail == RailConstraint.Type.CENTER_PIVOT:
+		_debug_turn_snap(player.entity_id, rail, false, "center_pivot")
 		return false
 
 	if RailConstraint.requires_center_for_vertical_turn(rail) and move_y != 0:
 		if abs(player.offset_x) > MovementTuning.turn_snap_window_units():
+			_debug_turn_snap(player.entity_id, rail, false, "vertical_window")
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -328,9 +343,11 @@ func _try_apply_turn_snap(
 			GridMotionMath.get_cell_center_abs_x(foot_cell.x),
 			abs_pos.y
 		)
+		_debug_turn_snap(player.entity_id, rail, true, "vertical")
 
 	if RailConstraint.requires_center_for_horizontal_turn(rail) and move_x != 0:
 		if abs(player.offset_y) > MovementTuning.turn_snap_window_units():
+			_debug_turn_snap(player.entity_id, rail, false, "horizontal_window")
 			return false
 		var abs_pos := GridMotionMath.get_player_abs_pos(player)
 		GridMotionMath.write_player_abs_pos(
@@ -338,6 +355,7 @@ func _try_apply_turn_snap(
 			abs_pos.x,
 			GridMotionMath.get_cell_center_abs_y(foot_cell.y)
 		)
+		_debug_turn_snap(player.entity_id, rail, true, "horizontal")
 
 	return true
 
@@ -365,6 +383,7 @@ func _try_move_along_axis(
 	if direct_target_blocked:
 		var clamped_abs_pos := _clamp_abs_to_blocked_axis_limit(tentative, foot_cell, move_x, move_y)
 		var collision_blocked := clamped_abs_pos == abs_pos
+		_debug_block("direct", player_id, target_cell, tentative, clamped_abs_pos, collision_blocked)
 		return {
 			"abs_pos": clamped_abs_pos,
 			"blocked": collision_blocked,
@@ -392,6 +411,7 @@ func _try_move_along_axis(
 	var snapped_blocked_hit := _find_overlap_blocked_cell(ctx, player_id, snapped_tentative, foot_cell, target_cell, move_x, move_y)
 	if snapped_tentative == tentative:
 		var blocked_cell: Vector2i = blocked_hit["cell"]
+		_debug_block("side_overlap", player_id, blocked_cell, tentative, abs_pos, true)
 		return {
 			"abs_pos": abs_pos,
 			"blocked": true,
@@ -399,6 +419,7 @@ func _try_move_along_axis(
 		}
 	if bool(snapped_blocked_hit["found"]):
 		var blocked_cell: Vector2i = snapped_blocked_hit["cell"]
+		_debug_block("side_overlap_after_snap", player_id, blocked_cell, tentative, abs_pos, true)
 		return {
 			"abs_pos": abs_pos,
 			"blocked": true,
@@ -502,6 +523,85 @@ func _debug_snap(
 			lateral_distance_units,
 			window_units,
 			str(did_snap)
+		],
+		"",
+		0,
+		"simulation.movement.snap"
+	)
+
+
+func _debug_speed(player_id: int, speed_level: int, units_per_tick: int, max_substep_units: int) -> void:
+	if not DEBUG_MOVEMENT_SPEED:
+		return
+	LogSimulationScript.debug(
+		"player=%d speed_level=%d units_per_tick=%d max_substep_units=%d" % [
+			player_id,
+			speed_level,
+			units_per_tick,
+			max_substep_units,
+		],
+		"",
+		0,
+		"simulation.movement.speed"
+	)
+
+
+func _debug_substep(
+	tick: int,
+	player_id: int,
+	move_x: int,
+	move_y: int,
+	enter_remainder: int,
+	consumed_units: int,
+	remaining_units: int,
+	substep_count: int
+) -> void:
+	if not DEBUG_MOVEMENT_SUBSTEP:
+		return
+	LogSimulationScript.debug(
+		"tick=%d player=%d input=(%d,%d) remainder_in=%d consumed=%d remainder_out=%d substeps=%d" % [
+			tick,
+			player_id,
+			move_x,
+			move_y,
+			enter_remainder,
+			consumed_units,
+			remaining_units,
+			substep_count,
+		],
+		"",
+		0,
+		"simulation.movement.substep"
+	)
+
+
+func _debug_block(stage: String, player_id: int, blocked_cell: Vector2i, tentative: Vector2i, resolved: Vector2i, blocked: bool) -> void:
+	if not DEBUG_MOVEMENT_BLOCK:
+		return
+	LogSimulationScript.debug(
+		"stage=%s player=%d blocked_cell=%s tentative=%s resolved=%s blocked=%s" % [
+			stage,
+			player_id,
+			str(blocked_cell),
+			str(tentative),
+			str(resolved),
+			str(blocked),
+		],
+		"",
+		0,
+		"simulation.movement.block"
+	)
+
+
+func _debug_turn_snap(player_id: int, rail: int, success: bool, reason: String) -> void:
+	if not DEBUG_MOVEMENT_SNAP:
+		return
+	LogSimulationScript.debug(
+		"player=%d rail=%d turn_snap=%s reason=%s" % [
+			player_id,
+			rail,
+			str(success),
+			reason,
 		],
 		"",
 		0,

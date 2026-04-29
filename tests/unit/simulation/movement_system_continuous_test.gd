@@ -1,10 +1,13 @@
 extends "res://tests/gut/base/qqt_unit_test.gd"
 
 const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
+const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 
 
 func test_main() -> void:
 	_test_release_stops_without_auto_completion()
+	_test_movement_tuning_speed_table_is_monotonic()
+	_test_higher_speed_levels_move_farther()
 	_test_hold_moves_across_cell_boundary()
 	_test_player_moved_only_when_foot_cell_changes()
 	_test_blocked_transition_clamps_to_boundary()
@@ -31,12 +34,43 @@ func _test_release_stops_without_auto_completion() -> void:
 	world.dispose()
 
 
+func _test_movement_tuning_speed_table_is_monotonic() -> void:
+	var previous := 0
+	for level in range(1, MovementTuning.max_speed_level() + 1):
+		var current := MovementTuning.movement_units_per_tick(level)
+		_assert(current > previous, "movement speed table is strictly increasing")
+		previous = current
+	_assert(MovementTuning.movement_units_per_tick(999) == MovementTuning.movement_units_per_tick(MovementTuning.max_speed_level()), "speed table clamps high levels")
+
+
+func _test_higher_speed_levels_move_farther() -> void:
+	var low_world := _build_world()
+	var high_world := _build_world()
+	var low_player := _local_player(low_world)
+	var high_player := _local_player(high_world)
+	low_player.speed_level = 3
+	high_player.speed_level = 5
+	low_world.state.players.update_player(low_player)
+	high_world.state.players.update_player(high_player)
+
+	for _i in range(5):
+		_step_with_input(low_world, low_player.player_slot, 1, 0)
+		_step_with_input(high_world, high_player.player_slot, 1, 0)
+
+	low_player = _local_player(low_world)
+	high_player = _local_player(high_world)
+	_assert(_player_fp(high_world, high_player.entity_id).x > _player_fp(low_world, low_player.entity_id).x, "speed level 5 moves farther than level 3")
+
+	low_world.dispose()
+	high_world.dispose()
+
+
 func _test_hold_moves_across_cell_boundary() -> void:
 	var world := _build_world()
 	var player := _local_player(world)
 	var start_cell_x := player.cell_x
 
-	for _i in range(4):
+	for _i in range(6):
 		_step_with_input(world, player.player_slot, 1, 0)
 
 	player = _local_player(world)
@@ -55,7 +89,7 @@ func _test_player_moved_only_when_foot_cell_changes() -> void:
 	_assert(not _has_event(first_result["events"], SimEvent.EventType.PLAYER_MOVED), "subcell move alone emits no PLAYER_MOVED")
 
 	var second_result := {}
-	for _i in range(4):
+	for _i in range(6):
 		second_result = _step_with_input(world, player.player_slot, 1, 0)
 		if _has_event(second_result["events"], SimEvent.EventType.PLAYER_MOVED):
 			break

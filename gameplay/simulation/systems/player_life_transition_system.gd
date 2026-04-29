@@ -24,7 +24,7 @@ func _process_players_to_trap(ctx: SimContext) -> void:
 		player.life_state = PlayerState.LifeState.TRAPPED
 		player.trapped_timeout_ticks = _get_trapped_timeout_ticks(ctx)
 		player.move_state = PlayerState.MoveState.IDLE
-		player.move_phase_ticks = 0
+		player.move_remainder_units = 0
 		if player.trap_bubble_id == 0:
 			player.trap_bubble_id = -1
 		ctx.state.players.update_player(player)
@@ -93,7 +93,7 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 	player.alive = false
 	player.deaths += 1
 	player.move_state = PlayerState.MoveState.IDLE
-	player.move_phase_ticks = 0
+	player.move_remainder_units = 0
 	player.trap_bubble_id = -1
 	player.trapped_timeout_ticks = 0
 

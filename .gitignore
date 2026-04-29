@@ -71,6 +71,7 @@ addons/qqt_native/.sconsign.dblite
 addons/qqt_native/bin/
 addons/qqt_native/src/**/*.obj
 addons/qqt_native/src/**/*.obj.import
+addons/qqt_native/src/**/*.os
 
 # OS junk
 .DS_Store

@@ -20,7 +20,9 @@ Write-Host "[battle_ds] Starting Battle DS on ${Host}:${Port}"
 Write-Host "[battle_ds] battle_id=$BattleId"
 Write-Host "[battle_ds] Project root: $projectRoot"
 
-& (Join-Path $projectRoot 'tools\native\build_native.ps1') -Target template_debug
+$nativeBuild = Join-Path $projectRoot 'tools\native\build_native.ps1'
+& $nativeBuild -Target template_debug
+& $nativeBuild -Target template_release
 
 & $GodotPath --headless --path "$projectRoot" `
     "res://scenes/network/dedicated_server_scene.tscn" `

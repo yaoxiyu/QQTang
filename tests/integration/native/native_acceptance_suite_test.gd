@@ -2,6 +2,7 @@ extends QQTIntegrationTest
 
 const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 
 
 func test_native_acceptance_flow_preserves_world_parity_and_rollback_consistency() -> void:
@@ -73,10 +74,51 @@ func test_native_acceptance_flow_preserves_world_parity_and_rollback_consistency
 	native_world.dispose()
 
 
+func test_native_movement_speed_levels_match_gdscript() -> void:
+	var previous_movement_flag := NativeFeatureFlagsScript.enable_native_movement
+	var previous_checksum_flag := NativeFeatureFlagsScript.enable_native_checksum
+	var snapshot_service := SnapshotService.new()
+	var speed_levels := [1, 3, 5, 7, 9]
+	for speed_level in speed_levels:
+		var baseline_world := _build_speed_parity_world(9400 + int(speed_level), int(speed_level))
+		var native_world := _build_speed_parity_world(9400 + int(speed_level), int(speed_level))
+		for _i in range(8):
+			_step_world_with_flags(baseline_world, {"move": Vector2i.RIGHT, "place": false}, false)
+			_step_world_with_flags(native_world, {"move": Vector2i.RIGHT, "place": false}, true)
+		var tick_id := baseline_world.state.match_state.tick
+		var baseline_snapshot := snapshot_service.build_light_snapshot(baseline_world, tick_id, false)
+		var native_snapshot := snapshot_service.build_light_snapshot(native_world, tick_id, false)
+		if native_snapshot.players != baseline_snapshot.players:
+			LogSimulationScript.warn(
+				"speed_level=%d baseline_players=%s native_players=%s" % [
+					int(speed_level),
+					str(baseline_snapshot.players),
+					str(native_snapshot.players),
+				],
+				"",
+				0,
+				"simulation.movement.native_parity"
+			)
+		assert_eq(native_snapshot.players, baseline_snapshot.players, "native movement parity mismatch for speed_level=%d" % int(speed_level))
+		baseline_world.dispose()
+		native_world.dispose()
+	NativeFeatureFlagsScript.enable_native_movement = previous_movement_flag
+	NativeFeatureFlagsScript.enable_native_checksum = previous_checksum_flag
+
+
 func _build_world(seed: int) -> SimWorld:
 	var world := SimWorld.new()
 	world.rng = SimRng.new(seed)
 	world.bootstrap(SimConfig.new(), {"grid": BuiltinMapFactory.build_basic_map()})
+	return world
+
+
+func _build_speed_parity_world(seed: int, speed_level: int) -> SimWorld:
+	var world := _build_world(seed)
+	var player := world.state.players.get_player(int(world.state.players.active_ids[0]))
+	player.speed_level = speed_level
+	player.max_speed_level = 9
+	world.state.players.update_player(player)
 	return world
 
 

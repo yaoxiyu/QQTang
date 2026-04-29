@@ -38,7 +38,7 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 			bubble_records,
 			bubble_ignore_values,
 			blocked_grid_records,
-			int(tuning.get("movement_step_units", 0)),
+			int(tuning.get("movement_substep_units", 0)),
 			int(tuning.get("turn_snap_window_units", 0)),
 			int(tuning.get("pass_absorb_window_units", 0))
 		)
@@ -83,7 +83,7 @@ func _pack_player_records(ctx: SimContext, player_ids: Array[int]) -> PackedInt3
 		packed.append(player.last_non_zero_move_y)
 		packed.append(player.facing)
 		packed.append(player.move_state)
-		packed.append(player.move_phase_ticks)
+		packed.append(player.move_remainder_units)
 		packed.append(player.speed_level)
 		packed.append(_sanitize_axis(command.move_x, command.move_y).x)
 		packed.append(_sanitize_axis(command.move_x, command.move_y).y)
@@ -144,7 +144,7 @@ func _pack_command_records(ctx: SimContext, player_ids: Array[int]) -> PackedInt
 
 func _pack_tuning() -> Dictionary:
 	return {
-		"movement_step_units": MovementTuning.movement_step_units(),
+		"movement_substep_units": MovementTuning.movement_substep_units(),
 		"turn_snap_window_units": MovementTuning.turn_snap_window_units(),
 		"pass_absorb_window_units": MovementTuning.pass_absorb_window_units(),
 	}
@@ -167,7 +167,7 @@ func _encode_input_blob(
 	var offset := 0
 	offset = _write_i32(blob, offset, MOVEMENT_PAYLOAD_MAGIC)
 	offset = _write_i32(blob, offset, NativeWireContractScript.MOVEMENT_WIRE_VERSION)
-	offset = _write_i32(blob, offset, int(tuning.get("movement_step_units", 0)))
+	offset = _write_i32(blob, offset, int(tuning.get("movement_substep_units", 0)))
 	offset = _write_i32(blob, offset, int(tuning.get("turn_snap_window_units", 0)))
 	offset = _write_i32(blob, offset, int(tuning.get("pass_absorb_window_units", 0)))
 	offset = _write_i32_array(blob, offset, player_records)

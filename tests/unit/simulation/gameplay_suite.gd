@@ -177,6 +177,8 @@ func test_item_pickup() -> void:
 	if not _assert_true(player != null, "player exists for item test"):
 		return
 	var before_range := player.bomb_range
+	player.max_bomb_range = before_range
+	ctx.world.state.players.update_player(player)
 
 	var item_id := ctx.world.state.items.spawn_item(1, player.cell_x, player.cell_y, 0)
 	var item := ctx.world.state.items.get_item(item_id)
@@ -189,7 +191,7 @@ func test_item_pickup() -> void:
 	if not _assert_true(item_after != null and not item_after.alive, "item consumed"):
 		return
 	var player_after := ctx.world.state.players.get_player(player_id)
-	if not _assert_true(player_after.bomb_range == before_range + 1, "item effect applied"):
+	if not _assert_true(player_after.bomb_range == before_range, "item effect respects player max"):
 		return
 	if not _assert_true(_find_event(result["events"], SimEvent.EventType.ITEM_PICKED), "ITEM_PICKED event emitted"):
 		return

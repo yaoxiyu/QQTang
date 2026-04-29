@@ -20,8 +20,9 @@ constexpr int32_t CELL_UNITS = 1000;
 constexpr int32_t HALF_CELL_UNITS = CELL_UNITS / 2;
 constexpr int32_t DEFAULT_TURN_SNAP_WINDOW_UNITS = 250;
 constexpr int32_t DEFAULT_PASS_ABSORB_WINDOW_UNITS = 250;
-constexpr int64_t WIRE_VERSION = 1;
+constexpr int64_t WIRE_VERSION = 2;
 constexpr int32_t MOVEMENT_PAYLOAD_MAGIC = 1297371473;
+constexpr int32_t SPEED_TABLE[] = {70, 82, 94, 106, 118, 130, 142, 154, 166};
 
 struct Vec2i {
     int32_t x = 0;
@@ -41,7 +42,7 @@ struct PlayerRecord {
     int32_t last_non_zero_move_y = 0;
     int32_t facing = 0;
     int32_t move_state = 0;
-    int32_t move_phase_ticks = 0;
+    int32_t move_remainder_units = 0;
     int32_t speed_level = 1;
     int32_t command_move_x = 0;
     int32_t command_move_y = 0;
@@ -125,14 +126,10 @@ int64_t make_cell_key(int32_t x, int32_t y) {
     return (static_cast<int64_t>(x) << 32) ^ static_cast<uint32_t>(y);
 }
 
-int32_t resolve_ticks_per_step(int32_t speed_level) {
-    if (speed_level <= 1) {
-        return 3;
-    }
-    if (speed_level == 2) {
-        return 2;
-    }
-    return 1;
+int32_t resolve_movement_units_per_tick(int32_t speed_level) {
+    const int32_t max_level = static_cast<int32_t>(sizeof(SPEED_TABLE) / sizeof(SPEED_TABLE[0]));
+    const int32_t clamped_level = std::max(1, std::min(max_level, speed_level));
+    return SPEED_TABLE[clamped_level - 1];
 }
 
 int32_t resolve_rail_from_neighbors(bool up_blocked, bool down_blocked, bool left_blocked, bool right_blocked) {
@@ -161,7 +158,7 @@ bool requires_center_for_horizontal_turn(int32_t rail) {
 struct KernelContext {
     int32_t width = 0;
     int32_t height = 0;
-    int32_t movement_step_units = 0;
+    int32_t movement_substep_units = 0;
     int32_t turn_snap_window_units = DEFAULT_TURN_SNAP_WINDOW_UNITS;
     int32_t pass_absorb_window_units = DEFAULT_PASS_ABSORB_WINDOW_UNITS;
     std::vector<GridRecord> grid_records;
@@ -466,7 +463,7 @@ bool decode_binary_input(
     PackedInt32Array &bubbles,
     PackedInt32Array &ignore_values,
     PackedInt32Array &blocked_grid,
-    int32_t &movement_step_units,
+    int32_t &movement_substep_units,
     int32_t &turn_snap_window_units,
     int32_t &pass_absorb_window_units
 ) {
@@ -480,7 +477,7 @@ bool decode_binary_input(
         return false;
     }
     if (
-        !read_i32(input_blob, cursor, movement_step_units)
+        !read_i32(input_blob, cursor, movement_substep_units)
         || !read_i32(input_blob, cursor, turn_snap_window_units)
         || !read_i32(input_blob, cursor, pass_absorb_window_units)
         || !read_i32_array(input_blob, cursor, players)
@@ -504,7 +501,7 @@ void QQTNativeMovementKernel::_bind_methods() {
             "bubbles",
             "ignore_values",
             "blocked_grid",
-            "movement_step_units",
+            "movement_substep_units",
             "turn_snap_window_units",
             "pass_absorb_window_units"
         ),
@@ -521,7 +518,7 @@ PackedByteArray QQTNativeMovementKernel::step_players_packed(
     const PackedInt32Array &bubbles,
     const PackedInt32Array &ignore_values,
     const PackedInt32Array &blocked_grid,
-    int32_t movement_step_units,
+    int32_t movement_substep_units,
     int32_t turn_snap_window_units,
     int32_t pass_absorb_window_units
 ) const {
@@ -535,7 +532,7 @@ PackedByteArray QQTNativeMovementKernel::step_players_packed(
     input_blob.clear();
     append_i32(input_blob, MOVEMENT_PAYLOAD_MAGIC);
     append_i32(input_blob, static_cast<int32_t>(WIRE_VERSION));
-    append_i32(input_blob, movement_step_units);
+    append_i32(input_blob, movement_substep_units);
     append_i32(input_blob, turn_snap_window_units);
     append_i32(input_blob, pass_absorb_window_units);
     append_i32_array(input_blob, players);
@@ -555,7 +552,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     PackedInt32Array bubbles;
     PackedInt32Array ignore_values;
     PackedInt32Array blocked_grid;
-    int32_t movement_step_units = 0;
+    int32_t movement_substep_units = 0;
     int32_t turn_snap_window_units = DEFAULT_TURN_SNAP_WINDOW_UNITS;
     int32_t pass_absorb_window_units = DEFAULT_PASS_ABSORB_WINDOW_UNITS;
     if (!decode_binary_input(
@@ -564,7 +561,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         bubbles,
         ignore_values,
         blocked_grid,
-        movement_step_units,
+        movement_substep_units,
         turn_snap_window_units,
         pass_absorb_window_units
     )) {
@@ -597,7 +594,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         ignore_values = ignore_variant;
         blocked_grid = blocked_variant;
         const Dictionary tuning = tuning_variant;
-        movement_step_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("movement_step_units", 0)));
+        movement_substep_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("movement_substep_units", 0)));
         turn_snap_window_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("turn_snap_window_units", DEFAULT_TURN_SNAP_WINDOW_UNITS)));
         pass_absorb_window_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("pass_absorb_window_units", DEFAULT_PASS_ABSORB_WINDOW_UNITS)));
     }
@@ -607,10 +604,10 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     }
 
     KernelContext ctx;
-    ctx.movement_step_units = movement_step_units;
+    ctx.movement_substep_units = movement_substep_units;
     ctx.turn_snap_window_units = turn_snap_window_units;
     ctx.pass_absorb_window_units = pass_absorb_window_units;
-    if (ctx.movement_step_units <= 0) {
+    if (ctx.movement_substep_units <= 0) {
         return UtilityFunctions::var_to_bytes(result);
     }
 
@@ -678,7 +675,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         player.last_non_zero_move_y = values[i + 9];
         player.facing = values[i + 10];
         player.move_state = values[i + 11];
-        player.move_phase_ticks = values[i + 12];
+        player.move_remainder_units = values[i + 12];
         player.speed_level = values[i + 13];
         player.command_move_x = sanitize_axis(values[i + 14]);
         player.command_move_y = sanitize_axis(values[i + 15]);
@@ -693,7 +690,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         Vec2i blocked_cell = old_foot_cell;
 
         if (player.command_move_x == 0 && player.command_move_y == 0) {
-            player.move_phase_ticks = 0;
+            player.move_remainder_units = 0;
             player.move_state = 0;
         } else {
             player.last_non_zero_move_x = player.command_move_x;
@@ -708,12 +705,11 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
                 player.facing = 2;
             }
 
-            const int32_t required_ticks = std::max(resolve_ticks_per_step(player.speed_level), 1);
-            player.move_phase_ticks += 1;
-            const int32_t step_count = player.move_phase_ticks / required_ticks;
-            player.move_phase_ticks = player.move_phase_ticks % required_ticks;
+            int32_t units_to_consume = player.move_remainder_units + resolve_movement_units_per_tick(player.speed_level);
+            player.move_remainder_units = 0;
 
-            for (int32_t step_index = 0; step_index < step_count; ++step_index) {
+            while (units_to_consume > 0) {
+                const int32_t step_units = std::min(ctx.movement_substep_units, units_to_consume);
                 const Vec2i foot_cell = get_foot_cell(player);
                 const Vec2i target_cell{foot_cell.x + player.command_move_x, foot_cell.y + player.command_move_y};
                 const bool direct_target_blocked = is_transition_blocked_for_player(
@@ -734,6 +730,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
                     ctx.turn_snap_window_units
                 )) {
                     turn_only = true;
+                    player.move_remainder_units = 0;
                     break;
                 }
 
@@ -743,13 +740,15 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
                     player,
                     player.command_move_x,
                     player.command_move_y,
-                    ctx.movement_step_units,
-                    ctx.movement_step_units
+                    step_units,
+                    ctx.movement_substep_units
                 );
                 const Vector2i resolved_abs_pos = move_result.get("abs_pos", Vector2i());
                 write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y);
+                units_to_consume -= step_units;
                 if (static_cast<bool>(move_result.get("blocked", false))) {
                     blocked = true;
+                    player.move_remainder_units = 0;
                     const Vector2i raw_blocked_cell = move_result.get("blocked_cell", Vector2i());
                     blocked_cell = Vec2i{raw_blocked_cell.x, raw_blocked_cell.y};
                     break;
@@ -814,7 +813,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         player_update["offset_y"] = player.offset_y;
         player_update["facing"] = player.facing;
         player_update["move_state"] = player.move_state;
-        player_update["move_phase_ticks"] = player.move_phase_ticks;
+        player_update["move_remainder_units"] = player.move_remainder_units;
         player_update["last_non_zero_move_x"] = player.last_non_zero_move_x;
         player_update["last_non_zero_move_y"] = player.last_non_zero_move_y;
         updates.append(player_update);

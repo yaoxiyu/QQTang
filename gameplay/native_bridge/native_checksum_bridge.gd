@@ -58,13 +58,18 @@ func _pack_players(sim_world: SimWorld) -> PackedInt32Array:
 		packed.append(player.offset_x)
 		packed.append(player.offset_y)
 		packed.append(int(player.last_place_bubble_pressed))
-		packed.append(player.move_phase_ticks)
+		packed.append(player.move_remainder_units)
+		packed.append(player.speed_level)
+		packed.append(player.max_speed_level)
 		packed.append(int(player.alive))
 		packed.append(player.life_state)
 		packed.append(player.death_display_ticks)
 		packed.append(player.trapped_timeout_ticks)
 		packed.append(player.bomb_available)
+		packed.append(player.bomb_capacity)
+		packed.append(player.max_bomb_capacity)
 		packed.append(player.bomb_range)
+		packed.append(player.max_bomb_range)
 	return packed
 
 

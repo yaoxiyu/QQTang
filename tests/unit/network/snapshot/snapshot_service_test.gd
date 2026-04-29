@@ -7,6 +7,9 @@ func test_main() -> void:
 	_run_scripted_ticks(world_a, _make_scripted_inputs())
 
 	var snapshot_service := SnapshotService.new()
+	var saved_player := world_a.state.players.get_player(world_a.state.players.active_ids[0])
+	saved_player.move_remainder_units = 42
+	world_a.state.players.update_player(saved_player)
 	var saved_tick := world_a.state.match_state.tick
 	var standard_snapshot := snapshot_service.build_standard_snapshot(world_a, saved_tick)
 
@@ -16,6 +19,8 @@ func test_main() -> void:
 	var restored_diff := snapshot_service.build_diff(standard_snapshot, restored_snapshot)
 
 	_assert(restored_diff["players_equal"], "restored players should match snapshot")
+	var restored_player := world_b.state.players.get_player(world_b.state.players.active_ids[0])
+	_assert(restored_player.move_remainder_units == 42, "restored player movement remainder should match snapshot")
 	_assert(restored_diff["bubbles_equal"], "restored bubbles should match snapshot")
 	_assert(restored_diff["items_equal"], "restored items should match snapshot")
 	_assert(restored_diff["walls_equal"], "restored walls should match snapshot")
@@ -93,4 +98,3 @@ func _command(move_x: int, move_y: int, place_bubble: bool) -> PlayerCommand:
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-

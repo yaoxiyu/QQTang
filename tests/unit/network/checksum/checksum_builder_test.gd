@@ -23,6 +23,18 @@ func test_main() -> void:
 	var mutated_checksum := checksum_builder.build(world_b, world_b.state.match_state.tick)
 	_assert(mutated_checksum != checksum_a, "logic field mutation should change checksum")
 
+	player.bomb_range -= 1
+	player.move_remainder_units += 7
+	world_b.state.players.update_player(player)
+	var remainder_checksum := checksum_builder.build(world_b, world_b.state.match_state.tick)
+	_assert(remainder_checksum != checksum_a, "movement remainder mutation should change checksum")
+
+	player.move_remainder_units -= 7
+	player.speed_level += 1
+	world_b.state.players.update_player(player)
+	var speed_checksum := checksum_builder.build(world_b, world_b.state.match_state.tick)
+	_assert(speed_checksum != checksum_a, "speed level mutation should change checksum")
+
 	world_a.dispose()
 	world_b.dispose()
 
@@ -61,4 +73,3 @@ func _command(move_x: int, move_y: int, place_bubble: bool) -> PlayerCommand:
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-

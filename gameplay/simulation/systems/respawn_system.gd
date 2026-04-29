@@ -34,7 +34,7 @@ func _revive_player(ctx: SimContext, player: PlayerState) -> void:
 	player.offset_x = 0
 	player.offset_y = 0
 	player.move_state = PlayerState.MoveState.IDLE
-	player.move_phase_ticks = 0
+	player.move_remainder_units = 0
 	player.last_non_zero_move_x = 0
 	player.last_non_zero_move_y = 0
 	player.trap_bubble_id = -1

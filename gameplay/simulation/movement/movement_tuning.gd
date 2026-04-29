@@ -8,25 +8,34 @@ const TURN_SNAP_WINDOW_UNITS : int = WorldMetrics.QUARTER_CELL_UNITS
 const PASS_ABSORB_WINDOW_UNITS : int = WorldMetrics.QUARTER_CELL_UNITS
 const BUBBLE_FORWARD_PLACE_WINDOW_UNITS : int = WorldMetrics.EIGHTH_CELL_UNITS
 
-const TICKS_PER_STEP_LV1 := 3
-const TICKS_PER_STEP_LV2 := 2
-const TICKS_PER_STEP_LV3 := 1
+const SPEED_UNITS_PER_TICK: PackedInt32Array = [
+	70,
+	82,
+	94,
+	106,
+	118,
+	130,
+	142,
+	154,
+	166,
+]
 
 
-static func ticks_per_step(speed_level: int) -> int:
-	match max(speed_level, 1):
-		1:
-			return TICKS_PER_STEP_LV1
-		2:
-			return TICKS_PER_STEP_LV2
-		3:
-			return TICKS_PER_STEP_LV3
-		_:
-			return TICKS_PER_STEP_LV3
+static func movement_units_per_tick(speed_level: int) -> int:
+	var index := clampi(speed_level, 1, max_speed_level()) - 1
+	return SPEED_UNITS_PER_TICK[index]
+
+
+static func max_speed_level() -> int:
+	return SPEED_UNITS_PER_TICK.size()
+
+
+static func movement_substep_units() -> int:
+	return MOVE_STEP_UNITS
 
 
 static func movement_step_units() -> int:
-	return MOVE_STEP_UNITS
+	return movement_substep_units()
 
 
 static func turn_snap_window_units() -> int:

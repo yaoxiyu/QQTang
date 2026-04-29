@@ -86,7 +86,7 @@ func _rescue_player(ctx: SimContext, trapped_player: PlayerState, rescuer_player
 	trapped_player.last_damage_from_player_id = -1
 	trapped_player.invincible_ticks = _get_rescue_invincible_ticks(ctx)
 	trapped_player.move_state = PlayerState.MoveState.IDLE
-	trapped_player.move_phase_ticks = 0
+	trapped_player.move_remainder_units = 0
 	ctx.state.players.update_player(trapped_player)
 	LogSimulationScript.debug(
 		"jelly_rescue tick=%d trapped_player_id=%d rescuer_player_id=%d team_id=%d invincible_ticks=%d" % [

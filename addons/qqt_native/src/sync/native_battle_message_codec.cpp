@@ -181,7 +181,7 @@ void append_player_summary(PackedByteArray &body, const Dictionary &player) {
     append_i16(body, dict_i(player, "move_progress_y", 0));
     append_u8(body, uint8_t(dict_i(player, "facing", 0)));
     append_u8(body, uint8_t(dict_i(player, "move_state", 0)));
-    append_u16(body, uint16_t(dict_i(player, "move_phase_ticks", 0)));
+    append_u16(body, uint16_t(dict_i(player, "move_remainder_units", 0)));
     append_u8(body, dict_b(player, "last_place_bubble_pressed", false) ? 1 : 0);
     append_u8(body, uint8_t(dict_i(player, "speed_level", 0)));
     append_u8(body, uint8_t(dict_i(player, "bomb_capacity", 0)));
@@ -203,7 +203,7 @@ Dictionary read_player_summary(const PackedByteArray &payload, int32_t &offset) 
     player["move_progress_y"] = int32_t(read_i16(payload, offset));
     player["facing"] = int32_t(read_u8(payload, offset));
     player["move_state"] = int32_t(read_u8(payload, offset));
-    player["move_phase_ticks"] = int32_t(read_u16(payload, offset));
+    player["move_remainder_units"] = int32_t(read_u16(payload, offset));
     player["last_place_bubble_pressed"] = read_u8(payload, offset) != 0;
     player["speed_level"] = int32_t(read_u8(payload, offset));
     player["bomb_capacity"] = int32_t(read_u8(payload, offset));
