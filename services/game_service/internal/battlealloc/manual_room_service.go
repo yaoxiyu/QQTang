@@ -178,6 +178,7 @@ func (s *ManualRoomService) Create(ctx context.Context, input ManualRoomBattleIn
 		MapID:               input.MapID,
 		ExpectedMemberCount: expectedMemberCount,
 		HostHint:            input.HostHint,
+		WaitReady:           true,
 	})
 	if err != nil {
 		_ = s.repo.UpdateAllocationState(ctx, assignmentID, "allocation_failed", battleID, "", "", 0)

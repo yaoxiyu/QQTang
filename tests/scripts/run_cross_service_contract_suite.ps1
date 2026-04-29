@@ -1,10 +1,16 @@
 param(
-    [string]$GodotExe = 'D:\Godot\Godot.exe',
-    [string]$ProjectPath = 'D:\code\Personal\QQTang'
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot.exe'),
+    [string]$ProjectPath = ''
 )
 
 if ($PSVersionTable.PSVersion.Major -ge 7) {
     $PSNativeCommandUseErrorActionPreference = $false
+}
+
+if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
+    $ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+} else {
+    $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
 }
 
 $wrapper = Join-Path $ProjectPath 'tests\scripts\run_gut_suite.ps1'

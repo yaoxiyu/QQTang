@@ -6,6 +6,7 @@ export_presets.cfg
 
 # Godot local user data / logs
 Godot/
+godot_binary/
 app_userdata/
 logs/
 *.log

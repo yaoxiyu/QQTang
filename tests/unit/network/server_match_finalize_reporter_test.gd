@@ -143,3 +143,10 @@ func test_finalize_request_uses_internal_json_service_client() -> void:
 	missing_secret.configure("127.0.0.1", 18081, "", "wp6_key")
 	var response := missing_secret._send_internal_post_once("/internal/v1/matches/finalize", {"a": 1})
 	assert_eq(String(response.get("error_code", "")), "MATCH_FINALIZE_SECRET_MISSING", "missing secret should still map to finalize secret missing")
+
+
+func test_finalize_reporter_parses_game_service_base_url_endpoint() -> void:
+	var reporter = ServerMatchFinalizeReporterScript.new()
+	var endpoint: Dictionary = reporter._endpoint_from_base_url("http://game_service:18081/internal")
+	assert_eq(String(endpoint.get("host", "")), "game_service")
+	assert_eq(int(endpoint.get("port", 0)), 18081)

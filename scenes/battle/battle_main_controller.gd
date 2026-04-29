@@ -105,16 +105,31 @@ func _initialize_runtime() -> void:
 		return
 	_runtime_bound = true
 	_session_adapter = _app_runtime.battle_session_adapter if _app_runtime != null else null
-	if _app_runtime != null and _app_runtime.current_start_config == null:
-		# Build BattleStartConfig from BattleEntryContext (battle ticket flow).
-		var battle_entry_ctx = _app_runtime.current_battle_entry_context
-		if battle_entry_ctx != null and battle_entry_ctx.is_valid():
-			var config: BattleStartConfig = _battle_flow_coordinator.build_start_config_from_battle_entry(battle_entry_ctx)
-			_app_runtime.apply_canonical_start_config(config)
-		elif _session_adapter != null:
+	_log_online_flow("battle_main_initialize_runtime", {
+		"has_app_runtime": _app_runtime != null,
+		"has_session_adapter": _session_adapter != null,
+		"has_start_config": _app_runtime != null and _app_runtime.current_start_config != null,
+		"has_battle_entry_context": _app_runtime != null and _app_runtime.current_battle_entry_context != null,
+	})
+	if _app_runtime != null:
+		_ensure_battle_entry_start_config()
+		if _app_runtime.current_start_config == null and _session_adapter != null:
 			var adapter_config: BattleStartConfig = _session_adapter.get("start_config")
 			if adapter_config != null:
+				_log_online_flow("battle_main_start_config_from_adapter", {
+					"battle_id": String(adapter_config.battle_id),
+					"match_id": String(adapter_config.match_id),
+					"authority_host": String(adapter_config.authority_host),
+					"authority_port": int(adapter_config.authority_port),
+					"players": adapter_config.players.size(),
+				})
 				_app_runtime.apply_canonical_start_config(adapter_config)
+			else:
+				var battle_entry_ctx = _app_runtime.current_battle_entry_context
+				_log_online_flow("battle_main_missing_start_config", {
+					"has_entry": battle_entry_ctx != null,
+					"entry_valid": battle_entry_ctx != null and battle_entry_ctx.is_valid(),
+				})
 	if _app_runtime != null:
 		_app_runtime.register_battle_modules(self, battle_bootstrap, presentation_bridge, battle_hud, battle_camera_controller, settlement_controller)
 	_connect_session_signals()
@@ -126,7 +141,59 @@ func _initialize_runtime() -> void:
 	if _session_adapter != null:
 		if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
 			_session_adapter.apply_resume_snapshot(_app_runtime.current_resume_snapshot)
+		_log_online_flow("battle_main_call_start_battle", {
+			"adapter_has_config": _session_adapter.get("start_config") != null,
+			"adapter_active": _session_adapter.is_battle_active() if _session_adapter.has_method("is_battle_active") else false,
+		})
 		_session_adapter.start_battle()
+	else:
+		_log_online_flow("battle_main_no_session_adapter", {})
+
+
+func _ensure_battle_entry_start_config() -> void:
+	if _app_runtime == null:
+		return
+	var battle_entry_ctx = _app_runtime.current_battle_entry_context
+	if battle_entry_ctx == null or not battle_entry_ctx.is_valid():
+		return
+	var existing_config: BattleStartConfig = _app_runtime.current_start_config
+	var needs_entry_overlay := existing_config == null
+	if existing_config != null:
+		needs_entry_overlay = String(existing_config.battle_id).is_empty() \
+			or String(existing_config.authority_host).is_empty() \
+			or int(existing_config.authority_port) <= 0 \
+			or String(existing_config.session_mode) != "network_client" \
+			or String(existing_config.topology) != "dedicated_server"
+	if not needs_entry_overlay:
+		return
+	var config: BattleStartConfig = existing_config.duplicate_deep() if existing_config != null else _battle_flow_coordinator.build_start_config_from_battle_entry(battle_entry_ctx)
+	config.session_mode = "network_client"
+	config.topology = "dedicated_server"
+	config.authority_host = String(battle_entry_ctx.battle_server_host)
+	config.authority_port = int(battle_entry_ctx.battle_server_port)
+	config.battle_id = String(battle_entry_ctx.battle_id)
+	if String(config.match_id).is_empty():
+		config.match_id = String(battle_entry_ctx.match_id)
+	if String(config.map_id).is_empty():
+		config.map_id = String(battle_entry_ctx.map_id)
+	if String(config.mode_id).is_empty():
+		config.mode_id = String(battle_entry_ctx.mode_id)
+	if String(config.rule_set_id).is_empty():
+		config.rule_set_id = String(battle_entry_ctx.rule_set_id)
+	if String(config.room_id).is_empty():
+		config.room_id = String(battle_entry_ctx.source_room_id)
+	config.build_mode = BattleStartConfig.BUILD_MODE_CANONICAL
+	_log_online_flow("battle_main_start_config_entry_overlay", {
+		"had_existing_config": existing_config != null,
+		"battle_id": String(config.battle_id),
+		"match_id": String(config.match_id),
+		"authority_host": String(config.authority_host),
+		"authority_port": int(config.authority_port),
+		"players": config.players.size(),
+		"local_peer_id": int(config.local_peer_id),
+		"controlled_peer_id": int(config.controlled_peer_id),
+	})
+	_app_runtime.apply_canonical_start_config(config)
 
 
 func _exit_tree() -> void:

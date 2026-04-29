@@ -1,12 +1,18 @@
 package gameclient
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	gamev1 "qqtang/services/room_service/internal/gen/qqt/gamev1shim"
+	"qqtang/services/room_service/internal/internalhttp"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,7 +24,11 @@ const defaultRPCTimeout = 3 * time.Second
 
 type Client struct {
 	addr       string
+	httpBase   string
+	authKeyID  string
+	authSecret string
 	rpcTimeout time.Duration
+	httpClient *http.Client
 
 	mu   sync.Mutex
 	conn *grpc.ClientConn
@@ -29,7 +39,17 @@ func New(addr string) *Client {
 	return &Client{
 		addr:       addr,
 		rpcTimeout: defaultRPCTimeout,
+		httpClient: &http.Client{Timeout: defaultRPCTimeout},
 	}
+}
+
+func (c *Client) ConfigureInternalHTTP(baseURL string, keyID string, sharedSecret string) {
+	if c == nil {
+		return
+	}
+	c.httpBase = strings.TrimRight(baseURL, "/")
+	c.authKeyID = keyID
+	c.authSecret = sharedSecret
 }
 
 func (c *Client) Addr() string {
@@ -130,6 +150,53 @@ func (c *Client) CommitAssignmentReady(input CommitAssignmentReadyInput) (Commit
 		return CommitAssignmentReadyResult{}, err
 	}
 	return fromPBCommitAssignmentReady(response), nil
+}
+
+func (c *Client) ReapBattle(input ReapBattleInput) (ReapBattleResult, error) {
+	if c == nil {
+		return ReapBattleResult{}, fmt.Errorf("game client is nil")
+	}
+	if input.BattleID == "" {
+		return ReapBattleResult{}, fmt.Errorf("battle_id is required")
+	}
+	if c.httpBase == "" || c.authKeyID == "" || c.authSecret == "" {
+		return ReapBattleResult{}, fmt.Errorf("game internal http is not configured")
+	}
+	body, err := json.Marshal(map[string]any{
+		"room_id":       input.RoomID,
+		"assignment_id": input.AssignmentID,
+	})
+	if err != nil {
+		return ReapBattleResult{}, err
+	}
+	path := "/internal/v1/battles/" + input.BattleID + "/reap"
+	req, err := http.NewRequest(http.MethodPost, c.httpBase+path, bytes.NewReader(body))
+	if err != nil {
+		return ReapBattleResult{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if err := internalhttp.SignRequest(req, c.authKeyID, c.authSecret, body, time.Now().UTC()); err != nil {
+		return ReapBattleResult{}, err
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return ReapBattleResult{}, err
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return ReapBattleResult{}, err
+	}
+	var result ReapBattleResult
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return ReapBattleResult{}, err
+		}
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 || !result.OK {
+		return result, fmt.Errorf("game reap battle failed status=%d code=%s message=%s", resp.StatusCode, result.ErrorCode, result.UserMessage)
+	}
+	return result, nil
 }
 
 func (c *Client) callEnterPartyQueue(input EnterPartyQueueInput) (*gamev1.EnterPartyQueueResponse, error) {

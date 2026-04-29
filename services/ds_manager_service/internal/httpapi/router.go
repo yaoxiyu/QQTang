@@ -16,6 +16,7 @@ type RouterDeps struct {
 	ReapHandler     *ReapHandler
 	ReadyHandler    *ReadyHandler
 	ActiveHandler   *ActiveHandler
+	StatusHandler   *StatusHandler
 }
 
 func NewRouter(deps RouterDeps) http.Handler {
@@ -30,6 +31,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux.Handle("POST /internal/v1/battles/{battle_id}/ready", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ReadyHandler.Handle)))
 	mux.Handle("POST /internal/v1/battles/{battle_id}/active", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ActiveHandler.Handle)))
 	mux.Handle("POST /internal/v1/battles/{battle_id}/reap", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.ReapHandler.Handle)))
+	if deps.StatusHandler != nil {
+		mux.Handle("GET /internal/v1/battles/{battle_id}", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.StatusHandler.Handle)))
+	}
 
 	return mux
 }

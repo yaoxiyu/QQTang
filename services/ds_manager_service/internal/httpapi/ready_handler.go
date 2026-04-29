@@ -5,14 +5,20 @@ import (
 
 	"qqtang/services/ds_manager_service/internal/allocator"
 	"qqtang/services/ds_manager_service/internal/platform/httpx"
+	"qqtang/services/ds_manager_service/internal/runtimepool"
 )
 
 type ReadyHandler struct {
 	alloc *allocator.Allocator
+	pool  runtimepool.RuntimePool
 }
 
 func NewReadyHandler(alloc *allocator.Allocator) *ReadyHandler {
 	return &ReadyHandler{alloc: alloc}
+}
+
+func NewRuntimePoolReadyHandler(pool runtimepool.RuntimePool) *ReadyHandler {
+	return &ReadyHandler{pool: pool}
 }
 
 func (h *ReadyHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +28,12 @@ func (h *ReadyHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.alloc.MarkReady(battleID); err != nil {
+	if h.pool != nil {
+		if err := h.pool.MarkReady(r.Context(), battleID); err != nil {
+			httpx.WriteError(w, http.StatusConflict, "MARK_READY_FAILED", err.Error())
+			return
+		}
+	} else if err := h.alloc.MarkReady(battleID); err != nil {
 		httpx.WriteError(w, http.StatusConflict, "MARK_READY_FAILED", err.Error())
 		return
 	}

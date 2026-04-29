@@ -33,6 +33,16 @@ func (RoomTransitionEngine) ApplyToggleReady(room *domain.RoomAggregate, ownerMe
 	finalizeRoomTransition(room, ownerMemberID)
 }
 
+func (RoomTransitionEngine) ApplyMemberLeft(room *domain.RoomAggregate, ownerMemberID string, ownerChanged bool) {
+	if room == nil {
+		return
+	}
+	if ownerChanged && room.RoomState.Phase == RoomPhaseIdle {
+		resetTransferredOwnerForLobby(room, ownerMemberID)
+	}
+	finalizeRoomTransition(room, ownerMemberID)
+}
+
 func (RoomTransitionEngine) ApplyQueueEnterRequested(room *domain.RoomAggregate, ownerMemberID string) {
 	if room == nil {
 		return
@@ -367,12 +377,29 @@ func (RoomTransitionEngine) ApplyBattleFinished(room *domain.RoomAggregate, owne
 	finalizeRoomTransition(room, ownerMemberID)
 }
 
+func (RoomTransitionEngine) ApplyBattleReturning(room *domain.RoomAggregate, ownerMemberID string, terminalReason string) {
+	if room == nil {
+		return
+	}
+	room.RoomState.Phase = RoomPhaseReturningToRoom
+	room.RoomState.LastReason = RoomReasonBattleFinished
+	room.BattleState.Phase = BattlePhaseReturning
+	room.BattleState.TerminalReason = terminalReasonOrNone(terminalReason)
+	finalizeRoomTransition(room, ownerMemberID)
+}
+
 func (RoomTransitionEngine) ApplyReturnCompleted(room *domain.RoomAggregate, ownerMemberID string) {
 	if room == nil {
 		return
 	}
 	room.RoomState.Phase = RoomPhaseIdle
 	room.RoomState.LastReason = RoomReasonReturnCompleted
+	room.QueueState.Phase = QueuePhaseIdle
+	room.QueueState.TerminalReason = QueueReasonNone
+	room.QueueState.StatusText = ""
+	room.QueueState.QueueEntryID = ""
+	room.QueueState.ErrorCode = ""
+	room.QueueState.UserMessage = ""
 	room.BattleState.Phase = BattlePhaseCompleted
 	room.BattleState.TerminalReason = BattleReasonReturnCompleted
 	room.BattleState.AssignmentID = ""
@@ -382,7 +409,7 @@ func (RoomTransitionEngine) ApplyReturnCompleted(room *domain.RoomAggregate, own
 	room.BattleState.ServerHost = ""
 	room.BattleState.ServerPort = 0
 	room.BattleState.Ready = false
-	releaseMembersToIdle(room)
+	resetMembersAfterBattleReturn(room)
 	finalizeRoomTransition(room, ownerMemberID)
 }
 

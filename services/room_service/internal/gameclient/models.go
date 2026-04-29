@@ -141,3 +141,17 @@ type CommitAssignmentReadyResult struct {
 	ErrorCode      string
 	UserMessage    string
 }
+
+type ReapBattleInput struct {
+	RoomID       string
+	AssignmentID string
+	BattleID     string
+}
+
+type ReapBattleResult struct {
+	OK          bool
+	BattleID    string
+	Reaped      bool
+	ErrorCode   string
+	UserMessage string
+}

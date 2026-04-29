@@ -31,6 +31,32 @@ func test_ingest_state_summary_applies_merged_ack_by_peer() -> void:
 	runtime.queue_free()
 
 
+func test_ingest_state_summary_applies_ack_by_peer_fallback_when_ids_are_transport_scoped() -> void:
+	var runtime := _runtime_with_session(243214422)
+	runtime.configure_controlled_peer(9)
+	runtime.ingest_network_message({
+		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
+		"tick": 15,
+		"ack_by_peer": {1: 15, 2: 14},
+		"player_summary": {},
+		"events": [],
+	})
+
+	assert_eq(runtime.client_session.last_confirmed_tick, 15)
+	runtime.queue_free()
+
+
+func test_ingest_input_ack_batch_applies_ack_by_peer() -> void:
+	var runtime := _runtime_with_session(7)
+	runtime.ingest_network_message({
+		"message_type": TransportMessageTypesScript.INPUT_ACK_BATCH,
+		"ack_by_peer": {7: 16},
+	})
+
+	assert_eq(runtime.client_session.last_confirmed_tick, 16)
+	runtime.queue_free()
+
+
 func test_ingest_authority_batch_runs_one_rollback_for_latest_snapshot() -> void:
 	var runtime := _runtime_with_session(7)
 	runtime.ingest_authority_batch({
@@ -76,6 +102,20 @@ func test_ingest_authority_batch_applies_terminal_after_snapshot() -> void:
 	})
 
 	assert_eq(runtime.client_session.latest_snapshot_tick, 9)
+	assert_false(runtime.is_active())
+	runtime.queue_free()
+
+
+func test_ingest_ignores_authority_world_updates_after_match_finished() -> void:
+	var runtime := _runtime_with_session(7)
+	runtime.ingest_network_message({
+		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
+		"tick": 10,
+		"result": {"finish_reason": "force_end", "finish_tick": 10},
+	})
+	runtime.ingest_network_message(_snapshot(11))
+
+	assert_eq(runtime.client_session.latest_snapshot_tick, 0)
 	assert_false(runtime.is_active())
 	runtime.queue_free()
 

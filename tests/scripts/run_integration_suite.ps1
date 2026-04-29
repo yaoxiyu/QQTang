@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExe = 'D:\Godot\Godot.exe',
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot.exe'),
     [string]$ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 )
 

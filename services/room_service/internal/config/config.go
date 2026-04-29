@@ -8,17 +8,21 @@ import (
 )
 
 type Config struct {
-	RoomHTTPAddr            string
-	RoomWSAddr              string
-	RoomDefaultPort         int
-	RoomTicketSecret        string
-	RoomManifestPath        string
-	RoomGameServiceGRPCAddr string
-	RoomInstanceID          string
-	RoomShardID             string
-	RoomLogLevel            string
-	RoomEnv                 string
-	RoomAllowedOrigins      []string
+	RoomHTTPAddr                       string
+	RoomWSAddr                         string
+	RoomDefaultPort                    int
+	RoomTicketSecret                   string
+	RoomManifestPath                   string
+	RoomGameServiceGRPCAddr            string
+	RoomGameServiceBaseURL             string
+	RoomGameInternalAuthKeyID          string
+	RoomGameInternalAuthSecret         string
+	RoomEmptyBattleCleanupGraceSeconds int
+	RoomInstanceID                     string
+	RoomShardID                        string
+	RoomLogLevel                       string
+	RoomEnv                            string
+	RoomAllowedOrigins                 []string
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -28,17 +32,24 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	cfg := &Config{
-		RoomHTTPAddr:            envOr("ROOM_HTTP_ADDR", "127.0.0.1:19100"),
-		RoomWSAddr:              envOr("ROOM_WS_ADDR", fmt.Sprintf("127.0.0.1:%d", defaultPort)),
-		RoomDefaultPort:         defaultPort,
-		RoomTicketSecret:        envOr("ROOM_TICKET_SECRET", "dev_room_ticket_secret"),
-		RoomManifestPath:        envOr("ROOM_MANIFEST_PATH", "../../build/generated/room_manifest/room_manifest.json"),
-		RoomGameServiceGRPCAddr: envOr("ROOM_GAME_SERVICE_GRPC_ADDR", "127.0.0.1:19081"),
-		RoomInstanceID:          envOr("ROOM_INSTANCE_ID", "room-instance-dev"),
-		RoomShardID:             envOr("ROOM_SHARD_ID", "room-shard-dev"),
-		RoomLogLevel:            envOr("ROOM_LOG_LEVEL", "info"),
-		RoomEnv:                 envOr("ROOM_ENV", "development"),
-		RoomAllowedOrigins:      parseCSV(envOr("ROOM_ALLOWED_ORIGINS", "")),
+		RoomHTTPAddr:               envOr("ROOM_HTTP_ADDR", "127.0.0.1:19100"),
+		RoomWSAddr:                 envOr("ROOM_WS_ADDR", fmt.Sprintf("127.0.0.1:%d", defaultPort)),
+		RoomDefaultPort:            defaultPort,
+		RoomTicketSecret:           envOr("ROOM_TICKET_SECRET", "dev_room_ticket_secret"),
+		RoomManifestPath:           envOr("ROOM_MANIFEST_PATH", "../../build/generated/room_manifest/room_manifest.json"),
+		RoomGameServiceGRPCAddr:    envOr("ROOM_GAME_SERVICE_GRPC_ADDR", "127.0.0.1:19081"),
+		RoomGameServiceBaseURL:     envOr("ROOM_GAME_SERVICE_BASE_URL", ""),
+		RoomGameInternalAuthKeyID:  envOr("ROOM_GAME_INTERNAL_AUTH_KEY_ID", "primary"),
+		RoomGameInternalAuthSecret: envOr("ROOM_GAME_INTERNAL_AUTH_SHARED_SECRET", ""),
+		RoomInstanceID:             envOr("ROOM_INSTANCE_ID", "room-instance-dev"),
+		RoomShardID:                envOr("ROOM_SHARD_ID", "room-shard-dev"),
+		RoomLogLevel:               envOr("ROOM_LOG_LEVEL", "info"),
+		RoomEnv:                    envOr("ROOM_ENV", "development"),
+		RoomAllowedOrigins:         parseCSV(envOr("ROOM_ALLOWED_ORIGINS", "")),
+	}
+	cfg.RoomEmptyBattleCleanupGraceSeconds, err = positiveInt("ROOM_EMPTY_BATTLE_CLEANUP_GRACE_SECONDS", 30)
+	if err != nil {
+		return nil, err
 	}
 
 	if cfg.RoomHTTPAddr == "" {

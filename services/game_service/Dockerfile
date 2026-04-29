@@ -11,10 +11,13 @@ COPY services/shared/contentmanifest/ shared/contentmanifest/
 COPY services/game_service/ game_service/
 RUN cd game_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/game_service ./cmd/game_service
 
-FROM alpine:3.22
-RUN apk add --no-cache ca-certificates tzdata wget \
-    && addgroup -S app \
-    && adduser -S -G app app
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app \
+    && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
 
 WORKDIR /app
 COPY --from=builder /out/game_service /app/game_service

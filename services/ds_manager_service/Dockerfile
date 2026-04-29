@@ -9,10 +9,13 @@ RUN go mod download
 COPY services/ds_manager_service/ ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/ds_manager_service ./cmd/ds_manager_service
 
-FROM alpine:3.22
-RUN apk add --no-cache ca-certificates tzdata wget \
-    && addgroup -S app \
-    && adduser -S -G app app
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates tzdata wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app \
+    && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
 
 WORKDIR /app
 COPY --from=builder /out/ds_manager_service /app/ds_manager_service
@@ -21,16 +24,23 @@ ENV DSM_HTTP_ADDR=0.0.0.0:18090
 ENV DSM_INTERNAL_AUTH_KEY_ID=primary
 ENV DSM_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret
 ENV DSM_INTERNAL_AUTH_MAX_SKEW_SECONDS=60
-ENV DSM_GODOT_EXECUTABLE=godot4
-ENV DSM_PROJECT_ROOT=/workspace
-ENV DSM_BATTLE_SCENE_PATH=res://scenes/network/dedicated_server_scene.tscn
-ENV DSM_BATTLE_TICKET_SECRET=dev_battle_ticket_secret
 ENV DSM_BATTLE_LOG_DIR=/tmp/qqt_battle_logs
-ENV DSM_DS_HOST=127.0.0.1
 ENV DSM_PORT_RANGE_START=19010
 ENV DSM_PORT_RANGE_END=19050
 ENV DSM_READY_TIMEOUT_SEC=15
 ENV DSM_IDLE_REAP_TIMEOUT_SEC=300
+ENV DSM_POOL_MODE=local_process_legacy
+ENV DSM_POOL_MIN_READY=1
+ENV DSM_POOL_MAX_SIZE=4
+ENV DSM_POOL_PREFILL_BATCH=1
+ENV DSM_POOL_RECONCILE_INTERVAL_SEC=5
+ENV DSM_ALLOCATE_WAIT_READY_TIMEOUT_MS=5000
+ENV DSM_DOCKER_SOCKET=unix:///var/run/docker.sock
+ENV DSM_DS_IMAGE=qqtang/battle-ds:dev
+ENV DSM_DS_CONTAINER_PREFIX=qqt-ds
+ENV DSM_DS_AGENT_PORT=19090
+ENV DSM_DS_BATTLE_PORT=9000
+ENV DSM_DS_ADVERTISE_MODE=container_name
 ENV SERVICE_HEALTH_PORT=18090
 
 EXPOSE 18090

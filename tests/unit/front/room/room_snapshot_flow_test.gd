@@ -126,3 +126,31 @@ func test_consume_authoritative_snapshot_rejects_empty_room_state_placeholder() 
 	assert_eq(String(view_state.get("phase", "")), "in_battle", "placeholder should preserve previous phase")
 	controller.free()
 	runtime.free()
+
+
+func test_consume_authoritative_snapshot_rejects_handoff_phase_during_active_battle() -> void:
+	var flow := RoomSnapshotFlowScript.new()
+	var runtime := FakeRuntime.new()
+	var controller := FakeController.new()
+	var cache := RoomSnapshotCacheScript.new()
+	var previous_view_state := {
+		"room_id": "room_alpha",
+		"phase": "in_battle",
+		"revision": 12,
+	}
+	var snapshot := RoomSnapshot.new()
+	snapshot.room_id = "room_alpha"
+	snapshot.room_phase = "battle_entry_ready"
+	snapshot.battle_phase = "ready"
+	snapshot.snapshot_revision = 13
+	runtime.room_session_controller = controller
+
+	var result: Dictionary = flow.consume_authoritative_snapshot(runtime, snapshot, previous_view_state, cache, {"battle_active": true})
+	var view_state: Dictionary = result.get("view_state", {})
+
+	assert_true(bool(result.get("projection_skipped", false)), "handoff snapshot should be skipped while battle is active")
+	assert_eq(String(result.get("skip_reason", "")), "battle_active_handoff_snapshot", "skip reason should identify active battle handoff regression")
+	assert_eq(controller.applied_snapshot, null, "handoff snapshot should not demote the room controller during active battle")
+	assert_eq(String(view_state.get("phase", "")), "in_battle", "active battle projection should be preserved")
+	controller.free()
+	runtime.free()

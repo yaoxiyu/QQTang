@@ -5,8 +5,8 @@ const TransportMessageCodecScript = preload("res://network/transport/transport_m
 const BattleTransportChannelsScript = preload("res://network/transport/battle_transport_channels.gd")
 const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const DEBUG_TRANSPORT_LOGS: bool = false
-const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
+const DEBUG_TRANSPORT_LOGS: bool = true
+const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = true
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = BattleWireBudgetContractScript.UNRELIABLE_SOFT_LIMIT_BYTES
 const MTU_PROMOTION_WARN_INTERVAL_MSEC: int = 3000
@@ -23,6 +23,8 @@ var _connection_failure_reported: bool = false
 var _last_logged_connection_status: int = -1
 var _last_logged_connect_progress_sec: int = -1
 var _last_client_packet_probe_msec: int = 0
+var _target_host: String = ""
+var _target_port: int = 0
 var _sent_count_by_channel: Dictionary = {}
 var _sent_bytes_by_channel: Dictionary = {}
 var _sent_count_by_type: Dictionary = {}
@@ -44,6 +46,8 @@ func initialize(config: Dictionary = {}) -> void:
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
 	_last_client_packet_probe_msec = 0
+	_target_host = String(config.get("host", "127.0.0.1"))
+	_target_port = int(config.get("port", 9000))
 	_reset_transport_metrics()
 	_peer = ENetMultiplayerPeer.new()
 	var result := OK
@@ -59,8 +63,8 @@ func initialize(config: Dictionary = {}) -> void:
 		_connected = result == OK
 	else:
 		result = _peer.create_client(
-			String(config.get("host", "127.0.0.1")),
-			int(config.get("port", 9000)),
+			_target_host,
+			_target_port,
 			channel_count,
 			int(config.get("in_bandwidth", 0)),
 			int(config.get("out_bandwidth", 0)),
@@ -69,6 +73,12 @@ func initialize(config: Dictionary = {}) -> void:
 		_connected = false
 		_connect_started_msec = Time.get_ticks_msec()
 	if result != OK:
+		_debug_log("initialize_failed mode=%s target=%s:%d result=%d" % [
+			"server" if _server_mode else "client",
+			_target_host,
+			_target_port,
+			result,
+		])
 		transport_error.emit(result, "Failed to initialize ENet transport")
 		_peer = null
 		_connected = false
@@ -77,14 +87,32 @@ func initialize(config: Dictionary = {}) -> void:
 	_local_peer_id = _peer.get_unique_id() if _server_mode else 0
 	if _connected:
 		_remote_peer_ids = _read_peer_ids()
-		_debug_log("initialized server local=%d remote=%s" % [_local_peer_id, str(_remote_peer_ids)])
+		_debug_log("initialized server listen_port=%d local=%d remote=%s" % [
+			int(config.get("port", 9000)),
+			_local_peer_id,
+			str(_remote_peer_ids),
+		])
 		connected.emit()
 	else:
-		_debug_log("initialized client target=%s:%d" % [String(config.get("host", "127.0.0.1")), int(config.get("port", 9000))])
+		_debug_log("initialized client target=%s:%d timeout=%.2f channel_count=%d" % [
+			_target_host,
+			_target_port,
+			_connect_timeout_seconds,
+			channel_count,
+		])
 
 
 func shutdown(_context: Variant = null) -> void:
 	if _peer != null:
+		_debug_log("shutdown mode=%s connected=%s local=%d remote=%s target=%s:%d queued=%d" % [
+			"server" if _server_mode else "client",
+			str(_connected),
+			_local_peer_id,
+			str(_remote_peer_ids),
+			_target_host,
+			_target_port,
+			_incoming_queue.size(),
+		])
 		_peer.close()
 	_peer = null
 	_incoming_queue.clear()
@@ -98,6 +126,8 @@ func shutdown(_context: Variant = null) -> void:
 	_last_logged_connection_status = -1
 	_last_logged_connect_progress_sec = -1
 	_last_client_packet_probe_msec = 0
+	_target_host = ""
+	_target_port = 0
 	_reset_transport_metrics()
 
 
@@ -138,6 +168,7 @@ func poll() -> void:
 		message["transport_mode"] = packet_mode
 		_increment_metric(_received_count_by_channel, packet_channel, 1)
 		_incoming_queue.append(message)
+		_log_event_probe("transport_recv", sender_peer_id, message, payload.size())
 		_debug_log("received %s from %d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), sender_peer_id])
 
 
@@ -163,6 +194,7 @@ func send_to_peer(peer_id: int, message: Dictionary) -> void:
 	if peer_id == _local_peer_id:
 		return
 	var message_type := _message_type(message)
+	_log_event_probe("transport_send", peer_id, message, 0)
 	var payload := TransportMessageCodecScript.encode_message(message)
 	_send_payload_to_peer(peer_id, payload, message_type)
 
@@ -172,6 +204,8 @@ func broadcast(message: Dictionary) -> void:
 	if _peer == null:
 		return
 	var message_type := _message_type(message)
+	for peer_id in _remote_peer_ids.duplicate():
+		_log_event_probe("transport_broadcast", peer_id, message, 0)
 	var payload := TransportMessageCodecScript.encode_message(message)
 	for peer_id in _remote_peer_ids.duplicate():
 		_send_payload_to_peer(peer_id, payload, message_type)
@@ -208,11 +242,21 @@ func _sync_connection_state() -> void:
 		_connected = true
 		_connection_failure_reported = false
 		_local_peer_id = _peer.get_unique_id()
-		_debug_log("connected_to_server local=%d peers=%s" % [_local_peer_id, str(_read_peer_ids())])
+		_debug_log("connected_to_server target=%s:%d local=%d peers=%s" % [
+			_target_host,
+			_target_port,
+			_local_peer_id,
+			str(_read_peer_ids()),
+		])
 		connected.emit()
 	elif not connected_now and _connected:
 		_connected = false
 		_remote_peer_ids.clear()
+		_debug_log("disconnected target=%s:%d local=%d" % [
+			_target_host,
+			_target_port,
+			_local_peer_id,
+		])
 		disconnected.emit()
 
 
@@ -319,6 +363,49 @@ func _message_type(message: Dictionary) -> String:
 	return String(message.get("message_type", message.get("msg_type", "")))
 
 
+func _log_event_probe(stage: String, peer_id: int, message: Dictionary, payload_bytes: int) -> void:
+	var events := _explosion_events_from_message(message)
+	if events.is_empty():
+		return
+	for event in events:
+		var payload: Dictionary = (event as Dictionary).get("payload", {})
+		var covered_cells: Array = payload.get("covered_cells", [])
+		LogNetScript.info(
+			"QQT_EXPLOSION_TRACE stage=%s peer=%d msg_type=%s tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_bytes=%d payload_keys=%s" % [
+				stage,
+				peer_id,
+				_message_type(message),
+				int(message.get("tick", -1)),
+				int((event as Dictionary).get("tick", -1)),
+				int(payload.get("bubble_id", payload.get("entity_id", -1))),
+				int(payload.get("owner_player_id", -1)),
+				int(payload.get("cell_x", -1)),
+				int(payload.get("cell_y", -1)),
+				covered_cells.size(),
+				payload_bytes,
+				str(payload.keys()),
+			],
+			"",
+			0,
+			"net.transport.explosion"
+		)
+
+
+func _explosion_events_from_message(message: Dictionary) -> Array:
+	var source: Variant = message.get("events", [])
+	if not (source is Array) or (source as Array).is_empty():
+		source = message.get("event_details", [])
+	if not (source is Array):
+		return []
+	var result: Array = []
+	for event in source:
+		if not (event is Dictionary):
+			continue
+		if int((event as Dictionary).get("event_type", -1)) == 3:
+			result.append(event)
+	return result
+
+
 func _increment_metric(metrics: Dictionary, key: Variant, amount: int) -> void:
 	metrics[key] = int(metrics.get(key, 0)) + amount
 
@@ -391,7 +478,9 @@ func _report_connection_failure(code: int, message: String) -> void:
 		return
 	_connection_failure_reported = true
 	transport_error.emit(code, message)
-	_debug_log("connection_failure code=%d message=%s status=%s elapsed=%.2f" % [
+	_debug_log("connection_failure target=%s:%d code=%d message=%s status=%s elapsed=%.2f" % [
+		_target_host,
+		_target_port,
 		code,
 		message,
 		_connection_status_name(_peer.get_connection_status() if _peer != null else -1),
@@ -431,7 +520,9 @@ func _log_client_connect_progress_if_needed(elapsed_seconds: float) -> void:
 	if elapsed_bucket == _last_logged_connect_progress_sec:
 		return
 	_last_logged_connect_progress_sec = elapsed_bucket
-	_debug_log("client_connecting_progress elapsed=%.2f timeout=%.2f peers=%s" % [
+	_debug_log("client_connecting_progress target=%s:%d elapsed=%.2f timeout=%.2f peers=%s" % [
+		_target_host,
+		_target_port,
 		elapsed_seconds,
 		_connect_timeout_seconds,
 		str(_remote_peer_ids),
@@ -448,7 +539,9 @@ func _log_client_packet_probe_if_needed() -> void:
 	if available <= 0 and now - _last_client_packet_probe_msec < 1000:
 		return
 	_last_client_packet_probe_msec = now
-	_debug_log("client_packet_probe status=%s available=%d connected=%s local=%d peers=%s" % [
+	_debug_log("client_packet_probe target=%s:%d status=%s available=%d connected=%s local=%d peers=%s" % [
+		_target_host,
+		_target_port,
 		_connection_status_name(_peer.get_connection_status()),
 		available,
 		str(_connected),

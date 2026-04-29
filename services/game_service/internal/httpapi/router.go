@@ -20,6 +20,7 @@ type RouterDeps struct {
 	InternalFinalizeHandler         *InternalFinalizeHandler
 	InternalBattleManifestHandler   *InternalBattleManifestHandler
 	InternalBattleReadyHandler      *InternalBattleReadyHandler
+	InternalBattleReapHandler       *InternalBattleReapHandler
 	InternalManualRoomBattleHandler *InternalManualRoomBattleHandler
 	ReadinessCheck                  func(ctx context.Context) error
 }
@@ -59,6 +60,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 	}
 	if deps.InternalBattleReadyHandler != nil {
 		mux.Handle("POST /internal/v1/battles/{battle_id}/ready", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalBattleReadyHandler.MarkReady)))
+	}
+	if deps.InternalBattleReapHandler != nil {
+		mux.Handle("POST /internal/v1/battles/{battle_id}/reap", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalBattleReapHandler.Reap)))
 	}
 	if deps.InternalManualRoomBattleHandler != nil {
 		mux.Handle("POST /internal/v1/battles/manual-room/create", withInternalAuth(deps.InternalAuth, http.HandlerFunc(deps.InternalManualRoomBattleHandler.Create)))

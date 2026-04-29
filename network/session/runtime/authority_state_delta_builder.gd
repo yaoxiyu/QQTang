@@ -38,6 +38,7 @@ func build_delta(_active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: i
 		"changed_items": changed_items,
 		"removed_item_ids": removed_item_ids,
 		"event_details": events,
+		"events": events,
 	}
 	_last_profile = _profiler.profile_state_summary({
 		"player_summary": [],

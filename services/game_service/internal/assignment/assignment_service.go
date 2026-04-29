@@ -215,6 +215,14 @@ func (s *Service) GetStatus(ctx context.Context, roomID string, assignmentID str
 		queuePhase = "completed"
 		queueTerminalReason = "allocation_failed"
 		queueStatusText = "Battle allocation failed"
+	} else if assignmentRecord.AllocationState == "pending_allocate" || assignmentRecord.AllocationState == "allocating" || assignmentRecord.AllocationState == "starting" {
+		queueState = "allocating"
+		queuePhase = "allocating_battle"
+		queueStatusText = "Battle allocating"
+	} else if assignmentRecord.AllocationState == "active" {
+		queueState = "battle_active"
+		queuePhase = "active"
+		queueStatusText = "Battle active"
 	}
 	return StatusResult{
 		AssignmentID:        assignmentRecord.AssignmentID,

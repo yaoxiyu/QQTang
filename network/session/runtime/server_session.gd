@@ -100,6 +100,7 @@ func _tick_world(_tick_id: int) -> void:
 		snapshot = active_match.get_snapshot(tick_id)
 	var events: Array = _serialize_events(result.get("events", []))
 	_log_bubble_placed_events(tick_id, events, snapshot)
+	_log_explosion_events(tick_id, events)
 	_queue_message(_state_summary_builder.build_core(active_match, snapshot, tick_id, events))
 	var delta: Dictionary = _state_delta_builder.build_delta(active_match, snapshot, tick_id, events)
 	if not delta.is_empty():
@@ -168,6 +169,31 @@ func _log_bubble_placed_events(tick_id: int, events: Array[Dictionary], snapshot
 				int(payload.get("cell_x", -1)),
 				int(payload.get("cell_y", -1)),
 				snapshot.bubbles.size() if snapshot != null else -1,
+			],
+			"",
+			0,
+			"%s sync.server_session" % TRACE_TAG
+		)
+
+
+func _log_explosion_events(tick_id: int, events: Array) -> void:
+	for event in events:
+		if not (event is Dictionary):
+			continue
+		if int((event as Dictionary).get("event_type", -1)) != SimEventScript.EventType.BUBBLE_EXPLODED:
+			continue
+		var payload: Dictionary = (event as Dictionary).get("payload", {})
+		var covered_cells: Array = payload.get("covered_cells", [])
+		LogSyncScript.info(
+			"QQT_EXPLOSION_TRACE stage=server_event tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_keys=%s" % [
+				tick_id,
+				int((event as Dictionary).get("tick", -1)),
+				int(payload.get("bubble_id", payload.get("entity_id", -1))),
+				int(payload.get("owner_player_id", -1)),
+				int(payload.get("cell_x", -1)),
+				int(payload.get("cell_y", -1)),
+				covered_cells.size(),
+				str(payload.keys()),
 			],
 			"",
 			0,

@@ -5,6 +5,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const BattleSessionBootstrapScript = preload("res://network/session/battle_session_bootstrap.gd")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const NativeAuthorityBatchBridgeScript = preload("res://gameplay/native_bridge/native_authority_batch_bridge.gd")
+const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 var _adapter = null
@@ -48,10 +49,22 @@ func ingest_dedicated_server_message(message) -> void:
 
 
 func start_client_runtime(config, options: Dictionary = {}) -> bool:
+	_adapter.network_log_event.emit("client_runtime_start_request has_config=%s battle_id=%s match_id=%s authority=%s:%d topology=%s session_mode=%s transport_exists=%s transport_connected=%s" % [
+		str(config != null),
+		String(config.battle_id) if config != null else "",
+		String(config.match_id) if config != null else "",
+		String(config.authority_host) if config != null else "",
+		int(config.authority_port) if config != null else 0,
+		String(config.topology) if config != null else "",
+		String(config.session_mode) if config != null else "",
+		str(_adapter.transport != null),
+		str(_adapter.transport != null and _adapter.transport.is_transport_connected()),
+	])
 	var preserved_transport = null
 	if _adapter.transport != null and _adapter.transport.is_transport_connected() and _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT:
 		preserved_transport = _adapter.transport
 		_adapter.transport = null
+		_adapter.network_log_event.emit("client_runtime_preserve_connected_transport")
 	var has_active_runtime: bool = _adapter.current_context != null \
 		or _adapter.client_session != null \
 		or _adapter.server_session != null \
@@ -65,6 +78,7 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	_adapter._ensure_bootstrap_client_runtime()
 	_adapter.start_config = config.duplicate_deep() if config != null else null
 	if _adapter.start_config == null:
+		_adapter.network_log_event.emit("client_runtime_start_rejected reason=missing_config")
 		return false
 	_adapter.network_mode = _adapter.BattleNetworkMode.CLIENT
 	_dedicated_match_started = false
@@ -80,6 +94,14 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	var client_started: bool = _adapter._bootstrap_client_runtime.start_match(_adapter.start_config)
 	_adapter.client_session = _adapter._bootstrap_client_runtime.client_session
 	_adapter.prediction_controller = _adapter._bootstrap_client_runtime.prediction_controller
+	_adapter.network_log_event.emit("client_runtime_bootstrap_result started=%s local_peer=%d controlled_peer=%d has_client_session=%s has_prediction=%s predicted_world=%s" % [
+		str(client_started),
+		_adapter._bootstrap_local_peer_id,
+		controlled_peer_id,
+		str(_adapter.client_session != null),
+		str(_adapter.prediction_controller != null),
+		str(_adapter.prediction_controller != null and _adapter.prediction_controller.predicted_sim_world != null),
+	])
 	if not client_started or _adapter.client_session == null or _adapter.prediction_controller == null:
 		return false
 	_adapter._local_peer_id = _adapter._bootstrap_local_peer_id
@@ -105,7 +127,24 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	if _adapter.transport == null and not String(_adapter.start_config.authority_host).is_empty() and int(_adapter.start_config.authority_port) > 0:
 		_adapter.network_host = String(_adapter.start_config.authority_host)
 		_adapter.network_port = int(_adapter.start_config.authority_port)
+		_adapter.network_log_event.emit("client_runtime_initialize_transport target=%s:%d match_id=%s battle_id=%s" % [
+			_adapter.network_host,
+			_adapter.network_port,
+			String(_adapter.start_config.match_id),
+			String(_adapter.start_config.battle_id),
+		])
 		initialize_transport({})
+	elif _adapter.transport == null:
+		_adapter.network_log_event.emit("client_runtime_no_transport reason=missing_authority target=%s:%d" % [
+			String(_adapter.start_config.authority_host),
+			int(_adapter.start_config.authority_port),
+		])
+	else:
+		_adapter.network_log_event.emit("client_runtime_reusing_transport connected=%s local_peer=%d peers=%s" % [
+			str(_adapter.transport.is_transport_connected()),
+			_adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else 0,
+			str(_adapter.transport.get_remote_peer_ids() if _adapter.transport.has_method("get_remote_peer_ids") else []),
+		])
 	if _adapter.transport != null and _adapter.transport.is_transport_connected() \
 			and String(_adapter.start_config.session_mode) == "network_client" \
 			and String(_adapter.start_config.topology) == "dedicated_server" \
@@ -117,7 +156,18 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 			"revision": int(_adapter.start_config.server_match_revision),
 			"sender_peer_id": _adapter._bootstrap_local_peer_id,
 		})
+		_adapter.network_log_event.emit("client_runtime_match_loading_ready_sent match_id=%s revision=%d sender_peer=%d" % [
+			String(_adapter.start_config.match_id),
+			int(_adapter.start_config.server_match_revision),
+			_adapter._bootstrap_local_peer_id,
+		])
 	_inject_pending_resume_snapshot()
+	_adapter.network_log_event.emit("client_runtime_start_ok battle_id=%s match_id=%s transport_connected=%s waiting_dedicated_opening=%s" % [
+		String(_adapter.start_config.battle_id),
+		String(_adapter.start_config.match_id),
+		str(_adapter.transport != null and _adapter.transport.is_transport_connected()),
+		str(_is_waiting_for_dedicated_opening()),
+	])
 	return true
 
 
@@ -580,12 +630,32 @@ func _emit_client_runtime_tick() -> void:
 	_adapter.current_context.tick_runner = _adapter.prediction_controller.predicted_sim_world.tick_runner if _adapter.prediction_controller.predicted_sim_world != null else null
 	var world = _adapter.current_context.sim_world
 	var authoritative_events: Array = _adapter._bootstrap_client_runtime.consume_pending_authoritative_events() if _adapter._bootstrap_client_runtime != null and _adapter._bootstrap_client_runtime.has_method("consume_pending_authoritative_events") else []
+	_log_gateway_explosion_events(world.state.match_state.tick if world != null else 0, authoritative_events)
 	var tick_result := {
 		"tick": world.state.match_state.tick if world != null else 0,
 		"events": authoritative_events,
 		"phase": world.state.match_state.phase if world != null else MatchState.Phase.PLAYING,
 	}
 	_adapter.authoritative_tick_completed.emit(_adapter.current_context, tick_result, _adapter._build_runtime_metrics())
+
+
+func _log_gateway_explosion_events(tick_id: int, events: Array) -> void:
+	for event in events:
+		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_EXPLODED:
+			continue
+		var covered_cells: Array = event.payload.get("covered_cells", [])
+		_adapter.network_log_event.emit(
+			"QQT_EXPLOSION_TRACE stage=gateway_emit tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_keys=%s" % [
+				tick_id,
+				int(event.tick),
+				int(event.payload.get("bubble_id", event.payload.get("entity_id", -1))),
+				int(event.payload.get("owner_player_id", -1)),
+				int(event.payload.get("cell_x", -1)),
+				int(event.payload.get("cell_y", -1)),
+				covered_cells.size(),
+				str(event.payload.keys()),
+			]
+		)
 
 
 func _send_opening_snapshot_ack(snapshot_tick: int) -> void:
@@ -675,53 +745,94 @@ func _log_opening_input_freeze_deferred() -> void:
 
 func _on_transport_connected() -> void:
 	_reset_dedicated_client_connect_retry_tracking()
+	_adapter.network_log_event.emit("gateway_transport_connected local_peer=%d remote_peers=%s match_id=%s" % [
+		_adapter.transport.get_local_peer_id() if _adapter.transport != null and _adapter.transport.has_method("get_local_peer_id") else 0,
+		str(_adapter.transport.get_remote_peer_ids() if _adapter.transport != null and _adapter.transport.has_method("get_remote_peer_ids") else []),
+		String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+	])
 	_adapter.network_transport_connected.emit()
 	if _adapter.network_mode == _adapter.BattleNetworkMode.CLIENT and _adapter.transport != null and _adapter.start_config != null:
 		var transport_peer_id: int = _adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else 0
 		if transport_peer_id > 0 and _adapter._bootstrap_local_peer_id <= 0:
 			_adapter._bootstrap_local_peer_id = transport_peer_id
 		var battle_id := String(_adapter.start_config.battle_id)
-		if not battle_id.is_empty():
-			var request_payload := {
-				"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
-				"battle_id": battle_id,
-				"sender_peer_id": _adapter._bootstrap_local_peer_id if _adapter._bootstrap_local_peer_id > 0 else transport_peer_id,
-			}
-			var has_entry_context := false
-			var has_ticket := false
-			var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
-			if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
-				has_entry_context = true
-				var entry_context = app_runtime.current_battle_entry_context
-				request_payload["battle_ticket"] = String(entry_context.battle_ticket)
-				request_payload["battle_ticket_id"] = String(entry_context.battle_ticket_id)
-				request_payload["assignment_id"] = String(entry_context.assignment_id)
-				request_payload["match_id"] = String(entry_context.match_id)
-				has_ticket = not String(entry_context.battle_ticket).is_empty() and not String(entry_context.battle_ticket_id).is_empty()
-			if app_runtime != null and "auth_session_state" in app_runtime and app_runtime.auth_session_state != null:
-				request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
-			_adapter.network_log_event.emit("battle_entry_request_send battle_id=%s sender_peer_id=%d has_entry_context=%s has_ticket=%s" % [
-				battle_id,
-				int(request_payload.get("sender_peer_id", 0)),
-				str(has_entry_context),
-				str(has_ticket),
+		if battle_id.is_empty():
+			_adapter.network_log_event.emit("battle_entry_request_skip reason=missing_battle_id match_id=%s local_peer=%d transport_peer=%d" % [
+				String(_adapter.start_config.match_id),
+				_adapter._bootstrap_local_peer_id,
+				transport_peer_id,
 			])
-			_adapter.transport.send_to_peer(1, request_payload)
+			return
+		var request_payload := {
+			"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
+			"battle_id": battle_id,
+			"sender_peer_id": _adapter._bootstrap_local_peer_id if _adapter._bootstrap_local_peer_id > 0 else transport_peer_id,
+		}
+		var has_entry_context := false
+		var has_ticket := false
+		var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
+		if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
+			has_entry_context = true
+			var entry_context = app_runtime.current_battle_entry_context
+			request_payload["battle_ticket"] = String(entry_context.battle_ticket)
+			request_payload["battle_ticket_id"] = String(entry_context.battle_ticket_id)
+			request_payload["assignment_id"] = String(entry_context.assignment_id)
+			request_payload["match_id"] = String(entry_context.match_id)
+			has_ticket = not String(entry_context.battle_ticket).is_empty() and not String(entry_context.battle_ticket_id).is_empty()
+		if app_runtime != null and "auth_session_state" in app_runtime and app_runtime.auth_session_state != null:
+			request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
+		_adapter.network_log_event.emit("battle_entry_request_send battle_id=%s sender_peer_id=%d has_entry_context=%s has_ticket=%s" % [
+			battle_id,
+			int(request_payload.get("sender_peer_id", 0)),
+			str(has_entry_context),
+			str(has_ticket),
+		])
+		_adapter.transport.send_to_peer(1, request_payload)
+		_adapter.network_log_event.emit("battle_entry_request_sent type=%s battle_id=%s match_id=%s assignment_id=%s ticket_id=%s" % [
+			String(request_payload.get("message_type", "")),
+			battle_id,
+			String(request_payload.get("match_id", "")),
+			String(request_payload.get("assignment_id", "")),
+			String(request_payload.get("battle_ticket_id", "")),
+		])
 
 
 func _on_transport_disconnected() -> void:
+	_adapter.network_log_event.emit("gateway_transport_disconnected match_id=%s waiting_opening=%s retry_attempt=%d" % [
+		String(_adapter.start_config.match_id) if _adapter.start_config != null else "",
+		str(_is_waiting_for_dedicated_opening()),
+		_dedicated_client_connect_retry_attempt,
+	])
 	_adapter.network_transport_disconnected.emit()
 
 
 func _on_transport_peer_connected(peer_id: int) -> void:
+	_adapter.network_log_event.emit("gateway_transport_peer_connected peer=%d local=%d peers=%s" % [
+		peer_id,
+		_adapter.transport.get_local_peer_id() if _adapter.transport != null and _adapter.transport.has_method("get_local_peer_id") else 0,
+		str(_adapter.transport.get_remote_peer_ids() if _adapter.transport != null and _adapter.transport.has_method("get_remote_peer_ids") else []),
+	])
 	_adapter.network_transport_peer_connected.emit(peer_id)
 
 
 func _on_transport_peer_disconnected(peer_id: int) -> void:
+	_adapter.network_log_event.emit("gateway_transport_peer_disconnected peer=%d local=%d peers=%s" % [
+		peer_id,
+		_adapter.transport.get_local_peer_id() if _adapter.transport != null and _adapter.transport.has_method("get_local_peer_id") else 0,
+		str(_adapter.transport.get_remote_peer_ids() if _adapter.transport != null and _adapter.transport.has_method("get_remote_peer_ids") else []),
+	])
 	_adapter.network_transport_peer_disconnected.emit(peer_id)
 
 
 func _on_transport_error(code: int, message: String) -> void:
+	_adapter.network_log_event.emit("gateway_transport_error code=%d message=%s waiting_opening=%s retry_attempt=%d target=%s:%d" % [
+		code,
+		message,
+		str(_is_waiting_for_dedicated_opening()),
+		_dedicated_client_connect_retry_attempt,
+		_dedicated_client_connect_retry_host,
+		_dedicated_client_connect_retry_port,
+	])
 	if _schedule_dedicated_client_connect_retry(code, message):
 		return
 	_adapter.network_transport_error.emit(code, message)

@@ -5,7 +5,7 @@
 # This script is for local development and debugging a single battle_ds.
 
 param(
-    [string]$GodotPath = 'godot4',
+    [string]$GodotPath = (Join-Path $PSScriptRoot '..\godot_binary\Godot_console.exe'),
     [int]$Port = 19010,
     [string]$Host = '127.0.0.1',
     [string]$BattleId = 'battle_local_dev',

@@ -7,15 +7,21 @@ import (
 	"qqtang/services/ds_manager_service/internal/allocator"
 	"qqtang/services/ds_manager_service/internal/platform/httpx"
 	"qqtang/services/ds_manager_service/internal/process"
+	"qqtang/services/ds_manager_service/internal/runtimepool"
 )
 
 type AllocateHandler struct {
-	alloc   *allocator.Allocator
-	runner  *process.GodotProcessRunner
+	alloc  *allocator.Allocator
+	runner *process.GodotProcessRunner
+	pool   runtimepool.RuntimePool
 }
 
 func NewAllocateHandler(alloc *allocator.Allocator, runner *process.GodotProcessRunner) *AllocateHandler {
 	return &AllocateHandler{alloc: alloc, runner: runner}
+}
+
+func NewRuntimePoolAllocateHandler(pool runtimepool.RuntimePool) *AllocateHandler {
+	return &AllocateHandler{pool: pool}
 }
 
 func (h *AllocateHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -23,8 +29,12 @@ func (h *AllocateHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		BattleID            string `json:"battle_id"`
 		AssignmentID        string `json:"assignment_id"`
 		MatchID             string `json:"match_id"`
+		SourceRoomID        string `json:"source_room_id"`
 		HostHint            string `json:"host_hint"`
 		ExpectedMemberCount int    `json:"expected_member_count"`
+		WaitReady           bool   `json:"wait_ready"`
+		IdempotencyKey      string `json:"idempotency_key"`
+		LeaseTTLSec         int    `json:"lease_ttl_sec"`
 	}
 
 	if err := httpx.DecodeJSONBody(w, r, &req); err != nil {
@@ -34,6 +44,30 @@ func (h *AllocateHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if req.BattleID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "MISSING_BATTLE_ID", "battle_id is required")
+		return
+	}
+
+	if h.pool != nil {
+		result, err := h.pool.Allocate(r.Context(), runtimepool.AllocationSpec{
+			BattleID:            req.BattleID,
+			AssignmentID:        req.AssignmentID,
+			MatchID:             req.MatchID,
+			SourceRoomID:        req.SourceRoomID,
+			ExpectedMemberCount: req.ExpectedMemberCount,
+			HostHint:            req.HostHint,
+			WaitReady:           req.WaitReady,
+			IdempotencyKey:      req.IdempotencyKey,
+			LeaseTTLSec:         req.LeaseTTLSec,
+		})
+		if err != nil {
+			httpx.WriteError(w, http.StatusInternalServerError, "ALLOCATION_FAILED", err.Error())
+			return
+		}
+		if !result.OK {
+			httpx.WriteJSON(w, http.StatusConflict, result)
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, result)
 		return
 	}
 

@@ -403,9 +403,12 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 	owner_peer_id = snapshot.owner_peer_id
 	max_players = snapshot.max_players
 	member_profiles.clear()
+	var authoritative_local_peer_id := 0
 	for member in snapshot.sorted_members():
 		room_session.add_peer(member.peer_id, member.slot_index)
 		room_session.set_ready(member.peer_id, member.ready)
+		if member.is_local_player:
+			authoritative_local_peer_id = int(member.peer_id)
 		member_profiles[member.peer_id] = {
 			"player_name": member.player_name,
 			"character_id": member.character_id,
@@ -415,6 +418,8 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 			"team_id": member.team_id,
 			"member_phase": member.member_phase,
 		}
+	if authoritative_local_peer_id > 0:
+		room_runtime_context.local_player_id = authoritative_local_peer_id
 	room_session.set_selection(snapshot.selected_map_id, snapshot.rule_set_id, snapshot.mode_id)
 	# LegacyMigration: For match rooms with an assignment, the server overrides
 	# map/mode/rule via the assignment payload. set_selection blanks them for

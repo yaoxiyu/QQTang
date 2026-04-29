@@ -42,6 +42,7 @@ var _pending_create_snapshot: bool = false
 var _pending_create_snapshot_deadline_msec: int = 0
 var _pending_join_snapshot: bool = false
 var _pending_join_snapshot_deadline_msec: int = 0
+var _last_assignment_ready: Dictionary = {}
 
 
 func _process(_delta: float) -> void:
@@ -425,6 +426,8 @@ func _route_message(message: Dictionary) -> void:
 			room_directory_snapshot_received.emit(directory_snapshot)
 		TransportMessageTypesScript.ROOM_SNAPSHOT:
 			var snapshot := RoomSnapshot.from_dict(message.get("snapshot", {}))
+			_clear_completed_assignment_ready_cache(snapshot)
+			snapshot = _merge_match_assignment_ready(snapshot, _last_assignment_ready)
 			_sync_runtime_local_peer_id_from_snapshot(snapshot)
 			if snapshot.room_id.is_empty():
 				_log_room_anomaly("runtime_snapshot_without_room_id", {
@@ -468,7 +471,7 @@ func _route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.ROOM_MATCH_QUEUE_STATUS:
 			_apply_match_queue_status(message)
 		TransportMessageTypesScript.ROOM_MATCH_ASSIGNMENT_READY:
-			pass
+			_apply_match_assignment_ready(message)
 		# LegacyMigration: Resume protocol messages
 		TransportMessageTypesScript.ROOM_MEMBER_SESSION:
 			room_member_session_received.emit(Dictionary(message).duplicate(true))
@@ -507,6 +510,63 @@ func _apply_match_queue_status(message: Dictionary) -> void:
 	snapshot.room_queue_error_message = String(message.get("user_message", snapshot.room_queue_error_message))
 	_last_snapshot = snapshot
 	room_snapshot_received.emit(snapshot)
+
+
+func _apply_match_assignment_ready(message: Dictionary) -> void:
+	var snapshot := _last_snapshot.duplicate_deep() if _last_snapshot != null else RoomSnapshot.new()
+	_last_assignment_ready = Dictionary(message).duplicate(true)
+	if _last_snapshot != null and not String(_last_snapshot.room_id).is_empty():
+		_last_assignment_ready["_room_id"] = String(_last_snapshot.room_id)
+	snapshot = _merge_match_assignment_ready(snapshot, _last_assignment_ready)
+	_last_snapshot = snapshot
+	room_snapshot_received.emit(snapshot)
+
+
+func _clear_completed_assignment_ready_cache(snapshot: RoomSnapshot) -> void:
+	if snapshot == null or _last_assignment_ready.is_empty():
+		return
+	var cached_assignment_id := String(_last_assignment_ready.get("assignment_id", ""))
+	if cached_assignment_id.is_empty():
+		_last_assignment_ready.clear()
+		return
+	var snapshot_assignment_id := String(snapshot.current_assignment_id)
+	var snapshot_battle_phase := String(snapshot.battle_phase)
+	var snapshot_terminal_reason := String(snapshot.battle_terminal_reason)
+	if snapshot_assignment_id.is_empty():
+		_last_assignment_ready.clear()
+		return
+	match snapshot_battle_phase:
+		"completed", "failed", "cancelled", "idle":
+			_last_assignment_ready.clear()
+			return
+		"returning":
+			if not snapshot_terminal_reason.is_empty() and snapshot_terminal_reason != "none":
+				_last_assignment_ready.clear()
+				return
+
+
+func _merge_match_assignment_ready(snapshot: RoomSnapshot, message: Dictionary) -> RoomSnapshot:
+	if snapshot == null or message.is_empty():
+		return snapshot
+	var assignment_room_id := String(message.get("_room_id", ""))
+	if not assignment_room_id.is_empty() and not String(snapshot.room_id).is_empty() and assignment_room_id != String(snapshot.room_id):
+		return snapshot
+	snapshot.current_assignment_id = String(message.get("assignment_id", snapshot.current_assignment_id))
+	snapshot.current_battle_id = String(message.get("battle_id", snapshot.current_battle_id))
+	snapshot.current_match_id = String(message.get("match_id", snapshot.current_match_id))
+	snapshot.battle_server_host = String(message.get("battle_server_host", snapshot.battle_server_host))
+	snapshot.battle_server_port = int(message.get("battle_server_port", snapshot.battle_server_port))
+	snapshot.battle_entry_ready = bool(message.get("battle_entry_ready", snapshot.battle_entry_ready))
+	snapshot.battle_phase = String(message.get("battle_phase", snapshot.battle_phase))
+	snapshot.battle_terminal_reason = String(message.get("battle_terminal_reason", snapshot.battle_terminal_reason))
+	snapshot.battle_status_text = String(message.get("battle_status_text", snapshot.battle_status_text))
+	if snapshot.battle_entry_ready:
+		snapshot.room_phase = "battle_entry_ready"
+		if snapshot.battle_allocation_state.strip_edges().is_empty():
+			snapshot.battle_allocation_state = "battle_ready"
+	elif snapshot.battle_phase == "allocating":
+		snapshot.room_phase = "battle_allocating"
+	return snapshot
 
 
 func _send_to_server(message: Dictionary) -> void:
@@ -576,6 +636,7 @@ func _shutdown_transport() -> void:
 	_pending_join_snapshot = false
 	_pending_join_snapshot_deadline_msec = 0
 	_last_snapshot = null
+	_last_assignment_ready.clear()
 	if _ws_client != null and _ws_client.has_method("Shutdown"):
 		_ws_client.Shutdown()
 	elif _ws_client != null and _ws_client.has_method("DisconnectFromServer"):

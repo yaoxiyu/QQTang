@@ -20,3 +20,9 @@
 1. Run GDScript syntax preflight.
 2. Only if syntax preflight passes, run the requested Godot pipeline or test command.
 3. If a command fails, report whether the failure is syntax, content data, runtime script, or environment related.
+
+## Download And Install Approval
+
+- Before any future download or installation, tell the user exactly what needs to be downloaded or installed and why.
+- Ask the user to choose whether Codex should perform the download/installation or the user will do it manually.
+- Do not start the download or installation until the user confirms the chosen path.

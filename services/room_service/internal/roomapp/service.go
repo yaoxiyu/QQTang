@@ -3,6 +3,7 @@ package roomapp
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -168,13 +169,16 @@ type Service struct {
 	query    *manifest.Query
 	verifier *auth.TicketVerifier
 	game     *gameclient.Client
+	logger   *slog.Logger
 
-	mu             sync.RWMutex
-	roomsByID      map[string]*domain.RoomAggregate
-	roomByMemberID map[string]string
-	roomOwnerByID  map[string]string
-	idCounter      atomic.Int64
-	metrics        ControlPlaneMetrics
+	mu                        sync.RWMutex
+	roomsByID                 map[string]*domain.RoomAggregate
+	roomByMemberID            map[string]string
+	roomOwnerByID             map[string]string
+	emptyBattleRoomCleanupDue map[string]time.Time
+	emptyBattleCleanupGrace   time.Duration
+	idCounter                 atomic.Int64
+	metrics                   ControlPlaneMetrics
 }
 
 var roomTransitionEngine = RoomTransitionEngine{}
@@ -206,15 +210,35 @@ func (s *Service) GetControlPlaneMetrics() map[string]int64 {
 
 func NewService(reg *registry.Registry, man *manifest.Loader, verifier *auth.TicketVerifier, game *gameclient.Client) *Service {
 	return &Service{
-		registry:       reg,
-		manifest:       man,
-		query:          manifest.NewQuery(man),
-		verifier:       verifier,
-		game:           game,
-		roomsByID:      map[string]*domain.RoomAggregate{},
-		roomByMemberID: map[string]string{},
-		roomOwnerByID:  map[string]string{},
+		registry:                  reg,
+		manifest:                  man,
+		query:                     manifest.NewQuery(man),
+		verifier:                  verifier,
+		game:                      game,
+		roomsByID:                 map[string]*domain.RoomAggregate{},
+		roomByMemberID:            map[string]string{},
+		roomOwnerByID:             map[string]string{},
+		emptyBattleRoomCleanupDue: map[string]time.Time{},
+		emptyBattleCleanupGrace:   30 * time.Second,
 	}
+}
+
+func (s *Service) SetEmptyBattleCleanupGrace(grace time.Duration) {
+	if s == nil || grace <= 0 {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.emptyBattleCleanupGrace = grace
+}
+
+func (s *Service) SetLogger(logger *slog.Logger) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.logger = logger
 }
 
 func (s *Service) Ready() bool {
@@ -396,6 +420,7 @@ func (s *Service) ResumeRoom(input ResumeRoomInput) (*SnapshotProjection, error)
 	member.ConnectionID = input.ConnectionID
 	member.ConnectionState = "connected"
 	room.Members[input.MemberID] = member
+	delete(s.emptyBattleRoomCleanupDue, input.RoomID)
 	restoreMemberPhase(room, input.MemberID)
 	s.touchRoomSnapshotLocked(room)
 	return s.snapshotProjectionLocked(room), nil
@@ -416,6 +441,7 @@ func (s *Service) MarkDisconnected(roomID string, memberID string) (*SnapshotPro
 	member.ConnectionID = ""
 	room.Members[memberID] = member
 	markMemberDisconnected(room, memberID)
+	s.updateEmptyBattleCleanupLocked(room, time.Now())
 	s.touchRoomSnapshotLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
@@ -433,19 +459,87 @@ func (s *Service) LeaveRoom(input LeaveRoomInput) (*SnapshotProjection, error) {
 	delete(room.Members, input.MemberID)
 	delete(room.ResumeBindings, input.MemberID)
 	delete(s.roomByMemberID, input.MemberID)
+	ownerChanged := false
 	if s.roomOwnerByID[input.RoomID] == input.MemberID {
 		s.roomOwnerByID[input.RoomID] = selectNextRoomOwner(room.Members)
+		ownerChanged = true
 	}
 
-	if len(room.Members) == 0 {
+	if len(room.Members) == 0 && shouldDelayEmptyBattleCleanup(room) {
 		s.registry.RemoveRoomEntry(input.RoomID)
-		delete(s.roomsByID, input.RoomID)
-		delete(s.roomOwnerByID, input.RoomID)
+		s.scheduleEmptyBattleCleanupLocked(room, time.Now())
 		return nil, nil
 	}
-	s.touchRoomSnapshotLocked(room)
+	if len(room.Members) == 0 {
+		s.destroyRoomLocked(input.RoomID)
+		return nil, nil
+	}
+	s.updateEmptyBattleCleanupLocked(room, time.Now())
+	roomTransitionEngine.ApplyMemberLeft(room, s.roomOwnerByID[input.RoomID], ownerChanged)
 	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
+}
+
+func (s *Service) updateEmptyBattleCleanupLocked(room *domain.RoomAggregate, now time.Time) {
+	if room == nil {
+		return
+	}
+	if isBattleRoomEmpty(room) && shouldDelayEmptyBattleCleanup(room) {
+		s.scheduleEmptyBattleCleanupLocked(room, now)
+		return
+	}
+	delete(s.emptyBattleRoomCleanupDue, room.RoomID)
+}
+
+func (s *Service) scheduleEmptyBattleCleanupLocked(room *domain.RoomAggregate, now time.Time) {
+	if room == nil {
+		return
+	}
+	grace := s.emptyBattleCleanupGrace
+	if grace <= 0 {
+		grace = 30 * time.Second
+	}
+	s.emptyBattleRoomCleanupDue[room.RoomID] = now.Add(grace)
+}
+
+func (s *Service) destroyRoomLocked(roomID string) {
+	room := s.roomsByID[roomID]
+	if room != nil {
+		for memberID := range room.Members {
+			delete(s.roomByMemberID, memberID)
+		}
+	}
+	s.registry.RemoveRoomEntry(roomID)
+	delete(s.roomsByID, roomID)
+	delete(s.roomOwnerByID, roomID)
+	delete(s.emptyBattleRoomCleanupDue, roomID)
+}
+
+func isBattleRoomEmpty(room *domain.RoomAggregate) bool {
+	if room == nil {
+		return false
+	}
+	if len(room.Members) == 0 {
+		return true
+	}
+	for _, member := range room.Members {
+		if member.ConnectionState != "disconnected" {
+			return false
+		}
+	}
+	return true
+}
+
+func shouldDelayEmptyBattleCleanup(room *domain.RoomAggregate) bool {
+	if room == nil || room.BattleState.BattleID == "" {
+		return false
+	}
+	switch room.BattleState.Phase {
+	case "", BattlePhaseIdle, BattlePhaseCompleted, "failed", "cancelled":
+		return false
+	default:
+		return true
+	}
 }
 
 func (s *Service) UpdateProfile(input UpdateProfileInput) (*SnapshotProjection, error) {
@@ -792,6 +886,11 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		return nil, fmt.Errorf("%s: %s", result.ErrorCode, result.UserMessage)
 	}
 
+	ready := result.Ready || isManualBattleAllocationReady(result.AllocationState, result.ServerHost, result.ServerPort)
+	phase := BattlePhaseAllocating
+	if ready {
+		phase = BattlePhaseReady
+	}
 	roomTransitionEngine.ApplyBattleHandoffUpdated(room, s.roomOwnerByID[input.RoomID], BattleHandoffUpdate{
 		AssignmentID:       result.AssignmentID,
 		AssignmentRevision: result.AssignmentRevision,
@@ -799,9 +898,9 @@ func (s *Service) StartManualRoomBattle(input StartManualRoomBattleInput) (*Snap
 		BattleID:           result.BattleID,
 		ServerHost:         result.ServerHost,
 		ServerPort:         result.ServerPort,
-		Phase:              BattlePhaseReady,
+		Phase:              phase,
 		TerminalReason:     BattleReasonManualStart,
-		Ready:              true,
+		Ready:              ready,
 	})
 	if isManualRoomKind(room.RoomKind) && room.QueueState.QueueEntryID != "" {
 		s.metrics.queueStateManualRoomWriteCount.Add(1)
@@ -953,6 +1052,52 @@ func (s *Service) DirectorySubscriberIDs() []string {
 		return nil
 	}
 	return s.registry.DirectorySubscriberIDs()
+}
+
+func (s *Service) SweepEmptyBattleRooms(now time.Time) {
+	if s == nil {
+		return
+	}
+	type cleanupTarget struct {
+		roomID       string
+		assignmentID string
+		battleID     string
+	}
+	targets := make([]cleanupTarget, 0)
+
+	s.mu.Lock()
+	for roomID, due := range s.emptyBattleRoomCleanupDue {
+		if now.Before(due) {
+			continue
+		}
+		room := s.roomsByID[roomID]
+		if room == nil {
+			delete(s.emptyBattleRoomCleanupDue, roomID)
+			continue
+		}
+		if !isBattleRoomEmpty(room) || !shouldDelayEmptyBattleCleanup(room) {
+			delete(s.emptyBattleRoomCleanupDue, roomID)
+			continue
+		}
+		targets = append(targets, cleanupTarget{
+			roomID:       roomID,
+			assignmentID: room.BattleState.AssignmentID,
+			battleID:     room.BattleState.BattleID,
+		})
+		s.destroyRoomLocked(roomID)
+	}
+	s.mu.Unlock()
+
+	for _, target := range targets {
+		if s.game == nil || target.battleID == "" {
+			continue
+		}
+		_, _ = s.game.ReapBattle(gameclient.ReapBattleInput{
+			RoomID:       target.roomID,
+			AssignmentID: target.assignmentID,
+			BattleID:     target.battleID,
+		})
+	}
 }
 
 func (s *Service) DirectorySnapshot(serverHost string, serverPort int32) *roomv1.RoomDirectorySnapshot {
@@ -1276,6 +1421,18 @@ func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
 			continue
 		}
 		if !result.OK {
+			if isBattleAssignmentGone(result) {
+				if room := s.applyBattleGoneProjection(target); room != nil {
+					if isManualRoomKind(target.roomKind) {
+						s.metrics.manualBattleAssignmentSyncCount.Add(1)
+					}
+					updates = append(updates, QueueStatusSyncResult{
+						RoomID:   target.roomID,
+						Snapshot: room,
+					})
+				}
+				continue
+			}
 			s.metrics.battleAssignmentStatusErrorCount.Add(1)
 			continue
 		}
@@ -1293,6 +1450,23 @@ func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
 	return updates
 }
 
+func (s *Service) applyBattleGoneProjection(target battleSyncTarget) *SnapshotProjection {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	room := s.roomsByID[target.roomID]
+	if room == nil {
+		return nil
+	}
+	if room.BattleState.AssignmentID != target.assignmentID {
+		return nil
+	}
+
+	roomTransitionEngine.ApplyReturnCompleted(room, s.roomOwnerByID[target.roomID])
+	s.syncDirectoryEntryLocked(room)
+	return s.snapshotProjectionLocked(room)
+}
+
 func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, result gameclient.GetBattleAssignmentStatusResult) *SnapshotProjection {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1306,6 +1480,10 @@ func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, resul
 	}
 	if result.AssignmentRevision > 0 && room.BattleState.AssignmentRevision > int(result.AssignmentRevision) {
 		s.metrics.battleAssignmentRevisionStaleDropCount.Add(1)
+		return nil
+	}
+	if !shouldAcceptBattleAssignmentProjection(room.RoomState.Phase, result.BattlePhase, result.Finalized) {
+		s.logBattleProjectionIgnoredLocked(room, result)
 		return nil
 	}
 
@@ -1330,7 +1508,7 @@ func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, resul
 	if result.ServerPort > 0 {
 		room.BattleState.ServerPort = int(result.ServerPort)
 	}
-
+	transitionFinalized := false
 	switch result.BattlePhase {
 	case "allocating":
 		room.RoomState.Phase = RoomPhaseBattleAllocating
@@ -1342,23 +1520,66 @@ func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, resul
 		room.RoomState.Phase = RoomPhaseInBattle
 		promoteMembersToBattle(room)
 	case "returning":
-		room.RoomState.Phase = RoomPhaseReturningToRoom
+		roomTransitionEngine.ApplyBattleReturning(room, s.roomOwnerByID[target.roomID], result.TerminalReason)
+		transitionFinalized = true
 	case "completed", "failed", "cancelled":
-		room.RoomState.Phase = RoomPhaseIdle
-		if result.TerminalReason == QueueReasonMatchFinalized {
-			room.RoomState.LastReason = RoomReasonMatchFinalized
-		}
-		room.BattleState.Ready = false
-		releaseMembersToIdle(room)
+		roomTransitionEngine.ApplyReturnCompleted(room, s.roomOwnerByID[target.roomID])
+		transitionFinalized = true
 	default:
 		if room.RoomState.Phase == RoomPhaseBattleAllocating || room.RoomState.Phase == RoomPhaseBattleEntryReady || room.RoomState.Phase == RoomPhaseBattleEntering {
 			lockMembersForQueue(room)
 		}
 	}
 
-	finalizeRoomTransition(room, s.roomOwnerByID[target.roomID])
+	if !transitionFinalized {
+		finalizeRoomTransition(room, s.roomOwnerByID[target.roomID])
+	}
 	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room)
+}
+
+func shouldAcceptBattleAssignmentProjection(currentRoomPhase, resultBattlePhase string, finalized bool) bool {
+	if finalized || isTerminalBattlePhase(resultBattlePhase) {
+		return true
+	}
+	switch currentRoomPhase {
+	case RoomPhaseBattleEntering:
+		return battlePhaseOrder(resultBattlePhase) >= battlePhaseOrder(BattlePhaseEntering)
+	case RoomPhaseInBattle:
+		return battlePhaseOrder(resultBattlePhase) >= battlePhaseOrder(BattlePhaseActive)
+	case RoomPhaseReturningToRoom:
+		return battlePhaseOrder(resultBattlePhase) >= battlePhaseOrder(BattlePhaseReturning)
+	default:
+		return true
+	}
+}
+
+func isTerminalBattlePhase(phase string) bool {
+	switch phase {
+	case BattlePhaseCompleted, "failed", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func battlePhaseOrder(phase string) int {
+	switch phase {
+	case BattlePhaseAllocating:
+		return 1
+	case BattlePhaseReady:
+		return 2
+	case BattlePhaseEntering:
+		return 3
+	case BattlePhaseActive:
+		return 4
+	case BattlePhaseReturning:
+		return 5
+	case BattlePhaseCompleted, "failed", "cancelled":
+		return 6
+	default:
+		return 0
+	}
 }
 
 func (s *Service) applyQueueStatusResult(target queueSyncTarget, result gameclient.GetPartyQueueStatusResult) (*SnapshotProjection, bool) {
@@ -1486,6 +1707,48 @@ func isBattleEntryReadyStatus(result gameclient.GetPartyQueueStatusResult) bool 
 		return false
 	}
 	return strings.TrimSpace(result.ServerHost) != "" && result.ServerPort > 0
+}
+
+func isManualBattleAllocationReady(allocationState string, serverHost string, serverPort int) bool {
+	switch strings.TrimSpace(allocationState) {
+	case "ready", "bound_ready", "battle_ready":
+		return strings.TrimSpace(serverHost) != "" && serverPort > 0
+	default:
+		return false
+	}
+}
+
+func isBattleAssignmentGone(result gameclient.GetBattleAssignmentStatusResult) bool {
+	code := strings.ToUpper(strings.TrimSpace(result.ErrorCode))
+	switch code {
+	case "ASSIGNMENT_NOT_FOUND", "BATTLE_NOT_FOUND", "BATTLE_REAPED", "BATTLE_FINALIZED", "NOT_FOUND", "GONE":
+		return true
+	case "GET_ASSIGNMENT_STATUS_FAILED":
+		message := strings.ToLower(strings.TrimSpace(result.UserMessage))
+		return strings.Contains(message, "not found") || strings.Contains(message, "reaped") || strings.Contains(message, "finalized")
+	default:
+		return false
+	}
+}
+
+func (s *Service) logBattleProjectionIgnoredLocked(room *domain.RoomAggregate, result gameclient.GetBattleAssignmentStatusResult) {
+	if s == nil || s.logger == nil || room == nil {
+		return
+	}
+	s.logger.Debug(
+		"battle assignment projection ignored",
+		"event", "battle_assignment_projection_ignored_protected_phase",
+		"room_id", room.RoomID,
+		"room_kind", room.RoomKind,
+		"room_phase", room.RoomState.Phase,
+		"battle_phase", room.BattleState.Phase,
+		"assignment_id", room.BattleState.AssignmentID,
+		"assignment_revision", room.BattleState.AssignmentRevision,
+		"result_battle_phase", result.BattlePhase,
+		"result_terminal_reason", result.TerminalReason,
+		"result_finalized", result.Finalized,
+		"result_assignment_revision", result.AssignmentRevision,
+	)
 }
 
 func clearBattleStateProjection(handoff *domain.BattleHandoffFSMProjection) bool {

@@ -6,11 +6,12 @@ param(
     [switch]$SkipDb,
     [switch]$SkipMigration,
     [switch]$LogSQL,
-    [string]$GodotExecutable = 'Godot_console.exe',
+    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\godot_binary\Godot_console.exe'),
     [string]$DSMContainerGodotExecutable = 'godot4',
     [int]$DSMPortRangeStart = 19010,
     [int]$DSMPortRangeEnd = 19050,
-    [string]$LogDir = ''
+    [string]$LogDir = '',
+    [switch]$SkipDSPoolCleanup
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,6 +44,26 @@ $env:QQT_LOG_SQL = if ($LogSQL) { 'true' } else { 'false' }
 $env:QQT_DSM_GODOT_EXECUTABLE = $DSMContainerGodotExecutable
 $env:QQT_DSM_PORT_RANGE_START = [string]$DSMPortRangeStart
 $env:QQT_DSM_PORT_RANGE_END = [string]$DSMPortRangeEnd
+
+if (-not $SkipDSPoolCleanup) {
+    $poolID = "qqtang_services_$Profile"
+    $dsContainers = @(
+        docker ps -aq `
+            --filter "label=qqt.component=battle_ds" `
+            --filter "label=qqt.managed_by=ds_manager_service" `
+            --filter "label=qqt.pool_id=$poolID"
+    )
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to list managed battle DS containers for pool: $poolID"
+    }
+    if ($dsContainers.Count -gt 0) {
+        Write-Host "Removing stale managed battle DS containers for pool=$poolID ..."
+        docker rm -f $dsContainers | Out-Host
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to remove stale managed battle DS containers for pool: $poolID"
+        }
+    }
+}
 
 docker compose -f $composeFile up -d --build
 if ($LASTEXITCODE -ne 0) {

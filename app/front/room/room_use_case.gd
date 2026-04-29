@@ -43,6 +43,7 @@ var _enter_flow: RefCounted = RoomEnterFlowScript.new()
 var _reconnect_flow: RefCounted = RoomReconnectFlowScript.new()
 var _last_projected_room_view_state: Dictionary = {}
 var _last_room_resume_context: Dictionary = {}
+var _completed_battle_assignments: Dictionary = {}
 
 func configure(p_app_runtime: Node) -> void:
 	app_runtime = p_app_runtime
@@ -65,6 +66,7 @@ func dispose() -> void:
 	app_runtime = null
 	_last_projected_room_view_state.clear()
 	_last_room_resume_context.clear()
+	_completed_battle_assignments.clear()
 	_snapshot_cache.reset()
 	_snapshot_flow.reset_revision_guard()
 	_clear_enter_match_queue_pending("dispose")
@@ -93,6 +95,7 @@ func leave_room() -> Dictionary:
 		return result
 	_last_projected_room_view_state.clear()
 	_last_room_resume_context.clear()
+	_completed_battle_assignments.clear()
 	_snapshot_flow.reset_revision_guard()
 	_clear_pending_online_entry_state()
 	return result
@@ -153,6 +156,8 @@ func request_rematch() -> Dictionary:
 
 
 func on_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
+	if _suppress_completed_battle_entry_snapshot(snapshot):
+		return
 	var context := _build_snapshot_validity_context(snapshot)
 	var accept_result: Dictionary = _snapshot_cache.try_accept(snapshot, context)
 	if not bool(accept_result.get("accepted", false)):
@@ -173,6 +178,7 @@ func _apply_authoritative_snapshot(snapshot: RoomSnapshot, context: Dictionary) 
 	var flow_result: Dictionary = _snapshot_flow.consume_authoritative_snapshot(app_runtime, snapshot, _last_projected_room_view_state, _snapshot_cache, context)
 	_last_projected_room_view_state = flow_result.get("view_state", {}) if flow_result.has("view_state") else {}
 	_last_room_resume_context = flow_result.get("resume_context", {}) if flow_result.has("resume_context") else {}
+	_apply_dedicated_battle_entry_snapshot(snapshot)
 
 
 func get_projected_room_view_state() -> Dictionary:
@@ -191,6 +197,8 @@ func build_battle_entry_context(snapshot: RoomSnapshot = null):
 	var target_snapshot := snapshot
 	if target_snapshot == null and app_runtime != null:
 		target_snapshot = app_runtime.current_room_snapshot
+	if is_battle_entry_snapshot_suppressed(target_snapshot):
+		return null
 	var room_entry_context = app_runtime.current_room_entry_context if app_runtime != null else null
 	var ctx = RoomBattleEntryBuilderScript.build(target_snapshot, room_entry_context)
 	var battle_entry_check: Dictionary = _battle_entry_command.can_use_battle_entry_context(app_runtime, ctx)
@@ -204,6 +212,43 @@ func build_battle_entry_context(snapshot: RoomSnapshot = null):
 		"source_room_id": ctx.source_room_id,
 	})
 	return ctx
+
+
+func mark_current_battle_assignment_completed(reason: String = "") -> void:
+	if app_runtime == null:
+		return
+	var assignment_id := ""
+	var battle_id := ""
+	if app_runtime.current_battle_entry_context != null:
+		assignment_id = String(app_runtime.current_battle_entry_context.assignment_id)
+		battle_id = String(app_runtime.current_battle_entry_context.battle_id)
+	if assignment_id.is_empty() and app_runtime.current_room_snapshot != null:
+		assignment_id = String(app_runtime.current_room_snapshot.current_assignment_id)
+		battle_id = String(app_runtime.current_room_snapshot.current_battle_id)
+	if assignment_id.is_empty():
+		return
+	_completed_battle_assignments[assignment_id] = {
+		"battle_id": battle_id,
+		"reason": reason,
+		"marked_msec": Time.get_ticks_msec(),
+	}
+	_log_room("battle_assignment_completed_marked", {
+		"assignment_id": assignment_id,
+		"battle_id": battle_id,
+		"reason": reason,
+	})
+
+
+func is_battle_entry_snapshot_suppressed(snapshot: RoomSnapshot) -> bool:
+	if snapshot == null:
+		return false
+	var assignment_id := String(snapshot.current_assignment_id)
+	if assignment_id.is_empty() or not _completed_battle_assignments.has(assignment_id):
+		return false
+	var completed: Dictionary = _completed_battle_assignments.get(assignment_id, {})
+	var completed_battle_id := String(completed.get("battle_id", ""))
+	var snapshot_battle_id := String(snapshot.current_battle_id)
+	return completed_battle_id.is_empty() or snapshot_battle_id.is_empty() or completed_battle_id == snapshot_battle_id
 
 
 func _connect_gateway_signals() -> void:
@@ -252,6 +297,8 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 	if snapshot == null:
 		_log_room_anomaly("received_null_room_snapshot", _build_pending_connection_context())
 		return
+	if _suppress_completed_battle_entry_snapshot(snapshot):
+		return
 	var context := _build_snapshot_validity_context(snapshot)
 	var accept_result: Dictionary = _snapshot_cache.try_accept(snapshot, context)
 	if not bool(accept_result.get("accepted", false)):
@@ -281,6 +328,61 @@ func _on_gateway_canonical_start_config_received(config: BattleStartConfig) -> v
 	_reconnect_flow.apply_canonical_start_config(app_runtime, config)
 	if app_runtime.front_flow != null and app_runtime.front_flow.has_method("request_start_match"):
 		app_runtime.front_flow.request_start_match()
+
+
+func _apply_dedicated_battle_entry_snapshot(snapshot: RoomSnapshot) -> void:
+	if app_runtime == null or snapshot == null:
+		return
+	if String(snapshot.topology) != "dedicated_server":
+		return
+	if not bool(snapshot.battle_entry_ready):
+		return
+	if String(snapshot.current_assignment_id).is_empty() or String(snapshot.current_battle_id).is_empty():
+		return
+	if is_battle_entry_snapshot_suppressed(snapshot):
+		_log_completed_battle_entry_suppressed(snapshot)
+		return
+	if String(snapshot.battle_server_host).is_empty() or int(snapshot.battle_server_port) <= 0:
+		return
+	if app_runtime.current_start_config != null:
+		return
+	if app_runtime.match_start_coordinator == null or not app_runtime.match_start_coordinator.has_method("build_client_request_payload"):
+		_log_room_anomaly("dedicated_battle_entry_missing_config_builder", {
+			"room_id": String(snapshot.room_id),
+			"battle_id": String(snapshot.current_battle_id),
+		})
+		return
+	var local_peer_id := _resolve_local_peer_id(snapshot)
+	if local_peer_id <= 0:
+		_log_room_anomaly("dedicated_battle_entry_missing_local_peer", {
+			"room_id": String(snapshot.room_id),
+			"battle_id": String(snapshot.current_battle_id),
+		})
+		return
+	var config: BattleStartConfig = app_runtime.match_start_coordinator.build_client_request_payload(
+		snapshot,
+		local_peer_id,
+		String(snapshot.battle_server_host),
+		int(snapshot.battle_server_port)
+	)
+	if config == null or String(config.match_id).is_empty():
+		_log_room_anomaly("dedicated_battle_entry_config_build_failed", {
+			"room_id": String(snapshot.room_id),
+			"battle_id": String(snapshot.current_battle_id),
+			"match_id": String(snapshot.current_match_id),
+		})
+		return
+	_on_gateway_canonical_start_config_received(config)
+
+
+func _resolve_local_peer_id(snapshot: RoomSnapshot) -> int:
+	if snapshot != null:
+		for member in snapshot.members:
+			if member != null and bool(member.is_local_player):
+				return int(member.peer_id)
+	if app_runtime != null and "local_peer_id" in app_runtime:
+		return int(app_runtime.local_peer_id)
+	return 0
 
 
 func _on_gateway_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
@@ -320,6 +422,24 @@ func _on_gateway_match_resume_accepted(config: BattleStartConfig, snapshot: Matc
 			app_runtime.front_flow.request_resume_match()
 		elif app_runtime.front_flow.has_method("request_start_match"):
 			app_runtime.front_flow.request_start_match()
+
+
+func _suppress_completed_battle_entry_snapshot(snapshot: RoomSnapshot) -> bool:
+	if not is_battle_entry_snapshot_suppressed(snapshot):
+		return false
+	_log_completed_battle_entry_suppressed(snapshot)
+	return true
+
+
+func _log_completed_battle_entry_suppressed(snapshot: RoomSnapshot) -> void:
+	if snapshot == null:
+		return
+	_log_room("dedicated_battle_entry_suppressed_completed_assignment", {
+		"room_id": String(snapshot.room_id),
+		"assignment_id": String(snapshot.current_assignment_id),
+		"battle_id": String(snapshot.current_battle_id),
+		"revision": int(snapshot.snapshot_revision),
+	})
 
 
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:

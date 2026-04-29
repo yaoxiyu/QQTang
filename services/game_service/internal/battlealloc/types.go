@@ -12,6 +12,7 @@ type AllocateInput struct {
 	ExpectedMemberCount int
 	HostHint            string
 	RoomReturnPolicy    string
+	WaitReady           bool
 }
 
 type AllocateResult struct {

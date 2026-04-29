@@ -3,6 +3,7 @@ package roomapp
 import (
 	"testing"
 
+	"qqtang/services/room_service/internal/domain"
 	gamev1 "qqtang/services/room_service/internal/gen/qqt/gamev1shim"
 )
 
@@ -235,6 +236,9 @@ func TestManualRoomFinalizedSyncReturnsRoomToIdle(t *testing.T) {
 	if !updates[0].Snapshot.Capabilities.CanToggleReady {
 		t.Fatalf("expected ready capability restored")
 	}
+	if updates[0].Snapshot.BattleHandoff.AssignmentID != "" || updates[0].Snapshot.BattleHandoff.BattleID != "" || updates[0].Snapshot.BattleHandoff.MatchID != "" {
+		t.Fatalf("expected finalized sync to clear stale battle handoff, got %+v", updates[0].Snapshot.BattleHandoff)
+	}
 	for _, member := range updates[0].Snapshot.Members {
 		if member.MemberPhase != MemberPhaseIdle || member.Ready {
 			t.Fatalf("expected member released to idle after finalized sync, got %+v", member)
@@ -262,6 +266,308 @@ func TestManualRoomFinalizedSyncReturnsRoomToIdle(t *testing.T) {
 	}
 	if metrics["manual_battle_queue_status_call_count"] != 0 || metrics["queue_state_manual_room_write_count"] != 0 {
 		t.Fatalf("manual battle queue metrics must stay zero, got %+v", metrics)
+	}
+}
+
+func TestManualRoomReturningSyncFreezesRoomUntilFinalized(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if _, err := svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: started.BattleHandoff.AssignmentID,
+		BattleID:     started.BattleHandoff.BattleID,
+		MatchID:      started.BattleHandoff.MatchID,
+	}); err != nil {
+		t.Fatalf("owner ack failed: %v", err)
+	}
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		BattlePhase:        "returning",
+		TerminalReason:     BattleReasonBattleFinished,
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: int64(started.BattleHandoff.AssignmentRevision),
+		MatchId:            started.BattleHandoff.MatchID,
+		BattleId:           started.BattleHandoff.BattleID,
+	}
+
+	updates := svc.SyncBattleAssignmentStatus()
+	if len(updates) != 1 {
+		t.Fatalf("expected returning sync update, got %d", len(updates))
+	}
+	if updates[0].Snapshot.RoomPhase != RoomPhaseReturningToRoom {
+		t.Fatalf("expected room phase returning_to_room, got %s", updates[0].Snapshot.RoomPhase)
+	}
+	if updates[0].Snapshot.Capabilities.CanToggleReady || updates[0].Snapshot.Capabilities.CanStartManualBattle {
+		t.Fatalf("returning_to_room must freeze lobby operations, got %+v", updates[0].Snapshot.Capabilities)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != ErrRoomPhaseInvalid {
+		t.Fatalf("expected ready rejected while returning_to_room, got %v", err)
+	}
+	if _, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != ErrRoomPhaseInvalid {
+		t.Fatalf("expected start rejected while returning_to_room, got %v", err)
+	}
+
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		BattlePhase:        "completed",
+		TerminalReason:     QueueReasonMatchFinalized,
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: int64(started.BattleHandoff.AssignmentRevision),
+		MatchId:            started.BattleHandoff.MatchID,
+		BattleId:           started.BattleHandoff.BattleID,
+		Finalized:          true,
+	}
+	updates = svc.SyncBattleAssignmentStatus()
+	if len(updates) != 1 {
+		t.Fatalf("expected finalized sync update, got %d", len(updates))
+	}
+	if updates[0].Snapshot.RoomPhase != RoomPhaseIdle {
+		t.Fatalf("expected room phase idle after finalized return, got %s", updates[0].Snapshot.RoomPhase)
+	}
+	for _, member := range updates[0].Snapshot.Members {
+		if member.Ready || member.MemberPhase != MemberPhaseIdle {
+			t.Fatalf("expected member reset after finalized return, got %+v", member)
+		}
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("guest should be able to ready after return completed: %v", err)
+	}
+	readySnapshot, err := svc.SnapshotProjection(created.RoomID)
+	if err != nil {
+		t.Fatalf("snapshot after guest ready failed: %v", err)
+	}
+	if !readySnapshot.Capabilities.CanStartManualBattle {
+		t.Fatalf("owner should be able to start after guest readies post-return, capabilities=%+v", readySnapshot.Capabilities)
+	}
+}
+
+func TestManualRoomBattleAssignmentSyncDoesNotRegressInBattleToReady(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if _, err := svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: started.BattleHandoff.AssignmentID,
+		BattleID:     started.BattleHandoff.BattleID,
+		MatchID:      started.BattleHandoff.MatchID,
+	}); err != nil {
+		t.Fatalf("owner ack failed: %v", err)
+	}
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		BattlePhase:        "ready",
+		BattleEntryReady:   true,
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: int64(started.BattleHandoff.AssignmentRevision),
+		MatchId:            started.BattleHandoff.MatchID,
+		BattleId:           started.BattleHandoff.BattleID,
+	}
+
+	updates := svc.SyncBattleAssignmentStatus()
+	if len(updates) != 0 {
+		t.Fatalf("expected stale ready projection to be ignored, got %d update(s)", len(updates))
+	}
+	snapshot, err := svc.SnapshotProjection(created.RoomID)
+	if err != nil {
+		t.Fatalf("snapshot failed: %v", err)
+	}
+	if snapshot.RoomPhase != RoomPhaseInBattle || snapshot.BattlePhase != BattlePhaseActive {
+		t.Fatalf("expected in_battle/active preserved, got room=%s battle=%s", snapshot.RoomPhase, snapshot.BattlePhase)
+	}
+	for _, member := range snapshot.Members {
+		if member.MemberPhase != MemberPhaseInBattle {
+			t.Fatalf("expected member to stay in_battle, got %+v", member)
+		}
+	}
+}
+
+func TestManualRoomBattleGoneSyncCompletesReturn(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if _, err := svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: started.BattleHandoff.AssignmentID,
+		BattleID:     started.BattleHandoff.BattleID,
+		MatchID:      started.BattleHandoff.MatchID,
+	}); err != nil {
+		t.Fatalf("owner ack failed: %v", err)
+	}
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:          false,
+		ErrorCode:   "ASSIGNMENT_NOT_FOUND",
+		UserMessage: "assignment not found",
+	}
+
+	updates := svc.SyncBattleAssignmentStatus()
+	if len(updates) != 1 {
+		t.Fatalf("expected battle gone sync update, got %d", len(updates))
+	}
+	if updates[0].Snapshot.RoomPhase != RoomPhaseIdle {
+		t.Fatalf("expected battle gone to complete return to idle, got %s", updates[0].Snapshot.RoomPhase)
+	}
+	if updates[0].Snapshot.BattleHandoff.AssignmentID != "" || updates[0].Snapshot.BattleHandoff.BattleID != "" {
+		t.Fatalf("expected battle gone to clear handoff, got %+v", updates[0].Snapshot.BattleHandoff)
+	}
+	for _, member := range updates[0].Snapshot.Members {
+		if member.Ready || member.MemberPhase != MemberPhaseIdle {
+			t.Fatalf("expected member reset after battle gone, got %+v", member)
+		}
+	}
+}
+
+func TestManualRoomFinalizedSyncResetsDisconnectedMemberBeforeResume(t *testing.T) {
+	fakeGame := &fakeGameControlServer{}
+	svc := newTestServiceWithFakeGame(t, fakeGame)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomKind:     "private_room",
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guest := joinReadyManualBattleGuest(t, svc, created.RoomID)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"}}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
+	}
+	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
+		t.Fatalf("toggle guest ready failed: %v", err)
+	}
+	reconnectToken, err := svc.ReconnectToken(created.RoomID, guest)
+	if err != nil {
+		t.Fatalf("get reconnect token failed: %v", err)
+	}
+	started, err := svc.StartManualRoomBattle(StartManualRoomBattleInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID})
+	if err != nil {
+		t.Fatalf("start manual room battle failed: %v", err)
+	}
+	if _, err := svc.AckBattleEntry(AckBattleEntryInput{
+		RoomID:       created.RoomID,
+		MemberID:     created.OwnerMemberID,
+		AssignmentID: started.BattleHandoff.AssignmentID,
+		BattleID:     started.BattleHandoff.BattleID,
+		MatchID:      started.BattleHandoff.MatchID,
+	}); err != nil {
+		t.Fatalf("owner ack failed: %v", err)
+	}
+	if _, err := svc.MarkDisconnected(created.RoomID, guest); err != nil {
+		t.Fatalf("mark guest disconnected failed: %v", err)
+	}
+	fakeGame.battleAssignResp = &gamev1.GetBattleAssignmentStatusResponse{
+		Ok:                 true,
+		BattlePhase:        "completed",
+		TerminalReason:     QueueReasonMatchFinalized,
+		AssignmentId:       started.BattleHandoff.AssignmentID,
+		AssignmentRevision: int64(started.BattleHandoff.AssignmentRevision),
+		MatchId:            started.BattleHandoff.MatchID,
+		BattleId:           started.BattleHandoff.BattleID,
+		Finalized:          true,
+	}
+
+	updates := svc.SyncBattleAssignmentStatus()
+	if len(updates) != 1 {
+		t.Fatalf("expected finalized sync update, got %d", len(updates))
+	}
+	disconnectedGuest := findSnapshotMember(t, updates[0].Snapshot, guest)
+	if disconnectedGuest.Ready {
+		t.Fatalf("expected disconnected guest ready reset before resume")
+	}
+	if disconnectedGuest.MemberPhase != MemberPhaseDisconnected {
+		t.Fatalf("expected disconnected guest phase preserved until resume, got %s", disconnectedGuest.MemberPhase)
+	}
+
+	resumed, err := svc.ResumeRoom(ResumeRoomInput{
+		RoomID:         created.RoomID,
+		MemberID:       guest,
+		ReconnectToken: reconnectToken,
+		ConnectionID:   "conn-guest-return",
+		RoomTicket:     "ticket-resume",
+	})
+	if err != nil {
+		t.Fatalf("resume guest failed: %v", err)
+	}
+	resumedGuest := findSnapshotMember(t, resumed, guest)
+	if resumedGuest.Ready || resumedGuest.MemberPhase != MemberPhaseIdle {
+		t.Fatalf("expected resumed guest to return as fresh lobby idle/not-ready, got phase=%s ready=%v", resumedGuest.MemberPhase, resumedGuest.Ready)
 	}
 }
 
@@ -293,6 +599,17 @@ func joinReadyManualBattleGuest(t *testing.T, svc *Service, roomID string) strin
 		t.Fatalf("update guest team failed: %v", err)
 	}
 	return guestID
+}
+
+func findSnapshotMember(t *testing.T, snapshot *SnapshotProjection, memberID string) domain.RoomMember {
+	t.Helper()
+	for _, member := range snapshot.Members {
+		if member.MemberID == memberID {
+			return member
+		}
+	}
+	t.Fatalf("member %s not found in snapshot", memberID)
+	return domain.RoomMember{}
 }
 
 func TestManualRoomNotInQueueSyncTargets(t *testing.T) {

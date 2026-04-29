@@ -38,12 +38,17 @@ func main() {
 	reg := registry.New(cfg.RoomInstanceID, cfg.RoomShardID)
 	defer reg.Close()
 
+	gameClient := gameclient.New(cfg.RoomGameServiceGRPCAddr)
+	gameClient.ConfigureInternalHTTP(cfg.RoomGameServiceBaseURL, cfg.RoomGameInternalAuthKeyID, cfg.RoomGameInternalAuthSecret)
+
 	app := roomapp.NewService(
 		reg,
 		manifestLoader,
 		auth.NewTicketVerifier(cfg.RoomTicketSecret),
-		gameclient.New(cfg.RoomGameServiceGRPCAddr),
+		gameClient,
 	)
+	app.SetLogger(logger)
+	app.SetEmptyBattleCleanupGrace(time.Duration(cfg.RoomEmptyBattleCleanupGraceSeconds) * time.Second)
 
 	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger, cfg.RoomAllowedOrigins...)
 	if err := wsServer.Start(); err != nil {

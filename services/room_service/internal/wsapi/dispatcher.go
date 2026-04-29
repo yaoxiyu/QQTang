@@ -367,6 +367,7 @@ func (d *Dispatcher) logSnapshotCapabilities(operation string, conn *Connection,
 		"match_format_id", snapshot.Selection.MatchFormatID,
 		"selected_mode_ids", snapshot.Selection.SelectedModeIDs,
 		"can_toggle_ready", snapshot.Capabilities.CanToggleReady,
+		"can_start_manual_battle", snapshot.Capabilities.CanStartManualBattle,
 		"can_update_match_room_config", snapshot.Capabilities.CanUpdateMatchRoomConfig,
 		"can_enter_queue", snapshot.Capabilities.CanEnterQueue,
 	)
@@ -396,6 +397,7 @@ func (d *Dispatcher) logOperationRejected(operation string, conn *Connection, ro
 			"battle_phase", snapshot.BattlePhase,
 			"battle_terminal_reason", snapshot.BattleTerminalReason,
 			"can_toggle_ready", snapshot.Capabilities.CanToggleReady,
+			"can_start_manual_battle", snapshot.Capabilities.CanStartManualBattle,
 			"can_enter_queue", snapshot.Capabilities.CanEnterQueue,
 			"can_cancel_queue", snapshot.Capabilities.CanCancelQueue,
 		)

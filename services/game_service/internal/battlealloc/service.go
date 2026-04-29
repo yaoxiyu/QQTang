@@ -78,10 +78,12 @@ func (s *Service) AllocateBattle(ctx context.Context, input AllocateInput) (Allo
 	if err := s.battleInstanceRepo.UpdateDSInfo(ctx, input.BattleID, dsResult.DSInstanceID, dsResult.ServerHost, dsResult.ServerPort); err != nil {
 		return AllocateResult{}, err
 	}
-	if err := s.battleInstanceRepo.UpdateState(ctx, input.BattleID, "starting"); err != nil {
+	allocationState := normalizeDSMAllocationState(dsResult.AllocationState)
+	battleInstanceState := battleInstanceStateFromAllocation(allocationState)
+	if err := s.battleInstanceRepo.UpdateState(ctx, input.BattleID, battleInstanceState); err != nil {
 		return AllocateResult{}, err
 	}
-	if err := s.assignmentRepo.UpdateAllocationState(ctx, input.AssignmentID, "starting", input.BattleID, dsResult.DSInstanceID, dsResult.ServerHost, dsResult.ServerPort); err != nil {
+	if err := s.assignmentRepo.UpdateAllocationState(ctx, input.AssignmentID, allocationState, input.BattleID, dsResult.DSInstanceID, dsResult.ServerHost, dsResult.ServerPort); err != nil {
 		return AllocateResult{}, err
 	}
 
@@ -90,7 +92,7 @@ func (s *Service) AllocateBattle(ctx context.Context, input AllocateInput) (Allo
 		DSInstanceID:    dsResult.DSInstanceID,
 		ServerHost:      dsResult.ServerHost,
 		ServerPort:      dsResult.ServerPort,
-		AllocationState: "starting",
+		AllocationState: allocationState,
 	}, nil
 }
 
@@ -103,11 +105,42 @@ func (s *Service) MarkBattleReady(ctx context.Context, battleID string) error {
 		return err
 	}
 
+	if bi.ServerHost == "" || bi.ServerPort <= 0 {
+		dsResult, statusErr := s.requestDSBattleStatus(ctx, battleID)
+		if statusErr != nil {
+			return statusErr
+		}
+		if dsResult.ServerHost != "" && dsResult.ServerPort > 0 {
+			bi.DSInstanceID = dsResult.DSInstanceID
+			bi.ServerHost = dsResult.ServerHost
+			bi.ServerPort = dsResult.ServerPort
+			if err := s.battleInstanceRepo.UpdateDSInfo(ctx, battleID, bi.DSInstanceID, bi.ServerHost, bi.ServerPort); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := s.battleInstanceRepo.UpdateState(ctx, battleID, "ready"); err != nil {
 		return err
 	}
 
 	return s.assignmentRepo.UpdateAllocationState(ctx, bi.AssignmentID, "battle_ready", battleID, bi.DSInstanceID, bi.ServerHost, bi.ServerPort)
+}
+
+func (s *Service) ReapBattle(ctx context.Context, battleID string) error {
+	if battleID == "" {
+		return fmt.Errorf("battle_id is required")
+	}
+	if _, err := s.battleInstanceRepo.FindByBattleID(ctx, battleID); err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return ErrBattleNotFound
+		}
+		return err
+	}
+	if err := s.requestDSReap(ctx, battleID); err != nil {
+		return err
+	}
+	return s.battleInstanceRepo.UpdateState(ctx, battleID, "reaped")
 }
 
 func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManifest, error) {
@@ -123,7 +156,7 @@ func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManif
 	if err != nil {
 		return BattleManifest{}, err
 	}
-	if assignment.AllocationState == "alloc_failed" {
+	if assignment.AllocationState == "alloc_failed" || assignment.AllocationState == "allocation_failed" {
 		return BattleManifest{}, ErrManifestStateInvalid
 	}
 
@@ -159,12 +192,14 @@ func (s *Service) GetManifest(ctx context.Context, battleID string) (BattleManif
 }
 
 type dsAllocateResponse struct {
-	OK           bool   `json:"ok"`
-	DSInstanceID string `json:"ds_instance_id"`
-	ServerHost   string `json:"server_host"`
-	ServerPort   int    `json:"server_port"`
-	ErrorCode    string `json:"error_code"`
-	Message      string `json:"message"`
+	OK              bool   `json:"ok"`
+	DSInstanceID    string `json:"ds_instance_id"`
+	LeaseID         string `json:"lease_id"`
+	AllocationState string `json:"allocation_state"`
+	ServerHost      string `json:"server_host"`
+	ServerPort      int    `json:"server_port"`
+	ErrorCode       string `json:"error_code"`
+	Message         string `json:"message"`
 }
 
 func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) (dsAllocateResponse, error) {
@@ -172,8 +207,11 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 		"battle_id":             input.BattleID,
 		"assignment_id":         input.AssignmentID,
 		"match_id":              input.MatchID,
+		"source_room_id":        input.SourceRoomID,
 		"host_hint":             input.HostHint,
 		"expected_member_count": input.ExpectedMemberCount,
+		"wait_ready":            input.WaitReady,
+		"idempotency_key":       input.AssignmentID + ":" + input.BattleID,
 	})
 	if err != nil {
 		return dsAllocateResponse{}, err
@@ -210,4 +248,88 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 	}
 
 	return result, nil
+}
+
+func (s *Service) requestDSBattleStatus(ctx context.Context, battleID string) (dsAllocateResponse, error) {
+	if s.dsManagerURL == "" {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager url is not configured")
+	}
+	url := s.dsManagerURL + "/internal/v1/battles/" + battleID
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return dsAllocateResponse{}, err
+	}
+	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
+		return dsAllocateResponse{}, fmt.Errorf("sign ds_manager status request failed: %w", err)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager status request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager status response read failed: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager status rejected status=%d body=%s", resp.StatusCode, string(respBody))
+	}
+	var result dsAllocateResponse
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager status response parse failed: %w", err)
+	}
+	if !result.OK {
+		return dsAllocateResponse{}, fmt.Errorf("ds_manager status rejected: %s %s", result.ErrorCode, result.Message)
+	}
+	return result, nil
+}
+
+func (s *Service) requestDSReap(ctx context.Context, battleID string) error {
+	url := s.dsManagerURL + "/internal/v1/battles/" + battleID + "/reap"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(nil))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
+		return fmt.Errorf("sign ds_manager reap request failed: %w", err)
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("ds_manager reap request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("ds_manager reap rejected status=%d body=%s", resp.StatusCode, string(respBody))
+	}
+	return nil
+}
+
+func normalizeDSMAllocationState(state string) string {
+	switch state {
+	case "ready", "bound_ready", "battle_ready":
+		return "battle_ready"
+	case "allocating", "assigning", "starting", "":
+		return "allocating"
+	case "allocation_failed", "alloc_failed", "failed":
+		return "allocation_failed"
+	case "active":
+		return "active"
+	default:
+		return state
+	}
+}
+
+func battleInstanceStateFromAllocation(state string) string {
+	switch state {
+	case "battle_ready":
+		return "ready"
+	case "allocation_failed":
+		return "allocation_failed"
+	case "active":
+		return "active"
+	default:
+		return "allocating"
+	}
 }

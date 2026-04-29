@@ -142,7 +142,7 @@ func _message_tick(message: Dictionary) -> int:
 
 
 func _append_events(events_by_tick: Dictionary, event_ids: Dictionary, message: Dictionary, original_index: int) -> int:
-	var events: Variant = message.get("events", [])
+	var events: Variant = _message_events(message)
 	if not (events is Array) or events.is_empty():
 		return 0
 	var fallback_tick := _message_tick(message)
@@ -158,15 +158,23 @@ func _append_events(events_by_tick: Dictionary, event_ids: Dictionary, message: 
 		else:
 			event_id = "%d:-1:%d:%d" % [event_tick, original_index, event_index]
 		if event_ids.has(event_id):
-			continue
+			var previous: Dictionary = event_ids[event_id]
+			if _event_payload_score(previous.get("event")) >= _event_payload_score(event):
+				continue
+			_remove_event_record(events_by_tick, previous)
+			appended_count -= 1
 		event_ids[event_id] = true
 		if not events_by_tick.has(event_tick):
 			events_by_tick[event_tick] = []
-		(events_by_tick[event_tick] as Array).append({
+		var record := {
 			"original_index": original_index,
 			"event_index": event_index,
 			"event": event,
-		})
+			"tick": event_tick,
+			"event_id": event_id,
+		}
+		(events_by_tick[event_tick] as Array).append(record)
+		event_ids[event_id] = record
 		appended_count += 1
 	return appended_count
 
@@ -176,11 +184,45 @@ func _event_id(event: Dictionary, event_tick: int, original_index: int, event_in
 	if not explicit_id.is_empty():
 		return explicit_id
 	var event_type := int(event.get("event_type", -1))
-	var source_id := int(event.get("source_id", event.get("entity_id", event.get("bubble_id", -1))))
+	var payload: Dictionary = event.get("payload", {}) if event.get("payload", {}) is Dictionary else {}
+	var source_id := int(event.get("source_id", event.get("entity_id", event.get("bubble_id", payload.get("bubble_id", payload.get("entity_id", -1))))))
 	var sequence := int(event.get("sequence", event.get("seq", -1)))
 	if source_id >= 0 or sequence >= 0:
 		return "%d:%d:%d:%d" % [event_tick, event_type, source_id, sequence]
 	return "%d:%d:%d:%d" % [event_tick, event_type, original_index, event_index]
+
+
+func _message_events(message: Dictionary) -> Variant:
+	var events: Variant = message.get("events", [])
+	if events is Array and not events.is_empty():
+		return events
+	return message.get("event_details", [])
+
+
+func _remove_event_record(events_by_tick: Dictionary, record: Dictionary) -> void:
+	var tick := int(record.get("tick", -1))
+	if not events_by_tick.has(tick):
+		return
+	var records: Array = events_by_tick[tick]
+	for index in range(records.size() - 1, -1, -1):
+		var candidate: Dictionary = records[index]
+		if String(candidate.get("event_id", "")) == String(record.get("event_id", "")):
+			records.remove_at(index)
+	if records.is_empty():
+		events_by_tick.erase(tick)
+
+
+func _event_payload_score(event: Variant) -> int:
+	if not (event is Dictionary):
+		return 0
+	var payload: Variant = (event as Dictionary).get("payload", {})
+	if not (payload is Dictionary):
+		return 0
+	var score := (payload as Dictionary).size()
+	var covered_cells: Variant = (payload as Dictionary).get("covered_cells", [])
+	if covered_cells is Array:
+		score += (covered_cells as Array).size()
+	return score
 
 
 func _is_authority_sync_type(message_type: String) -> bool:

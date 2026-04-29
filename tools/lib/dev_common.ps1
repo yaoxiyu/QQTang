@@ -164,10 +164,12 @@ function Resolve-QQTGodotExecutable {
     )
 
     if ([string]::IsNullOrWhiteSpace($GodotDir)) {
+        $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")
+        $binaryRoot = Join-Path $repoRoot 'godot_binary'
         if ($PreferConsole) {
-            return 'Godot_console.exe'
+            return Join-Path $binaryRoot 'Godot_console.exe'
         }
-        return 'Godot.exe'
+        return Join-Path $binaryRoot 'Godot.exe'
     }
 
     $consolePath = Join-Path $GodotDir 'Godot_console.exe'

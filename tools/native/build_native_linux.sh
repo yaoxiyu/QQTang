@@ -37,6 +37,10 @@ fi
 "$SCONS_EXE" platform=linux target="$TARGET" arch="$ARCH"
 
 ARTIFACT="$NATIVE_DIR/bin/qqt_native.linux.${TARGET}.${ARCH}.so"
+LIB_ARTIFACT="$NATIVE_DIR/bin/libqqt_native.linux.${TARGET}.${ARCH}.so"
+if [[ -f "$LIB_ARTIFACT" ]]; then
+  cp "$LIB_ARTIFACT" "$ARTIFACT"
+fi
 if [[ ! -f "$ARTIFACT" ]]; then
   echo "missing artifact: $ARTIFACT" >&2
   exit 2

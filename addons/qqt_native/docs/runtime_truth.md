@@ -30,7 +30,7 @@ Local scripts regenerate the required pieces:
 - `tools/native/build_native.ps1` rebuilds `godot-cpp` static libraries when missing, then `qqt_native`.
 - `tools/run-services.ps1` builds native and regenerates the room manifest before launching services.
 - `scripts/run-battle-ds-local.ps1` builds native before launching the dedicated server scene.
-- `deploy/docker/build_services_dev.ps1` builds native and regenerates the room manifest before `docker compose build`.
+- `tools/run-services.ps1` is the service Docker entrypoint; it builds native, regenerates the room manifest, then runs Docker Compose.
 
 ## Docker Limitation
 

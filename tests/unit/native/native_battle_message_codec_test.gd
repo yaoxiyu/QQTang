@@ -37,12 +37,16 @@ func test_native_battle_message_codec_roundtrips_ack_summary_checkpoint() -> voi
 		"remaining_ticks": 300,
 		"player_summary": [],
 		"events": [],
+		"ack_by_peer": {7: 8, 9: 6},
 	}
 	var summary_payload: PackedByteArray = codec.call("encode_state_summary_v2", summary)
 	var summary_decoded: Dictionary = codec.call("decode_message", summary_payload)
 	assert_eq(String(summary_decoded.get("message_type", "")), TransportMessageTypesScript.STATE_SUMMARY)
 	assert_eq(int(summary_decoded.get("wire_version", 0)), 2)
 	assert_eq(int(summary_decoded.get("tick", 0)), 8)
+	var ack_by_peer: Dictionary = summary_decoded.get("ack_by_peer", {})
+	assert_eq(int(ack_by_peer.get(7, -1)), 8)
+	assert_eq(int(ack_by_peer.get(9, -1)), 6)
 
 
 func test_native_battle_message_codec_roundtrips_input_batch_and_state_delta_v2() -> void:
@@ -78,13 +82,25 @@ func test_native_battle_message_codec_roundtrips_input_batch_and_state_delta_v2(
 		"removed_bubble_ids": [1],
 		"changed_items": [{"entity_id": 7, "item_type": 2, "cell_x": 1, "cell_y": 2, "visible": true}],
 		"removed_item_ids": [6],
-		"event_details": [],
+		"event_details": [{
+			"tick": 10,
+			"event_type": 3,
+			"payload": {
+				"bubble_id": 3,
+				"cell_x": 4,
+				"cell_y": 5,
+				"covered_cells": [Vector2i(4, 5), Vector2i(5, 5)],
+			},
+		}],
 	}
 	var delta_payload: PackedByteArray = codec.call("encode_state_delta_v2", delta)
 	var delta_decoded: Dictionary = codec.call("decode_message", delta_payload)
 	assert_eq(String(delta_decoded.get("message_type", "")), TransportMessageTypesScript.STATE_DELTA)
 	assert_eq(int(delta_decoded.get("tick", 0)), 10)
 	assert_eq((delta_decoded.get("changed_bubbles", []) as Array).size(), 1)
+	var events: Array = delta_decoded.get("events", [])
+	var event_payload: Dictionary = (events[0] as Dictionary).get("payload", {})
+	assert_eq((event_payload.get("covered_cells", []) as Array).size(), 2)
 
 
 func test_native_battle_message_codec_malformed_payload_returns_empty() -> void:

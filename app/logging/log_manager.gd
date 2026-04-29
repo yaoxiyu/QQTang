@@ -45,7 +45,8 @@ static func _initialize(config: LogConfig) -> Error:
 	
 	## 生成日志文件路径
 	var timestamp := Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_")
-	var file_name := "%s%s.%s" % [config.file_prefix, timestamp, config.file_extension]
+	var process_suffix := "%d_%d" % [OS.get_process_id(), Time.get_ticks_msec()]
+	var file_name := "%s%s_%s.%s" % [config.file_prefix, timestamp, process_suffix, config.file_extension]
 	_current_log_path = config.log_directory.path_join(file_name)
 	
 	## 初始化写入器

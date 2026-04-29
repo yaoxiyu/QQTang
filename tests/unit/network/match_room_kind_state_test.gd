@@ -48,8 +48,43 @@ func test_main() -> void:
 	ok = qqt_check(String(rebuilt_snapshot.members[0].member_phase) == "idle", "rebuilt snapshot should preserve member_phase", prefix) and ok
 	ok = qqt_check(String(controller.room_runtime_context.room_queue_state) == "queueing", "runtime context should receive queue state", prefix) and ok
 	ok = qqt_check(String(controller.room_runtime_context.match_format_id) == "2v2", "runtime context should receive match format", prefix) and ok
+
+	var owner_local_snapshot := RoomSnapshotScript.new()
+	owner_local_snapshot.room_id = "ROOM-LOCAL-AUTH"
+	owner_local_snapshot.room_kind = "private_room"
+	owner_local_snapshot.topology = "dedicated_server"
+	owner_local_snapshot.owner_peer_id = 101
+	owner_local_snapshot.snapshot_revision = 10
+	owner_local_snapshot.can_start_manual_battle = true
+	var local_owner := RoomMemberState.new()
+	local_owner.peer_id = 101
+	local_owner.is_owner = true
+	local_owner.is_local_player = true
+	var remote_guest := RoomMemberState.new()
+	remote_guest.peer_id = 202
+	remote_guest.ready = true
+	owner_local_snapshot.members = [local_owner, remote_guest]
+	controller.set_local_player_id(1)
+	controller.apply_authoritative_snapshot(owner_local_snapshot)
+	var owner_rebuilt_snapshot := controller.build_room_snapshot()
+	ok = qqt_check(
+		int(controller.room_runtime_context.local_player_id) == 101,
+		"authoritative local member should replace stale app local peer id",
+		prefix
+	) and ok
+	ok = qqt_check(
+		bool(owner_rebuilt_snapshot.members[0].is_local_player) and bool(owner_rebuilt_snapshot.members[0].is_owner),
+		"rebuilt snapshot should preserve authoritative local owner identity",
+		prefix
+	) and ok
+	ok = qqt_check(
+		controller.get_start_match_blocker(1).is_empty(),
+		"start blocker should resolve stale app peer id to authoritative local owner",
+		prefix
+	) and ok
+
 	roundtrip.room_phase = "battle_entry_ready"
-	roundtrip.snapshot_revision = 2
+	roundtrip.snapshot_revision = 11
 	controller.apply_authoritative_snapshot(roundtrip)
 	ok = qqt_check(
 		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.MATCH_LOADING,
@@ -64,7 +99,7 @@ func test_main() -> void:
 	roundtrip.room_phase = "in_battle"
 	roundtrip.battle_phase = "active"
 	roundtrip.match_active = true
-	roundtrip.snapshot_revision = 3
+	roundtrip.snapshot_revision = 12
 	controller.apply_authoritative_snapshot(roundtrip)
 	ok = qqt_check(
 		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_BATTLE,
@@ -74,7 +109,7 @@ func test_main() -> void:
 	roundtrip.room_phase = "idle"
 	roundtrip.battle_phase = "active"
 	roundtrip.match_active = false
-	roundtrip.snapshot_revision = 2
+	roundtrip.snapshot_revision = 9
 	controller.apply_authoritative_snapshot(roundtrip)
 	ok = qqt_check(
 		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_BATTLE,
@@ -91,11 +126,11 @@ func test_main() -> void:
 	ok = qqt_check(String(preserved_snapshot.room_phase) == "in_battle", "preserved active battle snapshot should keep in_battle phase", prefix) and ok
 	roundtrip.room_phase = "returning_to_room"
 	roundtrip.battle_phase = "returning"
-	roundtrip.snapshot_revision = 4
+	roundtrip.snapshot_revision = 13
 	controller.apply_authoritative_snapshot(roundtrip)
 	roundtrip.room_phase = "idle"
 	roundtrip.battle_phase = "completed"
-	roundtrip.snapshot_revision = 5
+	roundtrip.snapshot_revision = 14
 	controller.apply_authoritative_snapshot(roundtrip)
 	ok = qqt_check(
 		int(controller.room_runtime_context.room_flow_state) == RoomFlowStateScript.Value.IN_ROOM,

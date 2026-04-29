@@ -9,6 +9,8 @@ func merge_server_frame(messages: Array[Dictionary]) -> Array[Dictionary]:
 	var terminal: Array[Dictionary] = []
 	var latest_summary: Dictionary = {}
 	var latest_summary_tick := -1
+	var latest_delta: Dictionary = {}
+	var latest_delta_tick := -1
 	var latest_checkpoint: Dictionary = {}
 	var latest_checkpoint_tick := -1
 	var ack_by_peer: Dictionary = {}
@@ -21,11 +23,16 @@ func merge_server_frame(messages: Array[Dictionary]) -> Array[Dictionary]:
 		var tick := _message_tick(message)
 
 		match message_type:
-			TransportMessageTypesScript.STATE_SUMMARY, "AUTHORITY_DELTA":
+			TransportMessageTypesScript.STATE_SUMMARY:
 				_collect_events(event_by_id, message, index)
 				if tick >= latest_summary_tick:
 					latest_summary_tick = tick
 					latest_summary = message.duplicate(true)
+			TransportMessageTypesScript.STATE_DELTA:
+				_collect_events(event_by_id, message, index)
+				if tick >= latest_delta_tick:
+					latest_delta_tick = tick
+					latest_delta = message.duplicate(true)
 			TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 				_collect_events(event_by_id, message, index)
 				if tick >= latest_checkpoint_tick:
@@ -58,6 +65,9 @@ func merge_server_frame(messages: Array[Dictionary]) -> Array[Dictionary]:
 			"ack_by_peer": ack_by_peer.duplicate(true),
 		})
 
+	if not latest_delta.is_empty():
+		result.append(latest_delta)
+
 	if not latest_checkpoint.is_empty():
 		result.append(latest_checkpoint)
 
@@ -75,7 +85,7 @@ func _message_tick(message: Dictionary) -> int:
 
 
 func _collect_events(event_by_id: Dictionary, message: Dictionary, original_index: int) -> void:
-	var events: Variant = message.get("events", [])
+	var events: Variant = _message_events(message)
 	if not (events is Array):
 		return
 	var fallback_tick := _message_tick(message)
@@ -89,7 +99,10 @@ func _collect_events(event_by_id: Dictionary, message: Dictionary, original_inde
 			event_type = int(event.get("event_type", -1))
 			event_id = String(event.get("event_id", ""))
 		if event_id.is_empty():
-			event_id = "%d:%d:%d:%d" % [event_tick, event_type, original_index, event_index]
+			event_id = _event_id(event, event_tick, event_type, original_index, event_index)
+		var existing: Dictionary = event_by_id.get(event_id, {})
+		if not existing.is_empty() and _event_payload_score(existing.get("event")) > _event_payload_score(event):
+			continue
 		event_by_id[event_id] = {
 			"sort_tick": event_tick,
 			"sort_index": original_index * 10000 + event_index,
@@ -110,3 +123,35 @@ func _sorted_events(event_by_id: Dictionary) -> Array:
 	for record in records:
 		result.append(record.get("event"))
 	return result
+
+
+func _message_events(message: Dictionary) -> Variant:
+	var events: Variant = message.get("events", [])
+	if events is Array and not events.is_empty():
+		return events
+	return message.get("event_details", [])
+
+
+func _event_id(event: Variant, event_tick: int, event_type: int, original_index: int, event_index: int) -> String:
+	if not (event is Dictionary):
+		return "%d:%d:%d:%d" % [event_tick, event_type, original_index, event_index]
+	var event_dict: Dictionary = event
+	var payload: Dictionary = event_dict.get("payload", {}) if event_dict.get("payload", {}) is Dictionary else {}
+	var source_id := int(event_dict.get("source_id", event_dict.get("entity_id", event_dict.get("bubble_id", payload.get("bubble_id", payload.get("entity_id", -1))))))
+	var sequence := int(event_dict.get("sequence", event_dict.get("seq", -1)))
+	if source_id >= 0 or sequence >= 0:
+		return "%d:%d:%d:%d" % [event_tick, event_type, source_id, sequence]
+	return "%d:%d:%d:%d" % [event_tick, event_type, original_index, event_index]
+
+
+func _event_payload_score(event: Variant) -> int:
+	if not (event is Dictionary):
+		return 0
+	var payload: Variant = (event as Dictionary).get("payload", {})
+	if not (payload is Dictionary):
+		return 0
+	var score := (payload as Dictionary).size()
+	var covered_cells: Variant = (payload as Dictionary).get("covered_cells", [])
+	if covered_cells is Array:
+		score += (covered_cells as Array).size()
+	return score

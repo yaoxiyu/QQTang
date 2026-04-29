@@ -1,5 +1,33 @@
 # Docker Deployment Scope
 
+## Service startup
+
+Use the repository-level service entrypoint:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile dev
+```
+
+That entrypoint owns DB startup, DB migration, native debug build, GDScript syntax preflight, room manifest generation, and Docker Compose service startup.
+
+## Retained deployment scripts
+
+- `tools/run-services.ps1`: canonical Docker service startup entrypoint.
+- `tools/db-up.ps1`: starts profile-scoped Postgres containers.
+- `tools/db-migrate.ps1`: creates missing DBs and applies idempotent SQL migrations.
+- `scripts/docker/export_battle_ds_linux.ps1`: exports the Linux Battle DS Godot binary and pack.
+- `scripts/docker/build_battle_ds_image.sh`: builds the `qqtang/battle-ds:dev` runtime image from exported Battle DS artifacts.
+- `tools/native/build_native_linux_docker.ps1`: builds Linux native extension artifacts in the pinned Linux build container.
+- `tools/native/check_native_runtime_linux.sh`: validates Linux Godot native runtime readiness.
+
+Removed deployment-era compatibility scripts:
+
+- `tools/run_dev_services.ps1`
+- `tools/migrate.ps1`
+- `deploy/docker/build_services_dev.ps1`
+- `scripts/run-room-service.ps1`
+- `network/scripts/run-room-service.ps1`
+
 The service Docker Compose files validate Go service image readiness for:
 
 - `account_service`

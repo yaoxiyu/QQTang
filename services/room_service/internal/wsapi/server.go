@@ -391,6 +391,7 @@ func (s *Server) syncControlPlaneSnapshots() {
 	}
 	updates := s.dispatcher.app.SyncMatchQueueStatus()
 	updates = append(updates, s.dispatcher.app.SyncBattleAssignmentStatus()...)
+	s.dispatcher.app.SweepEmptyBattleRooms(time.Now())
 	for _, update := range updates {
 		if update.Snapshot == nil || update.RoomID == "" {
 			continue

@@ -1,6 +1,6 @@
 param(
-    [string]$GodotExe = 'D:\Godot\Godot.exe',
-    [string]$ProjectPath = 'D:\code\QQTang',
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot.exe'),
+    [string]$ProjectPath = '',
     [string]$SuiteName = 'gut_suite',
     [string[]]$TestDirs = @(),
     [string[]]$TestFiles = @(),
@@ -15,6 +15,11 @@ if ($PSVersionTable.PSVersion.Major -ge 7) {
 }
 
 $startedAt = Get-Date
+if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
+    $ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+} else {
+    $ProjectPath = (Resolve-Path -LiteralPath $ProjectPath).Path
+}
 $reportDir = Join-Path $ProjectPath $ReportRoot
 $rawReportDir = Join-Path $ProjectPath $RawReportRoot
 $cliAppData = Join-Path $ProjectPath 'tests\cli\appdata'

@@ -103,15 +103,36 @@ func apply_resume_snapshot(snapshot) -> void:
 func start_battle() -> void:
 	_ensure_network_gateway()
 	if start_config == null:
+		network_log_event.emit("adapter_start_battle_skip reason=missing_start_config")
 		return
 	var pending_config := start_config.duplicate_deep()
 	if is_battle_active():
+		network_log_event.emit("adapter_start_battle_shutdown_existing mode=%d lifecycle=%s" % [
+			network_mode,
+			get_lifecycle_state_name(),
+		])
 		shutdown_battle()
 	start_config = pending_config.duplicate_deep() if pending_config != null else null
 	var config := pending_config.duplicate_deep() if pending_config != null else null
 	var mode := _resolve_runtime_mode(config)
+	network_log_event.emit("adapter_start_battle_request mode=%d session_mode=%s topology=%s battle_id=%s match_id=%s authority=%s:%d local_peer=%d controlled_peer=%d players=%d" % [
+		mode,
+		String(config.session_mode) if config != null else "",
+		String(config.topology) if config != null else "",
+		String(config.battle_id) if config != null else "",
+		String(config.match_id) if config != null else "",
+		String(config.authority_host) if config != null else "",
+		int(config.authority_port) if config != null else 0,
+		int(config.local_peer_id) if config != null else 0,
+		int(config.controlled_peer_id) if config != null else 0,
+		config.players.size() if config != null else 0,
+	])
 	if mode < 0:
 		push_error("BattleSessionAdapter.start_battle rejected session_mode=%s topology=%s" % [String(config.session_mode), String(config.topology)])
+		network_log_event.emit("adapter_start_battle_rejected reason=unsupported_mode session_mode=%s topology=%s" % [
+			String(config.session_mode),
+			String(config.topology),
+		])
 		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
 	_lifecycle_state = BattleLifecycleState.STARTING
@@ -119,9 +140,22 @@ func start_battle() -> void:
 	if mode == BattleNetworkMode.LOCAL_LOOPBACK:
 		options["debug_profile"] = _capture_transport_profile()
 	if not _start_runtime_session(mode, config, options):
+		network_log_event.emit("adapter_start_battle_failed mode=%d battle_id=%s match_id=%s" % [
+			mode,
+			String(config.battle_id) if config != null else "",
+			String(config.match_id) if config != null else "",
+		])
 		_lifecycle_state = BattleLifecycleState.STOPPED
 		return
 	_lifecycle_state = BattleLifecycleState.RUNNING
+	network_log_event.emit("adapter_start_battle_running mode=%d battle_id=%s match_id=%s has_context=%s has_transport=%s transport_connected=%s" % [
+		mode,
+		String(config.battle_id) if config != null else "",
+		String(config.match_id) if config != null else "",
+		str(current_context != null),
+		str(transport != null),
+		str(transport != null and transport.is_transport_connected()),
+	])
 	battle_session_started.emit(config)
 	battle_context_created.emit(current_context)
 

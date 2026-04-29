@@ -214,6 +214,7 @@ Dictionary read_player_summary(const PackedByteArray &payload, int32_t &offset) 
 
 void append_event(PackedByteArray &body, const Dictionary &event) {
     const Dictionary payload = dict_dict(event, "payload");
+    const Array covered_cells = dict_array(payload, "covered_cells");
     append_u32(body, uint32_t(dict_i(event, "tick", 0)));
     append_u16(body, uint16_t(dict_i(event, "event_type", 0)));
     append_i32(body, dict_i(payload, "entity_id", -1));
@@ -223,6 +224,17 @@ void append_event(PackedByteArray &body, const Dictionary &event) {
     append_i32(body, dict_i(payload, "player_id", -1));
     append_i16(body, dict_i(payload, "cell_x", -1));
     append_i16(body, dict_i(payload, "cell_y", -1));
+    append_u8(body, uint8_t(covered_cells.size()));
+    for (int32_t i = 0; i < covered_cells.size(); ++i) {
+        if (covered_cells[i].get_type() != Variant::DICTIONARY) {
+            append_i16(body, -1);
+            append_i16(body, -1);
+            continue;
+        }
+        const Dictionary cell(covered_cells[i]);
+        append_i16(body, dict_i(cell, "x", -1));
+        append_i16(body, dict_i(cell, "y", -1));
+    }
 }
 
 Dictionary read_event(const PackedByteArray &payload, int32_t &offset) {
@@ -237,6 +249,16 @@ Dictionary read_event(const PackedByteArray &payload, int32_t &offset) {
     event_payload["player_id"] = read_i32(payload, offset);
     event_payload["cell_x"] = int32_t(read_i16(payload, offset));
     event_payload["cell_y"] = int32_t(read_i16(payload, offset));
+    const uint8_t covered_cell_count = read_u8(payload, offset);
+    Array covered_cells;
+    for (uint8_t i = 0; i < covered_cell_count; ++i) {
+        Dictionary cell;
+        cell["x"] = int32_t(read_i16(payload, offset));
+        cell["y"] = int32_t(read_i16(payload, offset));
+        cell["__type"] = "Vector2i";
+        covered_cells.append(cell);
+    }
+    event_payload["covered_cells"] = covered_cells;
     event["payload"] = event_payload;
     return event;
 }
@@ -309,6 +331,36 @@ Dictionary read_item(const PackedByteArray &payload, int32_t &offset) {
 
 bool has_remaining(const PackedByteArray &payload, int32_t offset, int32_t bytes) {
     return offset + bytes <= payload.size();
+}
+
+void append_ack_by_peer(PackedByteArray &body, const Dictionary &ack_by_peer) {
+    const Array keys = ack_by_peer.keys();
+    const int32_t count = keys.size() > 255 ? 255 : keys.size();
+    append_u8(body, uint8_t(count));
+    for (int32_t i = 0; i < count; ++i) {
+        const Variant key = keys[i];
+        const int32_t peer_id = int32_t(key);
+        const int32_t ack_tick = int32_t(ack_by_peer.get(key, 0));
+        append_u32(body, uint32_t(peer_id));
+        append_u32(body, uint32_t(ack_tick));
+    }
+}
+
+Dictionary read_ack_by_peer(const PackedByteArray &payload, int32_t &offset) {
+    Dictionary ack_by_peer;
+    if (!has_remaining(payload, offset, 1)) {
+        return ack_by_peer;
+    }
+    const uint8_t count = read_u8(payload, offset);
+    if (!has_remaining(payload, offset, int32_t(count) * 8)) {
+        return Dictionary();
+    }
+    for (uint8_t i = 0; i < count; ++i) {
+        const int32_t peer_id = int32_t(read_u32(payload, offset));
+        const int32_t ack_tick = int32_t(read_u32(payload, offset));
+        ack_by_peer[peer_id] = ack_tick;
+    }
+    return ack_by_peer;
 }
 } // namespace
 
@@ -460,6 +512,7 @@ PackedByteArray QQTNativeBattleMessageCodec::encode_state_summary_v2(const Dicti
     for (int32_t i = 0; i < events.size(); ++i) {
         append_event(body, Dictionary(events[i]));
     }
+    append_ack_by_peer(body, dict_dict(message, "ack_by_peer"));
     state_summary_v2_encode_count += 1;
     return wrap_body(CODE_STATE_SUMMARY, body);
 }
@@ -498,14 +551,30 @@ Dictionary QQTNativeBattleMessageCodec::decode_state_summary_v2(const PackedByte
     const uint8_t event_count = read_u8(payload, offset);
     Array events;
     for (uint8_t i = 0; i < event_count; ++i) {
-        if (!has_remaining(payload, offset, 30)) {
+        if (!has_remaining(payload, offset, 31)) {
+            malformed_count += 1;
+            return Dictionary();
+        }
+        const uint8_t covered_cell_count = uint8_t(payload[offset + 30]);
+        if (!has_remaining(payload, offset, 31 + int32_t(covered_cell_count) * 4)) {
             malformed_count += 1;
             return Dictionary();
         }
         events.append(read_event(payload, offset));
     }
+    Dictionary ack_by_peer;
+    if (has_remaining(payload, offset, 1)) {
+        ack_by_peer = read_ack_by_peer(payload, offset);
+        if (ack_by_peer.is_empty() && offset < payload.size()) {
+            malformed_count += 1;
+            return Dictionary();
+        }
+    }
     message["player_summary"] = players;
     message["events"] = events;
+    if (!ack_by_peer.is_empty()) {
+        message["ack_by_peer"] = ack_by_peer;
+    }
     state_summary_v2_decode_count += 1;
     native_decode_count += 1;
     return message;
@@ -591,7 +660,12 @@ Dictionary QQTNativeBattleMessageCodec::decode_state_delta_v2(const PackedByteAr
     Array event_details;
     const uint8_t event_count = read_u8(payload, offset);
     for (uint8_t i = 0; i < event_count; ++i) {
-        if (!has_remaining(payload, offset, 30)) {
+        if (!has_remaining(payload, offset, 31)) {
+            malformed_count += 1;
+            return Dictionary();
+        }
+        const uint8_t covered_cell_count = uint8_t(payload[offset + 30]);
+        if (!has_remaining(payload, offset, 31 + int32_t(covered_cell_count) * 4)) {
             malformed_count += 1;
             return Dictionary();
         }

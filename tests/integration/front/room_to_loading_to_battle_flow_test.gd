@@ -38,6 +38,16 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 	runtime.room_use_case.on_authoritative_snapshot(stale_idle_snapshot)
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "lower revision idle room snapshot must not reopen room over active battle")
 
+	var late_handoff_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
+	late_handoff_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
+	late_handoff_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
+	late_handoff_snapshot.room_phase = "battle_entry_ready"
+	late_handoff_snapshot.battle_phase = "ready"
+	late_handoff_snapshot.battle_entry_ready = true
+	late_handoff_snapshot.snapshot_revision = int(late_handoff_snapshot.snapshot_revision) + 1
+	runtime.room_use_case.on_authoritative_snapshot(late_handoff_snapshot)
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.BATTLE), "late handoff snapshot must not demote active battle to loading")
+
 	var returning_snapshot: RoomSnapshot = runtime.room_session_controller.build_room_snapshot()
 	returning_snapshot.topology = FrontTopologyScript.DEDICATED_SERVER
 	returning_snapshot.room_kind = FrontRoomKindScript.PRIVATE_ROOM
@@ -54,6 +64,21 @@ func test_practice_room_can_reach_loading_and_battle_flow() -> void:
 	idle_snapshot.snapshot_revision = int(returning_snapshot.snapshot_revision) + 1
 	runtime.room_use_case.on_authoritative_snapshot(idle_snapshot)
 	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "canonical idle phase should return front flow to room")
+
+	var completed_entry_snapshot: RoomSnapshot = idle_snapshot.duplicate_deep()
+	completed_entry_snapshot.room_phase = "battle_entry_ready"
+	completed_entry_snapshot.battle_phase = "ready"
+	completed_entry_snapshot.current_assignment_id = "assign_completed_return"
+	completed_entry_snapshot.current_battle_id = "battle_completed_return"
+	completed_entry_snapshot.battle_server_host = "127.0.0.1"
+	completed_entry_snapshot.battle_server_port = 20000
+	completed_entry_snapshot.battle_entry_ready = true
+	completed_entry_snapshot.snapshot_revision = int(idle_snapshot.snapshot_revision) + 1
+	runtime.current_room_snapshot = completed_entry_snapshot
+	runtime.room_use_case.mark_current_battle_assignment_completed("test_return_to_room")
+	runtime.front_flow.on_return_to_room_completed()
+	runtime.room_use_case.on_authoritative_snapshot(completed_entry_snapshot)
+	assert_true(runtime.front_flow.is_in_state(FrontFlowControllerScript.FlowState.ROOM), "completed dedicated battle entry snapshot must not reopen loading after room return")
 
 	var battle_scene: PackedScene = load(SceneFlowControllerScript.BATTLE_SCENE_PATH)
 	assert_not_null(battle_scene, "formal battle scene still loads")

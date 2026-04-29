@@ -121,6 +121,34 @@ func test_deduplicates_events_by_event_id() -> void:
 	assert_eq(int(batch["metrics"].get("preserved_event_count", 0)), 2)
 
 
+func test_preserves_event_details_and_deduplicates_against_short_summary_event() -> void:
+	var coalescer := AuthorityBatchCoalescerScript.new()
+	var short_event := {
+		"tick": 14,
+		"event_type": 3,
+		"payload": {"bubble_id": 2, "cell_x": 6, "cell_y": 7},
+	}
+	var full_event := {
+		"tick": 14,
+		"event_type": 3,
+		"payload": {
+			"bubble_id": 2,
+			"cell_x": 6,
+			"cell_y": 7,
+			"covered_cells": [Vector2i(6, 7), Vector2i(7, 7)],
+		},
+	}
+	var batch := coalescer.coalesce_client_authority_batch([
+		{"message_type": TransportMessageTypesScript.STATE_SUMMARY, "tick": 14, "events": [short_event]},
+		{"message_type": TransportMessageTypesScript.STATE_DELTA, "tick": 14, "event_details": [full_event]},
+	], {})
+
+	var events_by_tick: Array = batch["authority_events_by_tick"]
+	assert_eq(events_by_tick.size(), 1)
+	var payload: Dictionary = (events_by_tick[0]["events"][0] as Dictionary).get("payload", {})
+	assert_eq((payload.get("covered_cells", []) as Array).size(), 2)
+
+
 func test_preserves_match_finished_as_terminal_message() -> void:
 	var coalescer := AuthorityBatchCoalescerScript.new()
 	var batch := coalescer.coalesce_client_authority_batch([

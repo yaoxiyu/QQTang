@@ -1,6 +1,6 @@
 param(
     [switch]$WithGut,
-    [string]$GodotExe = 'D:\Godot\Godot.exe',
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot.exe'),
     [string]$ProjectPath = ''
 )
 

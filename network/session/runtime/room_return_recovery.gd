@@ -11,6 +11,9 @@ func recover(
 	if app_runtime == null:
 		return
 
+	if app_runtime.room_use_case != null and app_runtime.room_use_case.has_method("mark_current_battle_assignment_completed"):
+		app_runtime.room_use_case.mark_current_battle_assignment_completed(post_action)
+
 	var room_controller = app_runtime.room_session_controller
 	if room_controller != null and room_controller.has_method("begin_return_to_room"):
 		room_controller.begin_return_to_room()

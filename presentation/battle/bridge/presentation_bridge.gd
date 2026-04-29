@@ -111,6 +111,7 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
 	_log_actor_sync_anomalies(world, tick_id, events)
+	_log_explosion_events("presentation_consume", tick_id, events)
 	battle_event_router.route_events(events)
 	_last_consumed_tick = tick_id
 
@@ -284,6 +285,30 @@ func _contains_bubble_placed_without_actor(world: SimWorld, events: Array) -> bo
 	return false
 
 
+func _log_explosion_events(stage: String, tick_id: int, events: Array) -> void:
+	for event in events:
+		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_EXPLODED:
+			continue
+		var covered_cells: Array = event.payload.get("covered_cells", [])
+		LogPresentationScript.info(
+			"QQT_EXPLOSION_TRACE stage=%s tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d fx_children=%d payload_keys=%s" % [
+				stage,
+				tick_id,
+				int(event.tick),
+				int(event.payload.get("bubble_id", event.payload.get("entity_id", -1))),
+				int(event.payload.get("owner_player_id", -1)),
+				int(event.payload.get("cell_x", -1)),
+				int(event.payload.get("cell_y", -1)),
+				covered_cells.size(),
+				fx_layer.get_child_count() if fx_layer != null else -1,
+				str(event.payload.keys()),
+			],
+			"",
+			0,
+			"presentation.bridge.explosion"
+		)
+
+
 func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("show_prediction_correction"):
 		spawn_fx_controller.show_prediction_correction(_fp_to_world_position(from_pos), _fp_to_world_position(to_pos))
@@ -307,6 +332,7 @@ func show_prediction_correction(entity_id: int, from_pos: Vector2i, to_pos: Vect
 func _on_explosion_event_routed(event: SimEvent) -> void:
 	if event == null:
 		return
+	_log_explosion_events("presentation_route", int(event.tick), [event])
 	var owner_player_id := int(event.payload.get("owner_player_id", -1))
 	var bubble_style_id := ""
 	var bubble_color := Color.WHITE

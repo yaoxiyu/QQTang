@@ -20,12 +20,13 @@ var _projection_revision_guard: RefCounted = ViewRevisionGuardScript.new()
 func consume_authoritative_snapshot(app_runtime: Object, snapshot: RoomSnapshot, previous_view_state: Dictionary = {}, cache: RefCounted = null, context: Dictionary = {}) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return {}
-	if not RoomSnapshotValidityScript.can_apply_authoritative(snapshot, cache, context):
+	var rejection_reason := RoomSnapshotValidityScript.authoritative_rejection_reason(snapshot, cache, context)
+	if not rejection_reason.is_empty():
 		return {
 			"view_state": previous_view_state,
 			"resume_context": _resume_flow.build_resume_context(previous_view_state),
 			"projection_skipped": true,
-			"skip_reason": "invalid_or_placeholder_snapshot",
+			"skip_reason": rejection_reason,
 		}
 	app_runtime.room_session_controller.apply_authoritative_snapshot(snapshot)
 	app_runtime.current_room_snapshot = app_runtime.room_session_controller.build_room_snapshot() if snapshot != null else null

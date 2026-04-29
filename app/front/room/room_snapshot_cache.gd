@@ -23,10 +23,11 @@ func try_accept(snapshot: RoomSnapshot, context: Dictionary = {}) -> Dictionary:
 		ignored_placeholder_count += 1
 		classification["accepted"] = false
 		return classification
-	if not RoomSnapshotValidityScript.can_apply_authoritative(snapshot, self, enriched_context):
+	var rejection_reason := RoomSnapshotValidityScript.authoritative_rejection_reason(snapshot, self, enriched_context)
+	if not rejection_reason.is_empty():
 		stale_snapshot_count += 1
 		classification["accepted"] = false
-		classification["reason"] = "stale_revision"
+		classification["reason"] = rejection_reason
 		return classification
 	last_good_snapshot = snapshot.duplicate_deep() if snapshot != null else null
 	last_good_room_id = String(snapshot.room_id) if snapshot != null else ""

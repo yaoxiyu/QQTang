@@ -95,6 +95,7 @@ func fromPBCreateManualRoomBattle(response *gamev1.CreateManualRoomBattleRespons
 	if response == nil {
 		return CreateManualRoomBattleResult{}
 	}
+	ready := response.GetOk() && response.GetServerHost() != "" && response.GetServerPort() > 0
 	return CreateManualRoomBattleResult{
 		OK:                 response.GetOk(),
 		AssignmentID:       response.GetAssignmentId(),
@@ -104,7 +105,7 @@ func fromPBCreateManualRoomBattle(response *gamev1.CreateManualRoomBattleRespons
 		ServerHost:         response.GetServerHost(),
 		ServerPort:         int(response.GetServerPort()),
 		AllocationState:    "",
-		Ready:              response.GetOk(),
+		Ready:              ready,
 		ErrorCode:          response.GetErrorCode(),
 		UserMessage:        response.GetUserMessage(),
 	}

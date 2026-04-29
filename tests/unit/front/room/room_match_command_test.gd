@@ -100,6 +100,7 @@ func test_online_start_match_requests_gateway_and_stays_pending() -> void:
 	entry.topology = "dedicated_server"
 	runtime.current_room_entry_context = entry
 	runtime.room_session_controller = controller
+	runtime.current_room_snapshot = _online_owner_snapshot(true)
 
 	var result: Dictionary = command.start_match(runtime, gateway)
 
@@ -107,6 +108,50 @@ func test_online_start_match_requests_gateway_and_stays_pending() -> void:
 	assert_true(bool(result.get("pending", false)), "online start should stay pending")
 	assert_true(gateway.start_called, "online start should notify gateway")
 	assert_false(controller.begin_called, "online start should not begin local match immediately")
+	controller.free()
+	runtime.free()
+
+
+func test_online_start_match_uses_authoritative_capability_not_local_blocker() -> void:
+	var command := RoomMatchCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var controller := FakeController.new()
+	controller.blocker = {
+		"error_code": "LOCAL_STALE_BLOCKER",
+		"user_message": "local stale state should not block online start",
+	}
+	var gateway := FakeGateway.new()
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "private_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+	runtime.room_session_controller = controller
+	runtime.current_room_snapshot = _online_owner_snapshot(true)
+
+	var result: Dictionary = command.start_match(runtime, gateway)
+
+	assert_true(bool(result.get("ok", false)), "online start should trust authoritative capability")
+	assert_true(gateway.start_called, "online start should notify gateway despite stale local blocker")
+	controller.free()
+	runtime.free()
+
+
+func test_online_start_match_rejects_when_authoritative_capability_false() -> void:
+	var command := RoomMatchCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var controller := FakeController.new()
+	var gateway := FakeGateway.new()
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "private_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+	runtime.room_session_controller = controller
+	runtime.current_room_snapshot = _online_owner_snapshot(false)
+
+	var result: Dictionary = command.start_match(runtime, gateway)
+
+	assert_false(bool(result.get("ok", true)), "online start should reject when authoritative capability is false")
+	assert_false(gateway.start_called, "online start should not notify gateway when server capability is false")
 	controller.free()
 	runtime.free()
 
@@ -143,3 +188,24 @@ func test_request_rematch_rejects_match_room() -> void:
 	assert_false(bool(result.get("ok", true)), "match room should reject rematch")
 	assert_eq(String(result.get("error_code", "")), "MATCH_ROOM_REMATCH_FORBIDDEN", "match room rematch should use stable error code")
 	runtime.free()
+
+
+func _online_owner_snapshot(can_start: bool) -> RoomSnapshot:
+	var snapshot := RoomSnapshot.new()
+	snapshot.room_id = "room-online"
+	snapshot.room_kind = "private_room"
+	snapshot.topology = "dedicated_server"
+	snapshot.owner_peer_id = 101
+	snapshot.can_start_manual_battle = can_start
+	var owner := RoomMemberState.new()
+	owner.peer_id = 101
+	owner.is_owner = true
+	owner.is_local_player = true
+	owner.ready = false
+	var guest := RoomMemberState.new()
+	guest.peer_id = 202
+	guest.is_owner = false
+	guest.is_local_player = false
+	guest.ready = true
+	snapshot.members = [owner, guest]
+	return snapshot

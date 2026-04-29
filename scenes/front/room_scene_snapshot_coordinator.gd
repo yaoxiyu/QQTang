@@ -118,6 +118,8 @@ func on_room_snapshot_changed(controller: Node, snapshot: RoomSnapshot) -> void:
 		return
 	refresh_room(controller, snapshot)
 	if snapshot != null and snapshot.battle_entry_ready and controller._room_use_case != null and controller._front_flow != null:
+		if controller._room_use_case.has_method("is_battle_entry_snapshot_suppressed") and controller._room_use_case.is_battle_entry_snapshot_suppressed(snapshot):
+			return
 		var battle_ctx = controller._room_use_case.build_battle_entry_context(snapshot)
 		if battle_ctx != null and controller._app_runtime != null:
 			controller._app_runtime.current_battle_entry_context = battle_ctx

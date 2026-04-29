@@ -24,8 +24,14 @@ func configure(
 	p_internal_auth_shared_secret: String = "",
 	p_internal_auth_key_id: String = "primary"
 ) -> void:
-	game_service_host = p_game_service_host.strip_edges() if not p_game_service_host.strip_edges().is_empty() else _read_env("GAME_SERVICE_HOST", "127.0.0.1")
-	game_service_port = p_game_service_port if p_game_service_port > 0 else int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
+	var base_url := _read_env("GAME_SERVICE_BASE_URL", "")
+	var base_endpoint := _endpoint_from_base_url(base_url)
+	game_service_host = p_game_service_host.strip_edges() if not p_game_service_host.strip_edges().is_empty() else String(base_endpoint.get("host", "")).strip_edges()
+	if game_service_host.is_empty():
+		game_service_host = _read_env("GAME_SERVICE_HOST", "127.0.0.1")
+	game_service_port = p_game_service_port if p_game_service_port > 0 else int(base_endpoint.get("port", 0))
+	if game_service_port <= 0:
+		game_service_port = int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
 	if game_service_port <= 0:
 		game_service_port = 18081
 	internal_auth_key_id = p_internal_auth_key_id.strip_edges() if not p_internal_auth_key_id.strip_edges().is_empty() else InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
@@ -308,6 +314,26 @@ func _is_terminal_internal_error(error_code: String) -> bool:
 func _read_env(name: String, fallback: String = "") -> String:
 	var value := OS.get_environment(name).strip_edges()
 	return value if not value.is_empty() else fallback
+
+
+func _endpoint_from_base_url(base_url: String) -> Dictionary:
+	var trimmed := base_url.strip_edges()
+	if trimmed.is_empty():
+		return {}
+	trimmed = trimmed.replace("http://", "").replace("https://", "")
+	var slash_index := trimmed.find("/")
+	if slash_index >= 0:
+		trimmed = trimmed.substr(0, slash_index)
+	var host := trimmed
+	var port := 0
+	var colon_index := trimmed.rfind(":")
+	if colon_index > 0:
+		host = trimmed.substr(0, colon_index)
+		port = int(trimmed.substr(colon_index + 1).to_int())
+	return {
+		"host": host.strip_edges(),
+		"port": port,
+	}
 
 
 func _utc_now_string() -> String:

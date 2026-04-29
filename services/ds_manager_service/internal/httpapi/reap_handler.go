@@ -7,21 +7,40 @@ import (
 	"qqtang/services/ds_manager_service/internal/allocator"
 	"qqtang/services/ds_manager_service/internal/platform/httpx"
 	"qqtang/services/ds_manager_service/internal/process"
+	"qqtang/services/ds_manager_service/internal/runtimepool"
 )
 
 type ReapHandler struct {
 	alloc  *allocator.Allocator
 	runner *process.GodotProcessRunner
+	pool   runtimepool.RuntimePool
 }
 
 func NewReapHandler(alloc *allocator.Allocator, runner *process.GodotProcessRunner) *ReapHandler {
 	return &ReapHandler{alloc: alloc, runner: runner}
 }
 
+func NewRuntimePoolReapHandler(pool runtimepool.RuntimePool) *ReapHandler {
+	return &ReapHandler{pool: pool}
+}
+
 func (h *ReapHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	battleID := r.PathValue("battle_id")
 	if battleID == "" {
 		httpx.WriteError(w, http.StatusBadRequest, "MISSING_BATTLE_ID", "battle_id is required")
+		return
+	}
+
+	if h.pool != nil {
+		if err := h.pool.Reap(r.Context(), battleID); err != nil {
+			httpx.WriteError(w, http.StatusNotFound, "NOT_FOUND", err.Error())
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, map[string]any{
+			"ok":        true,
+			"battle_id": battleID,
+			"reaped":    true,
+		})
 		return
 	}
 

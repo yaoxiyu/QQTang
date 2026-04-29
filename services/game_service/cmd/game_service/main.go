@@ -92,6 +92,7 @@ func main() {
 		InternalFinalizeHandler:         httpapi.NewInternalFinalizeHandler(finalizeService),
 		InternalBattleManifestHandler:   httpapi.NewInternalBattleManifestHandler(battleAllocService),
 		InternalBattleReadyHandler:      httpapi.NewInternalBattleReadyHandler(battleAllocService),
+		InternalBattleReapHandler:       httpapi.NewInternalBattleReapHandler(battleAllocService),
 		InternalManualRoomBattleHandler: httpapi.NewInternalManualRoomBattleHandler(manualRoomService),
 		ReadinessCheck:                  store.Ping,
 	})

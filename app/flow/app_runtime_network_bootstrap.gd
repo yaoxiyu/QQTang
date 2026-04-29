@@ -4,6 +4,9 @@ const RoomSessionControllerScript = preload("res://network/session/room_session_
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const BattleSessionAdapterScript = preload("res://network/session/battle_session_adapter.gd")
 const ClientRoomRuntimeScript = preload("res://network/runtime/room_client/client_room_runtime.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
+
+const BATTLE_ADAPTER_LOG_BOUND_META := "qqt_battle_adapter_log_bound"
 
 
 static func ensure_components(runtime: Node) -> void:
@@ -67,3 +70,24 @@ static func _connect_runtime_signals(runtime: Node) -> void:
 		runtime.client_room_runtime.transport_disconnected.connect(runtime._on_client_runtime_transport_disconnected)
 	if not runtime.client_room_runtime.room_error.is_connected(runtime._on_client_runtime_room_error):
 		runtime.client_room_runtime.room_error.connect(runtime._on_client_runtime_room_error)
+	_connect_battle_adapter_logs(runtime)
+
+
+static func _connect_battle_adapter_logs(runtime: Node) -> void:
+	if runtime == null or runtime.battle_session_adapter == null:
+		return
+	if runtime.battle_session_adapter.has_meta(BATTLE_ADAPTER_LOG_BOUND_META):
+		return
+	runtime.battle_session_adapter.set_meta(BATTLE_ADAPTER_LOG_BOUND_META, true)
+	runtime.battle_session_adapter.network_log_event.connect(func(message: String) -> void:
+		LogNetScript.debug("[QQT_BATTLE_NET] %s" % message, "", 0, "net.battle.client")
+	)
+	runtime.battle_session_adapter.network_transport_connected.connect(func() -> void:
+		LogNetScript.debug("[QQT_BATTLE_NET] transport_connected", "", 0, "net.battle.client")
+	)
+	runtime.battle_session_adapter.network_transport_disconnected.connect(func() -> void:
+		LogNetScript.warn("[QQT_BATTLE_NET] transport_disconnected", "", 0, "net.battle.client")
+	)
+	runtime.battle_session_adapter.network_transport_error.connect(func(code: int, message: String) -> void:
+		LogNetScript.warn("[QQT_BATTLE_NET] transport_error code=%d message=%s" % [code, message], "", 0, "net.battle.client")
+	)

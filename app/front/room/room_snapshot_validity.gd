@@ -30,18 +30,24 @@ static func is_placeholder(snapshot: RoomSnapshot) -> bool:
 
 
 static func can_apply_authoritative(snapshot: RoomSnapshot, cache: RefCounted, context: Dictionary = {}) -> bool:
+	return authoritative_rejection_reason(snapshot, cache, context).is_empty()
+
+
+static func authoritative_rejection_reason(snapshot: RoomSnapshot, cache: RefCounted, context: Dictionary = {}) -> String:
 	var classification := classify(snapshot, context)
 	if not bool(classification.get("valid", false)):
-		return false
+		return String(classification.get("reason", "invalid_snapshot"))
+	if _is_battle_active_handoff_phase(snapshot, context):
+		return "battle_active_handoff_snapshot"
 	if cache == null:
-		return true
+		return ""
 	if cache.has_method("is_last_good_snapshot") and bool(cache.call("is_last_good_snapshot", snapshot)):
-		return true
+		return ""
 	var room_id := String(snapshot.room_id)
 	var revision := int(snapshot.snapshot_revision)
 	if not room_id.is_empty() and room_id == String(cache.get("last_good_room_id")) and revision <= int(cache.get("last_good_revision")):
-		return false
-	return true
+		return "stale_revision"
+	return ""
 
 
 static func build_log_context(snapshot: RoomSnapshot, context: Dictionary = {}) -> Dictionary:
@@ -67,3 +73,13 @@ static func _is_explicitly_returning_or_closed(snapshot: RoomSnapshot, context: 
 	var phase := String(snapshot.room_phase)
 	var lifecycle := String(snapshot.room_lifecycle_state)
 	return phase == "returning_to_room" or phase == "closed" or lifecycle == "closed"
+
+
+static func _is_battle_active_handoff_phase(snapshot: RoomSnapshot, context: Dictionary) -> bool:
+	if snapshot == null or not bool(context.get("battle_active", false)):
+		return false
+	match String(snapshot.room_phase).strip_edges():
+		"battle_allocating", "battle_entry_ready", "battle_entering":
+			return true
+		_:
+			return false

@@ -63,6 +63,34 @@ func releaseMembersToIdle(room *domain.RoomAggregate) {
 	}
 }
 
+func resetMembersAfterBattleReturn(room *domain.RoomAggregate) {
+	if room == nil {
+		return
+	}
+	for memberID, member := range room.Members {
+		member.Ready = false
+		if member.MemberPhase != MemberPhaseDisconnected {
+			member.MemberPhase = MemberPhaseIdle
+		}
+		room.Members[memberID] = member
+	}
+}
+
+func resetTransferredOwnerForLobby(room *domain.RoomAggregate, ownerMemberID string) {
+	if room == nil || ownerMemberID == "" {
+		return
+	}
+	member, ok := room.Members[ownerMemberID]
+	if !ok {
+		return
+	}
+	member.Ready = false
+	if member.MemberPhase != MemberPhaseDisconnected {
+		member.MemberPhase = MemberPhaseIdle
+	}
+	room.Members[ownerMemberID] = member
+}
+
 func releaseMembersPreservingReady(room *domain.RoomAggregate) {
 	if room == nil {
 		return

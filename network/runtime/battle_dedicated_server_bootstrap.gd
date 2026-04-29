@@ -55,6 +55,7 @@ func _ready() -> void:
 	LogSystemInitializerScript.initialize_dedicated_server()
 	_shutdown_coordinator.register_handle(self)
 	_apply_command_line_overrides()
+	battle_ticket_secret = _resolve_battle_ticket_secret()
 	_ds_manager_base_url = _resolve_ds_manager_base_url()
 	_ds_manager_auth_signer = _build_ds_manager_auth_signer()
 	_ds_manager_http_client = _build_ds_manager_http_client(_ds_manager_base_url)
@@ -120,6 +121,7 @@ func _apply_command_line_overrides() -> void:
 		var parsed_secret := String(parsed["--qqt-battle-ticket-secret"]).strip_edges()
 		if not parsed_secret.is_empty():
 			battle_ticket_secret = parsed_secret
+			LogNetScript.warn("--qqt-battle-ticket-secret is legacy/dev only; use QQT_BATTLE_TICKET_SECRET or QQT_BATTLE_TICKET_SECRET_FILE", "", 0, "net.battle_ds_bootstrap")
 	if parsed.has("--qqt-resume-window-sec"):
 		var parsed_resume_window := float(String(parsed["--qqt-resume-window-sec"]).to_float())
 		if parsed_resume_window > 0.0:
@@ -460,14 +462,17 @@ func _fetch_manifest() -> void:
 		LogNetScript.warn("battle_ds: no battle_id, skipping manifest fetch", "", 0, "net.battle_ds_bootstrap")
 		return
 	_manifest_client = GameServiceBattleManifestClientScript.new()
-	var game_host := _read_env("GAME_SERVICE_HOST", "127.0.0.1")
-	var game_port := int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
-	if game_port <= 0:
-		game_port = 18081
+	var game_base_url := _normalize_http_base_url(_read_env("GAME_SERVICE_BASE_URL", ""))
+	if game_base_url.is_empty():
+		var game_host := _read_env("GAME_SERVICE_HOST", "127.0.0.1")
+		var game_port := int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
+		if game_port <= 0:
+			game_port = 18081
+		game_base_url = "http://%s:%d" % [game_host, game_port]
 	var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
 	var secret := String(secret_config.get("shared_secret", ""))
 	var key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
-	_manifest_client.configure("http://%s:%d" % [game_host, game_port], secret, key_id)
+	_manifest_client.configure(game_base_url, secret, key_id)
 	var result := _manifest_client.fetch_manifest(_battle_id)
 	if not bool(result.get("ok", false)):
 		LogNetScript.warn("battle_manifest fetch failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
@@ -660,6 +665,33 @@ func _read_env(env_name: String, fallback: String) -> String:
 	return value if not value.is_empty() else fallback
 
 
+func _resolve_battle_ticket_secret() -> String:
+	var direct_secret := OS.get_environment("QQT_BATTLE_TICKET_SECRET").strip_edges()
+	if not direct_secret.is_empty():
+		return direct_secret
+	var secret_file := OS.get_environment("QQT_BATTLE_TICKET_SECRET_FILE").strip_edges()
+	if not secret_file.is_empty():
+		var file_secret := _read_text_file(secret_file).strip_edges()
+		if not file_secret.is_empty():
+			return file_secret
+	if battle_ticket_secret.strip_edges().is_empty():
+		return "dev_battle_ticket_secret"
+	return battle_ticket_secret
+
+
+func _read_text_file(path: String) -> String:
+	if path.strip_edges().is_empty():
+		return ""
+	if not FileAccess.file_exists(path):
+		LogNetScript.warn("battle ticket secret file not found: %s" % path, "", 0, "net.battle_ds_bootstrap")
+		return ""
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		LogNetScript.warn("battle ticket secret file cannot be opened: %s" % path, "", 0, "net.battle_ds_bootstrap")
+		return ""
+	return file.get_as_text()
+
+
 func _build_ds_manager_auth_signer() -> InternalAuthSigner:
 	var auth := _resolve_ds_manager_auth()
 	var shared_secret := String(auth.get("shared_secret", ""))
@@ -702,6 +734,7 @@ func _resolve_ds_manager_auth() -> Dictionary:
 
 func _resolve_ds_manager_base_url() -> String:
 	var candidates := [
+		_read_env("DSM_BASE_URL", ""),
 		_read_env("DS_MANAGER_URL", ""),
 		_read_env("GAME_DS_MANAGER_URL", ""),
 		_read_env("DSM_HTTP_ADDR", "127.0.0.1:18090"),

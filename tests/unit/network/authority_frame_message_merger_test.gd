@@ -57,6 +57,41 @@ func test_preserves_events_when_summary_is_coalesced() -> void:
 	assert_eq(String(events[1].get("name", "")), "exploded")
 
 
+func test_preserves_latest_delta_and_prefers_full_delta_event_payload() -> void:
+	var merger := AuthorityFrameMessageMergerScript.new()
+	var short_event := {
+		"tick": 20,
+		"event_type": 3,
+		"payload": {"bubble_id": 7, "cell_x": 4, "cell_y": 5},
+	}
+	var full_event := {
+		"tick": 20,
+		"event_type": 3,
+		"payload": {
+			"bubble_id": 7,
+			"cell_x": 4,
+			"cell_y": 5,
+			"covered_cells": [Vector2i(4, 5), Vector2i(5, 5)],
+		},
+	}
+	var result := merger.merge_server_frame([
+		_state_summary(20, [short_event]),
+		{
+			"message_type": TransportMessageTypesScript.STATE_DELTA,
+			"tick": 20,
+			"event_details": [full_event],
+			"removed_bubble_ids": [7],
+		},
+	])
+
+	assert_eq(result.size(), 2)
+	assert_eq(String(result[1].get("message_type", "")), TransportMessageTypesScript.STATE_DELTA)
+	var events: Array = result[0].get("events", [])
+	assert_eq(events.size(), 1)
+	var payload: Dictionary = (events[0] as Dictionary).get("payload", {})
+	assert_eq((payload.get("covered_cells", []) as Array).size(), 2)
+
+
 func test_preserves_terminal_messages_at_end() -> void:
 	var merger := AuthorityFrameMessageMergerScript.new()
 	var result := merger.merge_server_frame([

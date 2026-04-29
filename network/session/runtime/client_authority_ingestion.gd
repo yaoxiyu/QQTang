@@ -25,6 +25,8 @@ func ingest_network_message(message: Dictionary) -> void:
 	match message_type:
 		TransportMessageTypesScript.INPUT_ACK:
 			_apply_batch_input_acks([message])
+		TransportMessageTypesScript.INPUT_ACK_BATCH:
+			_apply_ack_by_peer(message.get("ack_by_peer", {}))
 		TransportMessageTypesScript.STATE_SUMMARY:
 			_apply_latest_state_summary(message)
 			_store_authoritative_events(message)
@@ -92,12 +94,13 @@ func reset() -> void:
 
 func _store_authoritative_events(message: Dictionary) -> void:
 	var tick_id := int(message.get("tick", 0))
-	var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events(message.get("events", []))
+	var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events(_event_payloads_from_message(message))
 	_runtime.latest_authoritative_events = decoded_events
 	_latest_authoritative_event_tick = tick_id if not decoded_events.is_empty() else -1
 	if decoded_events.is_empty():
 		return
 	_runtime.pending_authoritative_events_by_tick[tick_id] = decoded_events
+	_log_explosion_events("client_ingest", tick_id, decoded_events, message)
 	_log_missing_bubble_state_after_place(tick_id, decoded_events)
 
 
@@ -108,7 +111,7 @@ func _store_authoritative_events_by_tick(entries: Array) -> void:
 		var tick_id := int((entry as Dictionary).get("tick", -1))
 		if tick_id < 0:
 			continue
-		var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events((entry as Dictionary).get("events", []))
+		var decoded_events := ClientRuntimeSnapshotApplierScript.decode_events(_event_payloads_from_message(entry as Dictionary))
 		if decoded_events.is_empty():
 			continue
 		if not _runtime.pending_authoritative_events_by_tick.has(tick_id):
@@ -116,7 +119,42 @@ func _store_authoritative_events_by_tick(entries: Array) -> void:
 		(_runtime.pending_authoritative_events_by_tick[tick_id] as Array).append_array(decoded_events)
 		_runtime.latest_authoritative_events = decoded_events
 		_latest_authoritative_event_tick = max(_latest_authoritative_event_tick, tick_id)
+		_log_explosion_events("client_ingest_batch", tick_id, decoded_events, entry as Dictionary)
 		_log_missing_bubble_state_after_place(tick_id, decoded_events)
+
+
+func _event_payloads_from_message(message: Dictionary) -> Array:
+	var events: Variant = message.get("events", [])
+	if events is Array and not events.is_empty():
+		return events
+	var event_details: Variant = message.get("event_details", [])
+	if event_details is Array:
+		return event_details
+	return []
+
+
+func _log_explosion_events(stage: String, tick_id: int, events: Array, source_message: Dictionary) -> void:
+	for event in events:
+		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_EXPLODED:
+			continue
+		var covered_cells: Array = event.payload.get("covered_cells", [])
+		LogSyncScript.info(
+			"QQT_EXPLOSION_TRACE stage=%s tick=%d event_tick=%d msg_type=%s bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_keys=%s" % [
+				stage,
+				tick_id,
+				int(event.tick),
+				String(source_message.get("message_type", source_message.get("msg_type", ""))),
+				int(event.payload.get("bubble_id", event.payload.get("entity_id", -1))),
+				int(event.payload.get("owner_player_id", -1)),
+				int(event.payload.get("cell_x", -1)),
+				int(event.payload.get("cell_y", -1)),
+				covered_cells.size(),
+				str(event.payload.keys()),
+			],
+			"",
+			0,
+			"%s sync.client_authority_ingestion" % TRACE_TAG
+		)
 
 
 func _apply_batch_input_acks(input_acks: Array) -> void:
@@ -135,17 +173,24 @@ func _apply_ack_by_peer(ack_by_peer: Variant) -> void:
 	if _runtime.client_session == null or not (ack_by_peer is Dictionary):
 		return
 	var expected_peer_id: int = _runtime.controlled_peer_id if _runtime.controlled_peer_id > 0 else _runtime.local_peer_id
+	var fallback_ack_tick := -1
 	for key in (ack_by_peer as Dictionary).keys():
 		var peer_id := int(key)
-		if peer_id != expected_peer_id and peer_id != _runtime.local_peer_id:
-			continue
-		_runtime.client_session.on_input_ack(int((ack_by_peer as Dictionary).get(key, 0)))
+		var ack_tick := int((ack_by_peer as Dictionary).get(key, 0))
+		fallback_ack_tick = max(fallback_ack_tick, ack_tick)
+		if peer_id == expected_peer_id or peer_id == _runtime.local_peer_id:
+			_runtime.client_session.on_input_ack(ack_tick)
+			return
+	if fallback_ack_tick >= 0:
+		_runtime.client_session.on_input_ack(fallback_ack_tick)
 
 
 func _apply_latest_state_summary(message: Dictionary) -> void:
 	if _runtime.client_session == null or message.is_empty():
 		return
 	_apply_ack_by_peer(message.get("ack_by_peer", {}))
+	if _runtime._finished:
+		return
 	_runtime.client_session.on_state_summary(message)
 	_apply_remote_player_summary_to_predicted_world(_runtime.client_session.latest_player_summary)
 	if _runtime._should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
@@ -154,6 +199,8 @@ func _apply_latest_state_summary(message: Dictionary) -> void:
 
 func _apply_latest_state_delta(message: Dictionary) -> void:
 	if _runtime.client_session == null or message.is_empty():
+		return
+	if _runtime._finished:
 		return
 	if _runtime._should_apply_authority_sideband_to_current_world(int(message.get("tick", 0))):
 		ClientRuntimeSnapshotApplierScript.apply_authority_delta_sideband(
@@ -165,6 +212,8 @@ func _apply_latest_state_delta(message: Dictionary) -> void:
 
 func _apply_latest_authoritative_snapshot(message: Dictionary) -> void:
 	if _runtime.client_session == null or message.is_empty():
+		return
+	if _runtime._finished:
 		return
 	_runtime.client_session.on_snapshot(message)
 	_apply_remote_player_summary_to_predicted_world(_runtime.client_session.latest_player_summary)

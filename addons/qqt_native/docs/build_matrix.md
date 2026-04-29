@@ -19,7 +19,7 @@ Generated artifacts:
 - `tools/native/build_native.ps1` and `tools/native/build_native.sh` rebuild the extension from source.
 - If the matching `godot-cpp` static library is absent, the build script builds it first.
 - `tools/run-services.ps1` and `scripts/run-battle-ds-local.ps1` call the native build before launching Godot-driven runtime.
-- `deploy/docker/build_services_dev.ps1` prepares local generated inputs before Docker Compose build.
+- `tools/run-services.ps1` prepares local generated inputs before Docker Compose service startup.
 
 Current non-goals in this repo state:
 
