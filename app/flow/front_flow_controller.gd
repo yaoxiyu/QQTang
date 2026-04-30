@@ -84,6 +84,10 @@ func enter_room() -> void:
 	room_entered.emit()
 
 
+func enter_room_connect_loading() -> void:
+	_enter_match_loading("enter_room_connect_loading")
+
+
 func request_start_match() -> void:
 	if current_state != FlowState.ROOM:
 		return

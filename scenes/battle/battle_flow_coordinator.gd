@@ -8,6 +8,7 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
+const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -15,6 +16,8 @@ const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
 var _battle_runtime_config_builder = BattleRuntimeConfigBuilderScript.new()
 var _battle_player_visual_profile_builder = BattlePlayerVisualProfileBuilderScript.new()
+var _runtime_config_cache_key: String = ""
+var _runtime_config_cache: BattleRuntimeConfig = null
 
 
 func consume_authoritative_tick(
@@ -163,15 +166,17 @@ func apply_content_style_overrides(app_runtime: Node, presentation_bridge: Node)
 		var slot_index := _find_slot_index_for_peer(app_runtime, peer_id)
 		if slot_index < 0:
 			continue
-		player_style_by_slot[slot_index] = _resolve_character_color(String(loadout.get("character_id", "")), slot_index)
+		var team_id := _find_team_id_for_peer(app_runtime, peer_id)
+		player_style_by_slot[slot_index] = RoomTeamPaletteScript.color_for_team(team_id)
 	for loadout in app_runtime.current_start_config.player_bubble_loadouts:
 		var peer_id := int(loadout.get("peer_id", -1))
 		var slot_index := _find_slot_index_for_peer(app_runtime, peer_id)
 		if slot_index < 0:
 			continue
 		var bubble_style_id := String(loadout.get("bubble_style_id", ""))
+		var team_id := _find_team_id_for_peer(app_runtime, peer_id)
 		bubble_style_by_slot[slot_index] = bubble_style_id
-		bubble_color_by_slot[slot_index] = _resolve_bubble_color(bubble_style_id, slot_index)
+		bubble_color_by_slot[slot_index] = RoomTeamPaletteScript.color_for_team(team_id).lightened(0.1)
 	presentation_bridge.configure_content_styles(player_style_by_slot, bubble_style_by_slot, bubble_color_by_slot)
 
 
@@ -184,8 +189,7 @@ func apply_player_visual_profiles(app_runtime: Node, presentation_bridge: Node) 
 	var room_snapshot := _resolve_battle_room_snapshot(app_runtime, start_config)
 	if room_snapshot == null:
 		return
-	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
-	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	var runtime_config := _get_runtime_config(app_runtime, start_config, room_snapshot)
 	if runtime_config == null:
 		return
 	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
@@ -213,9 +217,8 @@ func apply_map_theme(app_runtime: Node, presentation_bridge: Node, map_theme_env
 	var room_snapshot := _resolve_battle_room_snapshot(app_runtime, start_config)
 	if room_snapshot == null:
 		return
-	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
-	var map_runtime_layout := MapLoaderScript.load_runtime_layout(String(room_selection_state.map_id))
-	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	var map_runtime_layout := MapLoaderScript.load_runtime_layout(String(start_config.map_id))
+	var runtime_config := _get_runtime_config(app_runtime, start_config, room_snapshot)
 	if runtime_config == null or runtime_config.map_theme == null:
 		return
 	if presentation_bridge != null and map_runtime_layout != null:
@@ -224,6 +227,37 @@ func apply_map_theme(app_runtime: Node, presentation_bridge: Node, map_theme_env
 		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
 	if map_root != null:
 		map_root.apply_map_theme(runtime_config.map_theme)
+
+
+func _get_runtime_config(app_runtime: Node, start_config: BattleStartConfig, room_snapshot: RoomSnapshot) -> BattleRuntimeConfig:
+	var cache_key := _build_runtime_config_cache_key(app_runtime, start_config, room_snapshot)
+	if _runtime_config_cache != null and cache_key == _runtime_config_cache_key:
+		return _runtime_config_cache
+	var room_selection_state := _build_room_selection_state_from_snapshot(room_snapshot, start_config)
+	var runtime_config := _battle_runtime_config_builder.build(room_selection_state)
+	_runtime_config_cache_key = cache_key
+	_runtime_config_cache = runtime_config
+	return runtime_config
+
+
+func _build_runtime_config_cache_key(app_runtime: Node, start_config: BattleStartConfig, room_snapshot: RoomSnapshot) -> String:
+	var parts := PackedStringArray()
+	parts.append(String(start_config.map_id))
+	parts.append(String(start_config.mode_id))
+	parts.append(String(start_config.rule_set_id))
+	for member in room_snapshot.sorted_members():
+		if member == null:
+			continue
+		parts.append("%d:%d:%d:%s:%s:%s:%s" % [
+			int(member.peer_id),
+			int(member.slot_index),
+			int(member.team_id),
+			String(member.character_id),
+			String(member.character_skin_id),
+			String(member.bubble_style_id),
+			String(member.bubble_skin_id),
+		])
+	return "|".join(parts)
 
 
 func resolve_local_player_entity_id(app_runtime: Node, battle_context: BattleContext) -> int:
@@ -426,30 +460,13 @@ func _find_slot_index_for_peer(app_runtime: Node, peer_id: int) -> int:
 	return -1
 
 
-func _resolve_character_color(character_id: String, slot_index: int) -> Color:
-	return _resolve_stable_style_color(
-		character_id,
-		[
-			Color(0.20, 0.70, 1.0, 1.0),
-			Color(1.0, 0.45, 0.25, 1.0),
-			Color(0.35, 0.90, 0.50, 1.0),
-			Color(1.0, 0.85, 0.30, 1.0),
-		],
-		slot_index
-	)
-
-
-func _resolve_bubble_color(bubble_style_id: String, slot_index: int) -> Color:
-	return _resolve_stable_style_color(
-		bubble_style_id,
-		[
-			Color(0.28, 0.52, 1.0, 1.0),
-			Color(1.0, 0.62, 0.18, 1.0),
-			Color(0.40, 0.92, 0.56, 1.0),
-			Color(1.0, 0.86, 0.30, 1.0),
-		],
-		slot_index
-	)
+func _find_team_id_for_peer(app_runtime: Node, peer_id: int) -> int:
+	if app_runtime == null or app_runtime.current_start_config == null:
+		return 1
+	for player_entry in app_runtime.current_start_config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == peer_id:
+			return int(player_entry.get("team_id", 1))
+	return 1
 
 
 func _resolve_local_character_display_name(app_runtime: Node, manifest: Dictionary, resolved_start_config: BattleStartConfig) -> String:
@@ -479,14 +496,3 @@ func _resolve_local_peer_id(app_runtime: Node, resolved_start_config: BattleStar
 	if local_peer_id <= 0 and app_runtime != null:
 		local_peer_id = int(app_runtime.local_peer_id)
 	return local_peer_id
-
-
-func _resolve_stable_style_color(resource_id: String, palette: Array[Color], slot_index: int) -> Color:
-	if palette.is_empty():
-		return Color.WHITE
-	if resource_id.is_empty():
-		return palette[slot_index % palette.size()]
-	var hash_value := 0
-	for i in range(resource_id.length()):
-		hash_value = int((hash_value * 33 + resource_id.unicode_at(i)) % 2147483647)
-	return palette[hash_value % palette.size()]

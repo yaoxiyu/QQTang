@@ -10,10 +10,38 @@
   "room_kind": "private_room",
   "requested_match_id": "",
   "display_name": "PlayerDemo",
-  "allowed_character_ids": ["character_default"],
-  "allowed_character_skin_ids": [""],
-  "allowed_bubble_style_ids": ["bubble_style_default"],
-  "allowed_bubble_skin_ids": [""],
+  "allowed_character_ids": [
+    "10101",
+    "10201",
+    "10301",
+    "10401",
+    "10501",
+    "10601",
+    "10701",
+    "10801",
+    "10901",
+    "11001",
+    "11101",
+    "11301",
+    "11401",
+    "11501",
+    "11601",
+    "11701",
+    "11801",
+    "11901",
+    "12001",
+    "12101",
+    "12201"
+  ],
+  "allowed_character_skin_ids": [
+    ""
+  ],
+  "allowed_bubble_style_ids": [
+    "bubble_style_default"
+  ],
+  "allowed_bubble_skin_ids": [
+    ""
+  ],
   "issued_at_unix_sec": 1770000000,
   "expire_at_unix_sec": 1770000045
 }

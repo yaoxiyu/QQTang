@@ -2,7 +2,6 @@ extends RefCounted
 class_name BattleRuntimeConfigBuilder
 
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
-const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const ModeLoaderScript = preload("res://content/modes/runtime/mode_loader.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
@@ -118,6 +117,7 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 	var character_stats := CharacterLoaderScript.load_character_stats(character_id)
 	if character_stats == null:
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterStatsDef for peer=%d, character=%s" % [peer_id, character_id])
+	var character_metadata := CharacterLoaderScript.load_character_metadata(character_id)
 
 	var character_presentation := CharacterLoaderScript.load_character_presentation(character_id)
 	if character_presentation == null:
@@ -128,11 +128,6 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		var animation_set_id := String(character_presentation.animation_set_id)
 		if animation_set_id.is_empty():
 			return _fail_with("BattleRuntimeConfigBuilder._build_player_config: empty animation_set_id for peer=%d, character=%s" % [peer_id, character_id])
-		if CharacterAnimationSetLoaderScript.load_animation_set(animation_set_id) == null:
-			return _fail_with(
-				"BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterAnimationSetDef for peer=%d, character=%s, animation_set_id=%s"
-				% [peer_id, character_id, animation_set_id]
-			)
 
 	var character_skin_id := String(state.get("character_skin_id", ""))
 	var character_skin: CharacterSkinDef = null
@@ -163,6 +158,7 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 	player_config.peer_id = peer_id
 	player_config.player_slot = slot_index
 	player_config.team_id = team_id
+	player_config.character_type = int(character_metadata.get("type", 0))
 	player_config.character_id = character_id
 	player_config.character_stats = character_stats
 	player_config.character_presentation = character_presentation

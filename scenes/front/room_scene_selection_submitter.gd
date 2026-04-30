@@ -9,7 +9,7 @@ func apply_local_profile_defaults(controller: Node) -> void:
 	var profile = controller._app_runtime.player_profile_state
 	if controller.player_name_input != null:
 		controller.player_name_input.text = profile.nickname
-	controller._select_metadata(controller.character_selector, profile.default_character_id)
+	controller._select_metadata(controller.character_selector, PlayerProfileState.resolve_default_character_id(String(profile.default_character_id)))
 	controller._select_team_id(1)
 	controller._select_metadata(controller.character_skin_selector, profile.default_character_skin_id)
 	controller._select_metadata(controller.bubble_selector, profile.default_bubble_style_id)

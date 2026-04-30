@@ -191,10 +191,11 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.map_content_hash = String(map_metadata.get("content_hash", ""))
 	config.mode_id = resolved_mode_id
 	config.rule_set_id = resolved_rule_set_id
-	config.players = player_slots.duplicate(true)
-	config.player_slots = player_slots.duplicate(true)
 	config.spawn_assignments = _build_spawn_assignments(player_slots, map_metadata)
 	config.battle_seed = generate_seed()
+	_resolve_random_placeholder_player_slots(player_slots, config.battle_seed)
+	config.players = player_slots.duplicate(true)
+	config.player_slots = player_slots.duplicate(true)
 	config.start_tick = DEFAULT_START_TICK
 	config.opening_input_freeze_ticks = DEFAULT_OPENING_INPUT_FREEZE_TICKS if resolved_topology == "dedicated_server" else 0
 	config.network_input_lead_ticks = DEFAULT_NETWORK_INPUT_LEAD_TICKS if resolved_topology == "dedicated_server" else 0
@@ -259,6 +260,28 @@ func _build_character_loadouts(player_slots: Array[Dictionary]) -> Array[Diction
 		loadout["animation_set_id"] = _resolve_team_animation_set_id(character_id, team_id)
 		loadouts.append(loadout)
 	return loadouts
+
+
+func _resolve_random_placeholder_player_slots(player_slots: Array[Dictionary], battle_seed: int) -> void:
+	var random_pool := CharacterCatalogScript.get_random_battle_character_ids()
+	if random_pool.is_empty():
+		return
+	for player_entry in player_slots:
+		var requested_character_id := String(player_entry.get("character_id", "")).strip_edges()
+		if not CharacterCatalogScript.is_random_placeholder_character(requested_character_id):
+			continue
+		var resolved_character_id := _pick_random_character_id(random_pool, battle_seed, player_entry)
+		player_entry["random_placeholder_character_id"] = requested_character_id
+		player_entry["character_id"] = resolved_character_id
+
+
+func _pick_random_character_id(random_pool: Array[String], battle_seed: int, player_entry: Dictionary) -> String:
+	var peer_id := int(player_entry.get("peer_id", -1))
+	var slot_index := int(player_entry.get("slot_index", -1))
+	var seed_text := "%d:%d:%d" % [battle_seed, peer_id, slot_index]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = abs(seed_text.hash())
+	return random_pool[rng.randi_range(0, random_pool.size() - 1)]
 
 
 func _build_player_bubble_loadouts(player_slots: Array[Dictionary], local_peer_id: int) -> Array[Dictionary]:

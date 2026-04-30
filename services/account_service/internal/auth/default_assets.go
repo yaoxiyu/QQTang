@@ -8,21 +8,34 @@ import (
 )
 
 const (
-	defaultCharacterID     = "char_11001"
+	defaultCharacterID     = "10101"
 	defaultCharacterSkinID = "skin_gold"
 	defaultBubbleStyleID   = "bubble_round"
 	defaultBubbleSkinID    = "bubble_skin_gold"
 )
 
 var defaultFreeCharacterIDs = []string{
-	"char_11001",
-	"char_12001",
-	"char_13001",
-	"char_14001",
-	"char_15001",
-	"char_16001",
-	"char_17001",
-	"char_19001",
+	"10101",
+	"10201",
+	"10301",
+	"10401",
+	"10501",
+	"10601",
+	"10701",
+	"10801",
+	"10901",
+	"11001",
+	"11101",
+	"11301",
+	"11401",
+	"11501",
+	"11601",
+	"11701",
+	"11801",
+	"11901",
+	"12001",
+	"12101",
+	"12201",
 }
 
 func defaultRegistrationAssets(accountID string, profileID string, acquiredAt time.Time) []storage.OwnedAsset {

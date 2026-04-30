@@ -20,6 +20,8 @@ var (
 	ErrMatchRoomAssignmentRequired = errors.New("ROOM_TICKET_MATCH_ROOM_ASSIGNMENT_REQUIRED")
 )
 
+const randomCharacterPlaceholderID = "12301"
+
 type Service struct {
 	profileService *profile.Service
 	ticketRepo     *storage.TicketRepository
@@ -89,7 +91,7 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 	if err != nil {
 		return CreateTicketResult{}, err
 	}
-	if !contains(profileResp.OwnedCharacterIDs, input.SelectedCharacterID) ||
+	if !isAllowedCharacterSelection(profileResp.OwnedCharacterIDs, input.SelectedCharacterID) ||
 		!contains(profileResp.OwnedCharacterSkinIDs, input.SelectedCharacterSkinID) ||
 		!contains(profileResp.OwnedBubbleStyleIDs, input.SelectedBubbleStyleID) ||
 		!contains(profileResp.OwnedBubbleSkinIDs, input.SelectedBubbleSkinID) {
@@ -155,7 +157,7 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
 		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
-		AllowedCharacterIDs:     profileResp.OwnedCharacterIDs,
+		AllowedCharacterIDs:     withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
 		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,
 		AllowedBubbleStyleIDs:   profileResp.OwnedBubbleStyleIDs,
 		AllowedBubbleSkinIDs:    profileResp.OwnedBubbleSkinIDs,
@@ -207,7 +209,7 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
 		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
-		AllowedCharacterIDs:     profileResp.OwnedCharacterIDs,
+		AllowedCharacterIDs:     withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
 		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,
 		AllowedBubbleStyleIDs:   profileResp.OwnedBubbleStyleIDs,
 		AllowedBubbleSkinIDs:    profileResp.OwnedBubbleSkinIDs,
@@ -223,6 +225,21 @@ func contains(values []string, target string) bool {
 		}
 	}
 	return false
+}
+
+func isAllowedCharacterSelection(ownedCharacterIDs []string, selectedCharacterID string) bool {
+	if selectedCharacterID == randomCharacterPlaceholderID {
+		return true
+	}
+	return contains(ownedCharacterIDs, selectedCharacterID)
+}
+
+func withRandomCharacterPlaceholder(ownedCharacterIDs []string) []string {
+	result := append([]string{}, ownedCharacterIDs...)
+	if !contains(result, randomCharacterPlaceholderID) {
+		result = append(result, randomCharacterPlaceholderID)
+	}
+	return result
 }
 
 func toNullString(value string) sql.NullString {

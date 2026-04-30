@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS player_profiles (
     profile_id                  VARCHAR(64) PRIMARY KEY,
     account_id                  VARCHAR(64) NOT NULL,
     nickname                    VARCHAR(32) NOT NULL,
-    default_character_id        VARCHAR(64) NOT NULL DEFAULT 'char_11001',
+    default_character_id        VARCHAR(64) NOT NULL DEFAULT '10101',
     default_character_skin_id   VARCHAR(64) NOT NULL DEFAULT 'skin_gold',
     default_bubble_style_id     VARCHAR(64) NOT NULL DEFAULT 'bubble_round',
     default_bubble_skin_id      VARCHAR(64) NOT NULL DEFAULT 'bubble_skin_gold',

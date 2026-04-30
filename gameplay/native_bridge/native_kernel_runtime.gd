@@ -324,4 +324,3 @@ static func _set_cached_kernel(cache_name: String, instance: Object) -> void:
 			_rollback_planner_kernel = instance
 		"_battle_message_codec_kernel":
 			_battle_message_codec_kernel = instance
-

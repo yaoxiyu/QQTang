@@ -18,7 +18,7 @@ func TestCatalogProviderLoadsAndFiltersCatalog(t *testing.T) {
 			{CurrencyID: "disabled", Enabled: false, SortOrder: 10},
 		},
 		Tabs:  []Tab{{TabID: "characters", Enabled: true, SortOrder: 10}},
-		Goods: []Goods{{GoodsID: "goods.char", GoodsType: "asset", TargetAssetType: "character", TargetAssetID: "char_51001", Enabled: true, SortOrder: 10}},
+		Goods: []Goods{{GoodsID: "goods.char", GoodsType: "asset", TargetAssetType: "character", TargetAssetID: "10101", Enabled: true, SortOrder: 10}},
 		Offers: []Offer{
 			{OfferID: "offer.char", TabID: "characters", GoodsID: "goods.char", CurrencyID: "soft_gold", Price: 100, Enabled: true, SortOrder: 10},
 			{OfferID: "offer.disabled", TabID: "characters", GoodsID: "goods.char", CurrencyID: "soft_gold", Price: 100, Enabled: false, SortOrder: 20},

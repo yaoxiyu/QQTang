@@ -17,6 +17,7 @@ func test_main() -> void:
 	ok = _test_build_start_config_reads_map_metadata() and ok
 	ok = _test_build_start_config_prefers_authoritative_match_id() and ok
 	ok = _test_build_start_config_carries_player_visual_loadout_fields() and ok
+	ok = _test_random_placeholder_character_resolves_before_battle() and ok
 	ok = _test_protocol_mismatch_fails_validation() and ok
 	ok = _test_map_hash_mismatch_fails_validation() and ok
 	ok = _test_duplicate_slot_fails_validation() and ok
@@ -98,6 +99,28 @@ func _test_build_start_config_carries_player_visual_loadout_fields() -> bool:
 	ok = qqt_check(not String(host_character_loadout.get("animation_set_id", "")).is_empty(), "character_loadouts should carry resolved animation_set_id", prefix) and ok
 	ok = qqt_check(String(host_bubble_loadout.get("bubble_style_id", "")) == host.bubble_style_id, "player_bubble_loadouts should carry bubble_style_id", prefix) and ok
 	ok = qqt_check(String(host_bubble_loadout.get("bubble_skin_id", "")) == host.bubble_skin_id, "player_bubble_loadouts should carry bubble_skin_id", prefix) and ok
+	coordinator.free()
+	return ok
+
+
+func _test_random_placeholder_character_resolves_before_battle() -> bool:
+	var coordinator := MatchStartCoordinatorScript.new()
+	var snapshot := _make_room_snapshot()
+	var host := snapshot.members[0] as RoomMemberState
+	host.character_id = "12301"
+	host.team_id = 8
+	var config := coordinator.build_start_config(snapshot)
+	var host_slot := _find_entry_for_peer(config.player_slots, host.peer_id)
+	var host_character_loadout := _find_entry_for_peer(config.character_loadouts, host.peer_id)
+	var resolved_character_id := String(host_slot.get("character_id", ""))
+	var prefix := "battle_start_config_test"
+	var ok := true
+	ok = qqt_check(resolved_character_id != "12301", "random placeholder should not enter player_slots", prefix) and ok
+	ok = qqt_check(CharacterCatalogScript.get_random_battle_character_ids().has(resolved_character_id), "random placeholder should resolve to type 1/2/3 character", prefix) and ok
+	ok = qqt_check(String(host_slot.get("random_placeholder_character_id", "")) == "12301", "player slot should preserve random placeholder trace", prefix) and ok
+	ok = qqt_check(String(host_character_loadout.get("character_id", "")) == resolved_character_id, "character_loadout should use resolved real character", prefix) and ok
+	ok = qqt_check(int(host_character_loadout.get("team_id", 0)) == 8, "resolved random loadout should preserve selected team", prefix) and ok
+	ok = qqt_check(not String(host_character_loadout.get("animation_set_id", "")).is_empty(), "resolved random loadout should resolve team animation id", prefix) and ok
 	coordinator.free()
 	return ok
 

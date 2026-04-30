@@ -4,17 +4,12 @@ extends RefCounted
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
+const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
 const DEBUG_POSE_MAPPER_LOG := false
+const PLAYER_VISUAL_CENTER_OFFSET_RATIO := Vector2(0.0, 0.5)
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
-
-var _player_palette := [
-	Color(0.20, 0.70, 1.0, 1.0),
-	Color(1.0, 0.45, 0.25, 1.0),
-	Color(0.35, 0.90, 0.50, 1.0),
-	Color(1.0, 0.85, 0.30, 1.0),
-]
 
 var _item_palette := {
 	1: Color(1.0, 0.85, 0.22, 1.0),
@@ -118,14 +113,14 @@ func build_item_views(world: SimWorld) -> Array[Dictionary]:
 
 func map_player_state(player: PlayerState) -> Dictionary:
 	var is_local_player := player.entity_id == _local_player_entity_id
-	var default_color: Color = _player_palette[player.player_slot % _player_palette.size()]
-	var configured_color: Color = _player_style_by_slot.get(player.player_slot, default_color)
 	var input_move_x := 0
 	var input_move_y := 0
 	if player.last_applied_command != null:
 		input_move_x = int(player.last_applied_command.move_x)
 		input_move_y = int(player.last_applied_command.move_y)
-	var position := _to_world_position(player.cell_x, player.cell_y) + _to_world_offset(player.offset_x, player.offset_y)
+	var position := _to_world_position(player.cell_x, player.cell_y) \
+		+ _to_player_visual_center_offset() \
+		+ _to_world_offset(player.offset_x, player.offset_y)
 	var animation_state := _resolve_player_animation_state(
 		player,
 		position,
@@ -188,7 +183,9 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"anim_move_y": int(animation_state.get("move_y", 0)),
 		"position": position,
 		"offset": Vector2(player.offset_x, player.offset_y),
-		"color": configured_color,
+		"color": RoomTeamPaletteScript.color_for_team(player.team_id),
+		"dynamic_color_enabled": false,
+		"dynamic_color": Color.WHITE,
 	}
 
 
@@ -199,16 +196,16 @@ func _resolve_pose_state(player: PlayerState) -> String:
 	if _is_match_ended():
 		var winner_team_id := _get_match_winner_team_id()
 		if winner_team_id >= 1:
-			return "victory" if player.team_id == winner_team_id else "defeat"
-		return "normal"
+			return "win" if player.team_id == winner_team_id else "defeat"
+		return "defeat"
 
 	match int(player.life_state):
 		PlayerState.LifeState.TRAPPED:
-			return "trapped"
+			return "trigger"
 		PlayerState.LifeState.REVIVING:
-			return "defeat"
+			return "dead"
 		PlayerState.LifeState.DEAD:
-			return "defeat"
+			return "dead"
 		_:
 			return "normal"
 
@@ -276,11 +273,15 @@ func _to_world_offset(offset_x: int, offset_y: int) -> Vector2:
 	)
 
 
+func _to_player_visual_center_offset() -> Vector2:
+	return PLAYER_VISUAL_CENTER_OFFSET_RATIO * cell_size
+
+
 func _bubble_color_for_owner(world: SimWorld, owner_player_id: int) -> Color:
 	var player := world.state.players.get_player(owner_player_id)
 	if player == null:
 		return Color(0.30, 0.50, 1.0, 1.0)
-	var default_color: Color = _player_palette[player.player_slot % _player_palette.size()].lightened(0.1)
+	var default_color: Color = RoomTeamPaletteScript.color_for_team(player.team_id).lightened(0.1)
 	return _bubble_color_by_slot.get(player.player_slot, default_color)
 
 

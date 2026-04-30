@@ -48,16 +48,6 @@
   ],
   "goods": [
     {
-      "goods_id": "goods.char.51001",
-      "goods_type": "asset",
-      "target_asset_type": "character",
-      "target_asset_id": "char_51001",
-      "display_name": "51001",
-      "icon_ui_asset_id": "ui.character.51001.icon",
-      "sort_order": 10,
-      "enabled": true
-    },
-    {
       "goods_id": "goods.skin.gold",
       "goods_type": "asset",
       "target_asset_type": "character_skin",
@@ -89,19 +79,6 @@
     }
   ],
   "offers": [
-    {
-      "offer_id": "offer.char.51001",
-      "tab_id": "characters",
-      "goods_id": "goods.char.51001",
-      "currency_id": "soft_gold",
-      "price": 3000,
-      "limit_type": "once",
-      "limit_count": 1,
-      "display_name": "51001",
-      "icon_ui_asset_id": "ui.character.51001.icon",
-      "sort_order": 10,
-      "enabled": true
-    },
     {
       "offer_id": "offer.skin.gold",
       "tab_id": "skins",

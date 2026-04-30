@@ -5,11 +5,9 @@ tab,characters,,,,,,,,,,Characters,ui.shop.tab.characters.icon,10,true
 tab,skins,,,,,,,,,,Skins,ui.shop.tab.skins.icon,20,true
 tab,bubbles,,,,,,,,,,Bubbles,ui.shop.tab.bubbles.icon,30,true
 tab,titles,,,,,,,,,,Titles,ui.shop.tab.titles.icon,40,true
-goods,goods.char.51001,,goods.char.51001,asset,character,char_51001,,,1,51001,ui.character.51001.icon,10,true
-goods,goods.skin.gold,,goods.skin.gold,asset,character_skin,skin_gold,,,1,Gold Skin,ui.skin.gold.icon,20,true
-goods,goods.bubble.round,,goods.bubble.round,asset,bubble,bubble_round,,,1,Round Bubble,ui.bubble.round.icon,30,true
-goods,goods.title.rookie,,goods.title.rookie,asset,title,title_rookie,,,1,Rookie Title,ui.title.rookie.icon,40,true
-offer,offer.char.51001,characters,goods.char.51001,,,,soft_gold,3000,once,1,51001,ui.character.51001.icon,10,true
+goods,goods.skin.gold,,goods.skin.gold,asset,character_skin,skin_gold,,,1,Gold Skin,ui.skin.gold.icon,20,true,
+goods,goods.bubble.round,,goods.bubble.round,asset,bubble,bubble_round,,,1,Round Bubble,ui.bubble.round.icon,30,true,
+goods,goods.title.rookie,,goods.title.rookie,asset,title,title_rookie,,,1,Rookie Title,ui.title.rookie.icon,40,true,
 offer,offer.skin.gold,skins,goods.skin.gold,,,,soft_gold,1200,once,1,Gold Skin,ui.skin.gold.icon,20,true
 offer,offer.bubble.round,bubbles,goods.bubble.round,,,,soft_gold,800,once,1,Round Bubble,ui.bubble.round.icon,30,true
 offer,offer.title.rookie,titles,goods.title.rookie,,,,soft_gold,100,once,1,Rookie Title,ui.title.rookie.icon,40,true

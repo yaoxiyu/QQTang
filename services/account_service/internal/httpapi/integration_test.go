@@ -74,8 +74,8 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 	if len(profileResp.OwnedCharacterIDs) == 0 || profileResp.DefaultCharacterID == "" {
 		t.Fatalf("profile response missing defaults: %+v", profileResp)
 	}
-	if profileResp.DefaultCharacterID != "char_11001" || len(profileResp.OwnedCharacterIDs) != 8 {
-		t.Fatalf("expected 8 free 1-prefix characters with char_11001 default, got default=%s owned=%v", profileResp.DefaultCharacterID, profileResp.OwnedCharacterIDs)
+	if profileResp.DefaultCharacterID != "10101" || len(profileResp.OwnedCharacterIDs) != 21 {
+		t.Fatalf("expected 21 QQTang free characters with 10101 default, got default=%s owned=%v", profileResp.DefaultCharacterID, profileResp.OwnedCharacterIDs)
 	}
 
 	var walletResp walletPayload
@@ -121,7 +121,7 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 
 	var loadoutResp profilePayload
 	mustExpectStatus(t, http.MethodPatch, server.URL+"/api/v1/profile/me/loadout", map[string]any{
-		"default_character_id":      "char_11001",
+		"default_character_id":      "10101",
 		"default_character_skin_id": "skin_gold",
 		"default_bubble_style_id":   "bubble_round",
 		"default_bubble_skin_id":    "bubble_skin_gold",
@@ -155,7 +155,7 @@ func TestAuthLifecycleIntegration(t *testing.T) {
 	mustExpectStatus(t, http.MethodPost, server.URL+"/api/v1/tickets/room-entry", map[string]any{
 		"purpose":                    "create",
 		"room_kind":                  "online_room",
-		"selected_character_id":      "char_11001",
+		"selected_character_id":      "10101",
 		"selected_character_skin_id": "skin_gold",
 		"selected_bubble_style_id":   "bubble_round",
 		"selected_bubble_skin_id":    "bubble_skin_gold",
@@ -247,7 +247,7 @@ func TestPurchaseValidationIntegration(t *testing.T) {
 
 	var loadoutErr errorPayload
 	mustExpectStatus(t, http.MethodPatch, server.URL+"/api/v1/profile/me/loadout", map[string]any{
-		"default_character_id":      "char_11001",
+		"default_character_id":      "10101",
 		"default_character_skin_id": "skin_gold",
 		"default_bubble_style_id":   "bubble_round",
 		"default_bubble_skin_id":    "bubble_skin_gold",

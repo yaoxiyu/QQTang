@@ -29,9 +29,10 @@ func populate_character_selector(controller: Node) -> void:
 	controller.character_selector.clear()
 	var owned_ids := _get_owned_ids(controller, "character")
 	var added_count := 0
-	for entry in CharacterCatalogScript.get_character_entries():
+	var character_entries := CharacterCatalogScript.get_character_selector_entries()
+	for entry in character_entries:
 		var entry_id := String(entry.get("id", ""))
-		if not _should_include_owned_entry(owned_ids, entry_id):
+		if not _should_include_owned_entry(owned_ids, entry_id) and not _is_room_select_virtual_character(entry):
 			continue
 		controller.character_selector.add_item(String(entry.get("display_name", entry_id)))
 		controller.character_selector.set_item_metadata(controller.character_selector.item_count - 1, entry_id)
@@ -42,7 +43,7 @@ func populate_character_selector(controller: Node) -> void:
 		controller.character_selector.set_item_metadata(controller.character_selector.item_count - 1, fallback_id)
 	_log_room_scene("populate_character_selector", {
 		"owned_character_count": owned_ids.size(),
-		"catalog_character_count": CharacterCatalogScript.get_character_entries().size(),
+		"catalog_character_count": character_entries.size(),
 		"selector_item_count": controller.character_selector.item_count,
 		"added_count": added_count,
 		"default_character_id": _get_fallback_character_id(controller),
@@ -248,16 +249,17 @@ func _should_include_owned_entry(owned_ids: Array[String], entry_id: String) -> 
 	return owned_ids.has(entry_id)
 
 
+func _is_room_select_virtual_character(entry: Dictionary) -> bool:
+	return int(entry.get("type", 0)) == CharacterCatalogScript.TYPE_RANDOM_PLACEHOLDER
+
+
 func _get_fallback_character_id(controller: Node) -> String:
 	if controller._app_runtime != null and controller._app_runtime.player_profile_state != null:
-		var preferred_id := String(controller._app_runtime.player_profile_state.default_character_id)
+		var preferred_id := PlayerProfileState.resolve_default_character_id(String(controller._app_runtime.player_profile_state.default_character_id))
 		if not preferred_id.is_empty():
 			return preferred_id
-	for entry in CharacterCatalogScript.get_character_entries():
-		var entry_id := String(entry.get("id", ""))
-		if not entry_id.is_empty():
-			return entry_id
-	return "character_default"
+	var fallback_id := CharacterCatalogScript.get_default_character_id()
+	return fallback_id if not fallback_id.is_empty() else "character_default"
 
 
 func _get_fallback_bubble_id(controller: Node) -> String:

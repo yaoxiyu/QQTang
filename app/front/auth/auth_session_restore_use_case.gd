@@ -105,7 +105,7 @@ func _try_sync_profile() -> Dictionary:
 			app_runtime.player_profile_state.avatar_id = String(result.get("avatar_id", app_runtime.player_profile_state.avatar_id))
 		if _has_object_property(app_runtime.player_profile_state, "title_id"):
 			app_runtime.player_profile_state.title_id = String(result.get("title_id", app_runtime.player_profile_state.title_id))
-		app_runtime.player_profile_state.default_character_id = String(result.get("default_character_id", app_runtime.player_profile_state.default_character_id))
+		app_runtime.player_profile_state.default_character_id = PlayerProfileStateScript.resolve_default_character_id(String(result.get("default_character_id", app_runtime.player_profile_state.default_character_id)))
 		app_runtime.player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", app_runtime.player_profile_state.default_character_skin_id))
 		app_runtime.player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", app_runtime.player_profile_state.default_bubble_style_id))
 		app_runtime.player_profile_state.default_bubble_skin_id = String(result.get("default_bubble_skin_id", app_runtime.player_profile_state.default_bubble_skin_id))
