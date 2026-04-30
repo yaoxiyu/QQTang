@@ -16,7 +16,7 @@ class FakePlayerProfileState:
 	var nickname := "PlayerAlpha"
 	var preferred_map_id := ""
 	var preferred_mode_id := ""
-	var default_character_id := "char_16001"
+	var default_character_id := "10101"
 	var default_character_skin_id := ""
 	var default_bubble_style_id := "bubble_round"
 	var default_bubble_skin_id := ""

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_tbppo"]
+
+[resource]
+script = ExtResource("1_tbppo")
+character_id = "18508"
+display_name = "资源角色18508"
+stats_id = "char_stats_qqt_18508"
+presentation_id = "char_pres_qqt_18508"
+default_bubble_style_id = "bubble_round"
+selection_order = 18508
+content_hash = "char_def_18508_csv_v1"

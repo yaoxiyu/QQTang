@@ -10,4 +10,5 @@ stats_id = "char_stats_52001"
 presentation_id = "char_pres_52001"
 default_bubble_style_id = "bubble_round"
 selection_order = 52001
+catalog_enabled = false
 content_hash = "char_def_char_52001_csv_v1"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_ufm31"]
+
+[resource]
+script = ExtResource("1_ufm31")
+character_id = "18804"
+display_name = "资源角色18804"
+stats_id = "char_stats_qqt_18804"
+presentation_id = "char_pres_qqt_18804"
+default_bubble_style_id = "bubble_round"
+selection_order = 18804
+content_hash = "char_def_18804_csv_v1"

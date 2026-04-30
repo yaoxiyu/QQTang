@@ -4,7 +4,7 @@ const RoomSelectionPolicyScript = preload("res://network/session/runtime/room_se
 
 
 class MockTicketClaim:
-	var allowed_character_ids: Array[String] = ["char_16001"]
+	var allowed_character_ids: Array[String] = ["10101"]
 	var allowed_character_skin_ids: Array[String] = ["skin_gold"]
 	var allowed_bubble_style_ids: Array[String] = ["bubble_round"]
 	var allowed_bubble_skin_ids: Array[String] = ["bubble_skin_gold"]
@@ -26,10 +26,10 @@ func test_main() -> void:
 
 
 func _test_normalize_member_loadout_uses_character_bubble_default() -> bool:
-	var result := RoomSelectionPolicyScript.normalize_member_loadout("char_16001", "missing_skin", "missing_bubble", "missing_bubble_skin")
+	var result := RoomSelectionPolicyScript.normalize_member_loadout("10101", "missing_skin", "missing_bubble", "missing_bubble_skin")
 	var prefix := "room_selection_policy_test"
 	var ok := true
-	ok = qqt_check(String(result.get("character_id", "")) == "char_16001", "valid character should be preserved", prefix) and ok
+	ok = qqt_check(String(result.get("character_id", "")) == "10101", "valid character should be preserved", prefix) and ok
 	ok = qqt_check(String(result.get("character_skin_id", "")) == "", "missing character skin should clear to base skin", prefix) and ok
 	ok = qqt_check(String(result.get("bubble_style_id", "")) == "bubble_round", "missing bubble should use character default bubble", prefix) and ok
 	ok = qqt_check(String(result.get("bubble_skin_id", "")) == "", "missing bubble skin should clear to base skin", prefix) and ok
@@ -45,7 +45,7 @@ func _test_request_loadout_rejects_invalid_character() -> bool:
 
 func _test_request_loadout_checks_ticket_after_normalization() -> bool:
 	var result := RoomSelectionPolicyScript.resolve_request_loadout({
-		"character_id": "char_16001",
+		"character_id": "10101",
 		"character_skin_id": "skin_gold",
 		"bubble_style_id": "missing_bubble",
 		"bubble_skin_id": "bubble_skin_gold",

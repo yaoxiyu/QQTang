@@ -77,7 +77,7 @@ func _test_build_start_config_carries_player_visual_loadout_fields() -> bool:
 	var coordinator := MatchStartCoordinatorScript.new()
 	var snapshot := _make_room_snapshot()
 	var host := snapshot.members[0] as RoomMemberState
-	host.character_id = "char_16001" if CharacterCatalogScript.has_character("char_16001") else CharacterCatalogScript.get_default_character_id()
+	host.character_id = "10101" if CharacterCatalogScript.has_character("10101") else CharacterCatalogScript.get_default_character_id()
 	host.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
 	host.bubble_style_id = "bubble_round"
 	host.bubble_skin_id = BubbleSkinCatalogScript.get_default_skin_id()

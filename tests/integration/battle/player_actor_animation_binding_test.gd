@@ -30,14 +30,14 @@ func _test_player_actor_binds_character_animation_set() -> void:
 
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
-	profile.character_id = "char_16001"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
 	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
-	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_16001")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 
 	_assert_true(profile.character_presentation != null, "profile loads char_pres_huoying")
 	_assert_true(profile.character_skin != null, "profile loads skin_gold")
-	_assert_true(profile.animation_set != null, "profile loads char_anim_16001")
+	_assert_true(profile.animation_set != null, "profile loads char_anim_qqt_10101")
 
 	actor_view.configure_visual_profile(profile)
 	var body_view = actor_view.get("_body_view") as Node2D
@@ -74,10 +74,10 @@ func _test_remote_player_actor_uses_move_state_for_run_animation() -> void:
 
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
-	profile.character_id = "char_16001"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
 	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
-	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_16001")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
 	var body_view = actor_view.get("_body_view") as Node2D
@@ -108,10 +108,10 @@ func _test_remote_player_actor_uses_authoritative_anim_direction() -> void:
 
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
-	profile.character_id = "char_16001"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
 	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
-	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_16001")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
 	var body_view = actor_view.get("_body_view") as Node2D
@@ -142,10 +142,10 @@ func _test_actor_snaps_large_respawn_teleport() -> void:
 
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
-	profile.character_id = "char_16001"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
 	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
-	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_16001")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
 	actor_view.apply_view_state({
@@ -182,9 +182,9 @@ func _test_actor_applies_team_tint_when_team_animation_variant_is_missing() -> v
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
 	profile.team_id = 8
-	profile.character_id = "char_16001"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
-	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_16001")
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
 	var body_view = actor_view.get("_body_view") as Node2D
@@ -202,8 +202,8 @@ func _test_visual_profile_builder_prefers_runtime_slot_and_team() -> void:
 	player_config.peer_id = 42
 	player_config.player_slot = 3
 	player_config.team_id = 8
-	player_config.character_id = "char_16001"
-	player_config.character_presentation = CharacterLoaderScript.load_character_presentation("char_16001")
+	player_config.character_id = "10101"
+	player_config.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
 	player_config.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	runtime_config.player_configs.append(player_config)
 

@@ -1,12 +1,13 @@
 # Godot editor/import/runtime cache
 .godot/
 .import/
+res/
 export.cfg
 export_presets.cfg
 
 # Godot local user data / logs
 Godot/
-godot_binary/
+/godot_binary/
 app_userdata/
 logs/
 *.log
@@ -25,6 +26,8 @@ tests/cli/appdata/
 # Content CSV import noise
 content_source/csv/**/*.translation
 content_source/csv/**/*.csv.import
+content_source/**/*.translation
+content_source/**/*.csv.import
 
 # Service env files (contain secrets)
 .env
@@ -100,3 +103,18 @@ services/**/tmp/
 
 # Generated C# proto metadata (recreated by Godot import, non-source-of-truth)
 network/client_net/generated/*.uid
+
+# External QQTang asset pack boundaries
+/external/*
+!/external/.gitkeep
+/res/
+/assets/animation/characters/qqt_layered/
+/assets/animation/characters/qqt_layered_team_variants/
+/assets/animation/overlays/
+/assets/animation/vfx/
+/content/character_animation_sets/generated/sprite_frames/
+/content/vfx_animation_sets/generated/sprite_frames/
+/content/bubble_animation_sets/generated/sprite_frames/
+/config/local_asset_roots.json
+__pycache__/
+*.pyc

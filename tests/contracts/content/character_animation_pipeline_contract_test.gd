@@ -7,8 +7,8 @@ const REQUIRED_PATHS := [
 	"res://content/character_animation_sets/defs/character_animation_set_def.gd",
 	"res://content/character_animation_sets/catalog/character_animation_set_catalog.gd",
 	"res://content/character_animation_sets/runtime/character_animation_set_loader.gd",
-	"res://content/character_animation_sets/data/sets/char_anim_16001.tres",
-	"res://content/character_animation_sets/generated/sprite_frames/char_anim_16001_frames.tres",
+	"res://content/character_animation_sets/data/sets/char_anim_qqt_10101.tres",
+	"res://content/character_animation_sets/generated/sprite_frames/char_anim_qqt_10101_frames.tres",
 	"res://content/characters/data/presentation/char_pres_huoying.tres",
 ]
 
@@ -47,11 +47,11 @@ func _test_required_files_exist() -> void:
 
 
 func _test_huoying_animation_set_contract() -> void:
-	var animation_set := CharacterAnimationSetCatalogScript.get_by_id("char_anim_16001")
-	_assert_true(animation_set != null, "catalog loads char_anim_16001")
+	var animation_set := CharacterAnimationSetCatalogScript.get_by_id("char_anim_qqt_10101")
+	_assert_true(animation_set != null, "catalog loads char_anim_qqt_10101")
 	if animation_set == null:
 		return
-	_assert_true(animation_set.sprite_frames != null, "char_anim_16001 has SpriteFrames")
+	_assert_true(animation_set.sprite_frames != null, "char_anim_qqt_10101 has SpriteFrames")
 	if animation_set.sprite_frames == null:
 		return
 	for animation_name in REQUIRED_ANIMATIONS:
@@ -59,11 +59,11 @@ func _test_huoying_animation_set_contract() -> void:
 
 
 func _test_huoying_presentation_contract() -> void:
-	var presentation := CharacterLoaderScript.load_character_presentation("char_16001")
-	_assert_true(presentation != null, "CharacterLoader loads char_16001 presentation")
+	var presentation := CharacterLoaderScript.load_character_presentation("10101")
+	_assert_true(presentation != null, "CharacterLoader loads 10101 presentation")
 	if presentation == null:
 		return
-	_assert_true(String(presentation.animation_set_id) == "char_anim_16001", "char_16001 presentation binds char_anim_16001")
+	_assert_true(String(presentation.animation_set_id) == "char_anim_qqt_10101", "10101 presentation binds char_anim_qqt_10101")
 
 
 func _assert_true(condition: bool, message: String) -> void:

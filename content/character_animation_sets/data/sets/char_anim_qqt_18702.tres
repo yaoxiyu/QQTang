@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_0x07t"]
+[ext_resource type="SpriteFrames" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_qqt_18702_frames.tres" id="2_a680x"]
+
+[resource]
+script = ExtResource("1_0x07t")
+animation_set_id = "char_anim_qqt_18702"
+display_name = "资源角色18702 占位动画"
+sprite_frames = ExtResource("2_a680x")
+frame_width = 100
+frame_height = 100
+frames_per_direction = 4
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "qqt_18702_placeholder_pending_bake_v1"
