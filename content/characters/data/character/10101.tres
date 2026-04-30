@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_ccxyp")
 character_id = "10101"
-display_name = "资源角色10101"
+display_name = "小悟空"
 stats_id = "char_stats_qqt_10101"
 presentation_id = "char_pres_qqt_10101"
 default_bubble_style_id = "bubble_round"
 selection_order = 10101
-content_hash = "char_def_10101_csv_v1"
+type = 1
+content_hash = "char_def_10101_csv_v2"

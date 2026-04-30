@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_il0lb"]
+
+[resource]
+script = ExtResource("1_il0lb")
+character_id = "12101"
+display_name = "泰比"
+stats_id = "char_stats_qqt_12101"
+presentation_id = "char_pres_qqt_12101"
+default_bubble_style_id = "bubble_round"
+selection_order = 12101
+type = 1
+content_hash = "char_def_12101_csv_v2"

@@ -17,6 +17,8 @@ func test_main() -> void:
 
 func _main_body() -> void:
 	_test_player_actor_binds_character_animation_set()
+	_test_player_actor_maps_sim_facing_to_cardinal_animation()
+	_test_jelly_overlay_keeps_trigger_character_visible()
 	_test_remote_player_actor_uses_move_state_for_run_animation()
 	_test_remote_player_actor_uses_authoritative_anim_direction()
 	_test_actor_snaps_large_respawn_teleport()
@@ -64,6 +66,78 @@ func _test_player_actor_binds_character_animation_set() -> void:
 	_assert_true(body_sprite != null and body_sprite.sprite_frames != null, "BodySprite binds SpriteFrames")
 	if body_sprite != null:
 		_assert_true(String(body_sprite.animation) == "run_down", "BodySprite plays run_down for down input")
+
+	actor_view.free()
+
+
+func _test_player_actor_maps_sim_facing_to_cardinal_animation() -> void:
+	var actor_view = BattlePlayerActorViewScript.new()
+	add_child(actor_view)
+
+	var profile = BattlePlayerVisualProfileScript.new()
+	profile.player_slot = 0
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
+	actor_view.configure_visual_profile(profile)
+
+	var body_view = actor_view.get("_body_view") as Node2D
+	var body_sprite := body_view.get_node_or_null("BodySprite") as AnimatedSprite2D if body_view != null else null
+	_assert_true(body_sprite != null, "facing mapper body view contains BodySprite")
+
+	var cases := [
+		{"facing": 0, "animation": "idle_up"},
+		{"facing": 1, "animation": "idle_down"},
+		{"facing": 2, "animation": "idle_left"},
+		{"facing": 3, "animation": "idle_right"},
+	]
+	for entry in cases:
+		actor_view.apply_view_state({
+			"entity_id": 10,
+			"player_slot": 0,
+			"alive": true,
+			"facing": int(entry.get("facing", 0)),
+			"position": Vector2.ZERO,
+			"anim_is_moving": false,
+		})
+		if body_sprite != null:
+			_assert_true(String(body_sprite.animation) == String(entry.get("animation", "")), "Facing %d maps to %s" % [int(entry.get("facing", 0)), String(entry.get("animation", ""))])
+
+	actor_view.free()
+
+
+func _test_jelly_overlay_keeps_trigger_character_visible() -> void:
+	var actor_view = BattlePlayerActorViewScript.new()
+	add_child(actor_view)
+
+	var profile = BattlePlayerVisualProfileScript.new()
+	profile.player_slot = 0
+	profile.character_id = "10101"
+	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
+	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
+	actor_view.configure_visual_profile(profile)
+
+	actor_view.apply_view_state({
+		"entity_id": 11,
+		"player_slot": 0,
+		"alive": true,
+		"pose_state": "trigger",
+		"facing": 1,
+		"position": Vector2.ZERO,
+		"anim_is_moving": false,
+	})
+
+	var body_view = actor_view.get("_body_view") as Node2D
+	var status_root = actor_view.get("_status_effect_controller") as Node2D
+	var body_sprite := body_view.get_node_or_null("BodySprite") as AnimatedSprite2D if body_view != null else null
+	var jelly_view := status_root.get_node_or_null("JellyTrapEffectView") as Node2D if status_root != null else null
+	var jelly_sprite := jelly_view.get_node_or_null("EffectSprite") as AnimatedSprite2D if jelly_view != null else null
+
+	_assert_true(body_sprite != null and String(body_sprite.animation) == "trigger_down", "trigger pose should keep character trigger animation")
+	_assert_true(body_view != null and status_root != null and status_root.z_index > body_view.z_index, "jelly status root should render above character body")
+	_assert_true(jelly_view != null and jelly_sprite != null, "trigger pose should create jelly overlay")
+	if jelly_sprite != null:
+		_assert_true(jelly_sprite.self_modulate.a < 1.0, "jelly overlay should be translucent so trigger remains visible")
 
 	actor_view.free()
 

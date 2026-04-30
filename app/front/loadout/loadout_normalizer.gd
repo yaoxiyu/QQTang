@@ -8,6 +8,8 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 
+const ROOM_RANDOM_CHARACTER_ID := "12301"
+
 
 static func resolve_from_profile(profile):
 	var character_id := ""
@@ -19,7 +21,7 @@ static func resolve_from_profile(profile):
 	var owned_bubble_style_ids: Array[String] = []
 	var owned_bubble_skin_ids: Array[String] = []
 	if profile != null:
-		character_id = String(profile.default_character_id)
+		character_id = PlayerProfileState.resolve_default_character_id(String(profile.default_character_id))
 		character_skin_id = String(profile.default_character_skin_id)
 		bubble_style_id = String(profile.default_bubble_style_id)
 		bubble_skin_id = String(profile.default_bubble_skin_id)
@@ -93,6 +95,8 @@ static func apply_to_connection_config(config, profile):
 
 
 static func _resolve_character_id(character_id: String, owned_character_ids: Array[String]) -> String:
+	if character_id == ROOM_RANDOM_CHARACTER_ID and CharacterCatalogScript.has_character(character_id):
+		return character_id
 	if CharacterCatalogScript.has_character(character_id) and _is_allowed(character_id, owned_character_ids):
 		return character_id
 	for owned_id in owned_character_ids:

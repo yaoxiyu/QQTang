@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_p0pqw"]
+
+[resource]
+script = ExtResource("1_p0pqw")
+character_id = "12301"
+display_name = "问号"
+stats_id = "char_stats_qqt_12301"
+presentation_id = "char_pres_qqt_12301"
+default_bubble_style_id = "bubble_round"
+type = 5
+content_hash = "char_def_12301_csv_v2"

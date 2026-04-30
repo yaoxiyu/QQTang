@@ -1,13 +1,11 @@
 [gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
 
-[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_merkv"]
-[ext_resource type="SpriteFrames" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_phase38_demo_character_team_07_frames.tres" id="2_04ydo"]
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_g0ftp"]
 
 [resource]
-script = ExtResource("1_merkv")
+script = ExtResource("1_g0ftp")
 animation_set_id = "char_anim_phase38_demo_character_team_07"
 display_name = "Phase38 Demo Character team_07"
-sprite_frames = ExtResource("2_04ydo")
 frame_width = 100
 frame_height = 100
 frames_per_direction = 4

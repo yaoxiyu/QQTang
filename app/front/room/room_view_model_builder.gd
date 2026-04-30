@@ -104,7 +104,7 @@ func build_view_model(
 		"selected_mode_id": String(safe_snapshot.mode_id),
 		"selected_rule_display_name": rule_display_name,
 		"selected_mode_display_name": mode_display_name,
-		"local_character_id": String(safe_profile.default_character_id),
+		"local_character_id": PlayerProfileState.resolve_default_character_id(String(safe_profile.default_character_id)),
 		"local_character_skin_id": String(safe_profile.default_character_skin_id),
 		"local_bubble_style_id": String(safe_profile.default_bubble_style_id),
 		"local_bubble_skin_id": String(safe_profile.default_bubble_skin_id),

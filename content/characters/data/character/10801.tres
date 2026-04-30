@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_bxccy")
 character_id = "10801"
-display_name = "资源角色10801"
+display_name = "海王子"
 stats_id = "char_stats_qqt_10801"
 presentation_id = "char_pres_qqt_10801"
 default_bubble_style_id = "bubble_round"
 selection_order = 10801
-content_hash = "char_def_10801_csv_v1"
+type = 1
+content_hash = "char_def_10801_csv_v2"

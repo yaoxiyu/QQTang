@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_ttqqj"]
+
+[resource]
+script = ExtResource("1_ttqqj")
+character_id = "11401"
+display_name = "哪吒"
+stats_id = "char_stats_qqt_11401"
+presentation_id = "char_pres_qqt_11401"
+default_bubble_style_id = "bubble_round"
+selection_order = 11401
+type = 2
+content_hash = "char_def_11401_csv_v2"

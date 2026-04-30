@@ -1,8 +1,0 @@
-[gd_resource type="Resource" script_class="CharacterStatsDef" format=3]
-
-[ext_resource type="Script" path="res://content/characters/defs/character_stats_def.gd" id="1_nn3sg"]
-
-[resource]
-script = ExtResource("1_nn3sg")
-stats_id = "char_stats_54001"
-content_hash = "char_stats_char_stats_54001_csv_v1"

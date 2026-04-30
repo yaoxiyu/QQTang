@@ -1181,6 +1181,10 @@ func _handle_room_entry_result(result: Dictionary) -> void:
 		_log_online_lobby("room_entry_pending", _build_online_debug_context())
 		_set_message("Connecting...")
 		_set_directory_status("")
+		if _app_runtime != null and "current_loading_mode" in _app_runtime:
+			_app_runtime.current_loading_mode = "room_connect"
+		if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_room_connect_loading"):
+			_app_runtime.front_flow.enter_room_connect_loading()
 		return
 	_set_message("")
 	_set_directory_status("")

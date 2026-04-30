@@ -3,11 +3,14 @@ extends Node2D
 
 const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
-const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
+const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const PlayerStatusEffectViewControllerScript = preload("res://presentation/battle/actors/player_status_effect_view_controller.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 
 const PLAYER_Z_INDEX := 20
+const BODY_Z_INDEX := 0
+const TEAM_MARKER_Z_INDEX := -10
+const STATUS_EFFECT_Z_INDEX := 10
 const LOCAL_VISUAL_LERP_SPEED := 16.0
 const REMOTE_VISUAL_LERP_SPEED := 22.0
 const TELEPORT_SNAP_DISTANCE_CELLS := 1.5
@@ -19,6 +22,7 @@ var alive: bool = true
 var facing: int = 0
 
 var _body_view: Node2D = null
+var _team_marker_view: Node2D = null
 var _status_effect_controller: Node2D = null
 var _last_view_state: Dictionary = {}
 var _visual_profile = null
@@ -71,6 +75,8 @@ func apply_view_state(view_state: Dictionary) -> void:
 
 	if _body_view != null and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
+	if _team_marker_view != null and _team_marker_view.has_method("apply_actor_state"):
+		_team_marker_view.apply_actor_state(_last_view_state)
 	if _status_effect_controller != null and _status_effect_controller.has_method("apply_actor_state"):
 		_status_effect_controller.apply_actor_state(_last_view_state)
 
@@ -87,6 +93,10 @@ func _rebuild_body_view() -> void:
 		remove_child(_body_view)
 		_body_view.queue_free()
 		_body_view = null
+	if _team_marker_view != null:
+		remove_child(_team_marker_view)
+		_team_marker_view.queue_free()
+		_team_marker_view = null
 
 	if _visual_profile == null:
 		return
@@ -102,14 +112,15 @@ func _rebuild_body_view() -> void:
 		return
 
 	_body_view = body_instance as Node2D
+	_body_view.z_as_relative = true
+	_body_view.z_index = BODY_Z_INDEX
 	add_child(_body_view)
+	_rebuild_team_marker_view(character_presentation)
 	_rebuild_status_effect_controller()
 
 	var animation_set = _read_profile_value("animation_set")
 	if _body_view.has_method("setup_from_animation_set"):
 		_body_view.setup_from_animation_set(animation_set)
-	if not _uses_team_animation_variant(animation_set, int(_read_profile_value("team_id"))):
-		_apply_team_tint(_body_view, int(_read_profile_value("team_id")))
 
 	var character_skin = _read_profile_value("character_skin")
 	if character_skin != null:
@@ -117,8 +128,30 @@ func _rebuild_body_view() -> void:
 
 	if not _last_view_state.is_empty() and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
+	if not _last_view_state.is_empty() and _team_marker_view != null:
+		_team_marker_view.apply_actor_state(_last_view_state)
 	if not _last_view_state.is_empty() and _status_effect_controller != null:
 		_status_effect_controller.apply_actor_state(_last_view_state)
+
+
+func _rebuild_team_marker_view(character_presentation: CharacterPresentationDef) -> void:
+	if int(_read_profile_value("character_type")) != 4:
+		return
+	var team_id := int(_read_profile_value("team_id"))
+	if team_id < 1:
+		return
+	var marker_animation_set := CharacterAnimationSetLoaderScript.load_animation_set("team_marker_leg1_team_%02d" % team_id)
+	if marker_animation_set == null:
+		return
+	var marker_instance: Node = character_presentation.body_scene.instantiate()
+	if marker_instance == null or not marker_instance is Node2D:
+		return
+	_team_marker_view = marker_instance as Node2D
+	_team_marker_view.z_as_relative = true
+	_team_marker_view.z_index = TEAM_MARKER_Z_INDEX
+	add_child(_team_marker_view)
+	if _team_marker_view.has_method("setup_from_animation_set"):
+		_team_marker_view.setup_from_animation_set(marker_animation_set)
 
 
 func _rebuild_status_effect_controller() -> void:
@@ -128,6 +161,8 @@ func _rebuild_status_effect_controller() -> void:
 		_status_effect_controller = null
 	_status_effect_controller = PlayerStatusEffectViewControllerScript.new()
 	_status_effect_controller.name = "StatusEffectRoot"
+	_status_effect_controller.z_as_relative = true
+	_status_effect_controller.z_index = STATUS_EFFECT_Z_INDEX
 	add_child(_status_effect_controller)
 
 
@@ -137,17 +172,3 @@ func _read_profile_value(key: String):
 	if _visual_profile is Dictionary:
 		return (_visual_profile as Dictionary).get(key, null)
 	return _visual_profile.get(key)
-
-
-func _uses_team_animation_variant(animation_set, team_id: int) -> bool:
-	if animation_set == null or team_id < 1:
-		return false
-	var animation_set_id := String(animation_set.get("animation_set_id"))
-	return animation_set_id.ends_with("_team_%02d" % team_id)
-
-
-func _apply_team_tint(body_view: Node2D, team_id: int) -> void:
-	if body_view == null or team_id < 1:
-		return
-	var team_color := RoomTeamPaletteScript.color_for_team(team_id)
-	body_view.modulate = Color.WHITE.lerp(team_color, 0.45)

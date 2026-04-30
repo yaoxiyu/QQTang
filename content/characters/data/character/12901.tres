@@ -10,4 +10,4 @@ stats_id = "char_stats_qqt_12901"
 presentation_id = "char_pres_qqt_12901"
 default_bubble_style_id = "bubble_round"
 selection_order = 12901
-content_hash = "char_def_12901_csv_v1"
+content_hash = "char_def_12901_csv_v2"

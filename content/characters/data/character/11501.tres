@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_3wygv"]
+
+[resource]
+script = ExtResource("1_3wygv")
+character_id = "11501"
+display_name = "乌拉拉"
+stats_id = "char_stats_qqt_11501"
+presentation_id = "char_pres_qqt_11501"
+default_bubble_style_id = "bubble_round"
+selection_order = 11501
+type = 2
+content_hash = "char_def_11501_csv_v2"

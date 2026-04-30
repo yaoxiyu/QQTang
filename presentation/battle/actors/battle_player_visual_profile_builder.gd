@@ -19,6 +19,7 @@ func build(runtime_config: BattleRuntimeConfig, player_slots: Array[Dictionary] 
 		var profile := BattlePlayerVisualProfile.new()
 		profile.player_slot = player_slot
 		profile.team_id = _resolve_team_id(index, player_slots, player_config)
+		profile.character_type = int(player_config.character_type)
 		profile.character_id = player_config.character_id
 		profile.character_presentation = player_config.character_presentation
 		profile.character_skin = player_config.character_skin

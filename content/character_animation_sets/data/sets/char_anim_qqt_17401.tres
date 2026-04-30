@@ -1,16 +1,14 @@
 [gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
 
-[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_b24t2"]
-[ext_resource type="SpriteFrames" path="res://content/character_animation_sets/generated/sprite_frames/char_anim_qqt_17401_frames.tres" id="2_ppfkv"]
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_sk6sf"]
 
 [resource]
-script = ExtResource("1_b24t2")
+script = ExtResource("1_sk6sf")
 animation_set_id = "char_anim_qqt_17401"
-display_name = "资源角色17401 占位动画"
-sprite_frames = ExtResource("2_ppfkv")
+display_name = "资源角色17401"
 frame_width = 100
 frame_height = 100
-frames_per_direction = 4
+frames_per_direction = 6
 pivot_origin = Vector2(50, 100)
 pivot_adjust = Vector2(0, -15)
-content_hash = "qqt_17401_placeholder_pending_bake_v1"
+content_hash = "qqt_17401_layered_bake_v1"

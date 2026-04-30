@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_t6f57"]
+
+[resource]
+script = ExtResource("1_t6f57")
+character_id = "11301"
+display_name = "可乐"
+stats_id = "char_stats_qqt_11301"
+presentation_id = "char_pres_qqt_11301"
+default_bubble_style_id = "bubble_round"
+selection_order = 11301
+type = 2
+content_hash = "char_def_11301_csv_v2"

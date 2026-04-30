@@ -27,6 +27,7 @@ func test_generated_catalog_indices_are_written_and_valid() -> void:
 		FileAccess.file_exists("res://build/generated/content_catalog/content_catalog_summary.json"),
 		"generated catalog summary should exist"
 	)
+	_assert_character_type_projection()
 
 
 func test_generated_index_and_fallback_catalog_paths_have_same_ids() -> void:
@@ -62,6 +63,32 @@ func _catalog_id_sets() -> Dictionary:
 		"rulesets": _sorted(_field_values(RuleSetCatalogScript.get_rule_entries(), "rule_set_id")),
 		"match_formats": _sorted(MatchFormatCatalogScript.get_match_format_ids()),
 	}
+
+
+func _assert_character_type_projection() -> void:
+	var entries := GeneratedCatalogIndexLoaderScript.load_entries("characters")
+	var by_id := {}
+	for entry_variant in entries:
+		if not entry_variant is Dictionary:
+			continue
+		var entry := entry_variant as Dictionary
+		by_id[String(entry.get("id", ""))] = entry
+	assert_true(by_id.has("10101"), "character index should include default-selectable character 10101")
+	assert_true(by_id.has("11301"), "character index should include random-selectable character 11301")
+	assert_true(by_id.has("11001"), "character index should include vip character 11001")
+	assert_true(by_id.has("11701"), "character index should include defaulted type character 11701")
+	assert_true(by_id.has("12301"), "character index should include room random placeholder character 12301")
+	if by_id.has("10101"):
+		assert_eq(int((by_id["10101"] as Dictionary).get("type", -1)), 1, "10101 type should be default selectable")
+	if by_id.has("11301"):
+		assert_eq(int((by_id["11301"] as Dictionary).get("type", -1)), 2, "11301 type should be random selectable")
+	if by_id.has("11001"):
+		assert_eq(int((by_id["11001"] as Dictionary).get("type", -1)), 3, "11001 type should be vip")
+	if by_id.has("11701"):
+		assert_eq(int((by_id["11701"] as Dictionary).get("type", -1)), 0, "missing character type should default to 0")
+	if by_id.has("12301"):
+		assert_eq(int((by_id["12301"] as Dictionary).get("type", -1)), 5, "12301 type should be room random placeholder")
+		assert_eq(int((by_id["12301"] as Dictionary).get("selection_order", -1)), 0, "12301 should sort first in character selector")
 
 
 func _field_values(entries: Array, field_name: String) -> Array[String]:

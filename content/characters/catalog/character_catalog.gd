@@ -9,6 +9,10 @@ const GeneratedCatalogIndexLoaderScript = preload("res://content/catalog_index/g
 const CHARACTER_DIR := "res://content/characters/data/character"
 const STATS_DIR := "res://content/characters/data/stats"
 const PRESENTATION_DIR := "res://content/characters/data/presentation"
+const TYPE_DEFAULT_SELECTABLE := 1
+const TYPE_RANDOM_SELECTABLE := 2
+const TYPE_VIP := 3
+const TYPE_RANDOM_PLACEHOLDER := 5
 
 const LEGACY_CHARACTER_REGISTRY := {}
 
@@ -47,6 +51,7 @@ static func load_all() -> void:
 				"stats_resource_path": String(stats_by_id.get(def.stats_id, "")),
 				"presentation_resource_path": String(presentations_by_id.get(def.presentation_id, "")),
 				"selection_order": def.selection_order,
+				"type": def.type,
 			}
 
 	if _character_registry.is_empty():
@@ -73,6 +78,7 @@ static func _load_from_generated_index() -> bool:
 			"stats_resource_path": String(entry.get("stats_resource_path", "")),
 			"presentation_resource_path": String(entry.get("presentation_resource_path", "")),
 			"selection_order": int(entry.get("selection_order", 999999)),
+			"type": int(entry.get("type", 0)),
 			"content_hash": String(entry.get("content_hash", "")),
 		}
 	_sort_loaded_characters()
@@ -128,8 +134,48 @@ static func get_character_entries() -> Array[Dictionary]:
 			"initial_move_speed": int(entry.get("initial_move_speed", entry.get("base_move_speed", 0))),
 			"max_move_speed": int(entry.get("max_move_speed", 0)),
 			"selection_order": int(_character_registry[character_id].get("selection_order", 999999)),
+			"type": int(_character_registry[character_id].get("type", 0)),
 		})
 	return entries
+
+
+static func get_random_battle_character_ids() -> Array[String]:
+	_ensure_loaded()
+	var result: Array[String] = []
+	for character_id in _ordered_character_ids:
+		var character_type := get_character_type(character_id)
+		if character_type == TYPE_DEFAULT_SELECTABLE or character_type == TYPE_RANDOM_SELECTABLE or character_type == TYPE_VIP:
+			result.append(character_id)
+	return result
+
+
+static func get_character_selector_entries() -> Array[Dictionary]:
+	_ensure_loaded()
+	var entries: Array[Dictionary] = []
+	for character_id in _ordered_character_ids:
+		if not _character_registry.has(character_id):
+			continue
+		var entry: Dictionary = _character_registry[character_id]
+		entries.append({
+			"id": character_id,
+			"display_name": String(entry.get("display_name", character_id)),
+			"selection_order": int(entry.get("selection_order", 999999)),
+			"type": int(entry.get("type", 0)),
+			"content_hash": String(entry.get("content_hash", "")),
+		})
+	return entries
+
+
+static func get_character_type(character_id: String) -> int:
+	_ensure_loaded()
+	var normalized := character_id.strip_edges()
+	if normalized.is_empty() or not _character_registry.has(normalized):
+		return 0
+	return int((_character_registry[normalized] as Dictionary).get("type", 0))
+
+
+static func is_random_placeholder_character(character_id: String) -> bool:
+	return get_character_type(character_id) == TYPE_RANDOM_PLACEHOLDER
 
 
 static func has_character(character_id: String) -> bool:
@@ -187,6 +233,7 @@ static func get_character_metadata(character_id: String) -> Dictionary:
 		"stats_id": stats_def.stats_id,
 		"presentation_id": presentation_def.presentation_id,
 		"default_bubble_style_id": character_def.default_bubble_style_id,
+		"type": character_def.type,
 		"selection_portrait_path": character_def.selection_portrait_path,
 	}
 

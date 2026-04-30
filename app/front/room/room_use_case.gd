@@ -316,6 +316,8 @@ func _on_gateway_room_snapshot_received(snapshot: RoomSnapshot) -> void:
 		if app_runtime == null or app_runtime.front_flow == null or not app_runtime.front_flow.has_method("enter_room"):
 			_log_room_anomaly("awaiting_room_but_front_flow_missing", RoomUseCaseRuntimeStateScript.build_snapshot_context(snapshot, _build_pending_connection_context()))
 		else:
+			if "current_loading_mode" in app_runtime:
+				app_runtime.current_loading_mode = "normal_start"
 			app_runtime.front_flow.enter_room()
 	_clear_pending_online_entry_state()
 

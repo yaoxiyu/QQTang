@@ -1,6 +1,8 @@
 class_name PlayerProfileState
 extends RefCounted
 
+const ROOM_RANDOM_CHARACTER_ID := "12301"
+
 var profile_id: String = ""
 var account_id: String = ""
 var nickname: String = "Player1"
@@ -30,7 +32,7 @@ func to_dict() -> Dictionary:
 		"nickname": nickname,
 		"avatar_id": avatar_id,
 		"title_id": title_id,
-		"default_character_id": default_character_id,
+		"default_character_id": resolve_default_character_id(default_character_id),
 		"default_character_skin_id": default_character_skin_id,
 		"default_bubble_style_id": default_bubble_style_id,
 		"default_bubble_skin_id": default_bubble_skin_id,
@@ -55,7 +57,7 @@ static func from_dict(data: Dictionary) -> PlayerProfileState:
 	state.nickname = String(data.get("nickname", "Player1"))
 	state.avatar_id = String(data.get("avatar_id", ""))
 	state.title_id = String(data.get("title_id", ""))
-	state.default_character_id = String(data.get("default_character_id", ""))
+	state.default_character_id = resolve_default_character_id(String(data.get("default_character_id", "")))
 	state.default_character_skin_id = String(data.get("default_character_skin_id", ""))
 	state.default_bubble_style_id = String(data.get("default_bubble_style_id", ""))
 	state.default_bubble_skin_id = String(data.get("default_bubble_skin_id", ""))
@@ -83,3 +85,8 @@ static func _to_string_array(value: Variant) -> Array[String]:
 		for item in value:
 			result.append(String(item))
 	return result
+
+
+static func resolve_default_character_id(character_id: String) -> String:
+	var normalized := character_id.strip_edges()
+	return ROOM_RANDOM_CHARACTER_ID if normalized.is_empty() else normalized

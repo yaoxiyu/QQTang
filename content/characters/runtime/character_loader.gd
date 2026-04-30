@@ -74,6 +74,7 @@ static func build_character_metadata(character_id: String) -> Dictionary:
 		"presentation_id": presentation_def.presentation_id,
 		"default_bubble_style_id": default_bubble_style_id,
 		"selection_order": character_def.selection_order,
+		"type": character_def.type,
 		"selection_portrait_path": character_def.selection_portrait_path,
 		"base_bomb_count": stats_def.base_bomb_count,
 		"base_firepower": stats_def.base_firepower,

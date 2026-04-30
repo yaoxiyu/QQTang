@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_def.gd" id="1_uq2n3"]
+
+[resource]
+script = ExtResource("1_uq2n3")
+character_id = "11901"
+display_name = "克莉丝"
+stats_id = "char_stats_qqt_11901"
+presentation_id = "char_pres_qqt_11901"
+default_bubble_style_id = "bubble_round"
+selection_order = 11901
+type = 1
+content_hash = "char_def_11901_csv_v2"

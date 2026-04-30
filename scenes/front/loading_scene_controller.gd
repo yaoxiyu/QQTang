@@ -33,6 +33,7 @@ var _transition_handled: bool = false
 var _battle_entry_context = null
 var _reference_progress_fill: ColorRect = null
 var _reference_progress_label: Label = null
+var _room_connect_refresh_accum: float = 0.0
 
 
 func _ready() -> void:
@@ -65,6 +66,10 @@ func _on_runtime_ready() -> void:
 			_run_battle_resume_flow()
 			return
 		_run_battle_entry_flow()
+		return
+
+	if "current_loading_mode" in _app_runtime and String(_app_runtime.current_loading_mode) == "room_connect":
+		_run_room_connect_flow()
 		return
 
 	if _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("begin_loading"):
@@ -157,11 +162,31 @@ func _connect_gateway_signals() -> void:
 		return
 	if not _room_client_gateway.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		_room_client_gateway.match_loading_snapshot_received.connect(_on_match_loading_snapshot_received)
+	if _room_client_gateway.has_signal("room_snapshot_received") and not _room_client_gateway.room_snapshot_received.is_connected(_on_room_snapshot_received):
+		_room_client_gateway.room_snapshot_received.connect(_on_room_snapshot_received)
+	if _room_client_gateway.has_signal("room_error") and not _room_client_gateway.room_error.is_connected(_on_room_error):
+		_room_client_gateway.room_error.connect(_on_room_error)
 
 
 func _exit_tree() -> void:
 	if _room_client_gateway != null and _room_client_gateway.match_loading_snapshot_received.is_connected(_on_match_loading_snapshot_received):
 		_room_client_gateway.match_loading_snapshot_received.disconnect(_on_match_loading_snapshot_received)
+	if _room_client_gateway != null and _room_client_gateway.has_signal("room_snapshot_received") and _room_client_gateway.room_snapshot_received.is_connected(_on_room_snapshot_received):
+		_room_client_gateway.room_snapshot_received.disconnect(_on_room_snapshot_received)
+	if _room_client_gateway != null and _room_client_gateway.has_signal("room_error") and _room_client_gateway.room_error.is_connected(_on_room_error):
+		_room_client_gateway.room_error.disconnect(_on_room_error)
+
+
+func _process(delta: float) -> void:
+	if _app_runtime == null or not ("current_loading_mode" in _app_runtime):
+		return
+	if String(_app_runtime.current_loading_mode) != "room_connect":
+		return
+	_room_connect_refresh_accum += delta
+	if _room_connect_refresh_accum < 0.08:
+		return
+	_room_connect_refresh_accum = 0.0
+	_refresh_loading_view()
 
 
 func _on_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void:
@@ -176,6 +201,14 @@ func _on_match_loading_snapshot_received(snapshot: MatchLoadingSnapshot) -> void
 		_handle_loading_committed()
 		return
 	_maybe_submit_local_ready()
+
+
+func _on_room_snapshot_received(_snapshot: RoomSnapshot) -> void:
+	_refresh_loading_view()
+
+
+func _on_room_error(error_code: String, user_message: String) -> void:
+	_set_loading_status("%s: %s" % [error_code, user_message])
 
 
 func _maybe_submit_local_ready() -> void:
@@ -210,11 +243,32 @@ func _handle_loading_aborted(snapshot: MatchLoadingSnapshot) -> void:
 		_front_flow.enter_room()
 
 
+func _run_room_connect_flow() -> void:
+	if _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("begin_room_connect_loading"):
+		_app_runtime.loading_use_case.begin_room_connect_loading()
+	_refresh_loading_view()
+	_set_loading_status("Connecting to room...")
+
+
 ## Battle entry flow: request ticket, update UI, transition to battle.
 func _run_battle_entry_flow() -> void:
 	if _battle_entry_context == null or _app_runtime == null:
 		_set_loading_status("Battle entry context missing")
 		return
+
+	if _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("begin_battle_entry_loading"):
+		_app_runtime.loading_use_case.begin_battle_entry_loading()
+		_refresh_loading_view()
+
+	_set_loading_status("Preparing battle resources...")
+	if _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("prepare_battle_entry_resources_async"):
+		var prepare_result = await _app_runtime.loading_use_case.prepare_battle_entry_resources_async(self, Callable(self, "_refresh_loading_view"))
+		if not bool(prepare_result.get("ok", false)):
+			_abort_battle_entry(
+				String(prepare_result.get("error_code", "BATTLE_RESOURCE_PREPARE_FAILED")),
+				String(prepare_result.get("user_message", "Battle resources failed to load"))
+			)
+			return
 
 	_set_loading_status("Allocating battle server...")
 	loading_label.text = "Entering Battle"
@@ -229,11 +283,13 @@ func _run_battle_entry_flow() -> void:
 
 	# Request battle ticket from account_service
 	_set_loading_status("Requesting battle ticket...")
+	_mark_loading_task_progress("battle_ticket", 0.25)
 	var battle_entry_use_case = BattleEntryUseCaseScript.new()
 	battle_entry_use_case.call("configure", _app_runtime)
 	var ticket_result_raw = battle_entry_use_case.call("request_battle_ticket", _battle_entry_context)
 	var ticket_result: Dictionary = ticket_result_raw if ticket_result_raw is Dictionary else {"ok": false, "error_code": "INVALID_RESULT", "user_message": "Invalid ticket result"}
 	if not bool(ticket_result.get("ok", false)):
+		_mark_loading_task_failed("battle_ticket", String(ticket_result.get("error_code", "")), String(ticket_result.get("user_message", "")))
 		_log_battle_entry("battle_ticket_failed", ticket_result)
 		_set_loading_status("Battle ticket failed: %s" % String(ticket_result.get("user_message", "")))
 		_abort_battle_entry(
@@ -241,6 +297,7 @@ func _run_battle_entry_flow() -> void:
 			String(ticket_result.get("user_message", "Failed to acquire battle ticket"))
 		)
 		return
+	_mark_loading_task_complete("battle_ticket")
 
 	_set_loading_status("Battle ticket acquired. Connecting to battle DS...")
 	_log_battle_entry("battle_entry_ticket_acquired", {
@@ -249,19 +306,23 @@ func _run_battle_entry_flow() -> void:
 	})
 
 	if _room_client_gateway == null or not _room_client_gateway.has_method("request_ack_battle_entry"):
+		_mark_loading_task_failed("room_ack", "ROOM_ACK_GATEWAY_MISSING", "Room gateway cannot acknowledge battle entry")
 		_abort_battle_entry("ROOM_ACK_GATEWAY_MISSING", "Room gateway cannot acknowledge battle entry")
 		return
+	_mark_loading_task_progress("room_ack", 0.25)
 	_room_client_gateway.request_ack_battle_entry(
 		String(_battle_entry_context.assignment_id),
 		String(_battle_entry_context.battle_id)
 	)
 	var ack_result := await _wait_for_battle_entry_ack()
 	if not bool(ack_result.get("ok", false)):
+		_mark_loading_task_failed("room_ack", String(ack_result.get("error_code", "")), String(ack_result.get("user_message", "")))
 		_abort_battle_entry(
 			String(ack_result.get("error_code", "ROOM_ACK_BATTLE_ENTRY_FAILED")),
 			String(ack_result.get("user_message", "Room failed to acknowledge battle entry"))
 		)
 		return
+	_mark_loading_task_complete("room_ack")
 
 	# Store battle entry context on runtime for battle scene to consume
 	_app_runtime.current_battle_entry_context = _battle_entry_context
@@ -270,6 +331,24 @@ func _run_battle_entry_flow() -> void:
 	_transition_handled = true
 	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
 		_front_flow.on_match_loading_ready(null)
+
+
+func _mark_loading_task_progress(task_id: String, progress: float) -> void:
+	if _app_runtime != null and _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("mark_task_progress"):
+		_app_runtime.loading_use_case.mark_task_progress(task_id, progress)
+		_refresh_loading_view()
+
+
+func _mark_loading_task_complete(task_id: String) -> void:
+	if _app_runtime != null and _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("mark_task_complete"):
+		_app_runtime.loading_use_case.mark_task_complete(task_id)
+		_refresh_loading_view()
+
+
+func _mark_loading_task_failed(task_id: String, error_code: String, user_message: String) -> void:
+	if _app_runtime != null and _app_runtime.loading_use_case != null and _app_runtime.loading_use_case.has_method("mark_task_failed"):
+		_app_runtime.loading_use_case.mark_task_failed(task_id, error_code, user_message)
+		_refresh_loading_view()
 
 
 func _run_battle_resume_flow() -> void:

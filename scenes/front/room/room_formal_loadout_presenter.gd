@@ -1,13 +1,22 @@
 extends "res://scenes/front/room/room_formal_layout_builder.gd"
 
+var _formal_character_grid_signature: String = ""
+var _formal_character_entries_cache_signature: String = ""
+var _formal_character_entries_cache: Array[Dictionary] = []
+
+
 func _build_formal_character_buttons() -> void:
 	if _formal_character_grid == null:
 		return
-	for child in _formal_character_grid.get_children():
-		child.queue_free()
 	var entries := _get_formal_owned_character_entries()
 	var max_page := _get_formal_character_max_page(entries.size())
 	_formal_character_page = clampi(_formal_character_page, 0, max_page)
+	var signature := _build_formal_character_grid_signature(entries)
+	if signature == _formal_character_grid_signature and _formal_character_grid.get_child_count() > 0:
+		return
+	_formal_character_grid_signature = signature
+	for child in _formal_character_grid.get_children():
+		child.queue_free()
 	var start_index := _formal_character_page * 8
 	for slot_index in range(8):
 		var entry_index := start_index + slot_index
@@ -26,7 +35,10 @@ func _build_formal_character_buttons() -> void:
 		button.set_meta("character_id", character_id)
 		button.tooltip_text = String(entry.get("display_name", character_id))
 		_apply_room_square_button_style(button, _color_for_character_id(character_id))
-		_add_formal_character_preview(button, character_id, "", 72.0, _selected_team_id())
+		if character_id == _selected_formal_character_id():
+			_add_formal_character_preview(button, character_id, "", 72.0, _selected_team_id())
+		else:
+			button.text = _formal_character_button_label(character_id)
 		button.pressed.connect(Callable(self, "_select_formal_character").bind(character_id))
 		_formal_character_grid.add_child(button)
 	if _formal_character_page_label != null:
@@ -81,21 +93,64 @@ func _get_formal_owned_character_entries() -> Array[Dictionary]:
 	var owned_ids: Array[String] = []
 	if _app_runtime != null and _app_runtime.player_profile_state != null:
 		owned_ids = _app_runtime.player_profile_state.owned_character_ids
+	var cache_signature := _build_owned_character_signature(owned_ids)
+	if cache_signature == _formal_character_entries_cache_signature:
+		return _formal_character_entries_cache.duplicate(true)
 	var entries: Array[Dictionary] = []
-	for entry in CharacterCatalogScript.get_character_entries():
-		var character_id := String(entry.get("id", ""))
+	var candidate_ids := owned_ids
+	if candidate_ids.is_empty():
+		candidate_ids = CharacterCatalogScript.get_character_ids()
+	for candidate_id in candidate_ids:
+		var character_id := String(candidate_id).strip_edges()
 		if character_id.is_empty():
 			continue
-		if owned_ids.is_empty() or owned_ids.has(character_id):
-			entries.append(entry)
+		if not CharacterCatalogScript.has_character(character_id):
+			continue
+		var entry := CharacterCatalogScript.get_character_entry(character_id)
+		entries.append({
+			"id": character_id,
+			"display_name": String(entry.get("display_name", character_id)),
+			"selection_order": int(entry.get("selection_order", 999999)),
+			"type": int(entry.get("type", 0)),
+		})
+	for entry in CharacterCatalogScript.get_character_selector_entries():
+		if int(entry.get("type", 0)) != CharacterCatalogScript.TYPE_RANDOM_PLACEHOLDER:
+			continue
+		var character_id := String(entry.get("id", "")).strip_edges()
+		if character_id.is_empty() or _entries_contain_character_id(entries, character_id):
+			continue
+		entries.append({
+			"id": character_id,
+			"display_name": String(entry.get("display_name", character_id)),
+			"selection_order": int(entry.get("selection_order", 999999)),
+			"type": int(entry.get("type", 0)),
+		})
 	if entries.is_empty():
 		var fallback_id := CharacterCatalogScript.get_default_character_id()
-		var fallback_entry := CharacterCatalogScript.get_character_metadata(fallback_id)
+		var fallback_entry := CharacterCatalogScript.get_character_entry(fallback_id)
 		entries.append({
 			"id": fallback_id,
 			"display_name": String(fallback_entry.get("display_name", fallback_id)),
+			"selection_order": int(fallback_entry.get("selection_order", 999999)),
+			"type": int(fallback_entry.get("type", 0)),
 		})
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var order_a := int(a.get("selection_order", 999999))
+		var order_b := int(b.get("selection_order", 999999))
+		if order_a == order_b:
+			return String(a.get("display_name", "")).naturalnocasecmp_to(String(b.get("display_name", ""))) < 0
+		return order_a < order_b
+	)
+	_formal_character_entries_cache_signature = cache_signature
+	_formal_character_entries_cache = entries.duplicate(true)
 	return entries
+
+
+func _entries_contain_character_id(entries: Array[Dictionary], character_id: String) -> bool:
+	for entry in entries:
+		if String(entry.get("id", "")) == character_id:
+			return true
+	return false
 
 
 func _change_formal_character_page(delta: int) -> void:
@@ -103,6 +158,39 @@ func _change_formal_character_page(delta: int) -> void:
 	_formal_character_page = clampi(_formal_character_page + delta, 0, _get_formal_character_max_page(entries.size()))
 	_build_formal_character_buttons()
 	_refresh_formal_loadout_selection(_last_room_view_model)
+
+
+func _build_formal_character_grid_signature(entries: Array[Dictionary]) -> String:
+	var ids := PackedStringArray()
+	for entry in entries:
+		ids.append(String(entry.get("id", "")))
+	return "%d|%d|%s|%s" % [_formal_character_page, _selected_team_id(), _selected_formal_character_id(), "|".join(ids)]
+
+
+func _selected_formal_character_id() -> String:
+	var selected_id := _selected_metadata(character_selector)
+	if not selected_id.is_empty():
+		return selected_id
+	if _app_runtime != null and _app_runtime.player_profile_state != null:
+		var profile_id := PlayerProfileState.resolve_default_character_id(String(_app_runtime.player_profile_state.default_character_id))
+		if not profile_id.is_empty():
+			return profile_id
+	return CharacterCatalogScript.get_default_character_id()
+
+
+func _formal_character_button_label(character_id: String) -> String:
+	if character_id.length() <= 3:
+		return character_id
+	return character_id.substr(0, 3)
+
+
+func _build_owned_character_signature(owned_ids: Array[String]) -> String:
+	if owned_ids.is_empty():
+		return "__all__"
+	var values := PackedStringArray()
+	for owned_id in owned_ids:
+		values.append(String(owned_id))
+	return "|".join(values)
 
 
 func _build_formal_team_buttons() -> void:
@@ -123,6 +211,8 @@ func _build_formal_team_buttons() -> void:
 
 func _select_formal_character(character_id: String) -> void:
 	_select_metadata(character_selector, character_id)
+	_build_formal_character_buttons()
+	_refresh_formal_loadout_selection(_last_room_view_model)
 	_on_profile_selector_changed()
 
 

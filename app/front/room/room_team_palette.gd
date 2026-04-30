@@ -7,14 +7,14 @@ const DEFAULT_PALETTE_ID := "team_palette_default_8"
 const TEAM_IDS: Array[int] = [1, 2, 3, 4, 5, 6, 7, 8]
 const TEAM_LABELS: Array[String] = ["A", "B", "C", "D", "E", "F", "G", "H"]
 const TEAM_COLORS: Array[Color] = [
-	Color(0.34901962, 0.43529412, 0.78039217, 1.0),
-	Color(0.78039217, 0.36078432, 0.4392157, 1.0),
-	Color(0.36078432, 0.7490196, 0.45882353, 1.0),
-	Color(0.78039217, 0.6627451, 0.36078432, 1.0),
-	Color(0.41568628, 0.7529412, 0.78039217, 1.0),
-	Color(0.6392157, 0.36078432, 0.78039217, 1.0),
-	Color(0.78039217, 0.4745098, 0.36078432, 1.0),
-	Color(0.36078432, 0.56078434, 0.45882353, 1.0),
+	Color("#C94124"),
+	Color("#2E42C8"),
+	Color("#EFE84A"),
+	Color("#4C8E27"),
+	Color("#C63B83"),
+	Color("#E2A43A"),
+	Color("#9D27B9"),
+	Color("#555555"),
 ]
 
 

@@ -11,6 +11,8 @@ const DEBUG_REMOTE_ANIM_LOG := false
 var _animation_set: CharacterAnimationSetDef = null
 var _current_animation_name: String = ""
 var _current_pose_state: String = "normal"
+var _dynamic_color_enabled: bool = false
+var _dynamic_color: Color = Color.WHITE
 
 
 func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
@@ -34,6 +36,7 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 	)
 	_current_animation_name = ""
 	_current_pose_state = "normal"
+	_apply_dynamic_color_to_sprite()
 
 
 func apply_actor_state(view_state: Dictionary) -> void:
@@ -53,6 +56,11 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	var anim_move_y := int(view_state.get("anim_move_y", 0))
 	var alive := bool(view_state.get("alive", true))
 	var pose_state := String(view_state.get("pose_state", "normal"))
+	_dynamic_color_enabled = bool(view_state.get("dynamic_color_enabled", _dynamic_color_enabled))
+	var color_value = view_state.get("dynamic_color", _dynamic_color)
+	if color_value is Color:
+		_dynamic_color = color_value
+	_apply_dynamic_color_to_sprite()
 	var animation_name := _resolve_animation_name(
 		facing,
 		anim_is_moving,
@@ -129,48 +137,28 @@ func _resolve_animation_name(
 ) -> String:
 	var direction_suffix := _resolve_direction_suffix(facing)
 	match pose_state:
+		"wait":
+			var wait_animation := _resolve_animation_exact("wait_down")
+			return wait_animation if not wait_animation.is_empty() else _resolve_animation_exact("idle_down")
+		"trigger":
+			return _resolve_animation_exact("trigger_down")
 		"trapped":
-			direction_suffix = "down"
-			return _resolve_animation_with_fallbacks([
-				"trapped_%s" % direction_suffix,
-				"dead_%s" % direction_suffix,
-				"idle_%s" % direction_suffix,
-			])
+			return _resolve_animation_exact("trigger_down")
 		"victory":
-			direction_suffix = "down"
-			return _resolve_animation_with_fallbacks([
-				"victory_%s" % direction_suffix,
-				"idle_%s" % direction_suffix,
-			])
+			return _resolve_animation_exact("win_down")
+		"win":
+			return _resolve_animation_exact("win_down")
 		"defeat":
-			direction_suffix = "down"
-			return _resolve_animation_with_fallbacks([
-				"defeat_%s" % direction_suffix,
-				"dead_%s" % direction_suffix,
-				"idle_%s" % direction_suffix,
-			])
+			return _resolve_animation_exact("defeat_down")
 		"dead":
-			direction_suffix = "down"
-			return _resolve_animation_with_fallbacks([
-				"dead_%s" % direction_suffix,
-				"idle_%s" % direction_suffix,
-			])
+			return _resolve_animation_exact("dead_down")
 		_:
 			pass
 	if not alive:
-		direction_suffix = "down"
-		return _resolve_animation_with_fallbacks([
-			"dead_%s" % direction_suffix,
-			"idle_%s" % direction_suffix,
-		])
+		return _resolve_animation_exact("dead_down")
 	if anim_is_moving:
-		return _resolve_animation_with_fallbacks([
-			"run_%s" % direction_suffix,
-			"idle_%s" % direction_suffix,
-		])
-	return _resolve_animation_with_fallbacks([
-		"idle_%s" % direction_suffix,
-	])
+		return _resolve_animation_exact("run_%s" % direction_suffix)
+	return _resolve_animation_exact("idle_%s" % direction_suffix)
 
 
 func _resolve_direction_suffix(facing: int) -> String:
@@ -191,21 +179,17 @@ func _is_moving_state(move_state: int) -> bool:
 	return move_state == 1 or move_state == 3
 
 
-func _resolve_animation_with_fallback(primary: String, fallback: String) -> String:
+func set_dynamic_color(color: Color, enabled: bool = true) -> void:
+	_dynamic_color = color
+	_dynamic_color_enabled = enabled
+	_apply_dynamic_color_to_sprite()
+
+
+func _resolve_animation_exact(animation_name: String) -> String:
 	if _body_sprite == null or _body_sprite.sprite_frames == null:
 		return ""
-	if not primary.is_empty() and _body_sprite.sprite_frames.has_animation(primary):
-		return primary
-	if not fallback.is_empty() and _body_sprite.sprite_frames.has_animation(fallback):
-		return fallback
-	return ""
-
-
-func _resolve_animation_with_fallbacks(candidates: Array[String]) -> String:
-	for candidate in candidates:
-		var resolved := _resolve_animation_with_fallback(candidate, "")
-		if not resolved.is_empty():
-			return resolved
+	if not animation_name.is_empty() and _body_sprite.sprite_frames.has_animation(animation_name):
+		return animation_name
 	return ""
 
 
@@ -217,3 +201,12 @@ func _resolve_sprite_pivot(animation_set: CharacterAnimationSetDef) -> Vector2:
 	if animation_set.pivot_origin == Vector2.ZERO and animation_set.pivot != Vector2.ZERO:
 		resolved_origin = animation_set.pivot
 	return resolved_origin + animation_set.pivot_adjust
+
+
+func _apply_dynamic_color_to_sprite() -> void:
+	if _body_sprite == null:
+		return
+	if _dynamic_color_enabled:
+		_body_sprite.modulate = Color.WHITE.lerp(_dynamic_color, 0.45)
+	else:
+		_body_sprite.modulate = Color.WHITE

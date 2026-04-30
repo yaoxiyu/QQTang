@@ -1,14 +1,21 @@
 extends "res://scenes/front/room/room_formal_loadout_presenter.gd"
 
+var _formal_slot_grid_signature: String = ""
+
+
 func _refresh_formal_room_slots(snapshot: RoomSnapshot, view_model: Dictionary) -> void:
 	if _formal_slot_grid == null or snapshot == null:
 		return
-	for child in _formal_slot_grid.get_children():
-		child.queue_free()
 	var open_slot_count := _resolve_formal_open_slot_count(snapshot, view_model)
 	var max_player_count := int(view_model.get("max_player_count", snapshot.max_players))
 	if max_player_count <= 0:
 		max_player_count = FORMAL_ROOM_SLOT_COUNT
+	var signature := _build_formal_slot_grid_signature(snapshot, view_model, open_slot_count, max_player_count)
+	if signature == _formal_slot_grid_signature and _formal_slot_grid.get_child_count() > 0:
+		return
+	_formal_slot_grid_signature = signature
+	for child in _formal_slot_grid.get_children():
+		child.queue_free()
 	for slot_index in range(FORMAL_ROOM_SLOT_COUNT):
 		var member := _find_member_for_slot(snapshot, slot_index)
 		var is_open := slot_index < open_slot_count
@@ -28,7 +35,7 @@ func _create_formal_slot_card(slot_index: int, member: RoomMemberState, is_open:
 		button.tooltip_text = member.player_name
 		button.set_meta("ui_asset_id", "ui.room.slot.occupied")
 		button.pressed.connect(Callable(self, "_show_formal_member_profile").bind(_member_to_profile_payload(member)))
-		_apply_room_square_button_style(button, RoomTeamPaletteScript.color_for_team(member.team_id))
+		_apply_room_square_button_style(button, Color(0.40, 0.53, 0.54, 0.86))
 		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 122.0, member.team_id)
 	elif is_open:
 		button.text = ""
@@ -162,6 +169,30 @@ func _required_formal_open_slot_count(snapshot: RoomSnapshot, view_model: Dictio
 
 func _is_formal_custom_slot_open(slot_index: int, max_player_count: int) -> bool:
 	return slot_index < max_player_count and not _formal_closed_slots.has(slot_index)
+
+
+func _build_formal_slot_grid_signature(snapshot: RoomSnapshot, view_model: Dictionary, open_slot_count: int, max_player_count: int) -> String:
+	var parts := PackedStringArray()
+	parts.append(str(open_slot_count))
+	parts.append(str(max_player_count))
+	parts.append(str(bool(view_model.get("is_custom_room", false))))
+	var open_slots := snapshot.open_slot_indices.duplicate()
+	open_slots.sort()
+	for slot_index in open_slots:
+		parts.append("open:%d" % int(slot_index))
+	for member in snapshot.sorted_members():
+		if member == null:
+			continue
+		parts.append("%d:%d:%s:%s:%d:%s:%s" % [
+			int(member.slot_index),
+			int(member.peer_id),
+			String(member.player_name),
+			String(member.character_id),
+			int(member.team_id),
+			String(member.character_skin_id),
+			String(member.connection_state),
+		])
+	return "|".join(parts)
 
 
 func _sync_formal_closed_slots_from_snapshot(snapshot: RoomSnapshot, view_model: Dictionary) -> void:

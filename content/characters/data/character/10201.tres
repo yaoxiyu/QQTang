@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_cqoyl")
 character_id = "10201"
-display_name = "资源角色10201"
+display_name = "泰坦"
 stats_id = "char_stats_qqt_10201"
 presentation_id = "char_pres_qqt_10201"
 default_bubble_style_id = "bubble_round"
 selection_order = 10201
-content_hash = "char_def_10201_csv_v1"
+type = 1
+content_hash = "char_def_10201_csv_v2"

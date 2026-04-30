@@ -5,9 +5,10 @@
 [resource]
 script = ExtResource("1_6kq3e")
 character_id = "10501"
-display_name = "资源角色10501"
+display_name = "波波丽"
 stats_id = "char_stats_qqt_10501"
 presentation_id = "char_pres_qqt_10501"
 default_bubble_style_id = "bubble_round"
 selection_order = 10501
-content_hash = "char_def_10501_csv_v1"
+type = 1
+content_hash = "char_def_10501_csv_v2"

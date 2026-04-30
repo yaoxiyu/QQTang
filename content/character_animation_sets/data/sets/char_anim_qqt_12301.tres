@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_ebv4o"]
+
+[resource]
+script = ExtResource("1_ebv4o")
+animation_set_id = "char_anim_qqt_12301"
+display_name = "资源角色12301"
+frame_width = 100
+frame_height = 100
+frames_per_direction = 1
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "qqt_12301_layered_bake_v1"
