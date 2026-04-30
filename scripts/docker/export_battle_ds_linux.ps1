@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot_console.exe'),
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
     [string]$Preset = 'Linux Dedicated Server',
     [string]$OutputPath = 'build/docker/battle_ds/qqtang_battle_ds.x86_64',
     [string]$PackOutputPath = 'build/docker/battle_ds/qqtang_battle_ds.pck',

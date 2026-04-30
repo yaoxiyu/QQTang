@@ -23,7 +23,7 @@ $resolvedEnvFile = Get-QQTEnvFilePath -ServiceRoot $serviceRoot -Profile $Profil
 Import-QQTDotEnv -EnvFile $resolvedEnvFile
 
 Set-DefaultEnv 'DSM_HTTP_ADDR' $cfg.DSM.ListenAddr
-Set-DefaultEnv 'DSM_GODOT_EXECUTABLE' (Join-Path $projectRoot 'godot_binary\Godot_console.exe')
+Set-DefaultEnv 'DSM_GODOT_EXECUTABLE' (Join-Path $projectRoot 'external\godot_binary\Godot_console.exe')
 Set-DefaultEnv 'DSM_PROJECT_ROOT' $projectRoot
 Set-DefaultEnv 'DSM_BATTLE_SCENE_PATH' 'res://scenes/network/dedicated_server_scene.tscn'
 Set-DefaultEnv 'DSM_BATTLE_TICKET_SECRET' 'dev_battle_ticket_secret'

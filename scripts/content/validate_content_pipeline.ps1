@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot_console.exe'),
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
     [string]$ProjectPath = ''
 )
 
@@ -27,6 +27,7 @@ $reportPath = Join-Path $repoRoot 'build\generated\content_reports\content_pipel
     'res://tests/contracts/content/room_manifest_matches_catalog_contract_test.gd',
     'res://tests/contracts/content/generated_catalog_index_contract_test.gd',
     'res://tests/contracts/content/generated_catalog_index_matches_room_manifest_test.gd',
+    'res://tests/contracts/content/explosion_flame_asset_contract_test.gd',
     'res://tests/contracts/content/character_animation_pipeline_contract_test.gd'
 )
 

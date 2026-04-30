@@ -35,7 +35,7 @@ content_source/asset_intake/
 ## 验证入口
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/validation/run_phase38_asset_pipeline_validation.ps1 -GodotExe godot_binary/Godot_console.exe
+powershell -ExecutionPolicy Bypass -File scripts/validation/run_phase38_asset_pipeline_validation.ps1 -GodotExe external/godot_binary/Godot_console.exe
 ```
 
 该入口会执行 asset pipeline dry-run、Python 测试、GDScript 语法预检、content pipeline 和 Phase38 关键 GUT 合同。

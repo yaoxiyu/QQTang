@@ -27,6 +27,7 @@ $checks = @(
         Paths = @('app', 'content', 'services', 'tools')
         Excludes = @(
             'content_source',
+            'content/character_animation_sets/generated',
             'content/match_formats',
             'content/maps/resources',
             'tests',

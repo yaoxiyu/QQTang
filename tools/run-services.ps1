@@ -6,7 +6,7 @@ param(
     [switch]$SkipDb,
     [switch]$SkipMigration,
     [switch]$LogSQL,
-    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\godot_binary\Godot_console.exe'),
+    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\external\godot_binary\Godot_console.exe'),
     [string]$DSMContainerGodotExecutable = 'godot4',
     [int]$DSMPortRangeStart = 19010,
     [int]$DSMPortRangeEnd = 19050,

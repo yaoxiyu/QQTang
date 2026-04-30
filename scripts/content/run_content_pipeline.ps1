@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\godot_binary\Godot_console.exe'),
+    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
     [string]$ProjectPath = ''
 )
 
@@ -20,6 +20,11 @@ try {
 
     if ($LASTEXITCODE -ne 0) {
         throw "content pipeline failed (godot exit code: $LASTEXITCODE)"
+    }
+
+    $syncQqtAnimationSetsScript = Join-Path $projectRoot 'scripts\content\sync_qqt_animation_set_rows.ps1'
+    if (Test-Path -LiteralPath $syncQqtAnimationSetsScript) {
+        & $syncQqtAnimationSetsScript -ProjectPath $projectRoot -AssetPackRoot (Join-Path $projectRoot 'external\assets')
     }
 
     $requiredPaths = @(
