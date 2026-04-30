@@ -2,6 +2,7 @@ extends ContentCsvGeneratorBase
 class_name GenerateBubbleAnimationSets
 
 const BubbleAnimationSetDefScript = preload("res://content/bubble_animation_sets/defs/bubble_animation_set_def.gd")
+const AssetPathResolverScript = preload("res://content/assets/runtime/asset_path_resolver.gd")
 
 const INPUT_CSV_PATH := "res://content_source/csv/bubble_animation_sets/bubble_animation_sets.csv"
 const OUTPUT_DEF_DIR := "res://content/bubble_animation_sets/data/sets/"
@@ -42,7 +43,8 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 	if source_layout_type != "grid" and source_layout_type != "strip":
 		push_error("BubbleAnimationSet %s invalid source_layout_type: %s" % [animation_set_id, source_layout_type])
 		return
-	if source_image_path.is_empty() or not FileAccess.file_exists(ProjectSettings.globalize_path(source_image_path)):
+	var resolved_source_image_path := AssetPathResolverScript.resolve_path(source_image_path)
+	if source_image_path.is_empty() or resolved_source_image_path.is_empty() or not FileAccess.file_exists(resolved_source_image_path):
 		push_error("BubbleAnimationSet %s missing source image: %s" % [animation_set_id, source_image_path])
 		return
 	if frame_width <= 0 or frame_height <= 0 or frame_count <= 0:
@@ -52,7 +54,7 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 		push_error("BubbleAnimationSet %s invalid layout size: %dx%d" % [animation_set_id, source_columns, source_rows])
 		return
 
-	var image := Image.load_from_file(ProjectSettings.globalize_path(source_image_path))
+	var image := Image.load_from_file(resolved_source_image_path)
 	if image == null or image.is_empty():
 		push_error("BubbleAnimationSet %s failed to load source image: %s" % [animation_set_id, source_image_path])
 		return

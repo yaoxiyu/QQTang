@@ -2,6 +2,7 @@ class_name JellyTrapEffectView
 extends Node2D
 
 const VfxAnimationSetLoaderScript = preload("res://content/vfx_animation_sets/runtime/vfx_animation_set_loader.gd")
+const JELLY_OVERLAY_ALPHA := 0.58
 
 @onready var _sprite: AnimatedSprite2D = get_node_or_null("EffectSprite")
 
@@ -17,6 +18,7 @@ func setup(vfx_set_id: String) -> bool:
 	_sprite.sprite_frames = _vfx_set.sprite_frames
 	_sprite.centered = false
 	_sprite.position = -_vfx_set.pivot
+	_sprite.self_modulate = Color(1.0, 1.0, 1.0, JELLY_OVERLAY_ALPHA)
 	return true
 
 
@@ -70,4 +72,3 @@ func _on_animation_finished() -> void:
 		return
 	if String(_sprite.animation) == "enter":
 		play_loop()
-

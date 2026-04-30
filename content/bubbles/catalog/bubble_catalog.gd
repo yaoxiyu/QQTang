@@ -42,6 +42,10 @@ static func load_all() -> void:
 				"display_name": String(def.display_name if not def.display_name.is_empty() else bubble_id),
 				"style_resource_path": resource_path,
 				"gameplay_resource_path": String(gameplay_by_id.get(_resolve_gameplay_id_for_style(bubble_id), "")),
+				"type": int(def.bubble_type),
+				"power": int(def.power),
+				"footprint_cells": int(def.footprint_cells),
+				"player_obtainable": bool(def.player_obtainable),
 			}
 
 	if _bubble_registry.is_empty():
@@ -68,6 +72,10 @@ static func _load_from_generated_index() -> bool:
 			"display_name": String(entry.get("display_name", bubble_id)),
 			"style_resource_path": String(entry.get("style_resource_path", "")),
 			"gameplay_resource_path": String(entry.get("gameplay_resource_path", "")),
+			"type": int(entry.get("type", 1)),
+			"power": int(entry.get("power", 1)),
+			"footprint_cells": int(entry.get("footprint_cells", 1)),
+			"player_obtainable": bool(entry.get("player_obtainable", true)),
 		}
 	_ordered_bubble_ids.clear()
 	for bubble_id in _bubble_registry.keys():
@@ -105,6 +113,10 @@ static func get_bubble_entries() -> Array[Dictionary]:
 			"display_name": String(entry.get("display_name", bubble_id)),
 			"style_resource_path": String(entry.get("style_resource_path", "")),
 			"gameplay_resource_path": String(entry.get("gameplay_resource_path", "")),
+			"type": int(entry.get("type", 1)),
+			"power": int(entry.get("power", 1)),
+			"footprint_cells": int(entry.get("footprint_cells", 1)),
+			"player_obtainable": bool(entry.get("player_obtainable", true)),
 			"is_default": bubble_id == get_default_bubble_id(),
 		})
 	return entries

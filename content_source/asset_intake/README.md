@@ -28,6 +28,5 @@ content_source/asset_intake/<asset_type>/<asset_key>/
 - `character/phase38_demo_character`
 - `bubble/phase38_demo_bubble`
 - `map_tile/phase38_demo_horizontal_pass`
-- `vfx_jelly_trap/phase38_demo_jelly`
 
 这些包用于验证流水线，不代表最终商业美术质量。

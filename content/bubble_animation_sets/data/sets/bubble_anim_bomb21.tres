@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BubbleAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/bubble_animation_sets/defs/bubble_animation_set_def.gd" id="1_06xtm"]
+[ext_resource type="SpriteFrames" path="res://content/bubble_animation_sets/generated/sprite_frames/bubble_anim_bomb21_frames.tres" id="2_v02xt"]
+
+[resource]
+script = ExtResource("1_06xtm")
+animation_set_id = "bubble_anim_bomb21"
+display_name = "QQT泡泡bomb21"
+sprite_frames = ExtResource("2_v02xt")
+frame_width = 46
+frame_height = 55
+frame_count = 4
+content_hash = "bubble_anim_bomb21_stand_v1"

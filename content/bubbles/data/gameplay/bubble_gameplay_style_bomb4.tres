@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BubbleGameplayDef" format=3]
+
+[ext_resource type="Script" path="res://content/bubbles/defs/bubble_gameplay_def.gd" id="1_ckycy"]
+
+[resource]
+script = ExtResource("1_ckycy")
+bubble_gameplay_id = "bubble_gameplay_style_bomb4"
+fuse_ticks = 180
+can_be_kicked = true
+content_hash = "bubble_gameplay_bubble_gameplay_style_bomb4_csv_v1"

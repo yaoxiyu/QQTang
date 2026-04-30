@@ -1,3 +1,15 @@
 animation_set_id,display_name,source_layout_type,source_image_path,frame_width,frame_height,frame_count,source_columns,source_rows,idle_fps,idle_frame_index,loop_idle,content_hash
-bubble_anim_normal,普通泡泡,grid,res://assets/animation/bubbles/normal/bubble_normal_grid.png,64,64,16,4,4,10,0,true,bubble_anim_normal_csv_v2
-bubble_anim_phase38_demo_bubble,Phase38 Demo Bubble,grid,res://content_source/asset_intake/bubble/phase38_demo_bubble/source/bubble_idle_grid.png,64,64,16,4,4,10,0,true,phase38_37585a0b8cbbf962
+bubble_anim_bomb_yx,QQT泡泡bomb_yx,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb_yx_stand_strip.png,46,43,4,4,1,10,0,true,bubble_anim_bomb_yx_stand_v1
+bubble_anim_normal,普通泡泡,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb1_stand_strip.png,44,42,4,4,1,10,0,true,bubble_anim_bomb1_stand_v1
+bubble_anim_bomb11,QQT泡泡bomb11,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb11_stand_strip.png,86,83,4,4,1,10,0,true,bubble_anim_bomb11_stand_v1
+bubble_anim_bomb12,QQT泡泡bomb12,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb12_stand_strip.png,88,114,4,4,1,10,0,true,bubble_anim_bomb12_stand_v1
+bubble_anim_bomb125,QQT泡泡bomb125,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb125_stand_strip.png,46,55,4,4,1,10,0,true,bubble_anim_bomb125_stand_v1
+bubble_anim_bomb13,QQT泡泡bomb13,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb13_stand_strip.png,60,60,4,4,1,10,0,true,bubble_anim_bomb13_stand_v1
+bubble_anim_bomb14,QQT泡泡bomb14,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb14_stand_strip.png,116,98,3,3,1,10,0,true,bubble_anim_bomb14_stand_v1
+bubble_anim_bomb2,QQT泡泡bomb2,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb2_stand_strip.png,44,50,5,5,1,10,0,true,bubble_anim_bomb2_stand_v1
+bubble_anim_bomb21,QQT泡泡bomb21,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb21_stand_strip.png,46,55,4,4,1,10,0,true,bubble_anim_bomb21_stand_v1
+bubble_anim_bomb310,QQT泡泡bomb310,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb310_stand_strip.png,41,43,4,4,1,10,0,true,bubble_anim_bomb310_stand_v1
+bubble_anim_bomb4,QQT泡泡bomb4,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb4_stand_strip.png,46,44,4,4,1,10,0,true,bubble_anim_bomb4_stand_v1
+bubble_anim_bomb462,QQT泡泡bomb462,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb462_stand_strip.png,44,48,4,4,1,10,0,true,bubble_anim_bomb462_stand_v1
+bubble_anim_bomb497,QQT泡泡bomb497,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb497_stand_strip.png,44,41,4,4,1,10,0,true,bubble_anim_bomb497_stand_v1
+bubble_anim_bomb9,QQT泡泡bomb9,strip,asset://qqt-assets/derived/assets/animation/bubbles/qqt_bomb/bomb9_stand_strip.png,43,57,4,4,1,10,0,true,bubble_anim_bomb9_stand_v1

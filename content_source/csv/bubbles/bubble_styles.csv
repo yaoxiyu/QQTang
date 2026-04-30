@@ -1,2 +1,14 @@
-bubble_style_id,display_name,animation_set_id,base_scene_path,idle_anim,move_anim,explode_anim,hud_icon_path
-bubble_round,圆形泡泡,bubble_anim_normal,,idle,move,explode,
+bubble_style_id,display_name,animation_set_id,type,power,player_obtainable,base_scene_path,idle_anim,move_anim,explode_anim,hud_icon_path
+bubble_style_bomb_yx,QQT泡泡bomb_yx,bubble_anim_bomb_yx,1,1,true,,idle,move,explode,
+bubble_style_bomb11,QQT泡泡bomb11,bubble_anim_bomb11,1,2,false,,idle,move,explode,
+bubble_style_bomb12,QQT泡泡bomb12,bubble_anim_bomb12,1,2,false,,idle,move,explode,
+bubble_style_bomb125,QQT泡泡bomb125,bubble_anim_bomb125,1,1,true,,idle,move,explode,
+bubble_style_bomb13,QQT泡泡bomb13,bubble_anim_bomb13,2,1,false,,idle,move,explode,
+bubble_style_bomb14,QQT泡泡bomb14,bubble_anim_bomb14,2,2,false,,idle,move,explode,
+bubble_style_bomb2,QQT泡泡bomb2,bubble_anim_bomb2,1,1,false,,idle,move,explode,
+bubble_style_bomb21,QQT泡泡bomb21,bubble_anim_bomb21,1,1,true,,idle,move,explode,
+bubble_style_bomb310,QQT泡泡bomb310,bubble_anim_bomb310,1,1,true,,idle,move,explode,
+bubble_style_bomb4,QQT泡泡bomb4,bubble_anim_bomb4,1,1,true,,idle,move,explode,
+bubble_style_bomb462,QQT泡泡bomb462,bubble_anim_bomb462,1,1,true,,idle,move,explode,
+bubble_style_bomb497,QQT泡泡bomb497,bubble_anim_bomb497,1,1,true,,idle,move,explode,
+bubble_style_bomb9,QQT泡泡bomb9,bubble_anim_bomb9,1,1,true,,idle,move,explode,

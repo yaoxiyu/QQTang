@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="BubbleStyleDef" format=3]
+
+[ext_resource type="Script" path="res://content/bubbles/defs/bubble_style_def.gd" id="1_mamuf"]
+
+[resource]
+script = ExtResource("1_mamuf")
+bubble_style_id = "bubble_style_bomb2"
+display_name = "QQT泡泡bomb2"
+animation_set_id = "bubble_anim_bomb2"
+player_obtainable = false
+content_hash = "bubble_style_bubble_style_bomb2_csv_v2"

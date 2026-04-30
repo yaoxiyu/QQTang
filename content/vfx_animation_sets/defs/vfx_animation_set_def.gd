@@ -4,6 +4,9 @@ extends Resource
 @export var vfx_set_id: String = ""
 @export var display_name: String = ""
 @export var sprite_frames: SpriteFrames
+@export var enter_strip_path: String = ""
+@export var loop_strip_path: String = ""
+@export var release_strip_path: String = ""
 @export var frame_width: int = 0
 @export var frame_height: int = 0
 @export var enter_frames: int = 0

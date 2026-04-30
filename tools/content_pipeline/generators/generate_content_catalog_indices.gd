@@ -64,6 +64,7 @@ func _character_entries() -> Array:
 			"stats_resource_path": String(catalog_entry.get("stats_resource_path", "")),
 			"presentation_resource_path": String(catalog_entry.get("presentation_resource_path", "")),
 			"selection_order": int(entry.get("selection_order", 999999)),
+			"type": int(entry.get("type", 0)),
 			"content_hash": String(entry.get("content_hash", "")),
 		})
 	return result
@@ -82,6 +83,10 @@ func _bubble_entries() -> Array:
 			"display_name": String(entry.get("display_name", bubble_id)),
 			"style_resource_path": String(entry.get("style_resource_path", "")),
 			"gameplay_resource_path": String(entry.get("gameplay_resource_path", "")),
+			"type": int(entry.get("type", 1)),
+			"power": int(entry.get("power", 1)),
+			"footprint_cells": int(entry.get("footprint_cells", 1)),
+			"player_obtainable": bool(entry.get("player_obtainable", true)),
 		})
 	return result
 

@@ -23,7 +23,14 @@ func generate() -> void:
 		def.presentation_id = get_cell(row, header_index, "presentation_id")
 		def.default_bubble_style_id = get_cell(row, header_index, "default_bubble_style_id")
 		def.selection_order = int(get_cell(row, header_index, "selection_order").to_int())
-		def.content_hash = "char_def_%s_csv_v1" % def.character_id
+		def.type = _parse_character_type(get_cell(row, header_index, "type"))
+		def.content_hash = "char_def_%s_csv_v2" % def.character_id
 
 		var output_path := OUTPUT_DIR + def.character_id + ".tres"
 		save_resource(def, output_path)
+
+
+func _parse_character_type(value: String) -> int:
+	if value.strip_edges().is_empty():
+		return 0
+	return value.to_int()

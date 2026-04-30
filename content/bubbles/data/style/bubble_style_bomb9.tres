@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="BubbleStyleDef" format=3]
+
+[ext_resource type="Script" path="res://content/bubbles/defs/bubble_style_def.gd" id="1_5lc6l"]
+
+[resource]
+script = ExtResource("1_5lc6l")
+bubble_style_id = "bubble_style_bomb9"
+display_name = "QQT泡泡bomb9"
+animation_set_id = "bubble_anim_bomb9"
+content_hash = "bubble_style_bubble_style_bomb9_csv_v2"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BubbleStyleDef" format=3]
+
+[ext_resource type="Script" path="res://content/bubbles/defs/bubble_style_def.gd" id="1_uhc1s"]
+
+[resource]
+script = ExtResource("1_uhc1s")
+bubble_style_id = "bubble_style_bomb12"
+display_name = "QQT泡泡bomb12"
+animation_set_id = "bubble_anim_bomb12"
+power = 2
+footprint_cells = 4
+player_obtainable = false
+content_hash = "bubble_style_bubble_style_bomb12_csv_v2"
