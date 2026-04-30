@@ -24,6 +24,8 @@ var alive: bool = true
 
 var owner_player_id: int = -1
 var bubble_type: int = 0  # 默认类型
+var power: int = 1
+var footprint_cells: int = 1
 
 # ====================
 # 位置
@@ -63,3 +65,18 @@ var remote_group_id: int = 0
 
 # 当前允许与该泡泡重叠并穿出的玩家ID列表
 var ignore_player_ids: Array[int] = []
+
+
+func footprint_size() -> int:
+	return maxi(1, int(ceil(sqrt(float(maxi(1, footprint_cells))))))
+
+
+func get_footprint_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var size := footprint_size()
+	for y in range(size):
+		for x in range(size):
+			if cells.size() >= maxi(1, footprint_cells):
+				return cells
+			cells.append(Vector2i(cell_x + x, cell_y + y))
+	return cells

@@ -66,51 +66,17 @@ func execute(ctx: SimContext) -> void:
 
 		var center_x: int = bubble.cell_x
 		var center_y: int = bubble.cell_y
-		var bubble_range: int = bubble.bubble_range
 
 		var covered_cells: Array[Vector2i] = []
-		covered_cells.append(Vector2i(center_x, center_y))
-		_collect_hits_at_cell(ctx, bubble, center_x, center_y, pending_bubble_queue)
-
-		for dir in PROPAGATION_DIRS:
-			for i in range(1, bubble_range + 1):
-				var check_x: int = center_x + dir.x * i
-				var check_y: int = center_y + dir.y * i
-
-				if not ctx.queries.is_in_bounds(check_x, check_y):
-					break
-
-				var static_cell = ctx.state.grid.get_static_cell(check_x, check_y)
-				if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
-					break
-
-				covered_cells.append(Vector2i(check_x, check_y))
-				if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
-					var block_reaction: Dictionary = ExplosionReactionResolver.resolve_breakable_block_reaction(
-						ctx,
-						check_x,
-						check_y
-					)
-					if bool(block_reaction.get("should_register_hit", false)):
-						_register_block_hit(ctx, bubble, check_x, check_y, block_reaction)
-					if int(block_reaction.get("reaction", ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP)) == ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP:
-						var block_cell := Vector2i(check_x, check_y)
-						if not ctx.scratch.cells_to_destroy.has(block_cell):
-							ctx.scratch.cells_to_destroy.append(block_cell)
-					if bool(block_reaction.get("should_stop_propagation", true)):
-						break
-					continue
-
-				_collect_hits_at_cell(ctx, bubble, check_x, check_y, pending_bubble_queue)
+		if _is_square_explosion(bubble):
+			_resolve_square_explosion(ctx, bubble, pending_bubble_queue, covered_cells)
+		else:
+			_resolve_cross_explosion(ctx, bubble, pending_bubble_queue, covered_cells)
 
 		bubble.alive = false
 		ctx.state.bubbles.active_ids.erase(bubble_id)
 		ctx.state.indexes.active_bubble_ids.erase(bubble_id)
-		if ctx.state.grid.is_in_bounds(center_x, center_y):
-			var exploded_idx := ctx.state.grid.to_cell_index(center_x, center_y)
-			if exploded_idx >= 0 and exploded_idx < ctx.state.indexes.bubbles_by_cell.size():
-				if ctx.state.indexes.bubbles_by_cell[exploded_idx] == bubble_id:
-					ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
+		_clear_bubble_indexes(ctx, bubble)
 
 		ctx.scratch.exploded_bubble_ids.append(bubble_id)
 
@@ -124,6 +90,104 @@ func execute(ctx: SimContext) -> void:
 		}
 		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, center_x, center_y, covered_cells)
 		ctx.events.push(exploded_event)
+
+
+func _is_square_explosion(bubble: BubbleState) -> bool:
+	return bubble.bubble_type == 2
+
+
+func _resolve_cross_explosion(
+	ctx: SimContext,
+	bubble: BubbleState,
+	pending_bubble_queue: Array[int],
+	covered_cells: Array[Vector2i]
+) -> void:
+	var center_x: int = bubble.cell_x
+	var center_y: int = bubble.cell_y
+	var bubble_range: int = maxi(1, bubble.power)
+
+	_append_covered_cell(covered_cells, Vector2i(center_x, center_y))
+	_collect_hits_at_cell(ctx, bubble, center_x, center_y, pending_bubble_queue)
+
+	for dir in PROPAGATION_DIRS:
+		for i in range(1, bubble_range + 1):
+			var check_x: int = center_x + dir.x * i
+			var check_y: int = center_y + dir.y * i
+			var should_stop := _resolve_explosion_cell(ctx, bubble, check_x, check_y, pending_bubble_queue, covered_cells)
+			if should_stop:
+				break
+
+
+func _resolve_square_explosion(
+	ctx: SimContext,
+	bubble: BubbleState,
+	pending_bubble_queue: Array[int],
+	covered_cells: Array[Vector2i]
+) -> void:
+	var size := 3 if bubble.power <= 1 else 6
+	var footprint_size := bubble.footprint_size()
+	var margin := int((size - footprint_size) / 2)
+	var start_x := bubble.cell_x - margin
+	var start_y := bubble.cell_y - margin
+	for y in range(size):
+		for x in range(size):
+			_resolve_explosion_cell(
+				ctx,
+				bubble,
+				start_x + x,
+				start_y + y,
+				pending_bubble_queue,
+				covered_cells
+			)
+
+
+func _resolve_explosion_cell(
+	ctx: SimContext,
+	bubble: BubbleState,
+	cell_x: int,
+	cell_y: int,
+	pending_bubble_queue: Array[int],
+	covered_cells: Array[Vector2i]
+) -> bool:
+	if not ctx.queries.is_in_bounds(cell_x, cell_y):
+		return true
+
+	var static_cell = ctx.state.grid.get_static_cell(cell_x, cell_y)
+	if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
+		return true
+
+	_append_covered_cell(covered_cells, Vector2i(cell_x, cell_y))
+	if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
+		var block_reaction: Dictionary = ExplosionReactionResolver.resolve_breakable_block_reaction(
+			ctx,
+			cell_x,
+			cell_y
+		)
+		if bool(block_reaction.get("should_register_hit", false)):
+			_register_block_hit(ctx, bubble, cell_x, cell_y, block_reaction)
+		if int(block_reaction.get("reaction", ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP)) == ExplosionHitTypes.BlockReaction.DESTROY_AND_STOP:
+			var block_cell := Vector2i(cell_x, cell_y)
+			if not ctx.scratch.cells_to_destroy.has(block_cell):
+				ctx.scratch.cells_to_destroy.append(block_cell)
+		return bool(block_reaction.get("should_stop_propagation", true))
+
+	_collect_hits_at_cell(ctx, bubble, cell_x, cell_y, pending_bubble_queue)
+	return false
+
+
+func _append_covered_cell(covered_cells: Array[Vector2i], cell: Vector2i) -> void:
+	if not covered_cells.has(cell):
+		covered_cells.append(cell)
+
+
+func _clear_bubble_indexes(ctx: SimContext, bubble: BubbleState) -> void:
+	for footprint_cell in bubble.get_footprint_cells():
+		if not ctx.state.grid.is_in_bounds(footprint_cell.x, footprint_cell.y):
+			continue
+		var exploded_idx := ctx.state.grid.to_cell_index(footprint_cell.x, footprint_cell.y)
+		if exploded_idx >= 0 and exploded_idx < ctx.state.indexes.bubbles_by_cell.size():
+			if ctx.state.indexes.bubbles_by_cell[exploded_idx] == bubble.entity_id:
+				ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
 
 
 func _log_invalid_explosion_coverage_if_needed(
@@ -437,11 +501,7 @@ func _apply_native_processed_bubbles(ctx: SimContext, processed_bubble_ids: Arra
 		bubble.alive = false
 		ctx.state.bubbles.active_ids.erase(bubble_id)
 		ctx.state.indexes.active_bubble_ids.erase(bubble_id)
-		if ctx.state.grid.is_in_bounds(bubble.cell_x, bubble.cell_y):
-			var exploded_idx := ctx.state.grid.to_cell_index(bubble.cell_x, bubble.cell_y)
-			if exploded_idx >= 0 and exploded_idx < ctx.state.indexes.bubbles_by_cell.size():
-				if ctx.state.indexes.bubbles_by_cell[exploded_idx] == bubble_id:
-					ctx.state.indexes.bubbles_by_cell[exploded_idx] = -1
+		_clear_bubble_indexes(ctx, bubble)
 
 		ctx.scratch.exploded_bubble_ids.append(bubble_id)
 		var bubble_covered_cells: Array[Vector2i] = [Vector2i(bubble.cell_x, bubble.cell_y)]

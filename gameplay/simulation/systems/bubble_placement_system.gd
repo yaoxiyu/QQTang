@@ -48,10 +48,13 @@ func execute(ctx: SimContext) -> void:
 		var place_cell := BubblePlaceResolver.resolve_place_cell(player)
 		var cell_x := place_cell.x
 		var cell_y := place_cell.y
+		var bubble_loadout := _resolve_bubble_loadout(ctx, player)
+		var bubble_type := int(bubble_loadout.get("type", bubble_loadout.get("bubble_type", 0)))
+		var bubble_power := maxi(1, int(bubble_loadout.get("power", player.bomb_range)))
+		var footprint_cells := maxi(1, int(bubble_loadout.get("footprint_cells", 1)))
+		var footprint := _build_footprint(cell_x, cell_y, footprint_cells)
 
-		# 检查当前格是否有泡泡
-		var bubble_at_cell = ctx.queries.get_bubble_at(cell_x, cell_y)
-		if bubble_at_cell != -1:
+		if not _can_place_footprint(ctx, footprint):
 			ctx.state.players.update_player(player)
 			continue
 
@@ -61,8 +64,11 @@ func execute(ctx: SimContext) -> void:
 			player_id,
 			cell_x,
 			cell_y,
-			player.bomb_range,
-			explode_tick
+			bubble_power,
+			explode_tick,
+			bubble_type,
+			bubble_power,
+			footprint_cells
 		)
 
 		# 更新玩家状态
@@ -79,8 +85,8 @@ func execute(ctx: SimContext) -> void:
 			ctx.state.bubbles.update_bubble(bubble)
 
 		# 增量更新泡泡索引，保证同 Tick 内可被查询到
-		if ctx.state.grid.is_in_bounds(cell_x, cell_y):
-			var cell_idx := ctx.state.grid.to_cell_index(cell_x, cell_y)
+		for footprint_cell in footprint:
+			var cell_idx := ctx.state.grid.to_cell_index(footprint_cell.x, footprint_cell.y)
 			if cell_idx >= 0 and cell_idx < ctx.state.indexes.bubbles_by_cell.size():
 				ctx.state.indexes.bubbles_by_cell[cell_idx] = bubble_id
 		if not ctx.state.indexes.active_bubble_ids.has(bubble_id):
@@ -93,6 +99,56 @@ func execute(ctx: SimContext) -> void:
 			"owner_player_id": player_id,
 			"cell_x": cell_x,
 			"cell_y": cell_y,
-			"explode_tick": explode_tick
+			"explode_tick": explode_tick,
+			"bubble_type": bubble_type,
+			"power": bubble_power,
+			"footprint_cells": footprint_cells
 		}
 		ctx.events.push(placed_event)
+
+
+func _can_place_footprint(ctx: SimContext, footprint: Array[Vector2i]) -> bool:
+	for cell in footprint:
+		if ctx.queries.is_hard_blocked(cell.x, cell.y):
+			return false
+		if ctx.queries.get_bubble_at(cell.x, cell.y) != -1:
+			return false
+	return true
+
+
+func _build_footprint(cell_x: int, cell_y: int, footprint_cells: int) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var size := maxi(1, int(ceil(sqrt(float(maxi(1, footprint_cells))))))
+	for y in range(size):
+		for x in range(size):
+			if cells.size() >= maxi(1, footprint_cells):
+				return cells
+			cells.append(Vector2i(cell_x + x, cell_y + y))
+	return cells
+
+
+func _resolve_bubble_loadout(ctx: SimContext, player: PlayerState) -> Dictionary:
+	var player_slots := _coerce_dict_array(ctx.config.system_flags.get("player_slots", []))
+	var bubble_loadouts := _coerce_dict_array(ctx.config.system_flags.get("player_bubble_loadouts", []))
+	var peer_id := -1
+	for player_slot in player_slots:
+		if int(player_slot.get("slot_index", -1)) == player.player_slot:
+			peer_id = int(player_slot.get("peer_id", -1))
+			break
+	if peer_id >= 0:
+		for loadout in bubble_loadouts:
+			if int(loadout.get("peer_id", -2)) == peer_id:
+				return loadout
+	for loadout in bubble_loadouts:
+		if int(loadout.get("slot_index", -2)) == player.player_slot:
+			return loadout
+	return {}
+
+
+func _coerce_dict_array(raw_value: Variant) -> Array[Dictionary]:
+	var coerced: Array[Dictionary] = []
+	if raw_value is Array:
+		for entry in raw_value:
+			if entry is Dictionary:
+				coerced.append(entry)
+	return coerced

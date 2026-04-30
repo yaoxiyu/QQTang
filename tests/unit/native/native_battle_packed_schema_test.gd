@@ -52,13 +52,15 @@ func test_append_bubble_item_and_grid_update_arrays() -> void:
 	var builder := BuilderScript.new()
 	var state := builder.build_empty(1, 10, 10)
 
-	builder.append_bubble(state, {"entity_id": 7, "cell_x": 3, "cell_y": 4, "fire_power": 2})
+	builder.append_bubble(state, {"entity_id": 7, "cell_x": 3, "cell_y": 4, "fire_power": 2, "bubble_type": 2, "footprint_cells": 4})
 	builder.append_item(state, {"entity_id": 9, "item_type": 2, "cell_x": 5, "cell_y": 6})
 	builder.append_grid_cell(state, {"tile_type": 1, "tile_flags": 4})
 
 	assert_eq(ReaderScript.get_bubble_count(state), 1, "bubble count should update")
 	assert_eq(ReaderScript.get_item_count(state), 1, "item count should update")
 	assert_eq((state["bubbles"] as PackedInt32Array).size(), Schema.BUBBLE_STRIDE, "bubble array should grow by one stride")
+	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_RESERVED0], 2, "bubble type should be packed into reserved field")
+	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_RESERVED1], 4, "bubble footprint should be packed into reserved field")
 	assert_eq((state["items"] as PackedInt32Array).size(), Schema.ITEM_STRIDE, "item array should grow by one stride")
 	assert_eq((state["grid"] as PackedInt32Array).size(), Schema.GRID_STRIDE, "grid array should grow by one stride")
 

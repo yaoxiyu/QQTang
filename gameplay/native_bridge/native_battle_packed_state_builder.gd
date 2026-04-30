@@ -62,6 +62,8 @@ func append_bubble(state: Dictionary, bubble: Dictionary) -> void:
 	bubbles[base + Schema.BUBBLE_EXPLODE_TICK] = int(bubble.get("explode_tick", 0))
 	bubbles[base + Schema.BUBBLE_CHAIN_TRIGGERED] = 1 if bool(bubble.get("chain_triggered", false)) else 0
 	bubbles[base + Schema.BUBBLE_STYLE_ID_HASH] = Schema.stable_hash(_string_value(bubble, ["style_id"]))
+	bubbles[base + Schema.BUBBLE_RESERVED0] = int(bubble.get("bubble_type", bubble.get("type", 0)))
+	bubbles[base + Schema.BUBBLE_RESERVED1] = int(bubble.get("footprint_cells", 1))
 	state["bubbles"] = bubbles
 
 	var header: PackedInt32Array = state["header"]

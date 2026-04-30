@@ -81,6 +81,9 @@ func _pack_bubbles(sim_world: SimWorld) -> PackedInt32Array:
 		packed.append(bubble.cell_y)
 		packed.append(bubble.explode_tick)
 		packed.append(bubble.bubble_range)
+		packed.append(bubble.bubble_type)
+		packed.append(bubble.power)
+		packed.append(bubble.footprint_cells)
 		packed.append(int(bubble.alive))
 		for ignored_player_id in bubble.ignore_player_ids:
 			packed.append(int(ignored_player_id))

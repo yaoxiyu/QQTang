@@ -12,7 +12,9 @@
 
 - 已完成：内容表字段、生成资源、catalog metadata、战斗内容清单。
 - 已完成：type1/type2 爆炸火焰表现资源映射。
-- 未完成：战斗判定、放置占格、快照、checksum、native kernel 同步。
+- 已完成：GDScript 战斗判定、放置占格、泡泡索引、快照、checksum、native bridge 打包字段。
+- 已完成：native explosion kernel 支持 `bubble_type`、`power`、`footprint_cells`，type2 / 多格占位不再依赖 GDScript 回退。
+- 已完成：GDScript/native parity 专项测试与网络确定性测试。
 
 ### 目标
 
@@ -20,8 +22,8 @@
 
 ### 范围
 
-- `BubbleState` 增加并序列化 `bubble_type`、`power`、`footprint_cells`。
-- 放置泡泡时从玩家选择的 `bubble_style_id` 解析泡泡定义，写入 `BubbleState`。
+- `BubbleState` 增加并序列化 `bubble_type`、`power`、`footprint_cells`。（已完成）
+- 放置泡泡时从玩家选择的 `bubble_style_id` 解析泡泡定义，写入 `BubbleState`。（已完成）
 - type1 十字爆炸：
   - power1：中心 + 上下左右各 1 格。
   - power2：中心 + 上下左右各 2 格。
@@ -29,9 +31,9 @@
   - power1：3x3。
   - power2：6x6。
 - power1 泡泡占 1 格，power2 泡泡占 4 格。
-- 多格占位需要同步放置校验、移动阻挡、泡泡索引、链爆查询、索引清理。
-- 同步 snapshot、checksum、native bridge、native kernel。
-- 增加 GDScript/native parity 测试和联机确定性测试。
+- 多格占位需要同步放置校验、移动阻挡、泡泡索引、链爆查询、索引清理。（已完成）
+- 同步 snapshot、checksum、native bridge、native kernel。（已完成）
+- 增加 GDScript/native parity 测试和联机确定性测试。（已完成）
 
 ### 风险
 

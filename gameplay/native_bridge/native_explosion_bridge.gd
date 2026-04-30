@@ -7,7 +7,7 @@ const NativeWireContractScript = preload("res://gameplay/native_bridge/native_wi
 
 const LOG_TAG := "simulation.native.explosion"
 const EXPLOSION_PAYLOAD_MAGIC := 1163153745 # "QQTE" little-endian i32 marker.
-const BUBBLE_RECORD_STRIDE := 9
+const BUBBLE_RECORD_STRIDE := 12
 const PLAYER_RECORD_STRIDE := 6
 const ITEM_RECORD_STRIDE := 5
 const GRID_RECORD_STRIDE := 4
@@ -64,6 +64,9 @@ func _pack_bubble_records(ctx: SimContext) -> PackedInt32Array:
 		records.append(bubble.bubble_range)
 		records.append(int(bubble.pierce))
 		records.append(int(bubble.chain_triggered))
+		records.append(bubble.bubble_type)
+		records.append(bubble.power)
+		records.append(bubble.footprint_cells)
 	return records
 
 

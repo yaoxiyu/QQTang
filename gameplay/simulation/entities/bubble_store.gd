@@ -69,7 +69,10 @@ func spawn_bubble(
 	p_cell_x: int,
 	p_cell_y: int,
 	p_range: int = 1,
-	p_explode_tick: int = 60
+	p_explode_tick: int = 60,
+	p_bubble_type: int = 0,
+	p_power: int = 1,
+	p_footprint_cells: int = 1
 ) -> int:
 	var bubble := BubbleState.new()
 
@@ -81,6 +84,9 @@ func spawn_bubble(
 	bubble.spawn_tick = 0  # 由系统设置
 	bubble.explode_tick = p_explode_tick
 	bubble.bubble_range = p_range
+	bubble.bubble_type = p_bubble_type
+	bubble.power = maxi(1, p_power)
+	bubble.footprint_cells = maxi(1, p_footprint_cells)
 	bubble.alive = true
 	bubble.moving_state = BubbleState.MovingState.STATIC
 
@@ -106,11 +112,13 @@ func restore_bubble_from_snapshot(data: Dictionary) -> int:
 	bubble.alive = bool(data.get("alive", true))
 	bubble.owner_player_id = int(data.get("owner_player_id", -1))
 	bubble.bubble_type = int(data.get("bubble_type", bubble.bubble_type))
+	bubble.power = maxi(1, int(data.get("power", data.get("bubble_range", bubble.power))))
+	bubble.footprint_cells = maxi(1, int(data.get("footprint_cells", bubble.footprint_cells)))
 	bubble.cell_x = int(data.get("cell_x", 0))
 	bubble.cell_y = int(data.get("cell_y", 0))
 	bubble.spawn_tick = int(data.get("spawn_tick", 0))
 	bubble.explode_tick = int(data.get("explode_tick", 0))
-	bubble.bubble_range = int(data.get("bubble_range", 1))
+	bubble.bubble_range = int(data.get("bubble_range", bubble.power))
 	bubble.moving_state = int(data.get("moving_state", BubbleState.MovingState.STATIC))
 	bubble.move_dir_x = int(data.get("move_dir_x", 0))
 	bubble.move_dir_y = int(data.get("move_dir_y", 0))

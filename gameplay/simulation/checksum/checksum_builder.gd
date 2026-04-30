@@ -41,6 +41,9 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(bubble.cell_y)
 		parts.append(bubble.explode_tick)
 		parts.append(bubble.bubble_range)
+		parts.append(bubble.bubble_type)
+		parts.append(bubble.power)
+		parts.append(bubble.footprint_cells)
 		parts.append(int(bubble.alive))
 		for ignored_player_id in bubble.ignore_player_ids:
 			parts.append(ignored_player_id)

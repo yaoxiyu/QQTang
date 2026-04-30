@@ -30,7 +30,7 @@ enum TargetType {
 
 constexpr int32_t TILE_SOLID_WALL = 1;
 constexpr int32_t TILE_BREAKABLE_BLOCK = 2;
-constexpr int32_t BUBBLE_RECORD_STRIDE = 9;
+constexpr int32_t BUBBLE_RECORD_STRIDE = 12;
 constexpr int32_t PLAYER_RECORD_STRIDE = 6;
 constexpr int32_t ITEM_RECORD_STRIDE = 5;
 constexpr int32_t GRID_RECORD_STRIDE = 4;
@@ -45,6 +45,9 @@ struct BubbleRecord {
     int32_t bubble_range = 1;
     bool pierce = false;
     bool chain_triggered = false;
+    int32_t bubble_type = 0;
+    int32_t power = 1;
+    int32_t footprint_cells = 1;
 };
 
 struct PlayerRecord {
@@ -95,6 +98,50 @@ int32_t get_int(const Dictionary &source, const StringName &key, int32_t fallbac
 
 int64_t make_cell_key(int32_t x, int32_t y) {
     return (static_cast<int64_t>(x) << 32) ^ static_cast<uint32_t>(y);
+}
+
+int32_t positive_int(int32_t value, int32_t fallback = 1) {
+    return value > 0 ? value : fallback;
+}
+
+int32_t footprint_size_for_cells(int32_t footprint_cells) {
+    const int32_t cell_count = positive_int(footprint_cells);
+    int32_t size = 1;
+    while ((size * size) < cell_count) {
+        ++size;
+    }
+    return size;
+}
+
+std::vector<int64_t> get_footprint_keys(const BubbleRecord &bubble) {
+    std::vector<int64_t> keys;
+    const int32_t cell_count = positive_int(bubble.footprint_cells);
+    const int32_t size = footprint_size_for_cells(cell_count);
+    keys.reserve(static_cast<size_t>(cell_count));
+    for (int32_t y = 0; y < size; ++y) {
+        for (int32_t x = 0; x < size; ++x) {
+            if (static_cast<int32_t>(keys.size()) >= cell_count) {
+                return keys;
+            }
+            keys.push_back(make_cell_key(bubble.cell_x + x, bubble.cell_y + y));
+        }
+    }
+    return keys;
+}
+
+void index_bubble_footprint(std::unordered_map<int64_t, int32_t> &bubble_cell_lookup, const BubbleRecord &bubble) {
+    for (const int64_t cell_key : get_footprint_keys(bubble)) {
+        bubble_cell_lookup[cell_key] = bubble.entity_id;
+    }
+}
+
+void erase_bubble_footprint(std::unordered_map<int64_t, int32_t> &bubble_cell_lookup, const BubbleRecord &bubble) {
+    for (const int64_t cell_key : get_footprint_keys(bubble)) {
+        const auto found = bubble_cell_lookup.find(cell_key);
+        if (found != bubble_cell_lookup.end() && found->second == bubble.entity_id) {
+            bubble_cell_lookup.erase(found);
+        }
+    }
 }
 
 std::string make_entity_hit_key(int32_t target_type, int32_t target_entity_id, int32_t target_cell_x, int32_t target_cell_y) {
@@ -274,12 +321,15 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
         bubble.bubble_range = bubble_values[i + 6];
         bubble.pierce = bubble_values[i + 7] != 0;
         bubble.chain_triggered = bubble_values[i + 8] != 0;
+        bubble.bubble_type = bubble_values[i + 9];
+        bubble.power = positive_int(bubble_values[i + 10]);
+        bubble.footprint_cells = positive_int(bubble_values[i + 11]);
         if (bubble.entity_id < 0) {
             continue;
         }
         bubbles_by_id[bubble.entity_id] = bubble;
         if (bubble.alive) {
-            bubble_cell_lookup[make_cell_key(bubble.cell_x, bubble.cell_y)] = bubble.entity_id;
+            index_bubble_footprint(bubble_cell_lookup, bubble);
         }
     }
 
@@ -400,67 +450,83 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
             }
         };
 
-        Dictionary center_covered;
-        center_covered["bubble_id"] = bubble.entity_id;
-        center_covered["cell_x"] = bubble.cell_x;
-        center_covered["cell_y"] = bubble.cell_y;
-        covered_cells.append(center_covered);
-        collect_hits_at_cell(bubble.cell_x, bubble.cell_y);
+        auto resolve_explosion_cell = [&](int32_t check_x, int32_t check_y) -> bool {
+            const auto grid_found = grid_by_cell.find(make_cell_key(check_x, check_y));
+            if (grid_found == grid_by_cell.end()) {
+                return true;
+            }
 
-        for (int32_t dir_index = 0; dir_index < 4; ++dir_index) {
-            const int32_t dir_x = propagation_dirs[dir_index][0];
-            const int32_t dir_y = propagation_dirs[dir_index][1];
-            for (int32_t step = 1; step <= bubble.bubble_range; ++step) {
-                const int32_t check_x = bubble.cell_x + (dir_x * step);
-                const int32_t check_y = bubble.cell_y + (dir_y * step);
-                const auto grid_found = grid_by_cell.find(make_cell_key(check_x, check_y));
-                if (grid_found == grid_by_cell.end()) {
-                    break;
+            const GridRecord &grid = grid_found->second;
+            if (grid.tile_type == TILE_SOLID_WALL) {
+                return true;
+            }
+
+            Dictionary covered;
+            covered["bubble_id"] = bubble.entity_id;
+            covered["cell_x"] = check_x;
+            covered["cell_y"] = check_y;
+            covered_cells.append(covered);
+
+            if (grid.tile_type == TILE_BREAKABLE_BLOCK) {
+                Dictionary block_aux_data;
+                block_aux_data["profile_id"] = String("breakable_destroy_stop");
+                block_aux_data["reaction"] = 0;
+                append_hit_entry(
+                    hit_entries,
+                    hit_dedupe_keys,
+                    tick,
+                    bubble,
+                    TARGET_BREAKABLE_BLOCK,
+                    -1,
+                    check_x,
+                    check_y,
+                    block_aux_data
+                );
+                const int64_t destroy_key = make_cell_key(check_x, check_y);
+                if (destroy_cell_keys.find(destroy_key) == destroy_cell_keys.end()) {
+                    destroy_cell_keys.insert(destroy_key);
+                    Dictionary destroy_cell;
+                    destroy_cell["cell_x"] = check_x;
+                    destroy_cell["cell_y"] = check_y;
+                    destroy_cells.append(destroy_cell);
                 }
+                return true;
+            }
 
-                const GridRecord &grid = grid_found->second;
-                if (grid.tile_type == TILE_SOLID_WALL) {
-                    break;
+            collect_hits_at_cell(check_x, check_y);
+            return false;
+        };
+
+        if (bubble.bubble_type == 2) {
+            const int32_t size = bubble.power <= 1 ? 3 : 6;
+            const int32_t footprint_size = footprint_size_for_cells(bubble.footprint_cells);
+            const int32_t margin = (size - footprint_size) / 2;
+            const int32_t start_x = bubble.cell_x - margin;
+            const int32_t start_y = bubble.cell_y - margin;
+            for (int32_t y = 0; y < size; ++y) {
+                for (int32_t x = 0; x < size; ++x) {
+                    resolve_explosion_cell(start_x + x, start_y + y);
                 }
+            }
+        } else {
+            resolve_explosion_cell(bubble.cell_x, bubble.cell_y);
 
-                Dictionary covered;
-                covered["bubble_id"] = bubble.entity_id;
-                covered["cell_x"] = check_x;
-                covered["cell_y"] = check_y;
-                covered_cells.append(covered);
-
-                if (grid.tile_type == TILE_BREAKABLE_BLOCK) {
-                    Dictionary block_aux_data;
-                    block_aux_data["profile_id"] = String("breakable_destroy_stop");
-                    block_aux_data["reaction"] = 0;
-                    append_hit_entry(
-                        hit_entries,
-                        hit_dedupe_keys,
-                        tick,
-                        bubble,
-                        TARGET_BREAKABLE_BLOCK,
-                        -1,
-                        check_x,
-                        check_y,
-                        block_aux_data
-                    );
-                    const int64_t destroy_key = make_cell_key(check_x, check_y);
-                    if (destroy_cell_keys.find(destroy_key) == destroy_cell_keys.end()) {
-                        destroy_cell_keys.insert(destroy_key);
-                        Dictionary destroy_cell;
-                        destroy_cell["cell_x"] = check_x;
-                        destroy_cell["cell_y"] = check_y;
-                        destroy_cells.append(destroy_cell);
+            const int32_t bubble_range = positive_int(bubble.power);
+            for (int32_t dir_index = 0; dir_index < 4; ++dir_index) {
+                const int32_t dir_x = propagation_dirs[dir_index][0];
+                const int32_t dir_y = propagation_dirs[dir_index][1];
+                for (int32_t step = 1; step <= bubble_range; ++step) {
+                    const int32_t check_x = bubble.cell_x + (dir_x * step);
+                    const int32_t check_y = bubble.cell_y + (dir_y * step);
+                    if (resolve_explosion_cell(check_x, check_y)) {
+                        break;
                     }
-                    break;
                 }
-
-                collect_hits_at_cell(check_x, check_y);
             }
         }
 
         bubble.alive = false;
-        bubble_cell_lookup.erase(make_cell_key(bubble.cell_x, bubble.cell_y));
+        erase_bubble_footprint(bubble_cell_lookup, bubble);
     }
 
     result["processed_bubble_ids"] = processed_bubble_ids;

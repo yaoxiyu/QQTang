@@ -154,6 +154,8 @@ func _capture_bubbles(sim_world: SimWorld) -> Array[Dictionary]:
 			"spawn_tick": bubble.spawn_tick,
 			"explode_tick": bubble.explode_tick,
 			"bubble_range": bubble.bubble_range,
+			"power": bubble.power,
+			"footprint_cells": bubble.footprint_cells,
 			"moving_state": bubble.moving_state,
 			"move_dir_x": bubble.move_dir_x,
 			"move_dir_y": bubble.move_dir_y,

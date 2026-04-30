@@ -29,6 +29,7 @@ func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
 	sim_config.system_flags["spawn_assignments"] = start_config.spawn_assignments.duplicate(true)
 	sim_config.system_flags["player_slots"] = start_config.player_slots.duplicate(true)
 	sim_config.system_flags["character_loadouts"] = start_config.character_loadouts.duplicate(true)
+	sim_config.system_flags["player_bubble_loadouts"] = start_config.player_bubble_loadouts.duplicate(true)
 	return sim_config
 
 

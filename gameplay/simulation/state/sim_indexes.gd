@@ -100,9 +100,10 @@ func rebuild_from_state(state: SimState) -> void:
 		if bubble != null and bubble.alive:
 			active_bubble_ids.append(bubble_id)
 
-			var cell_idx = state.grid.to_cell_index(bubble.cell_x, bubble.cell_y)
-			if cell_idx >= 0 and cell_idx < bubbles_by_cell.size():
-				bubbles_by_cell[cell_idx] = bubble_id
+			for footprint_cell in bubble.get_footprint_cells():
+				var cell_idx = state.grid.to_cell_index(footprint_cell.x, footprint_cell.y)
+				if cell_idx >= 0 and cell_idx < bubbles_by_cell.size():
+					bubbles_by_cell[cell_idx] = bubble_id
 
 	# 重建道具索引
 	for item_id in state.items.active_ids:
