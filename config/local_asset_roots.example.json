@@ -1,0 +1,10 @@
+{
+  "asset_roots": [
+    {
+      "asset_pack_id": "qqt-assets",
+      "root": "external/assets",
+      "enabled": true
+    }
+  ],
+  "fallback_to_project_assets": true
+}

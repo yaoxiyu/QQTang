@@ -1,0 +1,1865 @@
+﻿{
+    "source_root":  "res/object",
+    "total_files":  2217,
+    "role_part_records":  2217,
+    "errors":  [
+
+               ],
+    "warnings":  [
+
+                 ],
+    "counts":  {
+                   "by_extension":  {
+                                        ".gif":  1426,
+                                        ".png":  791
+                                    },
+                   "by_directory":  {
+                                        "body":  108,
+                                        "cap":  188,
+                                        "cladorn":  16,
+                                        "cloth":  1165,
+                                        "face":  144,
+                                        "fhadorn":  24,
+                                        "foot":  16,
+                                        "hair":  272,
+                                        "head":  8,
+                                        "leg":  200,
+                                        "mouth":  8,
+                                        "npack":  32,
+                                        "thadorn":  36
+                                    },
+                   "by_part":  {
+                                   "body":  108,
+                                   "cap":  188,
+                                   "cladorn":  16,
+                                   "cloth":  1165,
+                                   "face":  144,
+                                   "fhadorn":  24,
+                                   "foot":  16,
+                                   "hair":  272,
+                                   "head":  8,
+                                   "leg":  200,
+                                   "mouth":  8,
+                                   "npack":  32,
+                                   "thadorn":  36
+                               },
+                   "by_action":  {
+                                     "birth":  10,
+                                     "cry":  45,
+                                     "die":  65,
+                                     "faint":  40,
+                                     "lose":  45,
+                                     "sit":  20,
+                                     "slow":  81,
+                                     "snow":  6,
+                                     "stand":  845,
+                                     "trigger":  45,
+                                     "wait":  40,
+                                     "walk":  935,
+                                     "win":  40
+                                 },
+                   "by_project_direction":  {
+                                                "down":  447,
+                                                "left":  447,
+                                                "right":  447,
+                                                "up":  447
+                                            },
+                   "by_source_format":  {
+                                            "gif":  1426,
+                                            "png":  791
+                                        }
+               },
+    "source_ids_by_part":  {
+                               "body":  {
+                                            "count":  11,
+                                            "sample":  [
+                                                           "1",
+                                                           "13000",
+                                                           "14101",
+                                                           "14201",
+                                                           "14301",
+                                                           "14401",
+                                                           "14501",
+                                                           "14601",
+                                                           "15401",
+                                                           "15501",
+                                                           "15701"
+                                                       ]
+                                        },
+                               "cap":  {
+                                           "count":  17,
+                                           "sample":  [
+                                                          "100",
+                                                          "101",
+                                                          "102",
+                                                          "10201",
+                                                          "103",
+                                                          "10301",
+                                                          "104",
+                                                          "10401",
+                                                          "10501",
+                                                          "10701",
+                                                          "10801",
+                                                          "11401",
+                                                          "11601",
+                                                          "11801",
+                                                          "11901",
+                                                          "22",
+                                                          "23"
+                                                      ]
+                                       },
+                               "cladorn":  {
+                                               "count":  2,
+                                               "sample":  [
+                                                              "12401",
+                                                              "12801"
+                                                          ]
+                                           },
+                               "cloth":  {
+                                             "count":  95,
+                                             "sample":  [
+                                                            "10101",
+                                                            "10201",
+                                                            "10301",
+                                                            "10303",
+                                                            "10401",
+                                                            "10403",
+                                                            "10501",
+                                                            "10503",
+                                                            "10601",
+                                                            "10603",
+                                                            "10701",
+                                                            "10703",
+                                                            "10801",
+                                                            "10803",
+                                                            "10901",
+                                                            "10903",
+                                                            "11001",
+                                                            "11003",
+                                                            "11101",
+                                                            "11301",
+                                                            "11401",
+                                                            "11501",
+                                                            "11503",
+                                                            "11601",
+                                                            "11801",
+                                                            "11901",
+                                                            "12001",
+                                                            "12101",
+                                                            "12201",
+                                                            "12301",
+                                                            "12401",
+                                                            "12501",
+                                                            "12601",
+                                                            "12701",
+                                                            "12801",
+                                                            "12901",
+                                                            "13001",
+                                                            "13101",
+                                                            "13201",
+                                                            "13301"
+                                                        ]
+                                         },
+                               "face":  {
+                                            "count":  18,
+                                            "sample":  [
+                                                           "10101",
+                                                           "10201",
+                                                           "10301",
+                                                           "10401",
+                                                           "10501",
+                                                           "10601",
+                                                           "10701",
+                                                           "10801",
+                                                           "10901",
+                                                           "11301",
+                                                           "11401",
+                                                           "11501",
+                                                           "11601",
+                                                           "11801",
+                                                           "11901",
+                                                           "12001",
+                                                           "12101",
+                                                           "12201"
+                                                       ]
+                                        },
+                               "fhadorn":  {
+                                               "count":  3,
+                                               "sample":  [
+                                                              "10101",
+                                                              "10601",
+                                                              "10701"
+                                                          ]
+                                           },
+                               "foot":  {
+                                            "count":  2,
+                                            "sample":  [
+                                                           "1",
+                                                           "2"
+                                                       ]
+                                        },
+                               "hair":  {
+                                            "count":  18,
+                                            "sample":  [
+                                                           "10101",
+                                                           "10201",
+                                                           "10301",
+                                                           "10401",
+                                                           "10501",
+                                                           "10601",
+                                                           "10701",
+                                                           "10801",
+                                                           "10901",
+                                                           "11301",
+                                                           "11401",
+                                                           "11501",
+                                                           "11601",
+                                                           "11801",
+                                                           "11901",
+                                                           "12001",
+                                                           "12101",
+                                                           "12201"
+                                                       ]
+                                        },
+                               "head":  {
+                                            "count":  1,
+                                            "sample":  [
+                                                           "1"
+                                                       ]
+                                        },
+                               "leg":  {
+                                           "count":  18,
+                                           "sample":  [
+                                                          "1",
+                                                          "10101",
+                                                          "10201",
+                                                          "10401",
+                                                          "10501",
+                                                          "10601",
+                                                          "10701",
+                                                          "10801",
+                                                          "10901",
+                                                          "11301",
+                                                          "11401",
+                                                          "11501",
+                                                          "11601",
+                                                          "11801",
+                                                          "11901",
+                                                          "12001",
+                                                          "12201",
+                                                          "4001"
+                                                      ]
+                                       },
+                               "mouth":  {
+                                             "count":  1,
+                                             "sample":  [
+                                                            "11501"
+                                                        ]
+                                         },
+                               "npack":  {
+                                             "count":  3,
+                                             "sample":  [
+                                                            "10101",
+                                                            "10301",
+                                                            "10601"
+                                                        ]
+                                         },
+                               "thadorn":  {
+                                               "count":  6,
+                                               "sample":  [
+                                                              "101",
+                                                              "102",
+                                                              "103",
+                                                              "104",
+                                                              "22",
+                                                              "23"
+                                                          ]
+                                           }
+                           },
+    "actions_by_part":  {
+                            "body":  [
+                                         "stand",
+                                         "walk"
+                                     ],
+                            "cap":  [
+                                        "stand",
+                                        "walk"
+                                    ],
+                            "cladorn":  [
+                                            "stand",
+                                            "walk"
+                                        ],
+                            "cloth":  [
+                                          "birth",
+                                          "cry",
+                                          "die",
+                                          "faint",
+                                          "lose",
+                                          "sit",
+                                          "slow",
+                                          "snow",
+                                          "stand",
+                                          "trigger",
+                                          "wait",
+                                          "walk",
+                                          "win"
+                                      ],
+                            "face":  [
+                                         "stand",
+                                         "walk"
+                                     ],
+                            "fhadorn":  [
+                                            "stand",
+                                            "walk"
+                                        ],
+                            "foot":  [
+                                         "stand",
+                                         "walk"
+                                     ],
+                            "hair":  [
+                                         "stand",
+                                         "walk"
+                                     ],
+                            "head":  [
+                                         "stand",
+                                         "walk"
+                                     ],
+                            "leg":  [
+                                        "stand",
+                                        "walk"
+                                    ],
+                            "mouth":  [
+                                          "stand",
+                                          "walk"
+                                      ],
+                            "npack":  [
+                                          "stand",
+                                          "walk"
+                                      ],
+                            "thadorn":  [
+                                            "stand",
+                                            "walk"
+                                        ]
+                        },
+    "directions_by_action":  {
+                                 "slow":  [
+                                              "down",
+                                              "left",
+                                              "right",
+                                              "up"
+                                          ],
+                                 "stand":  [
+                                               "down",
+                                               "left",
+                                               "right",
+                                               "up"
+                                           ],
+                                 "walk":  [
+                                              "down",
+                                              "left",
+                                              "right",
+                                              "up"
+                                          ]
+                             },
+    "duplicate_group_count":  246,
+    "duplicate_groups":  [
+                             {
+                                 "content_hash":  "sha256:00d31221b786615a52e30c1a97d76a95594af2e97776fbda9d9fbe165cf29e3b",
+                                 "paths":  [
+                                               "leg/leg11601_stand_1.png",
+                                               "leg/leg11601_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:00da3ccf0dc5ab73b26524570d9ec8c9f389d4f136aba2c1fd1e41abd2d6b53f",
+                                 "paths":  [
+                                               "cloth/cloth10401_cry_m.gif",
+                                               "cloth/cloth10401_die_m.gif",
+                                               "cloth/cloth10401_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0130fae09ae4f0a1880ecaabf33e2380670da8543816b7d16c7bd44099d5730a",
+                                 "paths":  [
+                                               "cloth/cloth10601_cry.gif",
+                                               "cloth/cloth10601_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:04c1baf0e270d3631dd020d84420d0b59c4561981cfebaff9809ede9879491e3",
+                                 "paths":  [
+                                               "cloth/cloth18810_stand.gif",
+                                               "cloth/cloth18810_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:04fd516d358d3f78c74eede0d582e0b18530beb75e04d30cf583cf07821a495a",
+                                 "paths":  [
+                                               "cloth/cloth18201_stand.gif",
+                                               "cloth/cloth18201_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:07167513ba725972ef8da0b92b8a0ceceb90a99643293945786273546a82d4a7",
+                                 "paths":  [
+                                               "cloth/cloth18702_stand.gif",
+                                               "cloth/cloth18702_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:074f7d63ec44c09135514eeb1f434d21e7144dc60bf2092cd2951eea47ae2fa4",
+                                 "paths":  [
+                                               "cloth/cloth12701_cry.gif",
+                                               "cloth/cloth12701_die.gif",
+                                               "cloth/cloth12701_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0780d6ca0e0ddecff48c477aae8001e1e9da3a3c7a0755d4cbf3d031403783f8",
+                                 "paths":  [
+                                               "foot/foot2_stand_1.png",
+                                               "foot/foot2_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:07e750d2504df4b6534d8480a7dc49ead18f3ff3b8e982633fa5e491d80b219a",
+                                 "paths":  [
+                                               "thadorn/thadorn22_stand.gif",
+                                               "thadorn/thadorn22_walk.gif",
+                                               "thadorn/thadorn23_stand.gif",
+                                               "thadorn/thadorn23_walk.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0a830fe74b568d723612b8b082357abc692851b1b79cb5db8fd85ae65771411b",
+                                 "paths":  [
+                                               "cloth/cloth18504_stand_0.gif",
+                                               "cloth/cloth18504_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0aad20179282c9525f948de781d492bf62ec4ff7246e391b0ffd5f4de63d3cae",
+                                 "paths":  [
+                                               "body/body15501_stand.2.png",
+                                               "body/body15501_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0c3719e8e4cdda88218d3b1595dd0c7b7a2b8eac41569d1ebe2a6dc792dcd94d",
+                                 "paths":  [
+                                               "cloth/cloth18503_stand_3.gif",
+                                               "cloth/cloth18503_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0c7ba71ee0b77f067f81ec5d45489542ce905236b2855eb4f8defef9bbb8e06c",
+                                 "paths":  [
+                                               "cloth/cloth18401_stand.gif",
+                                               "cloth/cloth18401_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0decb9ded2ca89b6ee81efef23ae1322251581f631cdd616710d19c3f5944b32",
+                                 "paths":  [
+                                               "cloth/cloth18505_stand_0.gif",
+                                               "cloth/cloth18505_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0e31478574ffe9148df7272840f9070331f51e2d3a0961bdf86fa3d30436ccf6",
+                                 "paths":  [
+                                               "cloth/cloth18503_stand_2.gif",
+                                               "cloth/cloth18503_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0e3ba5b1341f599b6de3905374353d9dbba05d54f4cc6ab859c7332d829fd05b",
+                                 "paths":  [
+                                               "leg/leg10101_stand_m_0.png",
+                                               "leg/leg10201_stand_m_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:0f2956dad520cd8184b3000259a48e9cd06491b4c681823274dcf6b72ebb24ca",
+                                 "paths":  [
+                                               "cap/cap103_stand_2.gif",
+                                               "cap/cap103_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:10feb801240d01d3a45500e599820eb018982560d18bc71fef3949e9e7880ba1",
+                                 "paths":  [
+                                               "cloth/cloth10301_cry_m.gif",
+                                               "cloth/cloth10301_die_m.gif",
+                                               "cloth/cloth10301_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:11cf5c3ee551a20be0c1e184d3e845b60e3d0161d4ba03837528aaa07dd5e63f",
+                                 "paths":  [
+                                               "thadorn/thadorn102_stand_0.gif",
+                                               "thadorn/thadorn102_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1220a27a39334b10fddcb981a4c571e246ecc7eb4632e5fb25424c482cad7090",
+                                 "paths":  [
+                                               "cloth/cloth10901_cry.gif",
+                                               "cloth/cloth10901_die.gif",
+                                               "cloth/cloth10901_lose.gif",
+                                               "cloth/cloth10901_sit.gif",
+                                               "cloth/cloth10901_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:147102ebc8d644ca440a9d6d8ce65aac494bd284fa290a73d78ca61a5125f98c",
+                                 "paths":  [
+                                               "cloth/cloth18507_stand_0.gif",
+                                               "cloth/cloth18507_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:154b503ba4830229c3a4036af1d233f427414f6f1d20dcca2e567fddb5ad069e",
+                                 "paths":  [
+                                               "cloth/cloth18701_stand.gif",
+                                               "cloth/cloth18701_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:156a0d2eb42b99d54adf689be4bc6d022d434746c79c6009e1e0ea23ee479e9c",
+                                 "paths":  [
+                                               "cloth/cloth11001_cry_m.gif",
+                                               "cloth/cloth11001_die_m.gif",
+                                               "cloth/cloth11001_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:15c08523db7bf6bce4cf8188b5179d6684e3faf1e1293153cbc939c90916d051",
+                                 "paths":  [
+                                               "cloth/cloth18507_stand_2.gif",
+                                               "cloth/cloth18507_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:175132b625a3ee2c0878efdb7c5f30f122be688972353e33069acc3a9fd68d47",
+                                 "paths":  [
+                                               "cap/cap102_stand_2.gif",
+                                               "cap/cap102_walk_2.gif",
+                                               "thadorn/thadorn102_stand_2.gif",
+                                               "thadorn/thadorn102_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:17c755b1b027682bd37b1954c19f000dcea7ebf63774d904c2cf37eef4306ea9",
+                                 "paths":  [
+                                               "face/Face10301_walk_1.gif",
+                                               "face/Face10401_walk_1.gif",
+                                               "face/Face10501_walk_1.gif",
+                                               "face/Face10701_walk_1.gif",
+                                               "face/face10901_walk_1.gif",
+                                               "face/Face11401_walk_1.gif",
+                                               "face/face12201_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:181d0cd835bcf20c06b44b05dc08f4764d7b5ef301c0aade597dca33553ef5f6",
+                                 "paths":  [
+                                               "cap/cap101_stand_1.gif",
+                                               "cap/cap101_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:18fb4d80c0338de4584b8d71c883ab0a4463564abc1067b2ac12fed96de14efe",
+                                 "paths":  [
+                                               "cloth/cloth18301_stand.gif",
+                                               "cloth/cloth18301_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1985552e3e88a779cf3445bc2554370110912f2ba61ca4d7af051fb67e273f9f",
+                                 "paths":  [
+                                               "npack/npack10101_stand_1.gif",
+                                               "npack/npack10101_stand_3.gif",
+                                               "npack/npack10101_walk_1.gif",
+                                               "npack/npack10101_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1b33a157d0bcdaafbe3db06063c15296d84a1f910580275f50b7c7f659e38f38",
+                                 "paths":  [
+                                               "npack/npack10601_stand_1.png",
+                                               "npack/npack10601_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1cc72389fff49ca6ab8c6b949b659a957dfc989c3b39b6978a364a786980bf5c",
+                                 "paths":  [
+                                               "cloth/cloth12001_cry.gif",
+                                               "cloth/cloth12001_faint.gif",
+                                               "cloth/cloth12001_lose.gif",
+                                               "cloth/cloth12001_sit.gif",
+                                               "cloth/cloth12001_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1d114e875c9c91aad5809531d5a8409418acb92544ee8f9d94918db45e030640",
+                                 "paths":  [
+                                               "leg/leg11401_stand_1.png",
+                                               "leg/leg11401_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:1d772f6caff47e95adca489deb6b0a4401c02742b84a829f62ed99dc433b3152",
+                                 "paths":  [
+                                               "cloth/cloth17501_stand.gif",
+                                               "cloth/cloth17501_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:21bff36d1250dec6362cebcd14c453145b67a8a49a765162a9a04a0e4d498fc1",
+                                 "paths":  [
+                                               "cloth/cloth16701_stand.gif",
+                                               "cloth/cloth16701_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:22d91622d2cdc45e16a6f99249897ef01e747532362f1e5370d702919825a8fb",
+                                 "paths":  [
+                                               "cloth/cloth13501_stand_0.gif",
+                                               "cloth/cloth13501_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2317cabc22f12b0c51d377c117cdec8c1d47b30e8d7c34b8a166751ab15a8c0e",
+                                 "paths":  [
+                                               "cloth/cloth17301_stand.gif",
+                                               "cloth/cloth17301_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:23b74805951a977ca5d551c879e7357d9d8bae14846ab228e979192c1b624d20",
+                                 "paths":  [
+                                               "cloth/cloth12401_trigger.gif",
+                                               "cloth/cloth12801_trigger.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:261078f084ae2fa08e41ed7dc857da1c2e42c8a967050f297ffe0dc337748726",
+                                 "paths":  [
+                                               "body/body14401_stand.3.png",
+                                               "body/body14401_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2616786d71f1c03d8458ca0592eb46c1d35f4decfc21262d17f22aeb9f9ea6b2",
+                                 "paths":  [
+                                               "body/body1_stand.3.png",
+                                               "body/body1_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:26d6ca8dce83c038cd7d1e5fcef84dd155d59ebb0a7bc046517779bd29303fbc",
+                                 "paths":  [
+                                               "body/body14101_stand.2.png",
+                                               "body/body14101_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:274124e4d4810e916df441c79a7ee25710de9550859bc3f1f2cb3d40bf82ea30",
+                                 "paths":  [
+                                               "cloth/cloth12501_cry.gif",
+                                               "cloth/cloth12501_die.gif",
+                                               "cloth/cloth12501_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:28be665b6e3ffa9808a359e38a788edbd0f74bee719800ff2d7bbaf1b6d80b1d",
+                                 "paths":  [
+                                               "leg/leg10401_walk_m_0.gif",
+                                               "leg/leg4001_walk_m_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2a6c07e84c7a065aa5b53100fa840a92e91746738eb25389a90cb7615ea707c1",
+                                 "paths":  [
+                                               "cloth/cloth10201_stand_1.png",
+                                               "cloth/cloth10201_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2b1b31cf64eacbf304e799a46b786a25ae763531ec8f36c781936c3469ee0bb0",
+                                 "paths":  [
+                                               "cloth/cloth18505_stand_1.gif",
+                                               "cloth/cloth18505_stand_2.gif",
+                                               "cloth/cloth18505_stand_3.gif",
+                                               "cloth/cloth18505_walk_1.gif",
+                                               "cloth/cloth18505_walk_2.gif",
+                                               "cloth/cloth18505_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2dae862d17356ccf8e68eb7555051b2a18b60ce5e7017c9f97e47816478dcf3a",
+                                 "paths":  [
+                                               "cap/cap100_walk_0.gif",
+                                               "cap/cap100_walk_1.gif",
+                                               "cap/cap100_walk_2.gif",
+                                               "cap/cap100_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:2e922cd23c46d7b8e54ee515463d4deb916c01d52d4b4d6006858eae278aa230",
+                                 "paths":  [
+                                               "cloth/cloth18508_stand_2.gif",
+                                               "cloth/cloth18508_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:30bbcafcb6a04accf64665a5bf72e8856faabd146b04840a7f7e4cbf87f443cc",
+                                 "paths":  [
+                                               "cloth/cloth12201_cry.gif",
+                                               "cloth/cloth12201_die.gif",
+                                               "cloth/cloth12201_lose.gif",
+                                               "cloth/cloth12201_sit.gif",
+                                               "cloth/cloth12201_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:31bb491c0b29f6f3c85fa1c8ac292cb3501d1484ffc87ff40670460be129eaab",
+                                 "paths":  [
+                                               "thadorn/thadorn103_stand_3.gif",
+                                               "thadorn/thadorn103_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:321c552b3bd64ff3a0664425f5ff7dc280247e3604f7d814ac30e31c1dbd6a9c",
+                                 "paths":  [
+                                               "cloth/cloth17901_stand.gif",
+                                               "cloth/cloth17901_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:32dd1a271f75e564d141c48e8ecd6329e880f7272a6c24d37da91cbbf67dde67",
+                                 "paths":  [
+                                               "body/body14301_stand.3.png",
+                                               "body/body14301_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:33263aee6f67ca5a20d7ed5c4e920e9eb2523792747011a6ae7de8568297a87f",
+                                 "paths":  [
+                                               "npack/npack10601_stand_m_1.png",
+                                               "npack/npack10601_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:336a5077eebd274194abe0331c6b2eebe724c3382fcd0ace3910bead831124f1",
+                                 "paths":  [
+                                               "cloth/cloth18508_stand_3.gif",
+                                               "cloth/cloth18508_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:343382ed2c6c5755788cb8b3d0cdab631f5adc6e71632e0845dd263b5a94aba6",
+                                 "paths":  [
+                                               "cap/cap103_stand_0.gif",
+                                               "cap/cap103_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3515715221bd14bf48c5ac1a9e15ceee61228390d507e29c79082c7e6288706c",
+                                 "paths":  [
+                                               "cloth/cloth11301_cry_m.gif",
+                                               "cloth/cloth11301_die_m.gif",
+                                               "cloth/cloth11301_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:36b612472d15fb9ceae72373dcf812169698fecb8282ef603423ba957d8fc240",
+                                 "paths":  [
+                                               "cap/cap10701_stand_1.png",
+                                               "fhadorn/fhadorn10701_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3931d45d308f4375d24dfeefd21b251fbc82226541dab68b36a369a122788096",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_stand_2.png",
+                                               "cladorn/cladorn12801_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3a1551d8861d508e9523e63023b8a56d0ac1c909554dec9ec5cfbeeeaf4403de",
+                                 "paths":  [
+                                               "cloth/cloth10401_cry.gif",
+                                               "cloth/cloth10401_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3b0363b39f990b47ba4889fc4f3c29f57d82956bd4e7edba4f9e8a12b058118e",
+                                 "paths":  [
+                                               "thadorn/thadorn103_stand_0.gif",
+                                               "thadorn/thadorn103_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3b5a557ea50dd687b8ab32fa0ce75ee3a3495919f1dee87edfe730b2139b4ba7",
+                                 "paths":  [
+                                               "cloth/cloth12101_cry.gif",
+                                               "cloth/cloth12101_faint.gif",
+                                               "cloth/cloth12101_lose.gif",
+                                               "cloth/cloth12101_sit.gif",
+                                               "cloth/cloth12101_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3ba62ec49a72d6e3ecd75e22581321ac5dfe7ca7c3ab9ae671b6f32d6ed6ea0f",
+                                 "paths":  [
+                                               "cloth/cloth11301_cry.gif",
+                                               "cloth/cloth11301_die.gif",
+                                               "cloth/cloth11301_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3bcfccbadb83e27875bf0c3130617b07dc617adb51587e01ec8f58967c013f86",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_stand_3.png",
+                                               "cladorn/cladorn12801_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3c8ff3f7bcfd30b28c93d643ead74e4e8257966dfee53936c73a43e3915e0cd8",
+                                 "paths":  [
+                                               "thadorn/thadorn104_stand_3.gif",
+                                               "thadorn/thadorn104_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3d1fc36be41082e2942f8dbb44acf95f37f6a244cd0c0c7bc715737d1061939b",
+                                 "paths":  [
+                                               "cloth/cloth18601_stand.gif",
+                                               "cloth/cloth18601_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3e2f088f0fc1e9961a5850d56e8f3e7d2854102c20315e42d82bb98874ec295a",
+                                 "paths":  [
+                                               "cloth/cloth10901_stand_m_3.png",
+                                               "cloth/cloth12201_stand_m_1.png",
+                                               "cloth/cloth12201_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3eb1bac862a2503943a6bcefac8c670b11d101c86d28f335c950e251308a1c35",
+                                 "paths":  [
+                                               "body/body14501_stand.1.png",
+                                               "body/body14501_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3ed7b4453fe3e320ce5acb4bc691ceda74350800cd04ffd323dc3cd6d7ea7f9a",
+                                 "paths":  [
+                                               "cloth/cloth18508_stand_1.gif",
+                                               "cloth/cloth18508_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3edb9635b57baf7c8fee6aeb620bb1b923068e877a7a00aa332f925e793f6c89",
+                                 "paths":  [
+                                               "cap/cap104_stand_2.gif",
+                                               "cap/cap104_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3f5b46875770bca634d2dbc1ef7b04e46e4abf143984bdac394bfc4e4ec5b3b0",
+                                 "paths":  [
+                                               "body/body14101_stand.0.png",
+                                               "body/body14101_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3f71955fdc52815f92c0ccfdd72bafc789266f5965cb81f6f884798d5e16a21d",
+                                 "paths":  [
+                                               "cloth/cloth12001_cry_m.gif",
+                                               "cloth/cloth12001_faint_m.gif",
+                                               "cloth/cloth12001_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:3fe38b06ab70f4bf00203cba657a25c829c40647aaddedb82cdb99dbe135a5bf",
+                                 "paths":  [
+                                               "cloth/cloth18509_stand_0.gif",
+                                               "cloth/cloth18509_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4078d8b82ddff550e40445540949b48c8584b6c605993d1c54204ff77d8452bc",
+                                 "paths":  [
+                                               "cloth/cloth18507_stand_1.gif",
+                                               "cloth/cloth18507_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4235dd1630f3d5b92df8a5c8f4b64775bc48b43cc04d230eec66e031ff53966c",
+                                 "paths":  [
+                                               "cloth/cloth18705_stand.gif",
+                                               "cloth/cloth18705_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:43062f99a3b3e9a80a1c1c15f68e0eeb55930332d244ef2645556196ddcb59b4",
+                                 "paths":  [
+                                               "cap/cap102_stand_3.gif",
+                                               "cap/cap102_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:431449c1f6becbb3e3f61a134ae3004f61c8b84d477796c1600cce2699c5bc41",
+                                 "paths":  [
+                                               "cloth/cloth10801_stand_m_1.png",
+                                               "cloth/cloth10801_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:46082476c7db69304c7c4c093a479eb93b876c97f6424016cb6258c8f0a5ef87",
+                                 "paths":  [
+                                               "leg/leg10101_walk_m_1.gif",
+                                               "leg/leg10201_walk_m_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:460e1b82e606de38c149cad14f489fbec77f1ea08aa23f35089f49dd558048b3",
+                                 "paths":  [
+                                               "leg/leg10101_stand_m_2.png",
+                                               "leg/leg10201_stand_m_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:461c3b8c2dcb667c66065087f6d081783a13c8059bdcd007f2c645de9b53dec8",
+                                 "paths":  [
+                                               "cloth/cloth12301_stand.png",
+                                               "cloth/cloth12301_walk.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:46d37a1568865b0d1837b15bbdb3c77e28695d5247e12fc415f2d9cffcfd557f",
+                                 "paths":  [
+                                               "cloth/cloth18805_stand.gif",
+                                               "cloth/cloth18805_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:488883ee7c97a9329d6006aa31776630d4a8ca075b00f957975f46953b6fe25a",
+                                 "paths":  [
+                                               "cloth/cloth17201_stand.gif",
+                                               "cloth/cloth17201_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:494fc5f638c331223716b8efafd3fbe944f0c7cfe08f0f0c0d25733e0413ce2d",
+                                 "paths":  [
+                                               "thadorn/thadorn104_stand_0.gif",
+                                               "thadorn/thadorn104_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:49b1f8b0d82819546649e3b2e2e5fc64610a233b662e863ef9168170150df837",
+                                 "paths":  [
+                                               "body/body13000_stand.gif",
+                                               "body/body13000_walk.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4a70765cf19222acc115c22ce873fcb3069029c3bd26a33ae4fcc017df42a02b",
+                                 "paths":  [
+                                               "cap/cap101_stand_3.gif",
+                                               "cap/cap101_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4a92fa30f7bd5ee599aeef26a1f650ff29d5db70ca578fe0a1e5da69ae2d45e2",
+                                 "paths":  [
+                                               "npack/npack10301_stand_2.gif",
+                                               "npack/npack10301_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4ae9b4899080d30e92abc268890c5767da49e7fbe9ae0e9023727c64b0cac774",
+                                 "paths":  [
+                                               "cloth/cloth11901_cry.gif",
+                                               "cloth/cloth11901_faint.gif",
+                                               "cloth/cloth11901_lose.gif",
+                                               "cloth/cloth11901_sit.gif",
+                                               "cloth/cloth11901_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4b8806219f3d8f940ca2ab6f1c2f455d9ede801dea2a9c584da29304e6dcafa1",
+                                 "paths":  [
+                                               "body/body15701_stand_0.gif",
+                                               "body/body15701_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4d2d77572a7b921f8e080aeaad9d0e2f5a71ed5a34cd7c219faee26a762f89dc",
+                                 "paths":  [
+                                               "cloth/cloth17101_stand.gif",
+                                               "cloth/cloth17101_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4dfad6e58ca216b8d1b789c3fd305221a198ea73d91214c0eb6c16f2743656ac",
+                                 "paths":  [
+                                               "cap/cap104_stand_0.gif",
+                                               "cap/cap104_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:4ecafff1f3753b017532009589b5789a051df8b9b47fc72207dc57c44fd001da",
+                                 "paths":  [
+                                               "cloth/cloth18506_stand_0.gif",
+                                               "cloth/cloth18506_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:521d5d1ad5a5a7f955af9a3f102d469770f06e060646c5c1f7afbed353db4f43",
+                                 "paths":  [
+                                               "cloth/cloth18502_stand_3.gif",
+                                               "cloth/cloth18502_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:525b9250d295b480abaaeb4b20fc1c249a3aa3e9b9a0ba3147a5190130edaf45",
+                                 "paths":  [
+                                               "cloth/cloth13601_stand_3.gif",
+                                               "cloth/cloth13601_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:532c1aeab152a2173ecf0dc3d76df357a91e3d7dbc810ef5e83d90a0be2485dd",
+                                 "paths":  [
+                                               "cloth/cloth10401_die.gif",
+                                               "cloth/cloth10401_faint.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:53483f970df1ef26e00176efea0d6a967c0c23dc8bb22ea637fdd79ea73ca112",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_walk_1.gif",
+                                               "cladorn/cladorn12801_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:538dbb57ddacf67398d98b5ae6b19d1585601ade28fcc63ef723a6758949b65b",
+                                 "paths":  [
+                                               "body/body14401_stand.1.png",
+                                               "body/body14401_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:53c57247002c528fb762d052c5668496569e75a3e469f32af05b554acec27119",
+                                 "paths":  [
+                                               "cloth/cloth18808_stand.gif",
+                                               "cloth/cloth18808_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:54e642e14e2f4cea30c00c974e468e09800692be73bf9d7ca6c13e098e42722b",
+                                 "paths":  [
+                                               "cap/cap10701_walk_1.gif",
+                                               "fhadorn/fhadorn10701_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:56fef3a35bdd377e9c124cbe9c9fe76fa82155d9f7cf2b8a2576c1113a93a68c",
+                                 "paths":  [
+                                               "body/body15501_stand.1.png",
+                                               "body/body15501_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:573d76c036bdcb6881a800e767c8fd7b5cbda20a0be70e81b64b394118539aeb",
+                                 "paths":  [
+                                               "cloth/cloth10501_cry_m.gif",
+                                               "cloth/cloth10501_die_m.gif",
+                                               "cloth/cloth10501_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:5830522a0a30770c5ee89c93cb3ca089e29d001acad7c199078b925c00433214",
+                                 "paths":  [
+                                               "cloth/cloth10901_cry_m.gif",
+                                               "cloth/cloth10901_die_m.gif",
+                                               "cloth/cloth10901_faint_m.gif",
+                                               "cloth/cloth10901_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:5a554aeda6116d9002ce5c9b4cc6243ae586edbeef8fde7b3f95d7584b1d66e9",
+                                 "paths":  [
+                                               "cloth/cloth18509_stand_2.gif",
+                                               "cloth/cloth18509_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:5cfeea514af443164e9fab54fa877883d088928fd95300c1e9f2d9afa59da490",
+                                 "paths":  [
+                                               "body/body14301_stand.2.png",
+                                               "body/body14301_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:5d1b3d09fe25451b840c7b064a56aed883344bfb929f9e961d3ed0a91ecca9fa",
+                                 "paths":  [
+                                               "cloth/cloth11101_cry_m.gif",
+                                               "cloth/cloth11101_die_m.gif",
+                                               "cloth/cloth11101_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:5e85c87c1acb5c41a8bf8cf6022bc78ef9afb67b8e6f58551a91dcd5edf336c6",
+                                 "paths":  [
+                                               "cloth/cloth11601_cry_m.gif",
+                                               "cloth/cloth11601_die_m.gif",
+                                               "cloth/cloth11601_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:602fa79d4e0113bc003d45e8cb8e6281e8b2dcf365c9b28024e95fa02b64bb09",
+                                 "paths":  [
+                                               "cloth/cloth11801_cry.gif",
+                                               "cloth/cloth11801_faint.gif",
+                                               "cloth/cloth11801_lose.gif",
+                                               "cloth/cloth11801_slow.gif",
+                                               "cloth/cloth11801_snow.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:613e2440d76b85fdafd29cd45147a6ca7021ae0bb46b516152364a25e3493cd8",
+                                 "paths":  [
+                                               "cloth/cloth18504_stand_1.gif",
+                                               "cloth/cloth18504_stand_2.gif",
+                                               "cloth/cloth18504_stand_3.gif",
+                                               "cloth/cloth18504_walk_1.gif",
+                                               "cloth/cloth18504_walk_2.gif",
+                                               "cloth/cloth18504_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:618aaf3ea4cf9f3af8c3f7895209088f9285fbaccdfd4ebded198b3ca00f2829",
+                                 "paths":  [
+                                               "cloth/cloth18809_stand.gif",
+                                               "cloth/cloth18809_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:6240c55d102c819826956575d6c33019c8fc1b15a896206aee9c3c9662f4bb7a",
+                                 "paths":  [
+                                               "cap/cap102_stand_0.gif",
+                                               "cap/cap102_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:65486fb6a0ce455ab6d828ac0c77dd9457129236b6b579365d6accfca44dc70c",
+                                 "paths":  [
+                                               "cloth/cloth11401_cry.gif",
+                                               "cloth/cloth11401_die.gif",
+                                               "cloth/cloth11401_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:65ff6f252627f1d111598ba92cd9ec98141d4ca5e90483ae98770c1621c12ff4",
+                                 "paths":  [
+                                               "cloth/cloth18501_stand.gif",
+                                               "cloth/cloth18501_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:69a6a87c9fdfdc420d47dbc11ea36e555f71ceba98732a4b4f854d60c0bb342e",
+                                 "paths":  [
+                                               "face/Face10301_stand_1.png",
+                                               "face/Face10401_stand_1.png",
+                                               "face/Face10501_stand_1.png",
+                                               "face/Face10701_stand_1.png",
+                                               "face/face10901_stand_1.png",
+                                               "face/Face11401_stand_1.png",
+                                               "face/face12201_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:69f02dcf5b700c1544487266f9c5314db135f3ec4b57ff4d04a335c0774971fb",
+                                 "paths":  [
+                                               "body/body15501_stand.0.png",
+                                               "body/body15501_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:6ac7143d8361474589bde273622dbb58bc30dfdb3df858f0a4aae639f9a482a6",
+                                 "paths":  [
+                                               "face/face10101_stand_2.png",
+                                               "face/face10601_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:6d31288be0fe9e5dceadc605d500ac0b31750b0afb198f14680018a2afabfeee",
+                                 "paths":  [
+                                               "thadorn/thadorn101_stand_1.gif",
+                                               "thadorn/thadorn101_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:6f36aa78c9e8ceb275e0a6ee77a544ddf675ba842e6cc3cfae8a1223a9ee6e10",
+                                 "paths":  [
+                                               "body/body1_stand.1.png",
+                                               "body/body1_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:70d7995a2592cd8819316da098cafde1db3ed24387168dddb8b40e72d28b9686",
+                                 "paths":  [
+                                               "body/body15701_stand_2.gif",
+                                               "body/body15701_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:71e0616b9fa4e25a50d527c4f3e775c834c6c250db32fc7e195d0460dac51102",
+                                 "paths":  [
+                                               "cloth/cloth18507_stand_3.gif",
+                                               "cloth/cloth18507_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:72d590af8167c0d5c3d557c07d8512a13c154c63027f2c8f22ce637e274c2ebc",
+                                 "paths":  [
+                                               "cloth/cloth18602_stand.gif",
+                                               "cloth/cloth18602_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:73b7db3a118648cec823779f4d393dcdf78e361b7adc171ff98123e67d2bf519",
+                                 "paths":  [
+                                               "leg/leg10401_walk_m_1.gif",
+                                               "leg/leg4001_walk_m_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:76a70840c42ff022a5625ba8ab54226ff84bb922a4b904cd50c4b45a6b260c4c",
+                                 "paths":  [
+                                               "cloth/cloth10201_stand_m_1.png",
+                                               "cloth/cloth10201_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:773b9010b23b9a4f35b5c22fc43a8f137d5ccf07548a6da47b6fb6f9b06e9f43",
+                                 "paths":  [
+                                               "npack/npack10301_stand_3.gif",
+                                               "npack/npack10301_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:79172cb2f3df225b0fc5465cdf6268a83512d4f4fd5f7be4203bda095ad93f03",
+                                 "paths":  [
+                                               "cap/cap10701_walk_0.gif",
+                                               "fhadorn/fhadorn10701_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7a2d1c6258455b17c5c813a2723549a852f07554d90a2429d581560864c8562a",
+                                 "paths":  [
+                                               "thadorn/thadorn101_stand_0.gif",
+                                               "thadorn/thadorn101_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7a856a31c8fb19fc247c9d0e17506883509a65c8cf8f476c2523eec0902629cd",
+                                 "paths":  [
+                                               "npack/npack10601_walk_1.gif",
+                                               "npack/npack10601_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7a9ef8242583420435bf717d1dc42cb6b4154897b9d09a7f55cc5be4a98eee17",
+                                 "paths":  [
+                                               "body/body14601_stand.0.png",
+                                               "body/body14601_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7d071a0aecebc2045327fd92cd98652cbbb662b408f74ea60a2ef1cb1e8d08b5",
+                                 "paths":  [
+                                               "cloth/cloth12601_cry.gif",
+                                               "cloth/cloth12601_die.gif",
+                                               "cloth/cloth12601_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7d376ea19bad0feaa9c6c9d50c96f99d57e4c5c472572b3cab7b4e4fb8d484fe",
+                                 "paths":  [
+                                               "body/body14201_stand.0.png",
+                                               "body/body14201_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7ede172b160cefd1b4f2f04d1919bdf2c27dcb8a9578289d67cda10d9f51e86e",
+                                 "paths":  [
+                                               "thadorn/thadorn103_stand_2.gif",
+                                               "thadorn/thadorn103_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:7f53c914911a7936b048f907c5ea16ddb99645721b00c9632c4d00da1122a9dc",
+                                 "paths":  [
+                                               "cloth/cloth10101_cry_m.gif",
+                                               "cloth/cloth10101_die_m.gif",
+                                               "cloth/cloth10101_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:812ca1ff8eb99d40507e83e15cd03cdd0460939eece72d586c7492cc6156882d",
+                                 "paths":  [
+                                               "cloth/cloth10801_cry_m.gif",
+                                               "cloth/cloth10801_die_m.gif",
+                                               "cloth/cloth10801_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8137d83cdda164c2af06b59545de479e1308ce4ebdeb701bb9aedd59c6ad68b8",
+                                 "paths":  [
+                                               "cap/cap10701_stand_3.png",
+                                               "fhadorn/fhadorn10701_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:846400ea679a8b8d95ce1537431869dcd1b22eaf9fd0cf36baf847f2c2e023d2",
+                                 "paths":  [
+                                               "leg/leg1_stand.gif",
+                                               "leg/leg1_stand_m.gif",
+                                               "leg/leg1_walk.gif",
+                                               "leg/leg1_walk_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:85a360103132bcddc8fcc29d088d57c594aee70b16a7a45ad8066c008396a384",
+                                 "paths":  [
+                                               "cloth/cloth13501_stand_3.gif",
+                                               "cloth/cloth13501_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:85e10d3058e5c89f0737bf4f2cecfa07067a9dfe2598432b97c3d0ccaf60c450",
+                                 "paths":  [
+                                               "cloth/cloth13601_stand_0.gif",
+                                               "cloth/cloth13601_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:86209d81473fed8f61216fb0ef6230e92b08564f2804df753bdf770c1eee116d",
+                                 "paths":  [
+                                               "cloth/cloth11101_cry.gif",
+                                               "cloth/cloth11101_die.gif",
+                                               "cloth/cloth11101_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:87472c3e90d47bb16ae0252c8936a72feb050ac2a8fc6eac4c7958b317a33193",
+                                 "paths":  [
+                                               "body/body15701_stand_3.gif",
+                                               "body/body15701_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8751a37758828903dfd105d91c4ae2b65e1403e77e2a76ea209dfb3e64f80563",
+                                 "paths":  [
+                                               "cloth/cloth10101_stand_m_1.png",
+                                               "cloth/cloth10101_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:89b06bddffcd3a891d9ab904b1065d493698866071b923b3e53019b8b717c9ec",
+                                 "paths":  [
+                                               "body/body1_stand.2.png",
+                                               "body/body1_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8a0c97c3c8ceda3452ee382c11f2c9f039e7d8ddab8e1e01af337048e580aeb6",
+                                 "paths":  [
+                                               "cloth/cloth12101_cry_m.gif",
+                                               "cloth/cloth12101_faint_m.gif",
+                                               "cloth/cloth12101_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8a162b2b00df82171e7dd6b6eb83a2cec910d31d170d592684be6f509fa0ba53",
+                                 "paths":  [
+                                               "cloth/cloth11501_cry.gif",
+                                               "cloth/cloth11501_die.gif",
+                                               "cloth/cloth11501_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8d7c561c502507419f8248c74265b1547e75b544bf192230fa37490429a1a596",
+                                 "paths":  [
+                                               "cap/cap10701_stand_2.png",
+                                               "fhadorn/fhadorn10701_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8da3dc278784cf452de17e1373454d7911453fdf8a6aacdfd0efc0dcc42af300",
+                                 "paths":  [
+                                               "cloth/cloth10701_cry_m.gif",
+                                               "cloth/cloth10701_die_m.gif",
+                                               "cloth/cloth10701_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8e54cbfd1aae56add81f86648e45d88586eca8c59dd3448b37ce790df7ed81df",
+                                 "paths":  [
+                                               "npack/npack10301_stand_1.gif",
+                                               "npack/npack10301_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8e76f730277e45108404541bb685322a01801f415861bb47fd36c53a54f374c6",
+                                 "paths":  [
+                                               "cap/cap103_stand_1.gif",
+                                               "cap/cap103_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:8fdd5c7537f1fb9e74cc856350c6730eac2dba97e86f2353b7009302dbc321d0",
+                                 "paths":  [
+                                               "cap/cap103_stand_3.gif",
+                                               "cap/cap103_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9012fb799a3dd67218f5baf99b090b11a7d60f260de01e7ae92819fc0a8f377a",
+                                 "paths":  [
+                                               "leg/leg10101_stand_m_1.png",
+                                               "leg/leg10201_stand_m_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:905156b2822164a375cbfa4c126613673169575ab7b0399c33c310615e38ad32",
+                                 "paths":  [
+                                               "cloth/cloth10101_cry.gif",
+                                               "cloth/cloth10101_die.gif",
+                                               "cloth/cloth10101_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:90edc22dbb212c70f552784123861cffa01899738de18697e5206d37e2340ac5",
+                                 "paths":  [
+                                               "leg/leg10101_walk_m_3.gif",
+                                               "leg/leg10201_walk_m_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9114c79c5c3be4221e141319c4065f834d719601188d9b142c85bb939787125d",
+                                 "paths":  [
+                                               "body/body14301_stand.0.png",
+                                               "body/body14301_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9183059acdb7fed5afefb06e0bcf6965b6f5a58171ce981396e4ac6abc88074f",
+                                 "paths":  [
+                                               "cloth/cloth10301_cry.gif",
+                                               "cloth/cloth10301_die.gif",
+                                               "cloth/cloth10301_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:91ef797ca24039d5673637f65ef855f22bd96bff1f101d05b1690538f7d74d71",
+                                 "paths":  [
+                                               "npack/npack10601_walk_m_1.gif",
+                                               "npack/npack10601_walk_m_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:93482b2c8f183b32db0cc6e3356a0633d975af5dcd4c8b6a3388c366ff402641",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_stand_1.png",
+                                               "cladorn/cladorn12801_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9404361bb80395663d896a200a0e97c9d52e51974c95068d462613e462724aca",
+                                 "paths":  [
+                                               "body/body14201_stand.3.png",
+                                               "body/body14201_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:94521f2427c4b088ec6b5a0385707231f4365cf760e15e7f35e1f52e830947d0",
+                                 "paths":  [
+                                               "leg/leg10101_stand_m_3.png",
+                                               "leg/leg10201_stand_m_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:955848185d46f1d9fe956afe7f1cf093ecc89e27f9f50432155b1b316633223d",
+                                 "paths":  [
+                                               "thadorn/thadorn101_stand_3.gif",
+                                               "thadorn/thadorn101_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:972ee512117a8425fe9848b569ee9a3d6b16c8de53f1ec7be434aefe1da06633",
+                                 "paths":  [
+                                               "cloth/cloth17001_stand.gif",
+                                               "cloth/cloth17001_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9980805b91aa77a449aff636e31a995596307771c44b9a99371fd4693db89870",
+                                 "paths":  [
+                                               "cap/cap101_stand_2.gif",
+                                               "cap/cap101_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:99fd1c1c62c787ea1488290b1dcd433be56fb086826858024a0599406f301565",
+                                 "paths":  [
+                                               "thadorn/thadorn102_stand_3.gif",
+                                               "thadorn/thadorn102_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9bc8951e0fffce16c57e8ef5876c0fd7c4acef6c8db0594b0f128796879e1b9c",
+                                 "paths":  [
+                                               "body/body15501_stand.3.png",
+                                               "body/body15501_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9bfe63f8da6e25a94926ccda5f3be1330865d5e9e316112b1f0d4539e9291ca6",
+                                 "paths":  [
+                                               "cloth/cloth18502_stand_2.gif",
+                                               "cloth/cloth18502_walk_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:9cc884b312873033d51b5536cd3da060a4983413f587191fd18d4b8db261e189",
+                                 "paths":  [
+                                               "cloth/cloth11401_cry_m.gif",
+                                               "cloth/cloth11401_die_m.gif",
+                                               "cloth/cloth11401_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a1bbc335b7f1b20d82a978c800abe34527ecc77a94780c4419652f22a6799660",
+                                 "paths":  [
+                                               "cloth/cloth13501_stand_1.gif",
+                                               "cloth/cloth13501_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a6de78a8404d59bc7018e51e8bb89d822f5df154b3cf05bffac3b463f730b7ad",
+                                 "paths":  [
+                                               "face/face10201_stand_2.png",
+                                               "face/face10801_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a7cf01fd3001b8c72f4ed603e17cf8c81824673bde622dd91197da0fdac5ac14",
+                                 "paths":  [
+                                               "body/body1_stand.0.png",
+                                               "body/body1_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a7ed13a5683408332cd667e5673f962d98c755b2357b6e138baf7cf2e09442e0",
+                                 "paths":  [
+                                               "cloth/cloth18704_stand.gif",
+                                               "cloth/cloth18704_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a8185912e0353c9281b2b752dde1a15fd3a0b940e7b6857f1ae6db55cf2733ed",
+                                 "paths":  [
+                                               "leg/leg10401_walk_m_3.gif",
+                                               "leg/leg4001_walk_m_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:a9748c0a6234407d0a09956caab557abba96ede0fbec17ffdcb8cd86f0b83747",
+                                 "paths":  [
+                                               "leg/leg10401_walk_m_2.gif",
+                                               "leg/leg4001_walk_m_2.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:abaaa09988bc993d23e872fafb1d40753f2e6c4143c5ea155688da2a7fb37f26",
+                                 "paths":  [
+                                               "cloth/cloth18703_stand.gif",
+                                               "cloth/cloth18703_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:abf0e17c32f639de5314e9d8e8d71f8eaf852100fb5378c9dcc4a5a22837dd16",
+                                 "paths":  [
+                                               "cap/cap102_stand_1.gif",
+                                               "cap/cap102_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:ac611f8513f2b053ca58a9cbec8354f8a0bbc3fbf4bbee0281da09a5cc788d7f",
+                                 "paths":  [
+                                               "cap/cap104_stand_3.gif",
+                                               "cap/cap104_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:ae13b23e2842ac5dcd4aa17c67ffe512b0ede0d49f71b35a351d68f21cea2f95",
+                                 "paths":  [
+                                               "body/body14501_stand.0.png",
+                                               "body/body14501_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b0a3f1017cf9748d96391ac5a977e3933e3aa999de6a7a1c5c5e0c8ac47a1665",
+                                 "paths":  [
+                                               "leg/leg10101_walk_m_0.gif",
+                                               "leg/leg10201_walk_m_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b2b08cb7905ebe148929e51a5b0d06135e1b8997e08cd2c7f0cdb5461ef40697",
+                                 "paths":  [
+                                               "cap/cap10701_stand_0.png",
+                                               "fhadorn/fhadorn10701_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b3bddf1ccb84a87bb9655dbe828eb73569cb65c9a45446604f1cb8861d7f8fe5",
+                                 "paths":  [
+                                               "cloth/cloth17601_stand.gif",
+                                               "cloth/cloth17601_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b450aac4538e20aa9fe73eac2d22660a2ae0e85ca1e3b92e3ebd1ff20d1c38ea",
+                                 "paths":  [
+                                               "cloth/cloth18509_stand_3.gif",
+                                               "cloth/cloth18509_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b53661a715d98dcc51d9638c2bee416370439953353bd9c8dccdc7800d9f8e1f",
+                                 "paths":  [
+                                               "cloth/cloth18509_stand_1.gif",
+                                               "cloth/cloth18509_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b669894fea147f5ce2629304235f9bd2913d7cf7ea78efe30ff73adbd8cb10bc",
+                                 "paths":  [
+                                               "body/body14501_stand.2.png",
+                                               "body/body14501_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b6f5552368e7f9d193bb0d1a6e95e0aeb8b5cb8cedd69faba3d972411fd8f302",
+                                 "paths":  [
+                                               "body/body14201_stand.2.png",
+                                               "body/body14201_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b7572269baee5c6788d0e0901264489bc1b5847c931cd003bf9705d65d4d36c3",
+                                 "paths":  [
+                                               "cloth/cloth11501_cry_m.gif",
+                                               "cloth/cloth11501_die_m.gif",
+                                               "cloth/cloth11501_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:b7b3a0638b07446be33d9e25d6201800c41c1657cd755bbc6d05bb4055342008",
+                                 "paths":  [
+                                               "cloth/cloth11601_cry.gif",
+                                               "cloth/cloth11601_die.gif",
+                                               "cloth/cloth11601_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:ba765280ad69f80523a67122ca6d4085ab8b44aea3886fe1dc15db3fefc79de1",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_stand_0.png",
+                                               "cladorn/cladorn12801_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:bb23272664fdd65a47806a3bfea724cebb05a3a8806aaba3b1c4db8a3d63b51f",
+                                 "paths":  [
+                                               "body/body14401_stand.2.png",
+                                               "body/body14401_stand_2.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:bbc7fc0ad0c44e7522bb550b4e90ae216656093978e8242693539e032ca49cf6",
+                                 "paths":  [
+                                               "cloth/cloth12401_cry.gif",
+                                               "cloth/cloth12401_die.gif",
+                                               "cloth/cloth12401_lose.gif",
+                                               "cloth/cloth12801_cry.gif",
+                                               "cloth/cloth12801_die.gif",
+                                               "cloth/cloth12801_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:bce496e84abf7b8ff995bcddc5b810a056d017a5f972b16c2b42194fe83d2e3b",
+                                 "paths":  [
+                                               "body/body14401_stand.0.png",
+                                               "body/body14401_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:bceb51f02510248deeddfdeaa35b50e1fd1c27c76c032c7999824aedd2c38a4a",
+                                 "paths":  [
+                                               "cloth/cloth11901_cry_m.gif",
+                                               "cloth/cloth11901_faint_m.gif",
+                                               "cloth/cloth11901_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:bfdb43ece4fd2e7bb47d50ea01a5a563e7788db9c28b023c9738dd081b89bd2d",
+                                 "paths":  [
+                                               "body/body14301_stand.1.png",
+                                               "body/body14301_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c0086327dcbf9bad92f2a721a43805d37eb32dd2be5e5cdc8af44d513a4cbebe",
+                                 "paths":  [
+                                               "cloth/cloth12201_cry_m.gif",
+                                               "cloth/cloth12201_die_m.gif",
+                                               "cloth/cloth12201_faint_m.gif",
+                                               "cloth/cloth12201_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c045aefc4773d23e217628effa62d263bd7cedb89b98c031b8e55ae2418eb6be",
+                                 "paths":  [
+                                               "body/body14201_stand.1.png",
+                                               "body/body14201_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c0980db732c241644e397bd26d581ab5c3e97d5f3120f181d9a86faefe28d8de",
+                                 "paths":  [
+                                               "body/body14601_stand.3.png",
+                                               "body/body14601_stand_3.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c316a422866f97688c945be60c2dfbee8875e26c4e1f612c87d1ff60a68b412b",
+                                 "paths":  [
+                                               "cloth/cloth10701_cry.gif",
+                                               "cloth/cloth10701_die.gif",
+                                               "cloth/cloth10701_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c3b52f1ad749a5d2b30ebd0ee09a9bd15a2d6fe60b93b8634c2e728ef918df70",
+                                 "paths":  [
+                                               "cloth/cloth16901_stand.gif",
+                                               "cloth/cloth16901_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c3ee27f5893a5724ecf3c3f08298aed7bcebd10ebcadee82fe0ed799193bc6fc",
+                                 "paths":  [
+                                               "cloth/cloth10201_cry_m.gif",
+                                               "cloth/cloth10201_die_m.gif",
+                                               "cloth/cloth10201_lose_m.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c4f59d3c647c01628717a44ea5e3994f577e6e32716497463a49493f6a4031eb",
+                                 "paths":  [
+                                               "face/face10101_stand_1.png",
+                                               "face/face10201_stand_1.png",
+                                               "face/face10601_stand_1.png",
+                                               "face/face10801_stand_1.png",
+                                               "face/face11301_stand_1.png",
+                                               "head/head1_stand_1.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c7d46f1a12b6cb111689c800d32573c98b80d3080a89aee9269fc5b6201583a0",
+                                 "paths":  [
+                                               "face/face10101_stand_0.png",
+                                               "face/face10601_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c86dc27c9cd3ff9ac6c2617d6713fe3873b8930eab4803fa8f03939a350794a9",
+                                 "paths":  [
+                                               "cladorn/cladorn12401_walk_0.gif",
+                                               "cladorn/cladorn12801_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c8da59095e5f5c2b93e02f0607b2ac6bf1f3248296c3cb2317d2d5496d9d80f2",
+                                 "paths":  [
+                                               "cloth/cloth11001_cry.gif",
+                                               "cloth/cloth11001_die.gif",
+                                               "cloth/cloth11001_lose.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:c9abe9e8d175df2653d7b865a8c435a746890b7a0257c9a0ecf59415897fa31c",
+                                 "paths":  [
+                                               "npack/npack10301_stand_0.gif",
+                                               "npack/npack10301_walk_0.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:cb85d11ae5f583541fb093085d8e503c6ae8d1464e96e542f8be51a7ad6bf112",
+                                 "paths":  [
+                                               "cloth/cloth18506_stand_1.gif",
+                                               "cloth/cloth18506_walk_1.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:cb954f2521e025a3a14cdbe85e093d3b858c3578f55ab2e96285bc6432aa390e",
+                                 "paths":  [
+                                               "cloth/cloth17401_stand.gif",
+                                               "cloth/cloth17401_walk_3.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:ccc119fab3396e81873d84348a54d4ce9491e288dbb9d91a0c85b693ea76806c",
+                                 "paths":  [
+                                               "cloth/cloth11503_stand.gif",
+                                               "cloth/cloth11503_walk.gif"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:cd1a8597a1c9bbd11b21c567cad91d454f4f3f544e7868ce8e1a21ebcae16f9a",
+                                 "paths":  [
+                                               "face/face10201_stand_0.png",
+                                               "face/face10801_stand_0.png"
+                                           ]
+                             },
+                             {
+                                 "content_hash":  "sha256:d008ab4b59c3dfefcfb081d634e0ad230bed7b47b5062929253510e36ce8ed6c",
+                                 "paths":  [
+                                               "cap/cap10701_walk_3.gif",
+                                               "fhadorn/fhadorn10701_walk_3.gif"
+                                           ]
+                             }
+                         ],
+    "project_character_coverage":  {
+                                       "character_csv":  "content_source/csv/characters/characters.csv",
+                                       "qqt_character_count":  94,
+                                       "direct_match_count":  90,
+                                       "missing_direct_ids":  [
+                                                                  "11701",
+                                                                  "18811",
+                                                                  "23001",
+                                                                  "27101"
+                                                              ]
+                                   }
+}
