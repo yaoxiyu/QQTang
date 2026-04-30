@@ -15,6 +15,24 @@ func test_build_returns_null_until_battle_entry_is_ready() -> void:
 	assert_eq(RoomBattleEntryBuilderScript.build(snapshot), null, "builder should wait for battle_entry_ready")
 
 
+func test_build_allows_active_battle_resume_context() -> void:
+	var snapshot := RoomSnapshot.new()
+	snapshot.battle_entry_ready = false
+	snapshot.room_phase = "in_battle"
+	snapshot.battle_phase = "active"
+	snapshot.current_assignment_id = "assign_resume"
+	snapshot.current_battle_id = "battle_resume"
+	snapshot.current_match_id = "match_resume"
+	snapshot.battle_server_host = "127.0.0.1"
+	snapshot.battle_server_port = 9200
+
+	var ctx = RoomBattleEntryBuilderScript.build(snapshot)
+
+	assert_not_null(ctx, "active in_battle snapshot should build DS resume context")
+	assert_eq(ctx.battle_id, "battle_resume", "resume context should keep battle id")
+	assert_eq(ctx.match_id, "match_resume", "resume context should keep match id")
+
+
 func test_build_maps_snapshot_and_source_room_fields() -> void:
 	var snapshot := RoomSnapshot.new()
 	snapshot.battle_entry_ready = true

@@ -335,7 +335,8 @@ func _apply_dedicated_battle_entry_snapshot(snapshot: RoomSnapshot) -> void:
 		return
 	if String(snapshot.topology) != "dedicated_server":
 		return
-	if not bool(snapshot.battle_entry_ready):
+	var should_resume_active_battle := _is_active_battle_resume_snapshot(snapshot)
+	if not bool(snapshot.battle_entry_ready) and not should_resume_active_battle:
 		return
 	if String(snapshot.current_assignment_id).is_empty() or String(snapshot.current_battle_id).is_empty():
 		return
@@ -346,6 +347,13 @@ func _apply_dedicated_battle_entry_snapshot(snapshot: RoomSnapshot) -> void:
 		return
 	if app_runtime.current_start_config != null:
 		return
+	var battle_ctx = build_battle_entry_context(snapshot)
+	if battle_ctx != null:
+		app_runtime.current_battle_entry_context = battle_ctx
+	if should_resume_active_battle and "current_loading_mode" in app_runtime:
+		app_runtime.current_loading_mode = "resume_match"
+	elif "current_loading_mode" in app_runtime and String(app_runtime.current_loading_mode) == "resume_match":
+		app_runtime.current_loading_mode = "normal_start"
 	if app_runtime.match_start_coordinator == null or not app_runtime.match_start_coordinator.has_method("build_client_request_payload"):
 		_log_room_anomaly("dedicated_battle_entry_missing_config_builder", {
 			"room_id": String(snapshot.room_id),
@@ -373,6 +381,12 @@ func _apply_dedicated_battle_entry_snapshot(snapshot: RoomSnapshot) -> void:
 		})
 		return
 	_on_gateway_canonical_start_config_received(config)
+
+
+func _is_active_battle_resume_snapshot(snapshot: RoomSnapshot) -> bool:
+	if snapshot == null:
+		return false
+	return String(snapshot.room_phase) == "in_battle" and String(snapshot.battle_phase) == "active"
 
 
 func _resolve_local_peer_id(snapshot: RoomSnapshot) -> int:

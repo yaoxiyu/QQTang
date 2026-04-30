@@ -1,0 +1,4 @@
+{
+  "asset_type": "map_theme",
+  "required_fields": ["asset_type", "asset_key", "spec_id", "content_ids", "rights"]
+}

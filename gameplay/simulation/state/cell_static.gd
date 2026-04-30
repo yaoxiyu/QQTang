@@ -17,6 +17,10 @@ var tile_type: int = 0
 # 规则判断的核心来源（优先看 flags）
 var tile_flags: int = 0
 
+# Phase38: 按方向表达通行能力，避免由表现贴图或命名推断规则。
+var movement_pass_mask: int = TileConstants.PASS_ALL
+var blast_pass_mask: int = TileConstants.PASS_ALL
+
 # 如果该格是机制格，可用来索引具体机关类型
 var mechanism_id: int = -1
 
@@ -25,4 +29,3 @@ var theme_variant: int = 0
 
 # 用于记录出生点组，后续多人模式/团队模式可用
 var spawn_group_id: int = -1
-

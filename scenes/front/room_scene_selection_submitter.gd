@@ -25,6 +25,8 @@ func on_profile_changed(controller: Node) -> void:
 		controller._select_team_id(local_member.team_id)
 		controller._set_room_feedback("Team cannot be changed after ready")
 		return
+	if snapshot != null and controller.has_method("_update_preview"):
+		controller._update_preview(snapshot)
 	var result : Dictionary = controller._room_use_case.update_local_profile(
 		controller.player_name_input.text.strip_edges() if controller.player_name_input != null else "",
 		controller._selected_metadata(controller.character_selector),

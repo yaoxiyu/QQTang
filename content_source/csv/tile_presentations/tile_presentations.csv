@@ -2,3 +2,4 @@ presentation_id,display_name,render_role,tile_scene_path,idle_anim,height_px,fad
 tile_pres_solid_wall_default,默认实心墙,static_block,res://scenes/tiles/map_static_block_view.tscn,,18,false,1.0,tile_pres_solid_wall_default_v1
 tile_pres_breakable_brick_default,默认可破坏砖块,breakable_block,res://scenes/tiles/map_breakable_block_view.tscn,,14,false,1.0,tile_pres_breakable_brick_default_v1
 tile_pres_tree_canopy_placeholder,树冠占位遮挡,foreground_occluder,res://scenes/tiles/map_occluder_view.tscn,,0,true,0.35,tile_pres_tree_canopy_placeholder_v1
+tile_pres_phase38_demo_horizontal_pass,Phase38 Demo Horizontal Pass,static_block,res://scenes/tiles/map_static_block_view.tscn,,0,false,1.0,tile_pres_phase38_demo_horizontal_pass_phase38

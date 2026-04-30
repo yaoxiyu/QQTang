@@ -5,6 +5,7 @@ const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubb
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
+const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 
 
@@ -53,9 +54,9 @@ func populate_team_selector(controller: Node, team_option_max: int = 2) -> void:
 	if controller.team_selector == null:
 		return
 	controller.team_selector.clear()
-	var max_team_id: int = max(2, team_option_max)
+	var max_team_id: int = max(2, team_option_max, _max_palette_team_id())
 	for team_id in range(1, max_team_id + 1):
-		controller.team_selector.add_item("Team %d" % team_id)
+		controller.team_selector.add_item("Team %s" % RoomTeamPaletteScript.label_for_team(team_id))
 		controller.team_selector.set_item_metadata(controller.team_selector.item_count - 1, team_id)
 
 
@@ -200,6 +201,13 @@ func select_team_id(controller: Node, team_id: int) -> void:
 		if int(controller.team_selector.get_item_metadata(index)) == team_id:
 			controller.team_selector.select(index)
 			return
+
+
+func _max_palette_team_id() -> int:
+	var max_team_id := 0
+	for team_id in RoomTeamPaletteScript.TEAM_IDS:
+		max_team_id = max(max_team_id, int(team_id))
+	return max_team_id
 
 
 func selected_match_mode_ids(controller: Node) -> Array[String]:

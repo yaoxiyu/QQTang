@@ -57,6 +57,7 @@ func test_finalize_payload_contains_member_results() -> void:
 	var config = BattleStartConfigScript.new()
 	config.match_id = "match_alpha"
 	config.room_id = "room_alpha"
+	config.battle_id = "battle_alpha"
 	config.mode_id = "mode_ranked"
 	config.rule_set_id = "rule_standard"
 	config.map_id = state.selected_map_id
@@ -76,6 +77,9 @@ func test_finalize_payload_contains_member_results() -> void:
 	assert_eq(members.size(), 2, "payload should include 2 member results")
 	assert_eq(String(members[0].get("outcome", "")), "win", "winner team member should be win")
 	assert_eq(String(members[1].get("outcome", "")), "loss", "loser team member should be loss")
+	var reap_context: Dictionary = reporter._build_reap_context(runtime, payload)
+	assert_eq(String(reap_context.get("battle_id", "")), "battle_alpha", "reap context should include battle id")
+	assert_eq(String(reap_context.get("assignment_id", "")), "assign_alpha", "reap context should include assignment id")
 
 
 func test_finalize_payload_falls_back_to_current_assignment_id() -> void:

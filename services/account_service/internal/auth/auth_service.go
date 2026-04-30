@@ -166,24 +166,18 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (AuthRe
 			ProfileID:              profileID,
 			AccountID:              accountID,
 			Nickname:               nickname,
-			DefaultCharacterID:     "char_huoying",
-			DefaultCharacterSkinID: "skin_gold",
-			DefaultBubbleStyleID:   "bubble_round",
-			DefaultBubbleSkinID:    "bubble_skin_gold",
+			DefaultCharacterID:     defaultCharacterID,
+			DefaultCharacterSkinID: defaultCharacterSkinID,
+			DefaultBubbleStyleID:   defaultBubbleStyleID,
+			DefaultBubbleSkinID:    defaultBubbleSkinID,
 			ProfileVersion:         1,
-			OwnedAssetRevision:     0,
+			OwnedAssetRevision:     int64(len(defaultRegistrationAssets(accountID, profileID, now))),
 			UpdatedAt:              now,
 		}); err != nil {
 			return err
 		}
 
-		defaultAssets := []storage.OwnedAsset{
-			{AccountID: accountID, ProfileID: profileID, AssetType: "character", AssetID: "char_huoying", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "character_skin", AssetID: "skin_gold", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble", AssetID: "bubble_round", State: "owned", AcquiredAt: now, SourceType: "system"},
-			{AccountID: accountID, ProfileID: profileID, AssetType: "bubble_skin", AssetID: "bubble_skin_gold", State: "owned", AcquiredAt: now, SourceType: "system"},
-		}
-		for _, asset := range defaultAssets {
+		for _, asset := range defaultRegistrationAssets(accountID, profileID, now) {
 			if err := profileRepo.InsertOwnedAsset(ctx, asset); err != nil {
 				return err
 			}

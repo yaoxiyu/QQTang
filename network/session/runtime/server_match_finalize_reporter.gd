@@ -3,6 +3,7 @@ extends RefCounted
 
 const FINALIZE_PATH := "/internal/v1/matches/finalize"
 const ASSIGNMENT_COMMIT_PATH_TEMPLATE := "/internal/v1/assignments/%s/commit"
+const BATTLE_REAP_PATH_TEMPLATE := "/internal/v1/battles/%s/reap"
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
 const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
@@ -15,6 +16,7 @@ var internal_auth_shared_secret: String = ""
 var _internal_client = null
 var last_finalize_status: Dictionary = {}
 var last_assignment_commit_status: Dictionary = {}
+var last_reap_status: Dictionary = {}
 var retry_delays_msec: Array[int] = [500, 1500, 3000]
 
 
@@ -75,6 +77,7 @@ func _report_match_result(room_runtime: Node, result: BattleResult) -> void:
 		return
 	var result_hash := _build_result_hash(payload)
 	payload["result_hash"] = result_hash
+	var reap_context := _build_reap_context(room_runtime, payload)
 	_log_finalize("finalize_report_requested", {
 		"match_id": String(payload.get("match_id", "")),
 		"assignment_id": String(payload.get("assignment_id", "")),
@@ -87,6 +90,8 @@ func _report_match_result(room_runtime: Node, result: BattleResult) -> void:
 	response["reported_at"] = _utc_now_string()
 	last_finalize_status = response
 	_log_finalize("finalize_report_completed", response)
+	if bool(response.get("ok", false)):
+		await _reap_battle_after_finalize(reap_context)
 
 
 func _report_assignment_commit(payload: Dictionary) -> void:
@@ -156,6 +161,57 @@ func _build_finalize_payload(room_runtime: Node, result: BattleResult) -> Dictio
 	if payload["season_id"] == "":
 		payload["season_id"] = "season_s1"
 	return payload
+
+
+func _build_reap_context(room_runtime: Node, finalize_payload: Dictionary) -> Dictionary:
+	if room_runtime == null:
+		return {}
+	var match_service = room_runtime.get_match_service() if room_runtime.has_method("get_match_service") else null
+	var config: BattleStartConfig = null
+	if match_service != null and match_service.has_method("get_last_finished_config"):
+		config = match_service.get_last_finished_config()
+	if config == null and match_service != null and match_service.has_method("get_current_config"):
+		config = match_service.get_current_config()
+	var battle_id := ""
+	if config != null:
+		battle_id = String(config.battle_id).strip_edges()
+	if battle_id.is_empty() and "battle_id" in room_runtime:
+		battle_id = String(room_runtime.battle_id).strip_edges()
+	if battle_id.is_empty():
+		return {}
+	return {
+		"battle_id": battle_id,
+		"assignment_id": String(finalize_payload.get("assignment_id", "")).strip_edges(),
+		"room_id": String(finalize_payload.get("room_id", "")).strip_edges(),
+	}
+
+
+func _reap_battle_after_finalize(reap_context: Dictionary) -> void:
+	var battle_id := String(reap_context.get("battle_id", "")).strip_edges()
+	if battle_id.is_empty():
+		last_reap_status = {
+			"ok": false,
+			"error_code": "BATTLE_REAP_CONTEXT_INVALID",
+			"user_message": "Battle reap context is incomplete",
+			"reported_at": _utc_now_string(),
+		}
+		_log_finalize("battle_reap_context_invalid", last_reap_status)
+		return
+	var path := BATTLE_REAP_PATH_TEMPLATE % battle_id.uri_encode()
+	var payload := {
+		"assignment_id": String(reap_context.get("assignment_id", "")),
+		"room_id": String(reap_context.get("room_id", "")),
+	}
+	_log_finalize("battle_reap_requested", {
+		"battle_id": battle_id,
+		"assignment_id": String(payload.get("assignment_id", "")),
+		"room_id": String(payload.get("room_id", "")),
+	})
+	var response := await _send_internal_post_with_retry(path, payload)
+	response["battle_id"] = battle_id
+	response["reported_at"] = _utc_now_string()
+	last_reap_status = response
+	_log_finalize("battle_reap_completed", response)
 
 
 func _resolve_assignment_id(room_state, config: BattleStartConfig) -> String:

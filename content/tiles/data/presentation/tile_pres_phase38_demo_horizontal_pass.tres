@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TilePresentationDef" format=3]
+
+[ext_resource type="Script" path="res://content/tiles/defs/tile_presentation_def.gd" id="1_tpbf8"]
+[ext_resource type="PackedScene" path="res://scenes/tiles/map_static_block_view.tscn" id="2_r6t7x"]
+
+[resource]
+script = ExtResource("1_tpbf8")
+presentation_id = "tile_pres_phase38_demo_horizontal_pass"
+display_name = "Phase38 Demo Horizontal Pass"
+render_role = "static_block"
+tile_scene = ExtResource("2_r6t7x")
+height_px = 0.0
+fade_alpha = 1.0
+content_hash = "tile_pres_phase38_demo_horizontal_pass_phase38"

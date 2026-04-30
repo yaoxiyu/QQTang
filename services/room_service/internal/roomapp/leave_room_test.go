@@ -189,6 +189,57 @@ func TestLeaveRoomDelaysEmptyBattleRoomCleanup(t *testing.T) {
 	}
 }
 
+func TestMarkDisconnectedHidesAndCleansUpEmptyBattleRoom(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEmptyBattleCleanupGrace(time.Millisecond)
+	created, err := svc.CreateRoom(CreateRoomInput{
+		RoomTicket:   "ticket-create",
+		AccountID:    "acc-owner",
+		ProfileID:    "pro-owner",
+		PlayerName:   "owner",
+		ConnectionID: "conn-owner",
+		Loadout:      Loadout{CharacterID: "char_default", BubbleStyleID: "bubble_default"},
+		Selection:    Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic"},
+	})
+	if err != nil {
+		t.Fatalf("create room failed: %v", err)
+	}
+	guest := joinMemberForLeaveTest(t, svc, created.RoomID, "guest", 1)
+	if got := len(svc.DirectorySnapshot("127.0.0.1", 9100).GetEntries()); got != 1 {
+		t.Fatalf("expected room visible before all members disconnect, got %d entries", got)
+	}
+
+	svc.mu.Lock()
+	room := svc.roomsByID[created.RoomID]
+	room.BattleState.Phase = BattlePhaseActive
+	room.BattleState.AssignmentID = "assign-disconnect-cleanup"
+	room.BattleState.BattleID = "battle-disconnect-cleanup"
+	svc.mu.Unlock()
+
+	if _, err := svc.MarkDisconnected(created.RoomID, created.OwnerMemberID); err != nil {
+		t.Fatalf("mark owner disconnected failed: %v", err)
+	}
+	if got := len(svc.DirectorySnapshot("127.0.0.1", 9100).GetEntries()); got != 1 {
+		t.Fatalf("expected room still visible while one member remains connected, got %d entries", got)
+	}
+	if _, err := svc.MarkDisconnected(created.RoomID, guest); err != nil {
+		t.Fatalf("mark guest disconnected failed: %v", err)
+	}
+	if got := len(svc.DirectorySnapshot("127.0.0.1", 9100).GetEntries()); got != 0 {
+		t.Fatalf("expected empty disconnected battle room hidden from directory, got %d entries", got)
+	}
+	if _, err := svc.SnapshotProjection(created.RoomID); err != nil {
+		t.Fatalf("battle room should remain resumable until cleanup grace expires: %v", err)
+	}
+
+	if swept := svc.SweepEmptyBattleRooms(time.Now().Add(time.Second)); swept != 1 {
+		t.Fatalf("expected one empty battle room swept, got %d", swept)
+	}
+	if _, err := svc.SnapshotProjection(created.RoomID); err == nil {
+		t.Fatalf("battle room should be destroyed after cleanup grace")
+	}
+}
+
 func joinMemberForLeaveTest(t *testing.T, svc *Service, roomID string, name string, teamID int) string {
 	t.Helper()
 	snapshot, err := svc.JoinRoom(JoinRoomInput{

@@ -43,3 +43,16 @@ const TILE_IS_SPAWN := 1 << 4
 
 # 机关格
 const TILE_IS_MECHANISM := 1 << 5
+
+# ====================
+# Direction pass mask
+# ====================
+
+const PASS_N := 1
+const PASS_E := 2
+const PASS_S := 4
+const PASS_W := 8
+const PASS_ALL := PASS_N | PASS_E | PASS_S | PASS_W
+const PASS_HORIZONTAL := PASS_E | PASS_W
+const PASS_VERTICAL := PASS_N | PASS_S
+const PASS_NONE := 0

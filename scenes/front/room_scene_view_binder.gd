@@ -48,12 +48,17 @@ func update_preview(
 	_set_text_by_name(scene_controller, "rule_preview_label", "Rule: %s" % snapshot.rule_set_id)
 	_set_text_by_name(scene_controller, "mode_preview_label", "Mode: %s" % snapshot.mode_id)
 	if local_member != null:
-		_set_text_by_name(scene_controller, "team_preview_label", "Team: %d" % local_member.team_id)
-		_set_text_by_name(scene_controller, "character_preview_label", "Character: %s" % local_member.character_id)
-		_set_text_by_name(scene_controller, "character_skin_preview_label", "Character Skin: %s" % local_member.character_skin_id)
-		_set_text_by_name(scene_controller, "bubble_preview_label", "Bubble: %s" % local_member.bubble_style_id)
-		_set_text_by_name(scene_controller, "bubble_skin_preview_label", "Bubble Skin: %s" % local_member.bubble_skin_id)
-		_configure_preview(scene_controller, local_member.character_id, local_member.character_skin_id)
+		var preview_team_id := selected_team_id if selected_team_id > 0 else local_member.team_id
+		var preview_character_id := _resolve_preview_character_id(_selected_controller_metadata(scene_controller, "character_selector", local_member.character_id))
+		var preview_character_skin_id := _resolve_preview_character_skin_id(_selected_controller_metadata(scene_controller, "character_skin_selector", local_member.character_skin_id))
+		var preview_bubble_style_id := _selected_controller_metadata(scene_controller, "bubble_selector", local_member.bubble_style_id)
+		var preview_bubble_skin_id := _selected_controller_metadata(scene_controller, "bubble_skin_selector", local_member.bubble_skin_id)
+		_set_text_by_name(scene_controller, "team_preview_label", "Team: %d" % preview_team_id)
+		_set_text_by_name(scene_controller, "character_preview_label", "Character: %s" % preview_character_id)
+		_set_text_by_name(scene_controller, "character_skin_preview_label", "Character Skin: %s" % preview_character_skin_id)
+		_set_text_by_name(scene_controller, "bubble_preview_label", "Bubble: %s" % preview_bubble_style_id)
+		_set_text_by_name(scene_controller, "bubble_skin_preview_label", "Bubble Skin: %s" % preview_bubble_skin_id)
+		_configure_preview(scene_controller, preview_character_id, preview_character_skin_id, preview_team_id)
 		return
 	if app_runtime == null or app_runtime.player_profile_state == null:
 		return
@@ -70,7 +75,8 @@ func update_preview(
 	_configure_preview(
 		scene_controller,
 		_resolve_preview_character_id(String(profile.default_character_id)),
-		_resolve_preview_character_skin_id(String(profile.default_character_skin_id))
+		_resolve_preview_character_skin_id(String(profile.default_character_skin_id)),
+		selected_team_id
 	)
 
 
@@ -168,10 +174,19 @@ func _set_text_by_name(scene_controller: Node, property_name: String, value: Str
 		node.text = value
 
 
-func _configure_preview(scene_controller: Node, character_id: String, character_skin_id: String) -> void:
+func _configure_preview(scene_controller: Node, character_id: String, character_skin_id: String, team_id: int) -> void:
 	var viewport = _get_property(scene_controller, "character_preview_viewport")
 	if viewport != null and viewport.has_method("configure_preview"):
-		viewport.configure_preview(character_id, character_skin_id)
+		viewport.configure_preview(character_id, character_skin_id, team_id)
+
+
+func _selected_controller_metadata(scene_controller: Node, selector_property_name: String, fallback_value: String) -> String:
+	var selector = _get_property(scene_controller, selector_property_name)
+	if selector is OptionButton and scene_controller != null and scene_controller.has_method("_selected_metadata"):
+		var selected := String(scene_controller._selected_metadata(selector))
+		if not selected.strip_edges().is_empty():
+			return selected
+	return fallback_value
 
 
 func _resolve_preview_character_id(character_id: String) -> String:

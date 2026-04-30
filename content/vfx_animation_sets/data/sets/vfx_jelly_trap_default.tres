@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="VfxAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/vfx_animation_sets/defs/vfx_animation_set_def.gd" id="1_3o7wr"]
+[ext_resource type="SpriteFrames" path="res://content/vfx_animation_sets/generated/sprite_frames/vfx_jelly_trap_default_frames.tres" id="2_phr4s"]
+
+[resource]
+script = ExtResource("1_3o7wr")
+vfx_set_id = "vfx_jelly_trap_default"
+display_name = "Phase38 Demo Jelly Trap"
+sprite_frames = ExtResource("2_phr4s")
+frame_width = 128
+frame_height = 128
+enter_frames = 6
+loop_frames = 8
+release_frames = 6
+pivot = Vector2(64, 108)
+content_hash = "vfx_jelly_trap_default_phase38"

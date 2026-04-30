@@ -26,3 +26,5 @@
 ## 维护规则
 - 新内容先进入本层，再被 gameplay / network / presentation 消费。
 - 不在 UI、场景或 gameplay 脚本中散落正式内容真相。
+- `content/` 是运行期内容真相；`assets/` 和 `content_source/asset_intake/` 都不能绕过本层被 battle/room 直接消费。
+- Phase38 资产流程为 `asset_intake -> asset_pipeline -> content_source/csv -> content_pipeline -> content`。

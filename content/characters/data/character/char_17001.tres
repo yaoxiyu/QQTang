@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_qc66c")
 character_id = "char_17001"
-display_name = "17001"
+display_name = "玛利亚"
 stats_id = "char_stats_17001"
 presentation_id = "char_pres_17001"
 default_bubble_style_id = "bubble_round"

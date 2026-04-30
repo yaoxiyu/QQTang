@@ -3,7 +3,9 @@ class_name RoomCharacterPreview
 
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
+const CharacterTeamAnimationResolverScript = preload("res://content/character_animation_sets/runtime/character_team_animation_resolver.gd")
 const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
+const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 
 const PREVIEW_BODY_ORIGIN := Vector2(90, 150)
@@ -33,7 +35,7 @@ func _process(delta: float) -> void:
 	_apply_preview_state()
 
 
-func configure_preview(character_id: String, character_skin_id: String = "") -> void:
+func configure_preview(character_id: String, character_skin_id: String = "", team_id: int = 0) -> void:
 	_preview_root = get_node_or_null("PreviewViewport/PreviewRoot")
 	if _preview_root == null:
 		push_error("RoomCharacterPreview.configure_preview failed: missing PreviewRoot for %s" % character_id)
@@ -54,9 +56,10 @@ func configure_preview(character_id: String, character_skin_id: String = "") -> 
 	if animation_set_id.is_empty():
 		push_error("RoomCharacterPreview.configure_preview failed: empty animation_set_id for %s" % character_id)
 		return
-	var animation_set := CharacterAnimationSetLoaderScript.load_animation_set(animation_set_id)
+	var resolved_animation_set_id := CharacterTeamAnimationResolverScript.resolve_animation_set_id(animation_set_id, team_id, false)
+	var animation_set := CharacterAnimationSetLoaderScript.load_animation_set(resolved_animation_set_id)
 	if animation_set == null:
-		push_error("RoomCharacterPreview.configure_preview failed: missing CharacterAnimationSetDef for %s" % animation_set_id)
+		push_error("RoomCharacterPreview.configure_preview failed: missing CharacterAnimationSetDef for %s" % resolved_animation_set_id)
 		return
 
 	var body_instance := character_presentation.body_scene.instantiate()
@@ -73,6 +76,8 @@ func configure_preview(character_id: String, character_skin_id: String = "") -> 
 		_clear_current_body_view()
 		return
 	_body_view.call("setup_from_animation_set", animation_set)
+	if resolved_animation_set_id == animation_set_id:
+		_apply_team_tint(_body_view, team_id)
 
 	if not character_skin_id.is_empty():
 		var character_skin := CharacterSkinCatalogScript.get_by_id(character_skin_id)
@@ -105,3 +110,10 @@ func _clear_current_body_view() -> void:
 		_preview_root.remove_child(_body_view)
 	_body_view.queue_free()
 	_body_view = null
+
+
+func _apply_team_tint(body_view: Node2D, team_id: int) -> void:
+	if body_view == null or team_id < 1:
+		return
+	var team_color := RoomTeamPaletteScript.color_for_team(team_id)
+	body_view.modulate = Color.WHITE.lerp(team_color, 0.45)

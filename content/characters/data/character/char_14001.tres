@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_lsxn3")
 character_id = "char_14001"
-display_name = "14001"
+display_name = "春丽"
 stats_id = "char_stats_14001"
 presentation_id = "char_pres_14001"
 default_bubble_style_id = "bubble_round"

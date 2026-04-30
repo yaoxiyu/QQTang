@@ -42,7 +42,7 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 	if source_layout_type != "grid" and source_layout_type != "strip":
 		push_error("BubbleAnimationSet %s invalid source_layout_type: %s" % [animation_set_id, source_layout_type])
 		return
-	if source_image_path.is_empty() or not ResourceLoader.exists(source_image_path):
+	if source_image_path.is_empty() or not FileAccess.file_exists(ProjectSettings.globalize_path(source_image_path)):
 		push_error("BubbleAnimationSet %s missing source image: %s" % [animation_set_id, source_image_path])
 		return
 	if frame_width <= 0 or frame_height <= 0 or frame_count <= 0:

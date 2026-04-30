@@ -29,7 +29,7 @@ func _create_formal_slot_card(slot_index: int, member: RoomMemberState, is_open:
 		button.set_meta("ui_asset_id", "ui.room.slot.occupied")
 		button.pressed.connect(Callable(self, "_show_formal_member_profile").bind(_member_to_profile_payload(member)))
 		_apply_room_square_button_style(button, RoomTeamPaletteScript.color_for_team(member.team_id))
-		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 122.0)
+		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 122.0, member.team_id)
 	elif is_open:
 		button.text = ""
 		button.tooltip_text = "空位"

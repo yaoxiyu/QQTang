@@ -1,5 +1,4 @@
 stats_id,initial_bubble_count,max_bubble_count,initial_bubble_power,max_bubble_power,initial_move_speed,max_move_speed,extra_flags
-char_stats_huoying,1,5,1,5,1,9,
 char_stats_11001,1,5,1,5,1,9,
 char_stats_12001,1,5,1,5,1,9,
 char_stats_13001,1,5,1,5,1,9,

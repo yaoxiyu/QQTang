@@ -13,11 +13,11 @@ func test_main() -> void:
 
 
 func _test_resolve_from_owned_profile_defaults() -> bool:
-	var profile = _profile("char_huoying", "skin_gold", "bubble_round", "bubble_skin_gold")
+	var profile = _profile("char_16001", "skin_gold", "bubble_round", "bubble_skin_gold")
 	var result = LoadoutNormalizerScript.resolve_from_profile(profile)
 	var prefix := "loadout_normalizer_test"
 	var ok := true
-	ok = qqt_check(result.character_id == "char_huoying", "valid character should be preserved", prefix) and ok
+	ok = qqt_check(result.character_id == "char_16001", "valid character should be preserved", prefix) and ok
 	ok = qqt_check(result.character_skin_id == "skin_gold", "valid character skin should be preserved", prefix) and ok
 	ok = qqt_check(result.bubble_style_id == "bubble_round", "valid bubble style should be preserved", prefix) and ok
 	ok = qqt_check(result.bubble_skin_id == "bubble_skin_gold", "valid bubble skin should be preserved", prefix) and ok
@@ -30,7 +30,7 @@ func _test_invalid_profile_values_fall_back_to_owned_catalog_assets() -> bool:
 	var result = LoadoutNormalizerScript.resolve_from_profile(profile)
 	var prefix := "loadout_normalizer_test"
 	var ok := true
-	ok = qqt_check(result.character_id == "char_huoying", "invalid character should use owned catalog character", prefix) and ok
+	ok = qqt_check(result.character_id == "char_16001", "invalid character should use owned catalog character", prefix) and ok
 	ok = qqt_check(result.character_skin_id == "skin_gold", "invalid character skin should use owned catalog skin", prefix) and ok
 	ok = qqt_check(result.bubble_style_id == "bubble_round", "invalid bubble should use owned catalog bubble", prefix) and ok
 	ok = qqt_check(result.bubble_skin_id == "bubble_skin_gold", "invalid bubble skin should use owned catalog skin", prefix) and ok
@@ -44,7 +44,7 @@ func _test_apply_to_ticket_request_uses_normalized_values() -> bool:
 	LoadoutNormalizerScript.apply_to_ticket_request(request, profile)
 	var prefix := "loadout_normalizer_test"
 	var ok := true
-	ok = qqt_check(request.selected_character_id == "char_huoying", "ticket should receive normalized character", prefix) and ok
+	ok = qqt_check(request.selected_character_id == "char_16001", "ticket should receive normalized character", prefix) and ok
 	ok = qqt_check(request.selected_bubble_style_id == "bubble_round", "ticket should receive normalized bubble", prefix) and ok
 	return ok
 
@@ -55,7 +55,7 @@ func _profile(character_id: String, character_skin_id: String, bubble_style_id: 
 	profile.default_character_skin_id = character_skin_id
 	profile.default_bubble_style_id = bubble_style_id
 	profile.default_bubble_skin_id = bubble_skin_id
-	profile.owned_character_ids = _strings(["char_huoying"])
+	profile.owned_character_ids = _strings(["char_16001"])
 	profile.owned_character_skin_ids = _strings(["skin_gold"])
 	profile.owned_bubble_style_ids = _strings(["bubble_round"])
 	profile.owned_bubble_skin_ids = _strings(["bubble_skin_gold"])

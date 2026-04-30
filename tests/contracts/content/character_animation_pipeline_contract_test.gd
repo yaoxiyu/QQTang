@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_contract_test.gd"
+extends "res://tests/gut/base/qqt_contract_test.gd"
 
 const CharacterAnimationSetCatalogScript = preload("res://content/character_animation_sets/catalog/character_animation_set_catalog.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
@@ -7,8 +7,8 @@ const REQUIRED_PATHS := [
 	"res://content/character_animation_sets/defs/character_animation_set_def.gd",
 	"res://content/character_animation_sets/catalog/character_animation_set_catalog.gd",
 	"res://content/character_animation_sets/runtime/character_animation_set_loader.gd",
-	"res://content/character_animation_sets/data/sets/char_anim_huoying.tres",
-	"res://content/character_animation_sets/generated/sprite_frames/char_anim_huoying_frames.tres",
+	"res://content/character_animation_sets/data/sets/char_anim_16001.tres",
+	"res://content/character_animation_sets/generated/sprite_frames/char_anim_16001_frames.tres",
 	"res://content/characters/data/presentation/char_pres_huoying.tres",
 ]
 
@@ -47,11 +47,11 @@ func _test_required_files_exist() -> void:
 
 
 func _test_huoying_animation_set_contract() -> void:
-	var animation_set := CharacterAnimationSetCatalogScript.get_by_id("char_anim_huoying")
-	_assert_true(animation_set != null, "catalog loads char_anim_huoying")
+	var animation_set := CharacterAnimationSetCatalogScript.get_by_id("char_anim_16001")
+	_assert_true(animation_set != null, "catalog loads char_anim_16001")
 	if animation_set == null:
 		return
-	_assert_true(animation_set.sprite_frames != null, "char_anim_huoying has SpriteFrames")
+	_assert_true(animation_set.sprite_frames != null, "char_anim_16001 has SpriteFrames")
 	if animation_set.sprite_frames == null:
 		return
 	for animation_name in REQUIRED_ANIMATIONS:
@@ -59,11 +59,11 @@ func _test_huoying_animation_set_contract() -> void:
 
 
 func _test_huoying_presentation_contract() -> void:
-	var presentation := CharacterLoaderScript.load_character_presentation("char_huoying")
-	_assert_true(presentation != null, "CharacterLoader loads char_huoying presentation")
+	var presentation := CharacterLoaderScript.load_character_presentation("char_16001")
+	_assert_true(presentation != null, "CharacterLoader loads char_16001 presentation")
 	if presentation == null:
 		return
-	_assert_true(String(presentation.animation_set_id) == "char_anim_huoying", "char_huoying presentation binds char_anim_huoying")
+	_assert_true(String(presentation.animation_set_id) == "char_anim_16001", "char_16001 presentation binds char_anim_16001")
 
 
 func _assert_true(condition: bool, message: String) -> void:

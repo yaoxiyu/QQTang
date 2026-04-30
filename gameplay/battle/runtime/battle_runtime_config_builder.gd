@@ -109,6 +109,8 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: invalid player state for peer=%d" % peer_id)
 
 	var state := player_state as Dictionary
+	var slot_index := int(state.get("slot_index", -1))
+	var team_id := int(state.get("team_id", 0))
 	var character_id := String(state.get("character_id", ""))
 	if character_id.is_empty():
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: character_id is empty for peer=%d" % peer_id)
@@ -158,6 +160,9 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load BubbleSkinDef for peer=%d, skin=%s" % [peer_id, bubble_skin_id])
 
 	var player_config := PlayerRuntimeConfig.new()
+	player_config.peer_id = peer_id
+	player_config.player_slot = slot_index
+	player_config.team_id = team_id
 	player_config.character_id = character_id
 	player_config.character_stats = character_stats
 	player_config.character_presentation = character_presentation

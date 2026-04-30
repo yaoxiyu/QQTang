@@ -442,6 +442,7 @@ func (s *Service) MarkDisconnected(roomID string, memberID string) (*SnapshotPro
 	room.Members[memberID] = member
 	markMemberDisconnected(room, memberID)
 	s.updateEmptyBattleCleanupLocked(room, time.Now())
+	s.syncDirectoryEntryLocked(room)
 	s.touchRoomSnapshotLocked(room)
 	return s.snapshotProjectionLocked(room), nil
 }
@@ -1054,9 +1055,9 @@ func (s *Service) DirectorySubscriberIDs() []string {
 	return s.registry.DirectorySubscriberIDs()
 }
 
-func (s *Service) SweepEmptyBattleRooms(now time.Time) {
+func (s *Service) SweepEmptyBattleRooms(now time.Time) int {
 	if s == nil {
-		return
+		return 0
 	}
 	type cleanupTarget struct {
 		roomID       string
@@ -1098,6 +1099,7 @@ func (s *Service) SweepEmptyBattleRooms(now time.Time) {
 			BattleID:     target.battleID,
 		})
 	}
+	return len(targets)
 }
 
 func (s *Service) DirectorySnapshot(serverHost string, serverPort int32) *roomv1.RoomDirectorySnapshot {
@@ -1800,6 +1802,10 @@ func (s *Service) syncDirectoryEntryLocked(room *domain.RoomAggregate) {
 		return
 	}
 	if !isDirectoryVisibleRoomKind(room.RoomKind) {
+		s.registry.RemoveRoomEntry(room.RoomID)
+		return
+	}
+	if isBattleRoomEmpty(room) {
 		s.registry.RemoveRoomEntry(room.RoomID)
 		return
 	}

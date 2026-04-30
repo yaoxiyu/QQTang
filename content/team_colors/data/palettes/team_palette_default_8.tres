@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="TeamColorPaletteDef" format=3]
+
+[ext_resource type="Script" path="res://content/team_colors/defs/team_color_palette_def.gd" id="1_wb8ic"]
+
+[resource]
+script = ExtResource("1_wb8ic")
+palette_id = "team_palette_default_8"
+display_name = "team_palette_default_8"
+team_colors = {
+1: {
+"highlight": Color(0.8627451, 0.8901961, 1, 1),
+"label": "A",
+"primary": Color(0.34901962, 0.43529412, 0.78039217, 1),
+"secondary": Color(0.5529412, 0.627451, 0.91764706, 1),
+"shadow": Color(0.17254902, 0.20784314, 0.40392157, 1),
+"team_color_id": "team_01",
+"ui_color": Color(0.34901962, 0.43529412, 0.78039217, 1)
+},
+2: {
+"highlight": Color(1, 0.8666667, 0.89411765, 1),
+"label": "B",
+"primary": Color(0.78039217, 0.36078432, 0.4392157, 1),
+"secondary": Color(0.91764706, 0.5764706, 0.63529414, 1),
+"shadow": Color(0.40392157, 0.16862746, 0.21176471, 1),
+"team_color_id": "team_02",
+"ui_color": Color(0.78039217, 0.36078432, 0.4392157, 1)
+},
+3: {
+"highlight": Color(0.8666667, 0.9607843, 0.89411765, 1),
+"label": "C",
+"primary": Color(0.36078432, 0.7490196, 0.45882353, 1),
+"secondary": Color(0.58431375, 0.9098039, 0.65882355, 1),
+"shadow": Color(0.16862746, 0.40392157, 0.21960784, 1),
+"team_color_id": "team_03",
+"ui_color": Color(0.36078432, 0.7490196, 0.45882353, 1)
+},
+4: {
+"highlight": Color(1, 0.95686275, 0.84705883, 1),
+"label": "D",
+"primary": Color(0.78039217, 0.6627451, 0.36078432, 1),
+"secondary": Color(0.91764706, 0.8392157, 0.5764706, 1),
+"shadow": Color(0.40392157, 0.34509805, 0.16862746, 1),
+"team_color_id": "team_04",
+"ui_color": Color(0.78039217, 0.6627451, 0.36078432, 1)
+},
+5: {
+"highlight": Color(0.8666667, 0.9843137, 1, 1),
+"label": "E",
+"primary": Color(0.41568628, 0.7529412, 0.78039217, 1),
+"secondary": Color(0.60784316, 0.9098039, 0.91764706, 1),
+"shadow": Color(0.16862746, 0.3882353, 0.40392157, 1),
+"team_color_id": "team_05",
+"ui_color": Color(0.41568628, 0.7529412, 0.78039217, 1)
+},
+6: {
+"highlight": Color(0.94509804, 0.87058824, 1, 1),
+"label": "F",
+"primary": Color(0.6392157, 0.36078432, 0.78039217, 1),
+"secondary": Color(0.78039217, 0.5764706, 0.91764706, 1),
+"shadow": Color(0.32156864, 0.16862746, 0.40392157, 1),
+"team_color_id": "team_06",
+"ui_color": Color(0.6392157, 0.36078432, 0.78039217, 1)
+},
+7: {
+"highlight": Color(1, 0.9098039, 0.8666667, 1),
+"label": "G",
+"primary": Color(0.78039217, 0.4745098, 0.36078432, 1),
+"secondary": Color(0.91764706, 0.6627451, 0.5764706, 1),
+"shadow": Color(0.40392157, 0.23137255, 0.16862746, 1),
+"team_color_id": "team_07",
+"ui_color": Color(0.78039217, 0.4745098, 0.36078432, 1)
+},
+8: {
+"highlight": Color(0.8666667, 0.9607843, 0.91764706, 1),
+"label": "H",
+"primary": Color(0.36078432, 0.56078434, 0.45882353, 1),
+"secondary": Color(0.5764706, 0.8117647, 0.65882355, 1),
+"shadow": Color(0.16862746, 0.30980393, 0.21960784, 1),
+"team_color_id": "team_08",
+"ui_color": Color(0.36078432, 0.56078434, 0.45882353, 1)
+}
+}
+content_hash = "team_palette_default_8_team_01_v1|team_palette_default_8_team_02_v1|team_palette_default_8_team_03_v1|team_palette_default_8_team_04_v1|team_palette_default_8_team_05_v1|team_palette_default_8_team_06_v1|team_palette_default_8_team_07_v1|team_palette_default_8_team_08_v1"

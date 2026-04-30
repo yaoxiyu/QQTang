@@ -298,8 +298,11 @@ func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartCo
 		member.player_name = String(player_entry.get("player_name", player_entry.get("display_name", "Player%d" % peer_id)))
 		member.ready = true
 		member.slot_index = int(player_entry.get("slot_index", -1))
+		member.team_id = int(player_entry.get("team_id", 1))
 		member.character_id = _resolve_character_id_from_start_config(start_config, peer_id)
+		member.character_skin_id = _resolve_character_skin_id_from_start_config(start_config, peer_id)
 		member.bubble_style_id = _resolve_bubble_style_id_from_start_config(start_config, peer_id)
+		member.bubble_skin_id = _resolve_bubble_skin_id_from_start_config(start_config, peer_id)
 		snapshot.members.append(member)
 	return snapshot
 
@@ -307,19 +310,69 @@ func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartCo
 func _resolve_character_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
 	if start_config == null:
 		return ""
+	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
+	if not player_entry.is_empty() and not String(player_entry.get("character_id", "")).strip_edges().is_empty():
+		return String(player_entry.get("character_id", ""))
 	for loadout in start_config.character_loadouts:
 		if int(loadout.get("peer_id", -1)) == peer_id:
 			return String(loadout.get("character_id", ""))
 	return ""
 
 
+func _resolve_team_id_from_start_config(start_config: BattleStartConfig, peer_id: int, fallback_team_id: int = 0) -> int:
+	if start_config == null:
+		return fallback_team_id
+	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
+	if not player_entry.is_empty():
+		var team_id := int(player_entry.get("team_id", fallback_team_id))
+		if team_id > 0:
+			return team_id
+	return fallback_team_id
+
+
+func _resolve_character_skin_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
+	if not player_entry.is_empty() and not String(player_entry.get("character_skin_id", "")).strip_edges().is_empty():
+		return String(player_entry.get("character_skin_id", ""))
+	for loadout in start_config.character_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("character_skin_id", ""))
+	return ""
+
+
 func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
 	if start_config == null:
 		return ""
+	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
+	if not player_entry.is_empty() and not String(player_entry.get("bubble_style_id", "")).strip_edges().is_empty():
+		return String(player_entry.get("bubble_style_id", ""))
 	for loadout in start_config.player_bubble_loadouts:
 		if int(loadout.get("peer_id", -1)) == peer_id:
 			return String(loadout.get("bubble_style_id", ""))
 	return ""
+
+
+func _resolve_bubble_skin_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
+	if start_config == null:
+		return ""
+	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
+	if not player_entry.is_empty() and not String(player_entry.get("bubble_skin_id", "")).strip_edges().is_empty():
+		return String(player_entry.get("bubble_skin_id", ""))
+	for loadout in start_config.player_bubble_loadouts:
+		if int(loadout.get("peer_id", -1)) == peer_id:
+			return String(loadout.get("bubble_skin_id", ""))
+	return ""
+
+
+func _find_player_entry_for_peer(start_config: BattleStartConfig, peer_id: int) -> Dictionary:
+	if start_config == null:
+		return {}
+	for player_entry in start_config.player_slots:
+		if int(player_entry.get("peer_id", -1)) == peer_id:
+			return player_entry
+	return {}
 
 
 func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_config: BattleStartConfig) -> RoomSelectionState:
@@ -328,12 +381,15 @@ func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_con
 	state.map_id = String(snapshot.selected_map_id)
 	state.rule_set_id = String(snapshot.rule_set_id)
 	for member in snapshot.sorted_members():
+		var peer_id := int(member.peer_id)
 		state.players[member.peer_id] = {
 			"peer_id": member.peer_id,
-			"character_id": member.character_id,
-			"character_skin_id": _resolve_character_skin_id(member.character_skin_id),
-			"bubble_style_id": _resolve_bubble_style_id(member.bubble_style_id),
-			"bubble_skin_id": _resolve_bubble_skin_id(member.bubble_skin_id),
+			"slot_index": member.slot_index,
+			"team_id": _resolve_team_id_from_start_config(start_config, peer_id, member.team_id),
+			"character_id": _resolve_character_id_from_start_config(start_config, peer_id),
+			"character_skin_id": _resolve_character_skin_id(_resolve_character_skin_id_from_start_config(start_config, peer_id)),
+			"bubble_style_id": _resolve_bubble_style_id(_resolve_bubble_style_id_from_start_config(start_config, peer_id)),
+			"bubble_skin_id": _resolve_bubble_skin_id(_resolve_bubble_skin_id_from_start_config(start_config, peer_id)),
 			"ready": member.ready,
 		}
 	return state

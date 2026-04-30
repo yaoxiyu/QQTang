@@ -10,6 +10,12 @@ powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile dev
 
 That entrypoint owns DB startup, DB migration, native debug build, GDScript syntax preflight, room manifest generation, and Docker Compose service startup.
 
+`run-services.ps1` uses input-file fingerprints to skip unchanged build targets. Use `-ForceBuild` when a full rebuild is required:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile dev -ForceBuild
+```
+
 ## Retained deployment scripts
 
 - `tools/run-services.ps1`: canonical Docker service startup entrypoint.

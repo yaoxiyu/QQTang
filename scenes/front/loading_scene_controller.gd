@@ -61,6 +61,9 @@ func _on_runtime_ready() -> void:
 	if "current_battle_entry_context" in _app_runtime and _app_runtime.current_battle_entry_context != null:
 		_battle_entry_context = _app_runtime.current_battle_entry_context
 		_log_battle_entry("loading_scene_battle_entry_mode", _battle_entry_context.to_dict())
+		if "current_loading_mode" in _app_runtime and String(_app_runtime.current_loading_mode) == "resume_match":
+			_run_battle_resume_flow()
+			return
 		_run_battle_entry_flow()
 		return
 
@@ -264,6 +267,22 @@ func _run_battle_entry_flow() -> void:
 	_app_runtime.current_battle_entry_context = _battle_entry_context
 
 	# Transition to battle scene
+	_transition_handled = true
+	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
+		_front_flow.on_match_loading_ready(null)
+
+
+func _run_battle_resume_flow() -> void:
+	if _battle_entry_context == null or _app_runtime == null:
+		_set_loading_status("Battle resume context missing")
+		return
+	loading_label.text = "Resuming Battle"
+	if not _battle_entry_context.is_valid():
+		_log_battle_entry("battle_resume_context_invalid", _battle_entry_context.to_dict())
+		_abort_battle_entry("BATTLE_RESUME_INVALID", "Battle resume context is invalid")
+		return
+	_set_loading_status("Connecting to battle DS: %s:%d" % [_battle_entry_context.battle_server_host, _battle_entry_context.battle_server_port])
+	_app_runtime.current_battle_entry_context = _battle_entry_context
 	_transition_handled = true
 	if _front_flow != null and _front_flow.is_in_state(FrontFlowControllerScript.FlowState.MATCH_LOADING):
 		_front_flow.on_match_loading_ready(null)

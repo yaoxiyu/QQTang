@@ -6,6 +6,8 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
+const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
@@ -14,6 +16,7 @@ func test_main() -> void:
 	ok = _test_valid_config_passes_validation() and ok
 	ok = _test_build_start_config_reads_map_metadata() and ok
 	ok = _test_build_start_config_prefers_authoritative_match_id() and ok
+	ok = _test_build_start_config_carries_player_visual_loadout_fields() and ok
 	ok = _test_protocol_mismatch_fails_validation() and ok
 	ok = _test_map_hash_mismatch_fails_validation() and ok
 	ok = _test_duplicate_slot_fails_validation() and ok
@@ -66,6 +69,35 @@ func _test_build_start_config_prefers_authoritative_match_id() -> bool:
 		"build_start_config should preserve snapshot.current_match_id in assignment flow",
 		prefix
 	) and ok
+	coordinator.free()
+	return ok
+
+
+func _test_build_start_config_carries_player_visual_loadout_fields() -> bool:
+	var coordinator := MatchStartCoordinatorScript.new()
+	var snapshot := _make_room_snapshot()
+	var host := snapshot.members[0] as RoomMemberState
+	host.character_id = "char_16001" if CharacterCatalogScript.has_character("char_16001") else CharacterCatalogScript.get_default_character_id()
+	host.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
+	host.bubble_style_id = "bubble_round"
+	host.bubble_skin_id = BubbleSkinCatalogScript.get_default_skin_id()
+	host.team_id = 8
+	var config := coordinator.build_start_config(snapshot)
+	var host_slot := _find_entry_for_peer(config.player_slots, host.peer_id)
+	var host_character_loadout := _find_entry_for_peer(config.character_loadouts, host.peer_id)
+	var host_bubble_loadout := _find_entry_for_peer(config.player_bubble_loadouts, host.peer_id)
+	var prefix := "battle_start_config_test"
+	var ok := true
+	ok = qqt_check(int(host_slot.get("team_id", 0)) == 8, "player_slots should carry selected team_id", prefix) and ok
+	ok = qqt_check(String(host_slot.get("character_id", "")) == host.character_id, "player_slots should carry selected character_id", prefix) and ok
+	ok = qqt_check(String(host_slot.get("character_skin_id", "")) == host.character_skin_id, "player_slots should carry selected character_skin_id", prefix) and ok
+	ok = qqt_check(String(host_slot.get("bubble_style_id", "")) == host.bubble_style_id, "player_slots should carry selected bubble_style_id", prefix) and ok
+	ok = qqt_check(String(host_slot.get("bubble_skin_id", "")) == host.bubble_skin_id, "player_slots should carry selected bubble_skin_id", prefix) and ok
+	ok = qqt_check(int(host_character_loadout.get("team_id", 0)) == 8, "character_loadouts should carry team_id", prefix) and ok
+	ok = qqt_check(String(host_character_loadout.get("character_skin_id", "")) == host.character_skin_id, "character_loadouts should carry character_skin_id", prefix) and ok
+	ok = qqt_check(not String(host_character_loadout.get("animation_set_id", "")).is_empty(), "character_loadouts should carry resolved animation_set_id", prefix) and ok
+	ok = qqt_check(String(host_bubble_loadout.get("bubble_style_id", "")) == host.bubble_style_id, "player_bubble_loadouts should carry bubble_style_id", prefix) and ok
+	ok = qqt_check(String(host_bubble_loadout.get("bubble_skin_id", "")) == host.bubble_skin_id, "player_bubble_loadouts should carry bubble_skin_id", prefix) and ok
 	coordinator.free()
 	return ok
 
@@ -281,3 +313,10 @@ func _errors_contain(validation: Dictionary, needle: String) -> bool:
 		if String(entry).contains(needle):
 			return true
 	return false
+
+
+func _find_entry_for_peer(entries: Array[Dictionary], peer_id: int) -> Dictionary:
+	for entry in entries:
+		if int(entry.get("peer_id", -1)) == peer_id:
+			return entry
+	return {}

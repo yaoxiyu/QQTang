@@ -1,0 +1,4 @@
+{
+  "asset_type": "vfx_jelly_trap",
+  "required_fields": ["asset_type", "asset_key", "spec_id", "content_ids", "source_files", "rights"]
+}

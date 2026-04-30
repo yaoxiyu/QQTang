@@ -36,7 +36,7 @@ func TestInventoryServiceGetMyInventoryReturnsAssets(t *testing.T) {
 			{
 				ProfileID:   "profile_1",
 				AssetType:   "character",
-				AssetID:     "char_huoying",
+				AssetID:     "char_16001",
 				State:       "owned",
 				Quantity:    1,
 				AcquiredAt:  now,
@@ -58,7 +58,7 @@ func TestInventoryServiceGetMyInventoryReturnsAssets(t *testing.T) {
 		t.Fatalf("expected one asset, got %+v", result.Assets)
 	}
 	asset := result.Assets[0]
-	if asset.AssetType != "character" || asset.AssetID != "char_huoying" || asset.SourceRefID != "bootstrap" || asset.Revision != 2 {
+	if asset.AssetType != "character" || asset.AssetID != "char_16001" || asset.SourceRefID != "bootstrap" || asset.Revision != 2 {
 		t.Fatalf("unexpected asset response: %+v", asset)
 	}
 }

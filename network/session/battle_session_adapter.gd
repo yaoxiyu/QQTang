@@ -674,6 +674,8 @@ func _ensure_runtime_message_router() -> void:
 		TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED: Callable(_network_gateway, "on_bootstrap_join_battle_accepted"),
 		TransportMessageTypesScript.JOIN_BATTLE_REJECTED: Callable(_network_gateway, "on_bootstrap_join_battle_rejected"),
 		TransportMessageTypesScript.BATTLE_ENTRY_REJECTED: Callable(_network_gateway, "on_bootstrap_join_battle_rejected"),
+		TransportMessageTypesScript.MATCH_RESUME_ACCEPTED: Callable(_network_gateway, "on_bootstrap_match_resume_accepted"),
+		TransportMessageTypesScript.MATCH_RESUME_REJECTED: Callable(_network_gateway, "on_bootstrap_match_resume_rejected"),
 		TransportMessageTypesScript.INPUT_BATCH: Callable(_network_gateway, "on_bootstrap_input_frame_message"),
 		TransportMessageTypesScript.INPUT_ACK: Callable(_network_gateway, "on_bootstrap_client_runtime_message"),
 		TransportMessageTypesScript.STATE_SUMMARY: Callable(_network_gateway, "on_bootstrap_client_runtime_message"),

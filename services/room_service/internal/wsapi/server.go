@@ -204,6 +204,7 @@ func (s *Server) onConnectionClosed(conn *Connection) {
 	snapshot, err := s.dispatcher.app.MarkDisconnected(roomID, memberID)
 	if err == nil && snapshot != nil {
 		s.broadcastRoomSnapshot(roomID, snapshot)
+		s.broadcastDirectorySnapshot("")
 	}
 
 	s.dispatcher.app.SetDirectorySubscribed(conn.ID(), false)
@@ -391,7 +392,9 @@ func (s *Server) syncControlPlaneSnapshots() {
 	}
 	updates := s.dispatcher.app.SyncMatchQueueStatus()
 	updates = append(updates, s.dispatcher.app.SyncBattleAssignmentStatus()...)
-	s.dispatcher.app.SweepEmptyBattleRooms(time.Now())
+	if s.dispatcher.app.SweepEmptyBattleRooms(time.Now()) > 0 {
+		s.broadcastDirectorySnapshot("")
+	}
 	for _, update := range updates {
 		if update.Snapshot == nil || update.RoomID == "" {
 			continue

@@ -6,6 +6,7 @@ const BattleSessionBootstrapScript = preload("res://network/session/battle_sessi
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const NativeAuthorityBatchBridgeScript = preload("res://gameplay/native_bridge/native_authority_batch_bridge.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 const DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC: Array[float] = [0.5, 1.0, 2.0, 4.0]
 
 var _adapter = null
@@ -528,6 +529,42 @@ func on_bootstrap_join_battle_rejected(message) -> void:
 	shutdown_bootstrap()
 
 
+func on_bootstrap_match_resume_accepted(message) -> void:
+	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	_adapter._ensure_bootstrap_coordinator()
+	var config := BattleStartConfig.from_dict(message.get("start_config", {}))
+	var validation: Dictionary = _adapter._bootstrap_coordinator.validate_start_config(config)
+	if not bool(validation.get("ok", false)):
+		_adapter.network_log_event.emit("Client rejected resume config: %s" % str(validation.get("errors", [])))
+		return
+	var resume_snapshot := MatchResumeSnapshotScript.from_dict(message.get("resume_snapshot", {}))
+	var resolved_peer_id: int = int(config.local_peer_id) if int(config.local_peer_id) > 0 else _adapter._bootstrap_local_peer_id
+	var started: bool = _adapter._start_runtime_session(_adapter.BattleNetworkMode.CLIENT, config, {
+		"local_peer_id": resolved_peer_id,
+		"controlled_peer_id": int(config.controlled_peer_id) if int(config.controlled_peer_id) > 0 else resolved_peer_id,
+	})
+	if not started:
+		return
+	_adapter.apply_resume_snapshot(resume_snapshot)
+	_adapter.network_log_event.emit("client_runtime_resumed local_peer=%d controlled_peer=%d match_id=%s resume_tick=%d" % [
+		_adapter._bootstrap_local_peer_id,
+		_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
+		String(config.match_id),
+		int(resume_snapshot.resume_tick),
+	])
+	if _adapter.current_context != null:
+		_adapter.battle_context_created.emit(_adapter.current_context)
+
+
+func on_bootstrap_match_resume_rejected(message) -> void:
+	_adapter.network_log_event.emit("Match resume rejected: %s" % str(message))
+	var error_code := String(message.get("error", "MATCH_RESUME_REJECTED"))
+	var user_message := String(message.get("user_message", "Match resume rejected"))
+	_adapter.network_transport_error.emit(ERR_CONNECTION_ERROR, "%s: %s" % [error_code, user_message])
+	shutdown_bootstrap()
+
+
 func on_bootstrap_input_frame_message(message) -> void:
 	if (_adapter.network_mode == _adapter.BattleNetworkMode.HOST or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_authority_runtime != null:
 		_adapter._bootstrap_authority_runtime.ingest_network_message(message)
@@ -763,6 +800,10 @@ func _on_transport_connected() -> void:
 				transport_peer_id,
 			])
 			return
+		var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
+		if _should_send_battle_resume_request(app_runtime):
+			_send_battle_resume_request(app_runtime, battle_id, transport_peer_id)
+			return
 		var request_payload := {
 			"message_type": TransportMessageTypesScript.BATTLE_ENTRY_REQUEST,
 			"battle_id": battle_id,
@@ -770,7 +811,6 @@ func _on_transport_connected() -> void:
 		}
 		var has_entry_context := false
 		var has_ticket := false
-		var app_runtime = AppRuntimeRootScript.get_existing(_adapter.get_tree())
 		if app_runtime != null and "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
 			has_entry_context = true
 			var entry_context = app_runtime.current_battle_entry_context
@@ -795,6 +835,43 @@ func _on_transport_connected() -> void:
 			String(request_payload.get("assignment_id", "")),
 			String(request_payload.get("battle_ticket_id", "")),
 		])
+
+
+func _should_send_battle_resume_request(app_runtime) -> bool:
+	if app_runtime == null:
+		return false
+	if not ("current_loading_mode" in app_runtime) or String(app_runtime.current_loading_mode) != "resume_match":
+		return false
+	if app_runtime.front_settings_state == null:
+		return false
+	return not String(app_runtime.front_settings_state.reconnect_member_id).strip_edges().is_empty() \
+		and not String(app_runtime.front_settings_state.reconnect_token).strip_edges().is_empty()
+
+
+func _send_battle_resume_request(app_runtime, battle_id: String, transport_peer_id: int) -> void:
+	var sender_peer_id: int = int(_adapter._bootstrap_local_peer_id) if int(_adapter._bootstrap_local_peer_id) > 0 else transport_peer_id
+	var request_payload := {
+		"message_type": TransportMessageTypesScript.BATTLE_RESUME_REQUEST,
+		"battle_id": battle_id,
+		"sender_peer_id": sender_peer_id,
+		"member_id": String(app_runtime.front_settings_state.reconnect_member_id),
+		"resume_token": String(app_runtime.front_settings_state.reconnect_token),
+	}
+	if "current_battle_entry_context" in app_runtime and app_runtime.current_battle_entry_context != null:
+		var entry_context = app_runtime.current_battle_entry_context
+		request_payload["assignment_id"] = String(entry_context.assignment_id)
+		request_payload["match_id"] = String(entry_context.match_id)
+	if app_runtime.auth_session_state != null:
+		request_payload["account_id"] = String(app_runtime.auth_session_state.account_id)
+		request_payload["profile_id"] = String(app_runtime.auth_session_state.profile_id)
+		request_payload["device_session_id"] = String(app_runtime.auth_session_state.device_session_id)
+	_adapter.network_log_event.emit("battle_resume_request_send battle_id=%s match_id=%s member_id=%s sender_peer_id=%d" % [
+		battle_id,
+		String(request_payload.get("match_id", "")),
+		String(request_payload.get("member_id", "")),
+		sender_peer_id,
+	])
+	_adapter.transport.send_to_peer(1, request_payload)
 
 
 func _on_transport_disconnected() -> void:

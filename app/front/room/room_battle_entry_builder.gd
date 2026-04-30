@@ -6,7 +6,9 @@ const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_co
 static func build(snapshot: RoomSnapshot, room_entry_context: RoomEntryContext = null):
 	if snapshot == null:
 		return null
-	if not snapshot.battle_entry_ready:
+	var can_enter_ready_battle := bool(snapshot.battle_entry_ready)
+	var can_resume_active_battle := String(snapshot.room_phase) == "in_battle" and String(snapshot.battle_phase) == "active"
+	if not can_enter_ready_battle and not can_resume_active_battle:
 		return null
 	if snapshot.current_assignment_id.is_empty() or snapshot.current_battle_id.is_empty():
 		return null

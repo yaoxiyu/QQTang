@@ -5,7 +5,7 @@ func _build_formal_character_buttons() -> void:
 		return
 	for child in _formal_character_grid.get_children():
 		child.queue_free()
-	var entries := CharacterCatalogScript.get_character_entries()
+	var entries := _get_formal_owned_character_entries()
 	var max_page := _get_formal_character_max_page(entries.size())
 	_formal_character_page = clampi(_formal_character_page, 0, max_page)
 	var start_index := _formal_character_page * 8
@@ -26,7 +26,7 @@ func _build_formal_character_buttons() -> void:
 		button.set_meta("character_id", character_id)
 		button.tooltip_text = String(entry.get("display_name", character_id))
 		_apply_room_square_button_style(button, _color_for_character_id(character_id))
-		_add_formal_character_preview(button, character_id, "", 72.0)
+		_add_formal_character_preview(button, character_id, "", 72.0, _selected_team_id())
 		button.pressed.connect(Callable(self, "_select_formal_character").bind(character_id))
 		_formal_character_grid.add_child(button)
 	if _formal_character_page_label != null:
@@ -44,7 +44,7 @@ func _create_formal_character_placeholder() -> Control:
 	return placeholder
 
 
-func _add_formal_character_preview(parent: Control, character_id: String, character_skin_id: String, size: float) -> void:
+func _add_formal_character_preview(parent: Control, character_id: String, character_skin_id: String, size: float, team_id: int = 0) -> void:
 	if parent == null or character_id.strip_edges().is_empty():
 		return
 	var preview = RoomCharacterPreviewScene.instantiate()
@@ -62,7 +62,7 @@ func _add_formal_character_preview(parent: Control, character_id: String, charac
 		preview_control.set("stretch", true)
 	parent.add_child(preview)
 	if preview.has_method("configure_preview"):
-		preview.call_deferred("configure_preview", character_id, character_skin_id)
+		preview.call_deferred("configure_preview", character_id, character_skin_id, team_id)
 
 
 func _color_for_character_id(character_id: String) -> Color:
@@ -77,8 +77,29 @@ func _get_formal_character_max_page(entry_count: int) -> int:
 	return int(ceil(float(entry_count) / 8.0)) - 1
 
 
+func _get_formal_owned_character_entries() -> Array[Dictionary]:
+	var owned_ids: Array[String] = []
+	if _app_runtime != null and _app_runtime.player_profile_state != null:
+		owned_ids = _app_runtime.player_profile_state.owned_character_ids
+	var entries: Array[Dictionary] = []
+	for entry in CharacterCatalogScript.get_character_entries():
+		var character_id := String(entry.get("id", ""))
+		if character_id.is_empty():
+			continue
+		if owned_ids.is_empty() or owned_ids.has(character_id):
+			entries.append(entry)
+	if entries.is_empty():
+		var fallback_id := CharacterCatalogScript.get_default_character_id()
+		var fallback_entry := CharacterCatalogScript.get_character_metadata(fallback_id)
+		entries.append({
+			"id": fallback_id,
+			"display_name": String(fallback_entry.get("display_name", fallback_id)),
+		})
+	return entries
+
+
 func _change_formal_character_page(delta: int) -> void:
-	var entries := CharacterCatalogScript.get_character_entries()
+	var entries := _get_formal_owned_character_entries()
 	_formal_character_page = clampi(_formal_character_page + delta, 0, _get_formal_character_max_page(entries.size()))
 	_build_formal_character_buttons()
 	_refresh_formal_loadout_selection(_last_room_view_model)
@@ -107,6 +128,8 @@ func _select_formal_character(character_id: String) -> void:
 
 func _select_formal_team(team_id: int) -> void:
 	_select_team_id(team_id)
+	_build_formal_character_buttons()
+	_refresh_formal_loadout_selection(_last_room_view_model)
 	_on_profile_selector_changed()
 
 
