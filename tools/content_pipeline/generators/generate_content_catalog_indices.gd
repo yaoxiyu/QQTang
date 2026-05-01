@@ -65,6 +65,8 @@ func _character_entries() -> Array:
 			"presentation_resource_path": String(catalog_entry.get("presentation_resource_path", "")),
 			"selection_order": int(entry.get("selection_order", 999999)),
 			"type": int(entry.get("type", 0)),
+			"selection_icon_path": String(entry.get("selection_icon_path", "")),
+			"selection_icon_selected_path": String(entry.get("selection_icon_selected_path", "")),
 			"content_hash": String(entry.get("content_hash", "")),
 		})
 	return result

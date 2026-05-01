@@ -27,13 +27,10 @@ func populate_character_selector(controller: Node) -> void:
 	if controller.character_selector == null:
 		return
 	controller.character_selector.clear()
-	var owned_ids := _get_owned_ids(controller, "character")
 	var added_count := 0
 	var character_entries := CharacterCatalogScript.get_character_selector_entries()
 	for entry in character_entries:
 		var entry_id := String(entry.get("id", ""))
-		if not _should_include_owned_entry(owned_ids, entry_id) and not _is_room_select_virtual_character(entry):
-			continue
 		controller.character_selector.add_item(String(entry.get("display_name", entry_id)))
 		controller.character_selector.set_item_metadata(controller.character_selector.item_count - 1, entry_id)
 		added_count += 1
@@ -42,12 +39,9 @@ func populate_character_selector(controller: Node) -> void:
 		controller.character_selector.add_item(fallback_id)
 		controller.character_selector.set_item_metadata(controller.character_selector.item_count - 1, fallback_id)
 	_log_room_scene("populate_character_selector", {
-		"owned_character_count": owned_ids.size(),
-		"catalog_character_count": character_entries.size(),
 		"selector_item_count": controller.character_selector.item_count,
 		"added_count": added_count,
 		"default_character_id": _get_fallback_character_id(controller),
-		"owned_character_ids": owned_ids,
 	})
 
 
@@ -245,7 +239,7 @@ func _get_owned_ids(controller: Node, asset_type: String) -> Array[String]:
 
 func _should_include_owned_entry(owned_ids: Array[String], entry_id: String) -> bool:
 	if owned_ids.is_empty():
-		return false
+		return true
 	return owned_ids.has(entry_id)
 
 

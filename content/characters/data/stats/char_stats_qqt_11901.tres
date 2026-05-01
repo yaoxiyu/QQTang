@@ -5,4 +5,9 @@
 [resource]
 script = ExtResource("1_uty65")
 stats_id = "char_stats_qqt_11901"
+initial_bubble_count = 2
+max_bubble_count = 8
+max_bubble_power = 6
+initial_move_speed = 4
+max_move_speed = 7
 content_hash = "char_stats_char_stats_qqt_11901_csv_v1"

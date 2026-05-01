@@ -1,6 +1,7 @@
 param(
     [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
-    [string]$ProjectPath = ''
+    [string]$ProjectPath = '',
+    [switch]$ForceBuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,23 +11,18 @@ if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
 } else {
     $projectRoot = Resolve-Path -LiteralPath $ProjectPath
 }
+$projectRoot = $projectRoot.Path
+. (Join-Path $projectRoot 'tools\lib\dev_common.ps1')
 
 $syntaxPreflightScript = Join-Path $projectRoot 'tests\scripts\check_gdscript_syntax.ps1'
-& $syntaxPreflightScript -GodotExe $GodotExecutable -ProjectPath $projectRoot
+$cacheRoot = Join-Path $projectRoot 'build\.content-pipeline-cache'
+$activity = 'content-pipeline'
+Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 3 -Name 'gdscript syntax preflight' -Action {
+    & $syntaxPreflightScript -GodotExe $GodotExecutable -ProjectPath $projectRoot
+}
 
 Push-Location $projectRoot
 try {
-    & $GodotExecutable --headless --path $projectRoot --script res://tools/content_pipeline/run_content_pipeline_cli.gd
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "content pipeline failed (godot exit code: $LASTEXITCODE)"
-    }
-
-    $syncQqtAnimationSetsScript = Join-Path $projectRoot 'scripts\content\sync_qqt_animation_set_rows.ps1'
-    if (Test-Path -LiteralPath $syncQqtAnimationSetsScript) {
-        & $syncQqtAnimationSetsScript -ProjectPath $projectRoot -AssetPackRoot (Join-Path $projectRoot 'external\assets')
-    }
-
     $requiredPaths = @(
         'content\maps\resources\map_classic_square.tres',
         'content\maps\resources\map_breakable_center_lane.tres',
@@ -43,6 +39,49 @@ try {
         'build\generated\content_catalog\content_catalog_summary.json',
         'build\generated\content_reports\content_pipeline_report.json'
     )
+
+    Invoke-QQTIncrementalStep `
+        -Root $projectRoot `
+        -CacheRoot $cacheRoot `
+        -Name 'content_pipeline' `
+        -IncludePaths @(
+            'content_source\csv',
+            'tools\content_pipeline',
+            'scripts\content\run_content_pipeline.ps1',
+            'scripts\content\sync_qqt_animation_set_rows.ps1',
+            'content\characters\defs',
+            'content\bubbles\defs',
+            'content\maps\defs',
+            'content\modes\defs',
+            'content\rulesets\defs',
+            'content\match_formats\defs',
+            'external\assets\derived\assets\animation\characters\qqt_layered',
+            'external\assets\derived\assets\animation\characters\qqt_layered_team_variants'
+        ) `
+        -ExcludePathParts @(
+            '\.godot\',
+            '\build\',
+            '\logs\',
+            '\tests\reports\'
+        ) `
+        -OutputPaths $requiredPaths `
+        -Force:$ForceBuild `
+        -Activity $activity `
+        -Step 2 `
+        -Total 3 `
+        -Action {
+            & $GodotExecutable --headless --path $projectRoot --script res://tools/content_pipeline/run_content_pipeline_cli.gd
+            if ($LASTEXITCODE -ne 0) {
+                throw "content pipeline failed (godot exit code: $LASTEXITCODE)"
+            }
+
+            $syncQqtAnimationSetsScript = Join-Path $projectRoot 'scripts\content\sync_qqt_animation_set_rows.ps1'
+            if (Test-Path -LiteralPath $syncQqtAnimationSetsScript) {
+                & $syncQqtAnimationSetsScript -ProjectPath $projectRoot -AssetPackRoot (Join-Path $projectRoot 'external\assets')
+            }
+        } | Out-Null
+
+    Write-QQTProgress -Activity $activity -Step 3 -Total 3 -Status 'verify outputs'
 
     foreach ($relativePath in $requiredPaths) {
         $fullPath = Join-Path $projectRoot $relativePath
@@ -61,6 +100,7 @@ try {
     if ($errorCount -gt 0) {
         throw "content pipeline report contains errors: $errorCount"
     }
+    Write-QQTProgress -Activity $activity -Completed
 }
 finally {
     Pop-Location

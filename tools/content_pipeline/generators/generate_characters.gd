@@ -24,6 +24,8 @@ func generate() -> void:
 		def.default_bubble_style_id = get_cell(row, header_index, "default_bubble_style_id")
 		def.selection_order = int(get_cell(row, header_index, "selection_order").to_int())
 		def.type = _parse_character_type(get_cell(row, header_index, "type"))
+		def.selection_icon_path = get_cell(row, header_index, "selection_icon_path")
+		def.selection_icon_selected_path = get_cell(row, header_index, "selection_icon_selected_path")
 		def.content_hash = "char_def_%s_csv_v2" % def.character_id
 
 		var output_path := OUTPUT_DIR + def.character_id + ".tres"

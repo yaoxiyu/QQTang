@@ -144,6 +144,19 @@ func _build_reference_room_layout() -> void:
 	var character_title := Label.new()
 	character_title.text = "角色选择"
 	loadout_vbox.add_child(character_title)
+	_formal_character_tab_row = HBoxContainer.new()
+	_formal_character_tab_row.add_theme_constant_override("separation", 4)
+	loadout_vbox.add_child(_formal_character_tab_row)
+	_formal_character_normal_tab_button = _create_formal_room_button("普通角色", Callable(self, "_select_formal_character_category").bind("normal"))
+	_formal_character_normal_tab_button.toggle_mode = true
+	_formal_character_normal_tab_button.custom_minimum_size = Vector2(92, 28)
+	_apply_room_small_button_style(_formal_character_normal_tab_button)
+	_formal_character_tab_row.add_child(_formal_character_normal_tab_button)
+	_formal_character_vip_tab_button = _create_formal_room_button("VIP角色", Callable(self, "_select_formal_character_category").bind("vip"))
+	_formal_character_vip_tab_button.toggle_mode = true
+	_formal_character_vip_tab_button.custom_minimum_size = Vector2(92, 28)
+	_apply_room_small_button_style(_formal_character_vip_tab_button)
+	_formal_character_tab_row.add_child(_formal_character_vip_tab_button)
 	_formal_character_grid = GridContainer.new()
 	_formal_character_grid.columns = 4
 	_formal_character_grid.custom_minimum_size = Vector2(0, 160)
@@ -209,5 +222,4 @@ func _move_node_to(node: Node, new_parent: Node) -> void:
 	if old_parent != null:
 		old_parent.remove_child(node)
 	new_parent.add_child(node)
-
 

@@ -15,6 +15,14 @@ if (-not (Test-Path -LiteralPath $GodotExe)) {
     throw "Godot executable not found: $GodotExe"
 }
 
+$externalNativeRoot = Join-Path $repoRoot 'external\qqt_native'
+if (Test-Path -LiteralPath $externalNativeRoot -PathType Container) {
+    $externalNativeGodotIgnore = Join-Path $externalNativeRoot '.gdignore'
+    if (-not (Test-Path -LiteralPath $externalNativeGodotIgnore)) {
+        New-Item -ItemType File -Path $externalNativeGodotIgnore -Force | Out-Null
+    }
+}
+
 Push-Location $repoRoot
 try {
     & $GodotExe --headless --path $repoRoot --script res://tools/dev/check_gdscript_syntax.gd

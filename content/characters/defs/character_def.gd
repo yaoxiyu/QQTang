@@ -9,4 +9,6 @@ extends Resource
 @export var selection_order: int = 0
 @export var type: int = 0
 @export var selection_portrait_path: String = ""
+@export var selection_icon_path: String = ""
+@export var selection_icon_selected_path: String = ""
 @export var content_hash: String = ""

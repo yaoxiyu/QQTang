@@ -10,6 +10,9 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+$repoRoot = $repoRoot.Path
+. (Join-Path $repoRoot 'tools\lib\dev_common.ps1')
+$activity = 'native-windows'
 $projectRoot = Join-Path $repoRoot 'addons/qqt_native'
 $sconstructPath = Join-Path $projectRoot 'SConstruct'
 $binDir = Join-Path $projectRoot 'bin'
@@ -25,19 +28,25 @@ if ($Arch -ne 'x86_64') {
 }
 
 if (-not (Test-Path -LiteralPath $godotCppLib)) {
-    Write-Host "[native] building missing godot-cpp static library: $godotCppLib"
-    & $SconsExe "-C" $godotCppRoot "platform=$Platform" "target=$Target" "arch=$Arch"
-    if ($LASTEXITCODE -ne 0) {
-        throw "godot-cpp build failed (scons exit code: $LASTEXITCODE)"
+    Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 2 -Name 'godot-cpp static library' -Action {
+        Write-Host "[native] building missing godot-cpp static library: $godotCppLib"
+        & $SconsExe "-C" $godotCppRoot "platform=$Platform" "target=$Target" "arch=$Arch"
+        if ($LASTEXITCODE -ne 0) {
+            throw "godot-cpp build failed (scons exit code: $LASTEXITCODE)"
+        }
     }
+} else {
+    Write-Host "[native] skip godot-cpp static library (exists): $godotCppLib"
 }
 
 Push-Location $repoRoot
 try {
-    Write-Host "[native] building qqt_native platform=$Platform target=$Target arch=$Arch"
-    & $SconsExe "-C" $projectRoot "platform=$Platform" "target=$Target" "arch=$Arch"
-    if ($LASTEXITCODE -ne 0) {
-        throw "Native build failed (scons exit code: $LASTEXITCODE)"
+    Invoke-QQTProgressStep -Activity $activity -Step 2 -Total 2 -Name "qqt_native $Platform $Target $Arch" -Action {
+        Write-Host "[native] building qqt_native platform=$Platform target=$Target arch=$Arch"
+        & $SconsExe "-C" $projectRoot "platform=$Platform" "target=$Target" "arch=$Arch"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Native build failed (scons exit code: $LASTEXITCODE)"
+        }
     }
 
     Write-Host "[native] build completed"
@@ -49,3 +58,4 @@ try {
 finally {
     Pop-Location
 }
+Write-QQTProgress -Activity $activity -Completed

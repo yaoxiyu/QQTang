@@ -73,6 +73,9 @@ func load_resource_or_null(path: String) -> Resource:
 	return load(path)
 
 func save_resource(resource: Resource, output_path: String) -> bool:
+	var output_dir := output_path.get_base_dir()
+	if not output_dir.is_empty():
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output_dir))
 	var err := ResourceSaver.save(resource, output_path)
 	if err != OK:
 		push_error("Failed to save resource: %s, err=%d" % [output_path, err])

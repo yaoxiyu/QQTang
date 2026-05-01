@@ -9,6 +9,181 @@ function Resolve-QQTProjectRoot {
     return (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\.." )).Path
 }
 
+function Resolve-QQTRelativePath {
+    param(
+        [string]$Root,
+        [string]$Path
+    )
+
+    $normalizedRoot = [System.IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
+    $rootWithSeparator = $normalizedRoot + [System.IO.Path]::DirectorySeparatorChar
+    if ($normalizedPath.StartsWith($rootWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return $normalizedPath.Substring($rootWithSeparator.Length).Replace('\', '/')
+    }
+    return $normalizedPath.Replace('\', '/')
+}
+
+function Get-QQTFileFingerprint {
+    param(
+        [string]$Root,
+        [string[]]$IncludePaths,
+        [string[]]$ExcludePathParts = @()
+    )
+
+    $resolvedRoot = (Resolve-Path -LiteralPath $Root).Path
+    $files = New-Object 'System.Collections.Generic.List[System.IO.FileInfo]'
+    foreach ($includePath in $IncludePaths) {
+        if ([string]::IsNullOrWhiteSpace($includePath)) {
+            continue
+        }
+        $absolutePath = if ([System.IO.Path]::IsPathRooted($includePath)) {
+            $includePath
+        } else {
+            Join-Path $resolvedRoot $includePath
+        }
+        if (-not (Test-Path -LiteralPath $absolutePath)) {
+            continue
+        }
+        $item = Get-Item -LiteralPath $absolutePath -Force
+        if ($item.PSIsContainer) {
+            Get-ChildItem -LiteralPath $absolutePath -Recurse -File -Force | ForEach-Object {
+                $files.Add($_)
+            }
+        } else {
+            $files.Add($item)
+        }
+    }
+
+    $records = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($file in ($files | Sort-Object FullName -Unique)) {
+        $normalizedFullName = $file.FullName.Replace('/', '\')
+        $excluded = $false
+        foreach ($part in $ExcludePathParts) {
+            if ([string]::IsNullOrWhiteSpace($part)) {
+                continue
+            }
+            $normalizedPart = $part.Replace('/', '\')
+            if ($normalizedFullName.IndexOf($normalizedPart, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                $excluded = $true
+                break
+            }
+        }
+        if ($excluded) {
+            continue
+        }
+
+        $relativePath = Resolve-QQTRelativePath -Root $resolvedRoot -Path $file.FullName
+        $fileHash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $records.Add(('{0}|{1}' -f $relativePath, $fileHash))
+    }
+
+    $payload = [string]::Join("`n", $records)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+        return [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+    }
+    finally {
+        $sha.Dispose()
+    }
+}
+
+function Test-QQTOutputsExist {
+    param(
+        [string]$Root,
+        [string[]]$Paths
+    )
+
+    foreach ($path in $Paths) {
+        if ([string]::IsNullOrWhiteSpace($path)) {
+            continue
+        }
+        $absolutePath = if ([System.IO.Path]::IsPathRooted($path)) {
+            $path
+        } else {
+            Join-Path $Root $path
+        }
+        if (-not (Test-Path -LiteralPath $absolutePath)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Write-QQTProgress {
+    param(
+        [string]$Activity,
+        [int]$Step,
+        [int]$Total,
+        [string]$Status,
+        [switch]$Completed
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Activity)) {
+        return
+    }
+    if ($Completed) {
+        Write-Progress -Activity $Activity -Completed
+        return
+    }
+    $safeTotal = [Math]::Max(1, $Total)
+    $safeStep = [Math]::Min([Math]::Max(1, $Step), $safeTotal)
+    $percent = [int](($safeStep - 1) * 100 / $safeTotal)
+    Write-Progress -Activity $Activity -Status ("[{0}/{1}] {2}" -f $safeStep, $safeTotal, $Status) -PercentComplete $percent
+}
+
+function Invoke-QQTProgressStep {
+    param(
+        [string]$Activity,
+        [int]$Step,
+        [int]$Total,
+        [string]$Name,
+        [scriptblock]$Action
+    )
+
+    Write-QQTProgress -Activity $Activity -Step $Step -Total $Total -Status $Name
+    Write-Host ("[{0}] {1}/{2} {3}" -f $Activity, $Step, $Total, $Name)
+    $startedAt = Get-Date
+    & $Action
+    $elapsed = (Get-Date) - $startedAt
+    Write-Host ("[{0}] done {1} ({2:n1}s)" -f $Activity, $Name, $elapsed.TotalSeconds)
+}
+
+function Invoke-QQTIncrementalStep {
+    param(
+        [string]$Root,
+        [string]$CacheRoot,
+        [string]$Name,
+        [string[]]$IncludePaths,
+        [string[]]$ExcludePathParts = @(),
+        [string[]]$OutputPaths = @(),
+        [switch]$Force,
+        [string]$Activity = '',
+        [int]$Step = 1,
+        [int]$Total = 1,
+        [scriptblock]$Action
+    )
+
+    New-Item -ItemType Directory -Force -Path $CacheRoot | Out-Null
+    Write-QQTProgress -Activity $Activity -Step $Step -Total $Total -Status ("fingerprint {0}" -f $Name)
+    $fingerprint = Get-QQTFileFingerprint -Root $Root -IncludePaths $IncludePaths -ExcludePathParts $ExcludePathParts
+    $stampPath = Join-Path $CacheRoot ("{0}.sha256" -f $Name)
+    $previousFingerprint = ''
+    if (Test-Path -LiteralPath $stampPath -PathType Leaf) {
+        $previousFingerprint = (Get-Content -LiteralPath $stampPath -Raw).Trim()
+    }
+
+    if ((-not $Force) -and $previousFingerprint -eq $fingerprint -and (Test-QQTOutputsExist -Root $Root -Paths $OutputPaths)) {
+        Write-Host ("[{0}] skip {1} (inputs unchanged)" -f $(if ([string]::IsNullOrWhiteSpace($Activity)) { 'cache' } else { $Activity }), $Name)
+        return $false
+    }
+
+    Invoke-QQTProgressStep -Activity $Activity -Step $Step -Total $Total -Name $Name -Action $Action
+    Set-Content -LiteralPath $stampPath -Value $fingerprint -Encoding ASCII
+    return $true
+}
+
 function Import-QQTDotEnv {
     param([string]$EnvFile)
 

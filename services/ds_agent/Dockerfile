@@ -23,7 +23,7 @@ COPY build/docker/battle_ds/qqtang_battle_ds.x86_64 /app/qqtang_battle_ds.x86_64
 COPY build/docker/battle_ds/qqtang_battle_ds.pck /app/qqtang_battle_ds.pck
 COPY build/docker/battle_ds/data_QQTang_linuxbsd_x86_64 /app/data_QQTang_linuxbsd_x86_64
 COPY addons/qqt_native/qqt_native.gdextension /app/addons/qqt_native/qqt_native.gdextension
-COPY build/docker/battle_ds/qqt_native.linux.template_release.x86_64.so /app/addons/qqt_native/bin/qqt_native.linux.template_release.x86_64.so
+COPY build/docker/battle_ds/qqt_native.linux.template_release.x86_64.so /app/external/qqt_native/bin/qqt_native.linux.template_release.x86_64.so
 USER root
 RUN chmod +x /app/qqtang_battle_ds.x86_64 \
     && chown -R app:app /app

@@ -105,6 +105,9 @@ var _formal_choose_mode_button: Button = null
 var _formal_room_property_button: Button = null
 var _formal_choose_map_button: Button = null
 var _formal_character_grid: GridContainer = null
+var _formal_character_tab_row: HBoxContainer = null
+var _formal_character_normal_tab_button: Button = null
+var _formal_character_vip_tab_button: Button = null
 var _formal_team_row: HBoxContainer = null
 var _formal_feedback_label: Label = null
 var _formal_mode_popup: PopupPanel = null
@@ -115,6 +118,7 @@ var _formal_map_popup: PopupPanel = null
 var _formal_map_popup_content: VBoxContainer = null
 var _formal_custom_open_slots: int = FORMAL_ROOM_SLOT_COUNT
 var _formal_closed_slots: Dictionary = {}
+var _formal_character_category: String = "normal"
 var _formal_character_page: int = 0
 var _formal_character_page_label: Label = null
 var _formal_character_prev_button: Button = null
@@ -535,5 +539,4 @@ func _on_formal_room_property_pressed() -> void:
 
 func _on_formal_choose_map_pressed() -> void:
 	pass
-
 

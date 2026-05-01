@@ -5,4 +5,10 @@
 [resource]
 script = ExtResource("1_hjpax")
 stats_id = "char_stats_qqt_10101"
+initial_bubble_count = 2
+max_bubble_count = 6
+initial_bubble_power = 2
+max_bubble_power = 8
+initial_move_speed = 4
+max_move_speed = 7
 content_hash = "char_stats_char_stats_qqt_10101_csv_v1"

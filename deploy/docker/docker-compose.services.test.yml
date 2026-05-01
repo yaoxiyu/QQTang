@@ -9,7 +9,7 @@ services:
       DSM_HTTP_ADDR: 0.0.0.0:18090
       DSM_INTERNAL_AUTH_KEY_ID: primary
       DSM_INTERNAL_AUTH_SHARED_SECRET: services_test_internal_shared_secret
-      DSM_GODOT_EXECUTABLE: ${QQT_DSM_GODOT_EXECUTABLE:-godot4}
+      DSM_GODOT_EXECUTABLE: ${QQT_DSM_GODOT_EXECUTABLE:-external/godot_binary/Godot_console.exe}
       DSM_PROJECT_ROOT: /workspace
       DSM_BATTLE_SCENE_PATH: res://scenes/network/dedicated_server_scene.tscn
       DSM_BATTLE_TICKET_SECRET: services_test_battle_ticket_secret

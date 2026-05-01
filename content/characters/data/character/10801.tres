@@ -11,4 +11,6 @@ presentation_id = "char_pres_qqt_10801"
 default_bubble_style_id = "bubble_round"
 selection_order = 10801
 type = 1
+selection_icon_path = "res://assets/ui/room/char/icon/icon_hwz_normal.png"
+selection_icon_selected_path = "res://assets/ui/room/char/icon/icon_hwz_selected.png"
 content_hash = "char_def_10801_csv_v2"

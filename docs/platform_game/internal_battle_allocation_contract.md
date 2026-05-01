@@ -235,7 +235,7 @@ Possible error codes:
 | Env Variable | Default | Description |
 |---|---|---|
 | `DSM_HTTP_ADDR` | `127.0.0.1:18090` | HTTP listen address |
-| `DSM_GODOT_EXECUTABLE` | `godot4` | Path to Godot executable |
+| `DSM_GODOT_EXECUTABLE` | `external/godot_binary/Godot_console.exe` | Path to Godot executable |
 | `DSM_PROJECT_ROOT` | (empty) | Path to Godot project root |
 | `DSM_BATTLE_SCENE_PATH` | `res://scenes/network/dedicated_server_scene.tscn` | Scene to run for battle DS |
 | `DSM_BATTLE_TICKET_SECRET` | `dev_battle_ticket_secret` | Shared secret for battle ticket verification |
@@ -267,4 +267,3 @@ assigned -> starting -> ready -> active -> finished
 
 - Instances in `starting` state for longer than `DSM_READY_TIMEOUT_SEC` are killed and released.
 - Instances idle for longer than `DSM_IDLE_REAP_TIMEOUT_SEC` are killed and released.
-

@@ -48,12 +48,14 @@ They do not validate Linux Godot dedicated-server native runtime readiness by th
 Before claiming Linux Godot DS native runtime readiness, a Linux host or CI runner must pass:
 
 ```bash
-GODOT_BIN=/path/to/godot ./tools/native/check_native_runtime_linux.sh
+GODOT_BIN=external/godot_binary/Godot_console.exe ./tools/native/check_native_runtime_linux.sh
 ```
 
-That command must build both Linux artifacts and load the debug artifact:
+That command must build both Linux artifacts and sync the DS packaging inputs under `external/qqt_native/bin/`:
 
-- `addons/qqt_native/bin/qqt_native.linux.template_debug.x86_64.so`
-- `addons/qqt_native/bin/qqt_native.linux.template_release.x86_64.so`
+- `external/qqt_native/bin/qqt_native.linux.template_debug.x86_64.so`
+- `external/qqt_native/bin/qqt_native.linux.template_release.x86_64.so`
+
+Godot still loads the native extension from `addons/qqt_native/bin/` at runtime, so the Linux runtime check also keeps a local loader copy there.
 
 Until that check has passed, Docker/k8s deployment status may only claim Go service readiness, not production readiness for Godot DS with `qqt_native`.

@@ -11,4 +11,6 @@ presentation_id = "char_pres_qqt_10201"
 default_bubble_style_id = "bubble_round"
 selection_order = 10201
 type = 1
+selection_icon_path = "res://assets/ui/room/char/icon/icon_tt_normal.png"
+selection_icon_selected_path = "res://assets/ui/room/char/icon/icon_tt_selected.png"
 content_hash = "char_def_10201_csv_v2"

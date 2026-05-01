@@ -46,4 +46,10 @@ if [[ ! -f "$ARTIFACT" ]]; then
   exit 2
 fi
 
+EXTERNAL_ARTIFACT_DIR="$ROOT_DIR/external/qqt_native/bin"
+EXTERNAL_ARTIFACT="$EXTERNAL_ARTIFACT_DIR/qqt_native.linux.${TARGET}.${ARCH}.so"
+mkdir -p "$EXTERNAL_ARTIFACT_DIR"
+cp "$ARTIFACT" "$EXTERNAL_ARTIFACT"
+
 echo "[qqt_native] artifact ready: $ARTIFACT"
+echo "[qqt_native] external artifact synced: $EXTERNAL_ARTIFACT"

@@ -30,7 +30,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile dev
 powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile dev -ForceBuild
 
 # 4) 一键起 2 个客户端
-powershell -ExecutionPolicy Bypass -File .\tools\start-clients.ps1 -Profile dev -Count 2 -GodotDir "F:\godot"
+powershell -ExecutionPolicy Bypass -File .\tools\start-clients.ps1 -Profile dev -Count 2 -GodotDir ".\external\godot_binary"
 ```
 
 ## run-services 增量构建

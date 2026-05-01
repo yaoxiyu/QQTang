@@ -10,6 +10,7 @@ const CHARACTER_DIR := "res://content/characters/data/character"
 const STATS_DIR := "res://content/characters/data/stats"
 const PRESENTATION_DIR := "res://content/characters/data/presentation"
 const TYPE_DEFAULT_SELECTABLE := 1
+const TYPE_VIP_SELECTABLE := 2
 const TYPE_RANDOM_SELECTABLE := 2
 const TYPE_VIP := 3
 const TYPE_RANDOM_PLACEHOLDER := 5
@@ -52,6 +53,8 @@ static func load_all() -> void:
 				"presentation_resource_path": String(presentations_by_id.get(def.presentation_id, "")),
 				"selection_order": def.selection_order,
 				"type": def.type,
+				"selection_icon_path": def.selection_icon_path,
+				"selection_icon_selected_path": def.selection_icon_selected_path,
 			}
 
 	if _character_registry.is_empty():
@@ -79,6 +82,8 @@ static func _load_from_generated_index() -> bool:
 			"presentation_resource_path": String(entry.get("presentation_resource_path", "")),
 			"selection_order": int(entry.get("selection_order", 999999)),
 			"type": int(entry.get("type", 0)),
+			"selection_icon_path": String(entry.get("selection_icon_path", "")),
+			"selection_icon_selected_path": String(entry.get("selection_icon_selected_path", "")),
 			"content_hash": String(entry.get("content_hash", "")),
 		}
 	_sort_loaded_characters()
@@ -135,6 +140,8 @@ static func get_character_entries() -> Array[Dictionary]:
 			"max_move_speed": int(entry.get("max_move_speed", 0)),
 			"selection_order": int(_character_registry[character_id].get("selection_order", 999999)),
 			"type": int(_character_registry[character_id].get("type", 0)),
+			"selection_icon_path": String(_character_registry[character_id].get("selection_icon_path", "")),
+			"selection_icon_selected_path": String(_character_registry[character_id].get("selection_icon_selected_path", "")),
 		})
 	return entries
 
@@ -161,6 +168,8 @@ static func get_character_selector_entries() -> Array[Dictionary]:
 			"display_name": String(entry.get("display_name", character_id)),
 			"selection_order": int(entry.get("selection_order", 999999)),
 			"type": int(entry.get("type", 0)),
+			"selection_icon_path": String(entry.get("selection_icon_path", "")),
+			"selection_icon_selected_path": String(entry.get("selection_icon_selected_path", "")),
 			"content_hash": String(entry.get("content_hash", "")),
 		})
 	return entries
@@ -235,6 +244,8 @@ static func get_character_metadata(character_id: String) -> Dictionary:
 		"default_bubble_style_id": character_def.default_bubble_style_id,
 		"type": character_def.type,
 		"selection_portrait_path": character_def.selection_portrait_path,
+		"selection_icon_path": character_def.selection_icon_path,
+		"selection_icon_selected_path": character_def.selection_icon_selected_path,
 	}
 
 
