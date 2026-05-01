@@ -6,6 +6,9 @@
 script = ExtResource("1_t6f57")
 character_id = "11301"
 display_name = "可乐"
+abbreviation = "kl"
+illustration_path = "res://assets/ui/room/char/Illustration/kl.png"
+name_image_path = "res://assets/ui/room/char/name/name_kl.png"
 stats_id = "char_stats_qqt_11301"
 presentation_id = "char_pres_qqt_11301"
 default_bubble_style_id = "bubble_round"

@@ -192,6 +192,16 @@ static func has_character(character_id: String) -> bool:
 	return _character_registry.has(character_id)
 
 
+static func _extract_abbreviation_from_icon(icon_path: String) -> String:
+	var normalized := icon_path.strip_edges()
+	if normalized.is_empty():
+		return ""
+	var parts := normalized.get_file().split("_")
+	if parts.size() >= 2:
+		return parts[1]
+	return ""
+
+
 static func get_default_character_id() -> String:
 	_ensure_loaded()
 	if _ordered_character_ids.is_empty():
@@ -223,6 +233,7 @@ static func get_character_metadata(character_id: String) -> Dictionary:
 		"id": character_id,
 		"character_id": String(character_def.character_id if not character_def.character_id.is_empty() else character_id),
 		"display_name": display_name,
+			"abbreviation": String(character_def.abbreviation if not character_def.abbreviation.is_empty() else _extract_abbreviation_from_icon(character_def.selection_icon_path)),
 		"version": 1,
 		"content_hash": _resolve_content_hash(
 			character_id,
@@ -246,7 +257,9 @@ static func get_character_metadata(character_id: String) -> Dictionary:
 		"selection_portrait_path": character_def.selection_portrait_path,
 		"selection_icon_path": character_def.selection_icon_path,
 		"selection_icon_selected_path": character_def.selection_icon_selected_path,
-	}
+		"illustration_path": character_def.illustration_path,
+		"name_image_path": character_def.name_image_path,
+		}
 
 
 static func _ensure_loaded() -> void:

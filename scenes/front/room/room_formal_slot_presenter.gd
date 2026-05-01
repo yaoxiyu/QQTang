@@ -87,7 +87,16 @@ func _refresh_formal_loadout_selection(view_model: Dictionary) -> void:
 	if _formal_character_grid != null:
 		for child in _formal_character_grid.get_children():
 			if child is Button:
-				(child as Button).button_pressed = String(child.get_meta("character_id", "")) == selected_character_id
+				var button := child as Button
+				var is_selected := String(button.get_meta("character_id", "")) == selected_character_id
+				button.button_pressed = is_selected
+				var texture_rect := _find_character_button_texture_rect(button)
+				if texture_rect != null:
+					var icon_path := String(button.get_meta("icon_selected_path", "")) if is_selected else String(button.get_meta("icon_path", ""))
+					if not icon_path.is_empty():
+						var icon_texture := _load_formal_character_icon(icon_path)
+						if icon_texture != null:
+							texture_rect.texture = icon_texture
 	if _formal_team_row != null:
 		for child in _formal_team_row.get_children():
 			if child is Button:
@@ -235,5 +244,3 @@ func _open_next_formal_closed_slot(max_player_count: int) -> bool:
 			_formal_closed_slots.erase(slot_index)
 			return true
 	return false
-
-

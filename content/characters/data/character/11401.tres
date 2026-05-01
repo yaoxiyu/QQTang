@@ -6,6 +6,9 @@
 script = ExtResource("1_ttqqj")
 character_id = "11401"
 display_name = "哪吒"
+abbreviation = "nz"
+illustration_path = "res://assets/ui/room/char/Illustration/nz.png"
+name_image_path = "res://assets/ui/room/char/name/name_nz.png"
 stats_id = "char_stats_qqt_11401"
 presentation_id = "char_pres_qqt_11401"
 default_bubble_style_id = "bubble_round"

@@ -3,6 +3,9 @@ extends Resource
 
 @export var character_id: String = ""
 @export var display_name: String = ""
+@export var abbreviation: String = ""
+@export var illustration_path: String = ""
+@export var name_image_path: String = ""
 @export var stats_id: String = ""
 @export var presentation_id: String = ""
 @export var default_bubble_style_id: String = ""

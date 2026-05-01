@@ -6,6 +6,9 @@
 script = ExtResource("1_3wygv")
 character_id = "11501"
 display_name = "乌拉拉"
+abbreviation = "wll"
+illustration_path = "res://assets/ui/room/char/Illustration/wll.png"
+name_image_path = "res://assets/ui/room/char/name/name_wll.png"
 stats_id = "char_stats_qqt_11501"
 presentation_id = "char_pres_qqt_11501"
 default_bubble_style_id = "bubble_round"

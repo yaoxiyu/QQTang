@@ -1,11 +1,29 @@
 extends "res://scenes/front/room/room_formal_layout_builder.gd"
 
+const RoomTooltipAssets = preload("res://content/ui_assets/room_tooltip_assets.tres")
+const TOOLTIP_TAG := "front.room.tooltip"
+
 const FORMAL_RANDOM_CHARACTER_ID := "12301"
+const TOOLTIP_ILL_W := 256.0
+const TOOLTIP_ILL_H := 271.0
+const TOOLTIP_PANEL_W := 153.0
+const TOOLTIP_PANEL_H := 83.0
+const TOOLTIP_STAT_ICON_SIZE := 15.0
+const TOOLTIP_NAME_X := 8.0
+const TOOLTIP_NAME_Y := 5.0
+const TOOLTIP_STAT_X := 8.0
+const TOOLTIP_BOMB_Y := 35.0
+const TOOLTIP_POWER_Y := 52.0
+const TOOLTIP_SPEED_Y := 69.0
+const TOOLTIP_STAT_DIM_ALPHA := 0.35
+const TOOLTIP_MAX_ICONS := 9
 
 var _formal_character_grid_signature: String = ""
 var _formal_character_entries_cache_signature: String = ""
 var _formal_character_entries_cache: Array[Dictionary] = []
 var _formal_character_icon_cache: Dictionary = {}
+var _character_tooltip: Control = null
+var _tooltip_character_id: String = ""
 
 
 func _build_formal_character_buttons() -> void:
@@ -37,10 +55,14 @@ func _build_formal_character_buttons() -> void:
 		button.custom_minimum_size = Vector2(72, 72)
 		button.toggle_mode = true
 		button.set_meta("character_id", character_id)
+		button.set_meta("icon_path", String(entry.get("selection_icon_path", "")))
+		button.set_meta("icon_selected_path", String(entry.get("selection_icon_selected_path", "")))
 		button.tooltip_text = String(entry.get("display_name", character_id))
 		_apply_room_square_button_style(button, Color(0.33, 0.72, 0.86, 0.95))
 		_add_formal_character_icon(button, entry, character_id == _selected_formal_character_id())
 		button.pressed.connect(Callable(self, "_select_formal_character").bind(character_id))
+		button.mouse_entered.connect(Callable(self, "_on_character_button_hovered").bind(button, true))
+		button.mouse_exited.connect(Callable(self, "_on_character_button_hovered").bind(button, false))
 		_formal_character_grid.add_child(button)
 	if _formal_character_page_label != null:
 		_formal_character_page_label.text = "%d / %d" % [_formal_character_page + 1, max_page + 1]
@@ -240,6 +262,149 @@ func _formal_character_button_label(character_id: String) -> String:
 	if character_id.length() <= 3:
 		return character_id
 	return character_id.substr(0, 3)
+
+
+func _on_character_button_hovered(button: Button, hovered: bool) -> void:
+	var texture_rect := _find_character_button_texture_rect(button)
+	if texture_rect == null:
+		return
+	if hovered:
+		var selected_path := String(button.get_meta("icon_selected_path", ""))
+		if not selected_path.is_empty():
+			var texture := _load_formal_character_icon(selected_path)
+			if texture != null:
+				texture_rect.texture = texture
+		var character_id := String(button.get_meta("character_id", ""))
+		if not character_id.is_empty() and character_id != FORMAL_RANDOM_CHARACTER_ID:
+			_show_character_tooltip(character_id)
+	else:
+		if not button.button_pressed:
+			var normal_path := String(button.get_meta("icon_path", ""))
+			if not normal_path.is_empty():
+				var texture := _load_formal_character_icon(normal_path)
+				if texture != null:
+					texture_rect.texture = texture
+		_hide_character_tooltip()
+
+
+func _find_character_button_texture_rect(button: Button) -> TextureRect:
+	for child in button.get_children():
+		if child is TextureRect:
+			return child as TextureRect
+	return null
+
+
+func _ensure_character_tooltip() -> void:
+	if _character_tooltip != null:
+		return
+	_character_tooltip = Control.new()
+	_character_tooltip.name = "CharacterTooltip"
+	_character_tooltip.visible = false
+	_character_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_character_tooltip.z_index = 100
+	_character_tooltip.custom_minimum_size = Vector2(TOOLTIP_ILL_W, TOOLTIP_ILL_H)
+	if room_root != null:
+		room_root.add_child(_character_tooltip)
+
+
+func _show_character_tooltip(character_id: String) -> void:
+	if character_id == _tooltip_character_id and _character_tooltip != null and _character_tooltip.visible:
+		return
+	_ensure_character_tooltip()
+	if _character_tooltip == null:
+		return
+	for child in _character_tooltip.get_children():
+		child.queue_free()
+	var metadata := CharacterCatalogScript.get_character_metadata(character_id)
+	if metadata.is_empty():
+		return
+	_tooltip_character_id = character_id
+	var child_count := 0
+
+	var ill_path := String(metadata.get("illustration_path", ""))
+	if not ill_path.is_empty():
+		var ill_texture := _load_formal_character_icon(ill_path)
+		if ill_texture != null:
+			var ill_rect := TextureRect.new()
+			ill_rect.texture = ill_texture
+			ill_rect.size = ill_texture.get_size()
+			ill_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			ill_rect.set_position(Vector2(0, 0))
+			_character_tooltip.add_child(ill_rect)
+			child_count += 1
+
+	var panel_texture := _load_formal_character_icon(RoomTooltipAssets.panel_background_path)
+	if panel_texture != null:
+		var panel_rect := TextureRect.new()
+		panel_rect.texture = panel_texture
+		panel_rect.size = panel_texture.get_size()
+		panel_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel_rect.set_position(Vector2(0, TOOLTIP_ILL_H - TOOLTIP_PANEL_H))
+		_character_tooltip.add_child(panel_rect)
+		child_count += 1
+
+	var name_path := String(metadata.get("name_image_path", ""))
+	if not name_path.is_empty():
+		var name_texture := _load_formal_character_icon(name_path)
+		if name_texture != null:
+			var name_rect := TextureRect.new()
+			name_rect.texture = name_texture
+			name_rect.size = name_texture.get_size()
+			name_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			name_rect.set_position(Vector2(TOOLTIP_NAME_X, TOOLTIP_ILL_H - TOOLTIP_PANEL_H + TOOLTIP_NAME_Y))
+			_character_tooltip.add_child(name_rect)
+			child_count += 1
+
+	var initial_bomb := int(metadata.get("initial_bubble_count", 1))
+	var max_bomb := int(metadata.get("max_bubble_count", 5))
+	var initial_power := int(metadata.get("initial_bubble_power", 1))
+	var max_power := int(metadata.get("max_bubble_power", 5))
+	var initial_speed := int(metadata.get("initial_move_speed", 1))
+	var max_speed := int(metadata.get("max_move_speed", 9))
+	_add_tooltip_stat_icons(RoomTooltipAssets.bomb_icon_path, initial_bomb, max_bomb, TOOLTIP_BOMB_Y)
+	_add_tooltip_stat_icons(RoomTooltipAssets.power_icon_path, initial_power, max_power, TOOLTIP_POWER_Y)
+	_add_tooltip_stat_icons(RoomTooltipAssets.speed_icon_path, initial_speed, max_speed, TOOLTIP_SPEED_Y)
+
+	if _formal_character_grid != null and room_root != null:
+		var grid_pos := _formal_character_grid.global_position
+		var root_pos := room_root.global_position
+		_character_tooltip.set_position(Vector2(grid_pos.x - root_pos.x, grid_pos.y - root_pos.y - TOOLTIP_ILL_H - 8.0))
+
+	_character_tooltip.visible = true
+	LogFrontScript.debug("[tooltip] show char=%s children=%d pos=%s" % [character_id, child_count, _character_tooltip.position], "", 0, TOOLTIP_TAG)
+
+
+func _hide_character_tooltip() -> void:
+	_tooltip_character_id = ""
+	if _character_tooltip != null:
+		_character_tooltip.visible = false
+
+
+func _add_tooltip_stat_icons(icon_path: String, initial: int, max_val: int, base_y: float) -> void:
+	if _character_tooltip == null:
+		return
+	var filled_texture := _load_formal_character_icon(icon_path)
+	if filled_texture == null:
+		return
+	var max_icons := mini(max_val, TOOLTIP_MAX_ICONS)
+	var filled_count := clampi(initial, 0, max_icons)
+	var dim_count := max_icons - filled_count
+	var panel_top := TOOLTIP_ILL_H - TOOLTIP_PANEL_H
+	for i in range(filled_count):
+		var icon := TextureRect.new()
+		icon.texture = filled_texture
+		icon.size = filled_texture.get_size()
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.set_position(Vector2(TOOLTIP_STAT_X + i * TOOLTIP_STAT_ICON_SIZE, panel_top + base_y))
+		_character_tooltip.add_child(icon)
+	for i in range(dim_count):
+		var icon := TextureRect.new()
+		icon.texture = filled_texture
+		icon.size = filled_texture.get_size()
+		icon.modulate = Color(1, 1, 1, TOOLTIP_STAT_DIM_ALPHA)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.set_position(Vector2(TOOLTIP_STAT_X + (filled_count + i) * TOOLTIP_STAT_ICON_SIZE, panel_top + base_y))
+		_character_tooltip.add_child(icon)
 
 
 func _build_formal_team_buttons() -> void:
