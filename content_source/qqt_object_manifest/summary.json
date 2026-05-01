@@ -1,7 +1,7 @@
 ﻿{
-    "source_root":  "res/object",
-    "total_files":  2217,
-    "role_part_records":  2217,
+    "source_root":  "external/assets/source/res/object",
+    "total_files":  3294,
+    "role_part_records":  2208,
     "errors":  [
 
                ],
@@ -10,29 +10,42 @@
                  ],
     "counts":  {
                    "by_extension":  {
-                                        ".gif":  1426,
-                                        ".png":  791
+                                        ".gif":  1478,
+                                        ".import":  908,
+                                        ".png":  908
                                     },
                    "by_directory":  {
-                                        "body":  108,
-                                        "cap":  188,
-                                        "cladorn":  16,
-                                        "cloth":  1165,
-                                        "face":  144,
-                                        "fhadorn":  24,
-                                        "foot":  16,
-                                        "hair":  272,
-                                        "head":  8,
-                                        "leg":  200,
-                                        "mouth":  8,
-                                        "npack":  32,
+                                        "body":  173,
+                                        "bomb":  56,
+                                        "btn":  17,
+                                        "cap":  264,
+                                        "cladorn":  24,
+                                        "cloth":  1458,
+                                        "dlg":  16,
+                                        "face":  216,
+                                        "fhadorn":  36,
+                                        "flame":  10,
+                                        "foot":  24,
+                                        "hair":  408,
+                                        "head":  12,
+                                        "icon":  57,
+                                        "Illustration":  36,
+                                        "img":  8,
+                                        "leg":  296,
+                                        "map":  34,
+                                        "misc":  12,
+                                        "mouth":  12,
+                                        "name":  36,
+                                        "npack":  40,
+                                        "panel":  8,
+                                        "tab":  5,
                                         "thadorn":  36
                                     },
                    "by_part":  {
                                    "body":  108,
                                    "cap":  188,
                                    "cladorn":  16,
-                                   "cloth":  1165,
+                                   "cloth":  1156,
                                    "face":  144,
                                    "fhadorn":  24,
                                    "foot":  16,
@@ -46,12 +59,11 @@
                    "by_action":  {
                                      "birth":  10,
                                      "cry":  45,
-                                     "die":  65,
+                                     "die":  69,
                                      "faint":  40,
                                      "lose":  45,
-                                     "sit":  20,
-                                     "slow":  81,
-                                     "snow":  6,
+                                     "sit":  14,
+                                     "slow":  80,
                                      "stand":  845,
                                      "trigger":  45,
                                      "wait":  40,
@@ -65,7 +77,7 @@
                                                 "up":  447
                                             },
                    "by_source_format":  {
-                                            "gif":  1426,
+                                            "gif":  1417,
                                             "png":  791
                                         }
                },
@@ -297,7 +309,6 @@
                                           "lose",
                                           "sit",
                                           "slow",
-                                          "snow",
                                           "stand",
                                           "trigger",
                                           "wait",
@@ -361,7 +372,7 @@
                                               "up"
                                           ]
                              },
-    "duplicate_group_count":  246,
+    "duplicate_group_count":  245,
     "duplicate_groups":  [
                              {
                                  "content_hash":  "sha256:00d31221b786615a52e30c1a97d76a95594af2e97776fbda9d9fbe165cf29e3b",
@@ -382,6 +393,7 @@
                                  "content_hash":  "sha256:0130fae09ae4f0a1880ecaabf33e2380670da8543816b7d16c7bd44099d5730a",
                                  "paths":  [
                                                "cloth/cloth10601_cry.gif",
+                                               "cloth/cloth10601_die.gif",
                                                "cloth/cloth10601_lose.gif"
                                            ]
                              },
@@ -506,9 +518,7 @@
                                  "paths":  [
                                                "cloth/cloth10901_cry.gif",
                                                "cloth/cloth10901_die.gif",
-                                               "cloth/cloth10901_lose.gif",
-                                               "cloth/cloth10901_sit.gif",
-                                               "cloth/cloth10901_snow.gif"
+                                               "cloth/cloth10901_lose.gif"
                                            ]
                              },
                              {
@@ -595,10 +605,9 @@
                                  "content_hash":  "sha256:1cc72389fff49ca6ab8c6b949b659a957dfc989c3b39b6978a364a786980bf5c",
                                  "paths":  [
                                                "cloth/cloth12001_cry.gif",
+                                               "cloth/cloth12001_die.gif",
                                                "cloth/cloth12001_faint.gif",
-                                               "cloth/cloth12001_lose.gif",
-                                               "cloth/cloth12001_sit.gif",
-                                               "cloth/cloth12001_snow.gif"
+                                               "cloth/cloth12001_lose.gif"
                                            ]
                              },
                              {
@@ -718,9 +727,7 @@
                                  "paths":  [
                                                "cloth/cloth12201_cry.gif",
                                                "cloth/cloth12201_die.gif",
-                                               "cloth/cloth12201_lose.gif",
-                                               "cloth/cloth12201_sit.gif",
-                                               "cloth/cloth12201_snow.gif"
+                                               "cloth/cloth12201_lose.gif"
                                            ]
                              },
                              {
@@ -805,10 +812,9 @@
                                  "content_hash":  "sha256:3b5a557ea50dd687b8ab32fa0ce75ee3a3495919f1dee87edfe730b2139b4ba7",
                                  "paths":  [
                                                "cloth/cloth12101_cry.gif",
+                                               "cloth/cloth12101_die.gif",
                                                "cloth/cloth12101_faint.gif",
-                                               "cloth/cloth12101_lose.gif",
-                                               "cloth/cloth12101_sit.gif",
-                                               "cloth/cloth12101_snow.gif"
+                                               "cloth/cloth12101_lose.gif"
                                            ]
                              },
                              {
@@ -880,6 +886,7 @@
                                  "content_hash":  "sha256:3f71955fdc52815f92c0ccfdd72bafc789266f5965cb81f6f884798d5e16a21d",
                                  "paths":  [
                                                "cloth/cloth12001_cry_m.gif",
+                                               "cloth/cloth12001_die_m.gif",
                                                "cloth/cloth12001_faint_m.gif",
                                                "cloth/cloth12001_lose_m.gif"
                                            ]
@@ -986,10 +993,9 @@
                                  "content_hash":  "sha256:4ae9b4899080d30e92abc268890c5767da49e7fbe9ae0e9023727c64b0cac774",
                                  "paths":  [
                                                "cloth/cloth11901_cry.gif",
+                                               "cloth/cloth11901_die.gif",
                                                "cloth/cloth11901_faint.gif",
-                                               "cloth/cloth11901_lose.gif",
-                                               "cloth/cloth11901_sit.gif",
-                                               "cloth/cloth11901_snow.gif"
+                                               "cloth/cloth11901_lose.gif"
                                            ]
                              },
                              {
@@ -1127,10 +1133,9 @@
                                  "content_hash":  "sha256:602fa79d4e0113bc003d45e8cb8e6281e8b2dcf365c9b28024e95fa02b64bb09",
                                  "paths":  [
                                                "cloth/cloth11801_cry.gif",
+                                               "cloth/cloth11801_die.gif",
                                                "cloth/cloth11801_faint.gif",
-                                               "cloth/cloth11801_lose.gif",
-                                               "cloth/cloth11801_slow.gif",
-                                               "cloth/cloth11801_snow.gif"
+                                               "cloth/cloth11801_lose.gif"
                                            ]
                              },
                              {
@@ -1384,6 +1389,7 @@
                                  "content_hash":  "sha256:8a0c97c3c8ceda3452ee382c11f2c9f039e7d8ddab8e1e01af337048e580aeb6",
                                  "paths":  [
                                                "cloth/cloth12101_cry_m.gif",
+                                               "cloth/cloth12101_die_m.gif",
                                                "cloth/cloth12101_faint_m.gif",
                                                "cloth/cloth12101_lose_m.gif"
                                            ]
@@ -1718,6 +1724,7 @@
                                  "content_hash":  "sha256:bceb51f02510248deeddfdeaa35b50e1fd1c27c76c032c7999824aedd2c38a4a",
                                  "paths":  [
                                                "cloth/cloth11901_cry_m.gif",
+                                               "cloth/cloth11901_die_m.gif",
                                                "cloth/cloth11901_faint_m.gif",
                                                "cloth/cloth11901_lose_m.gif"
                                            ]
@@ -1853,13 +1860,10 @@
                          ],
     "project_character_coverage":  {
                                        "character_csv":  "content_source/csv/characters/characters.csv",
-                                       "qqt_character_count":  94,
-                                       "direct_match_count":  90,
+                                       "qqt_character_count":  97,
+                                       "direct_match_count":  96,
                                        "missing_direct_ids":  [
-                                                                  "11701",
-                                                                  "18811",
-                                                                  "23001",
-                                                                  "27101"
+                                                                  "11701"
                                                               ]
                                    }
 }
