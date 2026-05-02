@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_v0es5"]
+
+[resource]
+script = ExtResource("1_v0es5")
+element_id = 100077
+display_name = "common_elem77"
+theme_id = 1
+theme_name = "common"
+elem_number = 77
+logic_type = 2
+source_dir = "common"
+stand_file = "elem77_stand.gif"
+content_hash = "e0da00974ad9a7901d36d53a92bc668f92c77d5a5672ada7786dfe81eef05cc3"

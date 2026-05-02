@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_rd4mi"]
+
+[resource]
+script = ExtResource("1_rd4mi")
+element_id = 800064
+display_name = "machine_elem64"
+theme_id = 8
+theme_name = "machine"
+elem_number = 64
+logic_type = 3
+source_dir = "machine"
+stand_file = "elem64_stand.png"
+die_file = "elem64_die.gif"
+content_hash = "86c29ae816ee66d1b5bd909bfaad196a3f8cac7d4e0b4a95aa8a5d5163c43ff8"

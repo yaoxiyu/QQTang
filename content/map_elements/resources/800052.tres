@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_jrelu"]
+
+[resource]
+script = ExtResource("1_jrelu")
+element_id = 800052
+display_name = "machine_elem52"
+theme_id = 8
+theme_name = "machine"
+elem_number = 52
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem52_stand.png"
+content_hash = "c73f0bac0115164b598ece217268f57428f208c031bba74321af8debdd2b2781"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_rwn5j"]
+
+[resource]
+script = ExtResource("1_rwn5j")
+element_id = 800026
+display_name = "machine_elem26"
+theme_id = 8
+theme_name = "machine"
+elem_number = 26
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem26_stand.png"
+content_hash = "d4212e365a7a7e4b1dee45a40511231d3519d326f78a6cc00db98c1f898d9925"

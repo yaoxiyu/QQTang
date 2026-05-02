@@ -274,7 +274,7 @@
       "nine_patch": false,
       "scale_mode": "cover",
       "tags": "room",
-      "enabled": true
+      "enabled": false
     },
     {
       "asset_id": "ui.loading.bg.main",
@@ -516,50 +516,6 @@
       "nine_patch": false,
       "scale_mode": "keep_aspect",
       "tags": "common",
-      "enabled": true
-    },
-    {
-      "asset_id": "ui.room.tooltip.panel.background",
-      "asset_kind": "texture",
-      "resource_path": "res://assets/ui/room/char/panel/dlg_roleAttr.png",
-      "default_width": 153,
-      "default_height": 83,
-      "nine_patch": false,
-      "scale_mode": "keep_aspect",
-      "tags": "room_tooltip",
-      "enabled": true
-    },
-    {
-      "asset_id": "ui.room.tooltip.icon.bomb",
-      "asset_kind": "texture",
-      "resource_path": "res://assets/ui/room/char/panel/img_roleBomb.png",
-      "default_width": 15,
-      "default_height": 15,
-      "nine_patch": false,
-      "scale_mode": "keep_aspect",
-      "tags": "room_tooltip",
-      "enabled": true
-    },
-    {
-      "asset_id": "ui.room.tooltip.icon.power",
-      "asset_kind": "texture",
-      "resource_path": "res://assets/ui/room/char/panel/img_rolePower.png",
-      "default_width": 15,
-      "default_height": 15,
-      "nine_patch": false,
-      "scale_mode": "keep_aspect",
-      "tags": "room_tooltip",
-      "enabled": true
-    },
-    {
-      "asset_id": "ui.room.tooltip.icon.speed",
-      "asset_kind": "texture",
-      "resource_path": "res://assets/ui/room/char/panel/img_roleSpeed.png",
-      "default_width": 15,
-      "default_height": 15,
-      "nine_patch": false,
-      "scale_mode": "keep_aspect",
-      "tags": "room_tooltip",
       "enabled": true
     }
   ]

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_mvsqv"]
+
+[resource]
+script = ExtResource("1_mvsqv")
+element_id = 1900009
+display_name = "water_elem9"
+theme_id = 19
+theme_name = "water"
+elem_number = 9
+logic_type = 1
+source_dir = "water"
+stand_file = "elem9_stand.png"
+content_hash = "b74dca32f3ee54f8531d6290f67678f9b4c64baa765c87e87bc78c9ca6f75965"

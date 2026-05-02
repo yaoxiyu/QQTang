@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_sbgiu"]
+
+[resource]
+script = ExtResource("1_sbgiu")
+element_id = 600022
+display_name = "exploration_elem22"
+theme_id = 6
+theme_name = "exploration"
+elem_number = 22
+logic_type = 1
+source_dir = "exploration"
+stand_file = "elem22_stand.png"
+content_hash = "dd3c59a51fa762d1e0011d63baff9eaff1731a42b6c40e955b91abff03e49b59"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_nnwhn"]
+
+[resource]
+script = ExtResource("1_nnwhn")
+element_id = 600212
+display_name = "exploration_elem212"
+theme_id = 6
+theme_name = "exploration"
+elem_number = 212
+logic_type = 1
+source_dir = "exploration"
+stand_file = "elem212_stand.png"
+content_hash = "47de7a379c1a2c3ee272a21df8f80629b4ce41cc05c0d292197bf517b912986a"

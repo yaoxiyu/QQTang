@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_jpwsf"]
+
+[resource]
+script = ExtResource("1_jpwsf")
+element_id = 800063
+display_name = "machine_elem63"
+theme_id = 8
+theme_name = "machine"
+elem_number = 63
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem63_stand.png"
+content_hash = "87fb721ff92ed3332c0cbb483f700d47539ddcee86a3e09e42d546bf765586c3"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_twfl8"]
+
+[resource]
+script = ExtResource("1_twfl8")
+element_id = 100023
+display_name = "common_elem23"
+theme_id = 1
+theme_name = "common"
+elem_number = 23
+logic_type = 4
+source_dir = "common"
+stand_file = "elem23_stand.png"
+trigger_file = "elem23_trigger.gif"
+content_hash = "2603e4316f1a8e525c0300cda7b5c25006039c399390c47894c338e10da7295a"

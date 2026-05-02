@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ipopu"]
+
+[resource]
+script = ExtResource("1_ipopu")
+element_id = 500102
+display_name = "desert_elem102"
+theme_id = 5
+theme_name = "desert"
+elem_number = 102
+logic_type = 1
+source_dir = "desert"
+stand_file = "elem102_stand.png"
+content_hash = "aad911a3e577edd1f90e5e89dcdea5d2d7a879c84a6cad5ae10a1f7d878031ec"

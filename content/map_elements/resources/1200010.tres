@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_5dtar"]
+
+[resource]
+script = ExtResource("1_5dtar")
+element_id = 1200010
+display_name = "practice_elem10"
+theme_id = 12
+theme_name = "practice"
+elem_number = 10
+logic_type = 4
+source_dir = "practice"
+stand_file = "elem10_stand.png"
+trigger_file = "elem10_trigger.gif"
+content_hash = "6fa1be14cc193c303100781aaaf8135463e12bdac4e5d14edf6958c47885c656"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_nnfnc"]
+
+[resource]
+script = ExtResource("1_nnfnc")
+element_id = 1800014
+display_name = "treasure_elem14"
+theme_id = 18
+theme_name = "treasure"
+elem_number = 14
+logic_type = 4
+source_dir = "treasure"
+stand_file = "elem14_stand.png"
+trigger_file = "elem14_trigger.gif"
+content_hash = "8a9496594637c051b613953bfca27d567b51796874c4179bdeb66bf64bb8b058"

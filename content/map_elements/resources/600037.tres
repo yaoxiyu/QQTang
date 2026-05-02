@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_wobhm"]
+
+[resource]
+script = ExtResource("1_wobhm")
+element_id = 600037
+display_name = "exploration_elem37"
+theme_id = 6
+theme_name = "exploration"
+elem_number = 37
+logic_type = 1
+source_dir = "exploration"
+stand_file = "elem37_stand.png"
+content_hash = "de165dd53c3c724ae211d6ebfdec8d89a816b25ee51044e947f628578574e2cd"

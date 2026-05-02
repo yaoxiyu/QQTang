@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_uyc36"]
+
+[resource]
+script = ExtResource("1_uyc36")
+element_id = 1500047
+display_name = "snow_elem47"
+theme_id = 15
+theme_name = "snow"
+elem_number = 47
+logic_type = 1
+source_dir = "snow"
+stand_file = "elem47_stand.png"
+content_hash = "27085e776b53a6d4c81ed8b945e74f0313cab123a7261a41eed288c11353f5c0"

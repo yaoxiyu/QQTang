@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_xvnhi"]
+
+[resource]
+script = ExtResource("1_xvnhi")
+element_id = 100071
+display_name = "common_elem71"
+theme_id = 1
+theme_name = "common"
+elem_number = 71
+logic_type = 1
+source_dir = "common"
+stand_file = "elem71_stand.png"
+content_hash = "2c00a8c6e76773cd296921339dd21d7e832fef31ac3d35e9c076c55b4575b3e7"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_kpt3f"]
+
+[resource]
+script = ExtResource("1_kpt3f")
+element_id = 1300260
+display_name = "pve_elem260"
+theme_id = 13
+theme_name = "pve"
+elem_number = 260
+logic_type = 1
+source_dir = "pve"
+stand_file = "elem260_stand.png"
+content_hash = "a494dc6be9175fc7f5a3e70e0afdaa5a042df4aadb0f0c6a01be3fad954747b9"

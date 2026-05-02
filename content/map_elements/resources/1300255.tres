@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_uk55m"]
+
+[resource]
+script = ExtResource("1_uk55m")
+element_id = 1300255
+display_name = "pve_elem255"
+theme_id = 13
+theme_name = "pve"
+elem_number = 255
+logic_type = 1
+source_dir = "pve"
+stand_file = "elem255_stand.png"
+content_hash = "5eb642285342be483542082c95d5d77c6292aabfe408c95fc0a93516dc01c83d"

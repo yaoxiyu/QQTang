@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_j5fbm"]
+
+[resource]
+script = ExtResource("1_j5fbm")
+element_id = 800009
+display_name = "machine_elem9"
+theme_id = 8
+theme_name = "machine"
+elem_number = 9
+logic_type = 3
+source_dir = "machine"
+stand_file = "elem9_stand.png"
+die_file = "elem9_die.gif"
+content_hash = "0152086c350a1a86c539d00536bbcb9cd174267d993f1a565e987d15a34013b7"

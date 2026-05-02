@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ftgs1"]
+
+[resource]
+script = ExtResource("1_ftgs1")
+element_id = 1300208
+display_name = "pve_elem208"
+theme_id = 13
+theme_name = "pve"
+elem_number = 208
+logic_type = 1
+source_dir = "pve"
+stand_file = "elem208_stand.png"
+content_hash = "db27c945ec37e41e88b9ce510a5188ffe8367efa298627571645ce8ea2fe57a2"

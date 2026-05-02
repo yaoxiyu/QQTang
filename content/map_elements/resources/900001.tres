@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_pqvx5"]
+
+[resource]
+script = ExtResource("1_pqvx5")
+element_id = 900001
+display_name = "match_elem1"
+theme_id = 9
+theme_name = "match"
+elem_number = 1
+logic_type = 1
+source_dir = "match"
+stand_file = "elem1_stand.png"
+content_hash = "31e66390ff2dfc2ce74732c9a9e7c67033be1ff59496fac5523afe183935832c"

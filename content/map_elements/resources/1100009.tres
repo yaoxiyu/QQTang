@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_6sbq4"]
+
+[resource]
+script = ExtResource("1_6sbq4")
+element_id = 1100009
+display_name = "pig_elem9"
+theme_id = 11
+theme_name = "pig"
+elem_number = 9
+logic_type = 1
+source_dir = "pig"
+stand_file = "elem9_stand.png"
+content_hash = "5086872a96f45444a0b0bbb1042a5bc973c6e1684533a8cf02cd8feacab37397"

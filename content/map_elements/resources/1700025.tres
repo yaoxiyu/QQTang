@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ogk5g"]
+
+[resource]
+script = ExtResource("1_ogk5g")
+element_id = 1700025
+display_name = "town_elem25"
+theme_id = 17
+theme_name = "town"
+elem_number = 25
+logic_type = 1
+source_dir = "town"
+stand_file = "elem25_stand.png"
+content_hash = "76b0274435cc84ad7d1ce35263412166495c533ef0acca61a009a12e36a498ea"

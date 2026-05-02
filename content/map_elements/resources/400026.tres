@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_pgeom"]
+
+[resource]
+script = ExtResource("1_pgeom")
+element_id = 400026
+display_name = "bun_elem26"
+theme_id = 4
+theme_name = "bun"
+elem_number = 26
+logic_type = 1
+source_dir = "bun"
+stand_file = "elem26_stand.png"
+content_hash = "1bc7c86f51fbe604b67ce4fae66982d52f2a15fc934a2b2979d34d0661554295"

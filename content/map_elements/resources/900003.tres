@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_1ugen"]
+
+[resource]
+script = ExtResource("1_1ugen")
+element_id = 900003
+display_name = "match_elem3"
+theme_id = 9
+theme_name = "match"
+elem_number = 3
+logic_type = 3
+source_dir = "match"
+stand_file = "elem3_stand.png"
+die_file = "elem3_die.gif"
+content_hash = "934f1675357bb2ab379e25ff08abb53e0eaa39e378debac9c4f2e1515c383de7"

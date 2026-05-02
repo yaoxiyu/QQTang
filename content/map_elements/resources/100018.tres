@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_pxpho"]
+
+[resource]
+script = ExtResource("1_pxpho")
+element_id = 100018
+display_name = "common_elem18"
+theme_id = 1
+theme_name = "common"
+elem_number = 18
+logic_type = 2
+source_dir = "common"
+stand_file = "elem18_stand.gif"
+content_hash = "25ac0d3a18d28d84daf309d8f02e613143ec7a8b3e549447e8dd498b372ce60b"

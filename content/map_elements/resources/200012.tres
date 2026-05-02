@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_oqubl"]
+
+[resource]
+script = ExtResource("1_oqubl")
+element_id = 200012
+display_name = "bomb_elem12"
+theme_id = 2
+theme_name = "bomb"
+elem_number = 12
+logic_type = 1
+source_dir = "bomb"
+stand_file = "elem12_stand.png"
+content_hash = "aca49d326dc2af47c42d27addf90d53602151c12c4e36faee24768f0fa8076bc"

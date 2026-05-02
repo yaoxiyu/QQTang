@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_q72nl"]
+
+[resource]
+script = ExtResource("1_q72nl")
+element_id = 1200007
+display_name = "practice_elem7"
+theme_id = 12
+theme_name = "practice"
+elem_number = 7
+logic_type = 1
+source_dir = "practice"
+stand_file = "elem7_stand.png"
+content_hash = "18e7f4d1d7e6c276df6a711be6a9def057658e23f77ab1b929d5e55ed089ed57"

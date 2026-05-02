@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_27xus"]
+
+[resource]
+script = ExtResource("1_27xus")
+element_id = 1600044
+display_name = "tank_elem44"
+theme_id = 16
+theme_name = "tank"
+elem_number = 44
+logic_type = 4
+source_dir = "tank"
+stand_file = "elem44_stand.png"
+trigger_file = "elem44_trigger.gif"
+content_hash = "d1e4fc4d84716874c500f586e987a7906eb7e21f95bf4a65c41219476767c9a0"

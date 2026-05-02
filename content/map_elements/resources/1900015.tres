@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_wxme7"]
+
+[resource]
+script = ExtResource("1_wxme7")
+element_id = 1900015
+display_name = "water_elem15"
+theme_id = 19
+theme_name = "water"
+elem_number = 15
+logic_type = 1
+source_dir = "water"
+stand_file = "elem15_stand.png"
+content_hash = "d9f2bb3a2c80842e5e5eecf0614d5ba5ff08eefd7c43c19528645ecdc60e0d49"

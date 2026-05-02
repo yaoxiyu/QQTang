@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_txqbc"]
+
+[resource]
+script = ExtResource("1_txqbc")
+element_id = 300110
+display_name = "box_elem110"
+theme_id = 3
+theme_name = "box"
+elem_number = 110
+logic_type = 3
+source_dir = "box"
+stand_file = "elem110_stand.png"
+die_file = "elem110_die.gif"
+content_hash = "bc541f8a919839a002b7fb77564d7cd88073754365e3157aaa342f5e4848b8c9"

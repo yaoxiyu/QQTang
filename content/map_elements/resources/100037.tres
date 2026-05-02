@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_lmwgc"]
+
+[resource]
+script = ExtResource("1_lmwgc")
+element_id = 100037
+display_name = "common_elem37"
+theme_id = 1
+theme_name = "common"
+elem_number = 37
+logic_type = 2
+source_dir = "common"
+stand_file = "elem37_stand.gif"
+content_hash = "88f617b2703ef1846101f1efda73c08131bd87ca2806e2eb1bfea902d5e78e03"

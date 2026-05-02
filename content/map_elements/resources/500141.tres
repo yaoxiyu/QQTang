@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_y67ck"]
+
+[resource]
+script = ExtResource("1_y67ck")
+element_id = 500141
+display_name = "desert_elem141"
+theme_id = 5
+theme_name = "desert"
+elem_number = 141
+logic_type = 1
+source_dir = "desert"
+stand_file = "elem141_stand.png"
+content_hash = "8b3324309f87a87df8fd71af316e36edc91d7f459ea36ff87a9704008aa6b755"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_gi7er"]
+
+[resource]
+script = ExtResource("1_gi7er")
+element_id = 1700004
+display_name = "town_elem4"
+theme_id = 17
+theme_name = "town"
+elem_number = 4
+logic_type = 3
+source_dir = "town"
+stand_file = "elem4_stand.png"
+die_file = "elem4_die.gif"
+content_hash = "5c31deddea0a31ec644f5c2ae95f387758e9b1331810fa93c353a8dd17b0ff4c"

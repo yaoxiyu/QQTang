@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_td0gd"]
+
+[resource]
+script = ExtResource("1_td0gd")
+element_id = 1000037
+display_name = "mine_elem37"
+theme_id = 10
+theme_name = "mine"
+elem_number = 37
+logic_type = 1
+source_dir = "mine"
+stand_file = "elem37_stand.png"
+content_hash = "6c371c6f800754ab482ac57aa15d32a2e6a7fe9981bcc6ea2417ae4365ea121f"

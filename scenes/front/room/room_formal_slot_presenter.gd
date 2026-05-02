@@ -26,31 +26,44 @@ func _refresh_formal_room_slots(snapshot: RoomSnapshot, view_model: Dictionary) 
 
 func _create_formal_slot_card(slot_index: int, member: RoomMemberState, is_open: bool, view_model: Dictionary) -> Control:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(128, 128)
+	button.custom_minimum_size = Vector2(132, 137)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var is_top_slot := slot_index < 4
+	var normal_tex := _make_texture_style(ROOM_ASSETS.slot_player_up_normal_path if is_top_slot else ROOM_ASSETS.slot_player_down_normal_path)
+	var hover_tex := _make_texture_style(ROOM_ASSETS.slot_player_up_hover_path if is_top_slot else ROOM_ASSETS.slot_player_down_hover_path)
+	button.add_theme_stylebox_override("normal", normal_tex)
+	button.add_theme_stylebox_override("hover", hover_tex)
+	button.add_theme_stylebox_override("pressed", normal_tex)
+	button.add_theme_stylebox_override("disabled", normal_tex)
 	if member != null:
 		button.text = ""
 		button.tooltip_text = member.player_name
 		button.set_meta("ui_asset_id", "ui.room.slot.occupied")
 		button.pressed.connect(Callable(self, "_show_formal_member_profile").bind(_member_to_profile_payload(member)))
-		_apply_room_square_button_style(button, Color(0.40, 0.53, 0.54, 0.86))
-		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 122.0, member.team_id)
+		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 126.0, member.team_id)
+		_add_formal_slot_team_overlay(button, member.team_id, member.player_name, is_top_slot)
 	elif is_open:
 		button.text = ""
 		button.tooltip_text = "空位"
 		button.disabled = not _can_toggle_formal_custom_slot(view_model)
 		button.set_meta("ui_asset_id", "ui.room.slot.empty")
 		button.pressed.connect(Callable(self, "_toggle_formal_slot").bind(slot_index))
-		_apply_room_square_button_style(button, Color(0.40, 0.53, 0.54, 0.86))
 	else:
 		button.text = ""
 		button.tooltip_text = "已关闭"
 		button.disabled = not _can_toggle_formal_custom_slot(view_model)
 		button.set_meta("ui_asset_id", "ui.room.slot.closed")
 		button.pressed.connect(Callable(self, "_toggle_formal_slot").bind(slot_index))
-		_apply_room_square_button_style(button, Color(0.22, 0.25, 0.26, 0.92))
+		var closed_overlay := TextureRect.new()
+		closed_overlay.name = "SlotClosedOverlay"
+		closed_overlay.texture = load(ROOM_ASSETS.slot_closed_overlay_path)
+		closed_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		closed_overlay.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+		closed_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+		closed_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(closed_overlay)
 	return button
 
 
@@ -60,11 +73,14 @@ func _refresh_formal_room_actions(snapshot: RoomSnapshot, view_model: Dictionary
 	var is_host := _is_local_host(snapshot)
 	var is_match_room := bool(view_model.get("is_match_room", false))
 	if ready_button != null:
-		ready_button.text = "取消准备" if bool(view_model.get("local_member_ready", false)) else "准备"
+		var is_ready := bool(view_model.get("local_member_ready", false))
+		ready_button.text = ""
+		_apply_room_action_button_style(ready_button, "unready" if is_ready else "ready")
 		ready_button.visible = not is_host
 		ready_button.disabled = not bool(view_model.get("can_ready", false))
 	if start_button != null:
-		start_button.text = "开始"
+		start_button.text = ""
+		_apply_room_action_button_style(start_button, "start")
 		start_button.visible = is_host and not is_match_room
 		start_button.disabled = not bool(view_model.get("can_start", false))
 	if enter_queue_button != null:
@@ -102,6 +118,43 @@ func _refresh_formal_loadout_selection(view_model: Dictionary) -> void:
 			if child is Button:
 				(child as Button).button_pressed = int(child.get_meta("team_id", 0)) == selected_team_id
 
+
+func _add_formal_slot_team_overlay(button: Button, team_id: int, player_name: String, is_top: bool) -> void:
+	var strip_path := ROOM_ASSETS.get("team_color_strip_%d_path" % clampi(team_id, 1, 8)) as String
+	var strip := TextureRect.new()
+	strip.name = "TeamColorStrip"
+	strip.texture = load(strip_path)
+	strip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	strip.stretch_mode = TextureRect.STRETCH_KEEP
+	strip.custom_minimum_size = Vector2(117, 20)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Anchor at top-center or bottom-center
+	strip.anchor_left = 0.5
+	strip.anchor_right = 0.5
+	if is_top:
+		strip.anchor_top = 0.0
+		strip.anchor_bottom = 0.0
+		strip.offset_left = -58
+		strip.offset_top = 2
+		strip.offset_right = 59
+		strip.offset_bottom = 22
+	else:
+		strip.anchor_top = 1.0
+		strip.anchor_bottom = 1.0
+		strip.offset_left = -58
+		strip.offset_top = -22
+		strip.offset_right = 59
+		strip.offset_bottom = -2
+	button.add_child(strip)
+	var name_label := Label.new()
+	name_label.name = "PlayerName"
+	name_label.text = player_name
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 10)
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	strip.add_child(name_label)
 
 func _find_member_for_slot(snapshot: RoomSnapshot, slot_index: int) -> RoomMemberState:
 	if snapshot == null:

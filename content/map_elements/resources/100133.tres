@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_s7wmc"]
+
+[resource]
+script = ExtResource("1_s7wmc")
+element_id = 100133
+display_name = "common_elem133"
+theme_id = 1
+theme_name = "common"
+elem_number = 133
+logic_type = 2
+source_dir = "common"
+stand_file = "elem133_stand.gif"
+content_hash = "1fcd736db760e2fcb1669f23dffef96baeb8393776f594606628e786221028e4"

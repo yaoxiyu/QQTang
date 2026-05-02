@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_caop7"]
+
+[resource]
+script = ExtResource("1_caop7")
+element_id = 1200002
+display_name = "practice_elem2"
+theme_id = 12
+theme_name = "practice"
+elem_number = 2
+logic_type = 3
+source_dir = "practice"
+stand_file = "elem2_stand.png"
+die_file = "elem2_die.gif"
+content_hash = "adb9e09aba1968734d8e0207a0740e61ff3192a15c458c2cb7de06d220efd6de"

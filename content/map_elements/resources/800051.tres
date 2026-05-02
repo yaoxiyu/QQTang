@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_icus3"]
+
+[resource]
+script = ExtResource("1_icus3")
+element_id = 800051
+display_name = "machine_elem51"
+theme_id = 8
+theme_name = "machine"
+elem_number = 51
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem51_stand.png"
+content_hash = "d65e8fcb3c282c16febf55541e35164540d97a43bcad3f68df2828d8a3e6cde0"

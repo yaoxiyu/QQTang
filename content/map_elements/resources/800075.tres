@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_umob8"]
+
+[resource]
+script = ExtResource("1_umob8")
+element_id = 800075
+display_name = "machine_elem75"
+theme_id = 8
+theme_name = "machine"
+elem_number = 75
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem75_stand.png"
+content_hash = "b548442876d1627a64344317c8415627e94987e2c7bbb430123be5480956f131"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_clryo"]
+
+[resource]
+script = ExtResource("1_clryo")
+element_id = 500114
+display_name = "desert_elem114"
+theme_id = 5
+theme_name = "desert"
+elem_number = 114
+logic_type = 1
+source_dir = "desert"
+stand_file = "elem114_stand.png"
+content_hash = "03ad5ce8fae9724a3e777601808d72090121a09e7a76e146d3a984b2fe414012"

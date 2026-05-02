@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_laxwa"]
+
+[resource]
+script = ExtResource("1_laxwa")
+element_id = 1000013
+display_name = "mine_elem13"
+theme_id = 10
+theme_name = "mine"
+elem_number = 13
+logic_type = 1
+source_dir = "mine"
+stand_file = "elem13_stand.png"
+content_hash = "ecf0b80a18114173454d5411bd89f26ba00c5d08006ce32beb5d7f3f7e52c060"

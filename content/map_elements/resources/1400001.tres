@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_237pb"]
+
+[resource]
+script = ExtResource("1_237pb")
+element_id = 1400001
+display_name = "sculpture_elem1"
+theme_id = 14
+theme_name = "sculpture"
+elem_number = 1
+logic_type = 1
+source_dir = "sculpture"
+stand_file = "elem1_stand.png"
+content_hash = "a4fa5fe4548f431755aa0357a9abf1618a681cf4fc4ae3b17a72906139663750"

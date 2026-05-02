@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_phjv1"]
+
+[resource]
+script = ExtResource("1_phjv1")
+element_id = 300115
+display_name = "box_elem115"
+theme_id = 3
+theme_name = "box"
+elem_number = 115
+logic_type = 5
+source_dir = "box"
+stand_file = "elem115_stand.png"
+die_file = "elem115_die.gif"
+trigger_file = "elem115_trigger.gif"
+content_hash = "57f1bf4b9770cf4ca5368edbe6b85538db91ce122f29cf4202fe25e35b4ed3f4"

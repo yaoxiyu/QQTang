@@ -1,0 +1,636 @@
+[gd_scene format=3 uid="uid://d0ut1qbwrnl37"]
+
+[ext_resource type="Script" uid="uid://d2q0ht85i37h4" path="res://scenes/front/room/room_formal_controller.gd" id="1_ctrl"]
+[ext_resource type="Texture2D" uid="uid://bhqg0mhuajrwi" path="res://assets/ui/front/room/bg_main.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://ck5mj6je7tbmk" path="res://assets/ui/front/room/btn_sel_mode_normal.png" id="10_sm_n"]
+[ext_resource type="Texture2D" uid="uid://coij4f4fx5uvj" path="res://assets/ui/front/room/btn_sel_mode_hover.png" id="11_sm_h"]
+[ext_resource type="Texture2D" uid="uid://8bvlit7x7uv3" path="res://assets/ui/front/room/btn_sel_mode_pressed.png" id="12_sm_p"]
+[ext_resource type="Texture2D" uid="uid://63410xs5kcsm" path="res://assets/ui/front/room/btn_sel_mode_disabled.png" id="13_sm_d"]
+[ext_resource type="Texture2D" uid="uid://b78cydr1jv5ls" path="res://assets/ui/front/room/btn_property_normal.png" id="20_rp_n"]
+[ext_resource type="Texture2D" uid="uid://bp34w6pm0676f" path="res://assets/ui/front/room/btn_property_hover.png" id="21_rp_h"]
+[ext_resource type="Texture2D" uid="uid://bn38tk2b0v8bs" path="res://assets/ui/front/room/btn_property_pressed.png" id="22_rp_p"]
+[ext_resource type="Texture2D" uid="uid://cw3rfy4bsyrym" path="res://assets/ui/front/room/btn_property_disabled.png" id="23_rp_d"]
+[ext_resource type="Texture2D" uid="uid://ccxb5tirfhyor" path="res://assets/ui/front/room/btn_sel_map_normal.png" id="30_mp_n"]
+[ext_resource type="Texture2D" uid="uid://cmksl74psd135" path="res://assets/ui/front/room/btn_sel_map_hover.png" id="31_mp_h"]
+[ext_resource type="Texture2D" uid="uid://duw73f0h3jkk8" path="res://assets/ui/front/room/btn_sel_map_pressed.png" id="32_mp_p"]
+[ext_resource type="Texture2D" uid="uid://d3lnbajtcx1gh" path="res://assets/ui/front/room/btn_sel_map_disabled.png" id="33_mp_d"]
+[ext_resource type="Texture2D" uid="uid://u0lpb7jvk2jg" path="res://assets/ui/front/room/btn_left_role_normal.png" id="40_lr_n"]
+[ext_resource type="Texture2D" uid="uid://co37sw1k41k4c" path="res://assets/ui/front/room/btn_left_role_hover.png" id="41_lr_h"]
+[ext_resource type="Texture2D" uid="uid://cgdet8cboatht" path="res://assets/ui/front/room/btn_left_role_pressed.png" id="42_lr_p"]
+[ext_resource type="Texture2D" uid="uid://n4hh3dkrj1k3" path="res://assets/ui/front/room/btn_right_role_normal.png" id="50_rr_n"]
+[ext_resource type="Texture2D" uid="uid://rig6v677lggt" path="res://assets/ui/front/room/btn_right_role_hover.png" id="51_rr_h"]
+[ext_resource type="Texture2D" uid="uid://dywmyl5hv6swj" path="res://assets/ui/front/room/btn_right_role_pressed.png" id="52_rr_p"]
+[ext_resource type="Texture2D" uid="uid://bfkr41u403x2v" path="res://assets/ui/front/room/btn_ready_normal.png" id="60_rd_n"]
+[ext_resource type="Texture2D" uid="uid://bcv74djidjwcj" path="res://assets/ui/front/room/btn_ready_hover.png" id="61_rd_h"]
+[ext_resource type="Texture2D" uid="uid://74j6nojywugs" path="res://assets/ui/front/room/btn_ready_pressed.png" id="62_rd_p"]
+[ext_resource type="Texture2D" uid="uid://dxpq8ka2ggqtp" path="res://assets/ui/front/room/btn_ready_disabled.png" id="63_rd_d"]
+[ext_resource type="Texture2D" uid="uid://do0wfkmtesqm4" path="res://assets/ui/front/room/btn_playerUp_normal.png" id="80_pu_n"]
+[ext_resource type="Texture2D" uid="uid://b12ic8euqfp3x" path="res://assets/ui/front/room/btn_playerUp_hover.png" id="81_pu_h"]
+[ext_resource type="Texture2D" uid="uid://vg5bu7vxp25x" path="res://assets/ui/front/room/btn_playerDown_normal.png" id="90_pd_n"]
+[ext_resource type="Texture2D" uid="uid://bf72ouse4p3sc" path="res://assets/ui/front/room/btn_playerDown_hover.png" id="91_pd_h"]
+[ext_resource type="Texture2D" uid="uid://c0l4h71x2qhsn" path="res://assets/ui/front/room/team_color_1.png" id="100_tc"]
+[ext_resource type="Texture2D" uid="uid://6e6ehqtd7ofj" path="res://assets/ui/front/room/btn_check.png" id="110_check"]
+[ext_resource type="Texture2D" uid="uid://duc25rqinqonm" path="res://assets/ui/front/room/btn_return_normal.png" id="120_rt_n"]
+[ext_resource type="Texture2D" uid="uid://bd70iiwl2w5h0" path="res://assets/ui/front/room/btn_return_hover.png" id="121_rt_h"]
+[ext_resource type="Texture2D" uid="uid://v7x40r1uhfy8" path="res://assets/ui/front/room/btn_return_pressed.png" id="122_rt_p"]
+[ext_resource type="Texture2D" uid="uid://b6rtughbivlnl" path="res://assets/ui/front/room/btn_return_disabled.png" id="123_rt_d"]
+[ext_resource type="Texture2D" uid="uid://b7feowlp055ic" path="res://assets/ui/front/room/tab_normal_char_unselected.png" id="130_nc_u"]
+[ext_resource type="Texture2D" uid="uid://cmksg0oefeirl" path="res://assets/ui/front/room/tab_normal_char_selected.png" id="131_nc_s"]
+[ext_resource type="Texture2D" uid="uid://cppu8ljednqg8" path="res://assets/ui/front/room/tab_vip_char_unselected.png" id="132_vc_u"]
+[ext_resource type="Texture2D" uid="uid://blbxgkxgwja8" path="res://assets/ui/front/room/tab_vip_char_selected.png" id="133_vc_s"]
+[ext_resource type="Texture2D" uid="uid://cd7a4nlgadknb" path="res://assets/ui/room/char/icon/icon_117_normal.png" id="200_ic1"]
+[ext_resource type="Texture2D" uid="uid://cyxtdjo765m3v" path="res://assets/ui/room/char/icon/icon_118_normal.png" id="201_ic2"]
+[ext_resource type="Texture2D" uid="uid://b2dhft7lv0alw" path="res://assets/ui/room/char/icon/icon_119_normal.png" id="202_ic3"]
+[ext_resource type="Texture2D" uid="uid://baqmm2j2qe5ij" path="res://assets/ui/room/char/icon/icon_124_normal.png" id="203_ic4"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_xmffw"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_e5xjt"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_r73il"]
+
+[node name="RoomFormal" type="Control" unique_id=1576766791]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ctrl")
+
+[node name="BgPanel" type="PanelContainer" parent="." unique_id=983811640]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="BgTexture" type="TextureRect" parent="BgPanel" unique_id=1063342983]
+layout_mode = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterSlotsPanel" type="Panel" parent="." unique_id=1334652243]
+layout_mode = 0
+offset_left = 127.0
+offset_top = 103.0
+offset_right = 691.0
+offset_bottom = 521.0
+scale = Vector2(1.150021, 1.3107045)
+size_flags_vertical = 3
+
+[node name="SlotRowTop" type="HBoxContainer" parent="CharacterSlotsPanel" unique_id=1100000002]
+layout_mode = 0
+offset_right = 564.0
+offset_bottom = 137.0
+theme_override_constants/separation = 12
+
+[node name="Slot0" type="TextureButton" parent="CharacterSlotsPanel/SlotRowTop" unique_id=631408073]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("80_pu_n")
+texture_pressed = ExtResource("80_pu_n")
+texture_hover = ExtResource("81_pu_h")
+texture_disabled = ExtResource("80_pu_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowTop/Slot0" unique_id=1100000100]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.7629547
+offset_right = 121.0
+offset_bottom = 26.762955
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowTop/Slot0/TeamColor" unique_id=1100000105]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -1.4999924
+offset_bottom = 1.5000076
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot1" type="TextureButton" parent="CharacterSlotsPanel/SlotRowTop" unique_id=831929725]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("80_pu_n")
+texture_pressed = ExtResource("80_pu_n")
+texture_hover = ExtResource("81_pu_h")
+texture_disabled = ExtResource("80_pu_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowTop/Slot1" unique_id=1524797515]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.7629547
+offset_right = 121.0
+offset_bottom = 26.762955
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowTop/Slot1/TeamColor" unique_id=1371290019]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot2" type="TextureButton" parent="CharacterSlotsPanel/SlotRowTop" unique_id=1908999146]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("80_pu_n")
+texture_pressed = ExtResource("80_pu_n")
+texture_hover = ExtResource("81_pu_h")
+texture_disabled = ExtResource("80_pu_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowTop/Slot2" unique_id=1357924963]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.7629547
+offset_right = 121.0
+offset_bottom = 26.762955
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowTop/Slot2/TeamColor" unique_id=1081734271]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot3" type="TextureButton" parent="CharacterSlotsPanel/SlotRowTop" unique_id=963253386]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("80_pu_n")
+texture_pressed = ExtResource("80_pu_n")
+texture_hover = ExtResource("81_pu_h")
+texture_disabled = ExtResource("80_pu_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowTop/Slot3" unique_id=335712514]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 6.7629547
+offset_right = 121.0
+offset_bottom = 26.762955
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowTop/Slot3/TeamColor" unique_id=447360586]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotRowBottom" type="HBoxContainer" parent="CharacterSlotsPanel" unique_id=1100000003]
+layout_mode = 0
+offset_top = 272.5976
+offset_right = 564.0
+offset_bottom = 409.5976
+theme_override_constants/separation = 12
+
+[node name="Slot4" type="TextureButton" parent="CharacterSlotsPanel/SlotRowBottom" unique_id=2092556296]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("90_pd_n")
+texture_pressed = ExtResource("90_pd_n")
+texture_hover = ExtResource("91_pd_h")
+texture_disabled = ExtResource("90_pd_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowBottom/Slot4" unique_id=500746393]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 110.0
+offset_right = 121.0
+offset_bottom = 130.0
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowBottom/Slot4/TeamColor" unique_id=1210946337]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot5" type="TextureButton" parent="CharacterSlotsPanel/SlotRowBottom" unique_id=449202146]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("90_pd_n")
+texture_pressed = ExtResource("90_pd_n")
+texture_hover = ExtResource("91_pd_h")
+texture_disabled = ExtResource("90_pd_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowBottom/Slot5" unique_id=1748654117]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 110.0
+offset_right = 121.0
+offset_bottom = 130.0
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowBottom/Slot5/TeamColor" unique_id=282950790]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot6" type="TextureButton" parent="CharacterSlotsPanel/SlotRowBottom" unique_id=585585793]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("90_pd_n")
+texture_pressed = ExtResource("90_pd_n")
+texture_hover = ExtResource("91_pd_h")
+texture_disabled = ExtResource("90_pd_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowBottom/Slot6" unique_id=1555234502]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 110.0
+offset_right = 121.0
+offset_bottom = 130.0
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowBottom/Slot6/TeamColor" unique_id=643015815]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Slot7" type="TextureButton" parent="CharacterSlotsPanel/SlotRowBottom" unique_id=573647862]
+custom_minimum_size = Vector2(132, 137)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+texture_normal = ExtResource("90_pd_n")
+texture_pressed = ExtResource("90_pd_n")
+texture_hover = ExtResource("91_pd_h")
+texture_disabled = ExtResource("90_pd_n")
+stretch_mode = 0
+
+[node name="TeamColor" type="TextureRect" parent="CharacterSlotsPanel/SlotRowBottom/Slot7" unique_id=1925919977]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 110.0
+offset_right = 121.0
+offset_bottom = 130.0
+scale = Vector2(1.03, 1)
+mouse_filter = 2
+texture = ExtResource("100_tc")
+expand_mode = 1
+
+[node name="PlayerName" type="Label" parent="CharacterSlotsPanel/SlotRowBottom/Slot7/TeamColor" unique_id=888474027]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "玩家名"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RuleSelect" type="VBoxContainer" parent="." unique_id=645102808]
+layout_mode = 0
+offset_left = 811.0
+offset_top = 77.0
+offset_right = 906.0
+offset_bottom = 192.0
+scale = Vector2(1.2905473, 1.3165846)
+theme_override_constants/separation = 5
+
+[node name="ChooseModeBtn" type="TextureButton" parent="RuleSelect" unique_id=1995301927]
+custom_minimum_size = Vector2(95, 35)
+layout_mode = 2
+texture_normal = ExtResource("10_sm_n")
+texture_pressed = ExtResource("12_sm_p")
+texture_hover = ExtResource("11_sm_h")
+texture_disabled = ExtResource("13_sm_d")
+stretch_mode = 0
+
+[node name="RoomPropBtn" type="TextureButton" parent="RuleSelect" unique_id=1684341719]
+custom_minimum_size = Vector2(95, 35)
+layout_mode = 2
+texture_normal = ExtResource("20_rp_n")
+texture_pressed = ExtResource("22_rp_p")
+texture_hover = ExtResource("21_rp_h")
+texture_disabled = ExtResource("23_rp_d")
+stretch_mode = 0
+
+[node name="ChooseMapBtn" type="TextureButton" parent="RuleSelect" unique_id=724637508]
+custom_minimum_size = Vector2(95, 35)
+layout_mode = 2
+texture_normal = ExtResource("30_mp_n")
+texture_pressed = ExtResource("32_mp_p")
+texture_hover = ExtResource("31_mp_h")
+texture_disabled = ExtResource("33_mp_d")
+stretch_mode = 0
+
+[node name="MapPreview" type="TextureRect" parent="." unique_id=1699648848]
+custom_minimum_size = Vector2(95, 95)
+layout_mode = 0
+offset_left = 963.0
+offset_top = 76.0
+offset_right = 1058.0
+offset_bottom = 191.0
+scale = Vector2(1.9241178, 1.4847165)
+expand_mode = 1
+stretch_mode = 5
+
+[node name="BottomBar" type="Panel" parent="." unique_id=1649065780]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 0
+offset_left = 859.0
+offset_top = 697.0
+offset_right = 1109.0
+offset_bottom = 751.0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_xmffw")
+
+[node name="RoomActionBtn" type="TextureButton" parent="BottomBar" unique_id=1400000001]
+custom_minimum_size = Vector2(114, 54)
+layout_mode = 0
+offset_top = -1.0
+offset_right = 114.0
+offset_bottom = 53.0
+texture_normal = ExtResource("60_rd_n")
+texture_pressed = ExtResource("62_rd_p")
+texture_hover = ExtResource("61_rd_h")
+texture_disabled = ExtResource("63_rd_d")
+stretch_mode = 0
+
+[node name="LeaveBtn" type="TextureButton" parent="BottomBar" unique_id=269120507]
+custom_minimum_size = Vector2(52, 48)
+layout_mode = 0
+offset_left = 187.0
+offset_right = 239.0
+offset_bottom = 54.0
+texture_normal = ExtResource("120_rt_n")
+texture_pressed = ExtResource("122_rt_p")
+texture_hover = ExtResource("121_rt_h")
+texture_disabled = ExtResource("123_rt_d")
+stretch_mode = 0
+
+[node name="RoleSelectPanel" type="Panel" parent="." unique_id=411085325]
+layout_mode = 0
+offset_left = 797.00006
+offset_top = 243.00003
+offset_right = 1162.0
+offset_bottom = 483.00003
+theme_override_styles/panel = SubResource("StyleBoxEmpty_e5xjt")
+
+[node name="CharacterTab" type="Panel" parent="RoleSelectPanel" unique_id=1735043738]
+layout_mode = 0
+offset_top = 5.0
+offset_right = 188.0
+offset_bottom = 36.0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_r73il")
+
+[node name="NormalTabBtn" type="TextureButton" parent="RoleSelectPanel/CharacterTab" unique_id=1555573775]
+custom_minimum_size = Vector2(45, 19)
+layout_mode = 0
+offset_right = 45.0
+offset_bottom = 31.0
+toggle_mode = true
+button_pressed = true
+texture_normal = ExtResource("130_nc_u")
+texture_pressed = ExtResource("131_nc_s")
+texture_hover = ExtResource("131_nc_s")
+texture_disabled = ExtResource("130_nc_u")
+stretch_mode = 0
+
+[node name="VipTabBtn" type="TextureButton" parent="RoleSelectPanel/CharacterTab" unique_id=1705530444]
+custom_minimum_size = Vector2(45, 19)
+layout_mode = 0
+offset_left = 43.0
+offset_right = 88.0
+offset_bottom = 31.0
+toggle_mode = true
+texture_normal = ExtResource("132_vc_u")
+texture_pressed = ExtResource("133_vc_s")
+texture_hover = ExtResource("133_vc_s")
+texture_disabled = ExtResource("132_vc_u")
+stretch_mode = 0
+
+[node name="PrevCharBtn" type="TextureButton" parent="RoleSelectPanel" unique_id=2036463630]
+layout_mode = 0
+offset_top = 36.0
+offset_right = 25.0
+offset_bottom = 156.0
+scale = Vector2(1.35, 1.35)
+texture_normal = ExtResource("40_lr_n")
+texture_pressed = ExtResource("42_lr_p")
+texture_hover = ExtResource("41_lr_h")
+texture_disabled = ExtResource("40_lr_n")
+
+[node name="CharacterGrid" type="GridContainer" parent="RoleSelectPanel" unique_id=1708201358]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 0
+offset_left = 45.999935
+offset_top = 45.999966
+offset_right = 351.99994
+offset_bottom = 205.99997
+scale = Vector2(0.9, 0.9)
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+columns = 4
+
+[node name="CharIcon0" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000001]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("200_ic1")
+stretch_mode = 0
+
+[node name="CharIcon1" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000002]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("201_ic2")
+stretch_mode = 0
+
+[node name="CharIcon2" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000003]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("202_ic3")
+stretch_mode = 0
+
+[node name="CharIcon3" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000004]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("203_ic4")
+stretch_mode = 0
+
+[node name="CharIcon4" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000005]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("200_ic1")
+stretch_mode = 0
+
+[node name="CharIcon5" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000006]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("201_ic2")
+stretch_mode = 0
+
+[node name="CharIcon6" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000007]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("202_ic3")
+stretch_mode = 0
+
+[node name="CharIcon7" type="TextureButton" parent="RoleSelectPanel/CharacterGrid" unique_id=1200000008]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+texture_normal = ExtResource("203_ic4")
+stretch_mode = 0
+
+[node name="NextCharBtn" type="TextureButton" parent="RoleSelectPanel" unique_id=1157128]
+layout_mode = 0
+offset_left = 335.0
+offset_top = 36.0
+offset_right = 360.0
+offset_bottom = 156.0
+scale = Vector2(1.35, 1.35)
+texture_normal = ExtResource("50_rr_n")
+texture_pressed = ExtResource("52_rr_p")
+texture_hover = ExtResource("51_rr_h")
+texture_disabled = ExtResource("50_rr_n")
+stretch_mode = 0
+
+[node name="TeamSelectRow" type="HBoxContainer" parent="RoleSelectPanel" unique_id=1500000001]
+layout_mode = 0
+offset_left = 9.541504
+offset_top = 196.74646
+offset_right = 359.5415
+offset_bottom = 236.74646
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TeamBtnA" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000010]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="CheckMark" type="TextureRect" parent="RoleSelectPanel/TeamSelectRow/TeamBtnA" unique_id=1510000001]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.8, 0.8)
+mouse_filter = 2
+texture = ExtResource("110_check")
+expand_mode = 1
+
+[node name="TeamBtnB" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000011]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnC" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000012]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnD" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000013]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnE" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000014]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnF" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000015]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnG" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000016]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0
+
+[node name="TeamBtnH" type="TextureButton" parent="RoleSelectPanel/TeamSelectRow" unique_id=1500000017]
+custom_minimum_size = Vector2(24, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+stretch_mode = 0

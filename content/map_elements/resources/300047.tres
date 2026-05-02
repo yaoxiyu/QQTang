@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_xldbh"]
+
+[resource]
+script = ExtResource("1_xldbh")
+element_id = 300047
+display_name = "box_elem47"
+theme_id = 3
+theme_name = "box"
+elem_number = 47
+logic_type = 1
+source_dir = "box"
+stand_file = "elem47_stand.png"
+content_hash = "958019ff47db5611ef30de3b92f91fdf620cb68c2b7fb337101d04a9acf3313c"

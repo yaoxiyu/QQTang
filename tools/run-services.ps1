@@ -14,6 +14,7 @@ param(
     [switch]$SkipDSPoolCleanup,
     [switch]$SkipNativeBuild,
     [switch]$SkipBattleDSImageBuild,
+    [switch]$SkipBuild,
     [switch]$ForceBuild
 )
 
@@ -45,7 +46,7 @@ if (-not $SkipMigration) {
     }
 }
 $progressStep++
-if (-not $SkipNativeBuild) {
+if (-not $SkipBuild -and -not $SkipNativeBuild) {
     $nativeInputs = @(
         'addons\qqt_native\SConstruct',
         'addons\qqt_native\src',
@@ -111,7 +112,7 @@ Invoke-QQTIncrementalStep `
     -Action { & (Join-Path $root 'scripts\content\generate_room_manifest.ps1') -ProjectPath $root -GodotExecutable $GodotExecutable } | Out-Null
 $progressStep++
 
-if ($Profile -eq 'dev' -and -not $SkipBattleDSImageBuild) {
+if ($Profile -eq 'dev' -and -not $SkipBuild -and -not $SkipBattleDSImageBuild) {
     Invoke-QQTIncrementalStep `
         -Root $root `
         -CacheRoot $cacheRoot `
@@ -201,7 +202,7 @@ if (Test-Path -LiteralPath $serviceImageStampPath -PathType Leaf) {
 }
 $shouldBuildServiceImages = $ForceBuild -or ($previousServiceImageFingerprint -ne $serviceImageFingerprint)
 $composeArgs = @('compose', '-f', $composeFile, 'up', '-d')
-if ($shouldBuildServiceImages) {
+if ($shouldBuildServiceImages -and -not $SkipBuild) {
     Write-Host "[run-services] docker compose service images changed; using --build"
     $composeArgs += '--build'
 } else {
@@ -212,7 +213,7 @@ Invoke-QQTProgressStep -Activity $progressActivity -Step $progressStep -Total $p
     docker @composeArgs
 }
 if ($LASTEXITCODE -ne 0) {
-    if (-not $shouldBuildServiceImages) {
+    if (-not $shouldBuildServiceImages -and -not $SkipBuild) {
         Write-Host "[run-services] docker compose start failed without build; retrying with --build"
         Invoke-QQTProgressStep -Activity $progressActivity -Step $progressStep -Total $progressTotal -Name 'docker compose up --build retry' -Action {
             docker compose -f $composeFile up -d --build

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_dupk7"]
+
+[resource]
+script = ExtResource("1_dupk7")
+element_id = 100024
+display_name = "common_elem24"
+theme_id = 1
+theme_name = "common"
+elem_number = 24
+logic_type = 2
+source_dir = "common"
+stand_file = "elem24_stand.gif"
+content_hash = "23ce3a94cc75eaa5a86cd786533629b11f373b42897e289a80a886a78009915f"

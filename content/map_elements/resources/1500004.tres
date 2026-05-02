@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_cobih"]
+
+[resource]
+script = ExtResource("1_cobih")
+element_id = 1500004
+display_name = "snow_elem4"
+theme_id = 15
+theme_name = "snow"
+elem_number = 4
+logic_type = 4
+source_dir = "snow"
+stand_file = "elem4_stand.png"
+trigger_file = "elem4_trigger.gif"
+content_hash = "4226ec35d4709ce6f0604af3777491c9cb2614a5412488f4c7c09567c2a48a70"

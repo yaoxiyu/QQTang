@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_omleo"]
+
+[resource]
+script = ExtResource("1_omleo")
+element_id = 1900021
+display_name = "water_elem21"
+theme_id = 19
+theme_name = "water"
+elem_number = 21
+logic_type = 4
+source_dir = "water"
+stand_file = "elem21_stand.png"
+trigger_file = "elem21_trigger.gif"
+content_hash = "ffae4207bf3e1436ba808bc92b3c9863840d8c1bf6dda5bedd4d8425208a8228"

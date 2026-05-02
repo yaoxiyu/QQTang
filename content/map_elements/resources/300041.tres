@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_rvqor"]
+
+[resource]
+script = ExtResource("1_rvqor")
+element_id = 300041
+display_name = "box_elem41"
+theme_id = 3
+theme_name = "box"
+elem_number = 41
+logic_type = 1
+source_dir = "box"
+stand_file = "elem41_stand.png"
+content_hash = "b9ced24f8aac954f64faf73c883488a40ac4c8d7f26a8c72b34027ba4a1359d2"

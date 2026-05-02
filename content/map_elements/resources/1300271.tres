@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_xenfx"]
+
+[resource]
+script = ExtResource("1_xenfx")
+element_id = 1300271
+display_name = "pve_elem271"
+theme_id = 13
+theme_name = "pve"
+elem_number = 271
+logic_type = 1
+source_dir = "pve"
+stand_file = "elem271_stand.png"
+content_hash = "e63a6eb170316bf9cd9d847748d0ebb8364ce7a998ed59e7ae4244d2cb1cac82"

@@ -23,7 +23,7 @@ ui.shop.card.offer.normal,texture,res://assets/ui/front/shop/card_offer_normal.p
 ui.shop.button.buy.normal,texture,res://assets/ui/front/shop/button_buy_normal.png,,,220,72,true,stretch,shop,true
 ui.inventory.bg.main,texture,res://assets/ui/front/inventory/bg_main.png,,,1752,1191,false,cover,inventory,true
 ui.inventory.card.asset.normal,texture,res://assets/ui/front/inventory/card_asset_normal.png,,,160,190,true,stretch,inventory,true
-ui.room.bg.main,texture,res://assets/ui/front/room/bg_main.png,,,1740,1176,false,cover,room,true
+ui.room.bg.main,texture,res://assets/ui/front/room/bg_main.png,,,1740,1176,false,cover,room,false
 ui.loading.bg.main,texture,res://assets/ui/front/loading/bg_main.png,,,563,495,false,cover,loading,true
 ui.loading.progress.frame,texture,res://assets/ui/front/loading/progress_frame.png,,,420,38,true,stretch,loading,true
 ui.loading.progress.fill,texture,res://assets/ui/front/loading/progress_fill.png,,,412,28,true,stretch,loading,true

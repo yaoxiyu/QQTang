@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_oetlv"]
+
+[resource]
+script = ExtResource("1_oetlv")
+element_id = 1300006
+display_name = "pve_elem6"
+theme_id = 13
+theme_name = "pve"
+elem_number = 6
+logic_type = 1
+source_dir = "pve"
+stand_file = "elem6_stand.png"
+content_hash = "becc8fb774858ab15601f8751e785fb54b743e9fc6c123f7eb8dcc6fc829401e"

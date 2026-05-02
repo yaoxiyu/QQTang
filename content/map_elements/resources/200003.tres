@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_c7cok"]
+
+[resource]
+script = ExtResource("1_c7cok")
+element_id = 200003
+display_name = "bomb_elem3"
+theme_id = 2
+theme_name = "bomb"
+elem_number = 3
+logic_type = 1
+source_dir = "bomb"
+stand_file = "elem3_stand.png"
+content_hash = "7ced1f8db61cc0ffc54ddd1bd2d17bfe454b59844d8ffa719de9f0d9b63ec5a4"

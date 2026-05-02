@@ -6,17 +6,6 @@ const TOOLTIP_TAG := "front.room.tooltip"
 const FORMAL_RANDOM_CHARACTER_ID := "12301"
 const TOOLTIP_ILL_W := 256.0
 const TOOLTIP_ILL_H := 271.0
-const TOOLTIP_PANEL_W := 153.0
-const TOOLTIP_PANEL_H := 83.0
-const TOOLTIP_STAT_ICON_SIZE := 15.0
-const TOOLTIP_NAME_X := 8.0
-const TOOLTIP_NAME_Y := 5.0
-const TOOLTIP_STAT_X := 8.0
-const TOOLTIP_BOMB_Y := 35.0
-const TOOLTIP_POWER_Y := 52.0
-const TOOLTIP_SPEED_Y := 69.0
-const TOOLTIP_STAT_DIM_ALPHA := 0.35
-const TOOLTIP_MAX_ICONS := 9
 
 var _formal_character_grid_signature: String = ""
 var _formal_character_entries_cache_signature: String = ""
@@ -329,7 +318,7 @@ func _show_character_tooltip(character_id: String) -> void:
 			ill_rect.texture = ill_texture
 			ill_rect.size = ill_texture.get_size()
 			ill_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			ill_rect.set_position(Vector2(0, 0))
+			ill_rect.set_position(RoomTooltipAssets.illustration_offset)
 			_character_tooltip.add_child(ill_rect)
 			child_count += 1
 
@@ -339,7 +328,7 @@ func _show_character_tooltip(character_id: String) -> void:
 		panel_rect.texture = panel_texture
 		panel_rect.size = panel_texture.get_size()
 		panel_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel_rect.set_position(Vector2(0, TOOLTIP_ILL_H - TOOLTIP_PANEL_H))
+		panel_rect.set_position(RoomTooltipAssets.panel_offset)
 		_character_tooltip.add_child(panel_rect)
 		child_count += 1
 
@@ -351,7 +340,7 @@ func _show_character_tooltip(character_id: String) -> void:
 			name_rect.texture = name_texture
 			name_rect.size = name_texture.get_size()
 			name_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			name_rect.set_position(Vector2(TOOLTIP_NAME_X, TOOLTIP_ILL_H - TOOLTIP_PANEL_H + TOOLTIP_NAME_Y))
+			name_rect.set_position(RoomTooltipAssets.panel_offset + RoomTooltipAssets.name_offset)
 			_character_tooltip.add_child(name_rect)
 			child_count += 1
 
@@ -361,14 +350,14 @@ func _show_character_tooltip(character_id: String) -> void:
 	var max_power := int(metadata.get("max_bubble_power", 5))
 	var initial_speed := int(metadata.get("initial_move_speed", 1))
 	var max_speed := int(metadata.get("max_move_speed", 9))
-	_add_tooltip_stat_icons(RoomTooltipAssets.bomb_icon_path, initial_bomb, max_bomb, TOOLTIP_BOMB_Y)
-	_add_tooltip_stat_icons(RoomTooltipAssets.power_icon_path, initial_power, max_power, TOOLTIP_POWER_Y)
-	_add_tooltip_stat_icons(RoomTooltipAssets.speed_icon_path, initial_speed, max_speed, TOOLTIP_SPEED_Y)
+	_add_tooltip_stat_icons(RoomTooltipAssets.bomb_icon_path, initial_bomb, max_bomb, 0)
+	_add_tooltip_stat_icons(RoomTooltipAssets.power_icon_path, initial_power, max_power, 1)
+	_add_tooltip_stat_icons(RoomTooltipAssets.speed_icon_path, initial_speed, max_speed, 2)
 
 	if _formal_character_grid != null and room_root != null:
 		var grid_pos := _formal_character_grid.global_position
 		var root_pos := room_root.global_position
-		_character_tooltip.set_position(Vector2(grid_pos.x - root_pos.x, grid_pos.y - root_pos.y - TOOLTIP_ILL_H - 8.0))
+		_character_tooltip.set_position(Vector2(grid_pos.x - root_pos.x, grid_pos.y - root_pos.y) + RoomTooltipAssets.tooltip_anchor_offset)
 
 	_character_tooltip.visible = true
 	LogFrontScript.debug("[tooltip] show char=%s children=%d pos=%s" % [character_id, child_count, _character_tooltip.position], "", 0, TOOLTIP_TAG)
@@ -380,30 +369,30 @@ func _hide_character_tooltip() -> void:
 		_character_tooltip.visible = false
 
 
-func _add_tooltip_stat_icons(icon_path: String, initial: int, max_val: int, base_y: float) -> void:
+func _add_tooltip_stat_icons(icon_path: String, initial: int, max_val: int, row_index: int) -> void:
 	if _character_tooltip == null:
 		return
 	var filled_texture := _load_formal_character_icon(icon_path)
 	if filled_texture == null:
 		return
-	var max_icons := mini(max_val, TOOLTIP_MAX_ICONS)
+	var max_icons := mini(max_val, RoomTooltipAssets.max_stat_icons)
 	var filled_count := clampi(initial, 0, max_icons)
 	var dim_count := max_icons - filled_count
-	var panel_top := TOOLTIP_ILL_H - TOOLTIP_PANEL_H
+	var row_origin := RoomTooltipAssets.panel_offset + RoomTooltipAssets.stat_offset + Vector2(0, float(row_index) * RoomTooltipAssets.stat_row_gap)
 	for i in range(filled_count):
 		var icon := TextureRect.new()
 		icon.texture = filled_texture
 		icon.size = filled_texture.get_size()
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.set_position(Vector2(TOOLTIP_STAT_X + i * TOOLTIP_STAT_ICON_SIZE, panel_top + base_y))
+		icon.set_position(row_origin + Vector2(float(i) * RoomTooltipAssets.stat_icon_step, 0))
 		_character_tooltip.add_child(icon)
 	for i in range(dim_count):
 		var icon := TextureRect.new()
 		icon.texture = filled_texture
 		icon.size = filled_texture.get_size()
-		icon.modulate = Color(1, 1, 1, TOOLTIP_STAT_DIM_ALPHA)
+		icon.modulate = Color(1, 1, 1, RoomTooltipAssets.stat_dim_alpha)
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.set_position(Vector2(TOOLTIP_STAT_X + (filled_count + i) * TOOLTIP_STAT_ICON_SIZE, panel_top + base_y))
+		icon.set_position(row_origin + Vector2(float(filled_count + i) * RoomTooltipAssets.stat_icon_step, 0))
 		_character_tooltip.add_child(icon)
 
 
@@ -453,31 +442,14 @@ func _refresh_formal_room_properties(snapshot: RoomSnapshot, view_model: Diction
 	var is_match_room := bool(view_model.get("is_match_room", false))
 	var can_edit_room := _can_edit_formal_room_properties(snapshot, view_model)
 	if _formal_choose_mode_button != null:
-		_formal_choose_mode_button.visible = is_custom_room and can_edit_room
+		_formal_choose_mode_button.visible = is_custom_room
 		_formal_choose_mode_button.disabled = not can_edit_room
 	if _formal_room_property_button != null:
-		_formal_room_property_button.visible = is_custom_room and can_edit_room
+		_formal_room_property_button.visible = is_custom_room
 		_formal_room_property_button.disabled = not can_edit_room
 	if _formal_choose_map_button != null:
-		_formal_choose_map_button.visible = is_custom_room and can_edit_room
+		_formal_choose_map_button.visible = is_custom_room
 		_formal_choose_map_button.disabled = not can_edit_room
-	if _formal_room_name_label != null:
-		_formal_room_name_label.text = "房间: %s" % String(view_model.get("room_display_name", view_model.get("title_text", "")))
-	if _formal_room_mode_label != null:
-		var mode_text := String(view_model.get("selected_mode_display_name", snapshot.mode_id))
-		if is_custom_room:
-			mode_text = _formal_display_mode
-		if is_match_room:
-			mode_text = "%s  %s" % [String(snapshot.queue_type), String(snapshot.match_format_id)]
-		_formal_room_mode_label.text = "模式: %s" % mode_text
-	var map_id := String(view_model.get("selected_map_id", snapshot.selected_map_id))
-	var map_display_name := _resolve_formal_map_display_name(map_id)
-	if _formal_room_map_label != null:
-		_formal_room_map_label.text = "地图: %s" % map_display_name
-	if _formal_room_member_label != null:
-		_formal_room_member_label.text = "人数: %d / %d" % [snapshot.members.size(), _resolve_formal_open_slot_count(snapshot, view_model)]
-	if _formal_map_preview_label != null:
-		_formal_map_preview_label.text = map_display_name
 
 
 func _can_edit_formal_room_properties(snapshot: RoomSnapshot = null, view_model: Dictionary = {}) -> bool:

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_tuljs"]
+
+[resource]
+script = ExtResource("1_tuljs")
+element_id = 300119
+display_name = "box_elem119"
+theme_id = 3
+theme_name = "box"
+elem_number = 119
+logic_type = 1
+source_dir = "box"
+stand_file = "elem119_stand.png"
+content_hash = "4b951b440fe51e7c75c696341342420344f8affccd606984a3eb8255e1b65c12"

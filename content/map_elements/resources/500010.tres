@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_1jlfd"]
+
+[resource]
+script = ExtResource("1_1jlfd")
+element_id = 500010
+display_name = "desert_elem10"
+theme_id = 5
+theme_name = "desert"
+elem_number = 10
+logic_type = 4
+source_dir = "desert"
+stand_file = "elem10_stand.png"
+trigger_file = "elem10_trigger.gif"
+content_hash = "9423a3c7cb9515e903b0a1a29f123f316339eaf465339e29902cb1a529c97319"

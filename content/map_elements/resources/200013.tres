@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_mpxb1"]
+
+[resource]
+script = ExtResource("1_mpxb1")
+element_id = 200013
+display_name = "bomb_elem13"
+theme_id = 2
+theme_name = "bomb"
+elem_number = 13
+logic_type = 1
+source_dir = "bomb"
+stand_file = "elem13_stand.png"
+content_hash = "4db9636346cbe913ff185ad2f6f49939f7379f631572df36dbfefb1b12e83401"

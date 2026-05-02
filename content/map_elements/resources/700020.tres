@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_gq26f"]
+
+[resource]
+script = ExtResource("1_gq26f")
+element_id = 700020
+display_name = "field_elem20"
+theme_id = 7
+theme_name = "field"
+elem_number = 20
+logic_type = 1
+source_dir = "field"
+stand_file = "elem20_stand.png"
+content_hash = "df07cc516d3fa8d26a15b12e2612a0d8e14eee7c55fa085992ee74843681fae8"

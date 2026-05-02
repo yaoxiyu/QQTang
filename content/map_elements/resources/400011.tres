@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_s7ic5"]
+
+[resource]
+script = ExtResource("1_s7ic5")
+element_id = 400011
+display_name = "bun_elem11"
+theme_id = 4
+theme_name = "bun"
+elem_number = 11
+logic_type = 1
+source_dir = "bun"
+stand_file = "elem11_stand.png"
+content_hash = "9e4fd3f774a2193b96fa8d40576549be13abd93739cada8f161c030b5dfdbd9b"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_cewpr"]
+
+[resource]
+script = ExtResource("1_cewpr")
+element_id = 500136
+display_name = "desert_elem136"
+theme_id = 5
+theme_name = "desert"
+elem_number = 136
+logic_type = 1
+source_dir = "desert"
+stand_file = "elem136_stand.png"
+content_hash = "8481b5e9558ce9a16350e9ddc2c406b2be541b385a06a8eb51e1a76c999e8f79"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_tykwa"]
+
+[resource]
+script = ExtResource("1_tykwa")
+element_id = 1400009
+display_name = "sculpture_elem9"
+theme_id = 14
+theme_name = "sculpture"
+elem_number = 9
+logic_type = 1
+source_dir = "sculpture"
+stand_file = "elem9_stand.png"
+content_hash = "a2413d3ccb743fb85454ad13e1dbb04d40d08b19d786fa6dc060cd3cd21eae73"

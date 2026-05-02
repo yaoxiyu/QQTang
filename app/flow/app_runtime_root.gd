@@ -3,7 +3,7 @@ extends Node
 const ROOT_NODE_NAME: String = "AppRoot"
 const LEGACY_ROOT_NODE_NAME: String = "AppRuntimeRoot"
 const PENDING_RUNTIME_META_KEY: String = "_app_runtime_pending_instance"
-const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
+const ROOM_SCENE_PATH := "res://scenes/front/room/room_formal.tscn"  # old: room_scene.tscn
 const RuntimeLifecycleStateScript = preload("res://app/flow/runtime_lifecycle_state.gd")
 const AppResumeStateStoreScript = preload("res://app/flow/app_resume_state_store.gd")
 const AppNavigationCoordinatorScript = preload("res://app/flow/app_navigation_coordinator.gd")

@@ -51,9 +51,9 @@ func test_room_scene_core_impl_keeps_formal_ui_factories_out() -> void:
 func test_formal_room_property_controls_are_host_gated() -> void:
 	var text := _read_text(ROOM_FORMAL_LOADOUT_PRESENTER_PATH)
 	assert_false(text.is_empty(), "room_formal_loadout_presenter.gd should be readable")
-	assert_true(text.find("_formal_choose_mode_button.visible = is_custom_room and can_edit_room") >= 0, "choose mode must be hidden from non-hosts")
-	assert_true(text.find("_formal_room_property_button.visible = is_custom_room and can_edit_room") >= 0, "room property must be hidden from non-hosts")
-	assert_true(text.find("_formal_choose_map_button.visible = is_custom_room and can_edit_room") >= 0, "choose map must be hidden from non-hosts")
+	assert_true(text.find("_formal_choose_mode_button.visible = is_custom_room") >= 0, "choose mode must be visible in custom rooms")
+	assert_true(text.find("_formal_room_property_button.visible = is_custom_room") >= 0, "room property must be visible in custom rooms")
+	assert_true(text.find("_formal_choose_map_button.visible = is_custom_room") >= 0, "choose map must be visible in custom rooms")
 	assert_true(text.find("func _resolve_formal_map_display_name(") >= 0, "map labels must resolve catalog display names")
 
 

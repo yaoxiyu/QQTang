@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_islie"]
+
+[resource]
+script = ExtResource("1_islie")
+element_id = 1900027
+display_name = "water_elem27"
+theme_id = 19
+theme_name = "water"
+elem_number = 27
+logic_type = 1
+source_dir = "water"
+stand_file = "elem27_stand.png"
+content_hash = "bd55765ed3e4b78ec25fe3917de9ff5caf2a12761aa506826422bd89c8232bbf"

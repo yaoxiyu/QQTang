@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_cbbis"]
+
+[resource]
+script = ExtResource("1_cbbis")
+element_id = 600222
+display_name = "exploration_elem222"
+theme_id = 6
+theme_name = "exploration"
+elem_number = 222
+logic_type = 1
+source_dir = "exploration"
+stand_file = "elem222_stand.png"
+content_hash = "f4e02d0eada7583955d1c41c1c2c4ef58d5424e73d25eb7bf7f2b02b576efa0b"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_bdlry"]
+
+[resource]
+script = ExtResource("1_bdlry")
+element_id = 1700015
+display_name = "town_elem15"
+theme_id = 17
+theme_name = "town"
+elem_number = 15
+logic_type = 3
+source_dir = "town"
+stand_file = "elem15_stand.png"
+die_file = "elem15_die.gif"
+content_hash = "ca0278155107f3f4b09910cbeda1f98b265130670257602cf0d2a7ca9ad0a31a"

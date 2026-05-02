@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_jetqe"]
+
+[resource]
+script = ExtResource("1_jetqe")
+element_id = 500129
+display_name = "desert_elem129"
+theme_id = 5
+theme_name = "desert"
+elem_number = 129
+logic_type = 1
+source_dir = "desert"
+stand_file = "elem129_stand.png"
+content_hash = "fe9795ba72dd34d1f35dcaf752cbb57e76cd189785367335e54dff4d53f5737e"

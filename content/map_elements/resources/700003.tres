@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_8xn67"]
+
+[resource]
+script = ExtResource("1_8xn67")
+element_id = 700003
+display_name = "field_elem3"
+theme_id = 7
+theme_name = "field"
+elem_number = 3
+logic_type = 5
+source_dir = "field"
+stand_file = "elem3_stand.png"
+die_file = "elem3_die.gif"
+trigger_file = "elem3_trigger.gif"
+content_hash = "13dee6680ac6be1eb01ee667855c130923bc58afb5a30b5d47cdb3822cc0c60f"

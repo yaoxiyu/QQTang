@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_sebfp"]
+
+[resource]
+script = ExtResource("1_sebfp")
+element_id = 500008
+display_name = "desert_elem8"
+theme_id = 5
+theme_name = "desert"
+elem_number = 8
+logic_type = 4
+source_dir = "desert"
+stand_file = "elem8_stand.png"
+trigger_file = "elem8_trigger.gif"
+content_hash = "bfcd453c3c1c8bf4ab6ae69ec1cad89e4815e36aed4bfe208555ed01614da47c"

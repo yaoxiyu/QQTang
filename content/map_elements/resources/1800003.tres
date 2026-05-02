@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_c8y4w"]
+
+[resource]
+script = ExtResource("1_c8y4w")
+element_id = 1800003
+display_name = "treasure_elem3"
+theme_id = 18
+theme_name = "treasure"
+elem_number = 3
+logic_type = 1
+source_dir = "treasure"
+stand_file = "elem3_stand.png"
+content_hash = "e6f016395b7ddb4da2800a143ffe12138fd599c1a9fb0f18577d773554c5f5b5"

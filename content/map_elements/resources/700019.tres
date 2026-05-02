@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_daci2"]
+
+[resource]
+script = ExtResource("1_daci2")
+element_id = 700019
+display_name = "field_elem19"
+theme_id = 7
+theme_name = "field"
+elem_number = 19
+logic_type = 1
+source_dir = "field"
+stand_file = "elem19_stand.png"
+content_hash = "eec5279896501606cda2505372c243a316e9bc06aa8f6e1b6b8000337455ccbb"

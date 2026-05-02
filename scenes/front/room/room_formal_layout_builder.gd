@@ -5,6 +5,7 @@ func _apply_formal_room_layout() -> void:
 	_build_reference_room_layout()
 	if room_scroll != null:
 		room_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		room_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	if main_layout != null:
 		main_layout.custom_minimum_size = Vector2(860, 0)
 		main_layout.add_theme_constant_override("separation", 14)
@@ -17,8 +18,10 @@ func _apply_formal_room_layout() -> void:
 		room_meta_label.add_theme_font_size_override("font_size", 16)
 	for card in [summary_card, local_loadout_card, room_selection_card, member_card, preview_card]:
 		_apply_room_card_style(card)
-	for button in [back_to_lobby_button, leave_room_button, ready_button, start_button, enter_queue_button, cancel_queue_button, add_opponent_button, copy_invite_code_button]:
+	for button in [back_to_lobby_button, leave_room_button, enter_queue_button, cancel_queue_button, add_opponent_button, copy_invite_code_button]:
 		_apply_room_button_style(button)
+	_apply_room_action_button_style(ready_button, "ready")
+	_apply_room_action_button_style(start_button, "start")
 	for input in [room_id_value_label, player_name_input, invite_code_value_label]:
 		_apply_room_input_style(input)
 	for selector in [team_selector, character_selector, character_skin_selector, bubble_selector, bubble_skin_selector, map_selector, game_mode_selector, match_format_selector]:
@@ -69,21 +72,21 @@ func _build_reference_room_layout() -> void:
 
 	var slots_panel := PanelContainer.new()
 	slots_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	slots_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.50, 0.60, 0.61, 0.92), Color(0.11, 0.62, 0.78, 1.0), 8))
+	slots_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.08, 0.10, 0.12, 0.30), Color(0.18, 0.22, 0.28, 0.22), 6))
 	slots_panel.set_meta("ui_asset_id", "ui.room.panel.player_slots")
 	left_panel.add_child(slots_panel)
 	_formal_slot_grid = GridContainer.new()
 	_formal_slot_grid.columns = 4
+	_formal_slot_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_formal_slot_grid.custom_minimum_size = Vector2(0, 292)
 	_formal_slot_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_formal_slot_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_formal_slot_grid.add_theme_constant_override("h_separation", 12)
 	_formal_slot_grid.add_theme_constant_override("v_separation", 12)
 	slots_panel.add_child(_formal_slot_grid)
 
 	var chat_panel := PanelContainer.new()
 	chat_panel.custom_minimum_size = Vector2(0, 118)
-	chat_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.08, 0.11, 0.13, 0.96), Color(0.12, 0.58, 0.82, 1.0), 8))
+	chat_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.08, 0.11, 0.13, 0.35), Color(0.12, 0.58, 0.82, 0.65), 8))
 	chat_panel.set_meta("ui_asset_id", "ui.room.panel.chat")
 	left_panel.add_child(chat_panel)
 	var chat_vbox := VBoxContainer.new()
@@ -102,40 +105,31 @@ func _build_reference_room_layout() -> void:
 	right_panel.add_theme_constant_override("separation", 6)
 	body.add_child(right_panel)
 
-	var property_panel := PanelContainer.new()
-	property_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.60, 0.88, 0.92, 0.96), Color(0.11, 0.62, 0.78, 1.0), 8))
-	property_panel.set_meta("ui_asset_id", "ui.room.panel.properties")
-	right_panel.add_child(property_panel)
+	var property_outer := HBoxContainer.new()
+	property_outer.add_theme_constant_override("separation", 8)
+	right_panel.add_child(property_outer)
 	var property_vbox := VBoxContainer.new()
 	property_vbox.add_theme_constant_override("separation", 5)
-	property_panel.add_child(property_vbox)
-	var property_actions := HBoxContainer.new()
-	property_actions.add_theme_constant_override("separation", 8)
-	property_vbox.add_child(property_actions)
+	property_outer.add_child(property_vbox)
 	_formal_choose_mode_button = _create_formal_room_button("选择模式", _on_formal_choose_mode_pressed)
-	property_actions.add_child(_formal_choose_mode_button)
+	_apply_room_texture_button_style(_formal_choose_mode_button, ROOM_ASSETS.btn_sel_mode_normal_path, ROOM_ASSETS.btn_sel_mode_hover_path, ROOM_ASSETS.btn_sel_mode_pressed_path, ROOM_ASSETS.btn_sel_mode_disabled_path)
+	property_vbox.add_child(_formal_choose_mode_button)
 	_formal_room_property_button = _create_formal_room_button("房间属性", _on_formal_room_property_pressed)
-	property_actions.add_child(_formal_room_property_button)
+	_apply_room_texture_button_style(_formal_room_property_button, ROOM_ASSETS.btn_property_normal_path, ROOM_ASSETS.btn_property_hover_path, ROOM_ASSETS.btn_property_pressed_path, ROOM_ASSETS.btn_property_disabled_path)
+	property_vbox.add_child(_formal_room_property_button)
 	_formal_choose_map_button = _create_formal_room_button("选择地图", _on_formal_choose_map_pressed)
+	_apply_room_texture_button_style(_formal_choose_map_button, ROOM_ASSETS.btn_sel_map_normal_path, ROOM_ASSETS.btn_sel_map_hover_path, ROOM_ASSETS.btn_sel_map_pressed_path, ROOM_ASSETS.btn_sel_map_disabled_path)
 	property_vbox.add_child(_formal_choose_map_button)
-	_formal_map_preview_label = Label.new()
-	_formal_map_preview_label.text = "随机地图"
-	_formal_map_preview_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_formal_map_preview_label.custom_minimum_size = Vector2(0, 48)
-	_formal_map_preview_label.add_theme_font_size_override("font_size", 18)
-	property_vbox.add_child(_formal_map_preview_label)
-	_formal_room_name_label = Label.new()
-	property_vbox.add_child(_formal_room_name_label)
-	_formal_room_mode_label = Label.new()
-	property_vbox.add_child(_formal_room_mode_label)
-	_formal_room_map_label = Label.new()
-	property_vbox.add_child(_formal_room_map_label)
-	_formal_room_member_label = Label.new()
-	property_vbox.add_child(_formal_room_member_label)
+	var map_preview := TextureRect.new()
+	map_preview.name = "MapPreview"
+	map_preview.custom_minimum_size = Vector2(95, 95)
+	map_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	map_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	property_outer.add_child(map_preview)
 
 	var loadout_panel := PanelContainer.new()
 	loadout_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	loadout_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.60, 0.88, 0.92, 0.96), Color(0.11, 0.62, 0.78, 1.0), 8))
+	loadout_panel.add_theme_stylebox_override("panel", _make_room_style(Color(0.08, 0.10, 0.12, 0.30), Color(0.18, 0.22, 0.28, 0.22), 6))
 	loadout_panel.set_meta("ui_asset_id", "ui.room.panel.loadout_preview")
 	right_panel.add_child(loadout_panel)
 	var loadout_vbox := VBoxContainer.new()
@@ -162,21 +156,17 @@ func _build_reference_room_layout() -> void:
 	_formal_character_grid.custom_minimum_size = Vector2(0, 160)
 	_formal_character_grid.add_theme_constant_override("h_separation", 6)
 	_formal_character_grid.add_theme_constant_override("v_separation", 6)
-	loadout_vbox.add_child(_formal_character_grid)
-	var character_pager := HBoxContainer.new()
-	character_pager.add_theme_constant_override("separation", 6)
-	loadout_vbox.add_child(character_pager)
+	var character_row := HBoxContainer.new()
+	character_row.add_theme_constant_override("separation", 4)
+	loadout_vbox.add_child(character_row)
+	_formal_character_prev_button = _create_role_nav_button(true, Callable(self, "_change_formal_character_page").bind(-1))
+	character_row.add_child(_formal_character_prev_button)
+	character_row.add_child(_formal_character_grid)
+	_formal_character_next_button = _create_role_nav_button(false, Callable(self, "_change_formal_character_page").bind(1))
+	character_row.add_child(_formal_character_next_button)
 	_formal_character_page_label = Label.new()
-	_formal_character_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	character_pager.add_child(_formal_character_page_label)
-	_formal_character_prev_button = _create_formal_room_button("<", Callable(self, "_change_formal_character_page").bind(-1))
-	_formal_character_prev_button.custom_minimum_size = Vector2(42, 28)
-	_apply_room_small_button_style(_formal_character_prev_button)
-	character_pager.add_child(_formal_character_prev_button)
-	_formal_character_next_button = _create_formal_room_button(">", Callable(self, "_change_formal_character_page").bind(1))
-	_formal_character_next_button.custom_minimum_size = Vector2(42, 28)
-	_apply_room_small_button_style(_formal_character_next_button)
-	character_pager.add_child(_formal_character_next_button)
+	_formal_character_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	loadout_vbox.add_child(_formal_character_page_label)
 	var team_title := Label.new()
 	team_title.text = "队伍选择"
 	loadout_vbox.add_child(team_title)

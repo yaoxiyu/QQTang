@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ycp2c"]
+
+[resource]
+script = ExtResource("1_ycp2c")
+element_id = 800073
+display_name = "machine_elem73"
+theme_id = 8
+theme_name = "machine"
+elem_number = 73
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem73_stand.png"
+content_hash = "5ab0a38de4bce0dc85c24fd38c97291e2b6663b697888292560dd7246e7478c4"

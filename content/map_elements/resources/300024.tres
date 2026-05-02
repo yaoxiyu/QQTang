@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_utxuo"]
+
+[resource]
+script = ExtResource("1_utxuo")
+element_id = 300024
+display_name = "box_elem24"
+theme_id = 3
+theme_name = "box"
+elem_number = 24
+logic_type = 1
+source_dir = "box"
+stand_file = "elem24_stand.png"
+content_hash = "ae5cce836b547a951d3f443c2c5cd559f189553d2bf2ce906b9e939dd09a3b3d"

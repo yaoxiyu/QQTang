@@ -1,9 +1,9 @@
 palette_id,team_color_id,team_id,label,primary_hex,secondary_hex,shadow_hex,highlight_hex,ui_color_hex,content_hash
-team_palette_default_8,team_01,1,A,#C94124,#E36B4E,#6B1F12,#FFD7CC,#C94124,team_palette_default_8_team_01_v2
-team_palette_default_8,team_02,2,B,#2E42C8,#5F72EA,#14206B,#D6DDFF,#2E42C8,team_palette_default_8_team_02_v2
-team_palette_default_8,team_03,3,C,#EFE84A,#FFF47B,#706B12,#FFFBD2,#EFE84A,team_palette_default_8_team_03_v2
-team_palette_default_8,team_04,4,D,#4C8E27,#75B94C,#224A12,#DDF5CC,#4C8E27,team_palette_default_8_team_04_v2
-team_palette_default_8,team_05,5,E,#C63B83,#E765A6,#681B43,#FFD7EB,#C63B83,team_palette_default_8_team_05_v2
-team_palette_default_8,team_06,6,F,#E2A43A,#F3C064,#704B12,#FFEBC8,#E2A43A,team_palette_default_8_team_06_v2
-team_palette_default_8,team_07,7,G,#9D27B9,#C456DA,#501063,#F0CCFF,#9D27B9,team_palette_default_8_team_07_v2
-team_palette_default_8,team_08,8,H,#555555,#777777,#262626,#E0E0E0,#555555,team_palette_default_8_team_08_v2
+team_palette_default_8,team_01,1,A,#D62A16,#E2695B,#601209,#F6D4D0,#D62A16,team_palette_default_8_team_01_v3
+team_palette_default_8,team_02,2,B,#003496,#4C70B5,#001743,#CCD6EA,#003496,team_palette_default_8_team_02_v3
+team_palette_default_8,team_03,3,C,#C7B730,#D7CC6E,#595215,#F3F0D5,#C7B730,team_palette_default_8_team_03_v3
+team_palette_default_8,team_04,4,D,#2C9107,#6BB251,#134103,#D4E9CD,#2C9107,team_palette_default_8_team_04_v3
+team_palette_default_8,team_05,5,E,#CE1276,#DC599F,#5C0835,#F5CFE3,#CE1276,team_palette_default_8_team_05_v3
+team_palette_default_8,team_06,6,F,#DE8A16,#E7AD5B,#633E09,#F8E7D0,#DE8A16,team_palette_default_8_team_06_v3
+team_palette_default_8,team_07,7,G,#9E06AE,#BB50C6,#47024E,#EBCDEE,#9E06AE,team_palette_default_8_team_07_v3
+team_palette_default_8,team_08,8,H,#464646,#7D7D7D,#1F1F1F,#DADADA,#464646,team_palette_default_8_team_08_v3

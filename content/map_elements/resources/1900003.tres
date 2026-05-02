@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_dgql1"]
+
+[resource]
+script = ExtResource("1_dgql1")
+element_id = 1900003
+display_name = "water_elem3"
+theme_id = 19
+theme_name = "water"
+elem_number = 3
+logic_type = 3
+source_dir = "water"
+stand_file = "elem3_stand.png"
+die_file = "elem3_die.gif"
+content_hash = "b72ead1a085caf9589a2b2cc65051ab59b5d699fe740261f604cdc21a92a877f"

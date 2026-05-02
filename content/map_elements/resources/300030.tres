@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_cnpki"]
+
+[resource]
+script = ExtResource("1_cnpki")
+element_id = 300030
+display_name = "box_elem30"
+theme_id = 3
+theme_name = "box"
+elem_number = 30
+logic_type = 1
+source_dir = "box"
+stand_file = "elem30_stand.png"
+content_hash = "a82dfc75351292192c87c43ba053505c7b6789170a6d2240c35fab7da22b1276"

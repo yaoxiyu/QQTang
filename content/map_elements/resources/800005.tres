@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ojnqc"]
+
+[resource]
+script = ExtResource("1_ojnqc")
+element_id = 800005
+display_name = "machine_elem5"
+theme_id = 8
+theme_name = "machine"
+elem_number = 5
+logic_type = 1
+source_dir = "machine"
+stand_file = "elem5_stand.png"
+content_hash = "0a9b91f224ab8e40bce1b1a552479bd8f5543b5d0755048b0be7c903c9609d47"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_nflgo"]
+
+[resource]
+script = ExtResource("1_nflgo")
+element_id = 100137
+display_name = "common_elem137"
+theme_id = 1
+theme_name = "common"
+elem_number = 137
+logic_type = 2
+source_dir = "common"
+stand_file = "elem137_stand.gif"
+content_hash = "3858a10d3f08453af7fedf284822b786d35d50a33f5b864e096a2d6f7c4f5367"

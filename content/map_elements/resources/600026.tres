@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_kloc4"]
+
+[resource]
+script = ExtResource("1_kloc4")
+element_id = 600026
+display_name = "exploration_elem26"
+theme_id = 6
+theme_name = "exploration"
+elem_number = 26
+logic_type = 1
+source_dir = "exploration"
+stand_file = "elem26_stand.png"
+content_hash = "dd6f356620a2a5f66146a16e58afb3207887ea4d64676c6db8015974a76956ad"

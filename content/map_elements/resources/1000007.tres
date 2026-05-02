@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_mamkv"]
+
+[resource]
+script = ExtResource("1_mamkv")
+element_id = 1000007
+display_name = "mine_elem7"
+theme_id = 10
+theme_name = "mine"
+elem_number = 7
+logic_type = 1
+source_dir = "mine"
+stand_file = "elem7_stand.png"
+content_hash = "daa2a05654e296b5edc973623cb096687a1728499dd4c7ec23361cdf6026e57e"
