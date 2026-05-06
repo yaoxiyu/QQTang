@@ -15,6 +15,7 @@ var _dedicated_first_full_authority_received: bool = false
 var _logged_waiting_for_match_start: bool = false
 var _logged_waiting_for_authority_opening: bool = false
 var _logged_opening_input_freeze: bool = false
+var _dedicated_match_loading_ready_key: String = ""
 var _dedicated_opening_ack_sent: bool = false
 var _dedicated_client_connect_retry_delays_sec: Array[float] = DEDICATED_CLIENT_CONNECT_RETRY_DELAYS_SEC.duplicate()
 var _dedicated_client_connect_retry_attempt: int = 0
@@ -87,6 +88,7 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 	_logged_waiting_for_match_start = false
 	_logged_waiting_for_authority_opening = false
 	_logged_opening_input_freeze = false
+	_dedicated_match_loading_ready_key = ""
 	_dedicated_opening_ack_sent = false
 	_adapter._bootstrap_local_peer_id = int(options.get("local_peer_id", int(_adapter.start_config.local_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
 	var controlled_peer_id := int(options.get("controlled_peer_id", int(_adapter.start_config.controlled_peer_id if _adapter.start_config != null else _adapter._bootstrap_local_peer_id)))
@@ -146,22 +148,11 @@ func start_client_runtime(config, options: Dictionary = {}) -> bool:
 			_adapter.transport.get_local_peer_id() if _adapter.transport.has_method("get_local_peer_id") else 0,
 			str(_adapter.transport.get_remote_peer_ids() if _adapter.transport.has_method("get_remote_peer_ids") else []),
 		])
-	if _adapter.transport != null and _adapter.transport.is_transport_connected() \
-			and String(_adapter.start_config.session_mode) == "network_client" \
-			and String(_adapter.start_config.topology) == "dedicated_server" \
-			and not String(_adapter.start_config.match_id).is_empty() \
-			and int(_adapter.start_config.server_match_revision) > 0:
-		_adapter.transport.send_to_peer(1, {
-			"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
-			"match_id": String(_adapter.start_config.match_id),
-			"revision": int(_adapter.start_config.server_match_revision),
-			"sender_peer_id": _adapter._bootstrap_local_peer_id,
-		})
-		_adapter.network_log_event.emit("client_runtime_match_loading_ready_sent match_id=%s revision=%d sender_peer=%d" % [
-			String(_adapter.start_config.match_id),
-			int(_adapter.start_config.server_match_revision),
-			_adapter._bootstrap_local_peer_id,
-		])
+	_send_dedicated_match_loading_ready_if_possible(
+		String(_adapter.start_config.match_id),
+		int(_adapter.start_config.server_match_revision),
+		"client_runtime_start"
+	)
 	_inject_pending_resume_snapshot()
 	_adapter.network_log_event.emit("client_runtime_start_ok battle_id=%s match_id=%s transport_connected=%s waiting_dedicated_opening=%s" % [
 		String(_adapter.start_config.battle_id),
@@ -615,6 +606,21 @@ func on_bootstrap_match_start_message(message) -> void:
 	])
 
 
+func on_bootstrap_match_loading_snapshot_message(message) -> void:
+	if _adapter == null or _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return
+	var match_id := String(message.get("match_id", ""))
+	var revision := int(message.get("revision", 0))
+	var raw_snapshot = message.get("snapshot", {})
+	if raw_snapshot is Dictionary:
+		var snapshot: Dictionary = raw_snapshot
+		if match_id.is_empty():
+			match_id = String(snapshot.get("match_id", ""))
+		if revision <= 0:
+			revision = int(snapshot.get("revision", 0))
+	_send_dedicated_match_loading_ready_if_possible(match_id, revision, "match_loading_snapshot")
+
+
 func on_bootstrap_match_finished_message(message) -> void:
 	if (_adapter.network_mode == _adapter.BattleNetworkMode.CLIENT or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_client_runtime != null:
 		_adapter._bootstrap_client_runtime.ingest_network_message(message)
@@ -711,6 +717,48 @@ func _send_opening_snapshot_ack(snapshot_tick: int) -> void:
 		"peer_id": _adapter._bootstrap_local_peer_id,
 		"tick": snapshot_tick,
 	})
+
+
+func _send_dedicated_match_loading_ready_if_possible(match_id: String, revision: int, source: String) -> bool:
+	if _adapter == null or _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
+		return false
+	if _adapter.start_config == null:
+		return false
+	if String(_adapter.start_config.topology) != "dedicated_server" or String(_adapter.start_config.session_mode) != "network_client":
+		return false
+	if _adapter.transport == null or not _adapter.transport.is_transport_connected():
+		return false
+	if match_id.is_empty():
+		match_id = String(_adapter.start_config.match_id)
+	if revision <= 0:
+		revision = int(_adapter.start_config.server_match_revision)
+	if match_id.is_empty() or revision <= 0:
+		_adapter.network_log_event.emit("client_runtime_match_loading_ready_skip source=%s reason=missing_match_or_revision match_id=%s revision=%d" % [
+			source,
+			match_id,
+			revision,
+		])
+		return false
+	var sender_peer_id: int = int(_adapter._bootstrap_local_peer_id)
+	if sender_peer_id <= 0 and _adapter.transport.has_method("get_local_peer_id"):
+		sender_peer_id = int(_adapter.transport.get_local_peer_id())
+	var ready_key := "%s:%d:%d" % [match_id, revision, sender_peer_id]
+	if _dedicated_match_loading_ready_key == ready_key:
+		return false
+	_dedicated_match_loading_ready_key = ready_key
+	_adapter.transport.send_to_peer(1, {
+		"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+		"match_id": match_id,
+		"revision": revision,
+		"sender_peer_id": sender_peer_id,
+	})
+	_adapter.network_log_event.emit("client_runtime_match_loading_ready_sent source=%s match_id=%s revision=%d sender_peer=%d" % [
+		source,
+		match_id,
+		revision,
+		sender_peer_id,
+	])
+	return true
 
 
 func _is_waiting_for_dedicated_match_start() -> bool:

@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
+    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe'),
     [string]$ProjectPath = '',
     [switch]$ForceBuild
 )
@@ -70,7 +70,7 @@ try {
         -Step 2 `
         -Total 3 `
         -Action {
-            & $GodotExecutable --headless --path $projectRoot --script res://tools/content_pipeline/run_content_pipeline_cli.gd
+            & cmd /c "`"$GodotExecutable`" --headless --path `"$projectRoot`" --script res://tools/content_pipeline/run_content_pipeline_cli.gd"
             if ($LASTEXITCODE -ne 0) {
                 throw "content pipeline failed (godot exit code: $LASTEXITCODE)"
             }

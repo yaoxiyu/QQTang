@@ -12,7 +12,8 @@ extends Resource
 @export var spawn_points: Array[Vector2i] = []
 @export var item_spawn_profile_id: String = "default_items"
 @export var tile_theme_id: String = ""
-@export var foreground_overlay_entries: Array[Dictionary] = []
+@export var floor_tile_entries: Array[Dictionary] = []
+@export var surface_entries: Array[Dictionary] = []
 @export var bound_mode_id: String = ""
 @export var bound_rule_set_id: String = ""
 @export var match_format_id: String = ""
@@ -35,6 +36,8 @@ func to_metadata() -> Dictionary:
 		"height": height,
 		"spawn_points": spawn_points.duplicate(),
 		"item_spawn_profile_id": item_spawn_profile_id,
+		"floor_tile_entries": floor_tile_entries.duplicate(true),
+		"surface_entries": surface_entries.duplicate(true),
 		"bound_mode_id": bound_mode_id,
 		"bound_rule_set_id": bound_rule_set_id,
 		"match_format_id": match_format_id,

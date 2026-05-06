@@ -182,6 +182,7 @@ func map_player_state(player: PlayerState) -> Dictionary:
 		"anim_move_x": int(animation_state.get("move_x", 0)),
 		"anim_move_y": int(animation_state.get("move_y", 0)),
 		"position": position,
+		"cell": Vector2i(player.cell_x, player.cell_y),
 		"offset": Vector2(player.offset_x, player.offset_y),
 		"color": RoomTeamPaletteScript.color_for_team(player.team_id),
 		"dynamic_color_enabled": false,
@@ -245,6 +246,7 @@ func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:
 		"owner_player_id": bubble.owner_player_id,
 		"bubble_style_id": bubble_style_id,
 		"position": _to_world_position(bubble.cell_x, bubble.cell_y),
+		"cell": Vector2i(bubble.cell_x, bubble.cell_y),
 		"color": _bubble_color_for_owner(world, bubble.owner_player_id),
 	}
 
@@ -255,6 +257,7 @@ func map_item_state(item: ItemState) -> Dictionary:
 		"item_type": item.item_type,
 		"cell_size": cell_size,
 		"position": _to_world_position(item.cell_x, item.cell_y),
+		"cell": Vector2i(item.cell_x, item.cell_y),
 		"color": _item_palette.get(item.item_type, Color(1.0, 1.0, 1.0, 1.0)),
 	}
 

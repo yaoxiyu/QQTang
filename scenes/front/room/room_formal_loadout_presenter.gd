@@ -410,6 +410,10 @@ func _build_formal_team_buttons() -> void:
 		_apply_room_team_button_style(button, RoomTeamPaletteScript.color_for_team(team_id))
 		button.pressed.connect(Callable(self, "_select_formal_team").bind(team_id))
 		_formal_team_row.add_child(button)
+	var current_team := _selected_team_id()
+	for child in _formal_team_row.get_children():
+		if child is Button:
+			(child as Button).button_pressed = int(child.get_meta("team_id", 0)) == current_team
 
 
 func _select_formal_character(character_id: String) -> void:
@@ -421,7 +425,6 @@ func _select_formal_character(character_id: String) -> void:
 
 func _select_formal_team(team_id: int) -> void:
 	_select_team_id(team_id)
-	_build_formal_character_buttons()
 	_refresh_formal_loadout_selection(_last_room_view_model)
 	_on_profile_selector_changed()
 

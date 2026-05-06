@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-GODOT_BIN="${GODOT_BIN:-$ROOT_DIR/external/godot_binary/Godot_console.exe}"
+GODOT_BIN="${GODOT_BIN:-$ROOT_DIR/external/godot_binary/Godot.exe}"
 TEMP_SCRIPT="$(mktemp "${TMPDIR:-/tmp}/qqt_check_native_runtime_XXXXXX.gd")"
 trap 'rm -f "$TEMP_SCRIPT"' EXIT
 

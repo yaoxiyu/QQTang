@@ -5,7 +5,7 @@
 # This script is for local development and debugging a single battle_ds.
 
 param(
-    [string]$GodotPath = (Join-Path $PSScriptRoot '..\external\godot_binary\Godot_console.exe'),
+    [string]$GodotPath = (Join-Path $PSScriptRoot '..\external\godot_binary\Godot.exe'),
     [int]$Port = 19010,
     [string]$Host = '127.0.0.1',
     [string]$BattleId = 'battle_local_dev',
@@ -24,10 +24,4 @@ $nativeBuild = Join-Path $projectRoot 'tools\native\build_native.ps1'
 & $nativeBuild -Target template_debug
 & $nativeBuild -Target template_release
 
-& $GodotPath --headless --path "$projectRoot" `
-    "res://scenes/network/dedicated_server_scene.tscn" `
-    -- --qqt-port $Port --qqt-host $Host `
-    --qqt-battle-id $BattleId `
-    --qqt-assignment-id $AssignmentId `
-    --qqt-match-id $MatchId `
-    --qqt-battle-ticket-secret $TicketSecret
+& cmd /c "`"$GodotPath`" --headless --path `"$projectRoot`" `"res://scenes/network/dedicated_server_scene.tscn`" -- --qqt-port $Port --qqt-host $Host --qqt-battle-id $BattleId --qqt-assignment-id $AssignmentId --qqt-match-id $MatchId --qqt-battle-ticket-secret $TicketSecret"

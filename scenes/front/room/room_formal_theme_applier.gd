@@ -151,6 +151,7 @@ func _apply_room_small_button_style(button: Button) -> void:
 	button.add_theme_stylebox_override("normal", _make_room_style(Color(0.24, 0.32, 0.40, 1.0), Color(0.48, 0.64, 0.78, 0.85), 4))
 	button.add_theme_stylebox_override("hover", _make_room_style(Color(0.32, 0.42, 0.52, 1.0), Color(0.64, 0.82, 0.98, 1.0), 4))
 	button.add_theme_stylebox_override("pressed", _make_room_style(Color(0.16, 0.22, 0.28, 1.0), Color(0.56, 0.72, 0.88, 1.0), 4))
+	button.add_theme_stylebox_override("hover_pressed", _make_room_style(Color(0.20, 0.28, 0.36, 1.0), Color(0.60, 0.78, 0.94, 1.0), 4))
 
 
 func _apply_room_team_button_style(button: Button, fill_color: Color) -> void:
@@ -159,6 +160,7 @@ func _apply_room_team_button_style(button: Button, fill_color: Color) -> void:
 	button.add_theme_stylebox_override("normal", _make_room_style(fill_color, Color(0.26, 0.34, 0.42, 0.95), 4))
 	button.add_theme_stylebox_override("hover", _make_room_style(fill_color.lightened(0.12), Color(0.86, 0.94, 1.0, 1.0), 4))
 	button.add_theme_stylebox_override("pressed", _make_room_style(fill_color.darkened(0.14), Color(1.0, 0.96, 0.62, 1.0), 4))
+	button.add_theme_stylebox_override("hover_pressed", _make_room_style(fill_color.darkened(0.02), Color(0.92, 0.95, 0.80, 1.0), 4))
 
 
 func _apply_room_square_button_style(button: Button, fill_color: Color) -> void:
@@ -168,6 +170,7 @@ func _apply_room_square_button_style(button: Button, fill_color: Color) -> void:
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", _make_room_style(fill_color.lightened(0.10), Color(0.70, 0.88, 0.96, 1.0), 8))
 	button.add_theme_stylebox_override("pressed", _make_room_style(fill_color.darkened(0.14), Color(0.82, 0.92, 1.0, 1.0), 8))
+	button.add_theme_stylebox_override("hover_pressed", _make_room_style(fill_color.lightened(0.02), Color(0.76, 0.90, 0.98, 1.0), 8))
 	button.add_theme_stylebox_override("disabled", normal)
 
 

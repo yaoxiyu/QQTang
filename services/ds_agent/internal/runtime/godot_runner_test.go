@@ -7,7 +7,7 @@ import (
 
 func TestGodotRunnerBuildArgsDoesNotIncludeBattleTicketSecret(t *testing.T) {
 	runner := NewGodotRunner(GodotRunnerConfig{
-		GodotExecutable: "external/godot_binary/Godot_console.exe",
+		GodotExecutable: "external/godot_binary/Godot.exe",
 		ProjectRoot:     "/app/project",
 		BattleScenePath: "res://scenes/network/dedicated_server_scene.tscn",
 	})
@@ -46,7 +46,7 @@ func TestGodotRunnerBuildArgsDoesNotIncludeBattleTicketSecret(t *testing.T) {
 
 func TestGodotRunnerBuildArgsAllowsDefaultExportScene(t *testing.T) {
 	runner := NewGodotRunner(GodotRunnerConfig{
-		GodotExecutable: "external/godot_binary/Godot_console.exe",
+		GodotExecutable: "external/godot_binary/Godot.exe",
 		BattleScenePath: "",
 	})
 

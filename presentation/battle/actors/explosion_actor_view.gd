@@ -217,9 +217,7 @@ func _max_segment_lifetime() -> float:
 
 
 func _build_segment_modulate(segment_type: String, style: Dictionary) -> Color:
-	var modulate := Color(style.get("fill_color", Color.WHITE))
+	var modulate := Color.WHITE
 	if segment_type.begins_with("tail_"):
 		modulate.a *= float(style.get("tail_alpha", 0.72))
-	elif segment_type == "center":
-		modulate = modulate.lightened(0.12)
 	return modulate

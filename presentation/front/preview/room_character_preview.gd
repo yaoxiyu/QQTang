@@ -27,6 +27,7 @@ func configure_preview(character_id: String, character_skin_id: String = "", tea
 		and normalized_character_id == _configured_character_id \
 		and normalized_skin_id == _configured_character_skin_id \
 		and team_id == _configured_team_id:
+		_restart_body_animation()
 		_apply_preview_state()
 		return
 	_preview_root = get_node_or_null("PreviewViewport/PreviewRoot")
@@ -124,6 +125,27 @@ func _clear_current_body_view() -> void:
 			_preview_root.remove_child(_team_marker_view)
 		_team_marker_view.queue_free()
 		_team_marker_view = null
+
+
+func _restart_body_animation() -> void:
+	_reset_sprites_recursive(_body_view)
+	if _team_marker_view != null:
+		_reset_sprites_recursive(_team_marker_view)
+
+
+func _reset_sprites_recursive(node: Node) -> void:
+	if node == null:
+		return
+	if node is AnimatedSprite2D:
+		var sprite := node as AnimatedSprite2D
+		if sprite.sprite_frames != null:
+			sprite.stop()
+			sprite.frame = 0
+			sprite.frame_progress = 0.0
+			if not sprite.animation.is_empty():
+				sprite.play(sprite.animation)
+	for child in node.get_children():
+		_reset_sprites_recursive(child)
 
 
 func _clear_configured_keys() -> void:

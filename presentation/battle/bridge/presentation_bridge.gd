@@ -49,7 +49,7 @@ func _ready() -> void:
 		actor_layer = get_node(actor_layer_path)
 		if actor_layer != null:
 			actor_layer.z_as_relative = false
-			actor_layer.z_index = 100
+			actor_layer.z_index = 0
 	if has_node(fx_layer_path):
 		fx_layer = get_node(fx_layer_path)
 		if fx_layer != null:

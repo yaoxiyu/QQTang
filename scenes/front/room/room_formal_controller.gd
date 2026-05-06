@@ -3,6 +3,7 @@ extends Control
 const ROOM_ASSETS := preload("res://content/ui_assets/room_assets.tres")
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const RoomCharacterPreviewScene = preload("res://scenes/front/components/room_character_preview.tscn")
 const RoomViewModelBuilderScript = preload("res://app/front/room/room_view_model_builder.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -93,8 +94,24 @@ func _on_runtime_ready() -> void:
 	_front_flow = _app_runtime.front_flow
 	_room_use_case = _app_runtime.room_use_case
 	_connect_runtime()
+	if _app_runtime != null and _app_runtime.player_profile_state != null:
+		var profile_char := String(_app_runtime.player_profile_state.default_character_id).strip_edges()
+		if not profile_char.is_empty() and CharacterCatalogScript.has_character(profile_char):
+			_selected_char_id = profile_char
+		else:
+			_selected_char_id = RANDOM_CHAR_ID
+		_save_char_to_profile(RANDOM_CHAR_ID)
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
-		_refresh(_room_controller.build_room_snapshot())
+		var snap = _room_controller.build_room_snapshot()
+		if snap != null:
+			for member in snap.members:
+				if member != null and member.is_local_player and int(member.team_id) > 0:
+					_selected_team_id = int(member.team_id)
+					break
+		_refresh(snap)
+	_refresh_char_grid()
+	if _room_use_case != null:
+		_room_use_case.update_local_profile("", _selected_char_id, "", "", "", _selected_team_id)
 
 
 func _connect_runtime() -> void:
@@ -166,7 +183,7 @@ func _move_checkmark(tid: int) -> void:
 func _on_team_btn(tid: int) -> void:
 	_move_checkmark(tid)
 	_selected_team_id = tid
-	if _room_use_case != null and not _selected_char_id.is_empty():
+	if _room_use_case != null:
 		_room_use_case.update_local_profile("", _selected_char_id, "", "", "", tid)
 	LogFrontScript.debug("[room_fml] team: %d char=%s" % [tid, _selected_char_id], "", 0, TAG)
 
@@ -196,10 +213,19 @@ func _refresh_char_grid() -> void:
 		var cid: String = String(e.get("id", ""))
 		btn.set_meta("character_id", cid)
 		var icon: String = String(e.get("selection_icon_path", ""))
-		btn.texture_normal = _load_icon(icon)
+		var icon_sel: String = String(e.get("selection_icon_selected_path", ""))
+		btn.set_meta("icon_path", icon)
+		btn.set_meta("icon_selected_path", icon_sel)
+		var normal_tex := _load_icon(icon)
+		var hover_tex := _load_icon(icon_sel)
+		btn.texture_normal = normal_tex
+		btn.texture_hover = hover_tex
+		btn.texture_pressed = hover_tex
 		btn.tooltip_text = String(e.get("display_name", cid))
 		btn.mouse_entered.connect(_on_char_hover.bind(btn, true))
 		btn.mouse_exited.connect(_on_char_hover.bind(btn, false))
+		for conn in btn.pressed.get_connections():
+			btn.pressed.disconnect(conn.callable)
 		btn.pressed.connect(_on_char_picked.bind(cid))
 	prev_char_btn.disabled = _page <= 0
 	next_char_btn.disabled = _page >= mp
@@ -208,13 +234,18 @@ func _refresh_char_grid() -> void:
 func _on_char_picked(cid: String) -> void:
 	if cid.is_empty(): return
 	_selected_char_id = cid
+	_save_char_to_profile(cid)
 	for child in character_grid.get_children():
 		if child is TextureButton:
 			var b: TextureButton = child as TextureButton
 			var bcid: String = String(b.get_meta("character_id", ""))
-			var icon_sel: String = String(b.get_meta("icon_selected_path", "")) if bcid == cid else String(b.get_meta("icon_path", ""))
-			if not icon_sel.is_empty():
-				b.texture_normal = _load_icon(icon_sel)
+			var is_sel := bcid == cid
+			var normal_path: String = String(b.get_meta("icon_selected_path", "")) if is_sel else String(b.get_meta("icon_path", ""))
+			var hover_path: String = String(b.get_meta("icon_selected_path", ""))
+			if not normal_path.is_empty():
+				b.texture_normal = _load_icon(normal_path)
+				b.texture_hover = _load_icon(hover_path)
+				b.texture_pressed = _load_icon(hover_path)
 	if _room_use_case != null:
 		_room_use_case.update_local_profile("", cid, "", "", "", _selected_team_id)
 	LogFrontScript.debug("[room_fml] char: %s team=%d" % [cid, _selected_team_id], "", 0, TAG)
@@ -377,7 +408,7 @@ func _refresh_slots(snapshot, vm: Dictionary) -> void:
 		if btn == null: continue
 		# Clean up runtime overlays from previous refresh
 		for child in btn.get_children():
-			if child.name == "SlotClosedOverlay":
+			if child.name == "SlotClosedOverlay" or child.has_method("configure_preview"):
 				child.queue_free()
 		var m = _find_member(snapshot, i)
 		var is_open: bool = i < open_count
@@ -536,9 +567,63 @@ func _on_action() -> void:
 
 
 func _on_leave() -> void: if _room_use_case != null: _room_use_case.leave_room()
-func _on_mode() -> void: pass
-func _on_prop() -> void: pass
-func _on_map() -> void: pass
+func _on_mode() -> void:
+	_set_feedback("模式选择待接入弹窗UI")
+func _on_prop() -> void:
+	_set_feedback("房间属性编辑待接入弹窗UI")
+func _on_map() -> void:
+	if _room_use_case == null:
+		_set_feedback("房间服务未连接"); return
+	var popup := AcceptDialog.new()
+	popup.title = "选择地图"
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(340, 460)
+	popup.add_child(scroll)
+	var vbox := VBoxContainer.new()
+	scroll.add_child(vbox)
+	for mode_entry in MapSelectionCatalogScript.get_custom_room_mode_entries():
+		var mode_id := String(mode_entry.get("mode_id", ""))
+		if mode_id.is_empty(): continue
+		var mode_label := Label.new()
+		mode_label.text = String(mode_entry.get("display_name", mode_id))
+		mode_label.add_theme_font_size_override("font_size", 18)
+		vbox.add_child(mode_label)
+		for map_entry in MapSelectionCatalogScript.get_custom_room_maps_by_mode(mode_id):
+			var map_id := String(map_entry.get("map_id", ""))
+			if map_id.is_empty(): continue
+			var max_p := int(map_entry.get("max_player_count", 8))
+			var btn := Button.new()
+			btn.text = "%s    %d人" % [String(map_entry.get("display_name", map_id)), max_p]
+			btn.pressed.connect(func(): _on_map_selected(map_id); popup.hide())
+			vbox.add_child(btn)
+	add_child(popup); popup.popup_centered(Vector2i(360, 520))
+
+func _on_map_selected(map_id: String) -> void:
+	if _room_use_case == null: return
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	var rule_set_id := String(binding.get("bound_rule_set_id", ""))
+	var mode_id := String(binding.get("bound_mode_id", ""))
+	if _room_use_case.room_client_gateway != null:
+		_room_use_case.room_client_gateway.request_update_selection(map_id, rule_set_id, mode_id)
+	_set_feedback("地图已选择: " + map_id)
+
+func _set_feedback(msg: String) -> void:
+	var label := get_node_or_null("FeedbackLabel")
+	if label == null:
+		label = Label.new(); label.name = "FeedbackLabel"
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 14)
+		add_child(label)
+		label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		label.position = Vector2(-200, -36)
+	(label as Label).text = msg
+	label.visible = true
+	var timer := get_node_or_null("FeedbackTimer")
+	if timer != null: timer.queue_free()
+	timer = Timer.new(); timer.name = "FeedbackTimer"
+	timer.wait_time = 3.0; timer.one_shot = true
+	timer.timeout.connect(func(): if label != null: label.visible = false)
+	add_child(timer); timer.start()
 
 
 # ═══ Role nav anim ═══
@@ -577,6 +662,13 @@ func _nav_frame(btn: TextureButton, frames: Array, idx: int) -> void:
 func _tex_style(p: String) -> StyleBoxTexture:
 	var s: StyleBoxTexture = StyleBoxTexture.new(); s.texture = load(p); return s
 
+
+func _save_char_to_profile(cid: String) -> void:
+	if _app_runtime == null or _app_runtime.player_profile_state == null:
+		return
+	_app_runtime.player_profile_state.default_character_id = PlayerProfileState.resolve_default_character_id(cid)
+	if _app_runtime.profile_repository != null and _app_runtime.profile_repository.has_method("save_profile"):
+		_app_runtime.profile_repository.save_profile(_app_runtime.player_profile_state)
 
 func _load_icon(path: String) -> Texture2D:
 	var n: String = path.strip_edges()

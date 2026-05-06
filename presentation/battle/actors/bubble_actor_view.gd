@@ -5,7 +5,9 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const BubbleAnimationSetCatalogScript = preload("res://content/bubble_animation_sets/catalog/bubble_animation_set_catalog.gd")
 
-const BUBBLE_Z_INDEX := 10
+const ROW_Z_STEP := 100
+const BUBBLE_ANIMATION_SPEED_SCALE: float = 0.5
+const BUBBLE_Z_BIAS := 40
 
 var bubble_id: int = -1
 var bubble_style_id: String = ""
@@ -24,8 +26,13 @@ func apply_view_state(view_state: Dictionary) -> void:
 	position = view_state.get("position", Vector2.ZERO)
 	bubble_style_id = String(view_state.get("bubble_style_id", bubble_style_id))
 	z_as_relative = false
-	z_index = BUBBLE_Z_INDEX
+	z_index = _calc_dynamic_z_index(view_state, BUBBLE_Z_BIAS)
 	_refresh_visuals()
+
+
+func _calc_dynamic_z_index(view_state: Dictionary, z_bias: int) -> int:
+	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
+	return cell.y * ROW_Z_STEP - cell.x + z_bias
 
 
 func _ensure_visuals() -> void:
@@ -67,4 +74,5 @@ func _apply_animation_set() -> bool:
 		return false
 	if _sprite.animation != "idle" or not _sprite.is_playing():
 		_sprite.play("idle")
+		_sprite.speed_scale = BUBBLE_ANIMATION_SPEED_SCALE
 	return true

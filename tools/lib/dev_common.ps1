@@ -341,24 +341,11 @@ function Resolve-QQTGodotExecutable {
     if ([string]::IsNullOrWhiteSpace($GodotDir)) {
         $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")
         $binaryRoot = Join-Path $repoRoot 'external\godot_binary'
-        if ($PreferConsole) {
-            return Join-Path $binaryRoot 'Godot_console.exe'
-        }
         return Join-Path $binaryRoot 'Godot.exe'
     }
 
-    $consolePath = Join-Path $GodotDir 'Godot_console.exe'
     $guiPath = Join-Path $GodotDir 'Godot.exe'
 
-    if ($PreferConsole -and (Test-Path -LiteralPath $consolePath)) {
-        return $consolePath
-    }
-    if ((-not $PreferConsole) -and (Test-Path -LiteralPath $guiPath)) {
-        return $guiPath
-    }
-    if (Test-Path -LiteralPath $consolePath) {
-        return $consolePath
-    }
     if (Test-Path -LiteralPath $guiPath) {
         return $guiPath
     }

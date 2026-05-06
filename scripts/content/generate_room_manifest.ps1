@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = '',
-    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe')
+    [string]$GodotExecutable = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,7 +26,7 @@ try {
 
     Push-Location $projectRoot
     try {
-        & $GodotExecutable --headless --path $projectRoot --script $tempScript
+        & cmd /c "`"$GodotExecutable`" --headless --path `"$projectRoot`" --script `"$tempScript`""
     }
     finally {
         Pop-Location

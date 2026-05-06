@@ -142,7 +142,8 @@ static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayo
 	layout.item_spawn_profile_id = resource.item_spawn_profile_id
 	layout.content_hash = resource.content_hash
 	layout.tile_theme_id = resource.tile_theme_id
-	layout.foreground_overlay_entries = resource.foreground_overlay_entries.duplicate(true)
+	layout.floor_tile_entries = resource.floor_tile_entries.duplicate(true)
+	layout.surface_entries = resource.surface_entries.duplicate(true)
 	return layout if _validate_layout(layout) else null
 
 
@@ -158,7 +159,8 @@ static func _build_config_from_resource(resource: MapResource) -> Dictionary:
 		"spawn_points": resource.spawn_points.duplicate(),
 		"static_blocks": resource.solid_cells.duplicate(),
 		"breakable_blocks": resource.breakable_cells.duplicate(),
-		"foreground_overlay_entries": resource.foreground_overlay_entries.duplicate(true),
+		"floor_tile_entries": resource.floor_tile_entries.duplicate(true),
+		"surface_entries": resource.surface_entries.duplicate(true),
 	}
 
 
@@ -193,6 +195,8 @@ static func _build_layout_from_config(config: Dictionary) -> MapRuntimeLayout:
 	layout.item_spawn_profile_id = "default_items"
 	layout.content_hash = "map_def_%s" % layout.map_id
 	layout.tile_theme_id = ""
+	layout.floor_tile_entries = []
+	layout.surface_entries = []
 	return layout if _validate_layout(layout) else null
 
 
@@ -204,6 +208,8 @@ static func _validate_layout(layout: MapRuntimeLayout) -> bool:
 	if layout.content_hash.is_empty():
 		return false
 	if layout.spawn_points.is_empty():
+		return false
+	if layout.floor_tile_entries.is_empty():
 		return false
 	for cell in layout.solid_cells:
 		if not _is_in_bounds(layout, cell):

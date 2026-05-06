@@ -18,7 +18,6 @@ const MAPS_HEADER := [
 	"spawn_points",
 	"theme_id",
 	"item_spawn_profile_id",
-	"foreground_overlay_entries",
 	"bound_mode_id",
 	"bound_rule_set_id",
 	"custom_room_enabled",
@@ -77,7 +76,6 @@ func _build_map_row(map_resource: MapResource) -> PackedStringArray:
 		_encode_spawn_points(map_resource.spawn_points),
 		map_resource.tile_theme_id,
 		map_resource.item_spawn_profile_id,
-		_encode_foreground_overlay_entries(map_resource.foreground_overlay_entries),
 		map_resource.bound_mode_id,
 		map_resource.bound_rule_set_id,
 		_bool_text(map_resource.custom_room_enabled),
@@ -150,22 +148,6 @@ func _encode_spawn_points(spawn_points: Array[Vector2i]) -> String:
 	var parts: Array[String] = []
 	for spawn_point in spawn_points:
 		parts.append("%d:%d" % [spawn_point.x, spawn_point.y])
-	return ";".join(parts)
-
-
-func _encode_foreground_overlay_entries(entries: Array[Dictionary]) -> String:
-	var parts: Array[String] = []
-	for entry in entries:
-		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
-		var presentation_id := String(entry.get("presentation_id", "")).strip_edges()
-		var offset := entry.get("offset_px", Vector2.ZERO) as Vector2
-		parts.append("%d:%d:%s:%s:%s" % [
-			cell.x,
-			cell.y,
-			presentation_id,
-			_format_number(offset.x),
-			_format_number(offset.y),
-		])
 	return ";".join(parts)
 
 

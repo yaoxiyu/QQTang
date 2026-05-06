@@ -4,8 +4,10 @@ extends Node2D
 const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_presentation_loader.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
+const ROW_Z_STEP := 100
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
+@export var surface_layer_path: NodePath = ^"SurfaceLayer"
 @export var static_block_layer_path: NodePath = ^"StaticBlockLayer"
 @export var breakable_block_layer_path: NodePath = ^"BreakableBlockLayer"
 @export var occluder_layer_path: NodePath = ^"../OccluderLayer"
@@ -14,6 +16,7 @@ const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 
 var ground_layer: Node2D = null
+var surface_layer: Node2D = null
 var static_block_layer: Node2D = null
 var breakable_block_layer: Node2D = null
 var occluder_layer: Node2D = null
@@ -25,6 +28,7 @@ var _map_theme: MapThemeDef = null
 var _theme_materials: Dictionary = {}
 var _ground_views_by_cell: Dictionary = {}
 var _spawn_marker_views_by_cell: Dictionary = {}
+var _surface_views: Array[Node] = []
 var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
@@ -54,6 +58,7 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 	_rebuild_ground_tiles()
 	_rebuild_static_blocks()
 	_rebuild_breakable_blocks()
+	_rebuild_surface_entries()
 	_rebuild_occluders()
 
 
@@ -101,7 +106,21 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 	if view.has_method("play_break_and_dispose"):
 		view.play_break_and_dispose()
 	else:
-		view.queue_free()
+		_play_surface_die_and_dispose(view)
+
+
+func _play_surface_die_and_dispose(view: Node2D) -> void:
+	var sprite := view as Sprite2D
+	if sprite != null:
+		var die_path := String(sprite.get_meta("die_texture_path", ""))
+		if not die_path.is_empty():
+			var die_texture := load(die_path) as Texture2D
+			if die_texture != null:
+				sprite.texture = die_texture
+				sprite.scale = _resolve_texture_scale(die_texture)
+	var tween := create_tween()
+	tween.tween_property(view, "modulate:a", 0.0, 0.18)
+	tween.tween_callback(view.queue_free)
 
 
 func debug_dump_map_state() -> Dictionary:
@@ -117,6 +136,8 @@ func debug_dump_map_state() -> Dictionary:
 func _bind_layers() -> void:
 	if ground_layer == null and has_node(ground_layer_path):
 		ground_layer = get_node(ground_layer_path) as Node2D
+	if surface_layer == null and has_node(surface_layer_path):
+		surface_layer = get_node(surface_layer_path) as Node2D
 	if static_block_layer == null and has_node(static_block_layer_path):
 		static_block_layer = get_node(static_block_layer_path) as Node2D
 	if breakable_block_layer == null and has_node(breakable_block_layer_path):
@@ -129,11 +150,13 @@ func _bind_layers() -> void:
 
 func _clear_runtime_layers() -> void:
 	_clear_layer(ground_layer)
+	_clear_layer(surface_layer)
 	_clear_layer(static_block_layer)
 	_clear_layer(breakable_block_layer)
 	_clear_layer(occluder_layer)
 	_ground_views_by_cell.clear()
 	_spawn_marker_views_by_cell.clear()
+	_surface_views.clear()
 	_static_views_by_cell.clear()
 	_breakable_views_by_cell.clear()
 	_occluder_views.clear()
@@ -150,6 +173,8 @@ func _rebuild_static_blocks() -> void:
 	_clear_layer(static_block_layer)
 	_static_views_by_cell.clear()
 	if _runtime_layout == null or static_block_layer == null:
+		return
+	if not _runtime_layout.surface_entries.is_empty():
 		return
 	var solid_texture := _theme_materials.get("solid_base", null) as Texture2D
 	for cell in _runtime_layout.solid_cells:
@@ -181,6 +206,8 @@ func _rebuild_breakable_blocks() -> void:
 	_breakable_views_by_cell.clear()
 	if _runtime_layout == null or _map_theme == null or breakable_block_layer == null:
 		return
+	if not _runtime_layout.surface_entries.is_empty():
+		return
 	var presentation_id := String(_map_theme.breakable_presentation_id)
 	var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
 	if presentation == null or presentation.tile_scene == null:
@@ -209,55 +236,72 @@ func _rebuild_occluders() -> void:
 	_occluder_views.clear()
 	if _runtime_layout == null or occluder_layer == null:
 		return
-	var occluder_materials := _theme_materials.get("occluders", {}) as Dictionary
-	var occluder_textures := [
-		occluder_materials.get("primary", null) as Texture2D,
-		occluder_materials.get("secondary", null) as Texture2D,
-	]
-	var occluder_index := 0
-	for entry in _runtime_layout.foreground_overlay_entries:
-		var presentation_id := String(entry.get("presentation_id", ""))
-		var presentation := TilePresentationLoaderScript.load_tile_presentation(presentation_id)
-		if presentation == null or presentation.tile_scene == null:
+	for entry in _runtime_layout.surface_entries:
+		if String(entry.get("render_role", "surface")) != "occluder":
 			continue
-		var view := presentation.tile_scene.instantiate()
-		if view == null or not view is Node2D:
+		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
+		if texture == null:
 			continue
-		var node := view as Node2D
-		if node.has_method("configure"):
-			node.configure(
-				entry.get("cell", Vector2i.ZERO),
-				cell_size,
-				_resolve_palette_color("occluder", Color(0.31, 0.48, 0.32, 1.0)),
-				entry.get("offset_px", Vector2.ZERO),
-				actor_layer,
-				float(presentation.fade_alpha)
-			)
-		if node.has_method("set_texture"):
-			var occluder_texture : Texture2D = occluder_textures[occluder_index % occluder_textures.size()]
-			if occluder_texture != null:
-				node.set_texture(occluder_texture)
-		occluder_index += 1
+		var node := _build_surface_sprite(texture, entry)
 		occluder_layer.add_child(node)
 		_occluder_views.append(node)
+
+
+func _rebuild_surface_entries() -> void:
+	_clear_layer(surface_layer)
+	_surface_views.clear()
+	if _runtime_layout == null or surface_layer == null:
+		return
+	var entries := _runtime_layout.surface_entries.duplicate(true)
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var left_key := a.get("sort_key", Vector3i.ZERO) as Vector3i
+		var right_key := b.get("sort_key", Vector3i.ZERO) as Vector3i
+		if left_key.x != right_key.x:
+			return left_key.x < right_key.x
+		if left_key.y != right_key.y:
+			return left_key.y < right_key.y
+		return left_key.z < right_key.z
+	)
+	for entry in entries:
+		if String(entry.get("render_role", "surface")) == "occluder":
+			continue
+		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
+		if texture == null:
+			continue
+		var node := _build_surface_sprite(texture, entry)
+		node.set_meta("die_texture_path", String(entry.get("die_texture_path", "")))
+		surface_layer.add_child(node)
+		_surface_views.append(node)
+		if String(entry.get("interaction_kind", "solid")) == "breakable":
+			var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+			_breakable_views_by_cell[cell] = node
 
 
 func _rebuild_ground_tiles() -> void:
 	_clear_layer(ground_layer)
 	_ground_views_by_cell.clear()
 	_spawn_marker_views_by_cell.clear()
-	_sync_ground_tiles_from_grid_cache()
+	if _runtime_layout == null or ground_layer == null:
+		return
+	for entry in _runtime_layout.floor_tile_entries:
+		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
+		var rect := entry.get("rect", Rect2i()) as Rect2i
+		if texture == null or rect.size.x <= 0 or rect.size.y <= 0:
+			continue
+		for y in range(rect.position.y, rect.position.y + rect.size.y):
+			for x in range(rect.position.x, rect.position.x + rect.size.x):
+				var cell := Vector2i(x, y)
+				var sprite := _build_textured_cell_sprite(texture, cell)
+				ground_layer.add_child(sprite)
+				_ground_views_by_cell[cell] = sprite
 
 
 func _sync_ground_tiles_from_grid_cache() -> void:
 	if ground_layer == null or _grid_cache.is_empty():
 		return
-	var alive_ground_cells := {}
 	var alive_spawn_cells := {}
 	for cell_data in _grid_cache.get("cells", []):
 		var cell := Vector2i(int(cell_data.get("x", 0)), int(cell_data.get("y", 0)))
-		alive_ground_cells[cell] = true
-		_ensure_ground_view(cell)
 		var tile_type := int(cell_data.get("tile_type", TileConstants.TileType.EMPTY))
 		if tile_type == TileConstants.TileType.SPAWN:
 			alive_spawn_cells[cell] = true
@@ -267,14 +311,6 @@ func _sync_ground_tiles_from_grid_cache() -> void:
 			_spawn_marker_views_by_cell.erase(cell)
 			if marker != null and is_instance_valid(marker):
 				marker.queue_free()
-	for cell_variant in _ground_views_by_cell.keys():
-		var existing_cell := cell_variant as Vector2i
-		if alive_ground_cells.has(existing_cell):
-			continue
-		var ground_view := _ground_views_by_cell[existing_cell] as Node
-		_ground_views_by_cell.erase(existing_cell)
-		if ground_view != null and is_instance_valid(ground_view):
-			ground_view.queue_free()
 	for cell_variant in _spawn_marker_views_by_cell.keys():
 		var existing_cell := cell_variant as Vector2i
 		if alive_spawn_cells.has(existing_cell):
@@ -371,6 +407,32 @@ func _build_textured_cell_sprite(texture: Texture2D, cell: Vector2i) -> Sprite2D
 	sprite.position = Vector2(cell.x, cell.y) * cell_size
 	sprite.scale = _resolve_texture_scale(texture)
 	return sprite
+
+
+func _build_surface_sprite(texture: Texture2D, entry: Dictionary) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.centered = false
+	sprite.texture = texture
+	var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+	var offset := entry.get("offset_px", Vector2.ZERO) as Vector2
+	var texture_size := texture.get_size()
+	var origin := Vector2(cell.x, cell.y) * cell_size
+	var anchor_mode := String(entry.get("anchor_mode", "bottom_right"))
+	if anchor_mode == "bottom_center":
+		origin += Vector2((cell_size - texture_size.x) * 0.5, cell_size - texture_size.y)
+	elif anchor_mode == "bottom_left_of_footprint":
+		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
+		origin += Vector2(0.0, float(footprint.y) * cell_size - texture_size.y)
+	elif anchor_mode == "bottom_right":
+		origin += Vector2(cell_size - texture_size.x, cell_size - texture_size.y)
+	sprite.position = origin + offset
+	sprite.z_index = _calc_elem_z_index(cell.x, cell.y, (entry.get("footprint", Vector2i.ONE) as Vector2i).y, int(entry.get("z_bias", 0)))
+	return sprite
+
+
+func _calc_elem_z_index(cell_x: int, cell_y: int, footprint_h: int = 1, z_bias: int = 0) -> int:
+	var base_row := cell_y + footprint_h - 1
+	return base_row * ROW_Z_STEP - cell_x + z_bias
 
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:

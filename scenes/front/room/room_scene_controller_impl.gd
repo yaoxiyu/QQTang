@@ -159,6 +159,7 @@ func _on_runtime_ready() -> void:
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
 		_refresh_room(_room_controller.build_room_snapshot())
 	_try_consume_pending_room_action()
+	_on_profile_selector_changed()
 
 
 func _redirect_to_boot_if_missing() -> void:

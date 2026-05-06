@@ -5,6 +5,7 @@ const CharacterAnimationSetDefScript = preload("res://content/character_animatio
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
+const BODY_ANIMATION_SPEED_SCALE: float = 0.5
 
 @onready var _body_sprite: AnimatedSprite2D = get_node_or_null("BodySprite")
 
@@ -34,6 +35,7 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 		BattleViewMetrics.DEFAULT_CELL_PIXELS,
 		float(_animation_set.frame_height)
 	)
+	_body_sprite.speed_scale = BODY_ANIMATION_SPEED_SCALE
 	_current_animation_name = ""
 	_current_pose_state = "normal"
 	_apply_dynamic_color_to_sprite()

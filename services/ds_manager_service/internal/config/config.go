@@ -68,7 +68,7 @@ func LoadFromEnv() (*Config, error) {
 		return nil, fmt.Errorf("DSM_INTERNAL_AUTH_MAX_SKEW_SECONDS: %w", err)
 	}
 
-	cfg.GodotExecutable = configx.Env("DSM_GODOT_EXECUTABLE", "external/godot_binary/Godot_console.exe")
+	cfg.GodotExecutable = configx.Env("DSM_GODOT_EXECUTABLE", "external/godot_binary/Godot.exe")
 	cfg.ProjectRoot = configx.Env("DSM_PROJECT_ROOT", "")
 	cfg.BattleScenePath = configx.Env("DSM_BATTLE_SCENE_PATH", "res://scenes/network/dedicated_server_scene.tscn")
 	cfg.BattleTicketSecret = configx.Env("DSM_BATTLE_TICKET_SECRET", "dev_battle_ticket_secret")

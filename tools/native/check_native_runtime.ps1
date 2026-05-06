@@ -1,6 +1,6 @@
 param(
     [string]$ProjectPath = '',
-    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe'),
     [switch]$SkipBuild
 )
 
@@ -67,7 +67,7 @@ func _init() -> void:
 
 try {
     Set-Content -LiteralPath $tempScript -Value $tempContent -Encoding UTF8
-    & $GodotExe --headless --path $repoRoot --script $tempScript
+    & cmd /c "`"$GodotExe`" --headless --path `"$repoRoot`" --script `"$tempScript`""
     if ($LASTEXITCODE -ne 0) {
         throw "native runtime check failed (godot exit code: $LASTEXITCODE)"
     }
@@ -77,4 +77,3 @@ finally {
         Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
     }
 }
-

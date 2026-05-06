@@ -60,7 +60,7 @@ if (Test-Path -LiteralPath $classCachePath) {
 }
 if ($needsImport) {
     Write-Host ('==> [{0}] warmup import for GUT class cache' -f $SuiteName)
-    & $GodotExe --headless --path $ProjectPath --import 2>&1 | Out-Null
+    & cmd /c "`"$GodotExe`" --headless --path `"$ProjectPath`" --import" 2>&1 | Out-Null
 }
 
 $gutArgs = @(
@@ -92,7 +92,16 @@ Write-Host ('TestDirs: {0}' -f ($resolvedTestDirs -join ', '))
 Write-Host ('TestFiles: {0}' -f ($resolvedTestFiles -join ', '))
 Write-Host ('RawXml: {0}' -f $rawXmlPath)
 
-$rawOutput = & $GodotExe @gutArgs 2>&1
+$escapedGutArgs = @()
+foreach ($arg in $gutArgs) {
+    $argText = [string]$arg
+    if ($argText.Contains(' ') -or $argText.Contains(';') -or $argText.Contains('&')) {
+        $escapedGutArgs += ('"{0}"' -f ($argText -replace '"', '\"'))
+    } else {
+        $escapedGutArgs += $argText
+    }
+}
+$rawOutput = & cmd /c ('"{0}" {1}' -f $GodotExe, ($escapedGutArgs -join ' ')) 2>&1
 $gutExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
 
 $filteredOutput = $rawOutput | Where-Object {
@@ -106,6 +115,20 @@ $filteredOutput = $rawOutput | Where-Object {
 $totalTests = 0
 $failedTests = @()
 $xmlParseError = ''
+function Get-OptionalXmlProperty {
+    param(
+        [object]$Node,
+        [string]$Name
+    )
+    if ($null -eq $Node) {
+        return $null
+    }
+    $property = $Node.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $null
+    }
+    return $property.Value
+}
 $waitDeadline = (Get-Date).AddSeconds(300)
 while ((-not (Test-Path -LiteralPath $rawXmlPath) -or ((Get-Item -LiteralPath $rawXmlPath -ErrorAction SilentlyContinue).Length -le 0)) -and (Get-Date) -lt $waitDeadline) {
     Start-Sleep -Milliseconds 100
@@ -117,17 +140,19 @@ if (Test-Path -LiteralPath $rawXmlPath) {
         foreach ($suite in $suiteNodes) {
             foreach ($testcase in @($suite.testcase)) {
                 $totalTests += 1
-                if ($testcase.failure -ne $null -or $testcase.error -ne $null) {
+                $failureNode = Get-OptionalXmlProperty -Node $testcase -Name 'failure'
+                $errorNode = Get-OptionalXmlProperty -Node $testcase -Name 'error'
+                if ($failureNode -ne $null -or $errorNode -ne $null) {
                     $failureText = ''
-                    if ($testcase.failure -ne $null) {
-                        $failureText = [string]$testcase.failure.'#cdata-section'
+                    if ($failureNode -ne $null) {
+                        $failureText = [string](Get-OptionalXmlProperty -Node $failureNode -Name '#cdata-section')
                         if ([string]::IsNullOrWhiteSpace($failureText)) {
-                            $failureText = [string]$testcase.failure.message
+                            $failureText = [string](Get-OptionalXmlProperty -Node $failureNode -Name 'message')
                         }
-                    } elseif ($testcase.error -ne $null) {
-                        $failureText = [string]$testcase.error.'#cdata-section'
+                    } elseif ($errorNode -ne $null) {
+                        $failureText = [string](Get-OptionalXmlProperty -Node $errorNode -Name '#cdata-section')
                         if ([string]::IsNullOrWhiteSpace($failureText)) {
-                            $failureText = [string]$testcase.error.message
+                            $failureText = [string](Get-OptionalXmlProperty -Node $errorNode -Name 'message')
                         }
                     }
                     $failedTests += [pscustomobject]@{

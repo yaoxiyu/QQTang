@@ -94,11 +94,15 @@ function Find-MatchesWithPowerShell {
 
 foreach ($check in $checks) {
     $paths = @($check.Paths)
+    $excludes = @()
+    if ($check.ContainsKey('Excludes')) {
+        $excludes = @($check.Excludes)
+    }
     $result = @()
     $rgCommand = Get-Command rg -ErrorAction SilentlyContinue
     if ($null -ne $rgCommand) {
         $excludeArgs = @()
-        foreach ($exclude in @($check.Excludes)) {
+        foreach ($exclude in $excludes) {
             if ($null -eq $exclude -or [string]::IsNullOrWhiteSpace([string]$exclude)) {
                 continue
             }
@@ -115,7 +119,7 @@ foreach ($check in $checks) {
             $result = @()
         }
     } else {
-        $result = Find-MatchesWithPowerShell -RepoRoot $repoRoot -Pattern $check.Pattern -Paths $paths -Excludes @($check.Excludes)
+        $result = Find-MatchesWithPowerShell -RepoRoot $repoRoot -Pattern $check.Pattern -Paths $paths -Excludes $excludes
     }
 
     if (-not [string]::IsNullOrWhiteSpace(($result | Out-String))) {
@@ -126,4 +130,3 @@ foreach ($check in $checks) {
 }
 
 Write-Host '[content-sanity] PASS'
-

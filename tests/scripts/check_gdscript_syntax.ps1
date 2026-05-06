@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe'),
     [string]$ProjectPath = ''
 )
 
@@ -25,7 +25,7 @@ if (Test-Path -LiteralPath $externalNativeRoot -PathType Container) {
 
 Push-Location $repoRoot
 try {
-    & $GodotExe --headless --path $repoRoot --script res://tools/dev/check_gdscript_syntax.gd
+    & cmd /c "`"$GodotExe`" --headless --path `"$repoRoot`" --script res://tools/dev/check_gdscript_syntax.gd"
     if ($LASTEXITCODE -ne 0) {
         throw "GDScript syntax preflight failed (godot exit code: $LASTEXITCODE)"
     }

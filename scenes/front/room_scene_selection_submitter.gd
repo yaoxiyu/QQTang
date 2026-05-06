@@ -14,6 +14,10 @@ func apply_local_profile_defaults(controller: Node) -> void:
 	controller._select_metadata(controller.character_skin_selector, profile.default_character_skin_id)
 	controller._select_metadata(controller.bubble_selector, profile.default_bubble_style_id)
 	controller._select_metadata(controller.bubble_skin_selector, profile.default_bubble_skin_id)
+	if String(profile.default_character_id).is_empty():
+		profile.default_character_id = PlayerProfileState.resolve_default_character_id("")
+		if controller._app_runtime.profile_repository != null and controller._app_runtime.profile_repository.has_method("save_profile"):
+			controller._app_runtime.profile_repository.save_profile(profile)
 
 
 func on_profile_changed(controller: Node) -> void:

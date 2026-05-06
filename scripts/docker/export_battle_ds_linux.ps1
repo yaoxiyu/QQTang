@@ -1,5 +1,5 @@
 param(
-    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot_console.exe'),
+    [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe'),
     [string]$Preset = 'Linux Dedicated Server',
     [string]$OutputPath = 'build/docker/battle_ds/qqtang_battle_ds.x86_64',
     [string]$PackOutputPath = 'build/docker/battle_ds/qqtang_battle_ds.pck',
@@ -103,14 +103,14 @@ try {
 
             powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1 -GodotExe $GodotExe
             New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-            & $GodotExe --headless --path $repoRoot --export-release $Preset $absoluteOutput
+            & cmd /c "`"$GodotExe`" --headless --path `"$repoRoot`" --export-release `"$Preset`" `"$absoluteOutput`""
             if ($LASTEXITCODE -ne 0) {
                 throw "Godot Linux dedicated server export failed (exit code: $LASTEXITCODE)"
             }
             if (-not (Test-Path -LiteralPath $absoluteOutput)) {
                 throw "Export completed but binary was not created: $absoluteOutput"
             }
-            & $GodotExe --headless --path $repoRoot --export-pack $Preset $absolutePackOutput
+            & cmd /c "`"$GodotExe`" --headless --path `"$repoRoot`" --export-pack `"$Preset`" `"$absolutePackOutput`""
             if ($LASTEXITCODE -ne 0) {
                 throw "Godot Linux dedicated server pack export failed (exit code: $LASTEXITCODE)"
             }
