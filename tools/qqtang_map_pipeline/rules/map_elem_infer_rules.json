@@ -1,0 +1,42 @@
+{
+  "cell_size": 40,
+  "default_sort": "row_asc_col_desc",
+  "rules": [
+    {
+      "name": "one_cell_object",
+      "condition": "width <= 48 and height <= 68",
+      "footprint": [1, 1],
+      "anchor_mode": "bottom_center",
+      "draw_layer": 1,
+      "confidence": 0.95
+    },
+    {
+      "name": "multi_cell_exact_grid",
+      "condition": "width % 40 == 0 and height % 40 == 0 and (width > 40 or height > 40)",
+      "footprint": ["width / 40", "height / 40"],
+      "anchor_mode": "bottom_left_of_footprint",
+      "draw_layer": 1,
+      "confidence": 0.85,
+      "review_reason": "exact_grid_multiple_needs_logic_review"
+    },
+    {
+      "name": "vertical_object_or_wall",
+      "condition": "width <= 48 and height > 68",
+      "footprint": [1, "ceil(height / 40)"],
+      "anchor_mode": "bottom_center",
+      "draw_layer": 1,
+      "confidence": 0.65,
+      "review_reason": "high_vertical_object_may_still_be_one_cell"
+    },
+    {
+      "name": "complex_object",
+      "condition": "fallback",
+      "footprint": ["ceil(width / 40)", "ceil(height / 40)"],
+      "anchor_mode": "bottom_center",
+      "draw_layer": 1,
+      "confidence": 0.50,
+      "review_reason": "complex_object_requires_manual_review"
+    }
+  ],
+  "overrides": {}
+}
