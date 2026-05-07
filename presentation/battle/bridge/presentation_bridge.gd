@@ -104,6 +104,8 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 			"presentation.bridge.tick"
 		)
 
+	_log_explosion_events("presentation_consume", tick_id, events)
+	battle_event_router.route_events(events)
 	_grid_cache = state_to_view_mapper.build_grid_cache(world)
 	if map_view != null and map_view.has_method("apply_grid_cache"):
 		map_view.apply_grid_cache(_grid_cache, cell_size)
@@ -111,8 +113,6 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
 	_log_actor_sync_anomalies(world, tick_id, events)
-	_log_explosion_events("presentation_consume", tick_id, events)
-	battle_event_router.route_events(events)
 	_last_consumed_tick = tick_id
 
 

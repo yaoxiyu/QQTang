@@ -112,7 +112,7 @@ func _build_map_resource(
 	var display_name := csv_reader.require_string(map_row, "display_name")
 	var width := csv_reader.parse_int(map_row.get("width", ""), 0)
 	var height := csv_reader.parse_int(map_row.get("height", ""), 0)
-	var layout_rows := csv_reader.parse_semicolon_list(csv_reader.require_string(map_row, "layout_rows"))
+	var layout_rows := csv_reader.parse_semicolon_list(csv_reader.optional_string(map_row, "layout_rows", ""))
 	var theme_id := csv_reader.require_string(map_row, "theme_id")
 	var floor_tile_entries := _build_floor_tile_entries(
 		map_id,

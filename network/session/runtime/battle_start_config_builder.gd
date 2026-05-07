@@ -81,7 +81,7 @@ func build_client_request_payload(
 ) -> BattleStartConfig:
 	if snapshot == null:
 		return BattleStartConfig.new()
-	var config := _build_start_config_internal(snapshot, false, room_runtime_context)
+	var config := _build_start_config_internal(snapshot, false, room_runtime_context, false)
 	if config == null:
 		return BattleStartConfig.new()
 	config.build_mode = BattleStartConfigScript.BUILD_MODE_CANDIDATE
@@ -170,7 +170,7 @@ func _peek_match_id(snapshot: RoomSnapshot) -> String:
 	return "%s_%s" % [snapshot.room_id, config_id]
 
 
-func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool, room_runtime_context: RoomRuntimeContext = null) -> BattleStartConfig:
+func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool, room_runtime_context: RoomRuntimeContext = null, resolve_random: bool = true) -> BattleStartConfig:
 	var resolved_selection := _resolve_authoritative_selection(snapshot, room_runtime_context)
 	var resolved_map_id := String(resolved_selection.get("map_id", ""))
 	var resolved_rule_set_id := String(resolved_selection.get("rule_set_id", ""))
@@ -192,8 +192,9 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.mode_id = resolved_mode_id
 	config.rule_set_id = resolved_rule_set_id
 	config.spawn_assignments = _build_spawn_assignments(player_slots, map_metadata)
-	config.battle_seed = generate_seed()
-	_resolve_random_placeholder_player_slots(player_slots, config.battle_seed)
+	if resolve_random:
+		config.battle_seed = generate_seed()
+		_resolve_random_placeholder_player_slots(player_slots, config.battle_seed)
 	config.players = player_slots.duplicate(true)
 	config.player_slots = player_slots.duplicate(true)
 	config.start_tick = DEFAULT_START_TICK

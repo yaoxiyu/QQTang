@@ -5,6 +5,7 @@ const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_p
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
 const ROW_Z_STEP := 100
+const DIE_ANIMATION_SPEED_SCALE: float = 0.5
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
 @export var surface_layer_path: NodePath = ^"SurfaceLayer"
@@ -119,7 +120,7 @@ func _play_surface_die_and_dispose(view: Node2D) -> void:
 				sprite.texture = die_texture
 				sprite.scale = _resolve_texture_scale(die_texture)
 	var tween := create_tween()
-	tween.tween_property(view, "modulate:a", 0.0, 0.18)
+	tween.tween_property(view, "modulate:a", 0.0, 0.18 / DIE_ANIMATION_SPEED_SCALE)
 	tween.tween_callback(view.queue_free)
 
 
