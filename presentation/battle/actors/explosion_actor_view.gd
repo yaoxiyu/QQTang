@@ -180,12 +180,7 @@ func _get_segment_texture(segment_key: String) -> Texture2D:
 
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:
-	if texture == null:
-		return Vector2.ONE
-	var texture_size := texture.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
-		return Vector2.ONE
-	return Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+	return Vector2.ONE
 
 
 func _resolve_bubble_type(p_bubble_style_id: String) -> int:

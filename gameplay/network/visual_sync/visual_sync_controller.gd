@@ -4,7 +4,7 @@ extends Node
 var actor_views: Dictionary = {}
 var actor_meta: Dictionary = {}
 var correction_queue: Array[Dictionary] = []
-var tile_size: float = 32.0
+var tile_size: float = 40.0
 var hard_snap_tiles: float = 1.25
 var local_light_speed: float = 14.0
 var local_medium_speed: float = 24.0
@@ -98,7 +98,7 @@ func _apply_correction(entity_id: int, actor: Node, current_pos: Vector2, target
 	if distance < 8.0:
 		meta["correction_level"] = 1
 		meta["correction_speed"] = local_light_speed if is_local else remote_light_speed
-	elif distance < min(hard_snap_distance, 48.0):
+	elif distance < min(hard_snap_distance, tile_size):
 		meta["correction_level"] = 2
 		meta["correction_speed"] = local_medium_speed if is_local else remote_medium_speed
 	else:

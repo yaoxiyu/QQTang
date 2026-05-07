@@ -12,7 +12,7 @@ var footprint: Vector2i = Vector2i.ONE
 var anchor_mode: String = "bottom_right"
 var offset_px: Vector2 = Vector2.ZERO
 var fit_mode: String = FIT_CELL_WIDTH
-var cell_size: float = 48.0
+var cell_size: float = 40.0
 var die_seconds: float = DEFAULT_DIE_SECONDS
 var edge_bleed_px: float = DEFAULT_EDGE_BLEED_PX
 
@@ -98,20 +98,7 @@ func _apply_anchor(texture: Texture2D) -> void:
 
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:
-	var texture_size := texture.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
-		return Vector2.ONE
-	match fit_mode:
-		FIT_CELL_SIZE:
-			return Vector2(
-				(float(maxi(footprint.x, 1)) * cell_size + edge_bleed_px) / texture_size.x,
-				(float(maxi(footprint.y, 1)) * cell_size + edge_bleed_px) / texture_size.y
-			)
-		FIT_ORIGINAL:
-			return Vector2.ONE
-		_:
-			var target_width := float(maxi(footprint.x, 1)) * cell_size + edge_bleed_px
-			return Vector2.ONE * (target_width / texture_size.x)
+	return Vector2.ONE
 
 
 func _resolve_fit_mode(entry: Dictionary) -> String:

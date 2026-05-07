@@ -41,11 +41,7 @@ func set_texture(texture: Texture2D) -> void:
 	_apply_visual_mode()
 	if texture == null:
 		return
-	var texture_size := texture.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
-		_sprite.scale = Vector2.ONE
-		return
-	_sprite.scale = Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+	_sprite.scale = Vector2.ONE
 
 
 func play_break_and_dispose() -> void:

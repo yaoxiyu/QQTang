@@ -414,12 +414,7 @@ func _calc_elem_z_index(cell_x: int, cell_y: int, footprint_h: int = 1, z_bias: 
 
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:
-	if texture == null:
-		return Vector2.ONE
-	var texture_size := texture.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
-		return Vector2.ONE
-	return Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
+	return Vector2.ONE
 
 
 func _stable_cell_hash(cell: Vector2i) -> int:

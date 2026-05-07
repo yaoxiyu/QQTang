@@ -18,6 +18,4 @@ static func item_half_size_px(cell_pixels: float = DEFAULT_CELL_PIXELS) -> float
 
 
 static func player_body_scale(cell_pixels: float, source_frame_height: float) -> float:
-	if source_frame_height <= 0.0:
-		return 1.0
-	return (cell_pixels * PLAYER_BODY_HEIGHT_RATIO) / source_frame_height
+	return 1.0

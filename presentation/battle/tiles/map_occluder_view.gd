@@ -89,10 +89,8 @@ func set_texture(texture: Texture2D) -> void:
 	_sprite.texture = texture
 	_sprite.centered = false
 	if texture != null:
-		var texture_size := texture.get_size()
-		if texture_size.x > 0.0 and texture_size.y > 0.0:
-			_sprite.scale = Vector2(cell_size / texture_size.x, cell_size / texture_size.y)
-			_sprite.position = Vector2.ZERO
+		_sprite.scale = Vector2.ONE
+		_sprite.position = Vector2.ZERO
 	_apply_visual_mode()
 
 

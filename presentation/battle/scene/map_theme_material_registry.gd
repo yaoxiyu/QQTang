@@ -32,7 +32,7 @@ static func get_theme_materials(theme_id: String) -> Dictionary:
 	var occluder_files: Dictionary = OCCLUDER_FILES_BY_DIR.get(theme_dir, OCCLUDER_FILES_BY_DIR.get(DEFAULT_THEME_DIR, {}))
 	return {
 		"theme_dir": theme_dir,
-		"ground": load("%s/ground.png" % base_path) as Texture2D,
+		"ground": null,
 		"ground_variants": [
 			load("%s/ground_variant_a.png" % base_path) as Texture2D,
 			load("%s/ground_variant_b.png" % base_path) as Texture2D,

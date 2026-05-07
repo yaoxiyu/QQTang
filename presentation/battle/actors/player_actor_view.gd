@@ -50,7 +50,7 @@ func apply_view_state(view_state: Dictionary) -> void:
 	alive = bool(view_state.get("alive", true))
 	facing = int(view_state.get("facing", 0))
 	_target_position = view_state.get("position", Vector2.ZERO)
-	var cell_size := float(view_state.get("cell_size", 48.0))
+	var cell_size := float(view_state.get("cell_size", 40.0))
 	var snap_distance := cell_size * TELEPORT_SNAP_DISTANCE_CELLS
 	var should_snap := not _has_visual_target or position.distance_to(_target_position) >= snap_distance
 	if should_snap:
