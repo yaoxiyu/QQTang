@@ -4,3 +4,4 @@ map_classic_square,2v2,true,true
 map_breakable_center_lane,2v2,true,true
 map_desert01,1v1,true,false
 map_desert01,2v2,true,false
+map_match01,1v1,true,false

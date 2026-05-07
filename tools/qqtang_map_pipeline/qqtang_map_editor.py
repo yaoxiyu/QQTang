@@ -59,6 +59,8 @@ OFFICIAL_FLOOR_CSV = REPO_ROOT / "content_source/csv/maps/map_floor_tiles.csv"
 OFFICIAL_SURFACE_CSV = REPO_ROOT / "content_source/csv/maps/map_surface_instances.csv"
 OFFICIAL_VISUAL_META_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_visual_meta.csv"
 OFFICIAL_FOOTPRINT_OVERRIDES_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_footprint_overrides.csv"
+OFFICIAL_LAYER_CONFIG_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_layer_config.csv"
+OFFICIAL_MATCH_FORMATS_CSV = REPO_ROOT / "content_source/csv/match_formats/match_formats.csv"
 OFFICIAL_MODES_CSV = REPO_ROOT / "content_source/csv/modes/modes.csv"
 OFFICIAL_RULESETS_CSV = REPO_ROOT / "content_source/csv/rulesets/rulesets.csv"
 OFFICIAL_PREVIEW_DIR = REPO_ROOT / "content/maps/previews"
@@ -246,6 +248,7 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
     if not map_elem_root.exists():
         map_elem_root = version_root
     footprint_config = load_asset_footprint_config()
+    layer_config = load_layer_config()
     assets: List[AssetMeta] = []
     for path in sorted(map_elem_root.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in ASSET_EXTS:
@@ -263,8 +266,10 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
         theme = parts[0]
         elem_id, state = parse_elem_name(path)
         geometry_type, layer_hint, fp_w, fp_h, anchor, confidence, review = classify_asset(width, height, state)
-        logical_type = infer_logic_type(layer_hint, state, path)
         key = f"{theme}/{path.stem}"
+        if key in layer_config:
+            layer_hint = layer_config[key]
+        logical_type = infer_logic_type(layer_hint, state, path)
         if key in footprint_config:
             fp_w, fp_h = footprint_config[key]
         anchor_x = width / 2.0 if anchor == "bottom_center" else 0.0
@@ -315,6 +320,22 @@ def load_asset_footprint_config() -> Dict[str, Tuple[int, int]]:
             except ValueError:
                 continue
             result[elem_key] = (footprint_w, footprint_h)
+    return result
+
+
+def load_layer_config() -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    if not OFFICIAL_LAYER_CONFIG_CSV.exists():
+        return result
+    try:
+        _fieldnames, rows = read_csv_rows(OFFICIAL_LAYER_CONFIG_CSV)
+    except Exception:
+        return result
+    for row in rows:
+        elem_key = str(row.get("elem_key", "")).strip()
+        layer_hint = str(row.get("layer_hint", "")).strip()
+        if elem_key and layer_hint in ("floor", "surface"):
+            result[elem_key] = layer_hint
     return result
 
 
@@ -430,6 +451,8 @@ class SurfaceInstance:
     x: int
     y: int
     z_bias: int = 0
+    footprint_w: int = 1
+    footprint_h: int = 1
 
 
 class MapModel:
@@ -456,11 +479,11 @@ class MapModel:
                     "asset_key": inst.asset_key,
                     "cell_x": inst.x,
                     "cell_y": inst.y,
-                    "footprint_w": meta.footprint_w,
-                    "footprint_h": meta.footprint_h,
+                    "footprint_w": inst.footprint_w,
+                    "footprint_h": inst.footprint_h,
                     "anchor_mode": meta.anchor_mode,
                     "z_bias": inst.z_bias,
-                    "sort_key": [inst.y + meta.footprint_h - 1, -inst.x, inst.z_bias],
+                    "sort_key": [inst.y + inst.footprint_h - 1, -inst.x, inst.z_bias],
                 }
             )
         return {
@@ -593,8 +616,17 @@ def load_official_map_model(map_id: str, store: "AssetStore") -> MapModel:
         x = int(row.get("x", "0") or "0")
         y = int(row.get("y", "0") or "0")
         z_bias = int(row.get("z_bias", "0") or "0")
+        fp_w_raw = row.get("footprint_w", "")
+        fp_h_raw = row.get("footprint_h", "")
+        if fp_w_raw and fp_h_raw:
+            fp_w = max(1, int(fp_w_raw))
+            fp_h = max(1, int(fp_h_raw))
+        else:
+            meta = store.by_key[elem_key]
+            fp_w = max(1, meta.footprint_w)
+            fp_h = max(1, meta.footprint_h)
         if 0 <= x < cols and 0 <= y < rows:
-            model.surface[(x, y)] = SurfaceInstance(elem_key, x, y, z_bias)
+            model.surface[(x, y)] = SurfaceInstance(elem_key, x, y, z_bias, fp_w, fp_h)
     return model
 
 
@@ -637,11 +669,20 @@ def sync_official_map_csv(config: dict, preview_png_path: Path, previous_map_id:
     upsert_csv_row(OFFICIAL_MAPS_CSV, "map_id", map_row)
 
     remove_csv_rows(OFFICIAL_VARIANTS_CSV, lambda row: row.get("map_id", "") == map_id)
-    variant_rows = [{"map_id": map_id, "match_format_id": MATCH_FORMAT_1V1, "casual_enabled": "true", "ranked_enabled": "false"}]
-    if len(spawns) >= 4:
-        variant_rows.append({"map_id": map_id, "match_format_id": MATCH_FORMAT_DUO, "casual_enabled": "true", "ranked_enabled": "false"})
-    if len(spawns) >= 8:
-        variant_rows.append({"map_id": map_id, "match_format_id": MATCH_FORMAT_4V4, "casual_enabled": "false", "ranked_enabled": "false"})
+    format_player_counts = _load_match_format_player_counts()
+    spawn_count = len(spawns)
+    variant_rows: list[dict] = []
+    for fmt_id, required_players in sorted(format_player_counts.items()):
+        if spawn_count >= required_players:
+            ranked = "true" if required_players >= 4 else "false"
+            variant_rows.append({
+                "map_id": map_id,
+                "match_format_id": fmt_id,
+                "casual_enabled": "true",
+                "ranked_enabled": ranked,
+            })
+    if not variant_rows:
+        raise ValueError("spawn count %d is too small for any known match format" % spawn_count)
     append_csv_rows(OFFICIAL_VARIANTS_CSV, variant_rows)
 
     remove_csv_rows(OFFICIAL_FLOOR_CSV, lambda row: row.get("map_id", "") == map_id)
@@ -669,6 +710,8 @@ def sync_official_map_csv(config: dict, preview_png_path: Path, previous_map_id:
                 "elem_key": str(item["asset_key"]),
                 "x": str(int(item["cell_x"])),
                 "y": str(int(item["cell_y"])),
+                "footprint_w": str(int(item.get("footprint_w", 1))),
+                "footprint_h": str(int(item.get("footprint_h", 1))),
                 "z_bias": str(int(item.get("z_bias", 0))),
                 "render_role": "surface",
             }
@@ -706,8 +749,28 @@ def append_csv_rows(path: Path, new_rows: list[dict]) -> None:
     if not new_rows:
         return
     fieldnames, rows = read_csv_rows(path)
+    for row in new_rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
     rows.extend(new_rows)
     write_csv_rows(path, fieldnames, rows)
+
+
+def _load_match_format_player_counts() -> Dict[str, int]:
+    result: Dict[str, int] = {}
+    if not OFFICIAL_MATCH_FORMATS_CSV.exists():
+        return {"1v1": 2, "2v2": 4, "4v4": 8}
+    _fieldnames, rows = read_csv_rows(OFFICIAL_MATCH_FORMATS_CSV)
+    for row in rows:
+        fmt_id = str(row.get("match_format_id", "")).strip()
+        if not fmt_id:
+            continue
+        team_count = int(row.get("team_count", "0") or "0")
+        party_size = int(row.get("required_party_size", "0") or "0")
+        if team_count > 0 and party_size > 0:
+            result[fmt_id] = team_count * party_size
+    return result if result else {"1v1": 2, "2v2": 4, "4v4": 8}
 
 
 def load_mode_options() -> list[tuple[str, str]]:
@@ -762,6 +825,9 @@ class MapEditor(tk.Tk):
         self.status_var = tk.StringVar(value="Ready")
         self._paint_drag_active = False
         self._paint_drag_last_cell: Optional[Tuple[int, int]] = None
+        self._preview_cell: Optional[Tuple[int, int]] = None
+        self._preview_valid: bool = False
+        self._drag_placing: bool = False
         self._build_ui()
         self.refresh_filters()
         self.refresh_asset_list()
@@ -851,6 +917,9 @@ class MapEditor(tk.Tk):
         self.map_canvas.bind("<ButtonRelease-1>", self.on_map_left_release)
         self.map_canvas.bind("<Button-3>", self.on_map_right_click)
         self.map_canvas.bind("<Motion>", self.on_map_motion)
+        self.asset_canvas.bind("<B1-Motion>", self.on_map_left_drag)
+        self.asset_canvas.bind("<ButtonRelease-1>", self.on_map_left_release)
+        self.bind("<ButtonRelease-1>", self.on_map_left_release, add=True)
 
         status = ttk.Label(self, textvariable=self.status_var, anchor="w")
         status.pack(fill=tk.X, side=tk.BOTTOM)
@@ -898,12 +967,67 @@ class MapEditor(tk.Tk):
             label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
             for widget in (frame, img_label, label):
                 widget.bind("<Button-1>", lambda e, k=asset.key: self.select_asset(k))
+                widget.bind("<Button-3>", lambda e, k=asset.key: self._on_asset_right_click(e, k))
         self.status_var.set(f"资产列表：{len(assets)} 个；当前层：{layer}；当前选择：{self.selected_asset_key or '无'}")
 
     def select_asset(self, key: str):
         self.selected_asset_key = key
         meta = self.store.by_key[key]
-        self.status_var.set(f"已选择：{key}  {meta.width}×{meta.height}  占格={meta.footprint_w}×{meta.footprint_h}  {logic_type_label(meta.logical_type)}")
+        confidence_str = f" 置信={meta.confidence:.0%}" if meta.confidence < 0.9 else ""
+        self.status_var.set(f"已选择：{key}  {meta.width}×{meta.height}  占格={meta.footprint_w}×{meta.footprint_h}  {logic_type_label(meta.logical_type)}{confidence_str}")
+
+    def _on_asset_right_click(self, event, key: str):
+        self.select_asset(key)
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="编辑占格", command=lambda: self._edit_footprint_dialog(key))
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def _edit_footprint_dialog(self, key: str):
+        meta = self.store.by_key[key]
+        win = tk.Toplevel(self)
+        win.title(f"编辑占格 — {key}")
+        win.geometry("280x160")
+        win.transient(self)
+        win.grab_set()
+        win.resizable(False, False)
+
+        ttk.Label(win, text=f"资产: {key}").pack(pady=(12, 0))
+        ttk.Label(win, text=f"图像尺寸: {meta.width}×{meta.height}  当前占格: {meta.footprint_w}×{meta.footprint_h}").pack()
+
+        f = ttk.Frame(win)
+        f.pack(pady=12)
+        ttk.Label(f, text="占格宽度:").grid(row=0, column=0, padx=4)
+        w_var = tk.StringVar(value=str(meta.footprint_w))
+        ttk.Spinbox(f, from_=1, to=20, textvariable=w_var, width=5).grid(row=0, column=1, padx=4)
+        ttk.Label(f, text="占格高度:").grid(row=0, column=2, padx=4)
+        h_var = tk.StringVar(value=str(meta.footprint_h))
+        ttk.Spinbox(f, from_=1, to=20, textvariable=h_var, width=5).grid(row=0, column=3, padx=4)
+
+        def _save():
+            try:
+                w = max(1, int(w_var.get()))
+                h = max(1, int(h_var.get()))
+            except ValueError:
+                messagebox.showwarning("输入错误", "占格宽高必须为整数。")
+                return
+            self._save_footprint_override(key, w, h)
+            win.destroy()
+            self.status_var.set(f"已更新 {key} 占格为 {w}×{h}")
+
+        ttk.Button(win, text="保存", command=_save).pack()
+
+    def _save_footprint_override(self, key: str, w: int, h: int):
+        fieldnames, rows = read_csv_rows(OFFICIAL_FOOTPRINT_OVERRIDES_CSV)
+        rows = [row for row in rows if str(row.get("elem_key", "")).strip() != key]
+        rows.append({"elem_key": key, "footprint_w": str(w), "footprint_h": str(h)})
+        write_csv_rows(OFFICIAL_FOOTPRINT_OVERRIDES_CSV, fieldnames or ["elem_key", "footprint_w", "footprint_h"], rows)
+        self.store.by_key[key].footprint_w = w
+        self.store.by_key[key].footprint_h = h
+        self.refresh_asset_list()
+        self.redraw()
 
     def map_cell_from_event(self, event) -> Optional[Tuple[int, int]]:
         x = event.x - PREVIEW_MARGIN_LEFT
@@ -916,28 +1040,81 @@ class MapEditor(tk.Tk):
 
     def on_map_motion(self, event):
         cell = self.map_cell_from_event(event)
+        layer = self.current_layer.get()
         if cell:
-            self.status_var.set(f"cell=({cell[0]},{cell[1]}) layer={self.current_layer.get()} selected={self.selected_asset_key or '无'}")
+            meta_str = ""
+            if self.selected_asset_key and self.selected_asset_key in self.store.by_key:
+                meta = self.store.by_key[self.selected_asset_key]
+                fp_w = max(1, meta.footprint_w)
+                fp_h = max(1, meta.footprint_h)
+                meta_str = f" 占格={fp_w}×{fp_h}"
+            self.status_var.set(f"cell=({cell[0]},{cell[1]}) layer={layer} selected={self.selected_asset_key or '无'}{meta_str}")
+            if self.selected_asset_key and layer in ("floor", "surface"):
+                if self._drag_placing:
+                    return
+                prev_cell = self._preview_cell
+                self._preview_cell = cell
+                self._preview_valid = self._check_placement_valid(cell[0], cell[1], layer)
+                if prev_cell != cell:
+                    self._draw_footprint_overlay()
+            else:
+                self._clear_footprint_overlay()
+                self._preview_cell = None
+        else:
+            self._clear_footprint_overlay()
+            self._preview_cell = None
+
+    def _asset_is_multi_cell(self) -> bool:
+        if not self.selected_asset_key or self.selected_asset_key not in self.store.by_key:
+            return False
+        meta = self.store.by_key[self.selected_asset_key]
+        return meta.footprint_w > 1 or meta.footprint_h > 1
 
     def on_map_left_click(self, event):
         cell = self.map_cell_from_event(event)
-        if not cell:
-            return
-        x, y = cell
         layer = self.current_layer.get()
         if layer == "spawn":
             self._paint_drag_active = False
             self._paint_drag_last_cell = None
-            if (x, y) in self.model.spawns:
-                self.model.spawns.remove((x, y))
-            else:
-                self.model.spawns.append((x, y))
+            self._drag_placing = False
+            if cell:
+                if cell in self.model.spawns:
+                    self.model.spawns.remove(cell)
+                else:
+                    self.model.spawns.append(cell)
             self.redraw()
             return
-        self._paint_drag_active = self._paint_cell(x, y, show_warning=True)
-        self._paint_drag_last_cell = cell if self._paint_drag_active else None
+        if self._asset_is_multi_cell() and layer in ("floor", "surface"):
+            self._paint_drag_active = False
+            self._paint_drag_last_cell = None
+            self._drag_placing = True
+            if cell:
+                self._preview_cell = cell
+                self._preview_valid = self._check_placement_valid(cell[0], cell[1], layer)
+            else:
+                self._preview_valid = False
+            self._draw_footprint_overlay()
+            return
+        self._drag_placing = False
+        if cell:
+            x, y = cell
+            self._paint_drag_active = self._paint_cell(x, y, show_warning=True)
+            self._paint_drag_last_cell = cell if self._paint_drag_active else None
 
     def on_map_left_drag(self, event):
+        if not self._drag_placing and not self._paint_drag_active:
+            if self._asset_is_multi_cell() and self.current_layer.get() in ("floor", "surface"):
+                self._drag_placing = True
+        if self._drag_placing:
+            cell = self.map_cell_from_event(event)
+            layer = self.current_layer.get()
+            if cell:
+                self._preview_cell = cell
+                self._preview_valid = self._check_placement_valid(cell[0], cell[1], layer)
+            else:
+                self._preview_valid = False
+            self._draw_footprint_overlay()
+            return
         if not self._paint_drag_active:
             return
         cell = self.map_cell_from_event(event)
@@ -954,8 +1131,16 @@ class MapEditor(tk.Tk):
             self.redraw()
 
     def on_map_left_release(self, _event):
+        if self._drag_placing:
+            self._drag_placing = False
+            if self._preview_valid and self._preview_cell:
+                x, y = self._preview_cell
+                self._paint_cell(x, y, show_warning=False)
+            self._clear_footprint_overlay()
+            return
         self._paint_drag_active = False
         self._paint_drag_last_cell = None
+        self._clear_footprint_overlay()
 
     def _paint_cell(self, x: int, y: int, show_warning: bool, redraw: bool = True) -> bool:
         layer = self.current_layer.get()
@@ -992,7 +1177,7 @@ class MapEditor(tk.Tk):
                 return False
             current = self._surface_instance_at_cell(x, y)
             if current is None or current.asset_key != asset.key:
-                self.model.surface[(x, y)] = SurfaceInstance(asset.key, x, y)
+                self.model.surface[(x, y)] = SurfaceInstance(asset.key, x, y, 0, footprint_w, footprint_h)
                 changed = True
         if changed and redraw:
             self.redraw()
@@ -1026,20 +1211,67 @@ class MapEditor(tk.Tk):
 
     def _surface_instance_at_cell(self, x: int, y: int) -> Optional[SurfaceInstance]:
         for inst in self.model.surface.values():
-            meta = self.store.by_key[inst.asset_key]
-            if inst.x <= x < inst.x + meta.footprint_w and inst.y <= y < inst.y + meta.footprint_h:
+            if inst.x <= x < inst.x + inst.footprint_w and inst.y <= y < inst.y + inst.footprint_h:
                 return inst
         return None
 
     def _surface_rect_overlaps(self, x: int, y: int, w: int, h: int) -> bool:
         for inst in self.model.surface.values():
-            meta = self.store.by_key[inst.asset_key]
-            if self._rects_overlap(x, y, w, h, inst.x, inst.y, meta.footprint_w, meta.footprint_h):
+            if self._rects_overlap(x, y, w, h, inst.x, inst.y, inst.footprint_w, inst.footprint_h):
                 return True
         return False
 
     def _has_floor_coverage(self, x: int, y: int, w: int, h: int) -> bool:
         return all(self.model.floor[ty][tx] for tx, ty in self._rect_cells(x, y, w, h))
+
+    def _check_placement_valid(self, x: int, y: int, layer: str) -> bool:
+        if not self.selected_asset_key or self.selected_asset_key not in self.store.by_key:
+            return False
+        asset = self.store.by_key[self.selected_asset_key]
+        fp_w = max(1, asset.footprint_w)
+        fp_h = max(1, asset.footprint_h)
+        if not self._rect_in_bounds(x, y, fp_w, fp_h):
+            return False
+        if layer == "floor":
+            if asset.layer_hint != "floor":
+                return False
+        elif layer == "surface":
+            if self._surface_rect_overlaps(x, y, fp_w, fp_h):
+                return False
+            if asset.logical_type != "decoration" and not self._has_floor_coverage(x, y, fp_w, fp_h):
+                return False
+        return True
+
+    def _draw_footprint_overlay(self):
+        self._clear_footprint_overlay()
+        if not self._preview_cell or not self.selected_asset_key:
+            return
+        if self.selected_asset_key not in self.store.by_key:
+            return
+        asset = self.store.by_key[self.selected_asset_key]
+        fp_w = max(1, asset.footprint_w)
+        fp_h = max(1, asset.footprint_h)
+        x, y = self._preview_cell
+        ox, oy = PREVIEW_MARGIN_LEFT, PREVIEW_MARGIN_TOP
+        x1 = ox + x * CELL_SIZE
+        y1 = oy + y * CELL_SIZE
+        x2 = x1 + fp_w * CELL_SIZE
+        y2 = y1 + fp_h * CELL_SIZE
+        color = "#4CAF50" if self._preview_valid else "#F44336"
+        self.map_canvas.create_rectangle(
+            x1, y1, x2, y2,
+            outline=color, width=3, stipple="gray50",
+            tags="footprint_preview",
+        )
+        self.map_canvas.create_text(
+            (x1 + x2) // 2, (y1 + y2) // 2,
+            text=f"{fp_w}×{fp_h}",
+            fill=color, font=("Arial", 11, "bold"),
+            tags="footprint_preview",
+        )
+
+    def _clear_footprint_overlay(self):
+        self.map_canvas.delete("footprint_preview")
 
     def _cells_between(self, start: Tuple[int, int], end: Tuple[int, int]) -> List[Tuple[int, int]]:
         x0, y0 = start
@@ -1091,14 +1323,31 @@ class MapEditor(tk.Tk):
         draw = ImageDraw.Draw(img)
         ox, oy = PREVIEW_MARGIN_LEFT, PREVIEW_MARGIN_TOP
 
-        # 地面层：只显示地面时也正常绘制；空地面用暗格提示。
+        # 地面层：按实例渲染。多格资产用原图拉伸到 M*40×N*40，普通资产逐格平铺。
+        covered: set = set()
+        for inst in sorted(self.model.floor_instances.values(), key=lambda i: (i.y, i.x)):
+            meta = self.store.by_key.get(inst.asset_key)
+            is_multi = meta is not None and (meta.footprint_w > 1 or meta.footprint_h > 1)
+            if is_multi:
+                px, py = ox + inst.x * CELL_SIZE, oy + inst.y * CELL_SIZE
+                asset_img = self.store.image(inst.asset_key)
+                target_w = inst.w * CELL_SIZE
+                target_h = inst.h * CELL_SIZE
+                if asset_img.size != (target_w, target_h):
+                    asset_img = asset_img.resize((target_w, target_h), Image.NEAREST)
+                img.alpha_composite(asset_img, (px, py))
+            else:
+                for ty in range(inst.y, inst.y + inst.h):
+                    for tx in range(inst.x, inst.x + inst.w):
+                        px, py = ox + tx * CELL_SIZE, oy + ty * CELL_SIZE
+                        img.alpha_composite(self.store.floor_image(inst.asset_key), (px, py))
+            for ty in range(inst.y, inst.y + inst.h):
+                for tx in range(inst.x, inst.x + inst.w):
+                    covered.add((tx, ty))
         for row in range(self.model.rows):
             for col in range(self.model.cols):
-                key = self.model.floor[row][col]
-                px, py = ox + col * CELL_SIZE, oy + row * CELL_SIZE
-                if key:
-                    img.alpha_composite(self.store.floor_image(key), (px, py))
-                else:
+                if (col, row) not in covered:
+                    px, py = ox + col * CELL_SIZE, oy + row * CELL_SIZE
                     fill = (58, 58, 58, 255) if (row + col) % 2 == 0 else (50, 50, 50, 255)
                     draw.rectangle([px, py, px + CELL_SIZE, py + CELL_SIZE], fill=fill)
 
@@ -1106,7 +1355,7 @@ class MapEditor(tk.Tk):
             instances = sorted(
                 self.model.surface.values(),
                 key=lambda inst: (
-                    inst.y + self.store.by_key[inst.asset_key].footprint_h - 1,
+                    inst.y + inst.footprint_h - 1,
                     -inst.x,
                     inst.z_bias,
                 ),
@@ -1116,10 +1365,10 @@ class MapEditor(tk.Tk):
                 asset_img = self.store.image(inst.asset_key)
                 if meta.anchor_mode == "bottom_left_of_footprint":
                     dx = ox + inst.x * CELL_SIZE
-                    dy = oy + (inst.y + meta.footprint_h) * CELL_SIZE - meta.height
+                    dy = oy + (inst.y + inst.footprint_h) * CELL_SIZE - meta.height
                 else:
                     dx = ox + int(inst.x * CELL_SIZE + CELL_SIZE * 0.5 - meta.width * 0.5)
-                    dy = oy + int(inst.y * CELL_SIZE + CELL_SIZE - meta.height)
+                    dy = oy + int(inst.y * CELL_SIZE + inst.footprint_h * CELL_SIZE - meta.height)
                 img.alpha_composite(asset_img, (dx, dy))
 
         if include_spawns:
@@ -1146,6 +1395,7 @@ class MapEditor(tk.Tk):
         layer = self.current_layer.get()
         include_surface = layer in ("surface", "spawn")
         include_spawns = layer == "spawn"
+        self._clear_footprint_overlay()
         # 表现层编辑时显示地面+表现层；地面编辑时只显示地面。
         img = self.render_to_image(include_surface=include_surface, include_spawns=include_spawns, draw_grid=True)
         self.canvas_img = ImageTk.PhotoImage(img)

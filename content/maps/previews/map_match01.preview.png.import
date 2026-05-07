@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://duf548p4e0f8t"
-path="res://.godot/imported/box_elem1_stand.png-4c6e7b9fe7d668a505381022095f23f4.ctex"
+uid="uid://bbqoq8hetyqrl"
+path="res://.godot/imported/map_match01.preview.png-513d37bbd1c288ccdbc81a9d626447e9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/maps/generated/floor_tiles/box_elem1_stand.png"
-dest_files=["res://.godot/imported/box_elem1_stand.png-4c6e7b9fe7d668a505381022095f23f4.ctex"]
+source_file="res://content/maps/previews/map_match01.preview.png"
+dest_files=["res://.godot/imported/map_match01.preview.png-513d37bbd1c288ccdbc81a9d626447e9.ctex"]
 
 [params]
 

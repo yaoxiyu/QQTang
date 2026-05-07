@@ -125,8 +125,6 @@ func _build_map_resource(
 	if floor_tile_entries.is_empty():
 		record_error("generate_maps.gd: map %s has no valid floor tile entries" % map_id)
 		return null
-	if not _floor_entries_cover_map(map_id, floor_tile_entries, width, height):
-		return null
 	var surface_entries := _build_surface_entries(
 		map_id,
 		surface_rows_by_map_id.get(map_id, []) as Array,
@@ -135,6 +133,16 @@ func _build_map_resource(
 		height,
 		csv_reader
 	)
+	var decoration_cells: Dictionary = {}
+	for entry in surface_entries:
+		if String(entry.get("logic_type", "")) == "decoration":
+			var cell: Vector2i = entry.get("cell", Vector2i.ZERO)
+			var fp: Vector2i = entry.get("footprint", Vector2i.ONE)
+			for fy in range(fp.y):
+				for fx in range(fp.x):
+					decoration_cells[Vector2i(cell.x + fx, cell.y + fy)] = true
+	if not _floor_entries_cover_map(map_id, floor_tile_entries, width, height, decoration_cells):
+		return null
 	var default_variant := _select_default_variant(match_format_variants)
 	if default_variant.is_empty():
 		record_error("generate_maps.gd: map %s failed to resolve default match format variant" % map_id)
@@ -169,7 +177,7 @@ func _build_map_resource(
 	map_resource.bound_rule_set_id = bound_rule_set_id
 	map_resource.match_format_id = String(default_variant.get("match_format_id", ""))
 	map_resource.required_team_count = int(default_variant.get("required_team_count", 0))
-	map_resource.max_player_count = int(default_variant.get("max_player_count", 0))
+	map_resource.max_player_count = spawn_points.size()
 	map_resource.match_format_variants = match_format_variants
 	map_resource.custom_room_enabled = csv_reader.parse_bool(map_row.get("custom_room_enabled", "true"), true)
 	map_resource.matchmaking_casual_enabled = _has_enabled_queue(match_format_variants, "matchmaking_casual_enabled")
@@ -300,7 +308,9 @@ func _build_floor_tile_entries(
 		if String(visual_meta.get("visual_layer", "")) != "floor":
 			record_error("generate_maps.gd: map %s floor elem_key must reference a 40x40 floor asset: %s" % [map_id, elem_key])
 			continue
-		texture_path = _build_expanded_floor_texture(map_id, elem_key, texture_path)
+		var expand := csv_reader.parse_int(row.get("expand", "0"), 0) == 1
+		if expand:
+			texture_path = _build_expanded_floor_texture(map_id, elem_key, texture_path)
 		var x := csv_reader.parse_int(row.get("x", ""), -1)
 		var y := csv_reader.parse_int(row.get("y", ""), -1)
 		var w := csv_reader.parse_int(row.get("w", ""), 0)
@@ -376,6 +386,7 @@ func _build_surface_entries(
 			"die_texture_path": csv_reader.optional_string(visual_meta, "die_resource_path", ""),
 			"trigger_texture_path": csv_reader.optional_string(visual_meta, "trigger_resource_path", ""),
 			"sort_key": Vector3i(y + footprint_h - 1, -x, z_bias),
+			"logic_type": csv_reader.optional_string(visual_meta, "logic_type", "decoration"),
 		})
 	return result
 
@@ -467,7 +478,7 @@ func _require_visual_meta(map_id: String, elem_key: String, visual_meta_by_elem_
 	return visual_meta_by_elem_key[elem_key] as Dictionary
 
 
-func _floor_entries_cover_map(map_id: String, entries: Array[Dictionary], width: int, height: int) -> bool:
+func _floor_entries_cover_map(map_id: String, entries: Array[Dictionary], width: int, height: int, decoration_cells: Dictionary = {}) -> bool:
 	var covered: Dictionary = {}
 	for entry in entries:
 		var rect := entry.get("rect", Rect2i()) as Rect2i
@@ -476,7 +487,8 @@ func _floor_entries_cover_map(map_id: String, entries: Array[Dictionary], width:
 				covered[Vector2i(x, y)] = true
 	for y in range(height):
 		for x in range(width):
-			if not covered.has(Vector2i(x, y)):
+			var pos := Vector2i(x, y)
+			if not covered.has(pos) and not decoration_cells.has(pos):
 				record_error("generate_maps.gd: map %s floor missing cell %d:%d" % [map_id, x, y])
 				return false
 	return true

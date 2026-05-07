@@ -2,3 +2,4 @@ map_id,display_name,preview_image_path,width,height,layout_rows,spawn_points,the
 map_classic_square,经典广场,res://ui/maps/classic_square.png,15,13,###############;#.............#;#.#.#.#.#.#.#.#;#..#####......#;#.#.#.#.#.#.#.#;#..#.....#....#;#.#.#.#.#.#.#.#;#....#####....#;#.#.#.#.#.#.#.#;#....#...#....#;#.#.#.#.#.#.#.#;#.............#;###############,1:1;13:1;1:11;13:11,box,default_items,box,ruleset_classic,true,10
 map_breakable_center_lane,中路空场,res://ui/maps/breakable_center_lane.png,13,11,,5:1;7:1;5:9;7:9,box,default_items,box,ruleset_score_team,true,20
 map_desert01,desert01,res://content/maps/previews/map_desert01.preview.png,15,13,,0:0;14:0;14:12;0:12,desert,default_items,desert,ruleset_classic,true,100
+map_match01,match01,res://content/maps/previews/map_match01.preview.png,15,13,,7:5;7:10,match,default_items,match,ruleset_score_team,true,100
