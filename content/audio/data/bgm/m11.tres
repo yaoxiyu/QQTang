@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_ohrqg"]
+
+[resource]
+script = ExtResource("1_ohrqg")
+audio_id = "m11"
+category = "BGM_SCENE"
+bus = "BGM"
+audio_resource_path = "res://external/assets/audio/bgm/scene/M11.ogg"
+playback_policy = "one_shot"

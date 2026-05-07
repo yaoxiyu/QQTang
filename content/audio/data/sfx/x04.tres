@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_arpco"]
+
+[resource]
+script = ExtResource("1_arpco")
+audio_id = "x04"
+category = "SFX_UI"
+bus = "UI"
+audio_resource_path = "res://external/assets/audio/sfx/ui/uiFail.wav"
+playback_policy = "alias"
+preload_enabled = true
+alias_of = "uifail"

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_fi8su"]
+
+[resource]
+script = ExtResource("1_fi8su")
+audio_id = "scene2"
+category = "BGM_SCENE"
+bus = "BGM"
+audio_resource_path = "res://external/assets/audio/bgm/scene/scene2.ogg"
+playback_policy = "loop"
+loop = true

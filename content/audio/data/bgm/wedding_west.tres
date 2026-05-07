@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_qi4ub"]
+
+[resource]
+script = ExtResource("1_qi4ub")
+audio_id = "wedding_west"
+category = "BGM_EVENT"
+bus = "Event"
+audio_resource_path = "res://external/assets/audio/bgm/event/weddingWest.ogg"
+playback_policy = "loop"
+loop = true

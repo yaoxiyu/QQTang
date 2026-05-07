@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_47ybi"]
+
+[resource]
+script = ExtResource("1_47ybi")
+audio_id = "m10"
+category = "BGM_MAP"
+bus = "BGM"
+audio_resource_path = "res://external/assets/audio/bgm/map/M10.ogg"
+playback_policy = "loop"
+loop = true

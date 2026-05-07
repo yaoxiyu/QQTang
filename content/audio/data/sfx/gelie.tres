@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_ivnuy"]
+
+[resource]
+script = ExtResource("1_ivnuy")
+audio_id = "gelie"
+category = "SFX_BATTLE"
+bus = "SFX"
+audio_resource_path = "res://external/assets/audio/sfx/battle/gelie.wav"
+playback_policy = "one_shot"

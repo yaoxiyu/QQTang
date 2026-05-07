@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_3wy55"]
+
+[resource]
+script = ExtResource("1_3wy55")
+audio_id = "lovefire"
+category = "SFX_EVENT"
+bus = "Event"
+audio_resource_path = "res://external/assets/audio/sfx/event/loveFire.wav"
+playback_policy = "one_shot"

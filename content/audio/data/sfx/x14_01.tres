@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_omayq"]
+
+[resource]
+script = ExtResource("1_omayq")
+audio_id = "x14_01"
+category = "SFX_NUMBERED_BATTLE"
+bus = "SFX"
+audio_resource_path = "res://external/assets/audio/sfx/_audit_numbered/X14_01.wav"
+playback_policy = "one_shot"

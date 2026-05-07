@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_2pkx5"]
+
+[resource]
+script = ExtResource("1_2pkx5")
+audio_id = "laugh"
+category = "SFX_VOICE"
+bus = "Voice"
+audio_resource_path = "res://external/assets/audio/sfx/voice/laugh.wav"
+playback_policy = "one_shot"

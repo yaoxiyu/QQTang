@@ -43,5 +43,12 @@
   - 先排查大模块，再排查小模块，最后排查具体代码。
   - 先排查重现步骤，再排查日志，没有日志就要添加日志。
 
+## 音频系统
+- 项目唯一的 autoload 单例是 `AudioManager`（`services/audio/audio_manager.gd`），业务代码通过全局变量直接调用。
+- 音频播放必须走 AudioManager API（`play_bgm` / `play_sfx` / `play_ui_sfx`），不得直接 `load()` 音频资源或手动创建 AudioStreamPlayer。
+- 音频资产 id 定义在 `content_source/csv/audio/audio_assets.csv`，生成到 `content/audio/data/`，由 `AudioCatalog` 提供运行时查询和别名解析。
+- 编号音效 `x05_01` ~ `x40_01` 语义未确认，写新功能时不得直接绑定这些 id；走 `_audit_numbered/` 隔离。
+- 音频子系统完整 API 和架构文档见 `docs/architecture/audio_system.md`。
+
 ## 任务结束时
 - 告诉用户需要如何验证本次修改，包括需要重新编译、生成哪些资源，调用什么脚本等

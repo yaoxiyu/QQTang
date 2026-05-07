@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_dxmut"]
+
+[resource]
+script = ExtResource("1_dxmut")
+audio_id = "heyao"
+category = "SFX_ITEM"
+bus = "SFX"
+audio_resource_path = "res://external/assets/audio/sfx/item/HeYao.wav"
+playback_policy = "one_shot"

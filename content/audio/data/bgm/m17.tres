@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_t011l"]
+
+[resource]
+script = ExtResource("1_t011l")
+audio_id = "m17"
+category = "BGM_MAP"
+bus = "BGM"
+audio_resource_path = "res://external/assets/audio/bgm/map/sculpture.ogg"
+playback_policy = "loop"
+loop = true
+alias_of = "sculpture"

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_03qn1"]
+
+[resource]
+script = ExtResource("1_03qn1")
+audio_id = "player_loss"
+category = "BGM_RESULT"
+bus = "BGM"
+audio_resource_path = "res://external/assets/audio/bgm/result/PlayerLoss.ogg"
+playback_policy = "one_shot"

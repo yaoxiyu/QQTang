@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_cbf8x"]
+
+[resource]
+script = ExtResource("1_cbf8x")
+audio_id = "bomb_sfx"
+category = "SFX_BATTLE"
+bus = "SFX"
+audio_resource_path = "res://external/assets/audio/sfx/battle/bomb.wav"
+playback_policy = "one_shot_polyphonic"
+preload_enabled = true

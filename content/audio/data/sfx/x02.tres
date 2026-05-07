@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AudioAssetDef" format=3]
+
+[ext_resource type="Script" path="res://content/audio/defs/audio_asset_def.gd" id="1_qrwi4"]
+
+[resource]
+script = ExtResource("1_qrwi4")
+audio_id = "x02"
+category = "SFX_UI"
+bus = "UI"
+audio_resource_path = "res://external/assets/audio/sfx/ui/uiNormal.wav"
+playback_policy = "alias"
+preload_enabled = true
+alias_of = "uinormal"
