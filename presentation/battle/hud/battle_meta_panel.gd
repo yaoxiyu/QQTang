@@ -30,6 +30,10 @@ func _ready() -> void:
 		character_name_label = get_node(character_name_label_path)
 	if has_node(bubble_style_label_path):
 		bubble_style_label = get_node(bubble_style_label_path)
+	for label in [map_name_label, rule_name_label, match_meta_label, character_name_label, bubble_style_label]:
+		if label != null:
+			label.custom_minimum_size = Vector2.ZERO
+			label.clip_text = true
 	_apply_pending_metadata()
 
 

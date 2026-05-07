@@ -7,6 +7,7 @@ const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_k
 func test_main() -> void:
 	var ok := true
 	ok = _test_placement_uses_bubble_loadout_and_indexes_footprint() and ok
+	ok = _test_type1_visual_coverage_excludes_destroyed_breakable_blocks() and ok
 	ok = _test_type2_power2_explosion_covers_square_area() and ok
 	ok = _test_type2_power2_native_matches_gdscript() and ok
 	ok = _test_snapshot_and_checksum_include_bubble_metadata() and ok
@@ -29,6 +30,34 @@ func _test_placement_uses_bubble_loadout_and_indexes_footprint() -> bool:
 	ok = qqt_check(world.queries.get_bubble_at(5, 5) == bubble.entity_id, "footprint diagonal cell should be indexed", prefix) and ok
 	ok = qqt_check(world.queries.is_move_blocked_for_player(int(world.state.players.active_ids[1]), 5, 5), "footprint indexed cell should block other players", prefix) and ok
 	world.dispose()
+	return ok
+
+
+func _test_type1_visual_coverage_excludes_destroyed_breakable_blocks() -> bool:
+	var previous_native_explosion := NativeFeatureFlagsScript.enable_native_explosion
+	NativeFeatureFlagsScript.enable_native_explosion = false
+	var world := _build_world_with_grid(1, 2, 1, _build_breakable_cross_map())
+	var attacker := _move_player_to(world, 0, 4, 4)
+	_place_bubble(world, attacker.player_slot)
+	var bubble := world.state.bubbles.get_bubble(world.state.bubbles.active_ids[0])
+	bubble.explode_tick = world.state.match_state.tick + 1
+	world.state.bubbles.update_bubble(bubble)
+
+	var result := world.step()
+	var exploded_event := _find_event(result["events"], SimEvent.EventType.BUBBLE_EXPLODED)
+	var covered_cells: Array = exploded_event.payload.get("covered_cells", []) if exploded_event != null else []
+	var prefix := "bubble_gameplay_metadata_test.visual_coverage"
+	var ok := true
+	ok = qqt_check(exploded_event != null, "type1 bubble should explode", prefix) and ok
+	ok = qqt_check(covered_cells.has(Vector2i(4, 4)), "center should be visually covered", prefix) and ok
+	ok = qqt_check(covered_cells.has(Vector2i(5, 4)), "open right cell should be visually covered", prefix) and ok
+	ok = qqt_check(covered_cells.has(Vector2i(4, 5)), "open down cell should be visually covered", prefix) and ok
+	ok = qqt_check(not covered_cells.has(Vector2i(4, 3)), "destroyed up block should not be visually covered", prefix) and ok
+	ok = qqt_check(not covered_cells.has(Vector2i(3, 4)), "destroyed left block should not be visually covered", prefix) and ok
+	ok = qqt_check(_has_cell_destroyed_event(result["events"], Vector2i(4, 3)), "up block should still be destroyed", prefix) and ok
+	ok = qqt_check(_has_cell_destroyed_event(result["events"], Vector2i(3, 4)), "left block should still be destroyed", prefix) and ok
+	world.dispose()
+	NativeFeatureFlagsScript.enable_native_explosion = previous_native_explosion
 	return ok
 
 
@@ -128,6 +157,10 @@ func _explode_type2_power2_with_native_flag(world: SimWorld, use_native: bool) -
 
 
 func _build_world_with_bubble_loadout(bubble_type: int, power: int, footprint_cells: int) -> SimWorld:
+	return _build_world_with_grid(bubble_type, power, footprint_cells, _build_open_map())
+
+
+func _build_world_with_grid(bubble_type: int, power: int, footprint_cells: int, grid: GridState) -> SimWorld:
 	var config := SimConfig.new()
 	config.system_flags["player_slots"] = [
 		{"peer_id": 1, "slot_index": 0, "team_id": 1},
@@ -138,7 +171,7 @@ func _build_world_with_bubble_loadout(bubble_type: int, power: int, footprint_ce
 		{"peer_id": 2, "type": 1, "power": 1, "footprint_cells": 1},
 	]
 	var world := SimWorld.new()
-	world.bootstrap(config, {"grid": _build_open_map()})
+	world.bootstrap(config, {"grid": grid})
 	return world
 
 
@@ -149,6 +182,21 @@ func _build_open_map() -> GridState:
 		"#........#",
 		"#........#",
 		"#........#",
+		"#........#",
+		"#........#",
+		"#........#",
+		"#S......S#",
+		"##########",
+	])
+
+
+func _build_breakable_cross_map() -> GridState:
+	return BuiltinMapFactory._build_from_rows([
+		"##########",
+		"#S......S#",
+		"#........#",
+		"#...B....#",
+		"#..B.....#",
 		"#........#",
 		"#........#",
 		"#........#",
@@ -184,6 +232,15 @@ func _find_event(events: Array, event_type: int) -> SimEvent:
 		if event is SimEvent and event.event_type == event_type:
 			return event
 	return null
+
+
+func _has_cell_destroyed_event(events: Array, cell: Vector2i) -> bool:
+	for event in events:
+		if not (event is SimEvent) or int(event.event_type) != SimEvent.EventType.CELL_DESTROYED:
+			continue
+		if int(event.payload.get("cell_x", -1)) == cell.x and int(event.payload.get("cell_y", -1)) == cell.y:
+			return true
+	return false
 
 
 func _sort_cells(raw_cells: Array) -> Array[String]:

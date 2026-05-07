@@ -461,12 +461,6 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
                 return true;
             }
 
-            Dictionary covered;
-            covered["bubble_id"] = bubble.entity_id;
-            covered["cell_x"] = check_x;
-            covered["cell_y"] = check_y;
-            covered_cells.append(covered);
-
             if (grid.tile_type == TILE_BREAKABLE_BLOCK) {
                 Dictionary block_aux_data;
                 block_aux_data["profile_id"] = String("breakable_destroy_stop");
@@ -492,6 +486,12 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
                 }
                 return true;
             }
+
+            Dictionary covered;
+            covered["bubble_id"] = bubble.entity_id;
+            covered["cell_x"] = check_x;
+            covered["cell_y"] = check_y;
+            covered_cells.append(covered);
 
             collect_hits_at_cell(check_x, check_y);
             return false;
@@ -537,4 +537,3 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
     result["version"] = WIRE_VERSION;
     return UtilityFunctions::var_to_bytes(result);
 }
-

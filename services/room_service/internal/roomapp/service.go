@@ -368,12 +368,13 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 
 	memberID := s.nextID("member")
 	reconnectToken := s.nextID("reconnect")
+	teamID := resolveJoinTeamID(room.Members)
 	room.Members[memberID] = domain.RoomMember{
 		MemberID:        memberID,
 		AccountID:       input.AccountID,
 		ProfileID:       input.ProfileID,
 		PlayerName:      input.PlayerName,
-		TeamID:          1,
+		TeamID:          teamID,
 		SlotIndex:       slotIndex,
 		MemberPhase:     MemberPhaseIdle,
 		ConnectionState: "connected",
@@ -396,6 +397,40 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 	s.touchRoomSnapshotLocked(room)
 	s.syncDirectoryEntryLocked(room)
 	return s.snapshotProjectionLocked(room), nil
+}
+
+func resolveJoinTeamID(members map[string]domain.RoomMember) int {
+	const maxTeamID = 8
+	if len(members) == 1 {
+		for _, member := range members {
+			for teamID := 1; teamID <= maxTeamID; teamID++ {
+				if teamID != member.TeamID {
+					return teamID
+				}
+			}
+		}
+		return 1
+	}
+
+	teamCounts := make(map[int]int, maxTeamID)
+	for _, member := range members {
+		if member.TeamID >= 1 && member.TeamID <= maxTeamID {
+			teamCounts[member.TeamID]++
+		}
+	}
+	bestTeamID := 1
+	bestCount := len(members) + 1
+	for teamID := 1; teamID <= maxTeamID; teamID++ {
+		count, ok := teamCounts[teamID]
+		if !ok {
+			continue
+		}
+		if count < bestCount {
+			bestTeamID = teamID
+			bestCount = count
+		}
+	}
+	return bestTeamID
 }
 
 func (s *Service) ResumeRoom(input ResumeRoomInput) (*SnapshotProjection, error) {

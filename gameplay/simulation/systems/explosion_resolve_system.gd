@@ -156,7 +156,6 @@ func _resolve_explosion_cell(
 	if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
 		return true
 
-	_append_covered_cell(covered_cells, Vector2i(cell_x, cell_y))
 	if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
 		var block_reaction: Dictionary = ExplosionReactionResolver.resolve_breakable_block_reaction(
 			ctx,
@@ -171,6 +170,7 @@ func _resolve_explosion_cell(
 				ctx.scratch.cells_to_destroy.append(block_cell)
 		return bool(block_reaction.get("should_stop_propagation", true))
 
+	_append_covered_cell(covered_cells, Vector2i(cell_x, cell_y))
 	_collect_hits_at_cell(ctx, bubble, cell_x, cell_y, pending_bubble_queue)
 	return false
 

@@ -195,18 +195,22 @@ func _bind_hud_resource_ids() -> void:
 
 
 func _apply_formal_hud_layout() -> void:
-	_style_label_panel(countdown_panel, Vector2(28, 22), Vector2(248, 68), 24, HORIZONTAL_ALIGNMENT_CENTER)
-	_style_label_panel(player_status_panel, Vector2(28, 82), Vector2(360, 220), 15, HORIZONTAL_ALIGNMENT_LEFT)
-	_style_label_panel(network_status_panel, Vector2(816, 22), Vector2(1180, 210), 12, HORIZONTAL_ALIGNMENT_RIGHT)
+	_style_label_panel(countdown_panel, Vector2(102, 22), Vector2(250, 68), 24, HORIZONTAL_ALIGNMENT_CENTER)
+	_style_label_panel(player_status_panel, Vector2(8, 122), Vector2(268, 264), 14, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(network_status_panel, Vector2(1040, 22), Vector2(1274, 302), 11, HORIZONTAL_ALIGNMENT_RIGHT)
 	_style_label_panel(match_message_panel, Vector2(404, 24), Vector2(780, 76), 20, HORIZONTAL_ALIGNMENT_CENTER)
 	_style_panel(battle_meta_panel)
 	_style_panel(local_player_ability_panel)
-	_style_label_panel(team_score_panel, Vector2(970, 226), Vector2(1180, 332), 16, HORIZONTAL_ALIGNMENT_LEFT)
-	_style_label_panel(local_life_state_panel, Vector2(28, 400), Vector2(300, 442), 18, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(team_score_panel, Vector2(8, 48), Vector2(96, 112), 15, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(local_life_state_panel, Vector2(8, 534), Vector2(268, 576), 18, HORIZONTAL_ALIGNMENT_LEFT)
 	if battle_meta_panel is Control:
-		_set_control_rect(battle_meta_panel, Vector2(28, 238), Vector2(360, 360))
+		_set_control_rect(battle_meta_panel, Vector2(8, 284), Vector2(268, 410))
+		(battle_meta_panel as Control).custom_minimum_size = Vector2.ZERO
+		(battle_meta_panel as Control).clip_contents = true
 	if local_player_ability_panel is Control:
-		_set_control_rect(local_player_ability_panel, Vector2(28, 372), Vector2(440, 424))
+		_set_control_rect(local_player_ability_panel, Vector2(8, 424), Vector2(268, 500))
+		(local_player_ability_panel as Control).custom_minimum_size = Vector2.ZERO
+		(local_player_ability_panel as Control).clip_contents = true
 	_ensure_reference_item_bar()
 
 
@@ -214,6 +218,8 @@ func _style_label_panel(label_node: Label, position: Vector2, size: Vector2, fon
 	if label_node == null:
 		return
 	_set_control_rect(label_node, position, size)
+	label_node.custom_minimum_size = Vector2.ZERO
+	label_node.clip_text = true
 	label_node.horizontal_alignment = alignment
 	label_node.add_theme_font_size_override("font_size", font_size)
 	label_node.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 1.0))

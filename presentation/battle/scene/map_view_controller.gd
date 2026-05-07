@@ -4,8 +4,8 @@ extends Node2D
 const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_presentation_loader.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
+const MapSurfaceElementViewScript = preload("res://presentation/battle/scene/map_surface_element_view.gd")
 const ROW_Z_STEP := 100
-const DIE_ANIMATION_SPEED_SCALE: float = 0.5
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
 @export var surface_layer_path: NodePath = ^"SurfaceLayer"
@@ -104,24 +104,12 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 	_breakable_views_by_cell.erase(cell)
 	if view == null or not is_instance_valid(view):
 		return
-	if view.has_method("play_break_and_dispose"):
+	if view.has_method("play_die_and_dispose"):
+		view.play_die_and_dispose()
+	elif view.has_method("play_break_and_dispose"):
 		view.play_break_and_dispose()
 	else:
-		_play_surface_die_and_dispose(view)
-
-
-func _play_surface_die_and_dispose(view: Node2D) -> void:
-	var sprite := view as Sprite2D
-	if sprite != null:
-		var die_path := String(sprite.get_meta("die_texture_path", ""))
-		if not die_path.is_empty():
-			var die_texture := load(die_path) as Texture2D
-			if die_texture != null:
-				sprite.texture = die_texture
-				sprite.scale = _resolve_texture_scale(die_texture)
-	var tween := create_tween()
-	tween.tween_property(view, "modulate:a", 0.0, 0.18 / DIE_ANIMATION_SPEED_SCALE)
-	tween.tween_callback(view.queue_free)
+		view.queue_free()
 
 
 func debug_dump_map_state() -> Dictionary:
@@ -243,7 +231,7 @@ func _rebuild_occluders() -> void:
 		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
 		if texture == null:
 			continue
-		var node := _build_surface_sprite(texture, entry)
+		var node: Node2D = _build_surface_element_view(entry, texture)
 		occluder_layer.add_child(node)
 		_occluder_views.append(node)
 
@@ -269,8 +257,7 @@ func _rebuild_surface_entries() -> void:
 		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
 		if texture == null:
 			continue
-		var node := _build_surface_sprite(texture, entry)
-		node.set_meta("die_texture_path", String(entry.get("die_texture_path", "")))
+		var node: Node2D = _build_surface_element_view(entry, texture)
 		surface_layer.add_child(node)
 		_surface_views.append(node)
 		if String(entry.get("interaction_kind", "solid")) == "breakable":
@@ -405,30 +392,20 @@ func _build_textured_cell_sprite(texture: Texture2D, cell: Vector2i) -> Sprite2D
 	var sprite := Sprite2D.new()
 	sprite.centered = false
 	sprite.texture = texture
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.position = Vector2(cell.x, cell.y) * cell_size
 	sprite.scale = _resolve_texture_scale(texture)
 	return sprite
 
 
-func _build_surface_sprite(texture: Texture2D, entry: Dictionary) -> Sprite2D:
-	var sprite := Sprite2D.new()
-	sprite.centered = false
-	sprite.texture = texture
-	var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
-	var offset := entry.get("offset_px", Vector2.ZERO) as Vector2
-	var texture_size := texture.get_size()
-	var origin := Vector2(cell.x, cell.y) * cell_size
-	var anchor_mode := String(entry.get("anchor_mode", "bottom_right"))
-	if anchor_mode == "bottom_center":
-		origin += Vector2((cell_size - texture_size.x) * 0.5, cell_size - texture_size.y)
-	elif anchor_mode == "bottom_left_of_footprint":
-		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
-		origin += Vector2(0.0, float(footprint.y) * cell_size - texture_size.y)
-	elif anchor_mode == "bottom_right":
-		origin += Vector2(cell_size - texture_size.x, cell_size - texture_size.y)
-	sprite.position = origin + offset
-	sprite.z_index = _calc_elem_z_index(cell.x, cell.y, (entry.get("footprint", Vector2i.ONE) as Vector2i).y, int(entry.get("z_bias", 0)))
-	return sprite
+func _build_surface_element_view(entry: Dictionary, texture: Texture2D) -> Node2D:
+	var die_texture: Texture2D = null
+	var die_path := String(entry.get("die_texture_path", "")).strip_edges()
+	if not die_path.is_empty():
+		die_texture = load(die_path) as Texture2D
+	var view: Node2D = MapSurfaceElementViewScript.new()
+	view.configure(entry, cell_size, texture, die_texture)
+	return view
 
 
 func _calc_elem_z_index(cell_x: int, cell_y: int, footprint_h: int = 1, z_bias: int = 0) -> int:

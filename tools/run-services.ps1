@@ -31,7 +31,7 @@ if (-not (Test-Path -LiteralPath $composeFile)) {
 $cacheRoot = Join-Path $root (Join-Path 'build' (Join-Path '.run-services-cache' $Profile))
 New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
 $progressActivity = "run-services:$Profile"
-$progressTotal = 8
+$progressTotal = 9
 $progressStep = 1
 
 if (-not $SkipDb) {
@@ -80,8 +80,25 @@ if (-not $SkipBuild -and -not $SkipNativeBuild) {
         -Step $progressStep `
         -Total $progressTotal `
         -Action { & (Join-Path $root 'tools\native\build_native.ps1') -Target template_release } | Out-Null
+    $progressStep++
+    $linuxNativeInputs = $nativeInputs + @(
+        'tools\native\Dockerfile.linux-build',
+        'tools\native\build_native_linux.sh',
+        'tools\native\build_native_linux_docker.ps1'
+    )
+    Invoke-QQTIncrementalStep `
+        -Root $root `
+        -CacheRoot $cacheRoot `
+        -Name 'native_linux_template_release' `
+        -IncludePaths $linuxNativeInputs `
+        -OutputPaths @('external\qqt_native\bin\qqt_native.linux.template_release.x86_64.so') `
+        -Force:$ForceBuild `
+        -Activity $progressActivity `
+        -Step $progressStep `
+        -Total $progressTotal `
+        -Action { & (Join-Path $root 'tools\native\build_native_linux_docker.ps1') -Target template_release -Arch x86_64 -ForceBuild:$ForceBuild } | Out-Null
 } else {
-    $progressStep += 2
+    $progressStep += 3
 }
 $progressStep++
 Invoke-QQTProgressStep -Activity $progressActivity -Step $progressStep -Total $progressTotal -Name 'gdscript syntax preflight' -Action {
@@ -144,7 +161,7 @@ if ($Profile -eq 'dev' -and -not $SkipBuild -and -not $SkipBattleDSImageBuild) {
         -Activity $progressActivity `
         -Step $progressStep `
         -Total $progressTotal `
-        -Action { & (Join-Path $root 'scripts\docker\prepare_battle_ds_image.ps1') -GodotExe $GodotExecutable } | Out-Null
+        -Action { & (Join-Path $root 'scripts\docker\prepare_battle_ds_image.ps1') -GodotExe $GodotExecutable -SkipNativeBuild:$SkipNativeBuild -ForceBuild:$ForceBuild } | Out-Null
 }
 $progressStep++
 

@@ -3,6 +3,7 @@ extends Node2D
 
 const DEFAULT_PRIMARY_COLOR := Color(0.70, 0.50, 0.28, 1.0)
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const BREAK_DISPOSE_SECONDS := 0.36
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var primary_color: Color = DEFAULT_PRIMARY_COLOR
@@ -53,10 +54,8 @@ func play_break_and_dispose() -> void:
 	_is_breaking = true
 	modulate = Color(1.0, 1.0, 1.0, 1.0)
 	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(self, "scale", Vector2(0.35, 0.35), 0.18)
-	tween.tween_property(self, "modulate:a", 0.0, 0.18)
-	tween.finished.connect(queue_free)
+	tween.tween_interval(BREAK_DISPOSE_SECONDS)
+	tween.tween_callback(queue_free)
 
 
 func _bind_nodes() -> void:

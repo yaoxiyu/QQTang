@@ -132,9 +132,23 @@ func _refresh(snapshot) -> void:
 	_last_snapshot = snapshot
 	if _vm_builder != null and _app_runtime != null:
 		_last_vm = _vm_builder.build_view_model(snapshot, _room_controller.room_runtime_context if _room_controller != null else null, _app_runtime.player_profile_state, _app_runtime.current_room_entry_context)
+	_sync_selected_team_from_snapshot(snapshot, _last_vm)
 	_refresh_slots(snapshot, _last_vm)
 	_refresh_actions(snapshot, _last_vm)
 	_refresh_props(snapshot, _last_vm)
+
+
+func _sync_selected_team_from_snapshot(snapshot, vm: Dictionary) -> void:
+	var team_id := int(vm.get("local_team_id", 0))
+	if snapshot != null:
+		for member in snapshot.members:
+			if member != null and member.is_local_player and int(member.team_id) > 0:
+				team_id = int(member.team_id)
+				break
+	if team_id <= 0:
+		return
+	_selected_team_id = clampi(team_id, 1, 8)
+	_move_checkmark(_selected_team_id)
 
 
 func _on_start_match(snapshot) -> void:
