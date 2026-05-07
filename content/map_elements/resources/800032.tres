@@ -6,10 +6,10 @@
 script = ExtResource("1_rmu8j")
 element_id = 800032
 display_name = "machine_elem32"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 32
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem32_stand.png"
-content_hash = "80f2f4013a53928bc5a8ddd4136d56f81e97fe8f7e8ccfca64ebfd3e5fb8318c"
+content_hash = "4c64fe6194d8ac2a963ea94a1ff81b21456d2a9722720204eb8672f0244fdd68"

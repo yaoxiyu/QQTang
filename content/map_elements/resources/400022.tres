@@ -6,11 +6,11 @@
 script = ExtResource("1_nnh0v")
 element_id = 400022
 display_name = "bun_elem22"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 22
 logic_type = 4
 source_dir = "bun"
 stand_file = "elem22_stand.png"
 trigger_file = "elem22_trigger.gif"
-content_hash = "b167a494f869318885dfd06058ad0e7865ee3f019ef5d8d88b19893f4d8fd437"
+content_hash = "8ff3fd9684f3b4421f9dbbf030c073c6228db37aa6db9d206b7fbc58bb559cf3"

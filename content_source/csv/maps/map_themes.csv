@@ -1,4 +1,4 @@
-theme_id,display_name,description
+mode_id,mode_name,description
 bomb,炸弹主题,
 box,宝箱主题,
 bun,包子主题,
@@ -11,6 +11,7 @@ match,比赛主题,
 mine,矿洞主题,
 pig,猪猪主题,
 practice,练习主题,
+pve,PVE主题,
 sculpture,雕塑主题,
 snow,冰雪主题,
 tank,坦克主题,

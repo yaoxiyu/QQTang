@@ -143,7 +143,7 @@ Request JSON:
 {
   "source_room_id": "room_abc",
   "source_room_kind": "private_room",
-  "mode_id": "mode_classic",
+  "mode_id": "box",
   "rule_set_id": "ruleset_classic",
   "map_id": "map_classic_square",
   "expected_member_count": 2,

@@ -6,10 +6,10 @@
 script = ExtResource("1_spdgo")
 element_id = 1300404
 display_name = "pve_elem404"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 404
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem404_stand.png"
-content_hash = "a0bed913f9b96820e65af048da4dbca639d3195c76802d3fcdcfe2c72dd61ef7"
+content_hash = "98c8ae707c4ad7f933d07a885622f29bdb2ff1ff7212805ac07dff8dd46e11e9"

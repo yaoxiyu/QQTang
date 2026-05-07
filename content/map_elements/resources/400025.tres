@@ -6,10 +6,10 @@
 script = ExtResource("1_opa8m")
 element_id = 400025
 display_name = "bun_elem25"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 25
 logic_type = 1
 source_dir = "bun"
 stand_file = "elem25_stand.png"
-content_hash = "9e38e3a9363309c51ba41105976dc2fb13f0bd38b37a05e8c7e7f10390f07345"
+content_hash = "48903657eded5b2f51854e763b6cb42c16dc651eae534bab0853f354686f6761"

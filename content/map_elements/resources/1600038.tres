@@ -6,11 +6,11 @@
 script = ExtResource("1_tvewd")
 element_id = 1600038
 display_name = "tank_elem38"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 38
 logic_type = 3
 source_dir = "tank"
 stand_file = "elem38_stand.png"
 die_file = "elem38_die.gif"
-content_hash = "2ea53f45ab028ecd8dacdd7758a2218bf40423b348740ed4142dbaf9828ecc5e"
+content_hash = "5266ade5e94322f05558eef6fc2aa310604fc5492e2e64cdd3657c213da49660"

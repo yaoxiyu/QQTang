@@ -6,10 +6,10 @@
 script = ExtResource("1_laxwa")
 element_id = 1000013
 display_name = "mine_elem13"
-theme_id = 10
-theme_name = "mine"
+mode_id = "mine"
+mode_name = "矿洞主题"
 elem_number = 13
 logic_type = 1
 source_dir = "mine"
 stand_file = "elem13_stand.png"
-content_hash = "ecf0b80a18114173454d5411bd89f26ba00c5d08006ce32beb5d7f3f7e52c060"
+content_hash = "a44331f393175a55d15964e57d84163875717269d5ea334ef120670224d35b7e"

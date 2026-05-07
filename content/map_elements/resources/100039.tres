@@ -6,10 +6,10 @@
 script = ExtResource("1_bkfv4")
 element_id = 100039
 display_name = "common_elem39"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 39
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem39_stand.gif"
-content_hash = "36f454708c49d3782f489afd9ca0e1334b0b5008e6fadb1dc6f7209d4211e132"
+content_hash = "1c6ff4494012db248503c7ba6183d9065b0303dd0e83a0a1aa8f13acaa843f2d"

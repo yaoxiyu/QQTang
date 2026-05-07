@@ -6,11 +6,11 @@
 script = ExtResource("1_w83gn")
 element_id = 1100011
 display_name = "pig_elem11"
-theme_id = 11
-theme_name = "pig"
+mode_id = "pig"
+mode_name = "猪猪主题"
 elem_number = 11
 logic_type = 3
 source_dir = "pig"
 stand_file = "elem11_stand.png"
 die_file = "elem11_die.gif"
-content_hash = "8142275f0d33faf405571c375b0689edbaffa4fa9da4a25b67b363537fc5e2d1"
+content_hash = "fd15548f8bab1f05cbcda801c4f0deed5791d04f46fe2e41f9dd66b21f8247fa"

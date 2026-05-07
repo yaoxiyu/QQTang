@@ -6,10 +6,10 @@
 script = ExtResource("1_nflgo")
 element_id = 100137
 display_name = "common_elem137"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 137
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem137_stand.gif"
-content_hash = "3858a10d3f08453af7fedf284822b786d35d50a33f5b864e096a2d6f7c4f5367"
+content_hash = "bc45d1ee901655ada6d87e1b90aa9869b0849d602ed5ee76840633d08f8da722"

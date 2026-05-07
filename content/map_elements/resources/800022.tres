@@ -6,10 +6,10 @@
 script = ExtResource("1_hyoba")
 element_id = 800022
 display_name = "machine_elem22"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 22
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem22_stand.png"
-content_hash = "24d4be65a72f42d6998d39f7c220ce1dc704b0cd8163a4432b7701e236813bef"
+content_hash = "27d2557dd514f21d8303b49beb645d38e3927180566bfcff3449d9fb9350909a"

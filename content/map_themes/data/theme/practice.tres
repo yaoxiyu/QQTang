@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MapThemeDef" format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/map_themes/default_environment.tscn" id="1_rmnxr"]
+[ext_resource type="Script" path="res://content/map_themes/defs/map_theme_def.gd" id="2_w8l13"]
+
+[resource]
+script = ExtResource("2_w8l13")
+theme_id = "practice"
+display_name = "练习主题"
+tile_palette = {
+"breakable": Color(0.7019608, 0.47843137, 0.29411766, 1),
+"grid_line": Color(0.101960786, 0.11764706, 0.15294118, 1),
+"ground": Color(0.8784314, 0.8784314, 0.81960785, 1),
+"occluder": Color(0.30588236, 0.47843137, 0.32156864, 1),
+"solid": Color(0.20392157, 0.21960784, 0.27058825, 1),
+"spawn": Color(0.24313726, 0.41960785, 0.25882354, 1)
+}
+bgm_key = "bgm_classic"
+environment_scene = ExtResource("1_rmnxr")
+solid_presentation_id = "tile_pres_solid_wall_default"
+breakable_presentation_id = "tile_pres_breakable_brick_default"

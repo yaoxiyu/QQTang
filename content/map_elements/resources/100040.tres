@@ -6,10 +6,10 @@
 script = ExtResource("1_tcy2p")
 element_id = 100040
 display_name = "common_elem40"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 40
 logic_type = 1
 source_dir = "common"
 stand_file = "elem40_stand.png"
-content_hash = "9d18fcba24e3e3c600526accfdc74a347907dce9c011e730bc90f739d55ad851"
+content_hash = "7454baaa4059515f23dbaf2caf387a3588d9ad09b49eba6d39ce4c66e063d6ea"

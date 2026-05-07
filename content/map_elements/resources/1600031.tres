@@ -6,10 +6,10 @@
 script = ExtResource("1_g41dy")
 element_id = 1600031
 display_name = "tank_elem31"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 31
 logic_type = 1
 source_dir = "tank"
 stand_file = "elem31_stand.png"
-content_hash = "236dd5457b13cfff2116dd3175fc66eb2dafd0fd95be1e809178d18eb83dc6bd"
+content_hash = "4f256454a5326a884db6e7ad3a9a986ebd2098b568e448cef866eb9bef4b7409"

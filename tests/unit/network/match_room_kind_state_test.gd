@@ -23,7 +23,7 @@ func test_main() -> void:
 
 	state.match_format_id = "2v2"
 	state.required_party_size = 2
-	state.selected_match_mode_ids = ["mode_classic"]
+	state.selected_match_mode_ids = ["box"]
 	state.room_queue_state = "queueing"
 	state.room_queue_entry_id = "party_queue_alpha"
 	state.room_queue_status_text = "Queueing"
@@ -35,7 +35,7 @@ func test_main() -> void:
 	roundtrip.members[0].member_phase = "idle"
 	ok = qqt_check(String(roundtrip.queue_type) == "ranked", "snapshot should preserve queue type", prefix) and ok
 	ok = qqt_check(String(roundtrip.match_format_id) == "2v2", "snapshot should preserve match format", prefix) and ok
-	ok = qqt_check(roundtrip.selected_match_mode_ids == ["mode_classic"], "snapshot should preserve selected mode pool", prefix) and ok
+	ok = qqt_check(roundtrip.selected_match_mode_ids == ["box"], "snapshot should preserve selected mode pool", prefix) and ok
 	ok = qqt_check(String(roundtrip.room_queue_entry_id) == "party_queue_alpha", "snapshot should preserve queue entry id", prefix) and ok
 
 	var controller := RoomSessionControllerScript.new()

@@ -6,10 +6,10 @@
 script = ExtResource("1_pqis5")
 element_id = 300123
 display_name = "box_elem123"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 123
 logic_type = 1
 source_dir = "box"
 stand_file = "elem123_stand.png"
-content_hash = "99713f0766cfc9641b3509acc0d369334d04e209a7913b1f1ee12f30c5e3beb9"
+content_hash = "aa943cf107c4c08438dbd65a541f93b25b3a5877137eee80e494141e93e268be"

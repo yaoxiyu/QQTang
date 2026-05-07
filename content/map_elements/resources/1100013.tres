@@ -6,11 +6,11 @@
 script = ExtResource("1_wwoo7")
 element_id = 1100013
 display_name = "pig_elem13"
-theme_id = 11
-theme_name = "pig"
+mode_id = "pig"
+mode_name = "猪猪主题"
 elem_number = 13
 logic_type = 4
 source_dir = "pig"
 stand_file = "elem13_stand.png"
 trigger_file = "elem13_trigger.gif"
-content_hash = "851f2f4c11cf079278e31688bb823fc94050a0e04ef63a1c50584f8f49ace41c"
+content_hash = "dc224161430c0936cabff561cd5ec72778bd0b59495a73192f939b9092885a58"

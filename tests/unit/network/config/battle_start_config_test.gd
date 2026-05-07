@@ -205,7 +205,7 @@ func _make_valid_config() -> BattleStartConfig:
 	var resolved_mode_id := String(binding.get("bound_mode_id", ""))
 	var resolved_rule_set_id := String(binding.get("bound_rule_set_id", ""))
 	if resolved_mode_id.is_empty():
-		resolved_mode_id = "mode_classic"
+		resolved_mode_id = "box"
 	if resolved_rule_set_id.is_empty():
 		resolved_rule_set_id = "ruleset_classic"
 	var rule_metadata := RuleSetCatalogScript.get_rule_metadata(resolved_rule_set_id)
@@ -306,8 +306,8 @@ func _make_room_snapshot() -> RoomSnapshot:
 	snapshot.owner_peer_id = 1
 	snapshot.selected_map_id = default_map_id
 	snapshot.rule_set_id = "ruleset_classic"
-	snapshot.mode_id = "mode_classic"
-	snapshot.selected_match_mode_ids = ["mode_classic"]
+	snapshot.mode_id = "box"
+	snapshot.selected_match_mode_ids = ["box"]
 	snapshot.all_ready = true
 	snapshot.max_players = 2
 

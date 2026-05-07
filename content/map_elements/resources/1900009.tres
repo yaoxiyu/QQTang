@@ -6,10 +6,10 @@
 script = ExtResource("1_mvsqv")
 element_id = 1900009
 display_name = "water_elem9"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 9
 logic_type = 1
 source_dir = "water"
 stand_file = "elem9_stand.png"
-content_hash = "b74dca32f3ee54f8531d6290f67678f9b4c64baa765c87e87bc78c9ca6f75965"
+content_hash = "7d8b4f57b39b6b36a5ddffcdbec5b30d9d00f38ca045e569013b2a25b693e671"

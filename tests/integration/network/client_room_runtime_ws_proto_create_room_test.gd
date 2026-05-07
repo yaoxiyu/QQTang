@@ -33,7 +33,7 @@ func _main_body() -> void:
 		"",
 		"map_arcade",
 		"ruleset_classic",
-		"mode_classic",
+		"box",
 		"",
 		[],
 		"private_room",

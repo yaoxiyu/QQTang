@@ -6,11 +6,11 @@
 script = ExtResource("1_3qax8")
 element_id = 100021
 display_name = "common_elem21"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 21
 logic_type = 4
 source_dir = "common"
 stand_file = "elem21_stand.png"
 trigger_file = "elem21_trigger.gif"
-content_hash = "56e00c8363d4c5bd40d0669ee08a212ac5e138f0ca94b2ae15d7443929b0babb"
+content_hash = "188a949d53733947b1afdab7aee05d55a3aff52f1f76d9a677d156a796185e43"

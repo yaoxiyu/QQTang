@@ -6,11 +6,11 @@
 script = ExtResource("1_rd4mi")
 element_id = 800064
 display_name = "machine_elem64"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 64
 logic_type = 3
 source_dir = "machine"
 stand_file = "elem64_stand.png"
 die_file = "elem64_die.gif"
-content_hash = "86c29ae816ee66d1b5bd909bfaad196a3f8cac7d4e0b4a95aa8a5d5163c43ff8"
+content_hash = "29663b7be2eaca8b8d9b69e64219d8d126718ed41c0409c9be77fe48090344f7"

@@ -6,10 +6,10 @@
 script = ExtResource("1_weet3")
 element_id = 500007
 display_name = "desert_elem7"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 7
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem7_stand.png"
-content_hash = "2ba8b86b52699d7bf87fd5b57e96bd024a7565597c9631ddf76a7f80e92503fa"
+content_hash = "b372159339b36a2fb4aa844f7cd338df2db6e3fa1e613bc20084066ee8e94d04"

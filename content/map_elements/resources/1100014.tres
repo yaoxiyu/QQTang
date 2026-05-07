@@ -6,10 +6,10 @@
 script = ExtResource("1_mnwjx")
 element_id = 1100014
 display_name = "pig_elem14"
-theme_id = 11
-theme_name = "pig"
+mode_id = "pig"
+mode_name = "猪猪主题"
 elem_number = 14
 logic_type = 1
 source_dir = "pig"
 stand_file = "elem14_stand.png"
-content_hash = "e1dc4b1c3b1142aaaa4c550ae90bb641d9add3da1e0807c89c263b2d4132cea7"
+content_hash = "3eb00361d7c739451c32c5b3e5b28f152675b7888425f3af253fe035843c12ad"

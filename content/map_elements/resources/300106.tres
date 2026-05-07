@@ -6,11 +6,11 @@
 script = ExtResource("1_lkt3g")
 element_id = 300106
 display_name = "box_elem106"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 106
 logic_type = 4
 source_dir = "box"
 stand_file = "elem106_stand.png"
 trigger_file = "elem106_trigger.gif"
-content_hash = "ac7beb3d243076d33a63161e8499cfbb9b95dda07abda3db8a519ea335591a81"
+content_hash = "adcfba47723d19d7e05ee3fdbd0d68206a4216ca9074cd40e7f109cca8b43438"

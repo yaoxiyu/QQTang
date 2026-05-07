@@ -6,10 +6,10 @@
 script = ExtResource("1_qscba")
 element_id = 400017
 display_name = "bun_elem17"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 17
-logic_type = 2
+logic_type = 1
 source_dir = "bun"
 stand_file = "elem17_stand.gif"
-content_hash = "d33b3a04c6c6951ccabdecd30cc078eea68d1b828fcbef04b192d8a1e998048b"
+content_hash = "bf675cb073bf44caf821722bca9cd8c087ad243cbff9788da328924e53b1095d"

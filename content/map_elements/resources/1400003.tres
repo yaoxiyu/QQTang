@@ -6,11 +6,11 @@
 script = ExtResource("1_tf1dt")
 element_id = 1400003
 display_name = "sculpture_elem3"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 3
 logic_type = 3
 source_dir = "sculpture"
 stand_file = "elem3_stand.png"
 die_file = "elem3_die.gif"
-content_hash = "1a9317e63f2bb4df7f38938c8e5a80700336800786b23143ca1ce1f2edef8386"
+content_hash = "e3c83331402b0f8a3f1496aa3b16b86a0f249501d6d16dc6a3671be57e95fcbe"

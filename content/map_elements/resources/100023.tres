@@ -6,11 +6,11 @@
 script = ExtResource("1_twfl8")
 element_id = 100023
 display_name = "common_elem23"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 23
 logic_type = 4
 source_dir = "common"
 stand_file = "elem23_stand.png"
 trigger_file = "elem23_trigger.gif"
-content_hash = "2603e4316f1a8e525c0300cda7b5c25006039c399390c47894c338e10da7295a"
+content_hash = "50e14bc3c3106e66885c1950bc2a995d3d4c0d4ddd2b3b985cd34b9dbba407a5"

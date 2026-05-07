@@ -6,11 +6,11 @@
 script = ExtResource("1_ljvlc")
 element_id = 300126
 display_name = "box_elem126"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 126
 logic_type = 3
 source_dir = "box"
 stand_file = "elem126_stand.png"
 die_file = "elem126_die.gif"
-content_hash = "7bfc303158cb1ce28b71a2e3c8545316d25c03da8baed36a184fbbd1c75f8abe"
+content_hash = "a97d1e69cb9c9674aa0d5e041d8259d734023d3307c607f7971865102bcc0e43"

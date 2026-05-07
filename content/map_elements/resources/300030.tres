@@ -6,10 +6,10 @@
 script = ExtResource("1_cnpki")
 element_id = 300030
 display_name = "box_elem30"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 30
 logic_type = 1
 source_dir = "box"
 stand_file = "elem30_stand.png"
-content_hash = "a82dfc75351292192c87c43ba053505c7b6789170a6d2240c35fab7da22b1276"
+content_hash = "0109008c4f79bf6fd2a4f4225427e7fec39a0dc0c3d1ab747c4e4f336430de2d"

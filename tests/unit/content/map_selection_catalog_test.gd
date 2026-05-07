@@ -13,8 +13,8 @@ func _main_body() -> void:
 	MapCatalogScript.load_all()
 	var prefix := "map_selection_catalog_test"
 	var ok := true
-	ok = qqt_check(_has_ranked_map("1v1", "mode_classic", "map_classic_square", 2), "classic map should support 1v1 ranked variant", prefix) and ok
-	ok = qqt_check(_has_ranked_map("2v2", "mode_classic", "map_classic_square", 4), "classic map should keep 2v2 ranked variant", prefix) and ok
+	ok = qqt_check(_has_ranked_map("1v1", "box", "map_classic_square", 2), "classic map should support 1v1 ranked variant", prefix) and ok
+	ok = qqt_check(_has_ranked_map("2v2", "box", "map_classic_square", 4), "classic map should keep 2v2 ranked variant", prefix) and ok
 	ok = qqt_check(not _format_enabled("4v4"), "4v4 should stay locked until a map has at least 8 spawn points", prefix) and ok
 	var custom_binding := MapSelectionCatalogScript.get_map_binding("map_classic_square")
 	ok = qqt_check(int(custom_binding.get("max_player_count", 0)) == 4, "custom room binding should keep legacy map capacity", prefix) and ok

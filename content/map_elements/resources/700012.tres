@@ -6,11 +6,11 @@
 script = ExtResource("1_wlaxm")
 element_id = 700012
 display_name = "field_elem12"
-theme_id = 7
-theme_name = "field"
+mode_id = "field"
+mode_name = "田园主题"
 elem_number = 12
 logic_type = 3
 source_dir = "field"
 stand_file = "elem12_stand.png"
 die_file = "elem12_die.gif"
-content_hash = "204cc46183831622b2f6dff1101a32f75a17239921b2c5d0f15c0ed99bfd7e8a"
+content_hash = "192270d6959238e9141d833053a7b4b4ae514eeb04d7d246b01c6d312a00b5c2"

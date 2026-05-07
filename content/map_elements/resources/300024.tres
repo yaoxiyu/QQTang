@@ -6,10 +6,10 @@
 script = ExtResource("1_utxuo")
 element_id = 300024
 display_name = "box_elem24"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 24
 logic_type = 1
 source_dir = "box"
 stand_file = "elem24_stand.png"
-content_hash = "ae5cce836b547a951d3f443c2c5cd559f189553d2bf2ce906b9e939dd09a3b3d"
+content_hash = "beb1d176730ab4e1183b533751a67c85e7fc44e573aefe08770ec9d8f1ddeac8"

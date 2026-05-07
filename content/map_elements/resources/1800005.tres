@@ -6,11 +6,11 @@
 script = ExtResource("1_j51vv")
 element_id = 1800005
 display_name = "treasure_elem5"
-theme_id = 18
-theme_name = "treasure"
+mode_id = "treasure"
+mode_name = "宝藏主题"
 elem_number = 5
 logic_type = 3
 source_dir = "treasure"
 stand_file = "elem5_stand.png"
 die_file = "elem5_die.gif"
-content_hash = "97f222cae7ce25a1d91388a79574cbac5dbe9f86282bb5100dd40ecf9b7727a4"
+content_hash = "0dda75b19658efd2aeeff8057734dd770e6386cc1ffd26aa70849786a2a81eb9"

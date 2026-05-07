@@ -6,11 +6,11 @@
 script = ExtResource("1_apu6q")
 element_id = 1600032
 display_name = "tank_elem32"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 32
 logic_type = 4
 source_dir = "tank"
 stand_file = "elem32_stand.png"
 trigger_file = "elem32_trigger.gif"
-content_hash = "af8c5476d39ecad0a28b2eb8ec13f9fed1b60c92cec6fea0c0c1a11a016d411f"
+content_hash = "0312db0b384373989ddf3a66b6ec38629313d9c36c111549bed128cfcc47cdb1"

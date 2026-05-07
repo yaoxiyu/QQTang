@@ -6,10 +6,10 @@
 script = ExtResource("1_pyxfw")
 element_id = 500132
 display_name = "desert_elem132"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 132
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem132_stand.png"
-content_hash = "e09589e5e67b052df608622086f821ecfb4548aa1d5e05fd507256ba5cecb204"
+content_hash = "fa800807b30a83b679d1a946a0ecb7c5b847f776d830130f5e1f9e85b5b372ba"

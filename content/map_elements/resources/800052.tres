@@ -6,10 +6,10 @@
 script = ExtResource("1_jrelu")
 element_id = 800052
 display_name = "machine_elem52"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 52
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem52_stand.png"
-content_hash = "c73f0bac0115164b598ece217268f57428f208c031bba74321af8debdd2b2781"
+content_hash = "977cdcd07445f6408cf0f59735814fa57c9e4d97cfbedff8405f5194da5a8073"

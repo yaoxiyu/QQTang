@@ -6,11 +6,11 @@
 script = ExtResource("1_rahyv")
 element_id = 800067
 display_name = "machine_elem67"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 67
 logic_type = 3
 source_dir = "machine"
 stand_file = "elem67_stand.png"
 die_file = "elem67_die.gif"
-content_hash = "5dab214f36ddebea3b0f787cbacecd722278248f71e997c581d86598c88e3492"
+content_hash = "f31797a4ce368647ff46cda610a3a8d6e69f821fbc5dba7b5cd91320a4dce021"

@@ -6,11 +6,11 @@
 script = ExtResource("1_ad4pv")
 element_id = 100100
 display_name = "common_elem100"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 100
 logic_type = 3
 source_dir = "common"
 stand_file = "elem100_stand.png"
 die_file = "elem100_die.gif"
-content_hash = "91f77adbe8927e4c240d2e58cd3491d2ef3c9be0df9e147ee1838e6aa05dbd40"
+content_hash = "4403690b0526a94f4d59c7df0ac3ce985d18ee34a13af9bd5344443336ad323f"

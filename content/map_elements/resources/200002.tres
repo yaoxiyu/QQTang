@@ -6,10 +6,10 @@
 script = ExtResource("1_vphr5")
 element_id = 200002
 display_name = "bomb_elem2"
-theme_id = 2
-theme_name = "bomb"
+mode_id = "bomb"
+mode_name = "炸弹主题"
 elem_number = 2
 logic_type = 1
 source_dir = "bomb"
 stand_file = "elem2_stand.png"
-content_hash = "deba4cb7c822b197276c9e8abc58dcacf847391143bd550935f80a503ad7db74"
+content_hash = "bd1b57926c9aa116875d62625d938a380641957f1da15e36ded1c5a3a8e8f4a9"

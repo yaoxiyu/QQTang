@@ -6,11 +6,11 @@
 script = ExtResource("1_cdkog")
 element_id = 1600034
 display_name = "tank_elem34"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 34
 logic_type = 3
 source_dir = "tank"
 stand_file = "elem34_stand.png"
 die_file = "elem34_die.gif"
-content_hash = "588561c36b916bf770cd8de1e7a64b4a0ab8f02afd21224b2956f764196c586c"
+content_hash = "7464873a811208d6e70fdaff192e76c576befe4eb668e0d219ec2174203819d0"

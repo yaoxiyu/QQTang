@@ -6,10 +6,10 @@
 script = ExtResource("1_islie")
 element_id = 1900027
 display_name = "water_elem27"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 27
 logic_type = 1
 source_dir = "water"
 stand_file = "elem27_stand.png"
-content_hash = "bd55765ed3e4b78ec25fe3917de9ff5caf2a12761aa506826422bd89c8232bbf"
+content_hash = "0c4651abe402145b6b51a4eb8d4500521aa27b2282fb29589a8d3866157736b9"

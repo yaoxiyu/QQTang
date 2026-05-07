@@ -27,7 +27,7 @@ Request:
   "party_room_id": "room_abc",
   "queue_type": "ranked",
   "match_format_id": "2v2",
-  "selected_mode_ids": ["mode_classic", "mode_score_team"],
+  "selected_mode_ids": ["box", "field"],
   "members": [
     {
       "account_id": "acc_1",
@@ -58,7 +58,7 @@ Success:
   "queue_key": "ranked:2v2",
   "queue_type": "ranked",
   "match_format_id": "2v2",
-  "selected_mode_ids": ["mode_classic", "mode_score_team"],
+  "selected_mode_ids": ["box", "field"],
   "queue_status_text": "Searching for teams"
 }
 ```
@@ -107,7 +107,7 @@ Assigned response:
   "room_kind": "matchmade_room",
   "server_host": "127.0.0.1",
   "server_port": 9000,
-  "mode_id": "mode_classic",
+  "mode_id": "box",
   "rule_set_id": "ruleset_classic",
   "map_id": "map_classic_square",
   "captain_account_id": "acc_1"

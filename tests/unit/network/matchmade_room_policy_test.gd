@@ -58,7 +58,7 @@ func _test_match_ticket_claim_requires_assignment_locks() -> bool:
 	claim.match_source = "matchmaking"
 	claim.locked_map_id = "map_classic_square"
 	claim.locked_rule_set_id = "ruleset_classic"
-	claim.locked_mode_id = "mode_classic"
+	claim.locked_mode_id = "box"
 	claim.assigned_team_id = 1
 	claim.expected_member_count = 4
 	claim.auto_ready_on_join = true

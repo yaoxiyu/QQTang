@@ -6,11 +6,11 @@
 script = ExtResource("1_mpbaq")
 element_id = 1600043
 display_name = "tank_elem43"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 43
 logic_type = 3
 source_dir = "tank"
 stand_file = "elem43_stand.png"
 die_file = "elem43_die.gif"
-content_hash = "c234021968eb8ec7f86a6f730de1dce8a751460a355f5d545f98425174f9f075"
+content_hash = "402675b099b3ebdb83b980a4cebbabd02eaa9abd140a2aa41c601473fe846a5d"

@@ -6,10 +6,10 @@
 script = ExtResource("1_x1ejc")
 element_id = 1300251
 display_name = "pve_elem251"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 251
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem251_stand.png"
-content_hash = "44e678ba14622393a708b7583505a7543ab4a29ea809806de96cb5645eede398"
+content_hash = "6484262c902b74f89cc6fd5b18a0c809f5afbb55e5dc538c2d860b5f1546fffc"

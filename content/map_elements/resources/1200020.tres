@@ -6,11 +6,11 @@
 script = ExtResource("1_njn6p")
 element_id = 1200020
 display_name = "practice_elem20"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 20
 logic_type = 3
 source_dir = "practice"
 stand_file = "elem20_stand.png"
 die_file = "elem20_die.gif"
-content_hash = "7ecff2fba5611f19d5a49aa2e539295605ad87072147b9b171a662537361f862"
+content_hash = "a4abab435a08e705aada43a30a640469c6fe73c51d7695f3c29ae71feeccf260"

@@ -6,10 +6,10 @@
 script = ExtResource("1_snkbi")
 element_id = 100029
 display_name = "common_elem29"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 29
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem29_stand.gif"
-content_hash = "c1abee72fd297e82660232baec4bc4425905e368b3ea4df43d2bd40a159d0c40"
+content_hash = "830906ee2e413a3053fc1abc598f7619ec4b436eebd7ca2cf14312c13bb6d05c"

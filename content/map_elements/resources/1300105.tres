@@ -6,10 +6,10 @@
 script = ExtResource("1_tkvn5")
 element_id = 1300105
 display_name = "pve_elem105"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 105
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem105_stand.png"
-content_hash = "5e5a59d59276a04137ceb807821f772571b31de4a74e1db3ad2ec6793cb76f9e"
+content_hash = "a9a4d9256c7a8cee5a1cae32ec7d550114b49bdb03c47698294aa2757e3baca6"

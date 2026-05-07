@@ -6,11 +6,11 @@
 script = ExtResource("1_e7pmg")
 element_id = 1500002
 display_name = "snow_elem2"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 2
 logic_type = 3
 source_dir = "snow"
 stand_file = "elem2_stand.png"
 die_file = "elem2_die.gif"
-content_hash = "0cf9e3fe47dd243969cb1a523e02478c21a9c19aefb76d8761eb42d78dabaa0d"
+content_hash = "9a257afb84e0efb44d59ec5be5887f47f6ab5e9cf17cd93030e9f81bab468143"

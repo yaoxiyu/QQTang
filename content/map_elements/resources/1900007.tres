@@ -6,10 +6,10 @@
 script = ExtResource("1_urixg")
 element_id = 1900007
 display_name = "water_elem7"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 7
 logic_type = 1
 source_dir = "water"
 stand_file = "elem7_stand.png"
-content_hash = "7fe9bb42e560186a89d7cbc4596c8883225df53631e7307b963d22d16fec5f84"
+content_hash = "f1f607d144012e385ddfb80ddbe46a804810bb8478ffc786f74b5264820d80de"

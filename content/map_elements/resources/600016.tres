@@ -6,10 +6,10 @@
 script = ExtResource("1_wsmwb")
 element_id = 600016
 display_name = "exploration_elem16"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 16
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem16_stand.png"
-content_hash = "b15d00e88f77cf1d3e1e59b48f44330605c7803cec02014e7e9408bb17914f1c"
+content_hash = "838a3a92bf0d1c328898a764fb271b7b8339cbaa7318587b2647c8060309056e"

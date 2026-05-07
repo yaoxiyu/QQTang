@@ -6,10 +6,10 @@
 script = ExtResource("1_kuyeu")
 element_id = 600003
 display_name = "exploration_elem3"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 3
-logic_type = 2
+logic_type = 1
 source_dir = "exploration"
 stand_file = "elem3_stand.gif"
-content_hash = "7026dffe76f37b235294e051c758ab456b82c2a5ad751221ab050922a505efab"
+content_hash = "b2dfb6f14cad0294d46e22d5b62a20c3220bd16206c17e0d39e11b2f034da5ee"

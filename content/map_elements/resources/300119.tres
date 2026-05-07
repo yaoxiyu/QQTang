@@ -6,10 +6,10 @@
 script = ExtResource("1_tuljs")
 element_id = 300119
 display_name = "box_elem119"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 119
 logic_type = 1
 source_dir = "box"
 stand_file = "elem119_stand.png"
-content_hash = "4b951b440fe51e7c75c696341342420344f8affccd606984a3eb8255e1b65c12"
+content_hash = "8813e02efd6c2fd9f6f37404d32b5083e0054f032c8f1ad7da584d29d5e82307"

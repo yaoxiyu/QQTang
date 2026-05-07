@@ -6,10 +6,10 @@
 script = ExtResource("1_02k0r")
 element_id = 100055
 display_name = "common_elem55"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 55
 logic_type = 1
 source_dir = "common"
 stand_file = "elem55_stand.png"
-content_hash = "204e32c3f325a22b6b6faff8f698220391cb85ea6772083eaf9e675b7f549b2c"
+content_hash = "97dc1441eefe02ab9eae184c63c3e987d2e38d6da4e53261262ac53b8d5f1378"

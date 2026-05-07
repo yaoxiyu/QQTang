@@ -6,10 +6,10 @@
 script = ExtResource("1_ftjpm")
 element_id = 1300250
 display_name = "pve_elem250"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 250
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem250_stand.png"
-content_hash = "08b31d7cb47faa8aa784513a8d34794417d0a63c5c29ded6f958833e639af7f3"
+content_hash = "c03a12273c8354e379a38ccf56cbf3e597308beff856a19559244120f7db8278"

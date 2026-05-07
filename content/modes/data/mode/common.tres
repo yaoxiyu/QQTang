@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ModeDef" format=3]
+
+[ext_resource type="Script" path="res://content/modes/defs/mode_def.gd" id="1_fgk84"]
+
+[resource]
+script = ExtResource("1_fgk84")
+mode_id = "common"
+mode_name = "通用主题"
+display_name = "通用主题"
+rule_set_id = "ruleset_classic"
+min_player_count = 2
+content_hash = "mode_common_csv_v1"

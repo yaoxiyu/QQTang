@@ -58,7 +58,7 @@ func test_match_room_connection_config_keeps_selection_blank() -> void:
 	var entry_context := RoomEntryContextScript.new()
 	entry_context.room_kind = FrontRoomKindScript.CASUAL_MATCH_ROOM
 	entry_context.match_format_id = "2v2"
-	entry_context.selected_match_mode_ids = ["mode_classic"]
+	entry_context.selected_match_mode_ids = ["box"]
 
 	var result := RoomConnectionOrchestratorScript.build_connection_config(runtime, entry_context)
 	var config = result.get("config", null)
@@ -68,4 +68,4 @@ func test_match_room_connection_config_keeps_selection_blank() -> void:
 	assert_eq(config.selected_rule_set_id, "", "match room connection should not send rule selection")
 	assert_eq(config.selected_mode_id, "", "match room connection should not send mode selection")
 	assert_eq(config.match_format_id, "2v2", "match room connection should preserve match format")
-	assert_eq(config.selected_mode_ids, ["mode_classic"], "match room connection should preserve selected mode pool")
+	assert_eq(config.selected_mode_ids, ["box"], "match room connection should preserve selected mode pool")

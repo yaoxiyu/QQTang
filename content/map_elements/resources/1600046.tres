@@ -6,10 +6,10 @@
 script = ExtResource("1_c5jt0")
 element_id = 1600046
 display_name = "tank_elem46"
-theme_id = 16
-theme_name = "tank"
+mode_id = "tank"
+mode_name = "坦克主题"
 elem_number = 46
 logic_type = 1
 source_dir = "tank"
 stand_file = "elem46_stand.png"
-content_hash = "55df908744b3c2486faa57ee529416c49caa792f49e3967f1ff9467d091389ee"
+content_hash = "c403b28ad0c0b238935ad9a1cfffbe0646fda41d4b09c340a6c12267bf4d4139"

@@ -6,11 +6,11 @@
 script = ExtResource("1_nm2ek")
 element_id = 1900029
 display_name = "water_elem29"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 29
 logic_type = 3
 source_dir = "water"
 stand_file = "elem29_stand.png"
 die_file = "elem29_die.gif"
-content_hash = "1581acc577f2c8b5bb869b0b8f48fbf621daf8ea5ac52b590ccff4fe06a6fcf8"
+content_hash = "874bc7883bed63b09141f791bcb0dd7fe863f7be40abd166d4623dc496fc5bf2"

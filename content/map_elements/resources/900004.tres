@@ -6,10 +6,10 @@
 script = ExtResource("1_sng2o")
 element_id = 900004
 display_name = "match_elem4"
-theme_id = 9
-theme_name = "match"
+mode_id = "match"
+mode_name = "比赛主题"
 elem_number = 4
 logic_type = 1
 source_dir = "match"
 stand_file = "elem4_stand.png"
-content_hash = "06ac6b87770ee6a7d65e00b60a9636cdb3d2efa10011f09df9e9f0ec9bb991a6"
+content_hash = "1de005541f3583b138229d11c0cf1cf3a3cd17ee4f22924175ef5676c69822a2"

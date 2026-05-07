@@ -6,10 +6,10 @@
 script = ExtResource("1_lypfn")
 element_id = 1300269
 display_name = "pve_elem269"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 269
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem269_stand.png"
-content_hash = "72ab0c8c53094ab3ae54f613fc55ae73336fe04cf4489061b05c81171b1ac489"
+content_hash = "ad6d3f24112a2156676cf003b33146cdc7c44d91c26ec3d9ef61eb31b1fe4367"

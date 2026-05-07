@@ -6,10 +6,10 @@
 script = ExtResource("1_dlcnk")
 element_id = 100130
 display_name = "common_elem130"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 130
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem130_stand.gif"
-content_hash = "73c9665b68b1b7d4f2029c562e96cde63a10203598d48a477491a5e416739257"
+content_hash = "250ef967f7aa873b38ebff91433e530051426197cf044de9c72bf5a95cd4e1dd"

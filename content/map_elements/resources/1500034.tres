@@ -6,10 +6,10 @@
 script = ExtResource("1_yokyc")
 element_id = 1500034
 display_name = "snow_elem34"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 34
 logic_type = 1
 source_dir = "snow"
 stand_file = "elem34_stand.png"
-content_hash = "0c4de3b4855de4748f4afca9179442fdecd8ad14c1534160aca47ea2f7f0831b"
+content_hash = "7db46f68793d0fda21387de1f4a546d3afe123e995bc27ad3d8397dea119d707"

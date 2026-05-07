@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ModeDef" format=3]
+
+[ext_resource type="Script" path="res://content/modes/defs/mode_def.gd" id="1_4s6s2"]
+
+[resource]
+script = ExtResource("1_4s6s2")
+mode_id = "practice"
+mode_name = "练习主题"
+display_name = "练习主题"
+rule_set_id = "ruleset_classic"
+min_player_count = 2
+content_hash = "mode_practice_csv_v1"

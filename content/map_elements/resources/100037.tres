@@ -6,10 +6,10 @@
 script = ExtResource("1_lmwgc")
 element_id = 100037
 display_name = "common_elem37"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 37
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem37_stand.gif"
-content_hash = "88f617b2703ef1846101f1efda73c08131bd87ca2806e2eb1bfea902d5e78e03"
+content_hash = "ca91daeb1686bd61d38685d04a3b64e16de5db396fafc02c277a17ffc0317948"

@@ -6,10 +6,10 @@
 script = ExtResource("1_vvmpu")
 element_id = 500104
 display_name = "desert_elem104"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 104
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem104_stand.png"
-content_hash = "ae7f81f3c970e53a07fb7ac1f2ba033df51d35d11a28338156f909e48c70e969"
+content_hash = "d56fc58d44203e58965190426805d87da29473e5d37b042063cf42a012fc616e"

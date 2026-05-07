@@ -6,10 +6,10 @@
 script = ExtResource("1_1buxa")
 element_id = 1500028
 display_name = "snow_elem28"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 28
 logic_type = 1
 source_dir = "snow"
 stand_file = "elem28_stand.png"
-content_hash = "3adeae0a22d9d4a027043b6369a0198d997d15b52be7fbda7e809ef2908e58a1"
+content_hash = "5fc5d1bcd93058e158f92a74746fe7babbd104d0bb3c022f681e119601534b44"

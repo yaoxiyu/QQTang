@@ -6,11 +6,11 @@
 script = ExtResource("1_vymih")
 element_id = 300100
 display_name = "box_elem100"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 100
 logic_type = 3
 source_dir = "box"
 stand_file = "elem100_stand.png"
 die_file = "elem100_die.gif"
-content_hash = "754eb832550e48f246b3e0bca165bfcfd0a1388929c9bc9a66cbc0f7fc8d6916"
+content_hash = "fad2d3e700f4d07c885d660ee2bb93cef79feb135e41d94c84d684b30e8ef8f4"

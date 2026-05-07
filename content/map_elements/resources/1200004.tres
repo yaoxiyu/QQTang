@@ -6,11 +6,11 @@
 script = ExtResource("1_k4hge")
 element_id = 1200004
 display_name = "practice_elem4"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 4
 logic_type = 3
 source_dir = "practice"
 stand_file = "elem4_stand.png"
 die_file = "elem4_die.gif"
-content_hash = "28eb3086b21bd7d3b4b742052db8c9ab51f9222d816973ddca9cd9f0c507c3e4"
+content_hash = "daef97534ef8a22d6fd3e928cc236d5535cc587c3cb0531168c2270f558885de"

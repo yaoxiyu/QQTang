@@ -6,11 +6,11 @@
 script = ExtResource("1_omleo")
 element_id = 1900021
 display_name = "water_elem21"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 21
 logic_type = 4
 source_dir = "water"
 stand_file = "elem21_stand.png"
 trigger_file = "elem21_trigger.gif"
-content_hash = "ffae4207bf3e1436ba808bc92b3c9863840d8c1bf6dda5bedd4d8425208a8228"
+content_hash = "dbddf219c1db467504197818af46404bf238298fc0a4c63460edd85b165fe02f"

@@ -6,11 +6,11 @@
 script = ExtResource("1_fnsvp")
 element_id = 1700054
 display_name = "town_elem54"
-theme_id = 17
-theme_name = "town"
+mode_id = "town"
+mode_name = "小镇主题"
 elem_number = 54
 logic_type = 3
 source_dir = "town"
 stand_file = "elem54_stand.png"
 die_file = "elem54_die.gif"
-content_hash = "d0c4483d7cf6fbd9ba5c29e654347c09211d0b248c1a7837606c21e446078083"
+content_hash = "4008ff802dac48309c8235f0cb6c5a51c6da3055a514201948f8af9ae64fc518"

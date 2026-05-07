@@ -6,10 +6,10 @@
 script = ExtResource("1_6aa6g")
 element_id = 1000051
 display_name = "mine_elem51"
-theme_id = 10
-theme_name = "mine"
+mode_id = "mine"
+mode_name = "矿洞主题"
 elem_number = 51
 logic_type = 1
 source_dir = "mine"
 stand_file = "elem51_stand.png"
-content_hash = "3ecc21d6d5c65ccef76a8512eed9f014b68222f6148352012d95dce4a4c11245"
+content_hash = "3eafa1af524e5716dc7e5351c54142fabe6e3db3033eed68d5b4a34fe98ec651"

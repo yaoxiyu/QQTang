@@ -6,10 +6,10 @@
 script = ExtResource("1_vgjtc")
 element_id = 1000084
 display_name = "mine_elem84"
-theme_id = 10
-theme_name = "mine"
+mode_id = "mine"
+mode_name = "矿洞主题"
 elem_number = 84
 logic_type = 1
 source_dir = "mine"
 stand_file = "elem84_stand.png"
-content_hash = "e24b7f04a81305c2c3383cfb05b2c08a9b130782a683ce4d80a1384b95ee4f25"
+content_hash = "7253de989f66ade571da65cda391c27f99d27b3149dd99dc95c800d31c94021f"

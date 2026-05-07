@@ -6,10 +6,10 @@
 script = ExtResource("1_jgius")
 element_id = 200005
 display_name = "bomb_elem5"
-theme_id = 2
-theme_name = "bomb"
+mode_id = "bomb"
+mode_name = "炸弹主题"
 elem_number = 5
 logic_type = 1
 source_dir = "bomb"
 stand_file = "elem5_stand.png"
-content_hash = "db1ffbc0c74c3076cad39c6b79012d8611dbc6cd335beb635d37ab8d83063570"
+content_hash = "14e4070417d678a5bbab7e5dc1e484a2d56146a24913e5600d7dff10ba86f215"

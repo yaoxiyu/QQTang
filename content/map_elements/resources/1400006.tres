@@ -6,10 +6,10 @@
 script = ExtResource("1_qcshc")
 element_id = 1400006
 display_name = "sculpture_elem6"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 6
 logic_type = 1
 source_dir = "sculpture"
 stand_file = "elem6_stand.png"
-content_hash = "1cd664890c5f7d2f18294b30d87374eb3cc18570c6205420d7bc7f75f19d3f01"
+content_hash = "a7c037d3ae5ac057d21c9a7f01c23cb80277e15d0f633085d7d80bad03203f98"

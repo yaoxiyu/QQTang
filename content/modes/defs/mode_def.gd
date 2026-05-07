@@ -2,6 +2,7 @@ class_name ModeDef
 extends Resource
 
 @export var mode_id: String = ""
+@export var mode_name: String = ""
 @export var display_name: String = ""
 @export var rule_set_id: String = ""
 @export var default_map_id: String = ""

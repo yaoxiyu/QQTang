@@ -6,10 +6,10 @@
 script = ExtResource("1_ymssl")
 element_id = 600038
 display_name = "exploration_elem38"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 38
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem38_stand.png"
-content_hash = "bce690461f0d6e43824ca18c17aeb5a99c63c99a96750389b896b17770155e29"
+content_hash = "cd2445e7bd4c2acfbf53659b062b0b0d05c315ceea5459d2d2209741cc8c01e4"

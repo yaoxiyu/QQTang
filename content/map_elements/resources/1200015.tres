@@ -6,10 +6,10 @@
 script = ExtResource("1_fyddn")
 element_id = 1200015
 display_name = "practice_elem15"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 15
 logic_type = 1
 source_dir = "practice"
 stand_file = "elem15_stand.png"
-content_hash = "5e88a6265cc63e0371805258a3779286852045f94f9b8d05e40721ccec68d462"
+content_hash = "062c664ac0e74fdeccee6a69cf89ee9f86ff65e9ef1d68b1536144c27af2b398"

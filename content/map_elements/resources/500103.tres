@@ -6,10 +6,10 @@
 script = ExtResource("1_27jau")
 element_id = 500103
 display_name = "desert_elem103"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 103
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem103_stand.png"
-content_hash = "1fdfc0d116ef9dcdb3843fa57ed5b3c22cecdd7ff38ebdce449fdd0c70198895"
+content_hash = "f69097ab47933738dd8f75e18b632b915337968666aeb1d63567351474b4cf6c"

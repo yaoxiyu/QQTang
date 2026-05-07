@@ -40,7 +40,7 @@ func _build_match_snapshot() -> RoomSnapshot:
 	snapshot.owner_peer_id = 1
 	snapshot.match_format_id = "2v2"
 	snapshot.required_party_size = 2
-	snapshot.selected_match_mode_ids = ["mode_classic"]
+	snapshot.selected_match_mode_ids = ["box"]
 	snapshot.room_phase = "idle"
 	snapshot.queue_phase = "idle"
 	snapshot.queue_terminal_reason = "none"

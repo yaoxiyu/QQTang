@@ -6,11 +6,11 @@
 script = ExtResource("1_cqwrs")
 element_id = 400002
 display_name = "bun_elem2"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 2
 logic_type = 3
 source_dir = "bun"
 stand_file = "elem2_stand.png"
 die_file = "elem2_die.gif"
-content_hash = "0c29e6a1cd83579af5633b92ba96348299afa8534e0e385f525a62b6b06637c7"
+content_hash = "af6cbee210c82b2d58444c1c02040f9183f80431740856e6550843e53dad09d7"

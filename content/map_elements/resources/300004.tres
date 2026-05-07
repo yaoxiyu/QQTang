@@ -6,10 +6,10 @@
 script = ExtResource("1_rphgq")
 element_id = 300004
 display_name = "box_elem4"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 4
 logic_type = 1
 source_dir = "box"
 stand_file = "elem4_stand.png"
-content_hash = "3114cab40f399853db17e0aee6a386789c6f44ea698925a3b46eee56bc1e79e6"
+content_hash = "bf9e66dcadd9b2524d4247551d88addf1fd3030c3a9914e1029eb547d4a25a26"

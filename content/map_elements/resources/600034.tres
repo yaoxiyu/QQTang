@@ -6,10 +6,10 @@
 script = ExtResource("1_xmdru")
 element_id = 600034
 display_name = "exploration_elem34"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 34
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem34_stand.png"
-content_hash = "b79c471c40cac662fb80f8392f4fcbf2ccafad2d8dec77dd23244d6651d524e8"
+content_hash = "86d6887f567d09633ba10e62272e613695c7d5ae91d7075124ed35ec67f306bc"

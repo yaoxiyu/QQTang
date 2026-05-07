@@ -6,11 +6,11 @@
 script = ExtResource("1_r775j")
 element_id = 900002
 display_name = "match_elem2"
-theme_id = 9
-theme_name = "match"
+mode_id = "match"
+mode_name = "比赛主题"
 elem_number = 2
 logic_type = 3
 source_dir = "match"
 stand_file = "elem2_stand.png"
 die_file = "elem2_die.gif"
-content_hash = "edc9eb397bf09b920781862d071ae6287dbe264070c5204dea78bc56a02ef5a4"
+content_hash = "7724c2f5b392c7a26f8d8fc7185e543f4d596501980963d9807bc7b5d098d65d"

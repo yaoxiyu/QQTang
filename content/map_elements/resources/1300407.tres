@@ -6,10 +6,10 @@
 script = ExtResource("1_dkdfo")
 element_id = 1300407
 display_name = "pve_elem407"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 407
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem407_stand.png"
-content_hash = "b191dfb1b5c36e821db828080c8204f04e23556247e225d891f89ed9636c5a85"
+content_hash = "60e7bc094e8af3e1e817679c3084465a7b41751aa03fed972c2924c312a4315d"

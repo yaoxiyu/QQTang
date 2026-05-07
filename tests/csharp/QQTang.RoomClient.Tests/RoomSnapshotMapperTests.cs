@@ -35,7 +35,7 @@ public class RoomSnapshotMapperTests
             {
                 MapId = "map_arcade",
                 RuleSetId = "ruleset_classic",
-                ModeId = "mode_classic",
+                ModeId = "box",
                 MatchFormatId = "2v2",
             },
             Members =
@@ -71,7 +71,7 @@ public class RoomSnapshotMapperTests
         var openSlotIndices = Assert.IsType<List<object?>>(mapped["open_slot_indices"]);
 
         Assert.Equal("room_1", mapped["room_id"]);
-        Assert.Equal("mode_classic", mapped["mode_id"]);
+        Assert.Equal("box", mapped["mode_id"]);
         Assert.Equal(4, mapped["max_players"]);
         Assert.Equal(4, openSlotIndices.Count);
         Assert.Equal("queue_active", mapped["room_phase"]);

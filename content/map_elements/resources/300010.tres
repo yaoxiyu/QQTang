@@ -6,10 +6,10 @@
 script = ExtResource("1_2m251")
 element_id = 300010
 display_name = "box_elem10"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 10
-logic_type = 2
+logic_type = 1
 source_dir = "box"
 stand_file = "elem10_stand.gif"
-content_hash = "23f29587b6543df60e02622d3e56a852df969129675608b104cdbab324d14c73"
+content_hash = "8e80a74ac48b2b73953395e23e0e90177d10257a1a8efdb5dbe19f5ac3d3e3fb"

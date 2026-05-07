@@ -51,10 +51,10 @@ func _build_match_snapshot() -> RoomSnapshot:
 	snapshot.room_queue_state = "queued"
 	snapshot.match_format_id = "2v2"
 	snapshot.required_party_size = 2
-	snapshot.selected_match_mode_ids = ["mode_classic"]
+	snapshot.selected_match_mode_ids = ["box"]
 	snapshot.selected_map_id = "map_arcade"
 	snapshot.rule_set_id = "ruleset_classic"
-	snapshot.mode_id = "mode_classic"
+	snapshot.mode_id = "box"
 	snapshot.all_ready = true
 	for index in range(2):
 		var member := RoomMemberStateScript.new()

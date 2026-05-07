@@ -6,11 +6,11 @@
 script = ExtResource("1_p13qw")
 element_id = 1400020
 display_name = "sculpture_elem20"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 20
 logic_type = 3
 source_dir = "sculpture"
 stand_file = "elem20_stand.png"
 die_file = "elem20_die.gif"
-content_hash = "bd4d55280e40c1e58e5f437d683fd9af77501bc3663e1fd70358e4139d7b6cd1"
+content_hash = "6672f020e39125bf233a4e851dd849da0ca0f95093b3593ae205680b5c5c4289"

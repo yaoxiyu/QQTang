@@ -6,11 +6,11 @@
 script = ExtResource("1_r4fph")
 element_id = 1900026
 display_name = "water_elem26"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 26
 logic_type = 3
 source_dir = "water"
 stand_file = "elem26_stand.png"
 die_file = "elem26_die.gif"
-content_hash = "621edbdaae3e1f8db1de49791b967bea40ba06a14ac78873da75e3e7f4fae466"
+content_hash = "5995b0631f09e7ee0065d4b458fbd5e502bdacd3c42eec57121dedd7ac89e20e"

@@ -6,11 +6,11 @@
 script = ExtResource("1_caop7")
 element_id = 1200002
 display_name = "practice_elem2"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 2
 logic_type = 3
 source_dir = "practice"
 stand_file = "elem2_stand.png"
 die_file = "elem2_die.gif"
-content_hash = "adb9e09aba1968734d8e0207a0740e61ff3192a15c458c2cb7de06d220efd6de"
+content_hash = "3461f74c5426f199ff3df1c3eaf24fd33c2d15d1e78e916b5fe7dd52979c8483"

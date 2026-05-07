@@ -88,7 +88,7 @@ func _test_assignment_ready_message_updates_authoritative_snapshot() -> bool:
 			"snapshot_revision": 12,
 			"selected_map_id": "map_classic_square",
 			"rule_set_id": "ruleset_classic",
-			"mode_id": "mode_classic",
+			"mode_id": "box",
 			"members": [{
 				"peer_id": 7,
 				"player_name": "local",

@@ -13,14 +13,18 @@ static func load_all() -> void:
 	_modes_by_id.clear()
 	_ordered_mode_ids.clear()
 
-	if GeneratedCatalogIndexLoaderScript.has_index("modes"):
-		if _load_from_generated_index():
+	if DirAccess.dir_exists_absolute(DATA_DIR):
+		_load_from_resources()
+		if not _modes_by_id.is_empty():
 			return
 
-	if not DirAccess.dir_exists_absolute(DATA_DIR):
-		push_error("ModeCatalog data dir missing: %s" % DATA_DIR)
+	if GeneratedCatalogIndexLoaderScript.has_index("modes") and _load_from_generated_index():
 		return
 
+	push_error("ModeCatalog data dir missing or empty: %s" % DATA_DIR)
+
+
+static func _load_from_resources() -> void:
 	for file_name in DirAccess.get_files_at(DATA_DIR):
 		if not file_name.ends_with(".tres"):
 			continue
@@ -35,7 +39,7 @@ static func load_all() -> void:
 			continue
 		_modes_by_id[def.mode_id] = {
 			"resource_path": resource_path,
-			"display_name": String(def.display_name if not def.display_name.is_empty() else def.mode_id),
+			"display_name": String(def.mode_name if not def.mode_name.is_empty() else def.display_name if not def.display_name.is_empty() else def.mode_id),
 		}
 
 	for mode_id in _modes_by_id.keys():
@@ -74,6 +78,10 @@ static func get_default_mode_id() -> String:
 	_ensure_loaded()
 	if _ordered_mode_ids.is_empty():
 		return ""
+	for mode_id in _ordered_mode_ids:
+		var metadata := get_mode_metadata(mode_id)
+		if not String(metadata.get("default_map_id", "")).is_empty():
+			return mode_id
 	return _ordered_mode_ids[0]
 
 
@@ -114,6 +122,7 @@ static func get_mode_metadata(mode_id: String) -> Dictionary:
 	return {
 		"id": mode_id,
 		"mode_id": mode_def.mode_id,
+		"mode_name": String(_modes_by_id[mode_id].get("display_name", mode_def.mode_name)),
 		"display_name": String(_modes_by_id[mode_id].get("display_name", mode_def.display_name)),
 		"rule_set_id": mode_def.rule_set_id,
 		"default_map_id": mode_def.default_map_id,

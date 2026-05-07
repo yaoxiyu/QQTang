@@ -6,10 +6,10 @@
 script = ExtResource("1_c21w0")
 element_id = 300109
 display_name = "box_elem109"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 109
 logic_type = 1
 source_dir = "box"
 stand_file = "elem109_stand.png"
-content_hash = "e52ca2d97078c4195811ca5d5a2641083a3cd229275fc64020e8dc4e90ed90e1"
+content_hash = "dee8ff0230e9aa0613565e7568e4b4a2f3f406eba5624ab7765e90d251997777"

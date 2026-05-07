@@ -6,11 +6,11 @@
 script = ExtResource("1_uaqtv")
 element_id = 600116
 display_name = "exploration_elem116"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 116
 logic_type = 3
 source_dir = "exploration"
 stand_file = "elem116_stand.png"
 die_file = "elem116_die.gif"
-content_hash = "2aa22c9693ae0dfb93720a0685c4c8a180a4a2c340ecd6e0ff5a3c36809395a2"
+content_hash = "012aa278353248e3e123da91505c471a7708dc2c3f8071bb66d35f0421df46e9"

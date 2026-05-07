@@ -6,10 +6,10 @@
 script = ExtResource("1_pgeom")
 element_id = 400026
 display_name = "bun_elem26"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 26
 logic_type = 1
 source_dir = "bun"
 stand_file = "elem26_stand.png"
-content_hash = "1bc7c86f51fbe604b67ce4fae66982d52f2a15fc934a2b2979d34d0661554295"
+content_hash = "a62a124090c000b168912d744263bbe4e6bd279e25aaafa703e65d30ae6cbaaa"

@@ -6,11 +6,11 @@
 script = ExtResource("1_krp71")
 element_id = 100104
 display_name = "common_elem104"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 104
 logic_type = 3
 source_dir = "common"
 stand_file = "elem104_stand.png"
 die_file = "elem104_die.gif"
-content_hash = "715b3d6f0a20edce8ac537d1c9d99f037030741419807c6156fcb8214767ba3b"
+content_hash = "a6b8ffc3b00df49d3f1d3f0db63edecce9116f00169b8b77f7545af595c9e9d5"

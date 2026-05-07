@@ -6,10 +6,10 @@
 script = ExtResource("1_nt8y6")
 element_id = 1700058
 display_name = "town_elem58"
-theme_id = 17
-theme_name = "town"
+mode_id = "town"
+mode_name = "小镇主题"
 elem_number = 58
 logic_type = 1
 source_dir = "town"
 stand_file = "elem58_stand.png"
-content_hash = "a64dcc4b18cb39d70fe42aa24fc04e4f2eedd6a4e97a5e69bd898ce8318d45ed"
+content_hash = "4f7054e4fe98c1462d67a20a4ab0495ba04c51071b683191d5101ceab385afbd"

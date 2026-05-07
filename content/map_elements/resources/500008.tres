@@ -6,11 +6,11 @@
 script = ExtResource("1_sebfp")
 element_id = 500008
 display_name = "desert_elem8"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 8
 logic_type = 4
 source_dir = "desert"
 stand_file = "elem8_stand.png"
 trigger_file = "elem8_trigger.gif"
-content_hash = "bfcd453c3c1c8bf4ab6ae69ec1cad89e4815e36aed4bfe208555ed01614da47c"
+content_hash = "e935f51bea46bfd22c3b48318f10cfa1c6f83c7b0e1b488b22a6ce17d8a44e0c"

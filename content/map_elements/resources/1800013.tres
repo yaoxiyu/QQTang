@@ -6,10 +6,10 @@
 script = ExtResource("1_jgbfv")
 element_id = 1800013
 display_name = "treasure_elem13"
-theme_id = 18
-theme_name = "treasure"
+mode_id = "treasure"
+mode_name = "宝藏主题"
 elem_number = 13
 logic_type = 1
 source_dir = "treasure"
 stand_file = "elem13_stand.png"
-content_hash = "4310d1857a19fad43262740cb6cdd5151511c407eecc3401732de70a1052a383"
+content_hash = "f1c6735b3d3d8e579c2dab3dba0785a7e68a3dfd269b41eee90d4ef1cc2e97f8"

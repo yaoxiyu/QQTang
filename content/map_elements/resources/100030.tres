@@ -6,10 +6,10 @@
 script = ExtResource("1_sesni")
 element_id = 100030
 display_name = "common_elem30"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 30
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem30_stand.gif"
-content_hash = "558782739ef398c3316091ecf066b3ae61d23e8b713e2f5bfd14ddda2ca64c3e"
+content_hash = "8587d3aac42ae62ae16cc5b18b7afafff81d09e2427cebdae27087518e70329c"

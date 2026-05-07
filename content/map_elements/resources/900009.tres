@@ -6,10 +6,10 @@
 script = ExtResource("1_mf381")
 element_id = 900009
 display_name = "match_elem9"
-theme_id = 9
-theme_name = "match"
+mode_id = "match"
+mode_name = "比赛主题"
 elem_number = 9
 logic_type = 1
 source_dir = "match"
 stand_file = "elem9_stand.png"
-content_hash = "375b4a54d0f067d9d9c0585e9dea01bbc48e9046d618a2dff7734098d95eaa79"
+content_hash = "bc69743a4e0b208cadac9abbae31e22a7b17fb9e926754d8ae5ef3ad00c5a99f"

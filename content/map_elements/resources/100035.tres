@@ -6,10 +6,10 @@
 script = ExtResource("1_caolg")
 element_id = 100035
 display_name = "common_elem35"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 35
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem35_stand.gif"
-content_hash = "ee6acef63718cbfb3d60bb7fe02d99a1e49f11280b86b5368062887bc274e96d"
+content_hash = "2e095adad4d0f150355230bf8b18c93c00e6b768ed4e4bd46a79348caf571358"

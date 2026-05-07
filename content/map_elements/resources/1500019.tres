@@ -6,10 +6,10 @@
 script = ExtResource("1_lfby6")
 element_id = 1500019
 display_name = "snow_elem19"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 19
 logic_type = 1
 source_dir = "snow"
 stand_file = "elem19_stand.png"
-content_hash = "6e3e44e2d2cc10debd1806d0b9edc7fe3d81059003b5c2339ed1ad27afdab894"
+content_hash = "5b059647e1b344784531028d917b4c8a8446f66631d05aa91eb2c024b0dab8e9"

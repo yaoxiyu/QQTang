@@ -6,10 +6,10 @@
 script = ExtResource("1_woa48")
 element_id = 1200016
 display_name = "practice_elem16"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 16
 logic_type = 1
 source_dir = "practice"
 stand_file = "elem16_stand.png"
-content_hash = "7055db347908c9f328d6e3317bccf2d5c6e1dc30868c91f40d7cce58a4c880af"
+content_hash = "ed1d64caf2aa16be24536cc74f6c50bcda320b9f7cba55f51b6b17784756d8d5"

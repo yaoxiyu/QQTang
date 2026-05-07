@@ -6,10 +6,10 @@
 script = ExtResource("1_ipopu")
 element_id = 500102
 display_name = "desert_elem102"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 102
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem102_stand.png"
-content_hash = "aad911a3e577edd1f90e5e89dcdea5d2d7a879c84a6cad5ae10a1f7d878031ec"
+content_hash = "b8e778fab7d6014d130600b09693eb0eea879b6fd17faa9f92c6009030db0ae7"

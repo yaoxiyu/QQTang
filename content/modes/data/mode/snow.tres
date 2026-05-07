@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ModeDef" format=3]
+
+[ext_resource type="Script" path="res://content/modes/defs/mode_def.gd" id="1_2e26e"]
+
+[resource]
+script = ExtResource("1_2e26e")
+mode_id = "snow"
+mode_name = "冰雪主题"
+display_name = "冰雪主题"
+rule_set_id = "ruleset_classic"
+min_player_count = 2
+content_hash = "mode_snow_csv_v1"

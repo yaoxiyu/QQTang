@@ -6,10 +6,10 @@
 script = ExtResource("1_kamrt")
 element_id = 700023
 display_name = "field_elem23"
-theme_id = 7
-theme_name = "field"
+mode_id = "field"
+mode_name = "田园主题"
 elem_number = 23
 logic_type = 1
 source_dir = "field"
 stand_file = "elem23_stand.png"
-content_hash = "4a0efcb98c833e8d2f71d9ffd2f757280bdc0273ac9354f55eea2248e194b40b"
+content_hash = "875f2287e3a492d0432326ef5a13a880a4346de2caf7d02c32ca180fba369929"

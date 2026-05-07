@@ -6,10 +6,10 @@
 script = ExtResource("1_s7wmc")
 element_id = 100133
 display_name = "common_elem133"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 133
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem133_stand.gif"
-content_hash = "1fcd736db760e2fcb1669f23dffef96baeb8393776f594606628e786221028e4"
+content_hash = "9ee6d1fd7f1a604342f4ba2b996084e138600146d6f5f924d3f3860559ac2eed"

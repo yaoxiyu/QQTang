@@ -6,10 +6,10 @@
 script = ExtResource("1_xvnhi")
 element_id = 100071
 display_name = "common_elem71"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 71
 logic_type = 1
 source_dir = "common"
 stand_file = "elem71_stand.png"
-content_hash = "2c00a8c6e76773cd296921339dd21d7e832fef31ac3d35e9c076c55b4575b3e7"
+content_hash = "012dc9bf0e735729d86a928a6a160e2490939dc599b24f66074cd123f55779ef"

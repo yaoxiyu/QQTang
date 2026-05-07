@@ -6,11 +6,11 @@
 script = ExtResource("1_fkg8o")
 element_id = 1400011
 display_name = "sculpture_elem11"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 11
 logic_type = 4
 source_dir = "sculpture"
 stand_file = "elem11_stand.png"
 trigger_file = "elem11_trigger.gif"
-content_hash = "34e3bbc71466ae8046f7685fdb4840de2e8fb0f48cb87b301f62643dae1b13d6"
+content_hash = "37a62881f40d67bc7a0ea049502d4a0cd2fbb5824ed9fc5d3d45781bc4567228"

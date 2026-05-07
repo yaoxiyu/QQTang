@@ -6,11 +6,11 @@
 script = ExtResource("1_fcu3n")
 element_id = 1200017
 display_name = "practice_elem17"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 17
 logic_type = 3
 source_dir = "practice"
 stand_file = "elem17_stand.png"
 die_file = "elem17_die.gif"
-content_hash = "39ef671879487f434b98c51a637499dbcee5316f07c8e9650ad9acc82ae269a7"
+content_hash = "d50d6f100b14b594d8bc3f79556449c522a3ea13368491c32c8d8f1ceaaded4b"

@@ -6,10 +6,10 @@
 script = ExtResource("1_kav52")
 element_id = 1900028
 display_name = "water_elem28"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 28
 logic_type = 1
 source_dir = "water"
 stand_file = "elem28_stand.png"
-content_hash = "61b8f12e8708e889022f742f546872d08187b53308348268aadca7b9d9cdc40f"
+content_hash = "1bf58adb87645104476f699fd8ea0b68af7b7e8de94bf64a5d26481ba076a69f"

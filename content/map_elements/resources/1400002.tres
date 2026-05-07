@@ -6,11 +6,11 @@
 script = ExtResource("1_pjd2m")
 element_id = 1400002
 display_name = "sculpture_elem2"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 2
 logic_type = 3
 source_dir = "sculpture"
 stand_file = "elem2_stand.png"
 die_file = "elem2_die.gif"
-content_hash = "ca328b6357219cb65f2d3dcff500843023084553553908ace57bfad02967e3bf"
+content_hash = "18e256c2167a2a436b094f1b321f07f6a7b22e8fac158f4282fe249a3b99fbce"

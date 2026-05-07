@@ -6,10 +6,10 @@
 script = ExtResource("1_daci2")
 element_id = 700019
 display_name = "field_elem19"
-theme_id = 7
-theme_name = "field"
+mode_id = "field"
+mode_name = "田园主题"
 elem_number = 19
 logic_type = 1
 source_dir = "field"
 stand_file = "elem19_stand.png"
-content_hash = "eec5279896501606cda2505372c243a316e9bc06aa8f6e1b6b8000337455ccbb"
+content_hash = "863c809d2b1dd33758e4b90468ad9a8d15c29a36f7f364196e21437bbd06cfe9"

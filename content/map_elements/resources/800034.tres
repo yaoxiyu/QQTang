@@ -6,10 +6,10 @@
 script = ExtResource("1_bb5c1")
 element_id = 800034
 display_name = "machine_elem34"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 34
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem34_stand.png"
-content_hash = "c3d35b5f383e893dcb461826490f4b51b9bd1bf9279330ff907b9c5524e71b15"
+content_hash = "a09941b33f1e80d49e589878f6241507ac2eab4ea2702847a2234b1da669a4fd"

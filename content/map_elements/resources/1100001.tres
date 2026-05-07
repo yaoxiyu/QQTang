@@ -6,10 +6,10 @@
 script = ExtResource("1_poglf")
 element_id = 1100001
 display_name = "pig_elem1"
-theme_id = 11
-theme_name = "pig"
+mode_id = "pig"
+mode_name = "猪猪主题"
 elem_number = 1
 logic_type = 1
 source_dir = "pig"
 stand_file = "elem1_stand.png"
-content_hash = "8fdfca7e79c71ca52b08a69996941b752917b59350bc7c0efa58c7fdbbea6e55"
+content_hash = "347e58ca9d89dd629688676f402875c49a7c70dba1e2536d729ce3ed07624340"

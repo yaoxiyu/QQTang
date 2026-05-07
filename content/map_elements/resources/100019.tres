@@ -6,10 +6,10 @@
 script = ExtResource("1_rg3uk")
 element_id = 100019
 display_name = "common_elem19"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 19
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem19_stand.gif"
-content_hash = "958815e4e2e9556ffbf85c23e7e3996cc86938c554cfcb4f0d7b788ed49cf875"
+content_hash = "4e21a2f343c08353d851ea63c82b09220fd31dc49cb5094a37970d67c3ca2348"

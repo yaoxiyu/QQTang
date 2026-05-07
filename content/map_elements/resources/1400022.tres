@@ -6,10 +6,10 @@
 script = ExtResource("1_uiwr2")
 element_id = 1400022
 display_name = "sculpture_elem22"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 22
 logic_type = 1
 source_dir = "sculpture"
 stand_file = "elem22_stand.png"
-content_hash = "4cda468dfb022cde5877d038a5edf32f584c5a074417068127e9f1fa6b9b0bf7"
+content_hash = "2d1fe1faa649761c1b3888f134434ac32f31ff9c58c2352108ff5c3da6a66347"

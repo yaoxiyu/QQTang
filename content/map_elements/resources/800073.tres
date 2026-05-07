@@ -6,10 +6,10 @@
 script = ExtResource("1_ycp2c")
 element_id = 800073
 display_name = "machine_elem73"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 73
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem73_stand.png"
-content_hash = "5ab0a38de4bce0dc85c24fd38c97291e2b6663b697888292560dd7246e7478c4"
+content_hash = "1bbe237d4cef286776b149ab70b5c655293aa33a2e35070854f5d2c186a76a45"

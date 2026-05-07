@@ -6,11 +6,11 @@
 script = ExtResource("1_tbbhh")
 element_id = 100102
 display_name = "common_elem102"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 102
 logic_type = 3
 source_dir = "common"
 stand_file = "elem102_stand.png"
 die_file = "elem102_die.gif"
-content_hash = "6e9a7fa2f0924a99326de83c28f8d9a9c4e8db8319c153b029e5b647c90a03f5"
+content_hash = "5d7cd503aeb5047212be0797aeb39a48f0f9d74ff6dbc9d41f5022fcc30c8d91"

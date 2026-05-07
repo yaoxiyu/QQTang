@@ -66,7 +66,7 @@ func _make_directory_entry():
 	entry.owner_name = "Host"
 	entry.selected_map_id = "map_alpha"
 	entry.rule_set_id = "ruleset_classic"
-	entry.mode_id = "mode_classic"
+	entry.mode_id = "box"
 	entry.member_count = 2
 	entry.max_players = 4
 	entry.match_active = false

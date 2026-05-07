@@ -6,10 +6,10 @@
 script = ExtResource("1_hgus7")
 element_id = 100044
 display_name = "common_elem44"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 44
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem44_stand.gif"
-content_hash = "e989c067ee0b54468b9b4c35760cb5cdbd2ab5dd4aa696dcd73271a11179e809"
+content_hash = "42a838adf3341ce8de571ff89860c33f540656153ecbe06d797f48e80a54b697"

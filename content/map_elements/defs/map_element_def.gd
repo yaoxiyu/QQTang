@@ -9,8 +9,8 @@ const LOGIC_TYPE_BREAKABLE_INTERACTIVE := 5
 
 @export var element_id: int = 0
 @export var display_name: String = ""
-@export var theme_id: int = 0
-@export var theme_name: String = ""
+@export var mode_id: String = ""
+@export var mode_name: String = ""
 @export var elem_number: int = 0
 @export var logic_type: int = 0
 @export var interact_type: int = 0

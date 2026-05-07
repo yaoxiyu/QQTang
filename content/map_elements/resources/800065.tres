@@ -6,11 +6,11 @@
 script = ExtResource("1_ssfep")
 element_id = 800065
 display_name = "machine_elem65"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 65
 logic_type = 3
 source_dir = "machine"
 stand_file = "elem65_stand.png"
 die_file = "elem65_die.gif"
-content_hash = "9f4c603940e4f1a85f4054fa090dbc7a68bd332bcb8cdf1d6121ac0dc4ec2531"
+content_hash = "bf249310b0474010eadc899591f811f11cefa245368bb9caae70ffc8d64f029e"

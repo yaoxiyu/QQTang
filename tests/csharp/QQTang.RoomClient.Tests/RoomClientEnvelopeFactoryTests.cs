@@ -60,9 +60,9 @@ public class RoomClientEnvelopeFactoryTests
                 {
                     { "map_id", "map_arcade" },
                     { "rule_set_id", "ruleset_classic" },
-                    { "mode_id", "mode_classic" },
+                    { "mode_id", "box" },
                     { "match_format_id", "2v2" },
-                    { "selected_mode_ids", new List<object?> { "mode_classic" } },
+                    { "selected_mode_ids", new List<object?> { "box" } },
                 }
             },
         }, session);

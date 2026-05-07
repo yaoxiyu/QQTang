@@ -6,10 +6,10 @@
 script = ExtResource("1_rcgr2")
 element_id = 1300205
 display_name = "pve_elem205"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 205
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem205_stand.png"
-content_hash = "cdb5d8b42b5867106c7bd20a0546ce719619247fdf65401b6e899326b4b2a099"
+content_hash = "90f6363c59dde50129c9c99db982ee45aef1b4b17d8513cca515187fa47536ea"

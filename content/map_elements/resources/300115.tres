@@ -6,12 +6,12 @@
 script = ExtResource("1_phjv1")
 element_id = 300115
 display_name = "box_elem115"
-theme_id = 3
-theme_name = "box"
+mode_id = "box"
+mode_name = "宝箱主题"
 elem_number = 115
-logic_type = 5
+logic_type = 3
 source_dir = "box"
 stand_file = "elem115_stand.png"
 die_file = "elem115_die.gif"
 trigger_file = "elem115_trigger.gif"
-content_hash = "57f1bf4b9770cf4ca5368edbe6b85538db91ce122f29cf4202fe25e35b4ed3f4"
+content_hash = "5c29f6a3a3a64b3b1e0ab4b28d27a1b56d71d9919ffafb2daaec4f2158b86863"

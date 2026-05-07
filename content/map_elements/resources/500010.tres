@@ -6,11 +6,11 @@
 script = ExtResource("1_1jlfd")
 element_id = 500010
 display_name = "desert_elem10"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 10
 logic_type = 4
 source_dir = "desert"
 stand_file = "elem10_stand.png"
 trigger_file = "elem10_trigger.gif"
-content_hash = "9423a3c7cb9515e903b0a1a29f123f316339eaf465339e29902cb1a529c97319"
+content_hash = "ca3e150ccf1aa8fd3f6a7f76cf3bbf91f9bcff498a8e9f8e933495d7d2699c7d"

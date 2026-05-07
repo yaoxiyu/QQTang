@@ -6,10 +6,10 @@
 script = ExtResource("1_cqdic")
 element_id = 600122
 display_name = "exploration_elem122"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 122
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem122_stand.png"
-content_hash = "7a5bb74bf9b8e382d8b2d15b6bc586292f2a6ebce3b3317935759e18377112c5"
+content_hash = "ba9d50a2eb7f6378f82404328905e73266c10d00dac93db15e652f989dd42b70"

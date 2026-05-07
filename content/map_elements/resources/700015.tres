@@ -6,10 +6,10 @@
 script = ExtResource("1_q36sx")
 element_id = 700015
 display_name = "field_elem15"
-theme_id = 7
-theme_name = "field"
+mode_id = "field"
+mode_name = "田园主题"
 elem_number = 15
 logic_type = 1
 source_dir = "field"
 stand_file = "elem15_stand.png"
-content_hash = "1db00e22419a255a6016779fa7928b9072937e0beceb4358d418b5dfa3739b29"
+content_hash = "a3672bf3189f3c4278de8c2499aa3557afc778dddaed99b51b599c028550c9ef"

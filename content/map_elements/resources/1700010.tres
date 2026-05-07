@@ -6,10 +6,10 @@
 script = ExtResource("1_rhonk")
 element_id = 1700010
 display_name = "town_elem10"
-theme_id = 17
-theme_name = "town"
+mode_id = "town"
+mode_name = "小镇主题"
 elem_number = 10
 logic_type = 1
 source_dir = "town"
 stand_file = "elem10_stand.png"
-content_hash = "3e2d540bed71bcbdba345b409531ed0feeacb5e60d88fa96b259637821ed82cc"
+content_hash = "127f7ae936ec7a41fc277a364e9627e7ddb8cfb49046f0a6d93aa4c02f0d90bb"

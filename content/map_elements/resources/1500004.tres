@@ -6,11 +6,11 @@
 script = ExtResource("1_cobih")
 element_id = 1500004
 display_name = "snow_elem4"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 4
 logic_type = 4
 source_dir = "snow"
 stand_file = "elem4_stand.png"
 trigger_file = "elem4_trigger.gif"
-content_hash = "4226ec35d4709ce6f0604af3777491c9cb2614a5412488f4c7c09567c2a48a70"
+content_hash = "0bfe1c2035e289d234f9561c265b17d54ece68518eb3d989fc8423236b1c1634"

@@ -6,10 +6,10 @@
 script = ExtResource("1_oqubl")
 element_id = 200012
 display_name = "bomb_elem12"
-theme_id = 2
-theme_name = "bomb"
+mode_id = "bomb"
+mode_name = "炸弹主题"
 elem_number = 12
 logic_type = 1
 source_dir = "bomb"
 stand_file = "elem12_stand.png"
-content_hash = "aca49d326dc2af47c42d27addf90d53602151c12c4e36faee24768f0fa8076bc"
+content_hash = "ab55c7c5991d64204832bb666350de0955a42356ef38093c2462ef80184b9a60"

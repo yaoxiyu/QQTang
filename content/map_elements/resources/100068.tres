@@ -6,10 +6,10 @@
 script = ExtResource("1_huwko")
 element_id = 100068
 display_name = "common_elem68"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 68
 logic_type = 1
 source_dir = "common"
 stand_file = "elem68_stand.png"
-content_hash = "bfe0c8773932ec9416dfcc29f88419713865e9988fc8c84362684a43e23abf68"
+content_hash = "49fb3d90ca8c80d51554dfc139a4f6a39f062830bb5bb24e282b9022f7aad473"

@@ -6,10 +6,10 @@
 script = ExtResource("1_klwip")
 element_id = 1300226
 display_name = "pve_elem226"
-theme_id = 13
-theme_name = "pve"
+mode_id = "pve"
+mode_name = "PVE主题"
 elem_number = 226
 logic_type = 1
 source_dir = "pve"
 stand_file = "elem226_stand.png"
-content_hash = "b02a98c409631a285c52e7901936611ef9d64f9e5210ed11b1245d7a577dfb1e"
+content_hash = "740b9762e8db8594fa2fbc54604be7f551e117d66d9a79ab5d1621c31a8a3f52"

@@ -6,10 +6,10 @@
 script = ExtResource("1_kloc4")
 element_id = 600026
 display_name = "exploration_elem26"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 26
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem26_stand.png"
-content_hash = "dd6f356620a2a5f66146a16e58afb3207887ea4d64676c6db8015974a76956ad"
+content_hash = "e0ae9aa8ae071efa9ea6be6f36d4350516f856840295aa0e6fb57ee8909ba1df"

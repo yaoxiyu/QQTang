@@ -6,11 +6,11 @@
 script = ExtResource("1_5dtar")
 element_id = 1200010
 display_name = "practice_elem10"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 10
 logic_type = 4
 source_dir = "practice"
 stand_file = "elem10_stand.png"
 trigger_file = "elem10_trigger.gif"
-content_hash = "6fa1be14cc193c303100781aaaf8135463e12bdac4e5d14edf6958c47885c656"
+content_hash = "0a226e45a2bba427a6fab32caa98a24b07352216c196baa9228a97b01341d626"

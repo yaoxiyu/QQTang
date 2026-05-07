@@ -6,10 +6,10 @@
 script = ExtResource("1_vaal8")
 element_id = 1800009
 display_name = "treasure_elem9"
-theme_id = 18
-theme_name = "treasure"
+mode_id = "treasure"
+mode_name = "宝藏主题"
 elem_number = 9
 logic_type = 1
 source_dir = "treasure"
 stand_file = "elem9_stand.png"
-content_hash = "fb4aa50f9e77b2cd453004e7db6d692c9a0450a983af931853efcadb90d16906"
+content_hash = "e18793b6e9a9109e31913590f7309fd6bfe76a79561d0d527eae81eae42d0379"

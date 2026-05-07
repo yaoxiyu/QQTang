@@ -80,7 +80,10 @@ func _assert_surface_entries_are_valid(resource: MapResource) -> void:
 		assert_true(_texture_file_exists(texture_path), "surface texture must exist: %s" % texture_path)
 		var anchor_mode := String(entry.get("anchor_mode", ""))
 		var interaction_kind := String(entry.get("interaction_kind", ""))
-		assert_eq(anchor_mode, "bottom_right", "surface anchor must use bottom_right: %s" % instance_id)
+		assert_true(
+			["bottom_center", "bottom_left_of_footprint", "bottom_right"].has(anchor_mode),
+			"surface anchor must use a supported Phase39 anchor: %s" % instance_id
+		)
 		assert_true(["solid", "breakable", "trigger_solid"].has(interaction_kind), "surface interaction kind must be supported: %s" % instance_id)
 		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
 		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i

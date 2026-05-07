@@ -6,10 +6,10 @@
 script = ExtResource("1_uv44v")
 element_id = 1900001
 display_name = "water_elem1"
-theme_id = 19
-theme_name = "water"
+mode_id = "water"
+mode_name = "水域主题"
 elem_number = 1
 logic_type = 1
 source_dir = "water"
 stand_file = "elem1_stand.png"
-content_hash = "b7b265f92efc783d18ee0d185e00b265fb936230fefa66bc9e00900fc5d1c858"
+content_hash = "bc2ae62a892df1b012826b8210cb02ef9b0f8c7be20f475766699f4494908fb2"

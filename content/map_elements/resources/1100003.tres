@@ -6,10 +6,10 @@
 script = ExtResource("1_somyw")
 element_id = 1100003
 display_name = "pig_elem3"
-theme_id = 11
-theme_name = "pig"
+mode_id = "pig"
+mode_name = "猪猪主题"
 elem_number = 3
 logic_type = 1
 source_dir = "pig"
 stand_file = "elem3_stand.png"
-content_hash = "ce966fac458aa4aa4514239633067b18acda8ca61ae8181608f21578522b4ead"
+content_hash = "ab74c5616fd9ce7445f1ba7d028c04db8487013bbd3724cfccbd739e67a9710f"

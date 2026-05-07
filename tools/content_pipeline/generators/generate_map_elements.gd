@@ -39,8 +39,8 @@ func generate() -> void:
 
 func _build_element_def(row: Dictionary, element_id: int, csv_reader: ContentCsvReader) -> Resource:
 	var display_name := csv_reader.require_string(row, "display_name")
-	var theme_id := csv_reader.parse_int(row.get("theme_id", ""), 0)
-	var theme_name := csv_reader.require_string(row, "theme_name")
+	var mode_id := csv_reader.require_string(row, "mode_id")
+	var mode_name := csv_reader.require_string(row, "mode_name")
 	var elem_number := csv_reader.parse_int(row.get("elem_number", ""), 0)
 	var logic_type := csv_reader.parse_int(row.get("logic_type", ""), 0)
 	var interact_type := csv_reader.parse_int(row.get("interact_type", "0"), 0)
@@ -52,8 +52,8 @@ func _build_element_def(row: Dictionary, element_id: int, csv_reader: ContentCsv
 	var def := MapElementDefScript.new()
 	def.element_id = element_id
 	def.display_name = display_name
-	def.theme_id = theme_id
-	def.theme_name = theme_name
+	def.mode_id = mode_id
+	def.mode_name = mode_name
 	def.elem_number = elem_number
 	def.logic_type = logic_type
 	def.interact_type = interact_type
@@ -64,8 +64,8 @@ func _build_element_def(row: Dictionary, element_id: int, csv_reader: ContentCsv
 	def.content_hash = ContentHashUtilScript.hash_dictionary({
 		"element_id": def.element_id,
 		"display_name": def.display_name,
-		"theme_id": def.theme_id,
-		"theme_name": def.theme_name,
+		"mode_id": def.mode_id,
+		"mode_name": def.mode_name,
 		"elem_number": def.elem_number,
 		"logic_type": def.logic_type,
 		"interact_type": def.interact_type,

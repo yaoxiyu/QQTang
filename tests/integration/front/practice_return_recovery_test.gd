@@ -1,4 +1,4 @@
-﻿extends "res://tests/gut/base/qqt_integration_test.gd"
+extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const ClientLaunchModeScript = preload("res://network/runtime/client_launch_mode.gd")
@@ -51,7 +51,7 @@ func _test_network_return_restores_ready_capability() -> void:
 	controller.room_session.can_toggle_ready = false
 	controller.room_session.can_enter_queue = false
 	controller.room_session.match_format_id = "1v1"
-	controller.room_session.selected_match_mode_ids = ["mode_classic"]
+	controller.room_session.selected_match_mode_ids = ["box"]
 	controller.set_member_ready(runtime.local_peer_id, true)
 
 	var recovery := RoomReturnRecoveryScript.new()
@@ -81,7 +81,7 @@ func _test_dedicated_topology_return_restores_ready_capability_without_network_l
 	controller.room_session.can_enter_queue = false
 	controller.room_session.can_cancel_queue = true
 	controller.room_session.match_format_id = "1v1"
-	controller.room_session.selected_match_mode_ids = ["mode_classic"]
+	controller.room_session.selected_match_mode_ids = ["box"]
 	controller.set_member_ready(runtime.local_peer_id, true)
 
 	var recovery := RoomReturnRecoveryScript.new()

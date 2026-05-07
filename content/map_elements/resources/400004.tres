@@ -6,11 +6,11 @@
 script = ExtResource("1_ixap4")
 element_id = 400004
 display_name = "bun_elem4"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 4
 logic_type = 3
 source_dir = "bun"
 stand_file = "elem4_stand.png"
 die_file = "elem4_die.gif"
-content_hash = "da63fb5662902a36272f8e82097c2e8e30b84b21b5685eb48fcc38b05bb478a8"
+content_hash = "5b2c6006df95929aba06fb83d0ad804728a5eecc2b66d1967b272a80cf68c5ba"

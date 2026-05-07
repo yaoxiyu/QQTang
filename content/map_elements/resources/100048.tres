@@ -6,10 +6,10 @@
 script = ExtResource("1_f2gk8")
 element_id = 100048
 display_name = "common_elem48"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 48
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem48_stand.gif"
-content_hash = "168c9af7861ba7d8c2bffc5b80e63649c1912a823aeded01484e09c23a22e0f7"
+content_hash = "f2419e7586dca5f606b98fc45d8425049675854fd37636676ae9f96335cf16ae"

@@ -6,10 +6,10 @@
 script = ExtResource("1_dtusf")
 element_id = 1000002
 display_name = "mine_elem2"
-theme_id = 10
-theme_name = "mine"
+mode_id = "mine"
+mode_name = "矿洞主题"
 elem_number = 2
 logic_type = 1
 source_dir = "mine"
 stand_file = "elem2_stand.png"
-content_hash = "eaa3d7179c0aeee263d40c1a90ed46f904cc39c48f9318fd4f3add8bfabdf93f"
+content_hash = "6b88bcbda0d33f3b5c4e444c765432e0fd3ddb4eac7e4953f6a4a82a159c8422"

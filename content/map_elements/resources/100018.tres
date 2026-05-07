@@ -6,10 +6,10 @@
 script = ExtResource("1_pxpho")
 element_id = 100018
 display_name = "common_elem18"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 18
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem18_stand.gif"
-content_hash = "25ac0d3a18d28d84daf309d8f02e613143ec7a8b3e549447e8dd498b372ce60b"
+content_hash = "0aeb41dc4c1688f19d5ad3475b8212cfda3b77c77fd5dfbb4d12814b1afe1586"

@@ -6,10 +6,10 @@
 script = ExtResource("1_sibrr")
 element_id = 100131
 display_name = "common_elem131"
-theme_id = 1
-theme_name = "common"
+mode_id = "common"
+mode_name = "通用主题"
 elem_number = 131
-logic_type = 2
+logic_type = 1
 source_dir = "common"
 stand_file = "elem131_stand.gif"
-content_hash = "4ebc96e8854c9c06d477d99a466374d5fe7a7eee3c7b4538c01c63f80025cd1a"
+content_hash = "85b85a30a3eed887a996d088f8f4b6413a591e6047278d3216cfa06378b8523e"

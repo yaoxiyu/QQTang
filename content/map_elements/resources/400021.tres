@@ -6,11 +6,11 @@
 script = ExtResource("1_cuwaj")
 element_id = 400021
 display_name = "bun_elem21"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 21
 logic_type = 4
 source_dir = "bun"
 stand_file = "elem21_stand.png"
 trigger_file = "elem21_trigger.gif"
-content_hash = "9813e111721a09acc9f32e7b752bbe76ceb793f5a6611df15f2f874bdbf072e0"
+content_hash = "bbdd3a1e9335cd00f89a9fb317be9fa954b1d01db7c5848ca55ef8091ed3d4a7"

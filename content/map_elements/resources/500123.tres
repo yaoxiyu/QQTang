@@ -6,10 +6,10 @@
 script = ExtResource("1_hseda")
 element_id = 500123
 display_name = "desert_elem123"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 123
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem123_stand.png"
-content_hash = "4cd33ce4b4e01d295d6cbea66dc483ec394ffcd54f141fd3d2c78a9c488e115a"
+content_hash = "83a2749f0281068da77b888aff73788eaee8b83eb0144e3f583afe815df9faf2"

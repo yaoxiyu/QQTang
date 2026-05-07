@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MapElementDef" format=3]
+
+[ext_resource type="Script" path="res://content/map_elements/defs/map_element_def.gd" id="1_ms01p"]
+
+[resource]
+script = ExtResource("1_ms01p")
+element_id = 400020
+display_name = "bun_elem20"
+mode_id = "bun"
+mode_name = "包子主题"
+elem_number = 20
+logic_type = 1
+source_dir = "bun"
+trigger_file = "elem20_trigger.gif"
+content_hash = "d627ef9c9f9034d4c73bb2df4913f1093c04fc54665f639420adfeaf72589cc4"

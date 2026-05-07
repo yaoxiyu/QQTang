@@ -6,10 +6,10 @@
 script = ExtResource("1_ydsvm")
 element_id = 1400010
 display_name = "sculpture_elem10"
-theme_id = 14
-theme_name = "sculpture"
+mode_id = "sculpture"
+mode_name = "雕塑主题"
 elem_number = 10
 logic_type = 1
 source_dir = "sculpture"
 stand_file = "elem10_stand.png"
-content_hash = "a1ecb3fecba8e32718045caf89e512df595b3c9d64d614ad7d159818bc2b56bb"
+content_hash = "50169767b4f32f0a989b895704f45450cbd3a2f6de7e669ab0f2cf9cb3fd9cb5"

@@ -6,10 +6,10 @@
 script = ExtResource("1_suav2")
 element_id = 1000070
 display_name = "mine_elem70"
-theme_id = 10
-theme_name = "mine"
+mode_id = "mine"
+mode_name = "矿洞主题"
 elem_number = 70
 logic_type = 1
 source_dir = "mine"
 stand_file = "elem70_stand.png"
-content_hash = "a70bdcece213d7e02cedc5dc4ca9d3d7d14fbf440d3107ab373de540d0c861ff"
+content_hash = "c1a7859f823fddaa5443e48ae1fc2e443b88ae5ec79d32b6ac8c49de4d4a8da2"

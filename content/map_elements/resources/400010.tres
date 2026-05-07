@@ -6,10 +6,10 @@
 script = ExtResource("1_lyvf5")
 element_id = 400010
 display_name = "bun_elem10"
-theme_id = 4
-theme_name = "bun"
+mode_id = "bun"
+mode_name = "包子主题"
 elem_number = 10
 logic_type = 1
 source_dir = "bun"
 stand_file = "elem10_stand.png"
-content_hash = "894d952ee7d1658eda5c5393c492e8276fef2a317538a529dc2ee8924487aad0"
+content_hash = "b73529da5ffb7326681069b350e5b76b9e93558498fe052a975c7bdf690ab185"

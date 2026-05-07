@@ -6,11 +6,11 @@
 script = ExtResource("1_nnfnc")
 element_id = 1800014
 display_name = "treasure_elem14"
-theme_id = 18
-theme_name = "treasure"
+mode_id = "treasure"
+mode_name = "宝藏主题"
 elem_number = 14
 logic_type = 4
 source_dir = "treasure"
 stand_file = "elem14_stand.png"
 trigger_file = "elem14_trigger.gif"
-content_hash = "8a9496594637c051b613953bfca27d567b51796874c4179bdeb66bf64bb8b058"
+content_hash = "9825118182f863605911cdab64ec4d77fa0dd8103a791734d1c312de8025a7b0"

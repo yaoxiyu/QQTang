@@ -82,7 +82,7 @@ func _build_snapshot(member_count: int, ready_flags: Array) -> RoomSnapshot:
 	snapshot.queue_type = "ranked"
 	snapshot.match_format_id = "2v2"
 	snapshot.required_party_size = 2
-	snapshot.selected_match_mode_ids = ["mode_classic"]
+	snapshot.selected_match_mode_ids = ["box"]
 	snapshot.room_queue_state = "idle"
 	snapshot.room_phase = "idle"
 	snapshot.queue_phase = "idle"

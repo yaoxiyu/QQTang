@@ -6,10 +6,10 @@
 script = ExtResource("1_ghcpw")
 element_id = 800078
 display_name = "machine_elem78"
-theme_id = 8
-theme_name = "machine"
+mode_id = "machine"
+mode_name = "机械主题"
 elem_number = 78
 logic_type = 1
 source_dir = "machine"
 stand_file = "elem78_stand.png"
-content_hash = "3a4c0e513468ea343adc661aa0e03730c61c4404716b3e3cfd3bfdfbc2ef55cd"
+content_hash = "5ee2afe5e934e95319b65f24f3ac5bbddf13bb0f044be1ca7af423575d11417a"

@@ -6,10 +6,10 @@
 script = ExtResource("1_kuoq8")
 element_id = 1800016
 display_name = "treasure_elem16"
-theme_id = 18
-theme_name = "treasure"
+mode_id = "treasure"
+mode_name = "宝藏主题"
 elem_number = 16
 logic_type = 1
 source_dir = "treasure"
 stand_file = "elem16_stand.png"
-content_hash = "9594fa6b7074beb3d06e6d4447276b5256b0672aa5a67e2c11437c682ecc1616"
+content_hash = "aef4e5b6005be0c845f33583a37d88cc71ad8c83730281800c266f7bccd5d58e"

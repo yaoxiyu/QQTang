@@ -6,12 +6,12 @@
 script = ExtResource("1_8xn67")
 element_id = 700003
 display_name = "field_elem3"
-theme_id = 7
-theme_name = "field"
+mode_id = "field"
+mode_name = "田园主题"
 elem_number = 3
-logic_type = 5
+logic_type = 3
 source_dir = "field"
 stand_file = "elem3_stand.png"
 die_file = "elem3_die.gif"
 trigger_file = "elem3_trigger.gif"
-content_hash = "13dee6680ac6be1eb01ee667855c130923bc58afb5a30b5d47cdb3822cc0c60f"
+content_hash = "ebfd00a4fba524b0a01aa4d1abc92c2579f9b9b8d9a507dffcc211aa1c9743d3"

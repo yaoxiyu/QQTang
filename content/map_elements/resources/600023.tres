@@ -6,10 +6,10 @@
 script = ExtResource("1_16ax1")
 element_id = 600023
 display_name = "exploration_elem23"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 23
 logic_type = 1
 source_dir = "exploration"
 stand_file = "elem23_stand.png"
-content_hash = "d03b0a83486a0743dcbd91e754785d8d740c3b2840d7db489cd01a1db1057321"
+content_hash = "4903edeb6605536347f32ea438a4a04025547e96017d247322fac45e11c70f95"

@@ -6,10 +6,10 @@
 script = ExtResource("1_x80tf")
 element_id = 1500041
 display_name = "snow_elem41"
-theme_id = 15
-theme_name = "snow"
+mode_id = "snow"
+mode_name = "冰雪主题"
 elem_number = 41
 logic_type = 1
 source_dir = "snow"
 stand_file = "elem41_stand.png"
-content_hash = "39120e299d83b286fb03245f6127b4ae5c8f11fd28aa61f2476fbf07a1a36042"
+content_hash = "374fa3c83d7248e4ba7616ffb821784bba29671a1bf19d275c37388ef6577358"

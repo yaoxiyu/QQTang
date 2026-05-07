@@ -6,11 +6,11 @@
 script = ExtResource("1_bw80r")
 element_id = 600114
 display_name = "exploration_elem114"
-theme_id = 6
-theme_name = "exploration"
+mode_id = "exploration"
+mode_name = "探险主题"
 elem_number = 114
 logic_type = 4
 source_dir = "exploration"
 stand_file = "elem114_stand.png"
 trigger_file = "elem114_trigger.gif"
-content_hash = "ad563dabb014d2baf8228e59a7028bc4e5895e23102b7a047da5b2f74ee2f99b"
+content_hash = "8e71fe0ac33622a0da03113e30edf73b75495315d3770d73e681417688bcb009"

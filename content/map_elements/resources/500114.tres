@@ -6,10 +6,10 @@
 script = ExtResource("1_clryo")
 element_id = 500114
 display_name = "desert_elem114"
-theme_id = 5
-theme_name = "desert"
+mode_id = "desert"
+mode_name = "沙漠主题"
 elem_number = 114
 logic_type = 1
 source_dir = "desert"
 stand_file = "elem114_stand.png"
-content_hash = "03ad5ce8fae9724a3e777601808d72090121a09e7a76e146d3a984b2fe414012"
+content_hash = "d369df0bf0dba7f3aca7bbb942328dff98712c6f587b6092d9fbed4c4a6aae5c"

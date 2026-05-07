@@ -6,10 +6,10 @@
 script = ExtResource("1_hknlo")
 element_id = 1200018
 display_name = "practice_elem18"
-theme_id = 12
-theme_name = "practice"
+mode_id = "practice"
+mode_name = "练习主题"
 elem_number = 18
 logic_type = 1
 source_dir = "practice"
 stand_file = "elem18_stand.png"
-content_hash = "7d4371b5a1607c109b384532e6e0a9bcb6a9bdf5a0481db8449320b1b02dbe61"
+content_hash = "31c5cc629ac7799e5b706f3538112e5c028506fde36344647fddae4a53cdaf92"
