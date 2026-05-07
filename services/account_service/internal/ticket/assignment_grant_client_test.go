@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"qqtang/services/account_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 func TestAssignmentGrantClientSignsInternalRequest(t *testing.T) {
@@ -16,21 +16,21 @@ func TestAssignmentGrantClientSignsInternalRequest(t *testing.T) {
 			t.Fatal("legacy X-Internal-Secret header must not be sent")
 		}
 		for _, key := range []string{
-			internalhttp.HeaderKeyID,
-			internalhttp.HeaderTimestamp,
-			internalhttp.HeaderNonce,
-			internalhttp.HeaderBodySHA256,
-			internalhttp.HeaderSignature,
+			internalauth.HeaderKeyID,
+			internalauth.HeaderTimestamp,
+			internalauth.HeaderNonce,
+			internalauth.HeaderBodySHA256,
+			internalauth.HeaderSignature,
 		} {
 			if r.Header.Get(key) == "" {
 				t.Fatalf("missing internal auth header %s", key)
 			}
 		}
-		if r.Header.Get(internalhttp.HeaderKeyID) != "primary" {
-			t.Fatalf("unexpected key id: %s", r.Header.Get(internalhttp.HeaderKeyID))
+		if r.Header.Get(internalauth.HeaderKeyID) != "primary" {
+			t.Fatalf("unexpected key id: %s", r.Header.Get(internalauth.HeaderKeyID))
 		}
-		if r.Header.Get(internalhttp.HeaderBodySHA256) != internalhttp.BodySHA256Hex(nil) {
-			t.Fatalf("unexpected empty body hash: %s", r.Header.Get(internalhttp.HeaderBodySHA256))
+		if r.Header.Get(internalauth.HeaderBodySHA256) != internalauth.BodySHA256Hex(nil) {
+			t.Fatalf("unexpected empty body hash: %s", r.Header.Get(internalauth.HeaderBodySHA256))
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"ok":                    true,

@@ -44,8 +44,8 @@ constexpr int32_t BUBBLE_PLACED_TICK = 6;
 constexpr int32_t BUBBLE_EXPLODE_TICK = 7;
 constexpr int32_t BUBBLE_CHAIN_TRIGGERED = 8;
 constexpr int32_t BUBBLE_STYLE_ID_HASH = 9;
-constexpr int32_t BUBBLE_RESERVED0 = 10;
-constexpr int32_t BUBBLE_RESERVED1 = 11;
+constexpr int32_t BUBBLE_TYPE = 10;
+constexpr int32_t BUBBLE_FOOTPRINT_CELLS = 11;
 
 constexpr int32_t ITEM_STRIDE = 8;
 constexpr int32_t ITEM_ID_HASH = 0;

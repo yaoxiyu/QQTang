@@ -226,6 +226,12 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (AuthResult, 
 		_ = s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, false, ErrInvalidCredentials)
 		return AuthResult{}, ErrInvalidCredentials
 	}
+		if account.PasswordAlgo == "sha256" {
+			newHash, newAlgo, hashErr := s.hasher.HashPassword(strings.TrimSpace(input.Password))
+			if hashErr == nil {
+				_ = s.accountRepo.UpgradePassword(ctx, account.AccountID, newHash, newAlgo)
+			}
+		}
 	switch account.Status {
 	case "disabled":
 		_ = s.recordLoginAttempt(ctx, input, loginName, account.AccountID, now, false, ErrAccountDisabled)

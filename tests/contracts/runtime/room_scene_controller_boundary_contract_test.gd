@@ -6,7 +6,7 @@ const ROOM_FORMAL_LOADOUT_PRESENTER_PATH := "res://scenes/front/room/room_formal
 const ROOM_FORMAL_POPUP_CONTROLLER_PATH := "res://scenes/front/room/room_formal_popup_controller.gd"
 const APP_BATTLE_MODULE_REGISTRY_PATH := "res://app/flow/app_battle_module_registry.gd"
 const BATTLE_MAIN_CONTROLLER_PATH := "res://scenes/battle/battle_main_controller.gd"
-const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
+const ROOM_SCENE_PATH := "res://scenes/front/room/room_formal.tscn"
 const MAX_ROOM_SCENE_CONTROLLER_LINES := 420
 const MAX_ROOM_SCENE_CORE_IMPL_LINES := 600
 const FORBIDDEN_PATTERNS := [
@@ -19,9 +19,9 @@ const FORBIDDEN_PATTERNS := [
 	"move_child(",
 ]
 const REQUIRED_SCENE_NODES := [
-	"RoomRoot/RoomScroll",
-	"RoomRoot/RoomScroll/MainLayout",
-	"RoomRoot/RoomScroll/MainLayout/ActionRow/AddOpponentButton",
+	"RoomFormal",
+	"RoomFormal/RuleSelect/ChooseModeBtn",
+	"RoomFormal/BottomBar/RoomActionBtn",
 ]
 
 
@@ -75,12 +75,12 @@ func test_battle_scene_reparent_does_not_trigger_shutdown() -> void:
 
 func test_room_scene_owns_required_structure() -> void:
 	var scene: PackedScene = load(ROOM_SCENE_PATH)
-	assert_not_null(scene, "room_scene.tscn should load")
+	assert_not_null(scene, "room_formal.tscn should load")
 	if scene == null:
 		return
 	var root := scene.instantiate()
 	for node_path in REQUIRED_SCENE_NODES:
-		assert_true(root.has_node(node_path), "room_scene.tscn should expose %s" % node_path)
+		assert_true(root.has_node(node_path), "room_formal.tscn should expose %s" % node_path)
 	root.free()
 
 

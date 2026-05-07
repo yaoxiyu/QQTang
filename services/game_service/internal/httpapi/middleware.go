@@ -9,7 +9,7 @@ import (
 	"qqtang/services/game_service/internal/assignment"
 	"qqtang/services/game_service/internal/auth"
 	"qqtang/services/game_service/internal/finalize"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/game_service/internal/queue"
 )
 
@@ -17,14 +17,14 @@ type contextKey string
 
 const authContextKey contextKey = "auth_claims"
 
-func withAuth(jwtAuth *auth.JWTAuth, next http.Handler) http.Handler {
+func withSignedTokenAuth(signedTokenAuth *auth.SignedTokenAuth, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Get("Authorization")
 		if !strings.HasPrefix(header, "Bearer ") {
 			httpx.WriteError(w, http.StatusUnauthorized, "AUTH_ACCESS_TOKEN_INVALID", "Missing access token")
 			return
 		}
-		claims, err := jwtAuth.ValidateAccessToken(r.Context(), strings.TrimPrefix(header, "Bearer "))
+		claims, err := signedTokenAuth.ValidateAccessToken(r.Context(), strings.TrimPrefix(header, "Bearer "))
 		if err != nil {
 			status, code := mapError(err)
 			httpx.WriteError(w, status, code, code)

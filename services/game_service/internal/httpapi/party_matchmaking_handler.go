@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/game_service/internal/queue"
 )
 

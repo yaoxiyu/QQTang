@@ -47,7 +47,7 @@ func main() {
 	careerRepo := storage.NewCareerRepository(store.Pool)
 	ratingRepo := storage.NewRatingRepository(store.Pool)
 
-	jwtAuth := auth.NewJWTAuth(cfg.JWTSharedSecret)
+	signedTokenAuth := auth.NewSignedTokenAuth(cfg.JWTSharedSecret)
 	internalAuth := auth.NewInternalAuth(cfg.InternalAuthKeyID, cfg.InternalSharedSecret, time.Duration(cfg.InternalAuthMaxSkewSec)*time.Second)
 	ratingService := rating.NewEloService()
 	rewardService := reward.NewService()
@@ -82,7 +82,7 @@ func main() {
 	log.Printf("game_service grpc listening on %s", grpcListener.Addr().String())
 
 	router := httpapi.NewRouter(httpapi.RouterDeps{
-		JWTAuth:                         jwtAuth,
+		SignedTokenAuth:                         signedTokenAuth,
 		InternalAuth:                    internalAuth,
 		MatchmakingHandler:              httpapi.NewMatchmakingHandler(queueService),
 		PartyMatchmakingHandler:         httpapi.NewPartyMatchmakingHandler(queueService),

@@ -6,11 +6,11 @@ import (
 	"strings"
 
 	"qqtang/services/game_service/internal/auth"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type RouterDeps struct {
-	JWTAuth                         *auth.JWTAuth
+	SignedTokenAuth                         *auth.SignedTokenAuth
 	InternalAuth                    *auth.InternalAuth
 	MatchmakingHandler              *MatchmakingHandler
 	PartyMatchmakingHandler         *PartyMatchmakingHandler
@@ -28,11 +28,11 @@ type RouterDeps struct {
 func NewRouter(deps RouterDeps) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.Handle("POST /api/v1/matchmaking/queue/enter", withAuth(deps.JWTAuth, http.HandlerFunc(deps.MatchmakingHandler.EnterQueue)))
-	mux.Handle("POST /api/v1/matchmaking/queue/cancel", withAuth(deps.JWTAuth, http.HandlerFunc(deps.MatchmakingHandler.CancelQueue)))
-	mux.Handle("GET /api/v1/matchmaking/queue/status", withAuth(deps.JWTAuth, http.HandlerFunc(deps.MatchmakingHandler.GetStatus)))
-	mux.Handle("GET /api/v1/career/me", withAuth(deps.JWTAuth, http.HandlerFunc(deps.CareerHandler.GetMe)))
-	mux.Handle("GET /api/v1/settlement/matches/", withAuth(deps.JWTAuth, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("POST /api/v1/matchmaking/queue/enter", withSignedTokenAuth(deps.SignedTokenAuth, http.HandlerFunc(deps.MatchmakingHandler.EnterQueue)))
+	mux.Handle("POST /api/v1/matchmaking/queue/cancel", withSignedTokenAuth(deps.SignedTokenAuth, http.HandlerFunc(deps.MatchmakingHandler.CancelQueue)))
+	mux.Handle("GET /api/v1/matchmaking/queue/status", withSignedTokenAuth(deps.SignedTokenAuth, http.HandlerFunc(deps.MatchmakingHandler.GetStatus)))
+	mux.Handle("GET /api/v1/career/me", withSignedTokenAuth(deps.SignedTokenAuth, http.HandlerFunc(deps.CareerHandler.GetMe)))
+	mux.Handle("GET /api/v1/settlement/matches/", withSignedTokenAuth(deps.SignedTokenAuth, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/api/v1/settlement/matches/") {
 			http.NotFound(w, r)
 			return

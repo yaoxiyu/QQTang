@@ -28,7 +28,7 @@ func _test_actor_registry_add_update_remove() -> void:
 	registry.sync_bubbles(parent, [
 		{
 			"entity_id": 5,
-			"position": Vector2(48, 48),
+			"position": Vector2(40, 40),
 			"color": Color(0.3, 0.5, 1.0, 1.0),
 		}
 	])
@@ -64,7 +64,7 @@ func _test_event_router_routes_explosion_event() -> void:
 	var fx_layer := Node2D.new()
 	var spawn_fx := BattleSpawnFxController.new()
 	spawn_fx.fx_layer = fx_layer
-	router.explosion_event_routed.connect(spawn_fx.spawn_explosion.bind(48.0))
+	router.explosion_event_routed.connect(spawn_fx.spawn_explosion.bind(40.0))
 
 	var exploded_event := SimEvent.new(12, SimEvent.EventType.BUBBLE_EXPLODED)
 	exploded_event.payload["covered_cells"] = [Vector2i(2, 2), Vector2i(3, 2)]
@@ -89,10 +89,10 @@ func _test_map_view_applies_and_clears_grid_cache() -> void:
 		]
 	}
 
-	map_view.apply_grid_cache(grid_cache, 48.0)
+	map_view.apply_grid_cache(grid_cache, 40.0)
 	var dump := map_view.debug_dump_map_state()
 	_assert_true(int(dump.get("grid_cells", 0)) == 3, "map view controller stores grid cache")
-	_assert_true(is_equal_approx(float(dump.get("cell_size", 0.0)), 48.0), "map view controller stores cell size")
+	_assert_true(is_equal_approx(float(dump.get("cell_size", 0.0)), 40.0), "map view controller stores cell size")
 
 	map_view.clear_map()
 	var cleared_dump := map_view.debug_dump_map_state()
@@ -104,5 +104,4 @@ func _test_map_view_applies_and_clears_grid_cache() -> void:
 func _assert_true(condition: bool, message: String) -> void:
 	if condition:
 		return
-
 

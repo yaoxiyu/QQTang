@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 var ErrInternalAuthInvalid = errors.New("INTERNAL_AUTH_INVALID")
@@ -44,18 +44,18 @@ func (a *InternalAuth) ValidateRequest(r *http.Request) error {
 	if err != nil {
 		return ErrInternalAuthInvalid
 	}
-	keyID := r.Header.Get(internalhttp.HeaderKeyID)
-	timestamp := r.Header.Get(internalhttp.HeaderTimestamp)
-	nonce := r.Header.Get(internalhttp.HeaderNonce)
-	bodyHash := r.Header.Get(internalhttp.HeaderBodySHA256)
-	signature := r.Header.Get(internalhttp.HeaderSignature)
+	keyID := r.Header.Get(internalauth.HeaderKeyID)
+	timestamp := r.Header.Get(internalauth.HeaderTimestamp)
+	nonce := r.Header.Get(internalauth.HeaderNonce)
+	bodyHash := r.Header.Get(internalauth.HeaderBodySHA256)
+	signature := r.Header.Get(internalauth.HeaderSignature)
 	if keyID == "" || timestamp == "" || nonce == "" || bodyHash == "" || signature == "" {
 		return ErrInternalAuthInvalid
 	}
 	if keyID != a.keyID {
 		return ErrInternalAuthInvalid
 	}
-	if bodyHash != internalhttp.BodySHA256Hex(body) {
+	if bodyHash != internalauth.BodySHA256Hex(body) {
 		return ErrInternalAuthInvalid
 	}
 	requestUnixSec, err := strconv.ParseInt(timestamp, 10, 64)
@@ -67,8 +67,8 @@ func (a *InternalAuth) ValidateRequest(r *http.Request) error {
 	if requestTime.Before(now.Add(-a.maxSkew)) || requestTime.After(now.Add(a.maxSkew)) {
 		return ErrInternalAuthInvalid
 	}
-	expectedSignature := internalhttp.Sign(r.Method, r.URL.RequestURI(), timestamp, nonce, bodyHash, a.sharedSecret)
-	if !internalhttp.SignatureEqual(signature, expectedSignature) {
+	expectedSignature := internalauth.Sign(r.Method, r.URL.RequestURI(), timestamp, nonce, bodyHash, a.sharedSecret)
+	if !internalauth.SignatureEqual(signature, expectedSignature) {
 		return ErrInternalAuthInvalid
 	}
 	if !a.claimNonce(keyID, nonce, now.Add(a.maxSkew)) {

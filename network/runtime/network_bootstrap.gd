@@ -2,7 +2,7 @@
 ## This transport bootstrap scene is a QA / protocol debug shell.
 ## It is not a formal product entry for Room, Battle, or Dedicated Server flow.
 ## LegacyMigration and later formal gameplay entry must continue through:
-## - res://scenes/front/room_scene.tscn
+## - res://scenes/front/room/room_formal.tscn
 ## - res://scenes/network/dedicated_server_scene.tscn
 
 extends Node

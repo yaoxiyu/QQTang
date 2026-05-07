@@ -1,13 +1,17 @@
 # syntax=docker/dockerfile:1.7
 
 FROM golang:1.24-alpine AS builder
-WORKDIR /src/services/ds_agent
+WORKDIR /src/services
 
-COPY services/ds_agent/go.mod ./
-RUN go mod download
+COPY services/ds_agent/go.mod ds_agent/
+COPY services/shared/httpx/go.mod shared/httpx/
+COPY services/shared/internalauth/go.mod shared/internalauth/
+RUN cd ds_agent && go mod download
 
-COPY services/ds_agent/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/ds_agent ./cmd/ds_agent
+COPY services/shared/httpx/ shared/httpx/
+COPY services/shared/internalauth/ shared/internalauth/
+COPY services/ds_agent/ ds_agent/
+RUN cd ds_agent && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/ds_agent ./cmd/ds_agent
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
@@ -30,7 +34,8 @@ RUN chmod +x /app/qqtang_battle_ds.x86_64 \
 
 ENV DS_AGENT_HTTP_ADDR=0.0.0.0:19090
 ENV DS_AGENT_INTERNAL_AUTH_KEY_ID=primary
-ENV DS_AGENT_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret
+# Secrets must be injected at deployment time.
+ENV DS_AGENT_INTERNAL_AUTH_SHARED_SECRET=
 ENV DS_AGENT_INTERNAL_AUTH_MAX_SKEW_SECONDS=60
 ENV DS_BATTLE_PORT=9000
 ENV DS_GODOT_EXECUTABLE=/app/qqtang_battle_ds.x86_64

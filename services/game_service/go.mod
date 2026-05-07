@@ -4,9 +4,11 @@ go 1.24.0
 
 require (
 	github.com/jackc/pgx/v5 v5.7.4
-	qqtang/services/shared/contentmanifest v0.0.0
 	google.golang.org/grpc v1.75.1
 	google.golang.org/protobuf v1.36.10
+	qqtang/services/shared/contentmanifest v0.0.0
+	qqtang/services/shared/httpx v0.0.0-00010101000000-000000000000
+	qqtang/services/shared/internalauth v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -22,3 +24,7 @@ require (
 )
 
 replace qqtang/services/shared/contentmanifest => ../shared/contentmanifest
+
+replace qqtang/services/shared/httpx => ../shared/httpx
+
+replace qqtang/services/shared/internalauth => ../shared/internalauth

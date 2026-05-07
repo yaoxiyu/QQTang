@@ -1,3 +1,5 @@
+Generated from `proto/templates/internal_gen_README.md`.
+
 # Generated Code
 
 This directory contains generated code.

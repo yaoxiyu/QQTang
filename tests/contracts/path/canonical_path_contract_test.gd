@@ -9,7 +9,7 @@ const CANONICAL_MATCH_START_PATH := "res://network/session/match_start_coordinat
 const CANONICAL_BATTLE_SESSION_PATH := "res://network/session/battle_session_adapter.gd"
 
 const FORMAL_SCENE_PATHS := [
-	"res://scenes/front/room_scene.tscn",
+	"res://scenes/front/room/room_formal.tscn",
 	"res://scenes/front/loading_scene.tscn",
 	"res://scenes/battle/battle_main.tscn",
 ]

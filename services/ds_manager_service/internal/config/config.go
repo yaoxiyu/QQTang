@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"qqtang/services/ds_manager_service/internal/platform/configx"
 )
@@ -50,6 +51,7 @@ type Config struct {
 	DSAgentInternalAuthSecret  string
 	GameServiceBaseURL         string
 	DSMBaseURL                 string
+	DSMEnv                     string
 
 	// Health check / reap settings
 	ReadyTimeoutSec    int
@@ -130,6 +132,7 @@ func LoadFromEnv() (*Config, error) {
 	cfg.DSAgentInternalAuthSecret = configx.Env("DSM_DS_AGENT_INTERNAL_AUTH_SECRET", cfg.InternalSharedSecret)
 	cfg.GameServiceBaseURL = configx.Env("DSM_GAME_SERVICE_BASE_URL", "http://game_service:18081")
 	cfg.DSMBaseURL = configx.Env("DSM_BASE_URL", "http://ds_manager_service:18090")
+	cfg.DSMEnv = configx.Env("DSM_ENV", "development")
 
 	cfg.PortRangeStart, err = configx.RequiredPositiveInt("DSM_PORT_RANGE_START", 19010)
 	if err != nil {
@@ -160,6 +163,12 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if cfg.InternalSharedSecret == "" {
 		return nil, fmt.Errorf("DSM_INTERNAL_AUTH_SHARED_SECRET is required")
+	}
+	if isProductionEnv(cfg.DSMEnv) && isUnsafeDevSecret(cfg.InternalSharedSecret) {
+		return nil, fmt.Errorf("DSM_INTERNAL_AUTH_SHARED_SECRET uses unsafe development secret in production")
+	}
+	if isProductionEnv(cfg.DSMEnv) && isUnsafeDevSecret(cfg.BattleTicketSecret) {
+		return nil, fmt.Errorf("DSM_BATTLE_TICKET_SECRET uses unsafe development secret in production")
 	}
 
 	return cfg, nil
@@ -193,4 +202,26 @@ func findProjectRoot() (string, bool) {
 		}
 		dir = parent
 	}
+}
+
+func isProductionEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "prod", "production":
+		return true
+	default:
+		return false
+	}
+}
+
+func isUnsafeDevSecret(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	if lower == "" {
+		return true
+	}
+	for _, pattern := range []string{"dev_", "replace_me", "changeme", "qqtang_dev_pass"} {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"qqtang/services/ds_manager_service/internal/auth"
-	"qqtang/services/ds_manager_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 func withInternalAuth(internalAuth *auth.InternalAuth, next http.Handler) http.Handler {

@@ -64,7 +64,7 @@ func LoadFromEnv() (*Config, error) {
 		BattleTicketTTLSeconds:   battleTicketTTLSeconds,
 		TokenSignSecret:          os.Getenv("ACCOUNT_TOKEN_SIGN_SECRET"),
 		RoomTicketSignSecret:     os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET"),
-		BattleTicketSignSecret:   configx.Env("ACCOUNT_BATTLE_TICKET_SIGN_SECRET", os.Getenv("ACCOUNT_ROOM_TICKET_SIGN_SECRET")),
+		BattleTicketSignSecret:   configx.Env("ACCOUNT_BATTLE_TICKET_SIGN_SECRET", "dev_battle_ticket_secret"),
 		GameServiceBaseURL:       configx.Env("ACCOUNT_GAME_SERVICE_BASE_URL", "http://127.0.0.1:18081"),
 		GameInternalAuthKeyID:    configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID", "primary"),
 		GameInternalSharedSecret: configx.Env("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET", os.Getenv("ACCOUNT_GAME_INTERNAL_SHARED_SECRET")),

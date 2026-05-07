@@ -5,9 +5,13 @@ WORKDIR /src/services
 
 COPY services/game_service/go.mod services/game_service/go.sum game_service/
 COPY services/shared/contentmanifest/go.mod shared/contentmanifest/
+COPY services/shared/httpx/go.mod shared/httpx/
+COPY services/shared/internalauth/go.mod shared/internalauth/
 RUN cd game_service && go mod download
 
 COPY services/shared/contentmanifest/ shared/contentmanifest/
+COPY services/shared/httpx/ shared/httpx/
+COPY services/shared/internalauth/ shared/internalauth/
 COPY services/game_service/ game_service/
 RUN cd game_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/game_service ./cmd/game_service
 
@@ -25,11 +29,12 @@ COPY build/generated/room_manifest/room_manifest.json /app/build/generated/room_
 
 ENV GAME_HTTP_ADDR=0.0.0.0:18081
 ENV GAME_GRPC_ADDR=0.0.0.0:19081
-ENV GAME_POSTGRES_DSN=postgres://qqtang_game:qqtang_game_dev_pass@game_postgres:5432/qqtang_game_dev?sslmode=disable
 ENV GAME_ROOM_MANIFEST_PATH=/app/build/generated/room_manifest/room_manifest.json
-ENV GAME_JWT_SHARED_SECRET=dev_game_jwt_shared_secret
 ENV GAME_INTERNAL_AUTH_KEY_ID=primary
-ENV GAME_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret
+# Secrets and DSN must be injected at deployment time.
+ENV GAME_POSTGRES_DSN=
+ENV GAME_JWT_SHARED_SECRET=
+ENV GAME_INTERNAL_AUTH_SHARED_SECRET=
 ENV GAME_DEFAULT_DS_HOST=ds_manager_service
 ENV GAME_DEFAULT_DS_PORT=19010
 ENV GAME_DS_MANAGER_URL=http://ds_manager_service:18090

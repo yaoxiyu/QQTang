@@ -2,6 +2,7 @@ class_name MapThemeEnvironmentController
 extends Node
 
 const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
+const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 
 @export var environment_root_path: NodePath = ^"../WorldRoot/EnvironmentRoot"
 
@@ -71,7 +72,8 @@ func _apply_environment_background(map_theme: MapThemeDef) -> void:
 	sprite.position = Vector2.ZERO
 	var texture_size := texture.get_size()
 	if texture_size.x > 0.0 and texture_size.y > 0.0:
-		sprite.scale = Vector2(336.0 / texture_size.x, 336.0 / texture_size.y)
+		var background_size := BattleViewMetrics.DEFAULT_CELL_PIXELS * 7.0
+		sprite.scale = Vector2(background_size / texture_size.x, background_size / texture_size.y)
 	sprite.z_as_relative = false
 	sprite.z_index = -100
 	_current_background_sprite = sprite

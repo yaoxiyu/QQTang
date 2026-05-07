@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"qqtang/services/ds_manager_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 func TestInternalAuthValidateRequest(t *testing.T) {
@@ -32,19 +32,19 @@ func TestInternalAuthRejectsMissingOrBadHeaders(t *testing.T) {
 		{
 			name: "missing signature",
 			mutateFunc: func(req *http.Request) {
-				req.Header.Del(internalhttp.HeaderSignature)
+				req.Header.Del(internalauth.HeaderSignature)
 			},
 		},
 		{
 			name: "wrong key id",
 			mutateFunc: func(req *http.Request) {
-				req.Header.Set(internalhttp.HeaderKeyID, "secondary")
+				req.Header.Set(internalauth.HeaderKeyID, "secondary")
 			},
 		},
 		{
 			name: "bad signature",
 			mutateFunc: func(req *http.Request) {
-				req.Header.Set(internalhttp.HeaderSignature, "bad")
+				req.Header.Set(internalauth.HeaderSignature, "bad")
 			},
 		},
 	}
@@ -76,11 +76,11 @@ func TestInternalAuthRejectsNonceReplay(t *testing.T) {
 
 	reqReplay := httptest.NewRequest(http.MethodPost, "/internal/v1/battles/allocate", bytes.NewReader(body))
 	for _, key := range []string{
-		internalhttp.HeaderKeyID,
-		internalhttp.HeaderTimestamp,
-		internalhttp.HeaderNonce,
-		internalhttp.HeaderBodySHA256,
-		internalhttp.HeaderSignature,
+		internalauth.HeaderKeyID,
+		internalauth.HeaderTimestamp,
+		internalauth.HeaderNonce,
+		internalauth.HeaderBodySHA256,
+		internalauth.HeaderSignature,
 	} {
 		reqReplay.Header.Set(key, req.Header.Get(key))
 	}
@@ -93,12 +93,12 @@ func signRequest(t *testing.T, req *http.Request, body []byte, keyID string, sec
 	t.Helper()
 	timestamp := strconv.FormatInt(now.UTC().Unix(), 10)
 	nonce := "nonce-" + timestamp
-	bodyHash := internalhttp.BodySHA256Hex(body)
-	signature := internalhttp.Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
+	bodyHash := internalauth.BodySHA256Hex(body)
+	signature := internalauth.Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
 
-	req.Header.Set(internalhttp.HeaderKeyID, keyID)
-	req.Header.Set(internalhttp.HeaderTimestamp, timestamp)
-	req.Header.Set(internalhttp.HeaderNonce, nonce)
-	req.Header.Set(internalhttp.HeaderBodySHA256, bodyHash)
-	req.Header.Set(internalhttp.HeaderSignature, signature)
+	req.Header.Set(internalauth.HeaderKeyID, keyID)
+	req.Header.Set(internalauth.HeaderTimestamp, timestamp)
+	req.Header.Set(internalauth.HeaderNonce, nonce)
+	req.Header.Set(internalauth.HeaderBodySHA256, bodyHash)
+	req.Header.Set(internalauth.HeaderSignature, signature)
 }

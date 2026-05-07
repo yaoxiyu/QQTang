@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 func TestInternalAuthValidateRequest(t *testing.T) {
@@ -36,14 +36,14 @@ func TestInternalAuthRejectsInvalidRequests(t *testing.T) {
 		{
 			name: "missing header",
 			mutate: func(req *http.Request) {
-				req.Header.Del(internalhttp.HeaderSignature)
+				req.Header.Del(internalauth.HeaderSignature)
 			},
 			now: time.Now(),
 		},
 		{
 			name: "wrong signature",
 			mutate: func(req *http.Request) {
-				req.Header.Set(internalhttp.HeaderSignature, "bad-signature")
+				req.Header.Set(internalauth.HeaderSignature, "bad-signature")
 			},
 			now: time.Now(),
 		},
@@ -61,7 +61,7 @@ func TestInternalAuthRejectsInvalidRequests(t *testing.T) {
 		{
 			name: "unknown key id",
 			mutate: func(req *http.Request) {
-				req.Header.Set(internalhttp.HeaderKeyID, "secondary")
+				req.Header.Set(internalauth.HeaderKeyID, "secondary")
 			},
 			now: time.Now(),
 		},
@@ -99,23 +99,23 @@ func signedInternalRequest(t *testing.T, method string, target string, body []by
 	req := httptest.NewRequest(method, target, bytes.NewReader(body))
 	timestamp := strconvFormatUnix(now)
 	nonce := "nonce-" + timestamp
-	bodyHash := internalhttp.BodySHA256Hex(body)
-	signature := internalhttp.Sign(method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
-	req.Header.Set(internalhttp.HeaderKeyID, keyID)
-	req.Header.Set(internalhttp.HeaderTimestamp, timestamp)
-	req.Header.Set(internalhttp.HeaderNonce, nonce)
-	req.Header.Set(internalhttp.HeaderBodySHA256, bodyHash)
-	req.Header.Set(internalhttp.HeaderSignature, signature)
+	bodyHash := internalauth.BodySHA256Hex(body)
+	signature := internalauth.Sign(method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
+	req.Header.Set(internalauth.HeaderKeyID, keyID)
+	req.Header.Set(internalauth.HeaderTimestamp, timestamp)
+	req.Header.Set(internalauth.HeaderNonce, nonce)
+	req.Header.Set(internalauth.HeaderBodySHA256, bodyHash)
+	req.Header.Set(internalauth.HeaderSignature, signature)
 	return req
 }
 
 func copyInternalHeaders(dst http.Header, src http.Header) {
 	for _, key := range []string{
-		internalhttp.HeaderKeyID,
-		internalhttp.HeaderTimestamp,
-		internalhttp.HeaderNonce,
-		internalhttp.HeaderBodySHA256,
-		internalhttp.HeaderSignature,
+		internalauth.HeaderKeyID,
+		internalauth.HeaderTimestamp,
+		internalauth.HeaderNonce,
+		internalauth.HeaderBodySHA256,
+		internalauth.HeaderSignature,
 	} {
 		dst.Set(key, src.Get(key))
 	}

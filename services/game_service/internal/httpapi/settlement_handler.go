@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"qqtang/services/game_service/internal/finalize"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type SettlementHandler struct {

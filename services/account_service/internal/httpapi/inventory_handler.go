@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"qqtang/services/account_service/internal/inventory"
-	"qqtang/services/account_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type InventoryHandler struct {

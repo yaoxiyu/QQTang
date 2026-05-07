@@ -3,7 +3,7 @@ package httpapi
 import (
 	"net/http"
 
-	"qqtang/services/ds_agent/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/ds_agent/internal/runtime"
 	"qqtang/services/ds_agent/internal/state"
 )

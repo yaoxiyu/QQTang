@@ -2,7 +2,7 @@ extends "res://tests/gut/base/qqt_integration_test.gd"
 
 const LoginSceneScript = preload("res://scenes/front/login_scene.tscn")
 const LobbySceneScript = preload("res://scenes/front/lobby_scene.tscn")
-const RoomSceneScript = preload("res://scenes/front/room_scene.tscn")
+const RoomSceneScript = preload("res://scenes/front/room/room_formal.tscn")
 const LoadingSceneScript = preload("res://scenes/front/loading_scene.tscn")
 
 

@@ -26,15 +26,15 @@ type AccessTokenClaims struct {
 	ExpiresAtUnixSec int64  `json:"exp"`
 }
 
-type JWTAuth struct {
+type SignedTokenAuth struct {
 	secret []byte
 }
 
-func NewJWTAuth(secret string) *JWTAuth {
-	return &JWTAuth{secret: []byte(secret)}
+func NewSignedTokenAuth(secret string) *SignedTokenAuth {
+	return &SignedTokenAuth{secret: []byte(secret)}
 }
 
-func (a *JWTAuth) ValidateAccessToken(_ context.Context, token string) (AccessTokenClaims, error) {
+func (a *SignedTokenAuth) ValidateAccessToken(_ context.Context, token string) (AccessTokenClaims, error) {
 	parts := strings.Split(token, ".")
 	if len(parts) != 2 {
 		return AccessTokenClaims{}, ErrAccessTokenInvalid
@@ -61,7 +61,7 @@ func (a *JWTAuth) ValidateAccessToken(_ context.Context, token string) (AccessTo
 	return claims, nil
 }
 
-func (a *JWTAuth) sign(value string) string {
+func (a *SignedTokenAuth) sign(value string) string {
 	mac := hmac.New(sha256.New, a.secret)
 	_, _ = mac.Write([]byte(value))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))

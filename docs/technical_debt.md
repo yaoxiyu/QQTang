@@ -47,3 +47,32 @@
 - power2 泡泡的 4 格占位能正确阻挡、触发、清理。
 - GDScript 与 native 爆炸结果 parity 通过。
 - 网络确定性测试通过，snapshot/checksum 无新增漂移。
+
+## TD-2026-05-07-001 Legacy API Routes 移除计划
+
+### 债务项
+| ID | 文件 | Route | 替代 API | 移除 Phase |
+|----|------|-------|---------|-----------|
+| LGCY-001 | `docs/platform_auth/account_api_contract.md` | `/v1/auth/*` | `/api/v1/auth/*` | Phase 40 |
+| LGCY-002 | `docs/platform_auth/profile_api_contract.md` | `/v1/profile/*` | `/api/v1/profile/*` | Phase 40 |
+| LGCY-003 | `docs/platform_auth/room_ticket_contract.md` | `POST /v1/room-tickets` | `POST /api/v1/room-tickets` | Phase 40 |
+| LGCY-004 | `docs/platform_auth/room_ticket_contract.md` | `matchmade_room` ticket kind | battle-entry ticket | Phase 39 |
+| LGCY-005 | `docs/platform_game/matchmaking_api_contract.md` | 旧 `/v1/matchmaking/*` | Room Service 匹配队列 | Phase 39 |
+| LGCY-006 | `docs/platform_game/settlement_api_contract.md` | `server_sync_state = pending` | N/A (convergence) | Phase 39 |
+
+### 保留原因
+- 本地开发与 CI 迁移期需要保留旧路由出入口。
+- 旧客户端版本可能仍访问旧路由。
+
+### 移除条件
+- 所有调用方已切换到新 API。
+- 客户端最低版本不再依赖旧路由。
+- 至少一个 Phase 的观察期无旧路由流量。
+
+## TD-2026-05-07-002 Production Legacy/Compat 代码注释登记
+
+运行时 legacy/compat 代码必须在此登记，否则 release sanity 应报错。
+
+扫描命令：`Select-String -Path .\**\*.gd,.\**\*.go -Pattern "LegacyMigration|legacy|compat|fallback"`
+
+登记格式：ID | 文件 | 原因 | 移除条件 | 最晚移除 Phase

@@ -1,4 +1,4 @@
-package internalhttp
+package internalauth
 
 import (
 	"crypto/hmac"
@@ -18,6 +18,11 @@ const (
 	HeaderBodySHA256 = "X-Internal-Body-SHA256"
 	HeaderSignature  = "X-Internal-Signature"
 )
+
+func BodySHA256Hex(body []byte) string {
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:])
+}
 
 func SignRequest(req *http.Request, keyID string, sharedSecret string, body []byte, now time.Time) error {
 	if req == nil || keyID == "" || sharedSecret == "" {
@@ -39,15 +44,18 @@ func SignRequest(req *http.Request, keyID string, sharedSecret string, body []by
 	return nil
 }
 
-func BodySHA256Hex(body []byte) string {
-	sum := sha256.Sum256(body)
-	return hex.EncodeToString(sum[:])
-}
-
 func Sign(method string, pathAndQuery string, timestamp string, nonce string, bodyHash string, sharedSecret string) string {
 	mac := hmac.New(sha256.New, []byte(sharedSecret))
-	_, _ = mac.Write([]byte(method + "\n" + pathAndQuery + "\n" + timestamp + "\n" + nonce + "\n" + bodyHash))
+	_, _ = mac.Write([]byte(canonicalString(method, pathAndQuery, timestamp, nonce, bodyHash)))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func SignatureEqual(a string, b string) bool {
+	return hmac.Equal([]byte(a), []byte(b))
+}
+
+func canonicalString(method string, pathAndQuery string, timestamp string, nonce string, bodyHash string) string {
+	return method + "\n" + pathAndQuery + "\n" + timestamp + "\n" + nonce + "\n" + bodyHash
 }
 
 func randomNonce() (string, error) {

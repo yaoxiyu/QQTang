@@ -8,8 +8,8 @@
 |---|---|---|
 | `character_sprite_100_v1` | `character` | 100x100 角色 Sprite strip |
 | `bubble_animation_64_v1` | `bubble` | 64x64 泡泡 idle 动画 |
-| `map_tile_48_v1` | `map_tile` | 48 像素格子与 Tile 语义 |
-| `map_theme_48_v1` | `map_theme` | 48 像素地图主题资源 |
+| `map_tile_40_v1` | `map_tile` | 40 像素格子与 Tile 语义 |
+| `map_theme_40_v1` | `map_theme` | 40 像素地图主题资源 |
 | `vfx_jelly_trap_128_v1` | `vfx_jelly_trap` | 128x128 被困果冻 VFX |
 | `team_color_palette_v1` | `team_color_palette` | 8 队伍色调色板 |
 

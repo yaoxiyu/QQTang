@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"qqtang/services/account_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 var (
@@ -73,7 +73,7 @@ func (c *AssignmentGrantClient) GetGrant(ctx context.Context, assignmentID strin
 	if err != nil {
 		return AssignmentGrantResult{}, fmt.Errorf("%w: %v", ErrAssignmentGrantFailed, err)
 	}
-	if err := internalhttp.SignRequest(req, c.keyID, c.sharedSecret, nil, time.Now()); err != nil {
+	if err := internalauth.SignRequest(req, c.keyID, c.sharedSecret, nil, time.Now()); err != nil {
 		return AssignmentGrantResult{}, fmt.Errorf("%w: %v", ErrAssignmentGrantFailed, err)
 	}
 

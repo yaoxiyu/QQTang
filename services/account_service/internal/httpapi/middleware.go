@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"qqtang/services/account_service/internal/auth"
-	"qqtang/services/account_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type contextKey string

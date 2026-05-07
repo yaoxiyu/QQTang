@@ -7,24 +7,24 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 func TestRequestDSAllocationSignsInternalAuthHeaders(t *testing.T) {
 	var requestBody map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, key := range []string{
-			internalhttp.HeaderKeyID,
-			internalhttp.HeaderTimestamp,
-			internalhttp.HeaderNonce,
-			internalhttp.HeaderBodySHA256,
-			internalhttp.HeaderSignature,
+			internalauth.HeaderKeyID,
+			internalauth.HeaderTimestamp,
+			internalauth.HeaderNonce,
+			internalauth.HeaderBodySHA256,
+			internalauth.HeaderSignature,
 		} {
 			if r.Header.Get(key) == "" {
 				t.Fatalf("missing internal auth header %s", key)
 			}
 		}
-		if got := r.Header.Get(internalhttp.HeaderKeyID); got != "primary" {
+		if got := r.Header.Get(internalauth.HeaderKeyID); got != "primary" {
 			t.Fatalf("unexpected key id: %s", got)
 		}
 		if legacy := r.Header.Get("X-Internal-Secret"); legacy != "" {
@@ -67,11 +67,11 @@ func TestRequestDSBattleStatusSignsInternalAuthHeaders(t *testing.T) {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
 		for _, key := range []string{
-			internalhttp.HeaderKeyID,
-			internalhttp.HeaderTimestamp,
-			internalhttp.HeaderNonce,
-			internalhttp.HeaderBodySHA256,
-			internalhttp.HeaderSignature,
+			internalauth.HeaderKeyID,
+			internalauth.HeaderTimestamp,
+			internalauth.HeaderNonce,
+			internalauth.HeaderBodySHA256,
+			internalauth.HeaderSignature,
 		} {
 			if r.Header.Get(key) == "" {
 				t.Fatalf("missing internal auth header %s", key)

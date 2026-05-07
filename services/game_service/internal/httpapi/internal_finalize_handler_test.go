@@ -14,7 +14,7 @@ import (
 
 	"qqtang/services/game_service/internal/auth"
 	"qqtang/services/game_service/internal/finalize"
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 type stubFinalizeService struct {
@@ -162,13 +162,13 @@ func postSignedFinalize(t *testing.T, handler http.Handler, body []byte) *httpte
 	now := time.Now().UTC()
 	ts := strconv.FormatInt(now.Unix(), 10)
 	nonce := "nonce-" + strconv.FormatInt(finalizeNonceSeq.Add(1), 10)
-	hash := internalhttp.BodySHA256Hex(body)
-	sig := internalhttp.Sign(req.Method, req.URL.RequestURI(), ts, nonce, hash, "internal_secret")
-	req.Header.Set(internalhttp.HeaderKeyID, "primary")
-	req.Header.Set(internalhttp.HeaderTimestamp, ts)
-	req.Header.Set(internalhttp.HeaderNonce, nonce)
-	req.Header.Set(internalhttp.HeaderBodySHA256, hash)
-	req.Header.Set(internalhttp.HeaderSignature, sig)
+	hash := internalauth.BodySHA256Hex(body)
+	sig := internalauth.Sign(req.Method, req.URL.RequestURI(), ts, nonce, hash, "internal_secret")
+	req.Header.Set(internalauth.HeaderKeyID, "primary")
+	req.Header.Set(internalauth.HeaderTimestamp, ts)
+	req.Header.Set(internalauth.HeaderNonce, nonce)
+	req.Header.Set(internalauth.HeaderBodySHA256, hash)
+	req.Header.Set(internalauth.HeaderSignature, sig)
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, req)
 	return resp

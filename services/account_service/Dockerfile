@@ -1,13 +1,17 @@
 # syntax=docker/dockerfile:1.7
 
 FROM golang:1.24-alpine AS builder
-WORKDIR /src/services/account_service
+WORKDIR /src/services
 
-COPY services/account_service/go.mod services/account_service/go.sum ./
-RUN go mod download
+COPY services/account_service/go.mod services/account_service/go.sum account_service/
+COPY services/shared/httpx/go.mod shared/httpx/
+COPY services/shared/internalauth/go.mod shared/internalauth/
+RUN cd account_service && go mod download
 
-COPY services/account_service/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/account_service ./cmd/account_service
+COPY services/shared/httpx/ shared/httpx/
+COPY services/shared/internalauth/ shared/internalauth/
+COPY services/account_service/ account_service/
+RUN cd account_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/account_service ./cmd/account_service
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
@@ -21,17 +25,18 @@ WORKDIR /app
 COPY --from=builder /out/account_service /app/account_service
 
 ENV ACCOUNT_HTTP_LISTEN_ADDR=0.0.0.0:18080
-ENV ACCOUNT_POSTGRES_DSN=postgres://qqtang:qqtang_dev_pass@account_postgres:5432/qqtang_account_dev?sslmode=disable
 ENV ACCOUNT_ACCESS_TOKEN_TTL_SECONDS=900
 ENV ACCOUNT_REFRESH_TOKEN_TTL_SECONDS=1209600
 ENV ACCOUNT_ROOM_TICKET_TTL_SECONDS=60
 ENV ACCOUNT_BATTLE_TICKET_TTL_SECONDS=60
-ENV ACCOUNT_TOKEN_SIGN_SECRET=dev_account_token_secret
-ENV ACCOUNT_ROOM_TICKET_SIGN_SECRET=dev_room_ticket_secret
-ENV ACCOUNT_BATTLE_TICKET_SIGN_SECRET=dev_battle_ticket_secret
 ENV ACCOUNT_GAME_SERVICE_BASE_URL=http://game_service:18081
 ENV ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID=primary
-ENV ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret
+# Secrets and DSN must be injected at deployment time.
+ENV ACCOUNT_POSTGRES_DSN=
+ENV ACCOUNT_TOKEN_SIGN_SECRET=
+ENV ACCOUNT_ROOM_TICKET_SIGN_SECRET=
+ENV ACCOUNT_BATTLE_TICKET_SIGN_SECRET=
+ENV ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET=
 ENV ACCOUNT_ALLOW_MULTI_DEVICE=false
 ENV ACCOUNT_LOG_SQL=false
 ENV SERVICE_HEALTH_PORT=18080

@@ -5,7 +5,7 @@ const FrontFlowControllerScript = preload("res://app/flow/front_flow_controller.
 const BootSceneScript = preload("res://scenes/front/boot_scene.tscn")
 const LoginSceneScript = preload("res://scenes/front/login_scene.tscn")
 const LobbySceneScript = preload("res://scenes/front/lobby_scene.tscn")
-const RoomSceneScript = preload("res://scenes/front/room_scene.tscn")
+const RoomSceneScript = preload("res://scenes/front/room/room_formal.tscn")
 const LoadingSceneScript = preload("res://scenes/front/loading_scene.tscn")
 
 
@@ -68,7 +68,7 @@ func _test_front_scenes_consume_same_ready_runtime() -> void:
 	var login_name_input: LineEdit = login_scene.get_node_or_null("LoginRoot/MainLayout/ProfileCard/ProfileVBox/PlayerNameRow/PlayerNameInput")
 	var login_host_input: LineEdit = login_scene.get_node_or_null("LoginRoot/MainLayout/EndpointCard/EndpointVBox/HostRow/HostInput")
 	var lobby_profile_label: Label = lobby_scene.get_node_or_null("LobbyRoot/MainLayout/HeaderRow/CurrentProfileLabel")
-	var room_root: Control = room_scene.get_node_or_null("RoomRoot")
+	var room_root: Control = room_scene.get_node_or_null("RoomFormal")
 	var loading_hint: Label = loading_scene.get_node_or_null("LoadingRoot/MainLayout/TimeoutHint")
 
 	_assert_true(login_name_input != null and login_name_input.text == "RuntimeTester", "login scene consumes existing ready runtime")

@@ -52,6 +52,8 @@ func _verify_ticket(message: Dictionary) -> Dictionary:
 		return _fail("BATTLE_TICKET_INVALID", "Battle ticket format is invalid")
 	var expected_signature := _sign(encoded_payload)
 	if expected_signature != provided_signature and not allow_unsigned_dev_ticket:
+		var secret_hash := _sha256_hex(secret.to_utf8_buffer())
+		print("[ticket_debug] secret_sha256=%s payload_len=%d encoded=%.60s expected_sig=%s provided_sig=%s" % [secret_hash, encoded_payload.length(), encoded_payload, expected_signature, provided_signature])
 		return _fail("BATTLE_TICKET_SIGNATURE_INVALID", "Battle ticket signature is invalid")
 	var payload_text := _decode_base64_url_to_text(encoded_payload)
 	if payload_text.is_empty():
@@ -127,3 +129,9 @@ func _decode_base64_url_to_text(value: String) -> String:
 
 func _to_base64_url(value: PackedByteArray) -> String:
 	return Marshalls.raw_to_base64(value).replace("+", "-").replace("/", "_").trim_suffix("=")
+
+func _sha256_hex(value: PackedByteArray) -> String:
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(value)
+	return ctx.finish().hex_encode()

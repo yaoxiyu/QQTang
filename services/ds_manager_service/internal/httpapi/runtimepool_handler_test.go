@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"qqtang/services/ds_manager_service/internal/auth"
-	"qqtang/services/ds_manager_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 	"qqtang/services/ds_manager_service/internal/runtimepool"
 )
 
@@ -53,7 +53,7 @@ func sendSignedDSMRequestWithMethod(t *testing.T, router http.Handler, method st
 	t.Helper()
 	req := httptest.NewRequest(method, path, bytes.NewReader(body))
 	if keyID != "" && secret != "" {
-		if err := internalhttp.SignRequest(req, keyID, secret, body, time.Now().UTC()); err != nil {
+		if err := internalauth.SignRequest(req, keyID, secret, body, time.Now().UTC()); err != nil {
 			t.Fatalf("sign request: %v", err)
 		}
 	}

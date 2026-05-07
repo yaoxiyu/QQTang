@@ -1,13 +1,17 @@
 # syntax=docker/dockerfile:1.7
 
 FROM golang:1.24-alpine AS builder
-WORKDIR /src/services/ds_manager_service
+WORKDIR /src/services
 
-COPY services/ds_manager_service/go.mod ./
-RUN go mod download
+COPY services/ds_manager_service/go.mod ds_manager_service/
+COPY services/shared/httpx/go.mod shared/httpx/
+COPY services/shared/internalauth/go.mod shared/internalauth/
+RUN cd ds_manager_service && go mod download
 
-COPY services/ds_manager_service/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/ds_manager_service ./cmd/ds_manager_service
+COPY services/shared/httpx/ shared/httpx/
+COPY services/shared/internalauth/ shared/internalauth/
+COPY services/ds_manager_service/ ds_manager_service/
+RUN cd ds_manager_service && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/ds_manager_service ./cmd/ds_manager_service
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
@@ -22,7 +26,8 @@ COPY --from=builder /out/ds_manager_service /app/ds_manager_service
 
 ENV DSM_HTTP_ADDR=0.0.0.0:18090
 ENV DSM_INTERNAL_AUTH_KEY_ID=primary
-ENV DSM_INTERNAL_AUTH_SHARED_SECRET=dev_internal_shared_secret
+# Secrets must be injected at deployment time.
+ENV DSM_INTERNAL_AUTH_SHARED_SECRET=
 ENV DSM_INTERNAL_AUTH_MAX_SKEW_SECONDS=60
 ENV DSM_BATTLE_LOG_DIR=/tmp/qqt_battle_logs
 ENV DSM_PORT_RANGE_START=19010

@@ -5,12 +5,12 @@ const MapSurfaceElementViewScript = preload("res://presentation/battle/scene/map
 
 func test_main() -> void:
 	var ok := true
-	ok = _test_cell_width_fit_closes_grid_gap() and ok
-	ok = _test_default_cell_width_fit_adds_edge_bleed() and ok
+	ok = _test_source_scale_preserves_native_surface_overlap() and ok
+	ok = _test_default_edge_bleed_is_metadata_only_for_source_scale() and ok
 	ok = _test_die_texture_reanchors_without_fade() and ok
 
 
-func _test_cell_width_fit_closes_grid_gap() -> bool:
+func _test_source_scale_preserves_native_surface_overlap() -> bool:
 	var view: Node2D = MapSurfaceElementViewScript.new()
 	var texture := _make_texture(43, 56)
 	view.configure({
@@ -20,28 +20,28 @@ func _test_cell_width_fit_closes_grid_gap() -> bool:
 		"offset_px": Vector2.ZERO,
 		"render_role": "surface",
 		"edge_bleed_px": 0.0,
-	}, 48.0, texture)
+	}, 40.0, texture)
 	var dump: Dictionary = view.debug_dump_layout()
 	var ok := true
-	ok = qqt_check(is_equal_approx((dump.get("scale", Vector2.ONE) as Vector2).x, 48.0 / 43.0), "surface width should fit one cell", "map_surface_element_view") and ok
-	ok = qqt_check(is_equal_approx((dump.get("position", Vector2.ZERO) as Vector2).x, 96.0), "bottom-right fit should align left edge to cell after width normalization", "map_surface_element_view") and ok
+	ok = qqt_check((dump.get("scale", Vector2.ONE) as Vector2) == Vector2.ONE, "surface should preserve source pixels in 40px mode", "map_surface_element_view") and ok
+	ok = qqt_check(is_equal_approx((dump.get("position", Vector2.ZERO) as Vector2).x, 77.0), "bottom-right source scale should keep native overlap against 40px cells", "map_surface_element_view") and ok
 	view.free()
 	return ok
 
 
-func _test_default_cell_width_fit_adds_edge_bleed() -> bool:
+func _test_default_edge_bleed_is_metadata_only_for_source_scale() -> bool:
 	var view: Node2D = MapSurfaceElementViewScript.new()
-	var texture := _make_texture(48, 48)
+	var texture := _make_texture(40, 40)
 	view.configure({
 		"cell": Vector2i(0, 0),
 		"footprint": Vector2i.ONE,
 		"anchor_mode": "bottom_right",
 		"offset_px": Vector2.ZERO,
 		"render_role": "surface",
-	}, 48.0, texture)
+	}, 40.0, texture)
 	var dump: Dictionary = view.debug_dump_layout()
 	var ok := true
-	ok = qqt_check(is_equal_approx((dump.get("scale", Vector2.ONE) as Vector2).x, 49.0 / 48.0), "surface should overdraw one pixel by default to cover camera sampling seams", "map_surface_element_view") and ok
+	ok = qqt_check((dump.get("scale", Vector2.ONE) as Vector2) == Vector2.ONE, "surface should not rescale formal 40px assets", "map_surface_element_view") and ok
 	ok = qqt_check(is_equal_approx(float(dump.get("edge_bleed_px", 0.0)), 1.0), "default edge bleed should be recorded", "map_surface_element_view") and ok
 	view.free()
 	return ok
@@ -59,7 +59,7 @@ func _test_die_texture_reanchors_without_fade() -> bool:
 		"offset_px": Vector2.ZERO,
 		"render_role": "surface",
 		"die_duration_sec": 0.01,
-	}, 48.0, stand_texture, die_texture)
+	}, 40.0, stand_texture, die_texture)
 	view.play_die_and_dispose()
 	var dump: Dictionary = view.debug_dump_layout()
 	var ok := true

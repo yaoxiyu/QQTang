@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"qqtang/services/ds_manager_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 )
 
 type AgentState struct {
@@ -123,7 +123,7 @@ func (c *HTTPAgentClient) doJSON(ctx context.Context, method string, url string,
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if err := internalhttp.SignRequest(req, c.authKeyID, c.authSecret, body, c.requestClock()); err != nil {
+	if err := internalauth.SignRequest(req, c.authKeyID, c.authSecret, body, c.requestClock()); err != nil {
 		return err
 	}
 	resp, err := c.httpClient.Do(req)

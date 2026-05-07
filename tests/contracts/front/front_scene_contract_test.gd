@@ -24,15 +24,15 @@ const FORMAL_FRONT_SCENES := {
 		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/JoinRoomRow/JoinRoomButton",
 		"LobbyRoot/MainLayout/ScrollArea/ScrollContent/MessageLabel",
 	],
-	"res://scenes/front/room_scene.tscn": [
-		"RoomRoot",
-		"RoomRoot/RoomScroll/MainLayout/TopBar/BackToLobbyButton",
-		"RoomRoot/RoomScroll/MainLayout/SummaryCard/SummaryVBox/RoomIdRow/RoomIdValueLabel",
-		"RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector",
-		"RoomRoot/RoomScroll/MainLayout/MemberCard/MemberVBox/MemberList",
-		"RoomRoot/RoomScroll/MainLayout/ActionRow/ReadyButton",
-		"RoomRoot/RoomScroll/MainLayout/ActionRow/StartButton",
-	],
+		"res://scenes/front/room/room_formal.tscn": [
+			"RoomFormal",
+			"RoomFormal/BgPanel",
+			"RoomFormal/RuleSelect/ChooseModeBtn",
+			"RoomFormal/RuleSelect/ChooseMapBtn",
+			"RoomFormal/BottomBar/RoomActionBtn",
+			"RoomFormal/BottomBar/LeaveBtn",
+			"RoomFormal/RoleSelectPanel/CharacterGrid/CharIcon0",
+		],
 }
 
 
@@ -59,7 +59,7 @@ func _test_scene_flow_uses_formal_front_paths() -> void:
 		"scene flow points lobby to formal lobby scene"
 	)
 	_assert_true(
-		SceneFlowControllerScript.ROOM_SCENE_PATH == "res://scenes/front/room_scene.tscn",
+		SceneFlowControllerScript.ROOM_SCENE_PATH == "res://scenes/front/room/room_formal.tscn",
 		"scene flow points room to formal room scene"
 	)
 

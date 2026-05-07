@@ -229,10 +229,10 @@ func _test_actor_snaps_large_respawn_teleport() -> void:
 		"alive": false,
 		"pose_state": "defeat",
 		"facing": 1,
-		"cell_size": 48.0,
-		"position": Vector2(48.0, 48.0),
+		"cell_size": 40.0,
+		"position": Vector2(40.0, 40.0),
 	})
-	actor_view.position = Vector2(48.0, 48.0)
+	actor_view.position = Vector2(40.0, 40.0)
 
 	actor_view.apply_view_state({
 		"entity_id": 4,
@@ -241,11 +241,11 @@ func _test_actor_snaps_large_respawn_teleport() -> void:
 		"alive": true,
 		"pose_state": "normal",
 		"facing": 1,
-		"cell_size": 48.0,
-		"position": Vector2(240.0, 48.0),
+		"cell_size": 40.0,
+		"position": Vector2(200.0, 40.0),
 	})
 
-	_assert_true(actor_view.position == Vector2(240.0, 48.0), "Actor view snaps to respawn target instead of lerping across map")
+	_assert_true(actor_view.position == Vector2(200.0, 40.0), "Actor view snaps to respawn target instead of lerping across map")
 	actor_view.free()
 
 

@@ -27,7 +27,7 @@ type testSocket struct {
 func newTestServerAndSocket(t *testing.T) (*Server, *testSocket) {
 	t.Helper()
 	app := newTestRoomApp(t)
-	server := NewServer("127.0.0.1:0", app, slog.Default())
+	server := NewServer("127.0.0.1:0", app, slog.Default(), OriginPolicy{AllowAll: true, MaxFrameBytes: 65536, ReadTimeoutSeconds: 30, PingIntervalSeconds: 10})
 	if err := server.Start(); err != nil {
 		t.Fatalf("start ws server: %v", err)
 	}

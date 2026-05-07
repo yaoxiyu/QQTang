@@ -17,23 +17,19 @@ param(
     [switch]$SkipBuild,
     [switch]$ForceBuild
 )
-
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'lib\dev_common.ps1')
-
 $root = Resolve-QQTProjectRoot $ProjectPath
 $cfg = Get-QQTProfileConfig -Profile $Profile -Root $root
 $composeFile = Join-Path $root ("deploy\docker\docker-compose.services.{0}.yml" -f $Profile)
 if (-not (Test-Path -LiteralPath $composeFile)) {
     throw "Service compose file not found: $composeFile"
 }
-
 $cacheRoot = Join-Path $root (Join-Path 'build' (Join-Path '.run-services-cache' $Profile))
 New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
 $progressActivity = "run-services:$Profile"
 $progressTotal = 9
 $progressStep = 1
-
 if (-not $SkipDb) {
     Invoke-QQTProgressStep -Activity $progressActivity -Step $progressStep -Total $progressTotal -Name 'db-up' -Action {
         & (Join-Path $PSScriptRoot 'db-up.ps1') -Profile $Profile -ProjectPath $root
@@ -128,7 +124,6 @@ Invoke-QQTIncrementalStep `
     -Total $progressTotal `
     -Action { & (Join-Path $root 'scripts\content\generate_room_manifest.ps1') -ProjectPath $root -GodotExecutable $GodotExecutable } | Out-Null
 $progressStep++
-
 if ($Profile -eq 'dev' -and -not $SkipBuild -and -not $SkipBattleDSImageBuild) {
     Invoke-QQTIncrementalStep `
         -Root $root `
@@ -164,18 +159,15 @@ if ($Profile -eq 'dev' -and -not $SkipBuild -and -not $SkipBattleDSImageBuild) {
         -Action { & (Join-Path $root 'scripts\docker\prepare_battle_ds_image.ps1') -GodotExe $GodotExecutable -SkipNativeBuild:$SkipNativeBuild -ForceBuild:$ForceBuild } | Out-Null
 }
 $progressStep++
-
 if ([string]::IsNullOrWhiteSpace($LogDir)) {
     $timestamp = Get-Date -Format 'yyyyMMdd_HHmmss'
     $LogDir = Join-Path $root (Join-Path 'logs' "services_${Profile}_$timestamp")
 }
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
-
 $env:QQT_LOG_SQL = if ($LogSQL) { 'true' } else { 'false' }
 $env:QQT_DSM_GODOT_EXECUTABLE = $DSMContainerGodotExecutable
 $env:QQT_DSM_PORT_RANGE_START = [string]$DSMPortRangeStart
 $env:QQT_DSM_PORT_RANGE_END = [string]$DSMPortRangeEnd
-
 if (-not $SkipDSPoolCleanup) {
     $poolID = "qqtang_services_$Profile"
     $dsContainers = @(
@@ -195,7 +187,6 @@ if (-not $SkipDSPoolCleanup) {
         }
     }
 }
-
 $serviceImageFingerprint = Get-QQTFileFingerprint `
     -Root $root `
     -IncludePaths @(
@@ -205,7 +196,10 @@ $serviceImageFingerprint = Get-QQTFileFingerprint `
         'services\game_service',
         'services\ds_manager_service',
         'services\room_service',
-        'services\shared\contentmanifest'
+        'services\ds_agent',
+        'services\shared\contentmanifest',
+        'services\shared\httpx',
+        'services\shared\internalauth'
     ) `
     -ExcludePathParts @(
         '\.git\',
@@ -225,7 +219,6 @@ if ($shouldBuildServiceImages -and -not $SkipBuild) {
 } else {
     Write-Host "[run-services] docker compose service images unchanged; starting without --build"
 }
-
 Invoke-QQTProgressStep -Activity $progressActivity -Step $progressStep -Total $progressTotal -Name 'docker compose up' -Action {
     docker @composeArgs
 }
@@ -242,10 +235,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 Set-Content -LiteralPath $serviceImageStampPath -Value $serviceImageFingerprint -Encoding ASCII
 Write-QQTProgress -Activity $progressActivity -Completed
-
 $logFile = Join-Path $LogDir 'docker-compose.ps1'
 "docker compose -f `"$composeFile`" logs -f" | Set-Content -LiteralPath $logFile -Encoding UTF8
-
 Write-Host "Started QQTang service containers (profile=$Profile)"
 Write-Host "  account_service:    http://$($cfg.Account.ListenAddr)"
 Write-Host "  game_service:       http://$($cfg.Game.ListenAddr)"

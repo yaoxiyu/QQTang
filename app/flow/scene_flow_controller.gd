@@ -8,7 +8,8 @@ const LOGIN_SCENE_PATH: String = "res://scenes/front/login_scene.tscn"
 const LOBBY_SCENE_PATH: String = "res://scenes/front/lobby_scene.tscn"
 const SHOP_SCENE_PATH: String = "res://scenes/front/shop_scene.tscn"
 const INVENTORY_SCENE_PATH: String = "res://scenes/front/inventory_scene.tscn"
-const ROOM_SCENE_PATH: String = "res://scenes/front/room/room_formal.tscn"  # old: room_scene.tscn
+# Formal room scene path. Keep contracts in tests/contracts/path synchronized.
+const ROOM_SCENE_PATH: String = "res://scenes/front/room/room_formal.tscn"
 const LOADING_SCENE_PATH: String = "res://scenes/front/loading_scene.tscn"
 const BATTLE_SCENE_PATH: String = "res://scenes/battle/battle_main.tscn"
 

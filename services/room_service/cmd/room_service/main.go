@@ -50,7 +50,13 @@ func main() {
 	app.SetLogger(logger)
 	app.SetEmptyBattleCleanupGrace(time.Duration(cfg.RoomEmptyBattleCleanupGraceSeconds) * time.Second)
 
-	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger, cfg.RoomAllowedOrigins...)
+	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger, wsapi.OriginPolicy{
+			AllowedOrigins:      cfg.RoomAllowedOrigins,
+			AllowAll:            cfg.RoomAllowAllOrigins,
+			MaxFrameBytes:       int64(cfg.RoomWSMaxFrameBytes),
+			ReadTimeoutSeconds:  cfg.RoomWSReadTimeoutSeconds,
+			PingIntervalSeconds: cfg.RoomWSPingIntervalSeconds,
+		})
 	if err := wsServer.Start(); err != nil {
 		fatalf("start ws server: %v", err)
 	}

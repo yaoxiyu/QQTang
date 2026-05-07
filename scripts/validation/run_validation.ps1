@@ -73,6 +73,8 @@ function Invoke-Step {
 
 $protoScript = Join-Path $repoRoot 'scripts\proto\generate_proto.ps1'
 $crossServiceScript = Join-Path $repoRoot 'tests\scripts\run_cross_service_contract_suite.ps1'
+$pythonTestScript = Join-Path $repoRoot 'tests\scripts\run_python_contract_tests.py'
+$gdStyleCheckScript = Join-Path $repoRoot 'tools\lint\check_gdscript_style.py'
 $gutScript = Join-Path $repoRoot 'tests\scripts\run_gut_suite.ps1'
 $releaseSanityScript = Join-Path $repoRoot 'tools\release\release_sanity_check.py'
 $csharpProj = Join-Path $repoRoot 'tests\csharp\QQTang.RoomClient.Tests\QQTang.RoomClient.Tests.csproj'
@@ -85,12 +87,16 @@ $goServices = @(
     'room_service',
     'game_service',
     'ds_manager_service',
-    'account_service'
+    'ds_agent',
+    'account_service',
+    'shared/contentmanifest'
 )
 
 foreach ($service in $goServices) {
-    $workdir = Join-Path $repoRoot ("services\{0}" -f $service)
-    Invoke-Step -Name ("go_test_{0}" -f $service) -Type 'go' -Action {
+    $servicePath = $service -replace '/', '\'
+    $workdir = Join-Path $repoRoot ("services\{0}" -f $servicePath)
+    $safeServiceName = $service -replace '[\\/]', '_'
+    Invoke-Step -Name ("go_test_{0}" -f $safeServiceName) -Type 'go' -Action {
         Push-Location $workdir
         try {
             go test ./...
@@ -101,8 +107,24 @@ foreach ($service in $goServices) {
     }
 }
 
+Invoke-Step -Name 'check_room_manifest' -Type 'script' -Action {
+    $manifestPath = Join-Path $repoRoot 'build/generated/room_manifest/room_manifest.json'
+    if (-not (Test-Path $manifestPath)) {
+        throw "room_manifest.json missing. Run scripts/content/run_content_pipeline.ps1 first."
+    }
+    Write-Host "room_manifest.json present at $manifestPath"
+}
+
 Invoke-Step -Name 'dotnet_room_client_tests' -Type 'dotnet' -Action {
     dotnet test $csharpProj -v minimal
+}
+
+Invoke-Step -Name 'python_contract_tests' -Type 'script' -ReportHint 'tests/reports/latest/python_contract_tests_latest.json' -Action {
+    python $pythonTestScript --timeout 120
+}
+
+Invoke-Step -Name 'gdscript_style_check' -Type 'script' -Action {
+    python $gdStyleCheckScript
 }
 
 Invoke-Step -Name 'cross_service_contract_suite' -Type 'script' -ReportHint 'tests/reports/latest/cross_service_contract_suite_latest.{txt,json}' -Action {

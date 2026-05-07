@@ -1,4 +1,4 @@
-# map_theme_48_v1
+# map_theme_40_v1
 
 ## 定位
 
@@ -9,13 +9,13 @@
 默认格子：
 
 ```text
-cell_px = 48
+cell_px = 40
 ```
 
 13x11 地图 full background：
 
 ```text
-624x528
+520x440
 ```
 
 大地图必须满足：

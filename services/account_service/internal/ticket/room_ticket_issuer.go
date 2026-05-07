@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 )
 
 type RoomTicketIssuer struct {
@@ -26,6 +27,8 @@ func (i *RoomTicketIssuer) IssueTicket(claim RoomTicketClaim) (string, RoomTicke
 	encoded := base64.RawURLEncoding.EncodeToString(payload)
 	signature := i.sign(encoded)
 	claim.Signature = signature
+	log.Printf("[ticket_debug] secret_sha256=%x payload_len=%d encoded=%s signature=%s",
+		sha256.Sum256(i.secret), len(payload), encoded[:min(len(encoded), 60)], signature)
 	return encoded + "." + signature, claim, nil
 }
 

@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"qqtang/services/account_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/account_service/internal/ticket"
 )
 

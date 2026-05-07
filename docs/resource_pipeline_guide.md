@@ -140,6 +140,22 @@ content/.../*.tres                         ← Godot 运行时资源
 build/generated/                          ← 目录索引、房间清单
 ```
 
+## Docker 构建依赖
+
+以下服务 Docker 镜像在构建时会复制 `build/generated/room_manifest/room_manifest.json`：
+
+- `services/room_service/Dockerfile`
+- `services/game_service/Dockerfile`
+
+**构建前必须先运行内容管线：**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/content/run_content_pipeline.ps1
+powershell -ExecutionPolicy Bypass -File scripts/content/validate_content_pipeline.ps1
+```
+
+Docker 构建不得依赖本地手工复制。CI 流程中应确保管线在 Docker build 前执行。
+
 ## 注意事项
 
 - 涉及 Godot 的管线命令（`run_content_pipeline`）必须确保 GDScript 语法预检通过后才能执行

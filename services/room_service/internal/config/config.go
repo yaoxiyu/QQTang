@@ -23,6 +23,10 @@ type Config struct {
 	RoomLogLevel                       string
 	RoomEnv                            string
 	RoomAllowedOrigins                 []string
+	RoomAllowAllOrigins                bool
+	RoomWSMaxFrameBytes                int
+	RoomWSReadTimeoutSeconds           int
+	RoomWSPingIntervalSeconds          int
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -45,9 +49,22 @@ func LoadFromEnv() (*Config, error) {
 		RoomShardID:                envOr("ROOM_SHARD_ID", "room-shard-dev"),
 		RoomLogLevel:               envOr("ROOM_LOG_LEVEL", "info"),
 		RoomEnv:                    envOr("ROOM_ENV", "development"),
+		RoomAllowAllOrigins:        envBoolOr("ROOM_ALLOW_ALL_ORIGINS", false),
 		RoomAllowedOrigins:         parseCSV(envOr("ROOM_ALLOWED_ORIGINS", "")),
 	}
 	cfg.RoomEmptyBattleCleanupGraceSeconds, err = positiveInt("ROOM_EMPTY_BATTLE_CLEANUP_GRACE_SECONDS", 30)
+	if err != nil {
+		return nil, err
+	}
+	cfg.RoomWSMaxFrameBytes, err = positiveInt("ROOM_WS_MAX_FRAME_BYTES", 65536)
+	if err != nil {
+		return nil, err
+	}
+	cfg.RoomWSReadTimeoutSeconds, err = positiveInt("ROOM_WS_READ_TIMEOUT_SECONDS", 30)
+	if err != nil {
+		return nil, err
+	}
+	cfg.RoomWSPingIntervalSeconds, err = positiveInt("ROOM_WS_PING_INTERVAL_SECONDS", 10)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +84,26 @@ func LoadFromEnv() (*Config, error) {
 	if isProductionEnv(cfg.RoomEnv) && len(cfg.RoomAllowedOrigins) == 0 {
 		return nil, fmt.Errorf("ROOM_ALLOWED_ORIGINS is required in production")
 	}
+	if isProductionEnv(cfg.RoomEnv) && cfg.RoomAllowAllOrigins {
+		return nil, fmt.Errorf("ROOM_ALLOW_ALL_ORIGINS must be false in production")
+	}
+	if isProductionEnv(cfg.RoomEnv) && isUnsafeDevSecret(cfg.RoomTicketSecret) {
+		return nil, fmt.Errorf("ROOM_TICKET_SECRET uses unsafe development secret in production")
+	}
 
 	return cfg, nil
+}
+
+func envBoolOr(key string, fallback bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return b
 }
 
 func envOr(key, fallback string) string {
@@ -112,4 +147,24 @@ func isProductionEnv(value string) bool {
 	default:
 		return false
 	}
+}
+
+var unsafeSecretPatterns = []string{
+	"dev_",
+	"replace_me",
+	"changeme",
+	"qqtang_dev_pass",
+}
+
+func isUnsafeDevSecret(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	if lower == "" {
+		return true
+	}
+	for _, pattern := range unsafeSecretPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }

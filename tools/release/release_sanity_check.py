@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import fnmatch
 import subprocess
 import sys
@@ -184,19 +185,47 @@ def check_dirty_artifacts(tracked_files: list[str], status_paths: list[str]) -> 
     return result
 
 
+def list_filesystem_files() -> list[str]:
+    """Fallback file listing when .git is not available (archive mode)."""
+    result: list[str] = []
+    for p in ROOT.rglob("*"):
+        if p.is_file():
+            rel = p.relative_to(ROOT).as_posix()
+            if rel.startswith((".git/", "__pycache__/", "addons/", "node_modules/")):
+                continue
+            result.append(rel)
+    return result
+
+
 def main() -> int:
-    try:
-        tracked_files = list_tracked_files()
-        status_paths = list_git_status_paths()
-    except Exception as exc:  # noqa: BLE001
-        print(f"[FATAL] failed to list repo files: {exc}")
-        return 2
+    parser = argparse.ArgumentParser(description="QQTang release sanity check")
+    parser.add_argument(
+        "--archive-mode",
+        action="store_true",
+        help="Run in archive mode (no .git dependency, skip dirty tree check)",
+    )
+    args = parser.parse_args()
+
+    archive_mode = args.archive_mode
+    if archive_mode or not (ROOT / ".git").exists():
+        archive_mode = True
+        print("[release_sanity] WARN: running in archive mode — git checks skipped")
+        tracked_files = list_filesystem_files()
+        status_paths = []
+    else:
+        try:
+            tracked_files = list_tracked_files()
+            status_paths = list_git_status_paths()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[FATAL] failed to list repo files: {exc}")
+            return 2
 
     checks = [
         check_forbidden_paths_absent(),
         check_forbidden_references_absent(tracked_files),
-        check_dirty_artifacts(tracked_files, status_paths),
     ]
+    if not archive_mode:
+        checks.append(check_dirty_artifacts(tracked_files, status_paths))
 
     failed = 0
     print("[release_sanity] Current release sanity check")

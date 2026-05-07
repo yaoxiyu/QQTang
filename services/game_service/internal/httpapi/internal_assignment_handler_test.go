@@ -18,7 +18,7 @@ import (
 
 	"qqtang/services/game_service/internal/assignment"
 	"qqtang/services/game_service/internal/auth"
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 	"qqtang/services/game_service/internal/storage"
 )
 
@@ -299,13 +299,13 @@ func postSignedAssignmentCommit(t *testing.T, handler http.Handler, assignmentID
 	now := time.Now().UTC()
 	ts := strconv.FormatInt(now.Unix(), 10)
 	nonce := "nonce-" + strconv.FormatInt(assignmentCommitNonceSeq.Add(1), 10)
-	bodyHash := internalhttp.BodySHA256Hex(body)
-	signature := internalhttp.Sign(req.Method, req.URL.RequestURI(), ts, nonce, bodyHash, "internal_secret")
-	req.Header.Set(internalhttp.HeaderKeyID, "primary")
-	req.Header.Set(internalhttp.HeaderTimestamp, ts)
-	req.Header.Set(internalhttp.HeaderNonce, nonce)
-	req.Header.Set(internalhttp.HeaderBodySHA256, bodyHash)
-	req.Header.Set(internalhttp.HeaderSignature, signature)
+	bodyHash := internalauth.BodySHA256Hex(body)
+	signature := internalauth.Sign(req.Method, req.URL.RequestURI(), ts, nonce, bodyHash, "internal_secret")
+	req.Header.Set(internalauth.HeaderKeyID, "primary")
+	req.Header.Set(internalauth.HeaderTimestamp, ts)
+	req.Header.Set(internalauth.HeaderNonce, nonce)
+	req.Header.Set(internalauth.HeaderBodySHA256, bodyHash)
+	req.Header.Set(internalauth.HeaderSignature, signature)
 	resp := httptest.NewRecorder()
 	handler.ServeHTTP(resp, req)
 	return resp

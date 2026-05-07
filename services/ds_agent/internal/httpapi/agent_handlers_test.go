@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"qqtang/services/ds_agent/internal/auth"
-	"qqtang/services/ds_agent/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 	"qqtang/services/ds_agent/internal/runtime"
 	"qqtang/services/ds_agent/internal/state"
 )
@@ -110,7 +110,7 @@ func doSignedRequest(t *testing.T, router http.Handler, method string, path stri
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	if err := internalhttp.SignRequest(req, "primary", "test-secret", body, time.Now().UTC()); err != nil {
+	if err := internalauth.SignRequest(req, "primary", "test-secret", body, time.Now().UTC()); err != nil {
 		t.Fatalf("SignRequest failed: %v", err)
 	}
 	rec := httptest.NewRecorder()

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"qqtang/services/game_service/internal/battlealloc"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type InternalBattleReapHandler struct {

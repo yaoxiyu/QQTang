@@ -93,6 +93,21 @@ func (r *AccountRepository) FindByAccountID(ctx context.Context, accountID strin
 	return scanAccount(row)
 }
 
+func (r *AccountRepository) UpgradePassword(ctx context.Context, accountID string, passwordHash string, passwordAlgo string) error {
+	_, err := r.db.Exec(
+		ctx,
+		`UPDATE accounts
+		SET password_hash = $2,
+			password_algo = $3,
+			updated_at = NOW()
+		WHERE account_id = $1`,
+		accountID,
+		passwordHash,
+		passwordAlgo,
+	)
+	return err
+}
+
 func (r *AccountRepository) UpdateLastLoginAt(ctx context.Context, accountID string, ts time.Time) error {
 	_, err := r.db.Exec(
 		ctx,

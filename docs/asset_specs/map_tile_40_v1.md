@@ -1,4 +1,4 @@
-# map_tile_48_v1
+# map_tile_40_v1
 
 ## 定位
 
@@ -7,10 +7,10 @@
 ## 基础尺寸
 
 ```text
-cell_px = 48
+cell_px = 40
 ```
 
-Tile 可以使用 `48x48`、`48x64`、`96x96` 等画布，但 footprint 必须对齐 48 像素格子。
+Tile 可以使用 `40x40`、`44x54`、`80x80` 等画布，但 footprint 必须对齐 40 像素格子。
 
 ## Surface 表现
 
@@ -31,7 +31,8 @@ fit_mode,edge_bleed_px,die_duration_sec
 `fit_mode` 约定：
 
 ```text
-cell_width = 等比缩放到 footprint 宽度, 默认用于普通 surface 方块
+source = 保持原始像素尺寸, 默认用于正式地图 surface 方块
+cell_width = 等比缩放到 footprint 宽度, 仅用于非正式或占位 surface 方块
 cell_size = 非等比缩放到 footprint 尺寸
 original = 保持原始像素尺寸, 默认用于 occluder
 ```
@@ -39,7 +40,8 @@ original = 保持原始像素尺寸, 默认用于 occluder
 `edge_bleed_px` 约定：
 
 - 用于覆盖 camera 非整数缩放和 Sprite 独立采样导致的细缝。
-- `cell_width` 和 `cell_size` 默认允许 1px 边缘覆盖。
+- 正式 40px 地图资产默认不做缩放, 由原始资源相对 40px 格子的外溢覆盖相邻边。
+- `cell_width` 和 `cell_size` 可允许 1px 边缘覆盖。
 - `original` 默认不做边缘覆盖。
 - 如特定资源不允许覆盖, 可显式设为 `0`。
 

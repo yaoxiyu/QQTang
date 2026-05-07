@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"qqtang/services/game_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 	"qqtang/services/game_service/internal/storage"
 )
 
@@ -223,7 +223,7 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 		return dsAllocateResponse{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, body, time.Now().UTC()); err != nil {
+	if err := internalauth.SignRequest(req, s.internalAuthKeyID, s.internalSecret, body, time.Now().UTC()); err != nil {
 		return dsAllocateResponse{}, fmt.Errorf("sign ds_manager request failed: %w", err)
 	}
 
@@ -259,7 +259,7 @@ func (s *Service) requestDSBattleStatus(ctx context.Context, battleID string) (d
 	if err != nil {
 		return dsAllocateResponse{}, err
 	}
-	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
+	if err := internalauth.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
 		return dsAllocateResponse{}, fmt.Errorf("sign ds_manager status request failed: %w", err)
 	}
 	resp, err := s.httpClient.Do(req)
@@ -291,7 +291,7 @@ func (s *Service) requestDSReap(ctx context.Context, battleID string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if err := internalhttp.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
+	if err := internalauth.SignRequest(req, s.internalAuthKeyID, s.internalSecret, nil, time.Now().UTC()); err != nil {
 		return fmt.Errorf("sign ds_manager reap request failed: %w", err)
 	}
 	resp, err := s.httpClient.Do(req)

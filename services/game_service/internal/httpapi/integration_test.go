@@ -22,8 +22,8 @@ import (
 	"qqtang/services/game_service/internal/auth"
 	"qqtang/services/game_service/internal/career"
 	"qqtang/services/game_service/internal/finalize"
-	"qqtang/services/game_service/internal/internalhttp"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/internalauth"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/game_service/internal/queue"
 	"qqtang/services/game_service/internal/storage"
 )
@@ -148,7 +148,7 @@ func TestRouterMatchmakingEnterAndCancel(t *testing.T) {
 	db := newFakeHTTPQueueDB()
 	queueService := queue.NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
 	router := NewRouter(RouterDeps{
-		JWTAuth:            auth.NewJWTAuth("test_secret"),
+		SignedTokenAuth:            auth.NewSignedTokenAuth("test_secret"),
 		InternalAuth:       auth.NewInternalAuth("primary", "internal_secret", time.Minute),
 		MatchmakingHandler: NewMatchmakingHandler(queueService),
 		CareerHandler:      NewCareerHandler((*career.Service)(nil)),
@@ -216,7 +216,7 @@ func TestRouterMatchmakingCancelRejectsInvalidBody(t *testing.T) {
 	db := newFakeHTTPQueueDB()
 	queueService := queue.NewService(storage.NewQueueRepository(db), storage.NewAssignmentRepository(db), nil, 30*time.Second)
 	router := NewRouter(RouterDeps{
-		JWTAuth:            auth.NewJWTAuth("test_secret"),
+		SignedTokenAuth:            auth.NewSignedTokenAuth("test_secret"),
 		InternalAuth:       auth.NewInternalAuth("primary", "internal_secret", time.Minute),
 		MatchmakingHandler: NewMatchmakingHandler(queueService),
 		CareerHandler:      NewCareerHandler((*career.Service)(nil)),
@@ -314,11 +314,11 @@ func signInternalHTTPTestRequest(t *testing.T, req *http.Request, body []byte, k
 	t.Helper()
 	timestamp := strconv.FormatInt(now.UTC().Unix(), 10)
 	nonce := "nonce-" + timestamp
-	bodyHash := internalhttp.BodySHA256Hex(body)
-	signature := internalhttp.Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
-	req.Header.Set(internalhttp.HeaderKeyID, keyID)
-	req.Header.Set(internalhttp.HeaderTimestamp, timestamp)
-	req.Header.Set(internalhttp.HeaderNonce, nonce)
-	req.Header.Set(internalhttp.HeaderBodySHA256, bodyHash)
-	req.Header.Set(internalhttp.HeaderSignature, signature)
+	bodyHash := internalauth.BodySHA256Hex(body)
+	signature := internalauth.Sign(req.Method, req.URL.RequestURI(), timestamp, nonce, bodyHash, secret)
+	req.Header.Set(internalauth.HeaderKeyID, keyID)
+	req.Header.Set(internalauth.HeaderTimestamp, timestamp)
+	req.Header.Set(internalauth.HeaderNonce, nonce)
+	req.Header.Set(internalauth.HeaderBodySHA256, bodyHash)
+	req.Header.Set(internalauth.HeaderSignature, signature)
 }

@@ -5,8 +5,8 @@ const AppRuntimeConfigScript = preload("res://app/flow/app_runtime_config.gd")
 const RuntimeDebugToolsScript = preload("res://app/debug/runtime_debug_tools.gd")
 const RoomMemberStateScript = preload("res://gameplay/battle/config/room_member_state.gd")
 const RoomSnapshotScript = preload("res://gameplay/battle/config/room_snapshot.gd")
-const ROOM_SCENE_PATH := "res://scenes/front/room_scene.tscn"
-const ROOM_SCENE_CONTROLLER_PATH := "res://scenes/front/room_scene_controller.gd"
+const ROOM_SCENE_PATH := "res://scenes/front/room/room_formal.tscn"
+const ROOM_SCENE_CONTROLLER_PATH := "res://scenes/front/room/room_formal_controller.gd"
 
 
 func test_main() -> void:
@@ -80,7 +80,7 @@ func _test_room_scene_uses_canonical_controller_contract() -> void:
 		return
 	var text := file.get_as_text()
 	file.close()
-	_assert_true(text.contains("script = ExtResource(\"1_room\")"), "room scene binds canonical controller ext resource")
+	_assert_true(text.contains("script = ExtResource(\"1_ctrl\")"), "room scene binds canonical controller ext resource")
 	_assert_true(text.contains(ROOM_SCENE_CONTROLLER_PATH), "room scene controller path is canonical")
 	_assert_true(not text.contains("bootstrap_local_loop_room_if_enabled"), "room scene contains no embedded debug bootstrap logic")
 

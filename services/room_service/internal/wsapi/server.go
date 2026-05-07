@@ -20,47 +20,54 @@ import (
 	"qqtang/services/room_service/internal/roomapp"
 )
 
-type Server struct {
-	addr            string
-	listenAddr      string
-	logger          *slog.Logger
-	dispatcher      *Dispatcher
-	upgrader        websocket.Upgrader
-	httpSrv         *http.Server
-	started         atomic.Bool
-	connSeq         atomic.Int64
-	mu              sync.Mutex
-	connMu          sync.RWMutex
-	conns           map[string]*Connection
-	originSet       map[string]struct{}
-	allowAllOrigins bool
-	bgCtx           context.Context
-	bgCancel        context.CancelFunc
-	bgWait          sync.WaitGroup
+type OriginPolicy struct {
+	AllowedOrigins       []string
+	AllowAll             bool
+	MaxFrameBytes        int64
+	ReadTimeoutSeconds   int
+	PingIntervalSeconds  int
 }
 
-func NewServer(addr string, app *roomapp.Service, logger *slog.Logger, allowedOrigins ...string) *Server {
-	originSet := make(map[string]struct{}, len(allowedOrigins))
-	for _, origin := range allowedOrigins {
+type Server struct {
+	addr          string
+	listenAddr    string
+	logger        *slog.Logger
+	dispatcher    *Dispatcher
+	upgrader      websocket.Upgrader
+	httpSrv       *http.Server
+	started       atomic.Bool
+	connSeq       atomic.Int64
+	mu            sync.Mutex
+	connMu        sync.RWMutex
+	conns         map[string]*Connection
+	originSet     map[string]struct{}
+	originPolicy  OriginPolicy
+	bgCtx         context.Context
+	bgCancel      context.CancelFunc
+	bgWait        sync.WaitGroup
+}
+
+func NewServer(addr string, app *roomapp.Service, logger *slog.Logger, policy OriginPolicy) *Server {
+	originSet := make(map[string]struct{}, len(policy.AllowedOrigins))
+	for _, origin := range policy.AllowedOrigins {
 		normalized := strings.TrimSpace(origin)
 		if normalized == "" {
 			continue
 		}
 		originSet[normalized] = struct{}{}
 	}
-	allowAllOrigins := len(originSet) == 0
 	s := &Server{
-		addr:            addr,
-		logger:          logger,
-		dispatcher:      NewDispatcher(app),
-		conns:           map[string]*Connection{},
-		originSet:       originSet,
-		allowAllOrigins: allowAllOrigins,
+		addr:         addr,
+		logger:       logger,
+		dispatcher:   NewDispatcher(app),
+		conns:        map[string]*Connection{},
+		originSet:    originSet,
+		originPolicy: policy,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  4096,
 			WriteBufferSize: 4096,
 			CheckOrigin: func(r *http.Request) bool {
-				return isOriginAllowed(r, allowAllOrigins, originSet)
+				return isOriginAllowed(r, policy.AllowAll, originSet)
 			},
 		},
 	}
@@ -131,11 +138,44 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	if s.originPolicy.MaxFrameBytes > 0 {
+		socket.SetReadLimit(s.originPolicy.MaxFrameBytes)
+	}
+	readTimeout := time.Duration(s.originPolicy.ReadTimeoutSeconds) * time.Second
+	if readTimeout <= 0 {
+		readTimeout = 30 * time.Second
+	}
+	_ = socket.SetReadDeadline(time.Now().Add(readTimeout))
+	socket.SetPongHandler(func(string) error {
+		_ = socket.SetReadDeadline(time.Now().Add(readTimeout))
+		return nil
+	})
+
 	conn := newConnection(fmt.Sprintf("conn-%d", s.connSeq.Add(1)), socket)
 	s.registerConnection(conn)
 	defer s.unregisterConnection(conn.ID())
 	defer s.onConnectionClosed(conn)
 	defer socket.Close()
+
+	pingInterval := time.Duration(s.originPolicy.PingIntervalSeconds) * time.Second
+	if pingInterval <= 0 {
+		pingInterval = 10 * time.Second
+	}
+	pingDone := make(chan struct{})
+	defer close(pingDone)
+	go func() {
+		ticker := time.NewTicker(pingInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-pingDone:
+				return
+			case <-ticker.C:
+				_ = socket.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(5*time.Second))
+			}
+		}
+	}()
 
 	for {
 		msgType, payload, err := socket.ReadMessage()
@@ -412,7 +452,9 @@ func isOriginAllowed(r *http.Request, allowAll bool, originSet map[string]struct
 	}
 	origin := strings.TrimSpace(r.Header.Get("Origin"))
 	if origin == "" {
-		return false
+		// Non-browser native client (e.g. Godot). Allow through; business layer
+		// enforces ticket validation.
+		return true
 	}
 	_, ok := originSet[origin]
 	return ok

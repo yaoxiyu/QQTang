@@ -12,7 +12,7 @@ import (
 	"time"
 
 	gamev1 "qqtang/services/room_service/internal/gen/qqt/gamev1shim"
-	"qqtang/services/room_service/internal/internalhttp"
+	"qqtang/services/shared/internalauth"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -175,7 +175,7 @@ func (c *Client) ReapBattle(input ReapBattleInput) (ReapBattleResult, error) {
 		return ReapBattleResult{}, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if err := internalhttp.SignRequest(req, c.authKeyID, c.authSecret, body, time.Now().UTC()); err != nil {
+	if err := internalauth.SignRequest(req, c.authKeyID, c.authSecret, body, time.Now().UTC()); err != nil {
 		return ReapBattleResult{}, err
 	}
 	resp, err := c.httpClient.Do(req)

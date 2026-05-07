@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"qqtang/services/ds_manager_service/internal/allocator"
-	"qqtang/services/ds_manager_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 	"qqtang/services/ds_manager_service/internal/process"
 	"qqtang/services/ds_manager_service/internal/runtimepool"
 )

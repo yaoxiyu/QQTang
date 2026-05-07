@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"qqtang/services/game_service/internal/career"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type CareerHandler struct {

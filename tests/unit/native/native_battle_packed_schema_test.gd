@@ -59,8 +59,8 @@ func test_append_bubble_item_and_grid_update_arrays() -> void:
 	assert_eq(ReaderScript.get_bubble_count(state), 1, "bubble count should update")
 	assert_eq(ReaderScript.get_item_count(state), 1, "item count should update")
 	assert_eq((state["bubbles"] as PackedInt32Array).size(), Schema.BUBBLE_STRIDE, "bubble array should grow by one stride")
-	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_RESERVED0], 2, "bubble type should be packed into reserved field")
-	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_RESERVED1], 4, "bubble footprint should be packed into reserved field")
+	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_TYPE], 2, "bubble type should be packed into reserved field")
+	assert_eq((state["bubbles"] as PackedInt32Array)[Schema.BUBBLE_FOOTPRINT_CELLS], 4, "bubble footprint should be packed into reserved field")
 	assert_eq((state["items"] as PackedInt32Array).size(), Schema.ITEM_STRIDE, "item array should grow by one stride")
 	assert_eq((state["grid"] as PackedInt32Array).size(), Schema.GRID_STRIDE, "grid array should grow by one stride")
 

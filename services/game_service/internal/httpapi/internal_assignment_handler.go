@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"qqtang/services/game_service/internal/assignment"
-	"qqtang/services/game_service/internal/platform/httpx"
+	"qqtang/services/shared/httpx"
 )
 
 type InternalAssignmentHandler struct {
