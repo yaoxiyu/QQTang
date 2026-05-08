@@ -6,6 +6,7 @@ const FIT_CELL_SIZE := "cell_size"
 const FIT_ORIGINAL := "original"
 const DEFAULT_DIE_SECONDS := 0.36
 const DEFAULT_EDGE_BLEED_PX := 1.0
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 
 var cell: Vector2i = Vector2i.ZERO
 var footprint: Vector2i = Vector2i.ONE
@@ -31,7 +32,8 @@ func configure(entry: Dictionary, p_cell_size: float, stand_texture: Texture2D, 
 	die_seconds = max(float(entry.get("die_duration_sec", DEFAULT_DIE_SECONDS)), 0.01)
 	fit_mode = _resolve_fit_mode(entry)
 	edge_bleed_px = max(float(entry.get("edge_bleed_px", _default_edge_bleed_for_fit_mode(fit_mode))), 0.0)
-	z_index = _calc_elem_z_index(cell.x, cell.y, footprint.y, int(entry.get("z_bias", 0)))
+	z_as_relative = false
+	z_index = BattleDepth.surface_z(cell, int(entry.get("z_bias", 0)))
 	_stand_texture = stand_texture
 	_die_texture = die_texture
 	_ensure_sprite()
@@ -83,17 +85,15 @@ func _apply_texture(texture: Texture2D) -> void:
 func _apply_anchor(texture: Texture2D) -> void:
 	var texture_size := texture.get_size()
 	var scaled_size := texture_size * _sprite.scale
-	var footprint_size := Vector2(float(maxi(footprint.x, 1)) * cell_size, float(maxi(footprint.y, 1)) * cell_size)
-	var origin := Vector2(cell.x, cell.y) * cell_size
-	match anchor_mode:
-		"bottom_center":
-			origin += Vector2((footprint_size.x - scaled_size.x) * 0.5, footprint_size.y - scaled_size.y)
-		"bottom_left_of_footprint":
-			origin += Vector2(0.0, footprint_size.y - scaled_size.y)
-		"bottom_right":
-			origin += Vector2(footprint_size.x - scaled_size.x, footprint_size.y - scaled_size.y)
-		_:
-			pass
+	var origin := Vector2.ZERO
+	if anchor_mode == "bottom_left":
+		origin = Vector2(float(cell.x) * cell_size, float(cell.y + 1) * cell_size - scaled_size.y)
+	elif anchor_mode == "bottom_center":
+		var left_cell := cell.x - int(floor(float(footprint.x - 1) / 2.0))
+		var center_x := (float(left_cell) + float(footprint.x) * 0.5) * cell_size
+		origin = Vector2(center_x - scaled_size.x * 0.5, float(cell.y + 1) * cell_size - scaled_size.y)
+	else:
+		origin = Vector2(float(cell.x + 1) * cell_size - scaled_size.x, float(cell.y + 1) * cell_size - scaled_size.y)
 	position = origin + offset_px
 
 
@@ -114,8 +114,3 @@ func _default_edge_bleed_for_fit_mode(resolved_fit_mode: String) -> float:
 	if resolved_fit_mode == FIT_ORIGINAL:
 		return 0.0
 	return DEFAULT_EDGE_BLEED_PX
-
-
-func _calc_elem_z_index(cell_x: int, cell_y: int, footprint_h: int = 1, z_bias: int = 0) -> int:
-	var base_row := cell_y + footprint_h - 1
-	return base_row * 100 - cell_x + z_bias

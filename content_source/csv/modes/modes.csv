@@ -1,13 +1,13 @@
 mode_id,mode_name,rule_set_id,min_player_count,max_player_count,allow_character_select,allow_bubble_select,allow_skin_select,allow_map_select,hud_layout_id,default_map_id
 bomb,炸弹主题,ruleset_classic,2,4,true,true,true,true,default,
-box,宝箱主题,ruleset_classic,2,4,true,true,true,true,default,map_classic_square
+box,宝箱主题,ruleset_classic,2,4,true,true,true,true,default,
 bun,包子主题,ruleset_classic,2,4,true,true,true,true,default,
 common,通用主题,ruleset_classic,2,4,true,true,true,true,default,
-desert,沙漠主题,ruleset_classic,2,4,true,true,true,true,default,
+desert,沙漠主题,ruleset_classic,2,4,true,true,true,true,default,map_desert01
 exploration,探险主题,ruleset_classic,2,4,true,true,true,true,default,
 field,田园主题,ruleset_classic,2,4,true,true,true,true,default,
 machine,机械主题,ruleset_classic,2,4,true,true,true,true,default,
-match,比赛主题,ruleset_classic,2,4,true,true,true,true,default,
+match,比赛主题,ruleset_classic,2,4,true,true,true,true,default,map_match01
 mine,矿洞主题,ruleset_classic,2,4,true,true,true,true,default,
 pig,猪猪主题,ruleset_classic,2,4,true,true,true,true,default,
 practice,练习主题,ruleset_classic,2,4,true,true,true,true,default,

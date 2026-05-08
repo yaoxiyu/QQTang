@@ -58,7 +58,7 @@ func _redirect_to_boot_if_missing() -> void:
 	if _app_runtime != null and _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_boot"):
 		_app_runtime.front_flow.enter_boot()
 		return
-	get_tree().change_scene_to_file("res://scenes/front/boot_scene.tscn")
+	get_tree().change_scene_to_file.call_deferred("res://scenes/front/boot_scene.tscn")
 
 func _apply_profile_defaults() -> void:
 	if _app_runtime == null:

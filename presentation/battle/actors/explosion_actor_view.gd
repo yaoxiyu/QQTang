@@ -4,6 +4,7 @@ extends Node2D
 const BubbleFxRegistryScript = preload("res://presentation/battle/fx/bubble_fx_registry.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 const SEGMENT_TEXTURE_PATHS := {
 	"center": "res://assets/animation/explosions/normal/segments/center.png",
 	"arm_right": "res://assets/animation/explosions/normal/segments/arm_right.png",
@@ -52,6 +53,8 @@ func configure(
 	bubble_style_id = p_bubble_style_id
 	bubble_color = p_bubble_color
 	bubble_type = _resolve_bubble_type(bubble_style_id)
+	z_as_relative = false
+	z_index = BattleDepth.explosion_z(_resolve_center_cell())
 	_rebuild_cells()
 
 

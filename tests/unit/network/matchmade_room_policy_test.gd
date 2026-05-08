@@ -56,9 +56,9 @@ func _test_match_ticket_claim_requires_assignment_locks() -> bool:
 	claim.assignment_id = "assign_alpha"
 	claim.assignment_revision = 1
 	claim.match_source = "matchmaking"
-	claim.locked_map_id = "map_classic_square"
+	claim.locked_map_id = "map_desert01"
 	claim.locked_rule_set_id = "ruleset_classic"
-	claim.locked_mode_id = "box"
+	claim.locked_mode_id = "desert"
 	claim.assigned_team_id = 1
 	claim.expected_member_count = 4
 	claim.auto_ready_on_join = true
@@ -73,4 +73,3 @@ func _test_match_ticket_claim_requires_assignment_locks() -> bool:
 	claim.expected_member_count = 0
 	ok = qqt_check(not verifier._is_valid_match_room_claim(claim), "match claim without expected member count should be invalid", prefix) and ok
 	return ok
-

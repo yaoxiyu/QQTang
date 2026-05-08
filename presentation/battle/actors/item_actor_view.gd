@@ -3,8 +3,7 @@ extends Node2D
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
-const ROW_Z_STEP := 100
-const ITEM_Z_BIAS := 30
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 
 var item_id: int = -1
 var item_type: int = 0
@@ -30,13 +29,8 @@ func apply_view_state(view_state: Dictionary) -> void:
 	position = view_state.get("position", Vector2.ZERO)
 	item_color = view_state.get("color", item_color)
 	z_as_relative = false
-	z_index = _calc_dynamic_z_index(view_state, ITEM_Z_BIAS)
+	z_index = BattleDepth.item_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
 	_refresh_visuals()
-
-
-func _calc_dynamic_z_index(view_state: Dictionary, z_bias: int) -> int:
-	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
-	return cell.y * ROW_Z_STEP - cell.x + z_bias
 
 
 func _ensure_visuals() -> void:

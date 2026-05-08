@@ -2,13 +2,13 @@
 import argparse
 import csv
 import json
-import math
 import struct
 from pathlib import Path
 
 CELL_SIZE = 40
 IMAGE_EXTS = {".png", ".gif", ".jpg", ".jpeg", ".bmp"}
-DEFAULT_FOOTPRINT_OVERRIDES_CSV = Path("content_source/csv/maps/map_elem_footprint_overrides.csv")
+DEFAULT_ELEM_OVERRIDES_CSV = Path("content_source/csv/maps/map_elem_overrides.csv")
+SURFACE_ANCHOR_MODES = {"bottom_right", "bottom_left", "bottom_center"}
 THEME_IDS = {
     "common": 1,
     "bomb": 2,
@@ -93,6 +93,8 @@ def infer_meta(width: int, height: int) -> dict:
             height,
             1,
             1,
+            0,
+            0,
             "cell_fill_40x40",
             0,
             1.0,
@@ -101,68 +103,38 @@ def infer_meta(width: int, height: int) -> dict:
             "",
         )
     if width <= 48 and height <= 68:
-        return build_meta(
-            width,
-            height,
-            1,
-            1,
-            "bottom_center",
-            1,
-            0.95,
-            "surface",
-            "object_1x1_2p5d",
-            "box_like_single_cell_2p5d",
-        )
-    if width <= 48 and height > 68:
-        return build_meta(
-            width,
-            height,
-            1,
-            max(1, math.ceil(height / CELL_SIZE)),
-            "bottom_center",
-            1,
-            0.65,
-            "surface",
-            "tall_object_1xN",
-            "high_vertical_object_may_still_be_one_cell",
-        )
-    if width % CELL_SIZE == 0 and height % CELL_SIZE == 0:
-        return build_meta(
-            width,
-            height,
-            max(1, width // CELL_SIZE),
-            max(1, height // CELL_SIZE),
-            "bottom_left_of_footprint",
-            1,
-            0.86,
-            "surface",
-            "multi_cell_grid_exact",
-            "size_is_exact_grid_multiple",
-        )
-    if width > 48 and height <= 68:
-        return build_meta(
-            width,
-            height,
-            max(1, math.ceil(width / CELL_SIZE)),
-            1,
-            "bottom_center",
-            1,
-            0.70,
-            "surface",
-            "wide_object_or_horizontal_deco",
-            "wide_object_needs_logic_width_review",
-        )
+        geometry_type = "object_1x1_2p5d"
+        confidence = 0.95
+        review_reason = "default_surface_1x1"
+    elif width <= 48 and height > 68:
+        geometry_type = "tall_object_1xN"
+        confidence = 0.65
+        review_reason = "manual_override_required_if_visual_or_collision_exceeds_1x1"
+    elif width % CELL_SIZE == 0 and height % CELL_SIZE == 0:
+        geometry_type = "multi_cell_grid_exact"
+        confidence = 0.86
+        review_reason = "manual_override_required_for_multi_cell_visual_or_collision"
+    elif width > 48 and height <= 68:
+        geometry_type = "wide_object_or_horizontal_deco"
+        confidence = 0.70
+        review_reason = "manual_override_required_if_visual_or_collision_exceeds_1x1"
+    else:
+        geometry_type = "large_complex_object"
+        confidence = 0.60
+        review_reason = "manual_override_required_for_large_irregular_asset"
     return build_meta(
         width,
         height,
-        max(1, math.ceil(width / CELL_SIZE)),
-        max(1, math.ceil(height / CELL_SIZE)),
-        "bottom_center",
         1,
-        0.60,
+        1,
+        1,
+        1,
+        "bottom_right",
+        1,
+        confidence,
         "surface",
-        "large_complex_object",
-        "large_irregular_asset_requires_manual_collision_review",
+        geometry_type,
+        review_reason,
     )
 
 
@@ -171,6 +143,8 @@ def build_meta(
     height: int,
     footprint_w: int,
     footprint_h: int,
+    collision_w: int,
+    collision_h: int,
     anchor_mode: str,
     draw_layer: int,
     confidence: float,
@@ -179,15 +153,13 @@ def build_meta(
     review_reason: str,
 ) -> dict:
     anchor_x = float(width)
-    if anchor_mode == "bottom_center":
-        anchor_x = float(width) * 0.5
-    elif anchor_mode == "bottom_left_of_footprint":
-        anchor_x = 0.0
     return {
         "width": width,
         "height": height,
         "footprint_w": footprint_w,
         "footprint_h": footprint_h,
+        "collision_w": collision_w,
+        "collision_h": collision_h,
         "anchor_mode": anchor_mode,
         "anchor_x": anchor_x,
         "anchor_y": float(height),
@@ -218,7 +190,7 @@ def parse_state(path: Path) -> str:
 
 
 def scan_assets(asset_root: Path) -> list[dict]:
-    footprint_overrides = read_footprint_overrides(DEFAULT_FOOTPRINT_OVERRIDES_CSV)
+    elem_overrides = read_elem_overrides(DEFAULT_ELEM_OVERRIDES_CSV)
     rows = []
     for path in sorted(asset_root.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in IMAGE_EXTS:
@@ -227,33 +199,52 @@ def scan_assets(asset_root: Path) -> list[dict]:
         elem_key = f"{theme}/{path.stem}"
         width, height = read_image_size(path)
         meta = infer_meta(width, height)
-        if elem_key in footprint_overrides:
-            footprint_w, footprint_h = footprint_overrides[elem_key]
-            meta["footprint_w"] = footprint_w
-            meta["footprint_h"] = footprint_h
+        override = elem_overrides.get(elem_key, {})
+        if override:
+            meta.update(override)
         die_path = find_sibling_action_path(path, "die")
         trigger_path = find_sibling_action_path(path, "trigger")
         state = parse_state(path)
+        override_logic_type = str(override.get("logic_type", "")).strip()
+        if width == CELL_SIZE and height == CELL_SIZE or override_logic_type == "floor":
+            meta["visual_layer"] = "floor"
+            meta["logic_type"] = "floor"
+            meta["footprint_w"] = max(1, int(meta.get("footprint_w", 1)))
+            meta["footprint_h"] = max(1, int(meta.get("footprint_h", 1)))
+            meta["collision_w"] = 0
+            meta["collision_h"] = 0
+            meta["anchor_mode"] = "cell_fill_40x40"
+        else:
+            meta["visual_layer"] = "surface"
         interaction_kind = "none"
-        logic_type = "floor" if meta["visual_layer"] == "floor" else "decoration"
+        logic_type = str(meta.get("logic_type", ""))
         if meta["visual_layer"] == "surface":
-            if state == "die":
+            if state != "stand":
                 interaction_kind = "none"
-                logic_type = "breakable"
-            elif state == "trigger":
-                interaction_kind = "none"
-                logic_type = "trigger"
-            elif state != "stand":
-                interaction_kind = "none"
+                logic_type = "decoration"
+            elif override_logic_type in {"decoration", "breakable", "trigger"}:
+                logic_type = override_logic_type
+                if logic_type == "breakable":
+                    interaction_kind = "breakable"
+                elif logic_type == "trigger":
+                    interaction_kind = "trigger_solid"
+                else:
+                    interaction_kind = "solid"
             elif die_path:
-                interaction_kind = "breakable"
                 logic_type = "breakable"
+                interaction_kind = "breakable"
             elif trigger_path:
-                interaction_kind = "trigger_solid"
                 logic_type = "trigger"
+                interaction_kind = "trigger_solid"
+            elif logic_type == "breakable":
+                interaction_kind = "breakable"
+            elif logic_type == "trigger":
+                interaction_kind = "trigger_solid"
             else:
                 interaction_kind = "solid"
                 logic_type = "decoration"
+        else:
+            logic_type = "floor"
         rows.append({
             "elem_key": elem_key,
             "mode_id": theme,
@@ -270,31 +261,48 @@ def scan_assets(asset_root: Path) -> list[dict]:
     return rows
 
 
-def read_footprint_overrides(path: Path) -> dict[str, tuple[int, int]]:
+def read_elem_overrides(path: Path) -> dict[str, dict]:
     if not path.exists():
         return {}
-    result: dict[str, tuple[int, int]] = {}
+    result: dict[str, dict] = {}
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             elem_key = str(row.get("elem_key", "")).strip()
             if not elem_key:
                 continue
+            override = {}
+            logic_type = str(row.get("logic_type", "")).strip()
+            if logic_type in {"floor", "decoration", "breakable", "trigger"}:
+                override["logic_type"] = logic_type
+            anchor_mode = str(row.get("anchor_mode", "")).strip()
+            if anchor_mode in SURFACE_ANCHOR_MODES:
+                override["anchor_mode"] = anchor_mode
             try:
-                footprint_w = max(1, int(str(row.get("footprint_w", "1")).strip() or "1"))
-                footprint_h = max(1, int(str(row.get("footprint_h", "1")).strip() or "1"))
+                if str(row.get("footprint_w", "")).strip():
+                    override["footprint_w"] = max(1, int(str(row.get("footprint_w", "")).strip()))
+                if str(row.get("footprint_h", "")).strip():
+                    override["footprint_h"] = max(1, int(str(row.get("footprint_h", "")).strip()))
+                if str(row.get("collision_w", "")).strip():
+                    override["collision_w"] = max(0, int(str(row.get("collision_w", "")).strip()))
+                if str(row.get("collision_h", "")).strip():
+                    override["collision_h"] = max(0, int(str(row.get("collision_h", "")).strip()))
             except ValueError:
                 continue
-            result[elem_key] = (footprint_w, footprint_h)
+            if override:
+                result[elem_key] = override
     return result
 
 
-def ensure_footprint_override_csv(path: Path) -> None:
+def ensure_elem_override_csv(path: Path) -> None:
     if path.exists():
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["elem_key", "footprint_w", "footprint_h"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode"],
+        )
         writer.writeheader()
 
 
@@ -371,6 +379,8 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         "height",
         "footprint_w",
         "footprint_h",
+        "collision_w",
+        "collision_h",
         "anchor_mode",
         "anchor_x",
         "anchor_y",
@@ -422,7 +432,7 @@ def main() -> int:
     parser.add_argument("--map-elements-out", default="content_source/csv/map_elements/map_elements.csv")
     args = parser.parse_args()
 
-    ensure_footprint_override_csv(DEFAULT_FOOTPRINT_OVERRIDES_CSV)
+    ensure_elem_override_csv(DEFAULT_ELEM_OVERRIDES_CSV)
     rows = scan_assets(Path(args.asset_root))
     write_csv(Path(args.csv_out), rows)
     write_json(Path(args.json_out), rows)

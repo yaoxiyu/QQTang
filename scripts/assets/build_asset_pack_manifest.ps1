@@ -71,7 +71,8 @@ $files = @(
         Where-Object {
             $relative = Get-RelativePath $_.FullName
             $relative -ne 'asset_pack.json' -and
-            $relative -ne 'manifests/asset_pack_manifest.json'
+            $relative -ne 'manifests/asset_pack_manifest.json' -and
+            -not $_.Name.EndsWith('.import')
         } |
         Sort-Object FullName
 )

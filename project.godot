@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="QQTang"
-run/main_scene="uid://bvaiy4xcssbor"
+run/main_scene="res://scenes/front/boot_scene.tscn"
 config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 

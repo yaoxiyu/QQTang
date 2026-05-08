@@ -5,7 +5,6 @@ const TilePresentationLoaderScript = preload("res://content/tiles/runtime/tile_p
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const MapThemeMaterialRegistryScript = preload("res://presentation/battle/scene/map_theme_material_registry.gd")
 const MapSurfaceElementViewScript = preload("res://presentation/battle/scene/map_surface_element_view.gd")
-const ROW_Z_STEP := 100
 
 @export var ground_layer_path: NodePath = ^"GroundLayer"
 @export var surface_layer_path: NodePath = ^"SurfaceLayer"
@@ -406,12 +405,6 @@ func _build_surface_element_view(entry: Dictionary, texture: Texture2D) -> Node2
 	var view: Node2D = MapSurfaceElementViewScript.new()
 	view.configure(entry, cell_size, texture, die_texture)
 	return view
-
-
-func _calc_elem_z_index(cell_x: int, cell_y: int, footprint_h: int = 1, z_bias: int = 0) -> int:
-	var base_row := cell_y + footprint_h - 1
-	return base_row * ROW_Z_STEP - cell_x + z_bias
-
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:
 	return Vector2.ONE

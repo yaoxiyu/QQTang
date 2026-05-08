@@ -24,8 +24,8 @@ Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 3 -Name 'gdscript synt
 Push-Location $projectRoot
 try {
     $requiredPaths = @(
-        'content\maps\resources\map_classic_square.tres',
-        'content\maps\resources\map_breakable_center_lane.tres',
+        'content\maps\resources\map_desert01.tres',
+        'content\maps\resources\map_match01.tres',
         'content\match_formats\data\formats\1v1.tres',
         'content\match_formats\data\formats\2v2.tres',
         'content\match_formats\data\formats\4v4.tres',

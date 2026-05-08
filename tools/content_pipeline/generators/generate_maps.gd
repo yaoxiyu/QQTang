@@ -138,9 +138,9 @@ func _build_map_resource(
 		if String(entry.get("logic_type", "")) == "decoration":
 			var cell: Vector2i = entry.get("cell", Vector2i.ZERO)
 			var fp: Vector2i = entry.get("footprint", Vector2i.ONE)
-			for fy in range(fp.y):
-				for fx in range(fp.x):
-					decoration_cells[Vector2i(cell.x + fx, cell.y + fy)] = true
+			var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
+			for decoration_cell in _anchored_rect_cells(cell, fp, anchor_mode):
+				decoration_cells[decoration_cell] = true
 	if not _floor_entries_cover_map(map_id, floor_tile_entries, width, height, decoration_cells):
 		return null
 	var default_variant := _select_default_variant(match_format_variants)
@@ -354,8 +354,14 @@ func _build_surface_entries(
 		var y := csv_reader.parse_int(row.get("y", ""), -1)
 		var footprint_w := csv_reader.parse_int(visual_meta.get("footprint_w", ""), 1)
 		var footprint_h := csv_reader.parse_int(visual_meta.get("footprint_h", ""), 1)
+		var collision_w := csv_reader.parse_int(visual_meta.get("collision_w", ""), 1)
+		var collision_h := csv_reader.parse_int(visual_meta.get("collision_h", ""), 1)
+		var anchor_mode := _resolve_surface_anchor_mode(csv_reader.optional_string(visual_meta, "anchor_mode", "bottom_right"))
 		var z_bias := csv_reader.parse_int(row.get("z_bias", visual_meta.get("z_bias", "")), 0)
 		var interaction_kind := csv_reader.optional_string(visual_meta, "interaction_kind", "solid")
+		if String(visual_meta.get("visual_layer", "")) != "surface":
+			record_error("generate_maps.gd: map %s surface elem_key must reference a surface asset: %s" % [map_id, elem_key])
+			continue
 		if instance_id.is_empty() or elem_key.is_empty() or texture_path.is_empty():
 			record_error("generate_maps.gd: map %s has surface entry with empty id, elem_key, or texture" % map_id)
 			continue
@@ -365,8 +371,11 @@ func _build_surface_entries(
 		if x < 0 or y < 0 or x >= width or y >= height:
 			record_error("generate_maps.gd: map %s surface entry out of bounds: %s" % [map_id, instance_id])
 			continue
-		if footprint_w <= 0 or footprint_h <= 0 or x + footprint_w > width or y + footprint_h > height:
+		if footprint_w <= 0 or footprint_h <= 0 or not _anchored_rect_fits(Vector2i(x, y), Vector2i(footprint_w, footprint_h), anchor_mode, width, height):
 			record_error("generate_maps.gd: map %s surface footprint out of bounds: %s" % [map_id, instance_id])
+			continue
+		if collision_w < 0 or collision_h < 0 or not _anchored_rect_fits(Vector2i(x, y), Vector2i(collision_w, collision_h), anchor_mode, width, height):
+			record_error("generate_maps.gd: map %s surface collision footprint out of bounds: %s" % [map_id, instance_id])
 			continue
 		if not _texture_file_exists(texture_path):
 			record_error("generate_maps.gd: map %s surface texture missing: %s" % [map_id, texture_path])
@@ -378,14 +387,15 @@ func _build_surface_entries(
 			"texture_path": texture_path,
 			"cell": Vector2i(x, y),
 			"footprint": Vector2i(footprint_w, footprint_h),
-			"anchor_mode": csv_reader.optional_string(visual_meta, "anchor_mode", "bottom_right"),
+			"collision_footprint": Vector2i(collision_w, collision_h),
+			"anchor_mode": anchor_mode,
 			"offset_px": Vector2.ZERO,
 			"z_bias": z_bias,
 			"render_role": csv_reader.optional_string(row, "render_role", "surface"),
 			"interaction_kind": interaction_kind,
 			"die_texture_path": csv_reader.optional_string(visual_meta, "die_resource_path", ""),
 			"trigger_texture_path": csv_reader.optional_string(visual_meta, "trigger_resource_path", ""),
-			"sort_key": Vector3i(y + footprint_h - 1, -x, z_bias),
+			"sort_key": Vector3i(y, -x, z_bias),
 			"logic_type": csv_reader.optional_string(visual_meta, "logic_type", "decoration"),
 		})
 	return result
@@ -398,12 +408,51 @@ func _collect_surface_cells(surface_entries: Array[Dictionary], interaction_kind
 		var interaction_kind := String(entry.get("interaction_kind", "solid"))
 		if not interaction_kinds.has(interaction_kind):
 			continue
-		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
-		if seen.has(cell):
-			continue
-		seen[cell] = true
-		result.append(cell)
+		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var collision_footprint := entry.get("collision_footprint", Vector2i.ONE) as Vector2i
+		var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
+		for cell in _anchored_rect_cells(anchor_cell, collision_footprint, anchor_mode):
+			if seen.has(cell):
+				continue
+			seen[cell] = true
+			result.append(cell)
 	result.sort()
+	return result
+
+
+func _resolve_surface_anchor_mode(anchor_mode: String) -> String:
+	if anchor_mode == "bottom_center":
+		return "bottom_center"
+	if anchor_mode == "bottom_left":
+		return "bottom_left"
+	return "bottom_right"
+
+
+func _anchored_rect_fits(anchor_cell: Vector2i, size: Vector2i, anchor_mode: String, width: int, height: int) -> bool:
+	if size.x == 0 or size.y == 0:
+		return anchor_cell.x >= 0 and anchor_cell.x < width and anchor_cell.y >= 0 and anchor_cell.y < height
+	if anchor_mode == "bottom_left":
+		return anchor_cell.x >= 0 and anchor_cell.x + size.x <= width and anchor_cell.y - size.y + 1 >= 0 and anchor_cell.y < height
+	if anchor_mode == "bottom_center":
+		var left := anchor_cell.x - int(floor(float(size.x - 1) / 2.0))
+		var right := left + size.x - 1
+		return left >= 0 and right < width and anchor_cell.y - size.y + 1 >= 0 and anchor_cell.y < height
+	return anchor_cell.x - size.x + 1 >= 0 and anchor_cell.x < width and anchor_cell.y - size.y + 1 >= 0 and anchor_cell.y < height
+
+
+func _anchored_rect_cells(anchor_cell: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if size.x <= 0 or size.y <= 0:
+		return result
+	var left := anchor_cell.x - int(floor(float(size.x - 1) / 2.0))
+	for fy in range(size.y):
+		for fx in range(size.x):
+			if anchor_mode == "bottom_left":
+				result.append(Vector2i(anchor_cell.x + fx, anchor_cell.y - fy))
+			elif anchor_mode == "bottom_center":
+				result.append(Vector2i(left + fx, anchor_cell.y - fy))
+			else:
+				result.append(Vector2i(anchor_cell.x - fx, anchor_cell.y - fy))
 	return result
 
 

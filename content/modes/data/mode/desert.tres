@@ -8,5 +8,6 @@ mode_id = "desert"
 mode_name = "沙漠主题"
 display_name = "沙漠主题"
 rule_set_id = "ruleset_classic"
+default_map_id = "map_desert01"
 min_player_count = 2
 content_hash = "mode_desert_csv_v1"

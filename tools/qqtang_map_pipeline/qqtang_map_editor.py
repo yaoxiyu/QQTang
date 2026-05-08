@@ -12,7 +12,7 @@ QQTang Map Editor - 基于 QQ堂 mapElem 资源的 2.5D 地图编辑器
 
 设计原则：
     1. 地面层仅使用 40×40 资源，支持 40×40 范围内像素外扩。
-    2. 表现层使用 2.5D Sprite 锚点渲染，bottom_center 对齐逻辑格。
+    2. 表现层使用 2.5D Sprite 锚点渲染，bottom_right 对齐逻辑格。
     3. 表现层每次编辑后全量重排渲染，排序为 row 升序、col 降序。
     4. 地面层未铺满时不允许编辑表现层，避免透明缝隙直接露底。
     5. 一键导出 JSON 配置和 PNG 预览，方便运行时读取和复现。
@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
 import os
 import re
 import shutil
@@ -58,8 +57,7 @@ OFFICIAL_VARIANTS_CSV = REPO_ROOT / "content_source/csv/maps/map_match_variants.
 OFFICIAL_FLOOR_CSV = REPO_ROOT / "content_source/csv/maps/map_floor_tiles.csv"
 OFFICIAL_SURFACE_CSV = REPO_ROOT / "content_source/csv/maps/map_surface_instances.csv"
 OFFICIAL_VISUAL_META_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_visual_meta.csv"
-OFFICIAL_FOOTPRINT_OVERRIDES_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_footprint_overrides.csv"
-OFFICIAL_LAYER_CONFIG_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_layer_config.csv"
+OFFICIAL_ELEM_OVERRIDES_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_overrides.csv"
 OFFICIAL_MATCH_FORMATS_CSV = REPO_ROOT / "content_source/csv/match_formats/match_formats.csv"
 OFFICIAL_MODES_CSV = REPO_ROOT / "content_source/csv/modes/modes.csv"
 OFFICIAL_RULESETS_CSV = REPO_ROOT / "content_source/csv/rulesets/rulesets.csv"
@@ -74,6 +72,12 @@ LOGIC_TYPE_LABELS = {
     "trigger": "可触发",
 }
 LOGIC_TYPE_ORDER = ["floor", "decoration", "breakable", "trigger"]
+SURFACE_ANCHOR_LABELS = {
+    "bottom_right": "右下角",
+    "bottom_left": "左下角",
+    "bottom_center": "底部中心",
+}
+SURFACE_ANCHOR_ORDER = ["bottom_right", "bottom_left", "bottom_center"]
 
 
 @dataclass
@@ -93,6 +97,8 @@ class AssetMeta:
     layer_hint: str
     footprint_w: int
     footprint_h: int
+    collision_w: int
+    collision_h: int
     anchor_mode: str
     anchor_x: float
     anchor_y: float
@@ -100,72 +106,50 @@ class AssetMeta:
     review_reason: str
 
 
-def classify_asset(width: int, height: int, state: str) -> Tuple[str, str, int, int, str, float, str]:
-    """按 QQ堂 2.5D 拼接结论推断几何类型。返回：几何类型、层级建议、footprint_w/h、锚点、置信度、复核原因。"""
+def classify_asset(width: int, height: int, state: str) -> Tuple[str, str, int, int, int, int, str, float, str]:
+    """正式规则：40x40 是地面；其它默认表现层 1x1，特殊占格/碰撞只能走人工 override。"""
     if width == CELL_SIZE and height == CELL_SIZE:
         return (
             "floor_candidate_40x40",
             "floor",
             1,
             1,
+            0,
+            0,
             "cell_fill_40x40",
             0.98,
             "exact_40x40_floor_candidate",
         )
-
     if width <= 48 and height <= 68:
-        return (
-            "object_1x1_2p5d",
-            "surface",
-            1,
-            1,
-            "bottom_center",
-            0.95,
-            "box_like_single_cell_2p5d",
-        )
-
-    if width <= 48 and height > 68:
-        fp_h = max(1, math.ceil(height / CELL_SIZE))
-        return (
-            "tall_object_1xN",
-            "surface",
-            1,
-            fp_h,
-            "bottom_center",
-            0.76,
-            "thin_tall_asset_may_be_one_cell_visual_height_or_vertical_wall",
-        )
-
-    if width % CELL_SIZE == 0 and height % CELL_SIZE == 0:
-        return (
-            "multi_cell_grid_exact",
-            "surface",
-            max(1, width // CELL_SIZE),
-            max(1, height // CELL_SIZE),
-            "bottom_left_of_footprint",
-            0.86,
-            "size_is_exact_grid_multiple",
-        )
-
-    if width > 48 and height <= 68:
-        return (
-            "wide_object_or_horizontal_deco",
-            "surface",
-            max(1, math.ceil(width / CELL_SIZE)),
-            1,
-            "bottom_center",
-            0.70,
-            "wide_low_asset_needs_review_for_collision_footprint",
-        )
-
+        geometry_type = "object_1x1_2p5d"
+        confidence = 0.95
+        review = "default_surface_1x1"
+    elif width % CELL_SIZE == 0 and height % CELL_SIZE == 0:
+        geometry_type = "multi_cell_grid_exact"
+        confidence = 0.86
+        review = "manual_override_required_for_multi_cell_visual_or_collision"
+    elif width <= 48:
+        geometry_type = "tall_object_1xN"
+        confidence = 0.65
+        review = "manual_override_required_if_visual_or_collision_exceeds_1x1"
+    elif height <= 68:
+        geometry_type = "wide_object_or_horizontal_deco"
+        confidence = 0.70
+        review = "manual_override_required_if_visual_or_collision_exceeds_1x1"
+    else:
+        geometry_type = "large_complex_object"
+        confidence = 0.60
+        review = "manual_override_required_for_large_irregular_asset"
     return (
-        "large_complex_object",
+        geometry_type,
         "surface",
-        max(1, math.ceil(width / CELL_SIZE)),
-        max(1, math.ceil(height / CELL_SIZE)),
-        "bottom_center",
-        0.60,
-        "large_irregular_asset_requires_manual_collision_review",
+        1,
+        1,
+        1,
+        1,
+        "bottom_right",
+        confidence,
+        review,
     )
 
 
@@ -192,10 +176,11 @@ def find_sibling_action_path(path: Path, action: str) -> Optional[Path]:
 def infer_logic_type(layer_hint: str, state: str, path: Path) -> str:
     if layer_hint == "floor":
         return "floor"
-    if state == "die" or find_sibling_action_path(path, "die"):
-        return "breakable"
-    if state == "trigger" or find_sibling_action_path(path, "trigger"):
-        return "trigger"
+    if state == "stand":
+        if find_sibling_action_path(path, "die") is not None:
+            return "breakable"
+        if find_sibling_action_path(path, "trigger") is not None:
+            return "trigger"
     return "decoration"
 
 
@@ -247,8 +232,7 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
     map_elem_root = version_root / "data" / "object" / "mapElem"
     if not map_elem_root.exists():
         map_elem_root = version_root
-    footprint_config = load_asset_footprint_config()
-    layer_config = load_layer_config()
+    elem_overrides = load_elem_overrides()
     assets: List[AssetMeta] = []
     for path in sorted(map_elem_root.rglob("*")):
         if not path.is_file() or path.suffix.lower() not in ASSET_EXTS:
@@ -265,14 +249,30 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
             continue
         theme = parts[0]
         elem_id, state = parse_elem_name(path)
-        geometry_type, layer_hint, fp_w, fp_h, anchor, confidence, review = classify_asset(width, height, state)
+        geometry_type, layer_hint, fp_w, fp_h, collision_w, collision_h, anchor, confidence, review = classify_asset(width, height, state)
         key = f"{theme}/{path.stem}"
-        if key in layer_config:
-            layer_hint = layer_config[key]
-        logical_type = infer_logic_type(layer_hint, state, path)
-        if key in footprint_config:
-            fp_w, fp_h = footprint_config[key]
-        anchor_x = width / 2.0 if anchor == "bottom_center" else 0.0
+        override = elem_overrides.get(key, {})
+        if override:
+            fp_w = int(override.get("footprint_w", fp_w))
+            fp_h = int(override.get("footprint_h", fp_h))
+            collision_w = int(override.get("collision_w", collision_w))
+            collision_h = int(override.get("collision_h", collision_h))
+            anchor = str(override.get("anchor_mode", anchor))
+        override_logic_type = str(override.get("logic_type", "")).strip()
+        if width == CELL_SIZE and height == CELL_SIZE or override_logic_type == "floor":
+            layer_hint = "floor"
+            logical_type = "floor"
+            fp_w = max(1, fp_w)
+            fp_h = max(1, fp_h)
+            collision_w = 0
+            collision_h = 0
+            anchor = "cell_fill_40x40"
+        else:
+            layer_hint = "surface"
+            logical_type = override_logic_type if override_logic_type in LOGIC_TYPE_ORDER else infer_logic_type(layer_hint, state, path)
+            if anchor not in SURFACE_ANCHOR_ORDER:
+                anchor = "bottom_right"
+        anchor_x = float(width)
         anchor_y = float(height)
         assets.append(
             AssetMeta(
@@ -291,6 +291,8 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
                 layer_hint=layer_hint,
                 footprint_w=fp_w,
                 footprint_h=fp_h,
+                collision_w=collision_w,
+                collision_h=collision_h,
                 anchor_mode=anchor,
                 anchor_x=anchor_x,
                 anchor_y=anchor_y,
@@ -301,41 +303,35 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
     return assets
 
 
-def load_asset_footprint_config() -> Dict[str, Tuple[int, int]]:
-    result: Dict[str, Tuple[int, int]] = {}
-    for path in (OFFICIAL_VISUAL_META_CSV, OFFICIAL_FOOTPRINT_OVERRIDES_CSV):
-        if not path.exists():
-            continue
-        try:
-            _fieldnames, rows = read_csv_rows(path)
-        except Exception:
-            continue
-        for row in rows:
-            elem_key = str(row.get("elem_key", "")).strip()
-            if not elem_key:
-                continue
-            try:
-                footprint_w = max(1, int(str(row.get("footprint_w", "1")).strip() or "1"))
-                footprint_h = max(1, int(str(row.get("footprint_h", "1")).strip() or "1"))
-            except ValueError:
-                continue
-            result[elem_key] = (footprint_w, footprint_h)
-    return result
-
-
-def load_layer_config() -> Dict[str, str]:
-    result: Dict[str, str] = {}
-    if not OFFICIAL_LAYER_CONFIG_CSV.exists():
+def load_elem_overrides() -> Dict[str, dict]:
+    result: Dict[str, dict] = {}
+    if not OFFICIAL_ELEM_OVERRIDES_CSV.exists():
         return result
     try:
-        _fieldnames, rows = read_csv_rows(OFFICIAL_LAYER_CONFIG_CSV)
+        _fieldnames, rows = read_csv_rows(OFFICIAL_ELEM_OVERRIDES_CSV)
     except Exception:
         return result
     for row in rows:
         elem_key = str(row.get("elem_key", "")).strip()
-        layer_hint = str(row.get("layer_hint", "")).strip()
-        if elem_key and layer_hint in ("floor", "surface"):
-            result[elem_key] = layer_hint
+        if not elem_key:
+            continue
+        item: dict = {}
+        logic_type = str(row.get("logic_type", "")).strip()
+        if logic_type in LOGIC_TYPE_ORDER:
+            item["logic_type"] = logic_type
+        anchor_mode = str(row.get("anchor_mode", "")).strip()
+        if anchor_mode in SURFACE_ANCHOR_ORDER:
+            item["anchor_mode"] = anchor_mode
+        for field in ("footprint_w", "footprint_h", "collision_w", "collision_h"):
+            raw = str(row.get(field, "")).strip()
+            if not raw:
+                continue
+            try:
+                item[field] = max(0 if field.startswith("collision") else 1, int(raw))
+            except ValueError:
+                pass
+        if item:
+            result[elem_key] = item
     return result
 
 
@@ -483,7 +479,7 @@ class MapModel:
                     "footprint_h": inst.footprint_h,
                     "anchor_mode": meta.anchor_mode,
                     "z_bias": inst.z_bias,
-                    "sort_key": [inst.y + inst.footprint_h - 1, -inst.x, inst.z_bias],
+                    "sort_key": [inst.y, -inst.x, inst.z_bias],
                 }
             )
         return {
@@ -498,7 +494,7 @@ class MapModel:
             },
             "render_rules": {
                 "floor": "fill_40x40_with_optional_pixel_expansion",
-                "surface_anchor": "bottom_center_or_meta_anchor",
+                "surface_anchor": "default_bottom_right_override_bottom_left_or_bottom_center",
                 "surface_sort": "row_asc_col_desc_z_bias",
                 "surface_sort_formula": "sort_key=(layer,row,-col,z_bias)",
             },
@@ -616,15 +612,9 @@ def load_official_map_model(map_id: str, store: "AssetStore") -> MapModel:
         x = int(row.get("x", "0") or "0")
         y = int(row.get("y", "0") or "0")
         z_bias = int(row.get("z_bias", "0") or "0")
-        fp_w_raw = row.get("footprint_w", "")
-        fp_h_raw = row.get("footprint_h", "")
-        if fp_w_raw and fp_h_raw:
-            fp_w = max(1, int(fp_w_raw))
-            fp_h = max(1, int(fp_h_raw))
-        else:
-            meta = store.by_key[elem_key]
-            fp_w = max(1, meta.footprint_w)
-            fp_h = max(1, meta.footprint_h)
+        meta = store.by_key[elem_key]
+        fp_w = max(1, meta.footprint_w)
+        fp_h = max(1, meta.footprint_h)
         if 0 <= x < cols and 0 <= y < rows:
             model.surface[(x, y)] = SurfaceInstance(elem_key, x, y, z_bias, fp_w, fp_h)
     return model
@@ -710,8 +700,6 @@ def sync_official_map_csv(config: dict, preview_png_path: Path, previous_map_id:
                 "elem_key": str(item["asset_key"]),
                 "x": str(int(item["cell_x"])),
                 "y": str(int(item["cell_y"])),
-                "footprint_w": str(int(item.get("footprint_w", 1))),
-                "footprint_h": str(int(item.get("footprint_h", 1))),
                 "z_bias": str(int(item.get("z_bias", 0))),
                 "render_role": "surface",
             }
@@ -721,12 +709,15 @@ def sync_official_map_csv(config: dict, preview_png_path: Path, previous_map_id:
 
 
 def read_csv_rows(path: Path) -> tuple[list[str], list[dict]]:
+    if not path.exists():
+        return [], []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         reader = csv.DictReader(f)
         return list(reader.fieldnames or []), list(reader)
 
 
 def write_csv_rows(path: Path, fieldnames: list[str], rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -760,7 +751,7 @@ def append_csv_rows(path: Path, new_rows: list[dict]) -> None:
 def _load_match_format_player_counts() -> Dict[str, int]:
     result: Dict[str, int] = {}
     if not OFFICIAL_MATCH_FORMATS_CSV.exists():
-        return {"1v1": 2, "2v2": 4, "4v4": 8}
+        return result
     _fieldnames, rows = read_csv_rows(OFFICIAL_MATCH_FORMATS_CSV)
     for row in rows:
         fmt_id = str(row.get("match_format_id", "")).strip()
@@ -770,12 +761,12 @@ def _load_match_format_player_counts() -> Dict[str, int]:
         party_size = int(row.get("required_party_size", "0") or "0")
         if team_count > 0 and party_size > 0:
             result[fmt_id] = team_count * party_size
-    return result if result else {"1v1": 2, "2v2": 4, "4v4": 8}
+    return result
 
 
 def load_mode_options() -> list[tuple[str, str]]:
     if not OFFICIAL_MODES_CSV.exists():
-        return [("box", "box")]
+        return []
     _fieldnames, rows = read_csv_rows(OFFICIAL_MODES_CSV)
     result = []
     for row in rows:
@@ -784,12 +775,12 @@ def load_mode_options() -> list[tuple[str, str]]:
             continue
         mode_name = str(row.get("mode_name", row.get("display_name", mode_id))).strip() or mode_id
         result.append((mode_id, mode_name))
-    return result or [("box", "box")]
+    return result
 
 
 def load_rule_options() -> list[tuple[str, str]]:
     if not OFFICIAL_RULESETS_CSV.exists():
-        return [("ruleset_classic", "ruleset_classic")]
+        return []
     _fieldnames, rows = read_csv_rows(OFFICIAL_RULESETS_CSV)
     result = []
     for row in rows:
@@ -989,43 +980,82 @@ class MapEditor(tk.Tk):
         meta = self.store.by_key[key]
         win = tk.Toplevel(self)
         win.title(f"编辑占格 — {key}")
-        win.geometry("280x160")
+        win.geometry("340x260")
         win.transient(self)
         win.grab_set()
         win.resizable(False, False)
 
-        ttk.Label(win, text=f"资产: {key}").pack(pady=(12, 0))
-        ttk.Label(win, text=f"图像尺寸: {meta.width}×{meta.height}  当前占格: {meta.footprint_w}×{meta.footprint_h}").pack()
+        content = ttk.Frame(win, padding=(12, 10, 12, 8))
+        content.pack(fill=tk.BOTH, expand=True)
 
-        f = ttk.Frame(win)
-        f.pack(pady=12)
+        ttk.Label(content, text=f"资产: {key}").pack(anchor="w")
+        ttk.Label(content, text=f"图像尺寸: {meta.width}×{meta.height}  当前占格: {meta.footprint_w}×{meta.footprint_h}  碰撞: {meta.collision_w}×{meta.collision_h}").pack(anchor="w", pady=(4, 0))
+
+        f = ttk.Frame(content)
+        f.pack(fill=tk.X, pady=12)
         ttk.Label(f, text="占格宽度:").grid(row=0, column=0, padx=4)
         w_var = tk.StringVar(value=str(meta.footprint_w))
         ttk.Spinbox(f, from_=1, to=20, textvariable=w_var, width=5).grid(row=0, column=1, padx=4)
         ttk.Label(f, text="占格高度:").grid(row=0, column=2, padx=4)
         h_var = tk.StringVar(value=str(meta.footprint_h))
         ttk.Spinbox(f, from_=1, to=20, textvariable=h_var, width=5).grid(row=0, column=3, padx=4)
+        ttk.Label(f, text="碰撞宽度:").grid(row=1, column=0, padx=4, pady=4)
+        cw_var = tk.StringVar(value=str(meta.collision_w))
+        ttk.Spinbox(f, from_=0, to=20, textvariable=cw_var, width=5).grid(row=1, column=1, padx=4, pady=4)
+        ttk.Label(f, text="碰撞高度:").grid(row=1, column=2, padx=4, pady=4)
+        ch_var = tk.StringVar(value=str(meta.collision_h))
+        ttk.Spinbox(f, from_=0, to=20, textvariable=ch_var, width=5).grid(row=1, column=3, padx=4, pady=4)
+        logic_var = tk.StringVar(value=meta.logical_type)
+        ttk.Label(f, text="逻辑类型:").grid(row=2, column=0, padx=4, pady=4)
+        ttk.Combobox(f, textvariable=logic_var, state="readonly", values=LOGIC_TYPE_ORDER, width=12).grid(row=2, column=1, columnspan=3, sticky="w", padx=4, pady=4)
+        current_anchor = meta.anchor_mode if meta.anchor_mode in SURFACE_ANCHOR_ORDER else "bottom_right"
+        anchor_values = [f"{item}:{SURFACE_ANCHOR_LABELS[item]}" for item in SURFACE_ANCHOR_ORDER]
+        anchor_var = tk.StringVar(value=f"{current_anchor}:{SURFACE_ANCHOR_LABELS[current_anchor]}")
+        ttk.Label(f, text="锚点:").grid(row=3, column=0, padx=4, pady=4)
+        ttk.Combobox(f, textvariable=anchor_var, state="readonly", values=anchor_values, width=14).grid(row=3, column=1, columnspan=3, sticky="w", padx=4, pady=4)
 
         def _save():
             try:
                 w = max(1, int(w_var.get()))
                 h = max(1, int(h_var.get()))
+                cw = max(0, int(cw_var.get()))
+                ch = max(0, int(ch_var.get()))
             except ValueError:
-                messagebox.showwarning("输入错误", "占格宽高必须为整数。")
+                messagebox.showwarning("输入错误", "占格和碰撞宽高必须为整数。")
                 return
-            self._save_footprint_override(key, w, h)
+            logic_type = logic_var.get() if logic_var.get() in LOGIC_TYPE_ORDER else "decoration"
+            anchor_type = anchor_var.get().split(":", 1)[0]
+            anchor_type = anchor_type if anchor_type in SURFACE_ANCHOR_ORDER else "bottom_right"
+            self._save_elem_override(key, w, h, cw, ch, logic_type, anchor_type)
             win.destroy()
-            self.status_var.set(f"已更新 {key} 占格为 {w}×{h}")
+            self.status_var.set(f"已更新 {key} 占格={w}×{h} 碰撞={cw}×{ch} 逻辑={logic_type_label(logic_type)} 锚点={SURFACE_ANCHOR_LABELS.get(anchor_type, anchor_type)}")
 
-        ttk.Button(win, text="保存", command=_save).pack()
+        button_bar = ttk.Frame(content)
+        button_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(8, 0))
+        ttk.Button(button_bar, text="取消", command=win.destroy).pack(side=tk.RIGHT)
+        save_button = ttk.Button(button_bar, text="保存", command=_save)
+        save_button.pack(side=tk.RIGHT, padx=(0, 8))
+        win.bind("<Return>", lambda _event: _save())
+        win.bind("<Escape>", lambda _event: win.destroy())
+        save_button.focus_set()
 
-    def _save_footprint_override(self, key: str, w: int, h: int):
-        fieldnames, rows = read_csv_rows(OFFICIAL_FOOTPRINT_OVERRIDES_CSV)
+    def _save_elem_override(self, key: str, w: int, h: int, cw: int, ch: int, logic_type: str, anchor_mode: str):
+        fieldnames, rows = read_csv_rows(OFFICIAL_ELEM_OVERRIDES_CSV)
         rows = [row for row in rows if str(row.get("elem_key", "")).strip() != key]
-        rows.append({"elem_key": key, "footprint_w": str(w), "footprint_h": str(h)})
-        write_csv_rows(OFFICIAL_FOOTPRINT_OVERRIDES_CSV, fieldnames or ["elem_key", "footprint_w", "footprint_h"], rows)
+        rows.append({"elem_key": key, "footprint_w": str(w), "footprint_h": str(h), "collision_w": str(cw), "collision_h": str(ch), "logic_type": logic_type, "anchor_mode": anchor_mode})
+        default_fieldnames = ["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode"]
+        if not fieldnames:
+            fieldnames = list(default_fieldnames)
+        for field in default_fieldnames:
+            if field not in fieldnames:
+                fieldnames.append(field)
+        write_csv_rows(OFFICIAL_ELEM_OVERRIDES_CSV, fieldnames, rows)
         self.store.by_key[key].footprint_w = w
         self.store.by_key[key].footprint_h = h
+        self.store.by_key[key].collision_w = cw
+        self.store.by_key[key].collision_h = ch
+        self.store.by_key[key].logical_type = logic_type
+        self.store.by_key[key].anchor_mode = anchor_mode
         self.refresh_asset_list()
         self.redraw()
 
@@ -1151,7 +1181,11 @@ class MapEditor(tk.Tk):
         asset = self.store.by_key[self.selected_asset_key]
         footprint_w = max(1, asset.footprint_w)
         footprint_h = max(1, asset.footprint_h)
-        if not self._rect_in_bounds(x, y, footprint_w, footprint_h):
+        if layer == "surface":
+            in_bounds = self._anchor_rect_in_bounds(x, y, footprint_w, footprint_h, asset.anchor_mode)
+        else:
+            in_bounds = self._rect_in_bounds(x, y, footprint_w, footprint_h)
+        if not in_bounds:
             if show_warning:
                 messagebox.showwarning("占格越界", f"资产占格 {footprint_w}×{footprint_h}，当前位置会超出地图范围。")
             return False
@@ -1167,11 +1201,11 @@ class MapEditor(tk.Tk):
                 self.model.floor[ty][tx] = asset.key
             changed = True
         elif layer == "surface":
-            if self._surface_rect_overlaps(x, y, footprint_w, footprint_h):
+            if self._surface_rect_overlaps(x, y, footprint_w, footprint_h, asset.anchor_mode):
                 if show_warning:
                     messagebox.showwarning("占格冲突", "当前位置的表现层占格范围已有其他资产。")
                 return False
-            if asset.logical_type != "decoration" and not self._has_floor_coverage(x, y, footprint_w, footprint_h):
+            if asset.logical_type != "decoration" and not self._has_floor_coverage_anchor(x, y, footprint_w, footprint_h, asset.anchor_mode):
                 if show_warning:
                     messagebox.showwarning("地面不足", "非纯装饰表现层元素要求占用范围内全部已有地面。")
                 return False
@@ -1188,6 +1222,23 @@ class MapEditor(tk.Tk):
 
     def _rect_cells(self, x: int, y: int, w: int, h: int) -> List[Tuple[int, int]]:
         return [(tx, ty) for ty in range(y, y + h) for tx in range(x, x + w)]
+
+    def _anchor_rect_in_bounds(self, x: int, y: int, w: int, h: int, anchor_mode: str) -> bool:
+        if anchor_mode == "bottom_left":
+            return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and x + w <= self.model.cols and y - h + 1 >= 0
+        if anchor_mode == "bottom_center":
+            left = x - ((w - 1) // 2)
+            right = left + w - 1
+            return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and left >= 0 and right < self.model.cols and y - h + 1 >= 0
+        return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and x - w + 1 >= 0 and y - h + 1 >= 0
+
+    def _anchor_rect_cells(self, x: int, y: int, w: int, h: int, anchor_mode: str) -> List[Tuple[int, int]]:
+        if anchor_mode == "bottom_left":
+            return [(x + dx, y - dy) for dy in range(h) for dx in range(w)]
+        if anchor_mode == "bottom_center":
+            left = x - ((w - 1) // 2)
+            return [(left + dx, y - dy) for dy in range(h) for dx in range(w)]
+        return [(x - dx, y - dy) for dy in range(h) for dx in range(w)]
 
     def _rects_overlap(self, ax: int, ay: int, aw: int, ah: int, bx: int, by: int, bw: int, bh: int) -> bool:
         return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
@@ -1211,18 +1262,26 @@ class MapEditor(tk.Tk):
 
     def _surface_instance_at_cell(self, x: int, y: int) -> Optional[SurfaceInstance]:
         for inst in self.model.surface.values():
-            if inst.x <= x < inst.x + inst.footprint_w and inst.y <= y < inst.y + inst.footprint_h:
+            meta = self.store.by_key.get(inst.asset_key)
+            anchor_mode = meta.anchor_mode if meta is not None else "bottom_right"
+            if (x, y) in self._anchor_rect_cells(inst.x, inst.y, inst.footprint_w, inst.footprint_h, anchor_mode):
                 return inst
         return None
 
-    def _surface_rect_overlaps(self, x: int, y: int, w: int, h: int) -> bool:
+    def _surface_rect_overlaps(self, x: int, y: int, w: int, h: int, anchor_mode: str) -> bool:
+        target_cells = set(self._anchor_rect_cells(x, y, w, h, anchor_mode))
         for inst in self.model.surface.values():
-            if self._rects_overlap(x, y, w, h, inst.x, inst.y, inst.footprint_w, inst.footprint_h):
+            meta = self.store.by_key.get(inst.asset_key)
+            inst_anchor_mode = meta.anchor_mode if meta is not None else "bottom_right"
+            if target_cells.intersection(self._anchor_rect_cells(inst.x, inst.y, inst.footprint_w, inst.footprint_h, inst_anchor_mode)):
                 return True
         return False
 
     def _has_floor_coverage(self, x: int, y: int, w: int, h: int) -> bool:
         return all(self.model.floor[ty][tx] for tx, ty in self._rect_cells(x, y, w, h))
+
+    def _has_floor_coverage_anchor(self, x: int, y: int, w: int, h: int, anchor_mode: str) -> bool:
+        return all(self.model.floor[ty][tx] for tx, ty in self._anchor_rect_cells(x, y, w, h, anchor_mode))
 
     def _check_placement_valid(self, x: int, y: int, layer: str) -> bool:
         if not self.selected_asset_key or self.selected_asset_key not in self.store.by_key:
@@ -1230,15 +1289,19 @@ class MapEditor(tk.Tk):
         asset = self.store.by_key[self.selected_asset_key]
         fp_w = max(1, asset.footprint_w)
         fp_h = max(1, asset.footprint_h)
-        if not self._rect_in_bounds(x, y, fp_w, fp_h):
+        if layer == "surface":
+            in_bounds = self._anchor_rect_in_bounds(x, y, fp_w, fp_h, asset.anchor_mode)
+        else:
+            in_bounds = self._rect_in_bounds(x, y, fp_w, fp_h)
+        if not in_bounds:
             return False
         if layer == "floor":
             if asset.layer_hint != "floor":
                 return False
         elif layer == "surface":
-            if self._surface_rect_overlaps(x, y, fp_w, fp_h):
+            if self._surface_rect_overlaps(x, y, fp_w, fp_h, asset.anchor_mode):
                 return False
-            if asset.logical_type != "decoration" and not self._has_floor_coverage(x, y, fp_w, fp_h):
+            if asset.logical_type != "decoration" and not self._has_floor_coverage_anchor(x, y, fp_w, fp_h, asset.anchor_mode):
                 return False
         return True
 
@@ -1253,8 +1316,17 @@ class MapEditor(tk.Tk):
         fp_h = max(1, asset.footprint_h)
         x, y = self._preview_cell
         ox, oy = PREVIEW_MARGIN_LEFT, PREVIEW_MARGIN_TOP
-        x1 = ox + x * CELL_SIZE
-        y1 = oy + y * CELL_SIZE
+        if self.current_layer.get() == "surface":
+            if asset.anchor_mode == "bottom_left":
+                x1 = ox + x * CELL_SIZE
+            elif asset.anchor_mode == "bottom_center":
+                x1 = ox + (x - ((fp_w - 1) // 2)) * CELL_SIZE
+            else:
+                x1 = ox + (x - fp_w + 1) * CELL_SIZE
+            y1 = oy + (y - fp_h + 1) * CELL_SIZE
+        else:
+            x1 = ox + x * CELL_SIZE
+            y1 = oy + y * CELL_SIZE
         x2 = x1 + fp_w * CELL_SIZE
         y2 = y1 + fp_h * CELL_SIZE
         color = "#4CAF50" if self._preview_valid else "#F44336"
@@ -1355,7 +1427,7 @@ class MapEditor(tk.Tk):
             instances = sorted(
                 self.model.surface.values(),
                 key=lambda inst: (
-                    inst.y + inst.footprint_h - 1,
+                    inst.y,
                     -inst.x,
                     inst.z_bias,
                 ),
@@ -1363,13 +1435,16 @@ class MapEditor(tk.Tk):
             for inst in instances:
                 meta = self.store.by_key[inst.asset_key]
                 asset_img = self.store.image(inst.asset_key)
-                if meta.anchor_mode == "bottom_left_of_footprint":
+                if meta.anchor_mode == "bottom_left":
                     dx = ox + inst.x * CELL_SIZE
-                    dy = oy + (inst.y + inst.footprint_h) * CELL_SIZE - meta.height
+                elif meta.anchor_mode == "bottom_center":
+                    left_cell = inst.x - ((inst.footprint_w - 1) // 2)
+                    center_x = ox + (left_cell + inst.footprint_w / 2) * CELL_SIZE
+                    dx = center_x - meta.width / 2
                 else:
-                    dx = ox + int(inst.x * CELL_SIZE + CELL_SIZE * 0.5 - meta.width * 0.5)
-                    dy = oy + int(inst.y * CELL_SIZE + inst.footprint_h * CELL_SIZE - meta.height)
-                img.alpha_composite(asset_img, (dx, dy))
+                    dx = ox + (inst.x + 1) * CELL_SIZE - meta.width
+                dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
+                img.alpha_composite(asset_img, (int(round(dx)), int(round(dy))))
 
         if include_spawns:
             for idx, (sx, sy) in enumerate(self.model.spawns, start=1):

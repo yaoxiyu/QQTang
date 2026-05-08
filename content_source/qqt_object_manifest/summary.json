@@ -1,6 +1,6 @@
 ﻿{
     "source_root":  "external/assets/source/res/object",
-    "total_files":  3294,
+    "total_files":  5155,
     "role_part_records":  2208,
     "errors":  [
 
@@ -10,20 +10,28 @@
                  ],
     "counts":  {
                    "by_extension":  {
-                                        ".gif":  1478,
-                                        ".import":  908,
-                                        ".png":  908
+                                        ".gif":  1681,
+                                        ".import":  1737,
+                                        ".png":  1737
                                     },
                    "by_directory":  {
+                                        "bg":  12,
                                         "body":  173,
-                                        "bomb":  56,
+                                        "bomb":  81,
+                                        "box":  143,
                                         "btn":  17,
+                                        "bun":  60,
                                         "cap":  264,
                                         "cladorn":  24,
                                         "cloth":  1458,
+                                        "common":  215,
+                                        "cursor":  2,
+                                        "desert":  113,
                                         "dlg":  16,
+                                        "exploration":  178,
                                         "face":  216,
                                         "fhadorn":  36,
+                                        "field":  58,
                                         "flame":  10,
                                         "foot":  24,
                                         "hair":  408,
@@ -32,14 +40,26 @@
                                         "Illustration":  36,
                                         "img":  8,
                                         "leg":  296,
+                                        "machine":  160,
                                         "map":  34,
+                                        "match":  20,
+                                        "mine":  155,
                                         "misc":  12,
                                         "mouth":  12,
                                         "name":  36,
                                         "npack":  40,
                                         "panel":  8,
+                                        "pig":  32,
+                                        "practice":  51,
+                                        "pve":  234,
+                                        "sculpture":  39,
+                                        "snow":  101,
                                         "tab":  5,
-                                        "thadorn":  36
+                                        "tank":  58,
+                                        "thadorn":  36,
+                                        "town":  85,
+                                        "treasure":  37,
+                                        "water":  83
                                     },
                    "by_part":  {
                                    "body":  108,

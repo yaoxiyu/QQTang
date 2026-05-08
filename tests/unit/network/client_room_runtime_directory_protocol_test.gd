@@ -86,9 +86,9 @@ func _test_assignment_ready_message_updates_authoritative_snapshot() -> bool:
 			"room_kind": "public_room",
 			"topology": "dedicated_server",
 			"snapshot_revision": 12,
-			"selected_map_id": "map_classic_square",
+			"selected_map_id": "map_desert01",
 			"rule_set_id": "ruleset_classic",
-			"mode_id": "box",
+			"mode_id": "desert",
 			"members": [{
 				"peer_id": 7,
 				"player_name": "local",

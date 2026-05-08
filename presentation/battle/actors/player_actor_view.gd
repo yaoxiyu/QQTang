@@ -6,9 +6,8 @@ const CharacterPresentationDefScript = preload("res://content/characters/defs/ch
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const PlayerStatusEffectViewControllerScript = preload("res://presentation/battle/actors/player_status_effect_view_controller.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 
-const ROW_Z_STEP := 100
-const PLAYER_Z_BIAS := 50
 const BODY_Z_INDEX := 0
 const TEAM_MARKER_Z_INDEX := -10
 const STATUS_EFFECT_Z_INDEX := 10
@@ -71,7 +70,7 @@ func apply_view_state(view_state: Dictionary) -> void:
 		)
 	_has_visual_target = true
 	z_as_relative = false
-	z_index = _calc_dynamic_z_index(view_state, PLAYER_Z_BIAS)
+	z_index = BattleDepth.player_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
 	_last_view_state = view_state.duplicate(true)
 
 	if _body_view != null and _body_view.has_method("apply_actor_state"):
@@ -80,12 +79,6 @@ func apply_view_state(view_state: Dictionary) -> void:
 		_team_marker_view.apply_actor_state(_last_view_state)
 	if _status_effect_controller != null and _status_effect_controller.has_method("apply_actor_state"):
 		_status_effect_controller.apply_actor_state(_last_view_state)
-
-
-func _calc_dynamic_z_index(view_state: Dictionary, z_bias: int) -> int:
-	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
-	return cell.y * ROW_Z_STEP - cell.x + z_bias
-
 
 func configure_visual_profile(visual_profile) -> void:
 	if _visual_profile == visual_profile:

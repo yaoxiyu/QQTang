@@ -1,7 +1,9 @@
 map_id,match_format_id,casual_enabled,ranked_enabled
-map_classic_square,1v1,true,true
-map_classic_square,2v2,true,true
-map_breakable_center_lane,2v2,true,true
 map_desert01,1v1,true,false
 map_desert01,2v2,true,false
 map_match01,1v1,true,false
+map_pig01,1v1,true,false
+map_pig01,2v2,true,true
+map_bomb01,1v1,true,false
+map_bomb01,2v2,true,true
+map_bomb01,4v4,true,true

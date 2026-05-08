@@ -54,7 +54,7 @@ func _ready() -> void:
 		fx_layer = get_node(fx_layer_path)
 		if fx_layer != null:
 			fx_layer.z_as_relative = false
-			fx_layer.z_index = 200
+			fx_layer.z_index = 0
 	if has_node(spawn_fx_controller_path):
 		spawn_fx_controller = get_node(spawn_fx_controller_path)
 

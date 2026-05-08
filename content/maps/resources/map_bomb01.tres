@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="MapResource" format=3]
+
+[ext_resource type="Script" path="res://content/maps/resources/map_resource.gd" id="1_fwhct"]
+
+[resource]
+script = ExtResource("1_fwhct")
+map_id = "map_bomb01"
+display_name = "bomb01"
+width = 15
+height = 13
+solid_cells = Array[Vector2i]([Vector2i(0, 6), Vector2i(0, 7), Vector2i(0, 8), Vector2i(14, 6), Vector2i(14, 7), Vector2i(14, 8)])
+spawn_points = Array[Vector2i]([Vector2i(5, 4), Vector2i(5, 6), Vector2i(5, 8), Vector2i(5, 10), Vector2i(9, 4), Vector2i(9, 6), Vector2i(9, 8), Vector2i(9, 10)])
+tile_theme_id = "bomb"
+floor_tile_entries = Array[Dictionary]([{
+"elem_key": "bomb/elem12_stand",
+"rect": Rect2i(0, 0, 15, 13),
+"texture_path": "res://external/assets/maps/elements/bomb/elem12_stand.png"
+}])
+surface_entries = Array[Dictionary]([{
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 8),
+"collision_footprint": Vector2i(1, 3),
+"die_texture_path": "",
+"elem_key": "bomb/elem8_stand",
+"footprint": Vector2i(1, 3),
+"instance_id": "map_bomb01_surface_0001",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -14, 0),
+"texture_path": "res://external/assets/maps/elements/bomb/elem8_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 8),
+"collision_footprint": Vector2i(1, 3),
+"die_texture_path": "",
+"elem_key": "bomb/elem7_stand",
+"footprint": Vector2i(1, 3),
+"instance_id": "map_bomb01_surface_0002",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, 0, 0),
+"texture_path": "res://external/assets/maps/elements/bomb/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}])
+bound_mode_id = "bomb"
+bound_rule_set_id = "ruleset_classic"
+match_format_id = "1v1"
+max_player_count = 8
+match_format_variants = Array[Dictionary]([{
+"match_format_id": "1v1",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": false,
+"max_player_count": 2,
+"required_party_size": 1,
+"required_team_count": 2,
+"sort_order": 10
+}, {
+"match_format_id": "2v2",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": true,
+"max_player_count": 4,
+"required_party_size": 2,
+"required_team_count": 2,
+"sort_order": 20
+}, {
+"match_format_id": "4v4",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": true,
+"max_player_count": 8,
+"required_party_size": 4,
+"required_team_count": 2,
+"sort_order": 30
+}])
+matchmaking_ranked_enabled = true
+sort_order = 100
+content_hash = "9313a6e0d3cb5927cd980a437db193375dadbcbf762c9970d989ef55f669c049"

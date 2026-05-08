@@ -13,11 +13,12 @@ func _main_body() -> void:
 	MapCatalogScript.load_all()
 	var prefix := "map_selection_catalog_test"
 	var ok := true
-	ok = qqt_check(_has_ranked_map("1v1", "box", "map_classic_square", 2), "classic map should support 1v1 ranked variant", prefix) and ok
-	ok = qqt_check(_has_ranked_map("2v2", "box", "map_classic_square", 4), "classic map should keep 2v2 ranked variant", prefix) and ok
+	ok = qqt_check(_has_queue_map("1v1", "casual", "desert", "map_desert01", 4), "desert map should support 1v1 casual variant", prefix) and ok
+	ok = qqt_check(_has_queue_map("2v2", "casual", "desert", "map_desert01", 4), "desert map should support 2v2 casual variant", prefix) and ok
+	ok = qqt_check(_has_queue_map("1v1", "casual", "match", "map_match01", 2), "match map should support 1v1 casual variant", prefix) and ok
 	ok = qqt_check(not _format_enabled("4v4"), "4v4 should stay locked until a map has at least 8 spawn points", prefix) and ok
-	var custom_binding := MapSelectionCatalogScript.get_map_binding("map_classic_square")
-	ok = qqt_check(int(custom_binding.get("max_player_count", 0)) == 4, "custom room binding should keep legacy map capacity", prefix) and ok
+	var custom_binding := MapSelectionCatalogScript.get_map_binding("map_desert01")
+	ok = qqt_check(int(custom_binding.get("max_player_count", 0)) == 4, "custom room binding should keep desert map capacity", prefix) and ok
 
 
 func _format_enabled(match_format_id: String) -> bool:
@@ -27,10 +28,9 @@ func _format_enabled(match_format_id: String) -> bool:
 	return false
 
 
-func _has_ranked_map(match_format_id: String, mode_id: String, map_id: String, max_player_count: int) -> bool:
-	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, "ranked", mode_id):
+func _has_queue_map(match_format_id: String, queue_type: String, mode_id: String, map_id: String, max_player_count: int) -> bool:
+	for entry in MapSelectionCatalogScript.get_matchmaking_maps(match_format_id, queue_type, mode_id):
 		if String(entry.get("map_id", "")) == map_id and int(entry.get("max_player_count", 0)) == max_player_count:
 			return true
 	return false
-
 

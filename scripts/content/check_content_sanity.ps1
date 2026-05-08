@@ -77,7 +77,7 @@ function Find-MatchesWithPowerShell {
             continue
         }
         Get-ChildItem -LiteralPath $fullPath -Recurse -File | ForEach-Object {
-            $relativePath = $_.FullName.Substring($RepoRoot.Path.Length + 1).Replace('\', '/')
+            $relativePath = $_.FullName.Substring($RepoRoot.Length + 1).Replace('\', '/')
             if (Test-IsExcluded -RelativePath $relativePath -Excludes $Excludes) {
                 return
             }
