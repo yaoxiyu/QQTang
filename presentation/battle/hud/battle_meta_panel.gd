@@ -34,6 +34,10 @@ func _ready() -> void:
 		if label != null:
 			label.custom_minimum_size = Vector2.ZERO
 			label.clip_text = true
+	if character_name_label != null:
+		character_name_label.visible = false
+	if bubble_style_label != null:
+		bubble_style_label.visible = false
 	_apply_pending_metadata()
 
 
@@ -67,9 +71,9 @@ func _apply_pending_metadata() -> void:
 	if match_meta_label != null:
 		match_meta_label.text = _pending_match_meta_text
 	if character_name_label != null:
-		character_name_label.text = "角色: %s" % _pending_character_display_name
+		character_name_label.text = ""
 	if bubble_style_label != null:
-		bubble_style_label.text = "泡泡: %s" % _pending_bubble_display_name
+		bubble_style_label.text = ""
 
 
 func debug_dump_state() -> Dictionary:

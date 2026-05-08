@@ -32,6 +32,7 @@ var _surface_views: Array[Node] = []
 var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
+var _animation_frames_cache: Dictionary = {}
 var _tile_palette: Dictionary = {
 	"ground": Color(0.88, 0.88, 0.82, 1.0),
 	"solid": Color(0.20, 0.22, 0.28, 1.0),
@@ -74,6 +75,7 @@ func clear_map() -> void:
 	_runtime_layout = null
 	_map_theme = null
 	_theme_materials.clear()
+	_animation_frames_cache.clear()
 	_clear_runtime_layers()
 
 
@@ -103,12 +105,26 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 	_breakable_views_by_cell.erase(cell)
 	if view == null or not is_instance_valid(view):
 		return
-	if view.has_method("play_die_and_dispose"):
+	if view.has_method("on_destroyed"):
+		view.on_destroyed()
+	elif view.has_method("play_die_and_dispose"):
 		view.play_die_and_dispose()
 	elif view.has_method("play_break_and_dispose"):
 		view.play_break_and_dispose()
 	else:
 		view.queue_free()
+
+
+func handle_cell_triggered(cell: Vector2i) -> void:
+	if not _breakable_views_by_cell.has(cell):
+		return
+	var view : Node2D = _breakable_views_by_cell[cell]
+	if view == null or not is_instance_valid(view):
+		return
+	if view.has_method("on_triggered"):
+		view.on_triggered()
+	elif view.has_method("play_trigger_animation"):
+		view.play_trigger_animation()
 
 
 func debug_dump_map_state() -> Dictionary:
@@ -227,7 +243,11 @@ func _rebuild_occluders() -> void:
 	for entry in _runtime_layout.surface_entries:
 		if String(entry.get("render_role", "surface")) != "occluder":
 			continue
-		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
+		var stand_path := String(entry.get("texture_path", "")).strip_edges()
+		var stand_frames := _resolve_animation_frames(stand_path)
+		var texture := load(stand_path) as Texture2D
+		if texture == null and stand_frames.size() > 0:
+			texture = stand_frames[0]
 		if texture == null:
 			continue
 		var node: Node2D = _build_surface_element_view(entry, texture)
@@ -253,7 +273,11 @@ func _rebuild_surface_entries() -> void:
 	for entry in entries:
 		if String(entry.get("render_role", "surface")) == "occluder":
 			continue
-		var texture := load(String(entry.get("texture_path", ""))) as Texture2D
+		var stand_path := String(entry.get("texture_path", "")).strip_edges()
+		var stand_frames := _resolve_animation_frames(stand_path)
+		var texture := load(stand_path) as Texture2D
+		if texture == null and stand_frames.size() > 0:
+			texture = stand_frames[0]
 		if texture == null:
 			continue
 		var node: Node2D = _build_surface_element_view(entry, texture)
@@ -405,9 +429,48 @@ func _build_surface_element_view(entry: Dictionary, texture: Texture2D) -> Node2
 	var die_path := String(entry.get("die_texture_path", "")).strip_edges()
 	if not die_path.is_empty():
 		die_texture = load(die_path) as Texture2D
+	var trigger_texture: Texture2D = null
+	var trigger_path := String(entry.get("trigger_texture_path", "")).strip_edges()
+	if not trigger_path.is_empty():
+		trigger_texture = load(trigger_path) as Texture2D
+	var stand_path := String(entry.get("texture_path", "")).strip_edges()
+	var stand_frames := _resolve_animation_frames(stand_path)
+	var die_frames := _resolve_animation_frames(die_path)
+	var trigger_frames := _resolve_animation_frames(trigger_path)
 	var view: Node2D = MapSurfaceElementViewScript.new()
-	view.configure(entry, cell_size, texture, die_texture)
+	view.configure(entry, cell_size, texture, die_texture, trigger_texture, stand_frames, die_frames, trigger_frames)
 	return view
+
+
+func _resolve_animation_frames(texture_path: String) -> Array[Texture2D]:
+	var normalized_path := texture_path.strip_edges()
+	if normalized_path.is_empty() or not normalized_path.to_lower().ends_with(".gif"):
+		return []
+	if _animation_frames_cache.has(normalized_path):
+		var cached = _animation_frames_cache[normalized_path]
+		if cached is Array:
+			var result: Array[Texture2D] = []
+			for frame in cached:
+				if frame is Texture2D:
+					result.append(frame)
+			return result
+		return []
+	var base_dir := normalized_path.get_base_dir()
+	var stem := normalized_path.get_file().get_basename()
+	var anim_dir := "%s/anim/%s" % [base_dir, stem]
+	var frames: Array[Texture2D] = []
+	var dir := DirAccess.open(anim_dir)
+	if dir != null:
+		var files := dir.get_files()
+		files.sort()
+		for file_name in files:
+			if not file_name.to_lower().ends_with(".png"):
+				continue
+			var frame_texture := load("%s/%s" % [anim_dir, file_name]) as Texture2D
+			if frame_texture != null:
+				frames.append(frame_texture)
+	_animation_frames_cache[normalized_path] = frames.duplicate()
+	return frames
 
 func _resolve_texture_scale(texture: Texture2D) -> Vector2:
 	return Vector2.ONE

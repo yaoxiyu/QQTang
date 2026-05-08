@@ -95,12 +95,14 @@ func _on_runtime_ready() -> void:
 	_room_use_case = _app_runtime.room_use_case
 	_connect_runtime()
 	if _app_runtime != null and _app_runtime.player_profile_state != null:
-		var profile_char := String(_app_runtime.player_profile_state.default_character_id).strip_edges()
-		if not profile_char.is_empty() and CharacterCatalogScript.has_character(profile_char):
+		var profile_char := PlayerProfileState.resolve_default_character_id(String(_app_runtime.player_profile_state.default_character_id))
+		if CharacterCatalogScript.has_character(profile_char):
 			_selected_char_id = profile_char
-		else:
+		elif CharacterCatalogScript.has_character(RANDOM_CHAR_ID):
 			_selected_char_id = RANDOM_CHAR_ID
-		_save_char_to_profile(RANDOM_CHAR_ID)
+		else:
+			_selected_char_id = CharacterCatalogScript.get_default_character_id()
+		_save_char_to_profile(_selected_char_id)
 	if _room_controller != null and _room_controller.has_method("build_room_snapshot"):
 		var snap = _room_controller.build_room_snapshot()
 		if snap != null:
@@ -232,7 +234,8 @@ func _refresh_char_grid() -> void:
 		btn.set_meta("icon_selected_path", icon_sel)
 		var normal_tex := _load_icon(icon)
 		var hover_tex := _load_icon(icon_sel)
-		btn.texture_normal = normal_tex
+		var is_selected := _selected_char_id == cid
+		btn.texture_normal = hover_tex if is_selected else normal_tex
 		btn.texture_hover = hover_tex
 		btn.texture_pressed = hover_tex
 		btn.tooltip_text = String(e.get("display_name", cid))

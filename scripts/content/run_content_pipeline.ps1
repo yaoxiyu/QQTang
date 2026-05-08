@@ -15,10 +15,15 @@ $projectRoot = $projectRoot.Path
 . (Join-Path $projectRoot 'tools\lib\dev_common.ps1')
 
 $syntaxPreflightScript = Join-Path $projectRoot 'tests\scripts\check_gdscript_syntax.ps1'
+$mapGifConvertScript = Join-Path $projectRoot 'scripts\content\convert_map_gif_to_png_anim.ps1'
 $cacheRoot = Join-Path $projectRoot 'build\.content-pipeline-cache'
 $activity = 'content-pipeline'
-Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 3 -Name 'gdscript syntax preflight' -Action {
+Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 4 -Name 'gdscript syntax preflight' -Action {
     & $syntaxPreflightScript -GodotExe $GodotExecutable -ProjectPath $projectRoot
+}
+
+Invoke-QQTProgressStep -Activity $activity -Step 2 -Total 4 -Name 'map gif to png frames' -Action {
+    & $mapGifConvertScript -ProjectPath $projectRoot -AssetRoot 'external/assets/maps/elements' -CleanExistingFrames
 }
 
 Push-Location $projectRoot
@@ -48,6 +53,7 @@ try {
             'content_source\csv',
             'tools\content_pipeline',
             'scripts\content\run_content_pipeline.ps1',
+            'scripts\content\convert_map_gif_to_png_anim.ps1',
             'scripts\content\sync_qqt_animation_set_rows.ps1',
             'content\characters\defs',
             'content\bubbles\defs',
@@ -67,8 +73,8 @@ try {
         -OutputPaths $requiredPaths `
         -Force:$ForceBuild `
         -Activity $activity `
-        -Step 2 `
-        -Total 3 `
+        -Step 3 `
+        -Total 4 `
         -Action {
             & cmd /c "`"$GodotExecutable`" --headless --path `"$projectRoot`" --script res://tools/content_pipeline/run_content_pipeline_cli.gd"
             if ($LASTEXITCODE -ne 0) {
@@ -81,7 +87,7 @@ try {
             }
         } | Out-Null
 
-    Write-QQTProgress -Activity $activity -Step 3 -Total 3 -Status 'verify outputs'
+    Write-QQTProgress -Activity $activity -Step 4 -Total 4 -Status 'verify outputs'
 
     foreach ($relativePath in $requiredPaths) {
         $fullPath = Join-Path $projectRoot $relativePath

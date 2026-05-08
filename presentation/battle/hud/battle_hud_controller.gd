@@ -195,20 +195,20 @@ func _bind_hud_resource_ids() -> void:
 
 
 func _apply_formal_hud_layout() -> void:
-	_style_label_panel(countdown_panel, Vector2(102, 22), Vector2(250, 68), 24, HORIZONTAL_ALIGNMENT_CENTER)
-	_style_label_panel(player_status_panel, Vector2(8, 122), Vector2(268, 264), 14, HORIZONTAL_ALIGNMENT_LEFT)
-	_style_label_panel(network_status_panel, Vector2(1040, 22), Vector2(1274, 302), 11, HORIZONTAL_ALIGNMENT_RIGHT)
-	_style_label_panel(match_message_panel, Vector2(404, 24), Vector2(780, 76), 20, HORIZONTAL_ALIGNMENT_CENTER)
+	_style_label_panel(countdown_panel, Vector2(12, 12), Vector2(176, 44), 20, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(player_status_panel, Vector2(8, 72), Vector2(228, 238), 12, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(network_status_panel, Vector2(1048, 12), Vector2(1272, 238), 10, HORIZONTAL_ALIGNMENT_RIGHT)
+	_style_label_panel(match_message_panel, Vector2(424, 12), Vector2(760, 48), 16, HORIZONTAL_ALIGNMENT_CENTER)
 	_style_panel(battle_meta_panel)
 	_style_panel(local_player_ability_panel)
-	_style_label_panel(team_score_panel, Vector2(8, 48), Vector2(96, 112), 15, HORIZONTAL_ALIGNMENT_LEFT)
-	_style_label_panel(local_life_state_panel, Vector2(8, 534), Vector2(268, 576), 18, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(team_score_panel, Vector2(8, 322), Vector2(228, 362), 13, HORIZONTAL_ALIGNMENT_LEFT)
+	_style_label_panel(local_life_state_panel, Vector2(8, 542), Vector2(228, 576), 14, HORIZONTAL_ALIGNMENT_LEFT)
 	if battle_meta_panel is Control:
-		_set_control_rect(battle_meta_panel, Vector2(8, 284), Vector2(268, 410))
+		_set_control_rect(battle_meta_panel, Vector2(8, 372), Vector2(228, 452))
 		(battle_meta_panel as Control).custom_minimum_size = Vector2.ZERO
 		(battle_meta_panel as Control).clip_contents = true
 	if local_player_ability_panel is Control:
-		_set_control_rect(local_player_ability_panel, Vector2(8, 424), Vector2(268, 500))
+		_set_control_rect(local_player_ability_panel, Vector2(8, 462), Vector2(228, 526))
 		(local_player_ability_panel as Control).custom_minimum_size = Vector2.ZERO
 		(local_player_ability_panel as Control).clip_contents = true
 	_ensure_reference_item_bar()
