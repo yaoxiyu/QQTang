@@ -279,6 +279,8 @@ func _rebuild_ground_tiles() -> void:
 			for x in range(rect.position.x, rect.position.x + rect.size.x):
 				var cell := Vector2i(x, y)
 				var sprite := _build_textured_cell_sprite(texture, cell)
+				sprite.z_as_relative = false
+				sprite.z_index = BattleDepth.ground_z(cell)
 				ground_layer.add_child(sprite)
 				_ground_views_by_cell[cell] = sprite
 
@@ -358,10 +360,10 @@ func _ensure_ground_view(cell: Vector2i) -> void:
 	if ground_texture == null:
 		return
 	var sprite := _build_textured_cell_sprite(ground_texture, cell)
+	sprite.z_as_relative = false
+	sprite.z_index = BattleDepth.ground_z(cell)
 	ground_layer.add_child(sprite)
 	_ground_views_by_cell[cell] = sprite
-
-
 func _ensure_spawn_marker_view(cell: Vector2i) -> void:
 	if _spawn_marker_views_by_cell.has(cell):
 		return
@@ -369,7 +371,8 @@ func _ensure_spawn_marker_view(cell: Vector2i) -> void:
 	if spawn_texture == null:
 		return
 	var sprite := _build_textured_cell_sprite(spawn_texture, cell)
-	sprite.z_index = 1
+	sprite.z_as_relative = false
+	sprite.z_index = BattleDepth.spawn_marker_z(cell)
 	ground_layer.add_child(sprite)
 	_spawn_marker_views_by_cell[cell] = sprite
 

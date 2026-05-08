@@ -9,6 +9,7 @@ const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/ma
 const MAPS_CSV_PATH := "res://content_source/csv/maps/maps.csv"
 const MAP_VARIANTS_CSV_PATH := "res://content_source/csv/maps/map_match_variants.csv"
 const MAP_ELEM_VISUAL_META_CSV_PATH := "res://content_source/csv/maps/map_elem_visual_meta.csv"
+const MAP_ELEM_OVERRIDES_CSV_PATH := "res://content_source/csv/maps/map_elem_overrides.csv"
 const MAP_FLOOR_TILES_CSV_PATH := "res://content_source/csv/maps/map_floor_tiles.csv"
 const MAP_SURFACE_INSTANCES_CSV_PATH := "res://content_source/csv/maps/map_surface_instances.csv"
 const OUTPUT_DIR := "res://content/maps/resources/"
@@ -41,6 +42,8 @@ func generate() -> void:
 
 	var variants_by_map_id := _group_variant_rows(variant_rows, csv_reader)
 	var visual_meta_by_elem_key := _build_visual_meta_by_elem_key(visual_meta_rows, csv_reader)
+	var override_rows := read_csv_rows(MAP_ELEM_OVERRIDES_CSV_PATH)
+	_apply_elem_overrides(visual_meta_by_elem_key, override_rows, csv_reader)
 	var floor_rows_by_map_id := _group_rows_by_map_id(floor_rows, csv_reader, "map_floor_tiles.csv")
 	var surface_rows_by_map_id := _group_rows_by_map_id(surface_rows, csv_reader, "map_surface_instances.csv")
 	var valid_map_ids: Array[String] = []
@@ -231,6 +234,36 @@ func _group_variant_rows(variant_rows: Array[Dictionary], csv_reader: ContentCsv
 		var variant_bucket: Array = grouped[map_id]
 		variant_bucket.append(variant_row)
 	return grouped
+
+
+func _apply_elem_overrides(visual_meta_by_elem_key: Dictionary, rows: Array, csv_reader: ContentCsvReader) -> void:
+	if rows.is_empty():
+		return
+	for row in rows:
+		var elem_key := csv_reader.require_string(row, "elem_key")
+		if elem_key.is_empty():
+			continue
+		if not visual_meta_by_elem_key.has(elem_key):
+			continue
+		var meta: Dictionary = visual_meta_by_elem_key[elem_key]
+		var fp_w := csv_reader.optional_string(row, "footprint_w", "")
+		if not fp_w.is_empty():
+			meta["footprint_w"] = fp_w
+		var fp_h := csv_reader.optional_string(row, "footprint_h", "")
+		if not fp_h.is_empty():
+			meta["footprint_h"] = fp_h
+		var col_w := csv_reader.optional_string(row, "collision_w", "")
+		if not col_w.is_empty():
+			meta["collision_w"] = col_w
+		var col_h := csv_reader.optional_string(row, "collision_h", "")
+		if not col_h.is_empty():
+			meta["collision_h"] = col_h
+		var logic_type := csv_reader.optional_string(row, "logic_type", "")
+		if logic_type in ["floor", "decoration", "breakable", "trigger"]:
+			meta["logic_type"] = logic_type
+		var anchor_mode := csv_reader.optional_string(row, "anchor_mode", "")
+		if anchor_mode in ["bottom_right", "bottom_left", "bottom_center"]:
+			meta["anchor_mode"] = anchor_mode
 
 
 func _build_visual_meta_by_elem_key(rows: Array[Dictionary], csv_reader: ContentCsvReader) -> Dictionary:

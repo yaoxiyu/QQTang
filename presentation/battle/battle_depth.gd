@@ -1,38 +1,55 @@
 class_name BattleDepth
 extends RefCounted
 
-const ROW_Z_STEP := 20
-const GROUND_Z := 0
-const FX_LAYER_BASE := 500
-const ACTOR_LAYER_BASE := 1000
-const SURFACE_LAYER_BASE := 2000
+const ROW_STEP := 100
+const WITHIN_ROW_STEP := 10
 
-const BUBBLE_Z_BIAS := 4
-const EXPLOSION_Z_BIAS := 5
-const ITEM_Z_BIAS := 6
-const PLAYER_Z_BIAS := 8
-const SURFACE_Z_BIAS := 10
+const LAYER_PRIORITY_FLOOR := 1
+const LAYER_PRIORITY_FX := 2
+const LAYER_PRIORITY_ACTOR := 3
+const LAYER_PRIORITY_SURFACE := 4
+
+const GROUND_Z_BIAS := 0
+const SPAWN_MARKER_Z_BIAS := 1
+const OCCLUDER_Z_BIAS := 5
+const BUBBLE_Z_BIAS := 0
+const EXPLOSION_Z_BIAS := 1
+const ITEM_Z_BIAS := 2
+const PLAYER_Z_BIAS := 0
+const SURFACE_Z_BIAS := 0
+
+
+static func ground_z(cell: Vector2i) -> int:
+	return _row_z(LAYER_PRIORITY_FLOOR, cell, GROUND_Z_BIAS)
+
+
+static func spawn_marker_z(cell: Vector2i) -> int:
+	return _row_z(LAYER_PRIORITY_FLOOR, cell, SPAWN_MARKER_Z_BIAS)
+
+
+static func occluder_z(cell: Vector2i) -> int:
+	return _row_z(LAYER_PRIORITY_FLOOR, cell, OCCLUDER_Z_BIAS)
 
 
 static func bubble_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _dynamic_z(FX_LAYER_BASE, cell, BUBBLE_Z_BIAS + z_bias)
+	return _row_z(LAYER_PRIORITY_FX, cell, BUBBLE_Z_BIAS + z_bias)
 
 
 static func explosion_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _dynamic_z(FX_LAYER_BASE, cell, EXPLOSION_Z_BIAS + z_bias)
+	return _row_z(LAYER_PRIORITY_FX, cell, EXPLOSION_Z_BIAS + z_bias)
 
 
 static func item_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _dynamic_z(FX_LAYER_BASE, cell, ITEM_Z_BIAS + z_bias)
+	return _row_z(LAYER_PRIORITY_FX, cell, ITEM_Z_BIAS + z_bias)
 
 
 static func player_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _dynamic_z(ACTOR_LAYER_BASE, cell, PLAYER_Z_BIAS + z_bias)
+	return _row_z(LAYER_PRIORITY_ACTOR, cell, PLAYER_Z_BIAS + z_bias)
 
 
 static func surface_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _dynamic_z(SURFACE_LAYER_BASE, cell, SURFACE_Z_BIAS + z_bias)
+	return _row_z(LAYER_PRIORITY_SURFACE, cell, SURFACE_Z_BIAS + z_bias)
 
 
-static func _dynamic_z(layer_base: int, cell: Vector2i, z_bias: int) -> int:
-	return layer_base + cell.y * ROW_Z_STEP - cell.x + z_bias
+static func _row_z(layer_priority: int, cell: Vector2i, z_bias: int) -> int:
+	return cell.y * ROW_STEP + layer_priority * WITHIN_ROW_STEP - cell.x + z_bias

@@ -2,7 +2,6 @@ class_name MapOccluderView
 extends Node2D
 
 const DEFAULT_PRIMARY_COLOR := Color(0.31, 0.48, 0.32, 1.0)
-const OCCLUDER_Z_INDEX := 40
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const OCCLUDER_TRIGGER_OFFSET := Vector2(-0.9, -0.6)
 const OCCLUDER_TRIGGER_SIZE := Vector2(2.3, 2.0)
@@ -42,7 +41,7 @@ func configure(
 	fade_alpha = clamp(p_fade_alpha, 0.0, 1.0)
 	position = Vector2(cell.x * cell_size, cell.y * cell_size) + offset_px
 	z_as_relative = false
-	z_index = OCCLUDER_Z_INDEX
+	z_index = BattleDepth.occluder_z(cell)
 	_bind_nodes()
 	_rebuild_geometry()
 	set_process(true)
