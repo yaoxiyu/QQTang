@@ -7,3 +7,5 @@ map_pig01,2v2,true,true
 map_bomb01,1v1,true,false
 map_bomb01,2v2,true,true
 map_bomb01,4v4,true,true
+map_treasure01,1v1,true,false
+map_treasure01,2v2,true,true
