@@ -3,7 +3,8 @@ extends RefCounted
 
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
 
-const BUBBLE_IGNORE_SENTINEL := -999999
+# Sentinel：每个 bubble 在 pass_phases 块尾追加，与 native checksum kernel 解码协议对齐。
+const BUBBLE_PHASES_SENTINEL := -999999
 
 
 func build(sim_world: SimWorld, tick_id: int) -> int:
@@ -85,9 +86,16 @@ func _pack_bubbles(sim_world: SimWorld) -> PackedInt32Array:
 		packed.append(bubble.power)
 		packed.append(bubble.footprint_cells)
 		packed.append(int(bubble.alive))
-		for ignored_player_id in bubble.ignore_player_ids:
-			packed.append(int(ignored_player_id))
-		packed.append(BUBBLE_IGNORE_SENTINEL)
+		# 每条 phase 5 个 int，pass_phases 必须事先按 player_id 升序保存。
+		for phase in bubble.pass_phases:
+			if phase == null:
+				continue
+			packed.append(phase.player_id)
+			packed.append(phase.phase_x)
+			packed.append(phase.sign_x)
+			packed.append(phase.phase_y)
+			packed.append(phase.sign_y)
+		packed.append(BUBBLE_PHASES_SENTINEL)
 	return packed
 
 

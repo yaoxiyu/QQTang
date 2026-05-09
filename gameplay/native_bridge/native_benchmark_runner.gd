@@ -6,7 +6,6 @@ const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_k
 
 const MAX_ALLOWED_SLOWDOWN_RATIO_BY_BENCH := {
 	"checksum": 3.0,
-	"movement": 4.0,
 	"explosion": 4.0,
 }
 
@@ -41,26 +40,6 @@ func run_checksum_benchmark(iterations: int = 8) -> Dictionary:
 	)
 
 
-func run_movement_benchmark(iterations: int = 4) -> Dictionary:
-	var baseline_samples: Array[float] = []
-	var native_samples: Array[float] = []
-	var parity_ok := true
-	for iteration in range(maxi(iterations, 1)):
-		var seed := 5100 + iteration
-		var baseline_result := _measure_movement_sequence(false, seed)
-		var native_result := _measure_movement_sequence(true, seed)
-		baseline_samples.append(float(baseline_result.get("elapsed_usec", 0.0)))
-		native_samples.append(float(native_result.get("elapsed_usec", 0.0)))
-		parity_ok = parity_ok and _movement_results_equal(baseline_result, native_result)
-	return _build_report(
-		"movement",
-		baseline_samples,
-		native_samples,
-		parity_ok,
-		NativeKernelRuntimeScript.get_movement_kernel() != null
-	)
-
-
 func run_explosion_benchmark(iterations: int = 4) -> Dictionary:
 	var baseline_samples: Array[float] = []
 	var native_samples: Array[float] = []
@@ -79,42 +58,6 @@ func run_explosion_benchmark(iterations: int = 4) -> Dictionary:
 		parity_ok,
 		NativeKernelRuntimeScript.get_explosion_kernel() != null
 	)
-
-
-func _measure_movement_sequence(use_native: bool, seed: int) -> Dictionary:
-	var previous_flag := NativeFeatureFlagsScript.enable_native_movement
-	NativeFeatureFlagsScript.enable_native_movement = use_native
-	var world := _build_world(seed)
-	var player := world.state.players.get_player(int(world.state.players.active_ids[0]))
-	player.speed_level = 3
-	world.state.players.update_player(player)
-	var command_sequence := [
-		Vector2i.RIGHT,
-		Vector2i.RIGHT,
-		Vector2i.RIGHT,
-		Vector2i.RIGHT,
-		Vector2i.RIGHT,
-		Vector2i.RIGHT,
-		Vector2i.UP,
-	]
-	var started := Time.get_ticks_usec()
-	for command in command_sequence:
-		var input_frame := InputFrame.new()
-		input_frame.tick = world.state.match_state.tick + 1
-		var player_command := PlayerCommand.neutral()
-		player_command.move_x = command.x
-		player_command.move_y = command.y
-		input_frame.set_command(player.player_slot, player_command)
-		world.enqueue_input(input_frame)
-		world.step()
-	var result := {
-		"elapsed_usec": float(Time.get_ticks_usec() - started),
-		"players": SnapshotService.new().build_light_snapshot(world, world.state.match_state.tick).players,
-		"bubbles": SnapshotService.new().build_light_snapshot(world, world.state.match_state.tick).bubbles,
-	}
-	world.dispose()
-	NativeFeatureFlagsScript.enable_native_movement = previous_flag
-	return result
 
 
 func _measure_explosion_sequence(use_native: bool, seed: int) -> Dictionary:
@@ -237,10 +180,6 @@ func _p95(samples: Array[float]) -> float:
 	sorted.sort()
 	var index := mini(int(ceil(float(sorted.size()) * 0.95)) - 1, sorted.size() - 1)
 	return float(sorted[maxi(index, 0)])
-
-
-func _movement_results_equal(a: Dictionary, b: Dictionary) -> bool:
-	return a.get("players", []) == b.get("players", []) and a.get("bubbles", []) == b.get("bubbles", [])
 
 
 func _explosion_results_equal(a: Dictionary, b: Dictionary) -> bool:

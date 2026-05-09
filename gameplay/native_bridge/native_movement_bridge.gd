@@ -6,9 +6,11 @@ const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_k
 const NativeWireContractScript = preload("res://gameplay/native_bridge/native_wire_contract.gd")
 const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
 
 const LOG_TAG := "simulation.native.movement"
 const MOVEMENT_PAYLOAD_MAGIC := 1297371473 # "QQTM" little-endian i32 marker.
+const PHASE_FIELDS_PER_ENTRY := BubblePassPhaseHelper.PHASE_FIELD_COUNT
 
 
 func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
@@ -16,7 +18,7 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 		"player_updates": [],
 		"blocked_events": [],
 		"cell_changes": [],
-		"bubble_ignore_removals": [],
+		"bubble_phase_updates": [],
 	}
 	if ctx == null or ctx.state == null or ctx.queries == null:
 		return empty_result
@@ -28,7 +30,7 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 
 	var player_records := _pack_player_records(ctx, player_ids)
 	var bubble_records := _pack_bubble_records(ctx)
-	var bubble_ignore_values := _pack_bubble_ignore_values(ctx)
+	var phase_values := _pack_bubble_phase_values(ctx)
 	var blocked_grid_records := _pack_blocked_grid_records(ctx)
 	var tuning := _pack_tuning()
 	var result_blob_variant: Variant = null
@@ -36,18 +38,20 @@ func step_players(ctx: SimContext, player_ids: Array[int]) -> Dictionary:
 		result_blob_variant = kernel.step_players_packed(
 			player_records,
 			bubble_records,
-			bubble_ignore_values,
+			phase_values,
 			blocked_grid_records,
 			int(tuning.get("movement_substep_units", 0)),
 			int(tuning.get("turn_snap_window_units", 0)),
-			int(tuning.get("pass_absorb_window_units", 0))
+			int(tuning.get("pass_absorb_window_units", 0)),
+			int(tuning.get("bubble_overlap_center_mode", 0)),
+			int(tuning.get("bubble_phase_init_mode", 0))
 		)
 	else:
 		result_blob_variant = kernel.step_players(
 			_encode_input_blob(
 				player_records,
 				bubble_records,
-				bubble_ignore_values,
+				phase_values,
 				blocked_grid_records,
 				tuning
 			)
@@ -91,28 +95,40 @@ func _pack_player_records(ctx: SimContext, player_ids: Array[int]) -> PackedInt3
 
 
 func _pack_bubble_records(ctx: SimContext) -> PackedInt32Array:
+	# Bubble 记录 stride = 7：[entity_id, alive, cell_x, cell_y, footprint_cells, phase_count, phase_values_offset]
+	# phase_values_offset 单位为"int 个数"——native 端按 phase_count * PHASE_FIELDS_PER_ENTRY 读取。
 	var packed := PackedInt32Array()
-	var ignore_offset := 0
+	var phase_values_offset := 0
 	for bubble in _get_sorted_bubbles(ctx):
 		if bubble == null:
 			continue
+		var phase_count := bubble.pass_phases.size()
 		packed.append(bubble.entity_id)
 		packed.append(int(bubble.alive))
 		packed.append(bubble.cell_x)
 		packed.append(bubble.cell_y)
-		packed.append(bubble.ignore_player_ids.size())
-		packed.append(ignore_offset)
-		ignore_offset += bubble.ignore_player_ids.size()
+		packed.append(maxi(1, bubble.footprint_cells))
+		packed.append(phase_count)
+		packed.append(phase_values_offset)
+		phase_values_offset += phase_count * PHASE_FIELDS_PER_ENTRY
 	return packed
 
 
-func _pack_bubble_ignore_values(ctx: SimContext) -> PackedInt32Array:
+func _pack_bubble_phase_values(ctx: SimContext) -> PackedInt32Array:
+	# 与 _pack_bubble_records 配套的扁平 phase 数组，每条 5 个 int：
+	# [player_id, phase_x, sign_x, phase_y, sign_y]
 	var packed := PackedInt32Array()
 	for bubble in _get_sorted_bubbles(ctx):
 		if bubble == null:
 			continue
-		for ignored_player_id in bubble.ignore_player_ids:
-			packed.append(int(ignored_player_id))
+		for phase in bubble.pass_phases:
+			if phase == null:
+				continue
+			packed.append(phase.player_id)
+			packed.append(phase.phase_x)
+			packed.append(phase.sign_x)
+			packed.append(phase.phase_y)
+			packed.append(phase.sign_y)
 	return packed
 
 
@@ -147,21 +163,24 @@ func _pack_tuning() -> Dictionary:
 		"movement_substep_units": MovementTuning.movement_substep_units(),
 		"turn_snap_window_units": MovementTuning.turn_snap_window_units(),
 		"pass_absorb_window_units": MovementTuning.pass_absorb_window_units(),
+		"bubble_overlap_center_mode": MovementTuning.bubble_overlap_center_mode(),
+		"bubble_phase_init_mode": MovementTuning.bubble_phase_init_mode(),
 	}
 
 
 func _encode_input_blob(
 	player_records: PackedInt32Array,
 	bubble_records: PackedInt32Array,
-	bubble_ignore_values: PackedInt32Array,
+	phase_values: PackedInt32Array,
 	blocked_grid_records: PackedInt32Array,
 	tuning: Dictionary
 ) -> PackedByteArray:
 	var blob := PackedByteArray()
-	var total_i32_count := 5
+	# 头部：magic + wire_version + 5 个 tuning 字段 + 4 个 length-prefixed 数组。
+	var total_i32_count := 7
 	total_i32_count += 1 + player_records.size()
 	total_i32_count += 1 + bubble_records.size()
-	total_i32_count += 1 + bubble_ignore_values.size()
+	total_i32_count += 1 + phase_values.size()
 	total_i32_count += 1 + blocked_grid_records.size()
 	blob.resize(total_i32_count * 4)
 	var offset := 0
@@ -170,9 +189,11 @@ func _encode_input_blob(
 	offset = _write_i32(blob, offset, int(tuning.get("movement_substep_units", 0)))
 	offset = _write_i32(blob, offset, int(tuning.get("turn_snap_window_units", 0)))
 	offset = _write_i32(blob, offset, int(tuning.get("pass_absorb_window_units", 0)))
+	offset = _write_i32(blob, offset, int(tuning.get("bubble_overlap_center_mode", 0)))
+	offset = _write_i32(blob, offset, int(tuning.get("bubble_phase_init_mode", 0)))
 	offset = _write_i32_array(blob, offset, player_records)
 	offset = _write_i32_array(blob, offset, bubble_records)
-	offset = _write_i32_array(blob, offset, bubble_ignore_values)
+	offset = _write_i32_array(blob, offset, phase_values)
 	_write_i32_array(blob, offset, blocked_grid_records)
 	return blob
 
@@ -203,13 +224,13 @@ func _decode_result(raw_result: Dictionary) -> Dictionary:
 			"player_updates": [],
 			"blocked_events": [],
 			"cell_changes": [],
-			"bubble_ignore_removals": [],
+			"bubble_phase_updates": [],
 		}
 	return {
 		"player_updates": _coerce_dict_array(raw_result.get("player_updates", [])),
 		"blocked_events": _coerce_dict_array(raw_result.get("blocked_events", [])),
 		"cell_changes": _coerce_dict_array(raw_result.get("cell_changes", [])),
-		"bubble_ignore_removals": _coerce_dict_array(raw_result.get("bubble_ignore_removals", [])),
+		"bubble_phase_updates": _coerce_dict_array(raw_result.get("bubble_phase_updates", [])),
 	}
 
 

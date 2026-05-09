@@ -12,6 +12,8 @@ class_name BubblePlacementSystem
 extends ISimSystem
 
 const BubblePlaceResolver = preload("res://gameplay/simulation/movement/bubble_place_resolver.gd")
+const BubblePassPhaseScript = preload("res://gameplay/simulation/entities/bubble_pass_phase.gd")
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
 
 # ====================
 # 系统接口
@@ -77,11 +79,20 @@ func execute(ctx: SimContext) -> void:
 
 		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
 		if bubble != null:
+			# 与新泡泡发生 overlap 的所有玩家进入 (A,A)：在两轴都自由穿越，
+			# 直到玩家把自己移出泡泡 ≥M/2 才会单调降级到 B 阶段（单向墙）。
 			for overlap_player_id in ctx.state.players.active_ids:
-				if ctx.queries.is_player_overlapping_bubble(overlap_player_id, bubble_id):
-					if not bubble.ignore_player_ids.has(overlap_player_id):
-						bubble.ignore_player_ids.append(overlap_player_id)
-			bubble.ignore_player_ids.sort()
+				if not ctx.queries.is_player_overlapping_bubble(overlap_player_id, bubble_id):
+					continue
+				if BubblePassPhaseHelper.has_phase(bubble, overlap_player_id):
+					continue
+				var phase := BubblePassPhaseScript.new()
+				phase.player_id = overlap_player_id
+				phase.phase_x = BubblePassPhaseScript.Phase.A
+				phase.phase_y = BubblePassPhaseScript.Phase.A
+				phase.sign_x = 0
+				phase.sign_y = 0
+				BubblePassPhaseHelper.upsert_phase(bubble, phase)
 			ctx.state.bubbles.update_bubble(bubble)
 
 		# 增量更新泡泡索引，保证同 Tick 内可被查询到

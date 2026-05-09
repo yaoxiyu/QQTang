@@ -1,4 +1,4 @@
-#include "native_movement_kernel.h"
+﻿#include "native_movement_kernel.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -20,9 +20,21 @@ constexpr int32_t CELL_UNITS = 1000;
 constexpr int32_t HALF_CELL_UNITS = CELL_UNITS / 2;
 constexpr int32_t DEFAULT_TURN_SNAP_WINDOW_UNITS = 250;
 constexpr int32_t DEFAULT_PASS_ABSORB_WINDOW_UNITS = 250;
-constexpr int64_t WIRE_VERSION = 2;
+constexpr int64_t WIRE_VERSION = 3;
 constexpr int32_t MOVEMENT_PAYLOAD_MAGIC = 1297371473;
 constexpr int32_t SPEED_TABLE[] = {70, 82, 94, 106, 118, 130, 142, 154, 166};
+
+// Phase 状态机：与 GD 端 BubblePassPhase.Phase 对齐。
+constexpr int32_t PHASE_A = 0;
+constexpr int32_t PHASE_B = 1;
+constexpr int32_t PHASE_C = 2;
+
+// 每条 phase 在 phase_values 数组中占的整数个数：
+// [player_id, phase_x, sign_x, phase_y, sign_y]
+constexpr int32_t PHASE_FIELDS_PER_ENTRY = 5;
+
+// Bubble 记录 stride（与 native_movement_bridge.gd::_pack_bubble_records 对齐）
+constexpr int32_t BUBBLE_RECORD_STRIDE = 7;
 
 struct Vec2i {
     int32_t x = 0;
@@ -53,8 +65,17 @@ struct BubbleRecord {
     int32_t alive = 0;
     int32_t cell_x = 0;
     int32_t cell_y = 0;
-    int32_t ignore_count = 0;
-    int32_t ignore_values_offset = 0;
+    int32_t footprint_cells = 1;
+    int32_t phase_count = 0;
+    int32_t phase_values_offset = 0;
+};
+
+struct PhaseRecord {
+    int32_t player_id = -1;
+    int32_t phase_x = PHASE_A;
+    int32_t sign_x = 0;
+    int32_t phase_y = PHASE_A;
+    int32_t sign_y = 0;
 };
 
 struct GridRecord {
@@ -77,7 +98,7 @@ Dictionary make_empty_result() {
     result["player_updates"] = Array();
     result["blocked_events"] = Array();
     result["cell_changes"] = Array();
-    result["bubble_ignore_removals"] = Array();
+    result["bubble_phase_updates"] = Array();
     return result;
 }
 
@@ -122,10 +143,6 @@ bool in_bounds(int32_t width, int32_t height, int32_t x, int32_t y) {
     return x >= 0 && y >= 0 && x < width && y < height;
 }
 
-int64_t make_cell_key(int32_t x, int32_t y) {
-    return (static_cast<int64_t>(x) << 32) ^ static_cast<uint32_t>(y);
-}
-
 int32_t resolve_movement_units_per_tick(int32_t speed_level) {
     const int32_t max_level = static_cast<int32_t>(sizeof(SPEED_TABLE) / sizeof(SPEED_TABLE[0]));
     const int32_t clamped_level = std::max(1, std::min(max_level, speed_level));
@@ -155,15 +172,31 @@ bool requires_center_for_horizontal_turn(int32_t rail) {
     return rail == RAIL_VERTICAL || rail == RAIL_CENTER_PIVOT;
 }
 
+int32_t sign_of(int32_t value) {
+    if (value > 0) return 1;
+    if (value < 0) return -1;
+    return 1;
+}
+
+int32_t footprint_size(int32_t footprint_cells) {
+    int32_t s = 1;
+    while (s * s < footprint_cells) {
+        ++s;
+    }
+    return std::max(1, s);
+}
+
 struct KernelContext {
     int32_t width = 0;
     int32_t height = 0;
     int32_t movement_substep_units = 0;
     int32_t turn_snap_window_units = DEFAULT_TURN_SNAP_WINDOW_UNITS;
     int32_t pass_absorb_window_units = DEFAULT_PASS_ABSORB_WINDOW_UNITS;
+    int32_t bubble_overlap_center_mode = 0;
+    int32_t bubble_phase_init_mode = 0;
     std::vector<GridRecord> grid_records;
     std::unordered_map<int32_t, BubbleRecord> bubbles_by_id;
-    std::vector<int32_t> bubble_ignore_values;
+    std::vector<PhaseRecord> phase_table;  // 解码后的 phase 列表，按 bubble.phase_values_offset/PHASE_FIELDS_PER_ENTRY 索引
 };
 
 const GridRecord *find_grid_record(const KernelContext &ctx, int32_t x, int32_t y) {
@@ -177,21 +210,91 @@ const GridRecord *find_grid_record(const KernelContext &ctx, int32_t x, int32_t 
     return &ctx.grid_records[static_cast<size_t>(index)];
 }
 
-bool bubble_has_ignore(const KernelContext &ctx, const BubbleRecord &bubble, int32_t player_id) {
-    const int32_t start = bubble.ignore_values_offset;
-    const int32_t end = start + bubble.ignore_count;
-    if (start < 0 || end > static_cast<int32_t>(ctx.bubble_ignore_values.size())) {
-        return false;
+const PhaseRecord *find_phase(const KernelContext &ctx, const BubbleRecord &bubble, int32_t player_id) {
+    const int32_t start_index = bubble.phase_values_offset / PHASE_FIELDS_PER_ENTRY;
+    const int32_t end_index = start_index + bubble.phase_count;
+    if (start_index < 0 || end_index > static_cast<int32_t>(ctx.phase_table.size())) {
+        return nullptr;
     }
-    for (int32_t index = start; index < end; ++index) {
-        if (ctx.bubble_ignore_values[static_cast<size_t>(index)] == player_id) {
-            return true;
+    for (int32_t i = start_index; i < end_index; ++i) {
+        if (ctx.phase_table[static_cast<size_t>(i)].player_id == player_id) {
+            return &ctx.phase_table[static_cast<size_t>(i)];
         }
     }
-    return false;
+    return nullptr;
 }
 
-bool is_bubble_blocking_for_player(const KernelContext &ctx, int32_t player_id, int32_t bubble_id) {
+// 根据 mode 选择泡泡参考中心：
+//   0 = 单格中心 (bubble.cell_x/cell_y)
+//   1 = footprint 内距 candidate 最近的格中心（曼哈顿距离最近）
+Vec2i resolve_bubble_reference_center(const KernelContext &ctx, const BubbleRecord &bubble, const Vec2i &candidate) {
+    const Vec2i base_center{get_cell_center_abs(bubble.cell_x), get_cell_center_abs(bubble.cell_y)};
+    if (ctx.bubble_overlap_center_mode == 0) {
+        return base_center;
+    }
+    Vec2i best_center = base_center;
+    int32_t best_dist = std::abs(candidate.x - best_center.x) + std::abs(candidate.y - best_center.y);
+    const int32_t size = footprint_size(bubble.footprint_cells);
+    int32_t remaining = std::max(1, bubble.footprint_cells);
+    for (int32_t dy = 0; dy < size && remaining > 0; ++dy) {
+        for (int32_t dx = 0; dx < size && remaining > 0; ++dx) {
+            const Vec2i cell{
+                get_cell_center_abs(bubble.cell_x + dx),
+                get_cell_center_abs(bubble.cell_y + dy)
+            };
+            const int32_t d = std::abs(candidate.x - cell.x) + std::abs(candidate.y - cell.y);
+            if (d < best_dist) {
+                best_dist = d;
+                best_center = cell;
+            }
+            --remaining;
+        }
+    }
+    return best_center;
+}
+
+// 单轴是否违反 phase 约束：A 自由；B(s) 要求 d*s >= M/2；C(s) 要求 d*s >= M。
+bool axis_violates(int32_t axis_phase, int32_t axis_sign, int32_t d) {
+    if (axis_phase == PHASE_A) {
+        return false;
+    }
+    const int32_t signed_d = d * axis_sign;
+    if (axis_phase == PHASE_B) {
+        return signed_d < HALF_CELL_UNITS;
+    }
+    return signed_d < CELL_UNITS;
+}
+
+// 候选位置 + phase 推断（懒初始化模式下使用）
+PhaseRecord compute_lazy_phase(int32_t player_id, int32_t d_x, int32_t d_y) {
+    PhaseRecord phase;
+    phase.player_id = player_id;
+    const int32_t abs_dx = std::abs(d_x);
+    const int32_t abs_dy = std::abs(d_y);
+    if (abs_dx >= CELL_UNITS) {
+        phase.phase_x = PHASE_C;
+        phase.sign_x = sign_of(d_x);
+    } else if (abs_dx >= HALF_CELL_UNITS) {
+        phase.phase_x = PHASE_B;
+        phase.sign_x = sign_of(d_x);
+    } else {
+        phase.phase_x = PHASE_A;
+        phase.sign_x = 0;
+    }
+    if (abs_dy >= CELL_UNITS) {
+        phase.phase_y = PHASE_C;
+        phase.sign_y = sign_of(d_y);
+    } else if (abs_dy >= HALF_CELL_UNITS) {
+        phase.phase_y = PHASE_B;
+        phase.sign_y = sign_of(d_y);
+    } else {
+        phase.phase_y = PHASE_A;
+        phase.sign_y = 0;
+    }
+    return phase;
+}
+
+bool is_bubble_blocking_at_pos(const KernelContext &ctx, int32_t player_id, int32_t bubble_id, int32_t candidate_x, int32_t candidate_y) {
     const auto found = ctx.bubbles_by_id.find(bubble_id);
     if (found == ctx.bubbles_by_id.end()) {
         return false;
@@ -200,33 +303,68 @@ bool is_bubble_blocking_for_player(const KernelContext &ctx, int32_t player_id, 
     if (bubble.alive == 0) {
         return false;
     }
-    return !bubble_has_ignore(ctx, bubble, player_id);
+    const Vec2i candidate{candidate_x, candidate_y};
+    const Vec2i center = resolve_bubble_reference_center(ctx, bubble, candidate);
+    const int32_t d_x = candidate_x - center.x;
+    const int32_t d_y = candidate_y - center.y;
+
+    const PhaseRecord *phase = find_phase(ctx, bubble, player_id);
+    PhaseRecord lazy_phase;
+    if (phase == nullptr) {
+        if (ctx.bubble_phase_init_mode == 0) {
+            return true;
+        }
+        lazy_phase = compute_lazy_phase(player_id, d_x, d_y);
+        phase = &lazy_phase;
+    }
+
+    if (phase->phase_x == PHASE_A && phase->phase_y == PHASE_A) {
+        return false;
+    }
+    if (axis_violates(phase->phase_x, phase->sign_x, d_x)) {
+        return true;
+    }
+    if (axis_violates(phase->phase_y, phase->sign_y, d_y)) {
+        return true;
+    }
+    return false;
 }
 
-bool is_move_blocked_for_player(const KernelContext &ctx, int32_t player_id, int32_t x, int32_t y) {
-    const GridRecord *grid = find_grid_record(ctx, x, y);
+bool is_move_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_id, int32_t cell_x, int32_t cell_y, int32_t candidate_x, int32_t candidate_y) {
+    const GridRecord *grid = find_grid_record(ctx, cell_x, cell_y);
     if (grid == nullptr) {
         return true;
     }
     if (grid->tile_block_move != 0) {
         return true;
     }
-    return grid->bubble_id != -1 && is_bubble_blocking_for_player(ctx, player_id, grid->bubble_id);
+    if (grid->bubble_id == -1) {
+        return false;
+    }
+    return is_bubble_blocking_at_pos(ctx, player_id, grid->bubble_id, candidate_x, candidate_y);
 }
 
-bool is_transition_blocked_for_player(const KernelContext &ctx, int32_t player_id, int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y) {
+bool is_move_blocked_for_player_cell(const KernelContext &ctx, int32_t player_id, int32_t cell_x, int32_t cell_y) {
+    // cell-only 包装：用目标格中心当 candidate（用于轨道判定）。
+    return is_move_blocked_for_player_at_pos(
+        ctx, player_id, cell_x, cell_y,
+        get_cell_center_abs(cell_x), get_cell_center_abs(cell_y)
+    );
+}
+
+bool is_transition_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_id, int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y, int32_t candidate_x, int32_t candidate_y) {
     if (from_x == to_x && from_y == to_y) {
         return false;
     }
-    return is_move_blocked_for_player(ctx, player_id, to_x, to_y);
+    return is_move_blocked_for_player_at_pos(ctx, player_id, to_x, to_y, candidate_x, candidate_y);
 }
 
 int32_t get_player_rail_constraint(const KernelContext &ctx, int32_t player_id, int32_t cell_x, int32_t cell_y) {
     return resolve_rail_from_neighbors(
-        is_move_blocked_for_player(ctx, player_id, cell_x, cell_y - 1),
-        is_move_blocked_for_player(ctx, player_id, cell_x, cell_y + 1),
-        is_move_blocked_for_player(ctx, player_id, cell_x - 1, cell_y),
-        is_move_blocked_for_player(ctx, player_id, cell_x + 1, cell_y)
+        is_move_blocked_for_player_cell(ctx, player_id, cell_x, cell_y - 1),
+        is_move_blocked_for_player_cell(ctx, player_id, cell_x, cell_y + 1),
+        is_move_blocked_for_player_cell(ctx, player_id, cell_x - 1, cell_y),
+        is_move_blocked_for_player_cell(ctx, player_id, cell_x + 1, cell_y)
     );
 }
 
@@ -254,16 +392,146 @@ bool try_apply_turn_snap(PlayerRecord &player, const Vec2i &foot_cell, int32_t r
     return true;
 }
 
-Vec2i clamp_abs_to_blocked_axis_limit(const Vec2i &abs_pos, const Vec2i &foot_cell, int32_t move_x, int32_t move_y) {
+// 仅检查 turn_snap 是否会失败（不写入位置），用于 direct_blocked 路径决策 turn_only。
+bool turn_snap_would_fail(const PlayerRecord &player, int32_t rail, int32_t move_x, int32_t move_y, int32_t turn_snap_window_units) {
+    if (rail == RAIL_CENTER_PIVOT) {
+        return true;
+    }
+    if (requires_center_for_vertical_turn(rail) && move_y != 0) {
+        if (std::abs(player.offset_x) > turn_snap_window_units) {
+            return true;
+        }
+    }
+    if (requires_center_for_horizontal_turn(rail) && move_x != 0) {
+        if (std::abs(player.offset_y) > turn_snap_window_units) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int32_t axis_unbounded_sentinel(int32_t move_x, int32_t move_y) {
+    if (move_x > 0 || move_y > 0) {
+        return 1 << 30;
+    }
+    return -(1 << 30);
+}
+
+int32_t tighten_axis_limit(int32_t current, int32_t candidate, int32_t move_x, int32_t move_y) {
+    if (move_x > 0 || move_y > 0) {
+        return std::min(current, candidate);
+    }
+    return std::max(current, candidate);
+}
+
+int32_t hard_wall_axis_limit(int32_t target_cell_x, int32_t target_cell_y, int32_t move_x, int32_t move_y) {
+    // 物理模型：玩家碰撞框 M×M，中心对齐 abs_pos；墙 cell 碰撞框 M×M，中心对齐 cell_center。
+    // 两 M×M 框不重叠条件：|abs_pos - wall_center| >= M。
+    // 硬墙 = 永远 phase C：玩家中心距墙中心最小 M。
+    if (move_x > 0) return target_cell_x * CELL_UNITS - HALF_CELL_UNITS;
+    if (move_x < 0) return (target_cell_x + 1) * CELL_UNITS + HALF_CELL_UNITS;
+    if (move_y > 0) return target_cell_y * CELL_UNITS - HALF_CELL_UNITS;
+    return (target_cell_y + 1) * CELL_UNITS + HALF_CELL_UNITS;
+}
+
+int32_t default_block_sign(int32_t player_axis, int32_t center_axis) {
+    if (player_axis > center_axis) return 1;
+    if (player_axis < center_axis) return -1;
+    return 1;
+}
+
+int32_t phase_axis_distance_limit(int32_t center_axis, int32_t sign_axis, int32_t phase_axis, int32_t move_x, int32_t move_y) {
+    if (phase_axis == PHASE_A) {
+        return axis_unbounded_sentinel(move_x, move_y);
+    }
+    if (sign_axis == 0) {
+        return center_axis;
+    }
+    const int32_t threshold = (phase_axis == PHASE_B) ? HALF_CELL_UNITS : CELL_UNITS;
+    return center_axis + sign_axis * threshold;
+}
+
+int32_t bubble_phase_axis_limit(
+    const KernelContext &ctx,
+    int32_t player_id,
+    int32_t bubble_id,
+    int32_t candidate_x,
+    int32_t candidate_y,
+    int32_t move_x,
+    int32_t move_y
+) {
+    const auto found = ctx.bubbles_by_id.find(bubble_id);
+    if (found == ctx.bubbles_by_id.end()) {
+        return axis_unbounded_sentinel(move_x, move_y);
+    }
+    const BubbleRecord &bubble = found->second;
+    if (bubble.alive == 0) {
+        return axis_unbounded_sentinel(move_x, move_y);
+    }
+    const Vec2i candidate{candidate_x, candidate_y};
+    const Vec2i center = resolve_bubble_reference_center(ctx, bubble, candidate);
+
+    const PhaseRecord *phase = find_phase(ctx, bubble, player_id);
+    if (phase == nullptr) {
+        if (ctx.bubble_phase_init_mode == 0) {
+            // 视为 C 阶段完全阻挡
+            const int32_t player_axis = (move_x != 0) ? candidate_x : candidate_y;
+            const int32_t center_axis = (move_x != 0) ? center.x : center.y;
+            const int32_t s = default_block_sign(player_axis, center_axis);
+            return phase_axis_distance_limit(center_axis, s, PHASE_C, move_x, move_y);
+        }
+        return axis_unbounded_sentinel(move_x, move_y);
+    }
+
+    if (move_x != 0) {
+        return phase_axis_distance_limit(center.x, phase->sign_x, phase->phase_x, move_x, move_y);
+    }
+    return phase_axis_distance_limit(center.y, phase->sign_y, phase->phase_y, move_x, move_y);
+}
+
+// MovementSystem 子步用：综合硬墙 + 泡泡 phase 边界，给出该轴允许到达的最远位置。
+// 硬墙：玩家可以滑到 cell 边缘（target_cell 近侧 -1 单位）；
+// 泡泡 phase：玩家可以滑到 phase 边界。两种语义一致——都是滑到允许极限。
+int32_t resolve_axis_blocking_limit(
+    const KernelContext &ctx,
+    int32_t player_id,
+    int32_t target_cell_x,
+    int32_t target_cell_y,
+    int32_t /*current_abs_x*/,
+    int32_t /*current_abs_y*/,
+    int32_t candidate_x,
+    int32_t candidate_y,
+    int32_t move_x,
+    int32_t move_y
+) {
+    int32_t limit = axis_unbounded_sentinel(move_x, move_y);
+
+    const GridRecord *grid = find_grid_record(ctx, target_cell_x, target_cell_y);
+    if (grid == nullptr || grid->tile_block_move != 0) {
+        const int32_t hard_limit = hard_wall_axis_limit(target_cell_x, target_cell_y, move_x, move_y);
+        limit = tighten_axis_limit(limit, hard_limit, move_x, move_y);
+    }
+
+    const int32_t bubble_id = (grid != nullptr) ? grid->bubble_id : -1;
+    if (bubble_id != -1) {
+        const int32_t bubble_limit = bubble_phase_axis_limit(
+            ctx, player_id, bubble_id, candidate_x, candidate_y, move_x, move_y
+        );
+        limit = tighten_axis_limit(limit, bubble_limit, move_x, move_y);
+    }
+    return limit;
+}
+
+Vec2i clamp_abs_to_axis_limit(const Vec2i &abs_pos, int32_t axis_limit, int32_t move_x, int32_t move_y) {
     Vec2i clamped = abs_pos;
     if (move_x > 0) {
-        clamped.x = std::min(clamped.x, get_cell_center_abs(foot_cell.x));
+        clamped.x = std::min(clamped.x, axis_limit);
     } else if (move_x < 0) {
-        clamped.x = std::max(clamped.x, get_cell_center_abs(foot_cell.x));
+        clamped.x = std::max(clamped.x, axis_limit);
     } else if (move_y > 0) {
-        clamped.y = std::min(clamped.y, get_cell_center_abs(foot_cell.y));
+        clamped.y = std::min(clamped.y, axis_limit);
     } else if (move_y < 0) {
-        clamped.y = std::max(clamped.y, get_cell_center_abs(foot_cell.y));
+        clamped.y = std::max(clamped.y, axis_limit);
     }
     return clamped;
 }
@@ -296,7 +564,8 @@ Dictionary find_overlap_blocked_cell(
     result["cell"] = Vector2i();
     for (int32_t index = 0; index < candidates.size(); ++index) {
         const Vector2i blocked_cell = candidates[index];
-        if (!is_transition_blocked_for_player(ctx, player_id, foot_cell.x, foot_cell.y, blocked_cell.x, blocked_cell.y)) {
+        if (!is_transition_blocked_for_player_at_pos(
+                ctx, player_id, foot_cell.x, foot_cell.y, blocked_cell.x, blocked_cell.y, abs_pos.x, abs_pos.y)) {
             continue;
         }
         if (!is_overlapping_blocked_cell(abs_pos, Vec2i{blocked_cell.x, blocked_cell.y})) {
@@ -355,13 +624,14 @@ Dictionary try_move_along_axis(
     int32_t move_x,
     int32_t move_y,
     int32_t step_units,
-    int32_t total_units
+    int32_t /*total_units*/
 ) {
     const Vec2i abs_pos = get_abs_pos(player);
     const Vec2i foot_cell = get_foot_cell(player);
     const Vec2i target_cell{foot_cell.x + move_x, foot_cell.y + move_y};
-    const bool direct_target_blocked = is_transition_blocked_for_player(ctx, player_id, foot_cell.x, foot_cell.y, target_cell.x, target_cell.y);
     const Vec2i tentative{abs_pos.x + (move_x * step_units), abs_pos.y + (move_y * step_units)};
+    const bool direct_target_blocked = is_transition_blocked_for_player_at_pos(
+        ctx, player_id, foot_cell.x, foot_cell.y, target_cell.x, target_cell.y, tentative.x, tentative.y);
 
     Dictionary result;
     result["blocked"] = false;
@@ -369,7 +639,11 @@ Dictionary try_move_along_axis(
     result["abs_pos"] = Vector2i(tentative.x, tentative.y);
 
     if (direct_target_blocked) {
-        const Vec2i clamped = clamp_abs_to_blocked_axis_limit(tentative, foot_cell, move_x, move_y);
+        const int32_t axis_limit = resolve_axis_blocking_limit(
+            ctx, player_id, target_cell.x, target_cell.y,
+            abs_pos.x, abs_pos.y, tentative.x, tentative.y, move_x, move_y
+        );
+        const Vec2i clamped = clamp_abs_to_axis_limit(tentative, axis_limit, move_x, move_y);
         result["abs_pos"] = Vector2i(clamped.x, clamped.y);
         result["blocked"] = clamped.x == abs_pos.x && clamped.y == abs_pos.y;
         return result;
@@ -400,12 +674,6 @@ Dictionary try_move_along_axis(
         return result;
     }
     return result;
-}
-
-bool is_player_overlapping_bubble(const PlayerRecord &player, const BubbleRecord &bubble) {
-    const Vec2i player_abs = get_abs_pos(player);
-    return std::abs(player_abs.x - get_cell_center_abs(bubble.cell_x)) < CELL_UNITS
-        && std::abs(player_abs.y - get_cell_center_abs(bubble.cell_y)) < CELL_UNITS;
 }
 
 bool read_i32(const PackedByteArray &buffer, int32_t &cursor, int32_t &value) {
@@ -461,11 +729,13 @@ bool decode_binary_input(
     const PackedByteArray &input_blob,
     PackedInt32Array &players,
     PackedInt32Array &bubbles,
-    PackedInt32Array &ignore_values,
+    PackedInt32Array &phase_values,
     PackedInt32Array &blocked_grid,
     int32_t &movement_substep_units,
     int32_t &turn_snap_window_units,
-    int32_t &pass_absorb_window_units
+    int32_t &pass_absorb_window_units,
+    int32_t &bubble_overlap_center_mode,
+    int32_t &bubble_phase_init_mode
 ) {
     int32_t cursor = 0;
     int32_t magic = 0;
@@ -480,9 +750,11 @@ bool decode_binary_input(
         !read_i32(input_blob, cursor, movement_substep_units)
         || !read_i32(input_blob, cursor, turn_snap_window_units)
         || !read_i32(input_blob, cursor, pass_absorb_window_units)
+        || !read_i32(input_blob, cursor, bubble_overlap_center_mode)
+        || !read_i32(input_blob, cursor, bubble_phase_init_mode)
         || !read_i32_array(input_blob, cursor, players)
         || !read_i32_array(input_blob, cursor, bubbles)
-        || !read_i32_array(input_blob, cursor, ignore_values)
+        || !read_i32_array(input_blob, cursor, phase_values)
         || !read_i32_array(input_blob, cursor, blocked_grid)
     ) {
         return false;
@@ -499,11 +771,13 @@ void QQTNativeMovementKernel::_bind_methods() {
             "step_players_packed",
             "players",
             "bubbles",
-            "ignore_values",
+            "phase_values",
             "blocked_grid",
             "movement_substep_units",
             "turn_snap_window_units",
-            "pass_absorb_window_units"
+            "pass_absorb_window_units",
+            "bubble_overlap_center_mode",
+            "bubble_phase_init_mode"
         ),
         &QQTNativeMovementKernel::step_players_packed
     );
@@ -516,17 +790,19 @@ String QQTNativeMovementKernel::get_kernel_version() const {
 PackedByteArray QQTNativeMovementKernel::step_players_packed(
     const PackedInt32Array &players,
     const PackedInt32Array &bubbles,
-    const PackedInt32Array &ignore_values,
+    const PackedInt32Array &phase_values,
     const PackedInt32Array &blocked_grid,
     int32_t movement_substep_units,
     int32_t turn_snap_window_units,
-    int32_t pass_absorb_window_units
+    int32_t pass_absorb_window_units,
+    int32_t bubble_overlap_center_mode,
+    int32_t bubble_phase_init_mode
 ) const {
     PackedByteArray input_blob;
-    const int32_t total_i32_count = 5
+    const int32_t total_i32_count = 7
         + 1 + players.size()
         + 1 + bubbles.size()
-        + 1 + ignore_values.size()
+        + 1 + phase_values.size()
         + 1 + blocked_grid.size();
     input_blob.resize(total_i32_count * 4);
     input_blob.clear();
@@ -535,9 +811,11 @@ PackedByteArray QQTNativeMovementKernel::step_players_packed(
     append_i32(input_blob, movement_substep_units);
     append_i32(input_blob, turn_snap_window_units);
     append_i32(input_blob, pass_absorb_window_units);
+    append_i32(input_blob, bubble_overlap_center_mode);
+    append_i32(input_blob, bubble_phase_init_mode);
     append_i32_array(input_blob, players);
     append_i32_array(input_blob, bubbles);
-    append_i32_array(input_blob, ignore_values);
+    append_i32_array(input_blob, phase_values);
     append_i32_array(input_blob, blocked_grid);
     return step_players(input_blob);
 }
@@ -550,56 +828,29 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
 
     PackedInt32Array players;
     PackedInt32Array bubbles;
-    PackedInt32Array ignore_values;
+    PackedInt32Array phase_values;
     PackedInt32Array blocked_grid;
     int32_t movement_substep_units = 0;
     int32_t turn_snap_window_units = DEFAULT_TURN_SNAP_WINDOW_UNITS;
     int32_t pass_absorb_window_units = DEFAULT_PASS_ABSORB_WINDOW_UNITS;
+    int32_t bubble_overlap_center_mode = 0;
+    int32_t bubble_phase_init_mode = 0;
     if (!decode_binary_input(
         input_blob,
         players,
         bubbles,
-        ignore_values,
+        phase_values,
         blocked_grid,
         movement_substep_units,
         turn_snap_window_units,
-        pass_absorb_window_units
+        pass_absorb_window_units,
+        bubble_overlap_center_mode,
+        bubble_phase_init_mode
     )) {
-        const Variant input_variant = UtilityFunctions::bytes_to_var(input_blob);
-        if (input_variant.get_type() != Variant::DICTIONARY) {
-            return UtilityFunctions::var_to_bytes(result);
-        }
-
-        const Dictionary payload = input_variant;
-        if (static_cast<int64_t>(payload.get("version", 0)) != WIRE_VERSION) {
-            return UtilityFunctions::var_to_bytes(result);
-        }
-        const Variant player_variant = payload.get("player_records", PackedInt32Array());
-        const Variant bubble_variant = payload.get("bubble_records", PackedInt32Array());
-        const Variant ignore_variant = payload.get("bubble_ignore_values", PackedInt32Array());
-        const Variant blocked_variant = payload.get("blocked_grid_records", PackedInt32Array());
-        const Variant tuning_variant = payload.get("tuning", Dictionary());
-        if (
-            player_variant.get_type() != Variant::PACKED_INT32_ARRAY
-            || bubble_variant.get_type() != Variant::PACKED_INT32_ARRAY
-            || ignore_variant.get_type() != Variant::PACKED_INT32_ARRAY
-            || blocked_variant.get_type() != Variant::PACKED_INT32_ARRAY
-            || tuning_variant.get_type() != Variant::DICTIONARY
-        ) {
-            return UtilityFunctions::var_to_bytes(result);
-        }
-
-        players = player_variant;
-        bubbles = bubble_variant;
-        ignore_values = ignore_variant;
-        blocked_grid = blocked_variant;
-        const Dictionary tuning = tuning_variant;
-        movement_substep_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("movement_substep_units", 0)));
-        turn_snap_window_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("turn_snap_window_units", DEFAULT_TURN_SNAP_WINDOW_UNITS)));
-        pass_absorb_window_units = static_cast<int32_t>(static_cast<int64_t>(tuning.get("pass_absorb_window_units", DEFAULT_PASS_ABSORB_WINDOW_UNITS)));
+        return UtilityFunctions::var_to_bytes(result);
     }
-    const int32_t stride = 16;
-    if (players.size() <= 0 || (players.size() % stride) != 0) {
+    const int32_t player_stride = 16;
+    if (players.size() <= 0 || (players.size() % player_stride) != 0) {
         return UtilityFunctions::var_to_bytes(result);
     }
 
@@ -607,27 +858,40 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     ctx.movement_substep_units = movement_substep_units;
     ctx.turn_snap_window_units = turn_snap_window_units;
     ctx.pass_absorb_window_units = pass_absorb_window_units;
+    ctx.bubble_overlap_center_mode = bubble_overlap_center_mode;
+    ctx.bubble_phase_init_mode = bubble_phase_init_mode;
     if (ctx.movement_substep_units <= 0) {
         return UtilityFunctions::var_to_bytes(result);
     }
 
-    ctx.bubble_ignore_values.resize(static_cast<size_t>(ignore_values.size()));
-    for (int32_t index = 0; index < ignore_values.size(); ++index) {
-        ctx.bubble_ignore_values[static_cast<size_t>(index)] = ignore_values[index];
+    if ((phase_values.size() % PHASE_FIELDS_PER_ENTRY) != 0) {
+        return UtilityFunctions::var_to_bytes(result);
+    }
+    const int32_t phase_count_total = phase_values.size() / PHASE_FIELDS_PER_ENTRY;
+    ctx.phase_table.reserve(static_cast<size_t>(phase_count_total));
+    for (int32_t i = 0; i < phase_values.size(); i += PHASE_FIELDS_PER_ENTRY) {
+        PhaseRecord phase;
+        phase.player_id = phase_values[i];
+        phase.phase_x = phase_values[i + 1];
+        phase.sign_x = phase_values[i + 2];
+        phase.phase_y = phase_values[i + 3];
+        phase.sign_y = phase_values[i + 4];
+        ctx.phase_table.push_back(phase);
     }
 
-    if ((bubbles.size() % 6) != 0 || (blocked_grid.size() % 5) != 0) {
+    if ((bubbles.size() % BUBBLE_RECORD_STRIDE) != 0 || (blocked_grid.size() % 5) != 0) {
         return UtilityFunctions::var_to_bytes(result);
     }
 
-    for (int32_t index = 0; index < bubbles.size(); index += 6) {
+    for (int32_t index = 0; index < bubbles.size(); index += BUBBLE_RECORD_STRIDE) {
         BubbleRecord bubble;
         bubble.bubble_id = bubbles[index];
         bubble.alive = bubbles[index + 1];
         bubble.cell_x = bubbles[index + 2];
         bubble.cell_y = bubbles[index + 3];
-        bubble.ignore_count = bubbles[index + 4];
-        bubble.ignore_values_offset = bubbles[index + 5];
+        bubble.footprint_cells = std::max(1, bubbles[index + 4]);
+        bubble.phase_count = bubbles[index + 5];
+        bubble.phase_values_offset = bubbles[index + 6];
         ctx.bubbles_by_id[bubble.bubble_id] = bubble;
     }
 
@@ -659,9 +923,9 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     Array updates;
     Array blocked_events;
     Array cell_changes;
-    Array bubble_ignore_removals;
+    Array bubble_phase_updates;
     const int32_t *values = players.ptr();
-    for (int32_t i = 0; i < players.size(); i += stride) {
+    for (int32_t i = 0; i < players.size(); i += player_stride) {
         PlayerRecord player;
         player.player_id = values[i];
         player.player_slot = values[i + 1];
@@ -712,16 +976,30 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
                 const int32_t step_units = std::min(ctx.movement_substep_units, units_to_consume);
                 const Vec2i foot_cell = get_foot_cell(player);
                 const Vec2i target_cell{foot_cell.x + player.command_move_x, foot_cell.y + player.command_move_y};
-                const bool direct_target_blocked = is_transition_blocked_for_player(
+                const Vec2i current_abs = get_abs_pos(player);
+                const Vec2i tentative_abs{
+                    current_abs.x + (player.command_move_x * step_units),
+                    current_abs.y + (player.command_move_y * step_units)
+                };
+                const bool direct_target_blocked = is_transition_blocked_for_player_at_pos(
                     ctx,
                     player.player_id,
                     foot_cell.x,
                     foot_cell.y,
                     target_cell.x,
-                    target_cell.y
+                    target_cell.y,
+                    tentative_abs.x,
+                    tentative_abs.y
                 );
                 const int32_t rail = get_player_rail_constraint(ctx, player.player_id, foot_cell.x, foot_cell.y);
-                if (!direct_target_blocked && !try_apply_turn_snap(
+                // 撞墙也要判轨道门控：rail 要求 perpendicular center 但不满足 → turn_only（玩家不动）。
+                if (direct_target_blocked) {
+                    if (turn_snap_would_fail(player, rail, player.command_move_x, player.command_move_y, ctx.turn_snap_window_units)) {
+                        turn_only = true;
+                        player.move_remainder_units = 0;
+                        break;
+                    }
+                } else if (!try_apply_turn_snap(
                     player,
                     foot_cell,
                     rail,
@@ -785,6 +1063,9 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
             blocked_events.append(blocked_event);
         }
 
+        // Phase advance：玩家移动后按当前位置对每个泡泡的 phase 单调降级。
+        // 遍历 bubble_id 升序（与 GD 端 advancer 顺序一致，保证确定性）。
+        const Vec2i player_abs = get_abs_pos(player);
         std::vector<int32_t> bubble_ids;
         bubble_ids.reserve(ctx.bubbles_by_id.size());
         for (const auto &entry : ctx.bubbles_by_id) {
@@ -793,16 +1074,68 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         std::sort(bubble_ids.begin(), bubble_ids.end());
         for (const int32_t bubble_id : bubble_ids) {
             const BubbleRecord &bubble = ctx.bubbles_by_id[bubble_id];
-            if (bubble.alive == 0 || !bubble_has_ignore(ctx, bubble, player.player_id)) {
+            if (bubble.alive == 0) {
                 continue;
             }
-            if (is_player_overlapping_bubble(player, bubble)) {
+            const Vec2i center = resolve_bubble_reference_center(ctx, bubble, player_abs);
+            const int32_t d_x = player_abs.x - center.x;
+            const int32_t d_y = player_abs.y - center.y;
+
+            const PhaseRecord *existing = find_phase(ctx, bubble, player.player_id);
+            PhaseRecord new_phase;
+            bool is_new_entry = false;
+            if (existing == nullptr) {
+                if (ctx.bubble_phase_init_mode != 1) {
+                    continue;
+                }
+                if (std::abs(d_x) >= CELL_UNITS || std::abs(d_y) >= CELL_UNITS) {
+                    continue;
+                }
+                new_phase.player_id = player.player_id;
+                is_new_entry = true;
+            } else {
+                new_phase = *existing;
+            }
+
+            // 单调推进。
+            const int32_t abs_dx = std::abs(d_x);
+            const int32_t abs_dy = std::abs(d_y);
+            int32_t target_x = PHASE_A;
+            if (abs_dx >= CELL_UNITS) target_x = PHASE_C;
+            else if (abs_dx >= HALF_CELL_UNITS) target_x = PHASE_B;
+            int32_t target_y = PHASE_A;
+            if (abs_dy >= CELL_UNITS) target_y = PHASE_C;
+            else if (abs_dy >= HALF_CELL_UNITS) target_y = PHASE_B;
+
+            bool changed = is_new_entry;
+            if (target_x > new_phase.phase_x) {
+                if (new_phase.phase_x == PHASE_A) {
+                    new_phase.sign_x = sign_of(d_x);
+                }
+                new_phase.phase_x = target_x;
+                changed = true;
+            }
+            if (target_y > new_phase.phase_y) {
+                if (new_phase.phase_y == PHASE_A) {
+                    new_phase.sign_y = sign_of(d_y);
+                }
+                new_phase.phase_y = target_y;
+                changed = true;
+            }
+
+            if (!changed) {
                 continue;
             }
-            Dictionary ignore_removal;
-            ignore_removal["bubble_id"] = bubble_id;
-            ignore_removal["player_id"] = player.player_id;
-            bubble_ignore_removals.append(ignore_removal);
+
+            Dictionary update;
+            update["bubble_id"] = bubble_id;
+            update["player_id"] = player.player_id;
+            update["phase_x"] = new_phase.phase_x;
+            update["sign_x"] = new_phase.sign_x;
+            update["phase_y"] = new_phase.phase_y;
+            update["sign_y"] = new_phase.sign_y;
+            update["removed"] = false;
+            bubble_phase_updates.append(update);
         }
 
         Dictionary player_update;
@@ -822,8 +1155,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
     result["player_updates"] = updates;
     result["blocked_events"] = blocked_events;
     result["cell_changes"] = cell_changes;
-    result["bubble_ignore_removals"] = bubble_ignore_removals;
+    result["bubble_phase_updates"] = bubble_phase_updates;
     result["version"] = WIRE_VERSION;
     return UtilityFunctions::var_to_bytes(result);
 }
-

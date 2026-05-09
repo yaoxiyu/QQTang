@@ -30,7 +30,8 @@ const SEGMENT_FRAME_BASES := {
 	"type2_cell": "res://assets/animation/explosions/normal/segments/type2_cell",
 }
 const SEGMENT_ANIMATION_NAME := "default"
-const SEGMENT_ANIMATION_FPS := 14.0
+const EXPLOSION_VISUAL_DURATION_SEC := 3.0
+const EXPLOSION_VISUAL_LOOP_COUNT := 3
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var covered_cells: Array[Vector2i] = []
@@ -71,7 +72,11 @@ func _rebuild_cells() -> void:
 		return
 
 	var style := BubbleFxRegistryScript.get_explosion_style(bubble_style_id, bubble_color)
-	lifetime = max(float(style.get("lifetime", lifetime)), _max_segment_lifetime())
+	lifetime = max(
+		float(style.get("lifetime", lifetime)),
+		_max_segment_lifetime(),
+		EXPLOSION_VISUAL_DURATION_SEC
+	)
 	var center_cell := _resolve_center_cell()
 
 	for cell in covered_cells:
@@ -152,8 +157,6 @@ func _get_segment_frames(segment_key: String) -> SpriteFrames:
 	frames.clear_all()
 	if not frames.has_animation(SEGMENT_ANIMATION_NAME):
 		frames.add_animation(SEGMENT_ANIMATION_NAME)
-	frames.set_animation_loop(SEGMENT_ANIMATION_NAME, false)
-	frames.set_animation_speed(SEGMENT_ANIMATION_NAME, SEGMENT_ANIMATION_FPS)
 	var loaded_count := 0
 	for i in range(0, 32):
 		var frame_path := "%s_%02d.png" % [base_path, i]
@@ -167,6 +170,10 @@ func _get_segment_frames(segment_key: String) -> SpriteFrames:
 	if loaded_count <= 0:
 		_segment_frames_cache[segment_key] = null
 		return null
+	# 目标：3 秒内循环 3 次。每段按自身帧数计算 fps，保证循环次数精确。
+	var target_fps := (float(loaded_count) * float(EXPLOSION_VISUAL_LOOP_COUNT)) / EXPLOSION_VISUAL_DURATION_SEC
+	frames.set_animation_loop(SEGMENT_ANIMATION_NAME, true)
+	frames.set_animation_speed(SEGMENT_ANIMATION_NAME, target_fps)
 	_segment_frames_cache[segment_key] = frames
 	return frames
 
@@ -211,7 +218,7 @@ func _max_segment_lifetime() -> float:
 		if frames == null:
 			continue
 		max_frames = maxi(max_frames, frames.get_frame_count(SEGMENT_ANIMATION_NAME))
-	return float(max_frames) / SEGMENT_ANIMATION_FPS
+	return EXPLOSION_VISUAL_DURATION_SEC
 
 
 func _build_segment_modulate(segment_type: String, style: Dictionary) -> Color:

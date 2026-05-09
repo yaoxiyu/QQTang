@@ -63,8 +63,11 @@ var chain_triggered: bool = false
 # 遥控爆炸组ID（用于远程引爆）
 var remote_group_id: int = 0
 
-# 当前允许与该泡泡重叠并穿出的玩家ID列表
-var ignore_player_ids: Array[int] = []
+# 双轴穿越阶段：每个玩家相对该泡泡的 (phase_x, phase_y) 状态机。
+# 元素类型为 BubblePassPhase（res://gameplay/simulation/entities/bubble_pass_phase.gd）。
+# 字段使用弱类型 Array 以避免全局 class_name 解析时序耦合；
+# 所有写入必须经由 BubblePassPhaseHelper 以保证 player_id 升序。
+var pass_phases: Array = []
 
 
 func footprint_size() -> int:

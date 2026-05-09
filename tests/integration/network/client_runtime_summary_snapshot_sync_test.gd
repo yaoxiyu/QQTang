@@ -73,7 +73,7 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 			"pierce": false,
 			"chain_triggered": false,
 			"remote_group_id": 0,
-			"ignore_player_ids": []
+			"pass_phases": PackedInt32Array()
 		}],
 		"items": []
 	}
@@ -233,7 +233,7 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 			"pierce": false,
 			"chain_triggered": false,
 			"remote_group_id": 0,
-			"ignore_player_ids": []
+			"pass_phases": PackedInt32Array()
 		}],
 		"items": []
 	})
@@ -260,7 +260,7 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 			"pierce": false,
 			"chain_triggered": false,
 			"remote_group_id": 0,
-			"ignore_player_ids": []
+			"pass_phases": PackedInt32Array()
 		}],
 		"items": []
 	})
@@ -316,7 +316,7 @@ func _test_dedicated_server_accepts_monotonic_sideband_restore() -> bool:
 			"pierce": false,
 			"chain_triggered": false,
 			"remote_group_id": 0,
-			"ignore_player_ids": []
+			"pass_phases": PackedInt32Array()
 		}],
 		"items": []
 	})

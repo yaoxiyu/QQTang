@@ -130,6 +130,15 @@ func _execute_player(ctx: SimContext, trapped_player: PlayerState, finisher_play
 	)
 	if not ctx.scratch.players_to_execute.has(trapped_player.entity_id):
 		ctx.scratch.players_to_execute.append(trapped_player.entity_id)
+	var foot_cell := PlayerLocator.get_foot_cell(trapped_player)
+	var executed_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_TRAP_EXECUTED)
+	executed_event.payload = {
+		"player_id": trapped_player.entity_id,
+		"finisher_player_id": finisher_player.entity_id,
+		"cell_x": foot_cell.x,
+		"cell_y": foot_cell.y,
+	}
+	ctx.events.push(executed_event)
 
 
 func _tick_trapped_timeout(ctx: SimContext, trapped_player: PlayerState, touched: bool) -> void:

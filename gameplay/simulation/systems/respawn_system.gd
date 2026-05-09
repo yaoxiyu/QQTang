@@ -2,6 +2,7 @@ class_name RespawnSystem
 extends ISimSystem
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
 
 
 func get_name() -> StringName:
@@ -42,6 +43,10 @@ func _revive_player(ctx: SimContext, player: PlayerState) -> void:
 	player.invincible_ticks = _get_respawn_invincible_ticks(ctx)
 	player.bomb_available = player.bomb_capacity
 	ctx.state.players.update_player(player)
+
+	# 清理所有活着泡泡上残留的 phase 条目，避免幽灵记录污染 checksum。
+	# BubblePhaseAdvancer 会在玩家移动时按当前位置按需重建条目。
+	_clear_player_bubble_phases(ctx, player.entity_id)
 
 	_add_player_to_active_ids(ctx, player.entity_id)
 	_add_player_to_live_indexes(ctx, player.entity_id, PlayerLocator.get_foot_cell(player))
@@ -114,3 +119,12 @@ func _get_rule_flags(ctx: SimContext) -> Dictionary:
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}
+
+
+func _clear_player_bubble_phases(ctx: SimContext, player_id: int) -> void:
+	for bubble_id in ctx.state.bubbles.active_ids:
+		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
+		if bubble == null or not bubble.alive:
+			continue
+		if BubblePassPhaseHelper.remove_phase(bubble, player_id):
+			ctx.state.bubbles.update_bubble(bubble)

@@ -28,6 +28,9 @@ var _trigger_texture: Texture2D = null
 var _stand_frames: Array[Texture2D] = []
 var _die_frames: Array[Texture2D] = []
 var _trigger_frames: Array[Texture2D] = []
+var _stand_sprite_frames: SpriteFrames = null
+var _die_sprite_frames: SpriteFrames = null
+var _trigger_sprite_frames: SpriteFrames = null
 var _is_dying: bool = false
 
 
@@ -39,7 +42,10 @@ func configure(
 	trigger_texture: Texture2D = null,
 	stand_frames: Array[Texture2D] = [],
 	die_frames: Array[Texture2D] = [],
-	trigger_frames: Array[Texture2D] = []
+	trigger_frames: Array[Texture2D] = [],
+	stand_sprite_frames: SpriteFrames = null,
+	die_sprite_frames: SpriteFrames = null,
+	trigger_sprite_frames: SpriteFrames = null
 ) -> void:
 	cell = entry.get("cell", Vector2i.ZERO) as Vector2i
 	footprint = entry.get("footprint", Vector2i.ONE) as Vector2i
@@ -60,6 +66,9 @@ func configure(
 	_stand_frames = stand_frames.duplicate()
 	_die_frames = die_frames.duplicate()
 	_trigger_frames = trigger_frames.duplicate()
+	_stand_sprite_frames = stand_sprite_frames
+	_die_sprite_frames = die_sprite_frames
+	_trigger_sprite_frames = trigger_sprite_frames
 	_ensure_sprite()
 	_play_stand()
 
@@ -69,7 +78,10 @@ func play_die_and_dispose() -> void:
 		return
 	_is_dying = true
 	var die_duration: float = die_seconds
-	if _die_frames.size() > 0:
+	if _die_sprite_frames != null:
+		_apply_animated_sprite_frames(_die_sprite_frames)
+		die_duration = max(float(_die_sprite_frames.get_frame_count("active")) / die_fps, 0.01)
+	elif _die_frames.size() > 0:
 		_apply_animated_frames(_die_frames, die_fps, false)
 		die_duration = max(float(_die_frames.size()) / die_fps, 0.01)
 	elif _die_texture != null:
@@ -82,11 +94,15 @@ func play_die_and_dispose() -> void:
 func play_trigger_animation() -> void:
 	if _is_dying:
 		return
-	if _trigger_frames.size() <= 0 and _trigger_texture == null:
+	if _trigger_sprite_frames == null and _trigger_frames.size() <= 0 and _trigger_texture == null:
 		return
-	var trigger_duration: float = max(float(_trigger_frames.size()) / trigger_fps, 0.01)
-	if _trigger_frames.size() > 0:
+	var trigger_duration: float = 0.01
+	if _trigger_sprite_frames != null:
+		_apply_animated_sprite_frames(_trigger_sprite_frames)
+		trigger_duration = max(float(_trigger_sprite_frames.get_frame_count("active")) / trigger_fps, 0.01)
+	elif _trigger_frames.size() > 0:
 		_apply_animated_frames(_trigger_frames, trigger_fps, false)
+		trigger_duration = max(float(_trigger_frames.size()) / trigger_fps, 0.01)
 	elif _trigger_texture != null:
 		_apply_texture(_trigger_texture)
 	var tween := create_tween()
@@ -122,6 +138,7 @@ func debug_dump_layout() -> Dictionary:
 		"scale": current_scale,
 		"position": position,
 		"has_die_texture": _die_texture != null or _die_frames.size() > 0,
+		"die_frame_count": _die_frames.size(),
 		"texture_size": current_size,
 		"edge_bleed_px": edge_bleed_px,
 	}
@@ -181,10 +198,33 @@ func _apply_animated_frames(frames: Array[Texture2D], fps: float, loop_enabled: 
 	_animated_sprite.play("active")
 
 
+func _apply_animated_sprite_frames(sprite_frames: SpriteFrames) -> void:
+	if sprite_frames == null:
+		return
+	if not sprite_frames.has_animation("active"):
+		return
+	if sprite_frames.get_frame_count("active") <= 0:
+		return
+	var first_frame := sprite_frames.get_frame_texture("active", 0)
+	if first_frame == null:
+		return
+	_ensure_sprite()
+	_sprite.visible = false
+	_animated_sprite.sprite_frames = sprite_frames
+	_animated_sprite.animation = "active"
+	_animated_sprite.frame = 0
+	_animated_sprite.scale = _resolve_texture_scale(first_frame)
+	_animated_sprite.visible = true
+	_apply_anchor(first_frame, _animated_sprite.scale)
+	_animated_sprite.play("active")
+
+
 func _play_stand() -> void:
 	if _is_dying:
 		return
-	if _stand_frames.size() > 0:
+	if _stand_sprite_frames != null:
+		_apply_animated_sprite_frames(_stand_sprite_frames)
+	elif _stand_frames.size() > 0:
 		_apply_animated_frames(_stand_frames, stand_fps, true)
 	else:
 		_apply_texture(_stand_texture)

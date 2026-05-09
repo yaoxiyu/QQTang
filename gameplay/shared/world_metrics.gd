@@ -4,6 +4,7 @@ extends RefCounted
 const CELL_UNITS : int = 1000
 const HALF_CELL_UNITS : int = CELL_UNITS / 2
 const QUARTER_CELL_UNITS : int = CELL_UNITS / 4
+const FIFTH_CELL_UNITS : int = CELL_UNITS / 5
 const SIXTH_CELL_UNITS : int = CELL_UNITS / 6
 const EIGHTH_CELL_UNITS : int = CELL_UNITS / 8
 const TENTH_CELL_UNITS : int = CELL_UNITS / 10

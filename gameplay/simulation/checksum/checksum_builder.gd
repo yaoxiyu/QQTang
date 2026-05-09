@@ -45,8 +45,15 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(bubble.power)
 		parts.append(bubble.footprint_cells)
 		parts.append(int(bubble.alive))
-		for ignored_player_id in bubble.ignore_player_ids:
-			parts.append(ignored_player_id)
+		# pass_phases 必须按 player_id 升序保存（写入路径走 BubblePassPhaseHelper.upsert）。
+		for phase in bubble.pass_phases:
+			if phase == null:
+				continue
+			parts.append(phase.player_id)
+			parts.append(phase.phase_x)
+			parts.append(phase.sign_x)
+			parts.append(phase.phase_y)
+			parts.append(phase.sign_y)
 		parts.append(-999999)
 
 	for item in _get_sorted_items(sim_world):

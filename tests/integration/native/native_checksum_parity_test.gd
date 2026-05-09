@@ -54,7 +54,15 @@ func _configure_checksum_scenario(world: SimWorld) -> void:
 	var bubble_id := world.state.bubbles.spawn_bubble(player_a.entity_id, player_a.cell_x, player_a.cell_y, 2, 12)
 	var bubble := world.state.bubbles.get_bubble(bubble_id)
 	bubble.owner_player_id = player_a.entity_id
-	bubble.ignore_player_ids = [player_a.entity_id, player_b.entity_id]
+	# 双玩家在 (A, A) 阶段——和旧的 ignore_player_ids = [a, b] 等价的初始状态。
+	var BubblePassPhaseScript := preload("res://gameplay/simulation/entities/bubble_pass_phase.gd")
+	var BubblePassPhaseHelper := preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
+	for pid in [player_a.entity_id, player_b.entity_id]:
+		var phase = BubblePassPhaseScript.new()
+		phase.player_id = pid
+		phase.phase_x = BubblePassPhaseScript.Phase.A
+		phase.phase_y = BubblePassPhaseScript.Phase.A
+		BubblePassPhaseHelper.upsert_phase(bubble, phase)
 	world.state.bubbles.update_bubble(bubble)
 
 	var item_id := world.state.items.spawn_item(2, player_a.cell_x + 1, player_a.cell_y, world.state.match_state.tick)

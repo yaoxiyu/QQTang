@@ -22,7 +22,7 @@ func test_step_players_matches_runtime_availability_contract() -> void:
 	)
 	assert_true(result.has("blocked_events"), "movement bridge result should expose blocked_events")
 	assert_true(result.has("cell_changes"), "movement bridge result should expose cell_changes")
-	assert_true(result.has("bubble_ignore_removals"), "movement bridge result should expose ignore removals")
+	assert_true(result.has("bubble_phase_updates"), "movement bridge result should expose bubble_phase_updates")
 	world.dispose()
 
 

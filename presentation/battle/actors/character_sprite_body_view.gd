@@ -178,7 +178,10 @@ func _resolve_direction_suffix(facing: int) -> String:
 
 
 func _is_moving_state(move_state: int) -> bool:
-	return move_state == 1 or move_state == 3
+	# MOVING(1)、SLIDING(3) 是真实位移；
+	# BLOCKED(2) 表示玩家按下方向键但被墙/泡泡阻挡——仍播放移动动画以表达"在朝这个方向蹬墙"。
+	# TURN_ONLY(4) 不播——它表示"不在轨道中心需要先转向"，对应纯转身姿态。
+	return move_state == 1 or move_state == 2 or move_state == 3
 
 
 func set_dynamic_color(color: Color, enabled: bool = true) -> void:

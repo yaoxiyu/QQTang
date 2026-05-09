@@ -12,6 +12,7 @@ const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pick
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const BattleAudioEventConfigScript = preload("res://presentation/battle/audio/battle_audio_event_config.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const DEBUG_TICK_LOGS := false
@@ -40,6 +41,7 @@ var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
 
 var _last_consumed_tick: int = -1
+var _local_player_entity_id: int = -1
 
 
 func _ready() -> void:
@@ -67,6 +69,9 @@ func _ready() -> void:
 	add_child(battle_event_router)
 	battle_event_router.explosion_event_routed.connect(_on_explosion_event_routed)
 	battle_event_router.cell_destroyed_event_routed.connect(_on_cell_destroyed_event_routed)
+	battle_event_router.bubble_placed_event_routed.connect(_on_bubble_placed_event_routed)
+	battle_event_router.player_revived_event_routed.connect(_on_player_revived_event_routed)
+	battle_event_router.player_trap_executed_event_routed.connect(_on_player_trap_executed_event_routed)
 	battle_event_router.item_spawned_event_routed.connect(_on_item_spawned_event_routed)
 	battle_event_router.item_picked_event_routed.connect(_on_item_picked_event_routed)
 
@@ -105,6 +110,7 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 		)
 
 	_log_explosion_events("presentation_consume", tick_id, events)
+	_play_battle_sfx_for_events(events)
 	battle_event_router.route_events(events)
 	_grid_cache = state_to_view_mapper.build_grid_cache(world)
 	if map_view != null and map_view.has_method("apply_grid_cache"):
@@ -146,6 +152,12 @@ func dispose() -> void:
 			battle_event_router.explosion_event_routed.disconnect(_on_explosion_event_routed)
 		if battle_event_router.cell_destroyed_event_routed.is_connected(_on_cell_destroyed_event_routed):
 			battle_event_router.cell_destroyed_event_routed.disconnect(_on_cell_destroyed_event_routed)
+		if battle_event_router.bubble_placed_event_routed.is_connected(_on_bubble_placed_event_routed):
+			battle_event_router.bubble_placed_event_routed.disconnect(_on_bubble_placed_event_routed)
+		if battle_event_router.player_revived_event_routed.is_connected(_on_player_revived_event_routed):
+			battle_event_router.player_revived_event_routed.disconnect(_on_player_revived_event_routed)
+		if battle_event_router.player_trap_executed_event_routed.is_connected(_on_player_trap_executed_event_routed):
+			battle_event_router.player_trap_executed_event_routed.disconnect(_on_player_trap_executed_event_routed)
 		if battle_event_router.item_spawned_event_routed.is_connected(_on_item_spawned_event_routed):
 			battle_event_router.item_spawned_event_routed.disconnect(_on_item_spawned_event_routed)
 		if battle_event_router.item_picked_event_routed.is_connected(_on_item_picked_event_routed):
@@ -192,9 +204,27 @@ func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> voi
 
 
 func set_local_player_entity_id(entity_id: int) -> void:
+	_local_player_entity_id = entity_id
 	if state_to_view_mapper == null:
 		return
 	state_to_view_mapper.set_local_player_entity_id(entity_id)
+
+
+func _play_battle_sfx_for_events(events: Array) -> void:
+	var explosion_count := 0
+	for event in events:
+		if event == null:
+			continue
+		match int(event.event_type):
+			SimEventScript.EventType.BUBBLE_EXPLODED:
+				explosion_count += 1
+			_:
+				pass
+	if explosion_count > 0:
+		_play_sfx(
+			BattleAudioEventConfigScript.SFX_BUBBLE_EXPLODE,
+			BattleAudioEventConfigScript.explosion_volume_boost_db(explosion_count)
+		)
 
 
 func _log_actor_sync_anomalies(world: SimWorld, tick_id: int, events: Array) -> void:
@@ -391,6 +421,8 @@ func _on_item_spawned_event_routed(event: SimEvent) -> void:
 func _on_item_picked_event_routed(event: SimEvent) -> void:
 	if event == null or fx_layer == null:
 		return
+	if int(event.payload.get("player_id", -1)) == _local_player_entity_id:
+		_play_sfx(BattleAudioEventConfigScript.SFX_ITEM_PICK)
 	var fx = ItemPickupFxPlayerScript.new()
 	fx.configure(
 		_to_world_center(Vector2i(
@@ -401,6 +433,32 @@ func _on_item_picked_event_routed(event: SimEvent) -> void:
 		int(event.payload.get("item_type", 0))
 	)
 	fx_layer.add_child(fx)
+
+
+func _on_bubble_placed_event_routed(event: SimEvent) -> void:
+	if event == null:
+		return
+	if int(event.payload.get("owner_player_id", -1)) != _local_player_entity_id:
+		return
+	_play_sfx(BattleAudioEventConfigScript.SFX_BUBBLE_PLACE)
+
+
+func _on_player_revived_event_routed(event: SimEvent) -> void:
+	if event == null:
+		return
+	_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_RESCUED)
+
+
+func _on_player_trap_executed_event_routed(event: SimEvent) -> void:
+	if event == null:
+		return
+	_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_EXECUTED)
+
+
+func _play_sfx(audio_id: String, volume_offset_db: float = 0.0) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("play_sfx"):
+		audio_manager.call("play_sfx", audio_id, volume_offset_db)
 
 
 func _to_world_center(cell: Vector2i) -> Vector2:

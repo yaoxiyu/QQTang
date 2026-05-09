@@ -7,7 +7,7 @@ func test_pack_and_unpack_preserve_snapshot_payload() -> void:
 	snapshot.tick_id = 12
 	snapshot.rng_state = 9988
 	snapshot.players = [{"entity_id": 1, "cell_x": 3, "cell_y": 4, "alive": true}]
-	snapshot.bubbles = [{"entity_id": 5, "cell_x": 7, "cell_y": 8, "ignore_player_ids": [1]}]
+	snapshot.bubbles = [{"entity_id": 5, "cell_x": 7, "cell_y": 8, "pass_phases": PackedInt32Array([1, 0, 0, 0, 0])}]
 	snapshot.items = [{"entity_id": 9, "item_type": 2, "cell_x": 6, "cell_y": 1}]
 	snapshot.walls = [{"cell_x": 0, "cell_y": 0, "tile_type": 1, "tile_flags": 4, "theme_variant": 0}]
 	snapshot.match_state = {"phase": 1, "winner_team_id": -1, "winner_player_id": -1, "ended_reason": 0, "remaining_ticks": 90}

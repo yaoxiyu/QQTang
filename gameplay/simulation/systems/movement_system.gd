@@ -1,31 +1,26 @@
 # 角色：
-# 移动系统，处理玩家移动逻辑
+# 移动系统，处理玩家移动逻辑。
+# **只走 native kernel** —— GD 端只负责把 SimContext 喂给 native，并把回写应用到 SimState。
+# native 不可用时本帧不动玩家（push_error 提示，但不崩溃）。
 #
 # 读写边界：
-# - 读：玩家命令、格子阻挡查询
-# - 写：PlayerState 位置、SimIndexes.players_by_cell
+# - 读：玩家命令、SimQueries（仅在测试 / 表现层使用）
+# - 写：PlayerState 位置、SimIndexes.players_by_cell、BubbleState.pass_phases
 #
 # 禁止事项：
-# - 直接读取 Node2D.position
-# - 用 physics body 做规则真相
-# - 在这里放泡泡
+# - 不在这里写运动规则；规则在 native_movement_kernel.cpp 内
+# - 不直接读取 Node2D.position
+# - 不在这里放泡泡
 
 class_name MovementSystem
 extends ISimSystem
 
-const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_math.gd")
-const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
-const RailConstraint = preload("res://gameplay/simulation/movement/rail_constraint.gd")
-const MovementTuning = preload("res://gameplay/simulation/movement/movement_tuning.gd")
+const BubblePassPhaseScript = preload("res://gameplay/simulation/entities/bubble_pass_phase.gd")
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
-const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_feature_flags.gd")
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
 const NativeMovementBridgeScript = preload("res://gameplay/native_bridge/native_movement_bridge.gd")
 
-const DEBUG_MOVEMENT_SNAP := true
-const DEBUG_MOVEMENT_SPEED := true
-const DEBUG_MOVEMENT_SUBSTEP := true
-const DEBUG_MOVEMENT_BLOCK := true
 const DEBUG_REMOTE_ANIM_LOG := false
 
 var _native_movement_bridge: NativeMovementBridge = NativeMovementBridgeScript.new()
@@ -36,79 +31,10 @@ func get_name() -> StringName:
 
 
 func execute(ctx: SimContext) -> void:
-	if NativeFeatureFlagsScript.enable_native_movement:
-		if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_movement_kernel():
-			if NativeFeatureFlagsScript.require_native_kernels:
-				push_error("[movement_system] native movement kernel is required but unavailable")
-				return
-		else:
-			_execute_native_path(ctx)
-			return
-
-	for player_id in ctx.state.players.active_ids:
-		var player = ctx.state.players.get_player(player_id)
-		if player == null or not player.alive:
-			continue
-		if player.life_state != PlayerState.LifeState.NORMAL:
-			player.move_state = PlayerState.MoveState.IDLE
-			player.move_remainder_units = 0
-			ctx.state.players.update_player(player)
-			continue
-		if _should_preserve_authoritative_remote_state(ctx, player):
-			continue
-
-		var input := _sanitize_single_axis_input(
-			player.last_applied_command.move_x,
-			player.last_applied_command.move_y
-		)
-		var move_x := input.x
-		var move_y := input.y
-		var old_foot_cell := PlayerLocator.get_foot_cell(player)
-
-		if move_x == 0 and move_y == 0:
-			player.move_remainder_units = 0
-			player.move_state = PlayerState.MoveState.IDLE
-			ctx.state.players.update_player(player)
-			continue
-
-		player.last_non_zero_move_x = move_x
-		player.last_non_zero_move_y = move_y
-		_update_facing_from_input(player, move_x, move_y)
-
-		var move_summary := _execute_move_substeps(ctx, player_id, player, move_x, move_y)
-		var blocked_cell: Vector2i = move_summary["blocked_cell"]
-		var was_blocked := bool(move_summary["blocked"])
-		var turn_only := bool(move_summary["turn_only"])
-
-		if turn_only:
-			player.move_state = PlayerState.MoveState.TURN_ONLY
-		elif was_blocked:
-			player.move_state = PlayerState.MoveState.BLOCKED
-		else:
-			player.move_state = PlayerState.MoveState.MOVING
-
-		ctx.state.players.update_player(player)
-		_refresh_bubble_overlap_ignores(ctx, player_id)
-
-		var new_foot_cell := PlayerLocator.get_foot_cell(player)
-		_emit_cell_changed_if_needed(
-			ctx,
-			player_id,
-			old_foot_cell.x,
-			old_foot_cell.y,
-			new_foot_cell.x,
-			new_foot_cell.y
-		)
-
-		if was_blocked:
-			_emit_blocked_event(
-				ctx,
-				player_id,
-				old_foot_cell.x,
-				old_foot_cell.y,
-				blocked_cell.x,
-				blocked_cell.y
-			)
+	if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_movement_kernel():
+		push_error("[movement_system] native movement kernel unavailable; skipping movement this tick")
+		return
+	_execute_native_path(ctx)
 
 
 func _execute_native_path(ctx: SimContext) -> bool:
@@ -132,7 +58,7 @@ func _execute_native_path(ctx: SimContext) -> bool:
 		return false
 
 	_apply_native_player_updates(ctx, result.get("player_updates", []))
-	_apply_native_bubble_ignore_removals(ctx, result.get("bubble_ignore_removals", []))
+	_apply_native_bubble_phase_updates(ctx, result.get("bubble_phase_updates", []))
 	_apply_native_cell_changes(ctx, result.get("cell_changes", []))
 	_apply_native_blocked_events(ctx, result.get("blocked_events", []))
 	return true
@@ -161,19 +87,32 @@ func _apply_native_player_updates(ctx: SimContext, player_updates: Array) -> voi
 		ctx.state.players.update_player(player)
 
 
-func _apply_native_bubble_ignore_removals(ctx: SimContext, removals: Array) -> void:
-	for raw_removal in removals:
-		if not (raw_removal is Dictionary):
+func _apply_native_bubble_phase_updates(ctx: SimContext, updates: Array) -> void:
+	# Native kernel 推进 phase 的回写。
+	# 每条 update：{ bubble_id, player_id, phase_x, sign_x, phase_y, sign_y, removed }
+	# removed=true 表示玩家已与该泡泡完全无重叠且 phase 已达 (C,C)，可移除条目。
+	for raw_update in updates:
+		if not (raw_update is Dictionary):
 			continue
-		var removal: Dictionary = raw_removal
-		var bubble_id := int(removal.get("bubble_id", -1))
-		var player_id := int(removal.get("player_id", -1))
+		var update: Dictionary = raw_update
+		var bubble_id := int(update.get("bubble_id", -1))
+		var player_id := int(update.get("player_id", -1))
 		if bubble_id < 0 or player_id < 0:
 			continue
 		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
 		if bubble == null:
 			continue
-		bubble.ignore_player_ids.erase(player_id)
+		if bool(update.get("removed", false)):
+			if BubblePassPhaseHelper.remove_phase(bubble, player_id):
+				ctx.state.bubbles.update_bubble(bubble)
+			continue
+		var phase := BubblePassPhaseScript.new()
+		phase.player_id = player_id
+		phase.phase_x = int(update.get("phase_x", BubblePassPhaseScript.Phase.A))
+		phase.sign_x = int(update.get("sign_x", 0))
+		phase.phase_y = int(update.get("phase_y", BubblePassPhaseScript.Phase.A))
+		phase.sign_y = int(update.get("sign_y", 0))
+		BubblePassPhaseHelper.upsert_phase(bubble, phase)
 		ctx.state.bubbles.update_bubble(bubble)
 
 
@@ -207,6 +146,8 @@ func _apply_native_blocked_events(ctx: SimContext, blocked_events: Array) -> voi
 		)
 
 
+# 客户端预测时跳过非本机控制玩家：让权威快照覆盖他们的位置/动画，避免本端预测污染。
+# 同样的判断在 InputSystem 也有一份独立实现——两者职责不同（input vs movement），各自维护。
 func _should_preserve_authoritative_remote_state(ctx: SimContext, player: PlayerState) -> bool:
 	if ctx == null or ctx.state == null or player == null:
 		return false
@@ -229,479 +170,6 @@ func _should_preserve_authoritative_remote_state(ctx: SimContext, player: Player
 			"simulation.movement.remote_anim"
 		)
 	return preserve
-
-
-func _execute_move_substeps(
-	ctx: SimContext,
-	player_id: int,
-	player: PlayerState,
-	move_x: int,
-	move_y: int
-) -> Dictionary:
-	var blocked := false
-	var turn_only := false
-	var blocked_cell := Vector2i.ZERO
-	var max_substep_units := MovementTuning.movement_substep_units()
-	var units_per_tick := MovementTuning.movement_units_per_tick(player.speed_level)
-	var enter_remainder := player.move_remainder_units
-	var units_to_consume := enter_remainder + units_per_tick
-	var consumed_units := 0
-	var substep_count := 0
-	player.move_remainder_units = 0
-
-	_debug_speed(player_id, player.speed_level, units_per_tick, max_substep_units)
-
-	while units_to_consume > 0:
-		var step_units := mini(max_substep_units, units_to_consume)
-		substep_count += 1
-
-		var foot_cell := PlayerLocator.get_foot_cell(player)
-		var target_cell := foot_cell + Vector2i(move_x, move_y)
-		var direct_target_blocked := ctx.queries.is_transition_blocked_for_player(
-			player_id,
-			foot_cell.x,
-			foot_cell.y,
-			target_cell.x,
-			target_cell.y
-		)
-		var rail := ctx.queries.get_player_rail_constraint(player_id, foot_cell.x, foot_cell.y)
-		if not direct_target_blocked and not _try_apply_turn_snap(player, foot_cell, rail, move_x, move_y):
-			turn_only = true
-			player.move_remainder_units = 0
-			break
-
-		var move_result := _try_move_along_axis(ctx, player_id, player, move_x, move_y, step_units, max_substep_units)
-		var resolved_abs_pos: Vector2i = move_result["abs_pos"]
-		GridMotionMath.write_player_abs_pos(player, resolved_abs_pos.x, resolved_abs_pos.y)
-
-		consumed_units += step_units
-		units_to_consume -= step_units
-		if bool(move_result["blocked"]):
-			blocked = true
-			blocked_cell = move_result["blocked_cell"]
-			player.move_remainder_units = 0
-			break
-
-	_debug_substep(ctx.tick, player_id, move_x, move_y, enter_remainder, consumed_units, player.move_remainder_units, substep_count)
-	return {
-		"blocked": blocked,
-		"blocked_cell": blocked_cell,
-		"turn_only": turn_only,
-	}
-
-
-func _refresh_bubble_overlap_ignores(ctx: SimContext, player_id: int) -> void:
-	for bubble_id in ctx.state.bubbles.active_ids:
-		var bubble := ctx.state.bubbles.get_bubble(bubble_id)
-		if bubble == null or not bubble.alive:
-			continue
-		if not bubble.ignore_player_ids.has(player_id):
-			continue
-		if ctx.queries.is_player_overlapping_bubble(player_id, bubble_id):
-			continue
-		bubble.ignore_player_ids.erase(player_id)
-		ctx.state.bubbles.update_bubble(bubble)
-
-
-func _sanitize_single_axis_input(move_x: int, move_y: int) -> Vector2i:
-	move_x = clampi(move_x, -1, 1)
-	move_y = clampi(move_y, -1, 1)
-	if move_x != 0 and move_y != 0:
-		return Vector2i.ZERO
-	return Vector2i(move_x, move_y)
-
-
-func _update_facing_from_input(player: PlayerState, move_x: int, move_y: int) -> void:
-	if move_y > 0:
-		player.facing = PlayerState.FacingDir.DOWN
-	elif move_y < 0:
-		player.facing = PlayerState.FacingDir.UP
-	elif move_x > 0:
-		player.facing = PlayerState.FacingDir.RIGHT
-	elif move_x < 0:
-		player.facing = PlayerState.FacingDir.LEFT
-
-
-func _try_apply_turn_snap(
-	player: PlayerState,
-	foot_cell: Vector2i,
-	rail: int,
-	move_x: int,
-	move_y: int
-) -> bool:
-	if rail == RailConstraint.Type.CENTER_PIVOT:
-		_debug_turn_snap(player.entity_id, rail, false, "center_pivot")
-		return false
-
-	if RailConstraint.requires_center_for_vertical_turn(rail) and move_y != 0:
-		if abs(player.offset_x) > MovementTuning.turn_snap_window_units():
-			_debug_turn_snap(player.entity_id, rail, false, "vertical_window")
-			return false
-		var abs_pos := GridMotionMath.get_player_abs_pos(player)
-		GridMotionMath.write_player_abs_pos(
-			player,
-			GridMotionMath.get_cell_center_abs_x(foot_cell.x),
-			abs_pos.y
-		)
-		_debug_turn_snap(player.entity_id, rail, true, "vertical")
-
-	if RailConstraint.requires_center_for_horizontal_turn(rail) and move_x != 0:
-		if abs(player.offset_y) > MovementTuning.turn_snap_window_units():
-			_debug_turn_snap(player.entity_id, rail, false, "horizontal_window")
-			return false
-		var abs_pos := GridMotionMath.get_player_abs_pos(player)
-		GridMotionMath.write_player_abs_pos(
-			player,
-			abs_pos.x,
-			GridMotionMath.get_cell_center_abs_y(foot_cell.y)
-		)
-		_debug_turn_snap(player.entity_id, rail, true, "horizontal")
-
-	return true
-
-
-func _try_move_along_axis(
-	ctx: SimContext,
-	player_id: int,
-	player: PlayerState,
-	move_x: int,
-	move_y: int,
-	step_units: int,
-	total_units: int
-) -> Dictionary:
-	var abs_pos := GridMotionMath.get_player_abs_pos(player)
-	var foot_cell := PlayerLocator.get_foot_cell(player)
-	var target_cell := foot_cell + Vector2i(move_x, move_y)
-	var direct_target_blocked := ctx.queries.is_transition_blocked_for_player(
-		player_id,
-		foot_cell.x,
-		foot_cell.y,
-		target_cell.x,
-		target_cell.y
-	)
-	var tentative := abs_pos + Vector2i(move_x * step_units, move_y * step_units)
-	if direct_target_blocked:
-		var clamped_abs_pos := _clamp_abs_to_blocked_axis_limit(tentative, foot_cell, move_x, move_y)
-		var collision_blocked := clamped_abs_pos == abs_pos
-		_debug_block("direct", player_id, target_cell, tentative, clamped_abs_pos, collision_blocked)
-		return {
-			"abs_pos": clamped_abs_pos,
-			"blocked": collision_blocked,
-			"blocked_cell": target_cell,
-		}
-	var blocked_hit := _find_overlap_blocked_cell(ctx, player_id, tentative, foot_cell, target_cell, move_x, move_y)
-	if not bool(blocked_hit["found"]):
-		return {
-			"abs_pos": tentative,
-			"blocked": false,
-			"blocked_cell": target_cell,
-		}
-
-	var snapped_tentative := _try_apply_lane_center_snap(
-		ctx,
-		player_id,
-		abs_pos,
-		tentative,
-		foot_cell,
-		target_cell,
-		move_x,
-		move_y,
-		total_units
-	)
-	var snapped_blocked_hit := _find_overlap_blocked_cell(ctx, player_id, snapped_tentative, foot_cell, target_cell, move_x, move_y)
-	if snapped_tentative == tentative:
-		var blocked_cell: Vector2i = blocked_hit["cell"]
-		_debug_block("side_overlap", player_id, blocked_cell, tentative, abs_pos, true)
-		return {
-			"abs_pos": abs_pos,
-			"blocked": true,
-			"blocked_cell": blocked_cell,
-		}
-	if bool(snapped_blocked_hit["found"]):
-		var blocked_cell: Vector2i = snapped_blocked_hit["cell"]
-		_debug_block("side_overlap_after_snap", player_id, blocked_cell, tentative, abs_pos, true)
-		return {
-			"abs_pos": abs_pos,
-			"blocked": true,
-			"blocked_cell": blocked_cell,
-		}
-
-	if not _crosses_cell_boundary(snapped_tentative, foot_cell, move_x, move_y):
-		return {
-			"abs_pos": snapped_tentative,
-			"blocked": false,
-			"blocked_cell": target_cell,
-		}
-
-	return {
-		"abs_pos": snapped_tentative,
-		"blocked": false,
-		"blocked_cell": target_cell,
-	}
-
-
-func _try_apply_lane_center_snap(
-	ctx: SimContext,
-	player_id: int,
-	current_abs_pos: Vector2i,
-	tentative_abs_pos: Vector2i,
-	foot_cell: Vector2i,
-	target_cell: Vector2i,
-	move_x: int,
-	move_y: int,
-	total_units: int
-) -> Vector2i:
-	var snapped := tentative_abs_pos
-	var pass_window_units := MovementTuning.pass_absorb_window_units()
-	if move_x > 0:
-		var offset_y := current_abs_pos.y - GridMotionMath.get_cell_center_abs_y(foot_cell.y)
-		if offset_y == 0:
-			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
-			return snapped
-		if abs(offset_y) <= pass_window_units:
-			snapped.y = GridMotionMath.get_cell_center_abs_y(foot_cell.y)
-			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), true, total_units, pass_window_units)
-		else:
-			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), false, total_units, pass_window_units)
-	elif move_x < 0:
-		var offset_y := current_abs_pos.y - GridMotionMath.get_cell_center_abs_y(foot_cell.y)
-		if offset_y == 0:
-			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
-			return snapped
-		if abs(offset_y) <= pass_window_units:
-			snapped.y = GridMotionMath.get_cell_center_abs_y(foot_cell.y)
-			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), true, total_units, pass_window_units)
-		else:
-			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_y), false, total_units, pass_window_units)
-	elif move_y > 0:
-		var offset_x := current_abs_pos.x - GridMotionMath.get_cell_center_abs_x(foot_cell.x)
-		if offset_x == 0:
-			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
-			return snapped
-		if abs(offset_x) <= pass_window_units:
-			snapped.x = GridMotionMath.get_cell_center_abs_x(foot_cell.x)
-			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), true, total_units, pass_window_units)
-		else:
-			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), false, total_units, pass_window_units)
-	elif move_y < 0:
-		var offset_x := current_abs_pos.x - GridMotionMath.get_cell_center_abs_x(foot_cell.x)
-		if offset_x == 0:
-			_debug_snap("skip_centered", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, 0, false, total_units, pass_window_units)
-			return snapped
-		if abs(offset_x) <= pass_window_units:
-			snapped.x = GridMotionMath.get_cell_center_abs_x(foot_cell.x)
-			_debug_snap("snap", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), true, total_units, pass_window_units)
-		else:
-			_debug_snap("skip_window", player_id, foot_cell, target_cell, move_x, move_y, current_abs_pos, abs(offset_x), false, total_units, pass_window_units)
-	return snapped
-
-
-func _debug_snap(
-	stage: String,
-	player_id: int,
-	foot_cell: Vector2i,
-	target_cell: Vector2i,
-	move_x: int,
-	move_y: int,
-	current_abs_pos: Vector2i,
-	lateral_distance_units: int,
-	did_snap: bool,
-	total_units: int,
-	window_units: int
-) -> void:
-	if not DEBUG_MOVEMENT_SNAP:
-		return
-	LogSimulationScript.debug(
-		"stage=%s player=%d foot=%s target=%s move=(%d,%d) abs=%s lateral_units=%d window_units=%d snapped=%s" % [
-			stage,
-			player_id,
-			str(foot_cell),
-			str(target_cell),
-			move_x,
-			move_y,
-			str(current_abs_pos),
-			lateral_distance_units,
-			window_units,
-			str(did_snap)
-		],
-		"",
-		0,
-		"simulation.movement.snap"
-	)
-
-
-func _debug_speed(player_id: int, speed_level: int, units_per_tick: int, max_substep_units: int) -> void:
-	if not DEBUG_MOVEMENT_SPEED:
-		return
-	LogSimulationScript.debug(
-		"player=%d speed_level=%d units_per_tick=%d max_substep_units=%d" % [
-			player_id,
-			speed_level,
-			units_per_tick,
-			max_substep_units,
-		],
-		"",
-		0,
-		"simulation.movement.speed"
-	)
-
-
-func _debug_substep(
-	tick: int,
-	player_id: int,
-	move_x: int,
-	move_y: int,
-	enter_remainder: int,
-	consumed_units: int,
-	remaining_units: int,
-	substep_count: int
-) -> void:
-	if not DEBUG_MOVEMENT_SUBSTEP:
-		return
-	LogSimulationScript.debug(
-		"tick=%d player=%d input=(%d,%d) remainder_in=%d consumed=%d remainder_out=%d substeps=%d" % [
-			tick,
-			player_id,
-			move_x,
-			move_y,
-			enter_remainder,
-			consumed_units,
-			remaining_units,
-			substep_count,
-		],
-		"",
-		0,
-		"simulation.movement.substep"
-	)
-
-
-func _debug_block(stage: String, player_id: int, blocked_cell: Vector2i, tentative: Vector2i, resolved: Vector2i, blocked: bool) -> void:
-	if not DEBUG_MOVEMENT_BLOCK:
-		return
-	LogSimulationScript.debug(
-		"stage=%s player=%d blocked_cell=%s tentative=%s resolved=%s blocked=%s" % [
-			stage,
-			player_id,
-			str(blocked_cell),
-			str(tentative),
-			str(resolved),
-			str(blocked),
-		],
-		"",
-		0,
-		"simulation.movement.block"
-	)
-
-
-func _debug_turn_snap(player_id: int, rail: int, success: bool, reason: String) -> void:
-	if not DEBUG_MOVEMENT_SNAP:
-		return
-	LogSimulationScript.debug(
-		"player=%d rail=%d turn_snap=%s reason=%s" % [
-			player_id,
-			rail,
-			str(success),
-			reason,
-		],
-		"",
-		0,
-		"simulation.movement.snap"
-	)
-
-
-func _find_overlap_blocked_cell(
-	ctx: SimContext,
-	player_id: int,
-	abs_pos: Vector2i,
-	foot_cell: Vector2i,
-	target_cell: Vector2i,
-	move_x: int,
-	move_y: int
-) -> Dictionary:
-	var candidates: Array[Vector2i] = []
-	if move_x != 0:
-		candidates.append(Vector2i(target_cell.x, foot_cell.y - 1))
-		candidates.append(Vector2i(target_cell.x, foot_cell.y + 1))
-	elif move_y != 0:
-		candidates.append(Vector2i(foot_cell.x - 1, target_cell.y))
-		candidates.append(Vector2i(foot_cell.x + 1, target_cell.y))
-
-	for blocked_cell in candidates:
-		if not ctx.queries.is_transition_blocked_for_player(player_id, foot_cell.x, foot_cell.y, blocked_cell.x, blocked_cell.y):
-			continue
-		if _is_overlapping_blocked_cell(ctx, player_id, abs_pos, blocked_cell):
-			return {
-				"found": true,
-				"cell": blocked_cell,
-			}
-	return {
-		"found": false,
-		"cell": Vector2i.ZERO,
-	}
-
-
-func _is_overlapping_blocked_cell(
-	_ctx: SimContext,
-	_player_id: int,
-	abs_pos: Vector2i,
-	blocked_cell: Vector2i
-) -> bool:
-	var blocked_center_x := GridMotionMath.get_cell_center_abs_x(blocked_cell.x)
-	var blocked_center_y := GridMotionMath.get_cell_center_abs_y(blocked_cell.y)
-	return abs(abs_pos.x - blocked_center_x) < GridMotionMath.CELL_UNITS and abs(abs_pos.y - blocked_center_y) < GridMotionMath.CELL_UNITS
-
-
-func _get_containing_cell_center(abs_value: int) -> int:
-	var result := GridMotionMath.abs_to_cell_and_offset_x(abs_value)
-	return GridMotionMath.get_cell_center_abs_x(int(result["cell_x"]))
-
-
-func _crosses_cell_boundary(abs_pos: Vector2i, foot_cell: Vector2i, move_x: int, move_y: int) -> bool:
-	if move_x > 0:
-		return abs_pos.x >= (foot_cell.x + 1) * GridMotionMath.CELL_UNITS
-	if move_x < 0:
-		return abs_pos.x < foot_cell.x * GridMotionMath.CELL_UNITS
-	if move_y > 0:
-		return abs_pos.y >= (foot_cell.y + 1) * GridMotionMath.CELL_UNITS
-	if move_y < 0:
-		return abs_pos.y < foot_cell.y * GridMotionMath.CELL_UNITS
-	return false
-
-
-func _clamp_abs_to_current_cell_boundary(
-	abs_pos: Vector2i,
-	foot_cell: Vector2i,
-	move_x: int,
-	move_y: int
-) -> Vector2i:
-	var clamped := abs_pos
-	if move_x > 0:
-		clamped.x = min(clamped.x, ((foot_cell.x + 1) * GridMotionMath.CELL_UNITS) - 1)
-	elif move_x < 0:
-		clamped.x = max(clamped.x, foot_cell.x * GridMotionMath.CELL_UNITS)
-	elif move_y > 0:
-		clamped.y = min(clamped.y, ((foot_cell.y + 1) * GridMotionMath.CELL_UNITS) - 1)
-	elif move_y < 0:
-		clamped.y = max(clamped.y, foot_cell.y * GridMotionMath.CELL_UNITS)
-	return clamped
-
-
-func _clamp_abs_to_blocked_axis_limit(
-	abs_pos: Vector2i,
-	foot_cell: Vector2i,
-	move_x: int,
-	move_y: int
-) -> Vector2i:
-	var clamped := abs_pos
-	if move_x > 0:
-		clamped.x = min(clamped.x, GridMotionMath.get_cell_center_abs_x(foot_cell.x))
-	elif move_x < 0:
-		clamped.x = max(clamped.x, GridMotionMath.get_cell_center_abs_x(foot_cell.x))
-	elif move_y > 0:
-		clamped.y = min(clamped.y, GridMotionMath.get_cell_center_abs_y(foot_cell.y))
-	elif move_y < 0:
-		clamped.y = max(clamped.y, GridMotionMath.get_cell_center_abs_y(foot_cell.y))
-	return clamped
 
 
 func _emit_cell_changed_if_needed(

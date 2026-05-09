@@ -33,6 +33,9 @@ var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
 var _animation_frames_cache: Dictionary = {}
+var _sprite_frames_cache: Dictionary = {}
+var _warmup_samples: Dictionary = {}
+var _destroy_latency_logged_once: bool = false
 var _tile_palette: Dictionary = {
 	"ground": Color(0.88, 0.88, 0.82, 1.0),
 	"solid": Color(0.20, 0.22, 0.28, 1.0),
@@ -61,6 +64,7 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 	_rebuild_breakable_blocks()
 	_rebuild_surface_entries()
 	_rebuild_occluders()
+	_schedule_surface_gpu_warmup()
 
 
 func apply_grid_cache(grid_cache: Dictionary, p_cell_size: float) -> void:
@@ -76,6 +80,9 @@ func clear_map() -> void:
 	_map_theme = null
 	_theme_materials.clear()
 	_animation_frames_cache.clear()
+	_sprite_frames_cache.clear()
+	_warmup_samples.clear()
+	_destroy_latency_logged_once = false
 	_clear_runtime_layers()
 
 
@@ -105,6 +112,7 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 	_breakable_views_by_cell.erase(cell)
 	if view == null or not is_instance_valid(view):
 		return
+	var destroy_start_ms := Time.get_ticks_msec()
 	if view.has_method("on_destroyed"):
 		view.on_destroyed()
 	elif view.has_method("play_die_and_dispose"):
@@ -113,6 +121,10 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 		view.play_break_and_dispose()
 	else:
 		view.queue_free()
+	if not _destroy_latency_logged_once:
+		_destroy_latency_logged_once = true
+		var destroy_elapsed_ms := Time.get_ticks_msec() - destroy_start_ms
+		print("[QQT_SURFACE_WARMUP] first_destroy_dispatch_ms=%d cell=(%d,%d)" % [destroy_elapsed_ms, cell.x, cell.y])
 
 
 func handle_cell_triggered(cell: Vector2i) -> void:
@@ -245,9 +257,7 @@ func _rebuild_occluders() -> void:
 			continue
 		var stand_path := String(entry.get("texture_path", "")).strip_edges()
 		var stand_frames := _resolve_animation_frames(stand_path)
-		var texture := load(stand_path) as Texture2D
-		if texture == null and stand_frames.size() > 0:
-			texture = stand_frames[0]
+		var texture := _load_texture_with_gif_fallback(stand_path, stand_frames)
 		if texture == null:
 			continue
 		var node: Node2D = _build_surface_element_view(entry, texture)
@@ -275,9 +285,7 @@ func _rebuild_surface_entries() -> void:
 			continue
 		var stand_path := String(entry.get("texture_path", "")).strip_edges()
 		var stand_frames := _resolve_animation_frames(stand_path)
-		var texture := load(stand_path) as Texture2D
-		if texture == null and stand_frames.size() > 0:
-			texture = stand_frames[0]
+		var texture := _load_texture_with_gif_fallback(stand_path, stand_frames)
 		if texture == null:
 			continue
 		var node: Node2D = _build_surface_element_view(entry, texture)
@@ -438,26 +446,119 @@ func _build_textured_cell_sprite(texture: Texture2D, cell: Vector2i) -> Sprite2D
 
 
 func _build_surface_element_view(entry: Dictionary, texture: Texture2D) -> Node2D:
-	var die_texture: Texture2D = null
 	var die_path := String(entry.get("die_texture_path", "")).strip_edges()
-	if not die_path.is_empty():
-		die_texture = load(die_path) as Texture2D
-	var trigger_texture: Texture2D = null
 	var trigger_path := String(entry.get("trigger_texture_path", "")).strip_edges()
-	if not trigger_path.is_empty():
-		trigger_texture = load(trigger_path) as Texture2D
 	var stand_path := String(entry.get("texture_path", "")).strip_edges()
 	var stand_frames := _resolve_animation_frames(stand_path)
 	var die_frames := _resolve_animation_frames(die_path)
 	var trigger_frames := _resolve_animation_frames(trigger_path)
+	var stand_fps: float = max(float(entry.get("stand_fps", 12.0)), 1.0)
+	var die_fps: float = max(float(entry.get("die_fps", 12.0)), 1.0)
+	var trigger_fps: float = max(float(entry.get("trigger_fps", 12.0)), 1.0)
+	var stand_sprite_frames := _resolve_sprite_frames_cached(stand_path, stand_frames, stand_fps, true)
+	var die_sprite_frames := _resolve_sprite_frames_cached(die_path, die_frames, die_fps, false)
+	var trigger_sprite_frames := _resolve_sprite_frames_cached(trigger_path, trigger_frames, trigger_fps, false)
+	var die_texture := _load_texture_with_gif_fallback(die_path, die_frames)
+	var trigger_texture := _load_texture_with_gif_fallback(trigger_path, trigger_frames)
 	var view: Node2D = MapSurfaceElementViewScript.new()
-	view.configure(entry, cell_size, texture, die_texture, trigger_texture, stand_frames, die_frames, trigger_frames)
+	view.configure(
+		entry,
+		cell_size,
+		texture,
+		die_texture,
+		trigger_texture,
+		stand_frames,
+		die_frames,
+		trigger_frames,
+		stand_sprite_frames,
+		die_sprite_frames,
+		trigger_sprite_frames
+	)
 	return view
+
+
+func _resolve_sprite_frames_cached(path: String, frames: Array[Texture2D], fps: float, loop_enabled: bool) -> SpriteFrames:
+	if frames.is_empty():
+		return null
+	var key := "%s|fps=%.3f|loop=%s" % [path.strip_edges(), fps, "true" if loop_enabled else "false"]
+	if _sprite_frames_cache.has(key):
+		var cached: Variant = _sprite_frames_cache[key]
+		if cached is SpriteFrames:
+			return cached as SpriteFrames
+	var sprite_frames := SpriteFrames.new()
+	sprite_frames.add_animation("active")
+	sprite_frames.set_animation_speed("active", fps)
+	sprite_frames.set_animation_loop("active", loop_enabled)
+	for frame in frames:
+		if frame != null:
+			sprite_frames.add_frame("active", frame)
+	if sprite_frames.get_frame_count("active") <= 0:
+		return null
+	_sprite_frames_cache[key] = sprite_frames
+	_register_warmup_sample(path, frames[0])
+	return sprite_frames
+
+
+func _register_warmup_sample(path: String, texture: Texture2D) -> void:
+	var normalized_path := path.strip_edges()
+	if normalized_path.is_empty() or texture == null:
+		return
+	if not _warmup_samples.has(normalized_path):
+		_warmup_samples[normalized_path] = texture
+
+
+func _schedule_surface_gpu_warmup() -> void:
+	if _warmup_samples.is_empty():
+		return
+	call_deferred("_run_surface_gpu_warmup")
+
+
+func _run_surface_gpu_warmup() -> void:
+	if not is_inside_tree():
+		return
+	var samples: Array[Texture2D] = []
+	for value in _warmup_samples.values():
+		if value is Texture2D:
+			samples.append(value as Texture2D)
+	if samples.is_empty():
+		return
+	var warmup_root := Node2D.new()
+	warmup_root.name = "SurfaceWarmupRoot"
+	warmup_root.visible = true
+	warmup_root.modulate = Color(1.0, 1.0, 1.0, 0.001)
+	warmup_root.position = Vector2(-100000.0, -100000.0)
+	add_child(warmup_root)
+	var warmup_start_ms := Time.get_ticks_msec()
+	for texture in samples:
+		var sprite := Sprite2D.new()
+		sprite.centered = false
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.texture = texture
+		warmup_root.add_child(sprite)
+	await get_tree().process_frame
+	warmup_root.queue_free()
+	var warmup_elapsed_ms := Time.get_ticks_msec() - warmup_start_ms
+	print("[QQT_SURFACE_WARMUP] textures=%d gpu_warmup_ms=%d" % [samples.size(), warmup_elapsed_ms])
+
+
+func _load_texture_with_gif_fallback(texture_path: String, frames: Array[Texture2D] = []) -> Texture2D:
+	var normalized_path := texture_path.strip_edges()
+	if normalized_path.is_empty():
+		return null
+	if _is_gif_path(normalized_path):
+		if frames.size() > 0:
+			return frames[0]
+		return null
+	return load(normalized_path) as Texture2D
+
+
+func _is_gif_path(path: String) -> bool:
+	return path.to_lower().ends_with(".gif")
 
 
 func _resolve_animation_frames(texture_path: String) -> Array[Texture2D]:
 	var normalized_path := texture_path.strip_edges()
-	if normalized_path.is_empty() or not normalized_path.to_lower().ends_with(".gif"):
+	if normalized_path.is_empty() or not _is_gif_path(normalized_path):
 		return []
 	if _animation_frames_cache.has(normalized_path):
 		var cached = _animation_frames_cache[normalized_path]

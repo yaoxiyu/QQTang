@@ -1,6 +1,8 @@
 class_name SnapshotService
 extends RefCounted
 
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
+
 var checksum_builder: ChecksumBuilder = ChecksumBuilder.new()
 
 
@@ -162,7 +164,7 @@ func _capture_bubbles(sim_world: SimWorld) -> Array[Dictionary]:
 			"pierce": bubble.pierce,
 			"chain_triggered": bubble.chain_triggered,
 			"remote_group_id": bubble.remote_group_id,
-			"ignore_player_ids": bubble.ignore_player_ids.duplicate()
+			"pass_phases": BubblePassPhaseHelper.flatten(bubble.pass_phases)
 		})
 	bubbles.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return bubbles

@@ -11,6 +11,8 @@
 class_name BubbleStore
 extends RefCounted
 
+const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
+
 # 泡泡状态数组
 var _states: Array[BubbleState] = []
 
@@ -125,9 +127,7 @@ func restore_bubble_from_snapshot(data: Dictionary) -> int:
 	bubble.pierce = bool(data.get("pierce", false))
 	bubble.chain_triggered = bool(data.get("chain_triggered", false))
 	bubble.remote_group_id = int(data.get("remote_group_id", 0))
-	bubble.ignore_player_ids.clear()
-	for ignored_player_id in data.get("ignore_player_ids", []):
-		bubble.ignore_player_ids.append(int(ignored_player_id))
+	bubble.pass_phases = BubblePassPhaseHelper.unflatten(data.get("pass_phases", PackedInt32Array()))
 
 	while _states.size() <= entity_id:
 		_states.append(null)
