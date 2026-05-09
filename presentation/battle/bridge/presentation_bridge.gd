@@ -13,6 +13,7 @@ const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const BattleAudioEventConfigScript = preload("res://presentation/battle/audio/battle_audio_event_config.gd")
+const FxPoolScript = preload("res://presentation/battle/fx/fx_pool.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const DEBUG_TICK_LOGS := false
@@ -36,6 +37,7 @@ var _grid_cache: Dictionary = {}
 var actor_registry: BattleActorRegistry = null
 var state_to_view_mapper: BattleStateToViewMapper = null
 var battle_event_router: BattleEventRouter = null
+var fx_pool: FxPool = null
 var _player_visual_profiles: Dictionary = {}
 var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
@@ -71,6 +73,14 @@ func _ready() -> void:
 	battle_event_router.cell_destroyed_event_routed.connect(_on_cell_destroyed_event_routed)
 	battle_event_router.bubble_placed_event_routed.connect(_on_bubble_placed_event_routed)
 	battle_event_router.player_revived_event_routed.connect(_on_player_revived_event_routed)
+
+	fx_pool = FxPoolScript.new()
+	fx_pool.register_factory("explosion", func(): return ExplosionActorViewScript.new())
+	fx_pool.register_factory("brick_break", func(): return BrickBreakFxPlayerScript.new())
+	fx_pool.register_factory("item_spawn", func(): return ItemSpawnFxPlayerScript.new())
+	fx_pool.register_factory("item_pickup", func(): return ItemPickupFxPlayerScript.new())
+	fx_pool.prewarm("explosion", 4, fx_layer)
+	fx_pool.prewarm("brick_break", 8, fx_layer)
 	battle_event_router.player_trap_executed_event_routed.connect(_on_player_trap_executed_event_routed)
 	battle_event_router.item_spawned_event_routed.connect(_on_item_spawned_event_routed)
 	battle_event_router.item_picked_event_routed.connect(_on_item_picked_event_routed)
@@ -136,9 +146,9 @@ func clear_bridge() -> void:
 		actor_registry.clear_all()
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("clear_fx"):
 		spawn_fx_controller.clear_fx()
-	elif fx_layer != null:
-		for child in fx_layer.get_children():
-			child.free()
+	if fx_pool != null:
+		fx_pool.clear()
+	fx_pool = null
 
 
 func shutdown_bridge() -> void:
@@ -383,9 +393,9 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 	for cell in event.payload.get("covered_cells", []):
 		cells.append(cell)
 
-	var view: BattleExplosionActorView = ExplosionActorViewScript.new()
-	view.configure(cells, cell_size, bubble_style_id, bubble_color)
-	fx_layer.add_child(view)
+	var view: BattleExplosionActorView = fx_pool.acquire("explosion", fx_layer, func(v: Node):
+		(v as BattleExplosionActorView).configure(cells, cell_size, bubble_style_id, bubble_color))
+	view.finished.connect(_on_explosion_finished.bind(view), CONNECT_ONE_SHOT)
 
 
 func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
@@ -395,12 +405,9 @@ func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 		int(event.payload.get("cell_x", 0)),
 		int(event.payload.get("cell_y", 0))
 	)
-	var fx = BrickBreakFxPlayerScript.new()
-	fx.configure(
-		_to_world_center(destroyed_cell),
-		cell_size
-	)
-	fx_layer.add_child(fx)
+	var fx = fx_pool.acquire("brick_break", fx_layer, func(v: Node):
+		(v as BrickBreakFxPlayer).configure(_to_world_center(destroyed_cell), cell_size))
+	fx.finished.connect(_on_brick_break_finished.bind(fx), CONNECT_ONE_SHOT)
 
 
 func _on_item_spawned_event_routed(event: SimEvent) -> void:
@@ -473,3 +480,13 @@ func _fp_to_world_position(fp_pos: Vector2i) -> Vector2:
 		(float(fp_pos.x) / float(WorldMetrics.CELL_UNITS)) * cell_size,
 		(float(fp_pos.y) / float(WorldMetrics.CELL_UNITS)) * cell_size
 	)
+
+
+func _on_explosion_finished(view: BattleExplosionActorView) -> void:
+	if fx_pool != null:
+		fx_pool.release("explosion", view)
+
+
+func _on_brick_break_finished(fx: BrickBreakFxPlayer) -> void:
+	if fx_pool != null:
+		fx_pool.release("brick_break", fx)

@@ -1,6 +1,8 @@
 class_name BrickBreakFxPlayer
 extends Node2D
 
+signal finished
+
 var _quad: Polygon2D = null
 
 
@@ -25,7 +27,17 @@ func configure(world_position: Vector2, cell_size: float, break_color: Color = C
 	tween.set_parallel(true)
 	tween.tween_property(self, "scale", Vector2(0.2, 0.2), 0.18)
 	tween.tween_property(self, "modulate:a", 0.0, 0.18)
-	tween.finished.connect(queue_free)
+	tween.finished.connect(_on_tween_finished)
+
+
+func reset_fx() -> void:
+	position = Vector2.ZERO
+	scale = Vector2.ONE
+	modulate = Color(1, 1, 1, 1)
+
+
+func _on_tween_finished() -> void:
+	finished.emit()
 
 
 func _ensure_visuals() -> void:

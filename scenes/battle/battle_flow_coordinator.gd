@@ -2,6 +2,7 @@ extends RefCounted
 
 const BattleContentManifestBuilderScript = preload("res://gameplay/battle/config/battle_content_manifest_builder.gd")
 const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/battle_runtime_config_builder.gd")
+const ExplosionActorViewScript = preload("res://presentation/battle/actors/explosion_actor_view.gd")
 const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
 const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
@@ -221,6 +222,7 @@ func apply_map_theme(app_runtime: Node, presentation_bridge: Node, map_theme_env
 		return
 	if presentation_bridge != null and map_runtime_layout != null:
 		presentation_bridge.configure_map_presentation(map_runtime_layout, runtime_config.map_theme)
+		ExplosionActorViewScript.prewarm_segment_textures()
 	if map_theme_environment_controller != null:
 		map_theme_environment_controller.apply_map_theme(runtime_config.map_theme)
 	if map_root != null:

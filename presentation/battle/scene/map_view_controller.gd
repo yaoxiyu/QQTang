@@ -520,7 +520,8 @@ func _run_surface_gpu_warmup() -> void:
 	for value in _warmup_samples.values():
 		if value is Texture2D:
 			samples.append(value as Texture2D)
-	if samples.is_empty():
+	var sf_count := 0
+	if samples.is_empty() and _sprite_frames_cache.is_empty():
 		return
 	var warmup_root := Node2D.new()
 	warmup_root.name = "SurfaceWarmupRoot"
@@ -535,10 +536,19 @@ func _run_surface_gpu_warmup() -> void:
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		sprite.texture = texture
 		warmup_root.add_child(sprite)
+	for sf in _sprite_frames_cache.values():
+		if not sf is SpriteFrames:
+			continue
+		var anim := AnimatedSprite2D.new()
+		anim.sprite_frames = sf as SpriteFrames
+		anim.animation = "active"
+		anim.play("active")
+		warmup_root.add_child(anim)
+		sf_count += 1
 	await get_tree().process_frame
 	warmup_root.queue_free()
 	var warmup_elapsed_ms := Time.get_ticks_msec() - warmup_start_ms
-	print("[SURFACE_WARMUP] textures=%d gpu_warmup_ms=%d" % [samples.size(), warmup_elapsed_ms])
+	print("[SURFACE_WARMUP] textures=%d sprite_frames=%d gpu_warmup_ms=%d" % [samples.size(), sf_count, warmup_elapsed_ms])
 
 
 func _load_texture_with_gif_fallback(texture_path: String, frames: Array[Texture2D] = []) -> Texture2D:

@@ -1,6 +1,8 @@
 class_name BattleExplosionActorView
 extends Node2D
 
+signal finished
+
 const BubbleFxRegistryScript = preload("res://presentation/battle/fx/bubble_fx_registry.gd")
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
@@ -30,8 +32,6 @@ const SEGMENT_FRAME_BASES := {
 	"type2_cell": "res://external/assets/animation/explosions/normal/segments/type2_cell",
 }
 const SEGMENT_ANIMATION_NAME := "default"
-const EXPLOSION_VISUAL_DURATION_SEC := 3.0
-const EXPLOSION_VISUAL_LOOP_COUNT := 3
 
 var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 var covered_cells: Array[Vector2i] = []
@@ -41,6 +41,18 @@ var bubble_color: Color = Color.WHITE
 var bubble_type: int = 1
 var _segment_textures: Dictionary = {}
 var _segment_frames_cache: Dictionary = {}
+
+
+static func prewarm_segment_textures() -> void:
+	for key in SEGMENT_TEXTURE_PATHS.keys():
+		load(SEGMENT_TEXTURE_PATHS[key])
+	for key in SEGMENT_FRAME_BASES.keys():
+		var base: String = SEGMENT_FRAME_BASES[key]
+		for i in range(0, 32):
+			var path := "%s_%02d.png" % [base, i]
+			if not ResourceLoader.exists(path):
+				break
+			load(path)
 
 
 func configure(
@@ -62,7 +74,19 @@ func configure(
 func _process(delta: float) -> void:
 	lifetime -= delta
 	if lifetime <= 0.0:
-		queue_free()
+		set_process(false)
+		finished.emit()
+
+
+func reset_fx() -> void:
+	lifetime = 0.18
+	bubble_style_id = ""
+	bubble_color = Color.WHITE
+	bubble_type = 1
+	covered_cells.clear()
+	for child in get_children():
+		child.queue_free()
+	set_process(false)
 
 
 func _rebuild_cells() -> void:
@@ -74,8 +98,7 @@ func _rebuild_cells() -> void:
 	var style := BubbleFxRegistryScript.get_explosion_style(bubble_style_id, bubble_color)
 	lifetime = max(
 		float(style.get("lifetime", lifetime)),
-		_max_segment_lifetime(),
-		EXPLOSION_VISUAL_DURATION_SEC
+		_max_segment_lifetime()
 	)
 	var center_cell := _resolve_center_cell()
 
@@ -170,10 +193,8 @@ func _get_segment_frames(segment_key: String) -> SpriteFrames:
 	if loaded_count <= 0:
 		_segment_frames_cache[segment_key] = null
 		return null
-	# 目标：3 秒内循环 3 次。每段按自身帧数计算 fps，保证循环次数精确。
-	var target_fps := (float(loaded_count) * float(EXPLOSION_VISUAL_LOOP_COUNT)) / EXPLOSION_VISUAL_DURATION_SEC
-	frames.set_animation_loop(SEGMENT_ANIMATION_NAME, true)
-	frames.set_animation_speed(SEGMENT_ANIMATION_NAME, target_fps)
+	frames.set_animation_loop(SEGMENT_ANIMATION_NAME, false)
+	frames.set_animation_speed(SEGMENT_ANIMATION_NAME, float(loaded_count))
 	_segment_frames_cache[segment_key] = frames
 	return frames
 
@@ -218,7 +239,7 @@ func _max_segment_lifetime() -> float:
 		if frames == null:
 			continue
 		max_frames = maxi(max_frames, frames.get_frame_count(SEGMENT_ANIMATION_NAME))
-	return EXPLOSION_VISUAL_DURATION_SEC
+	return 1.2
 
 
 func _build_segment_modulate(segment_type: String, style: Dictionary) -> Color:
