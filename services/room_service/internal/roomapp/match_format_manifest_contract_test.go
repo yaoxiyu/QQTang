@@ -97,9 +97,7 @@ func TestCreateMatchRoomUsesManifestDefaultMatchFormat(t *testing.T) {
 		ConnectionID:    "conn_1",
 		Loadout: Loadout{
 			CharacterID:     "char_default",
-			CharacterSkinID: "skin_1",
 			BubbleStyleID:   "bubble_default",
-			BubbleSkinID:    "bubble_skin_1",
 		},
 	})
 	if err != nil {

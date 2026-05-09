@@ -17,9 +17,7 @@ func toPBPartyMembers(input []PartyMember) []*gamev1.PartyMember {
 			ProfileId:       member.ProfileID,
 			TeamId:          int32(member.TeamID),
 			CharacterId:     member.CharacterID,
-			CharacterSkinId: member.CharacterSkinID,
 			BubbleStyleId:   member.BubbleStyleID,
-			BubbleSkinId:    member.BubbleSkinID,
 		})
 	}
 	return result

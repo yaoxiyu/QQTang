@@ -5,9 +5,7 @@ type PartyMember struct {
 	ProfileID       string
 	TeamID          int
 	CharacterID     string
-	CharacterSkinID string
 	BubbleStyleID   string
-	BubbleSkinID    string
 }
 
 type EnterPartyQueueInput struct {

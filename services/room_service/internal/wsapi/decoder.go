@@ -79,9 +79,7 @@ type ResumeRoomPayload struct {
 
 type LoadoutPayload struct {
 	CharacterID     string
-	CharacterSkinID string
 	BubbleStyleID   string
-	BubbleSkinID    string
 }
 
 type SelectionPayload struct {
@@ -267,9 +265,7 @@ func decodeLoadout(loadout *roomv1.RoomLoadout) LoadoutPayload {
 	}
 	return LoadoutPayload{
 		CharacterID:     loadout.GetCharacterId(),
-		CharacterSkinID: loadout.GetCharacterSkinId(),
 		BubbleStyleID:   loadout.GetBubbleStyleId(),
-		BubbleSkinID:    loadout.GetBubbleSkinId(),
 	}
 }
 

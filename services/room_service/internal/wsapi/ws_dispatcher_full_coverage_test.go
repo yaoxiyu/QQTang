@@ -17,8 +17,7 @@ func TestDispatcherFullOperationCoverage(t *testing.T) {
 	createOutbound, err := dispatcher.Dispatch(conn, &ClientEnvelope{
 		RequestID:   "req-create",
 		PayloadType: PayloadCreateRoom,
-		CreateRoom:  &CreateRoomPayload{RoomKind: "private_room", RoomDisplayName: "alpha", RoomTicket: "ticket-create", AccountID: "acc_1", ProfileID: "pro_1", PlayerName: "p1", Loadout: LoadoutPayload{CharacterID: "char_default", CharacterSkinID: "skin_1", BubbleStyleID: "bubble_default", BubbleSkinID: "bubble_skin_1"}, Selection: SelectionPayload{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"}},
-	})
+		CreateRoom:  &CreateRoomPayload{RoomKind: "private_room", RoomDisplayName: "alpha", RoomTicket: "ticket-create", AccountID: "acc_1", ProfileID: "pro_1", PlayerName: "p1", Loadout: LoadoutPayload{CharacterID: "char_default", 	})
 	if err != nil {
 		t.Fatalf("dispatch create: %v", err)
 	}
@@ -32,9 +31,7 @@ func TestDispatcherFullOperationCoverage(t *testing.T) {
 			PlayerName: "p1-new",
 			Loadout: LoadoutPayload{
 				CharacterID:     "char_default",
-				CharacterSkinID: "skin_1",
 				BubbleStyleID:   "bubble_default",
-				BubbleSkinID:    "bubble_skin_1",
 			},
 		},
 	}), "UpdateProfile")

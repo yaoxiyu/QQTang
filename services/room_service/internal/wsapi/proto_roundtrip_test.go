@@ -89,9 +89,7 @@ func TestEncodeSnapshotPush_ContainsFieldsAndNoReconnectTokenLeak(t *testing.T) 
 				ReconnectToken:  uniqueReconnectToken,
 				Loadout: domain.RoomLoadout{
 					CharacterID:     "char_default",
-					CharacterSkinID: "skin_1",
 					BubbleStyleID:   "bubble_default",
-					BubbleSkinID:    "bubble_skin_1",
 				},
 			},
 		},

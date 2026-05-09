@@ -15,9 +15,7 @@ func TestCreateRoom(t *testing.T) {
 		ConnectionID:    "conn-1",
 		Loadout: Loadout{
 			CharacterID:     "char_default",
-			CharacterSkinID: "skin_1",
 			BubbleStyleID:   "bubble_default",
-			BubbleSkinID:    "bubble_skin_1",
 		},
 		Selection: Selection{
 			MapID:     "map_arcade",

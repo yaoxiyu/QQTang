@@ -37,10 +37,8 @@ var (
 )
 
 type Loadout struct {
-	CharacterID     string
-	CharacterSkinID string
-	BubbleStyleID   string
-	BubbleSkinID    string
+	CharacterID   string
+	BubbleStyleID string
 }
 
 type Selection struct {
@@ -289,9 +287,7 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 		Ready:           false,
 		Loadout: domain.RoomLoadout{
 			CharacterID:     resolvedLoadout.CharacterID,
-			CharacterSkinID: resolvedLoadout.CharacterSkinID,
 			BubbleStyleID:   resolvedLoadout.BubbleStyleID,
-			BubbleSkinID:    resolvedLoadout.BubbleSkinID,
 		},
 	}
 
@@ -383,9 +379,7 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 		Ready:           false,
 		Loadout: domain.RoomLoadout{
 			CharacterID:     resolvedLoadout.CharacterID,
-			CharacterSkinID: resolvedLoadout.CharacterSkinID,
 			BubbleStyleID:   resolvedLoadout.BubbleStyleID,
-			BubbleSkinID:    resolvedLoadout.BubbleSkinID,
 		},
 	}
 	room.ResumeBindings[memberID] = domain.ResumeBinding{
@@ -601,9 +595,7 @@ func (s *Service) UpdateProfile(input UpdateProfileInput) (*SnapshotProjection, 
 	}
 	member.Loadout = domain.RoomLoadout{
 		CharacterID:     resolvedLoadout.CharacterID,
-		CharacterSkinID: resolvedLoadout.CharacterSkinID,
 		BubbleStyleID:   resolvedLoadout.BubbleStyleID,
-		BubbleSkinID:    resolvedLoadout.BubbleSkinID,
 	}
 	room.Members[input.MemberID] = member
 	s.touchRoomSnapshotLocked(room)
@@ -1208,16 +1200,10 @@ func (s *Service) validateLoadout(loadout Loadout) (Loadout, error) {
 	if !s.manifest.HasLegalCharacterID(resolved.CharacterID) {
 		return Loadout{}, ErrInvalidLoadout
 	}
-	if !s.manifest.HasLegalCharacterSkinID(resolved.CharacterSkinID) {
-		return Loadout{}, ErrInvalidLoadout
-	}
 	if resolved.BubbleStyleID == "" {
 		resolved.BubbleStyleID = s.manifest.Manifest().Assets.DefaultBubbleStyleID
 	}
 	if !s.manifest.HasLegalBubbleStyleID(resolved.BubbleStyleID) {
-		return Loadout{}, ErrInvalidLoadout
-	}
-	if !s.manifest.HasLegalBubbleSkinID(resolved.BubbleSkinID) {
 		return Loadout{}, ErrInvalidLoadout
 	}
 	return resolved, nil
@@ -1787,9 +1773,7 @@ func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyM
 			ProfileID:       member.ProfileID,
 			TeamID:          member.TeamID,
 			CharacterID:     member.Loadout.CharacterID,
-			CharacterSkinID: member.Loadout.CharacterSkinID,
 			BubbleStyleID:   member.Loadout.BubbleStyleID,
-			BubbleSkinID:    member.Loadout.BubbleSkinID,
 		})
 	}
 	return result

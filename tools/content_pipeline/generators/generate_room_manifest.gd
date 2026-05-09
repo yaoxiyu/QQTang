@@ -89,6 +89,7 @@ func generate() -> void:
 		"default_character_id": CharacterCatalogScript.get_default_character_id(),
 		"default_bubble_style_id": BubbleCatalogScript.get_default_bubble_id(),
 		"legal_character_ids": _sorted_string_array(CharacterCatalogScript.get_character_ids()),
+		"legal_bubble_style_ids": _sorted_string_array(BubbleCatalogScript.get_bubble_ids()),
 	}
 
 	var payload := {

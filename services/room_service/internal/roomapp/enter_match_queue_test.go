@@ -123,9 +123,7 @@ func TestEnterMatchQueueSendsMemberLoadoutToGameService(t *testing.T) {
 		ConnectionID: "conn-owner",
 		Loadout: Loadout{
 			CharacterID:     "char_default",
-			CharacterSkinID: "skin_1",
 			BubbleStyleID:   "bubble_default",
-			BubbleSkinID:    "bubble_skin_1",
 		},
 		Selection: Selection{MapID: "map_duel", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "1v1", SelectedModeIDs: []string{"mode_classic"}},
 	})

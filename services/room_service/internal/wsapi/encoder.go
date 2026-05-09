@@ -179,9 +179,7 @@ func encodeMember(member domain.RoomMember) *roomv1.RoomMember {
 func mapLoadout(loadout domain.RoomLoadout) *roomv1.RoomLoadout {
 	return &roomv1.RoomLoadout{
 		CharacterId:     loadout.CharacterID,
-		CharacterSkinId: loadout.CharacterSkinID,
 		BubbleStyleId:   loadout.BubbleStyleID,
-		BubbleSkinId:    loadout.BubbleSkinID,
 	}
 }
 

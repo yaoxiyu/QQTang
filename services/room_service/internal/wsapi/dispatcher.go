@@ -83,9 +83,7 @@ func (d *Dispatcher) handleCreate(conn *Connection, env *ClientEnvelope) ([][]by
 		ConnectionID:    conn.ID(),
 		Loadout: roomapp.Loadout{
 			CharacterID:     payload.Loadout.CharacterID,
-			CharacterSkinID: payload.Loadout.CharacterSkinID,
 			BubbleStyleID:   payload.Loadout.BubbleStyleID,
-			BubbleSkinID:    payload.Loadout.BubbleSkinID,
 		},
 		Selection: roomapp.Selection{
 			MapID:         payload.Selection.MapID,
@@ -120,9 +118,7 @@ func (d *Dispatcher) handleJoin(conn *Connection, env *ClientEnvelope) ([][]byte
 		ConnectionID: conn.ID(),
 		Loadout: roomapp.Loadout{
 			CharacterID:     payload.Loadout.CharacterID,
-			CharacterSkinID: payload.Loadout.CharacterSkinID,
 			BubbleStyleID:   payload.Loadout.BubbleStyleID,
-			BubbleSkinID:    payload.Loadout.BubbleSkinID,
 		},
 	})
 	if err != nil {
@@ -173,9 +169,7 @@ func (d *Dispatcher) handleUpdateProfile(conn *Connection, env *ClientEnvelope) 
 		TeamID:     payload.TeamID,
 		Loadout: roomapp.Loadout{
 			CharacterID:     payload.Loadout.CharacterID,
-			CharacterSkinID: payload.Loadout.CharacterSkinID,
 			BubbleStyleID:   payload.Loadout.BubbleStyleID,
-			BubbleSkinID:    payload.Loadout.BubbleSkinID,
 		},
 	})
 	if err != nil {

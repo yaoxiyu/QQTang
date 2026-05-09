@@ -147,9 +147,7 @@ func TestStartManualRoomBattleSendsMemberLoadoutToGameService(t *testing.T) {
 		ConnectionID: "conn-owner",
 		Loadout: Loadout{
 			CharacterID:     "char_2",
-			CharacterSkinID: "skin_1",
 			BubbleStyleID:   "bubble_2",
-			BubbleSkinID:    "bubble_skin_1",
 		},
 		Selection: Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
 	})
@@ -160,8 +158,7 @@ func TestStartManualRoomBattleSendsMemberLoadoutToGameService(t *testing.T) {
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
 		t.Fatalf("toggle ready failed: %v", err)
 	}
-	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_2", CharacterSkinID: "skin_1", BubbleStyleID: "bubble_2", BubbleSkinID: "bubble_skin_1"}}); err != nil {
-		t.Fatalf("update owner team failed: %v", err)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_2", 		t.Fatalf("update owner team failed: %v", err)
 	}
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
 		t.Fatalf("toggle guest ready failed: %v", err)

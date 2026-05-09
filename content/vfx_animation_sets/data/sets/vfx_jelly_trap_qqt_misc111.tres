@@ -6,9 +6,9 @@
 script = ExtResource("1_xosrq")
 vfx_set_id = "vfx_jelly_trap_qqt_misc111"
 display_name = "QQT Misc111 Jelly Trap"
-enter_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/qqt_misc111/enter.png"
-loop_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/qqt_misc111/loop.png"
-release_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/qqt_misc111/release.png"
+enter_strip_path = "asset://qqt-assets/derived/external/assets/animation/vfx/jelly_trap/qqt_misc111/enter.png"
+loop_strip_path = "asset://qqt-assets/derived/external/assets/animation/vfx/jelly_trap/qqt_misc111/loop.png"
+release_strip_path = "asset://qqt-assets/derived/external/assets/animation/vfx/jelly_trap/qqt_misc111/release.png"
 frame_width = 73
 frame_height = 76
 enter_frames = 1

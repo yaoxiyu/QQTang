@@ -10,9 +10,7 @@ type RoomSelection struct {
 
 type RoomLoadout struct {
 	CharacterID     string
-	CharacterSkinID string
 	BubbleStyleID   string
-	BubbleSkinID    string
 }
 
 type RoomMember struct {
