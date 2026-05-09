@@ -12,9 +12,7 @@ func update_local_profile(
 	room_client_gateway: RefCounted,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String,
 	team_id: int = 1
 ) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
@@ -24,13 +22,11 @@ func update_local_profile(
 		int(app_runtime.local_peer_id),
 		player_name,
 		character_id,
-		character_skin_id,
 		bubble_style_id,
-		bubble_skin_id,
 		effective_team_id
 	)
 	if bool(result.get("ok", false)) and room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
-		room_client_gateway.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, effective_team_id)
+		room_client_gateway.request_update_profile(player_name, character_id, bubble_style_id, effective_team_id)
 	if bool(result.get("ok", false)):
 		_remember_selected_character(app_runtime, character_id)
 	return result

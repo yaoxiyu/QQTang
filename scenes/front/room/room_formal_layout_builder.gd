@@ -24,7 +24,7 @@ func _apply_formal_room_layout() -> void:
 	_apply_room_action_button_style(start_button, "start")
 	for input in [room_id_value_label, player_name_input, invite_code_value_label]:
 		_apply_room_input_style(input)
-	for selector in [team_selector, character_selector, character_skin_selector, bubble_selector, bubble_skin_selector, map_selector, game_mode_selector, match_format_selector]:
+	for selector in [team_selector, character_selector, bubble_selector, map_selector, game_mode_selector, match_format_selector]:
 		if selector != null:
 			selector.custom_minimum_size = Vector2(max(selector.custom_minimum_size.x, 220.0), 38.0)
 			selector.set_meta("ui_asset_id", "ui.room.panel.config")

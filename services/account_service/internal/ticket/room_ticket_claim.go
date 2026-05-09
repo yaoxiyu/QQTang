@@ -21,10 +21,8 @@ type RoomTicketClaim struct {
 	AutoReadyOnJoin         bool     `json:"auto_ready_on_join"`
 	HiddenRoom              bool     `json:"hidden_room"`
 	DisplayName             string   `json:"display_name"`
-	AllowedCharacterIDs     []string `json:"allowed_character_ids"`
-	AllowedCharacterSkinIDs []string `json:"allowed_character_skin_ids"`
-	AllowedBubbleStyleIDs   []string `json:"allowed_bubble_style_ids"`
-	AllowedBubbleSkinIDs    []string `json:"allowed_bubble_skin_ids"`
+	AllowedCharacterIDs   []string `json:"allowed_character_ids"`
+	AllowedBubbleStyleIDs []string `json:"allowed_bubble_style_ids"`
 	IssuedAtUnixSec         int64    `json:"issued_at_unix_sec"`
 	ExpireAtUnixSec         int64    `json:"expire_at_unix_sec"`
 	Nonce                   string   `json:"nonce"`

@@ -54,10 +54,8 @@ func (h *RoomTicketHandler) Create(w http.ResponseWriter, r *http.Request) {
 		"auto_ready_on_join":         result.AutoReadyOnJoin,
 		"hidden_room":                result.HiddenRoom,
 		"display_name":               result.DisplayName,
-		"allowed_character_ids":      result.AllowedCharacterIDs,
-		"allowed_character_skin_ids": result.AllowedCharacterSkinIDs,
-		"allowed_bubble_style_ids":   result.AllowedBubbleStyleIDs,
-		"allowed_bubble_skin_ids":    result.AllowedBubbleSkinIDs,
+		"allowed_character_ids":    result.AllowedCharacterIDs,
+		"allowed_bubble_style_ids": result.AllowedBubbleStyleIDs,
 		"issued_at_unix_sec":         result.IssuedAtUnixSec,
 		"expire_at_unix_sec":         result.ExpireAtUnixSec,
 	})

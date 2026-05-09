@@ -1,7 +1,7 @@
 class_name LobbyUseCase
 extends RefCounted
 
-const LOBBY_FLOW_LOG_PREFIX := "[QQT_LOBBY]"
+const LOBBY_FLOW_LOG_PREFIX := "[LOBBY]"
 
 const FrontEntryKindScript = preload("res://app/front/navigation/front_entry_kind.gd")
 const FrontReturnTargetScript = preload("res://app/front/navigation/front_return_target.gd")
@@ -63,9 +63,7 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.avatar_id = String(player_profile_state.avatar_id) if _has_object_property(player_profile_state, "avatar_id") else ""
 		view_state.title_id = String(player_profile_state.title_id) if _has_object_property(player_profile_state, "title_id") else ""
 		view_state.default_character_id = player_profile_state.default_character_id
-		view_state.default_character_skin_id = player_profile_state.default_character_skin_id
 		view_state.default_bubble_style_id = player_profile_state.default_bubble_style_id
-		view_state.default_bubble_skin_id = player_profile_state.default_bubble_skin_id
 		view_state.preferred_map_id = player_profile_state.preferred_map_id
 		view_state.preferred_rule_id = player_profile_state.preferred_rule_set_id
 		view_state.preferred_mode_id = player_profile_state.preferred_mode_id
@@ -278,20 +276,14 @@ func refresh_profile() -> Dictionary:
 		player_profile_state.account_id = String(result.get("account_id", player_profile_state.account_id))
 		player_profile_state.nickname = String(result.get("nickname", player_profile_state.nickname))
 		player_profile_state.default_character_id = String(result.get("default_character_id", player_profile_state.default_character_id))
-		player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", player_profile_state.default_character_skin_id))
 		player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", player_profile_state.default_bubble_style_id))
-		player_profile_state.default_bubble_skin_id = String(result.get("default_bubble_skin_id", player_profile_state.default_bubble_skin_id))
 		player_profile_state.preferred_map_id = String(result.get("preferred_map_id", player_profile_state.preferred_map_id))
 		player_profile_state.preferred_rule_set_id = String(result.get("preferred_rule_set_id", player_profile_state.preferred_rule_set_id))
 		player_profile_state.preferred_mode_id = String(result.get("preferred_mode_id", player_profile_state.preferred_mode_id))
 		if _has_object_property(player_profile_state, "owned_character_ids"):
 			player_profile_state.owned_character_ids = PlayerProfileState._to_string_array(result.get("owned_character_ids", []))
-		if _has_object_property(player_profile_state, "owned_character_skin_ids"):
-			player_profile_state.owned_character_skin_ids = PlayerProfileState._to_string_array(result.get("owned_character_skin_ids", []))
 		if _has_object_property(player_profile_state, "owned_bubble_style_ids"):
 			player_profile_state.owned_bubble_style_ids = PlayerProfileState._to_string_array(result.get("owned_bubble_style_ids", []))
-		if _has_object_property(player_profile_state, "owned_bubble_skin_ids"):
-			player_profile_state.owned_bubble_skin_ids = PlayerProfileState._to_string_array(result.get("owned_bubble_skin_ids", []))
 		if _has_object_property(player_profile_state, "profile_version"):
 			player_profile_state.profile_version = int(result.get("profile_version", player_profile_state.profile_version))
 		if _has_object_property(player_profile_state, "owned_asset_revision"):

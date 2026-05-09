@@ -59,7 +59,7 @@ func _build_ui() -> void:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
 	panel_vbox.add_child(tabs)
-	for tab_text in ["角色", "皮肤", "泡泡", "头像", "称号"]:
+	for tab_text in ["角色", "泡泡", "头像", "称号"]:
 		var tab := Button.new()
 		tab.text = tab_text
 		tab.custom_minimum_size = Vector2(88, 34)
@@ -136,28 +136,22 @@ func _on_equip_pressed() -> void:
 
 
 func _can_equip(asset: Dictionary) -> bool:
-	return ["character", "character_skin", "bubble", "bubble_skin", "title", "avatar"].has(String(asset.get("asset_type", "")))
+	return ["character", "bubble", "title", "avatar"].has(String(asset.get("asset_type", "")))
 
 
 func _build_loadout_payload(asset: Dictionary) -> Dictionary:
 	var profile = _app_runtime.player_profile_state
 	var payload := {
 		"default_character_id": profile.default_character_id,
-		"default_character_skin_id": profile.default_character_skin_id,
 		"default_bubble_style_id": profile.default_bubble_style_id,
-		"default_bubble_skin_id": profile.default_bubble_skin_id,
 		"avatar_id": profile.avatar_id,
 		"title_id": profile.title_id,
 	}
 	match String(asset.get("asset_type", "")):
 		"character":
 			payload["default_character_id"] = String(asset.get("asset_id", ""))
-		"character_skin":
-			payload["default_character_skin_id"] = String(asset.get("asset_id", ""))
 		"bubble":
 			payload["default_bubble_style_id"] = String(asset.get("asset_id", ""))
-		"bubble_skin":
-			payload["default_bubble_skin_id"] = String(asset.get("asset_id", ""))
 		"title":
 			payload["title_id"] = String(asset.get("asset_id", ""))
 		"avatar":
@@ -168,9 +162,7 @@ func _build_loadout_payload(asset: Dictionary) -> Dictionary:
 func _apply_profile_result(result: Dictionary) -> void:
 	var profile = _app_runtime.player_profile_state
 	profile.default_character_id = String(result.get("default_character_id", profile.default_character_id))
-	profile.default_character_skin_id = String(result.get("default_character_skin_id", profile.default_character_skin_id))
 	profile.default_bubble_style_id = String(result.get("default_bubble_style_id", profile.default_bubble_style_id))
-	profile.default_bubble_skin_id = String(result.get("default_bubble_skin_id", profile.default_bubble_skin_id))
 	profile.avatar_id = String(result.get("avatar_id", profile.avatar_id))
 	profile.title_id = String(result.get("title_id", profile.title_id))
 	profile.profile_version = int(result.get("profile_version", profile.profile_version))

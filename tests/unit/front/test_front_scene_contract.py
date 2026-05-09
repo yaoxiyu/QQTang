@@ -86,7 +86,7 @@ class FrontSceneContractTests(unittest.TestCase):
         self.assertIn("ReferenceItemBar", hud_controller)
         self.assertIn("hud_asset_bindings", hud_controller)
         self.assertIn('set_meta("ui_asset_id"', hud_binder)
-        self.assertNotIn("res://assets/ui/battle", hud_controller)
+        self.assertNotIn("res://external/assets/ui/battle", hud_controller)
 
     def test_room_loading_shop_inventory_are_formalized(self) -> None:
         room_controller = (ROOT / "scenes" / "front" / "room" / "room_scene_controller_impl.gd").read_text(encoding="utf-8")

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_g11cn"]
+
+[resource]
+script = ExtResource("1_g11cn")
+animation_set_id = "char_anim_demo_character_team_02"
+display_name = "Demo Demo Character team_02"
+frame_width = 100
+frame_height = 100
+frames_per_direction = 4
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "demo_f28978ed140be470"

@@ -14,7 +14,7 @@ const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogSamplingPolicyScript = preload("res://app/logging/log_sampling_policy.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 const MATCHMAKING_LOG_TAG := "front.matchmaking.use_case"
 
 var auth_session_state: AuthSessionState = null

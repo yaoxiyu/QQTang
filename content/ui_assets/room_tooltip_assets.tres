@@ -1,13 +1,13 @@
-[gd_resource type="Resource" script_class="RoomTooltipAssets" format=3 uid="uid://cvve3gcmbkmjk"]
+[gd_resource type="Resource" script_class="RoomTooltipAssets" format=3 ]
 
 [ext_resource type="Script" path="res://content/ui_assets/room_tooltip_assets.gd" id="1_tooltip"]
 
 [resource]
 script = ExtResource("1_tooltip")
-panel_background_path = "res://assets/ui/room/char/panel/dlg_roleAttr.png"
-bomb_icon_path = "res://assets/ui/room/char/panel/img_roleBomb.png"
-power_icon_path = "res://assets/ui/room/char/panel/img_rolePower.png"
-speed_icon_path = "res://assets/ui/room/char/panel/img_roleSpeed.png"
+panel_background_path = "res://external/assets/ui/room/char/panel/dlg_roleAttr.png"
+bomb_icon_path = "res://external/assets/ui/room/char/panel/img_roleBomb.png"
+power_icon_path = "res://external/assets/ui/room/char/panel/img_rolePower.png"
+speed_icon_path = "res://external/assets/ui/room/char/panel/img_roleSpeed.png"
 tooltip_anchor_offset = Vector2(0, -279)
 illustration_offset = Vector2(92, 0)
 panel_offset = Vector2(0, 188)

@@ -358,7 +358,7 @@ res://content/character_animation_sets/data/runtime_strips/character_animation_s
 
 1. 本地配置启用的外部资产包。
 2. 环境变量指定的资产根，例如 `QQT_ASSET_ROOT`。
-3. 项目目录 fallback，例如 `res://assets/...`。
+3. 项目目录 fallback，例如 `res://external/assets/...`。
 4. 返回缺失错误。
 
 ### 9.4 错误信息

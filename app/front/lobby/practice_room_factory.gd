@@ -8,7 +8,7 @@ const FrontTopologyScript = preload("res://app/front/navigation/front_topology.g
 const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const PRACTICE_ROOM_LOG_PREFIX := "[QQT_PRACTICE]"
+const PRACTICE_ROOM_LOG_PREFIX := "[PRACTICE]"
 
 var room_session_controller: Node = null
 

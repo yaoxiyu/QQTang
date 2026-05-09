@@ -10,7 +10,7 @@ const SessionLifecycleStateScript = preload("res://network/session/runtime/sessi
 const RoomRuntimeContextScript = preload("res://network/session/runtime/room_runtime_context.gd")
 const FrontRoomKindScript = preload("res://app/front/navigation/front_room_kind.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const ROOM_SESSION_LOG_PREFIX := "[QQT_ROOM_SESSION]"
+const ROOM_SESSION_LOG_PREFIX := "[ROOM_SESSION]"
 signal room_snapshot_changed(snapshot: RoomSnapshot)
 signal start_match_requested(snapshot: RoomSnapshot)
 signal room_flow_state_changed(previous_state: int, new_state: int, reason: String)
@@ -105,9 +105,7 @@ func build_room_snapshot() -> RoomSnapshot:
 		member.ready = bool(room_session.ready_state.get(peer_id, false))
 		member.slot_index = int(slot_map.get(peer_id, -1))
 		member.character_id = String(profile.get("character_id", ""))
-		member.character_skin_id = String(profile.get("character_skin_id", ""))
 		member.bubble_style_id = String(profile.get("bubble_style_id", ""))
-		member.bubble_skin_id = String(profile.get("bubble_skin_id", ""))
 		member.team_id = int(profile.get("team_id", member.slot_index + 1))
 		member.member_phase = String(profile.get("member_phase", "ready" if member.ready else "idle"))
 		member.is_owner = peer_id == owner_peer_id
@@ -149,9 +147,7 @@ func join_room(member_state: RoomMemberState) -> void:
 	member_profiles[member_state.peer_id] = {
 		"player_name": member_state.player_name,
 		"character_id": member_state.character_id,
-		"character_skin_id": member_state.character_skin_id,
 		"bubble_style_id": member_state.bubble_style_id,
-		"bubble_skin_id": member_state.bubble_skin_id,
 		"team_id": member_state.team_id,
 	}
 	set_room_flow_state(RoomFlowStateScript.Value.IN_ROOM, "join_room_completed")
@@ -324,9 +320,7 @@ func request_update_member_profile(
 	peer_id: int,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	team_id: int = 1
 ) -> Dictionary:
 	var effective_peer_id := _resolve_effective_requester_peer_id(peer_id)
@@ -354,9 +348,7 @@ func request_update_member_profile(
 	var profile: Dictionary = member_profiles.get(effective_peer_id, {})
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % effective_peer_id
 	profile["character_id"] = trimmed_character_id
-	profile["character_skin_id"] = character_skin_id.strip_edges()
 	profile["bubble_style_id"] = bubble_style_id
-	profile["bubble_skin_id"] = bubble_skin_id.strip_edges()
 	profile["team_id"] = team_id
 	member_profiles[effective_peer_id] = profile
 	_emit_snapshot_changed()
@@ -412,9 +404,7 @@ func apply_authoritative_snapshot(snapshot: RoomSnapshot) -> void:
 		member_profiles[member.peer_id] = {
 			"player_name": member.player_name,
 			"character_id": member.character_id,
-			"character_skin_id": member.character_skin_id,
 			"bubble_style_id": member.bubble_style_id,
-			"bubble_skin_id": member.bubble_skin_id,
 			"team_id": member.team_id,
 			"member_phase": member.member_phase,
 		}
@@ -540,9 +530,7 @@ func configure_practice_room(
 	member_profiles[local_peer_id] = {
 		"player_name": String(local_profile_state.nickname if local_profile_state != null else "Player%d" % local_peer_id),
 		"character_id": String(local_profile_state.default_character_id if local_profile_state != null else ""),
-		"character_skin_id": String(local_profile_state.default_character_skin_id if local_profile_state != null else ""),
 		"bubble_style_id": String(local_profile_state.default_bubble_style_id if local_profile_state != null else ""),
-		"bubble_skin_id": String(local_profile_state.default_bubble_skin_id if local_profile_state != null else ""),
 		"team_id": 1,
 	}
 	set_room_selection(map_id, rule_id, mode_id)

@@ -4,8 +4,6 @@ class_name RoomCharacterPreview
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const CharacterTeamAnimationResolverScript = preload("res://content/character_animation_sets/runtime/character_team_animation_resolver.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
-const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 
 const PREVIEW_BODY_ORIGIN := Vector2(90, 150)
 const TEAM_MARKER_Z_INDEX := -10
@@ -16,16 +14,13 @@ var _body_view: Node2D = null
 var _team_marker_view: Node2D = null
 var _preview_team_id: int = 0
 var _configured_character_id: String = ""
-var _configured_character_skin_id: String = ""
 var _configured_team_id: int = -1
 
 
-func configure_preview(character_id: String, character_skin_id: String = "", team_id: int = 0) -> void:
+func configure_preview(character_id: String, team_id: int = 0) -> void:
 	var normalized_character_id := character_id.strip_edges()
-	var normalized_skin_id := character_skin_id.strip_edges()
 	if _body_view != null \
 		and normalized_character_id == _configured_character_id \
-		and normalized_skin_id == _configured_character_skin_id \
 		and team_id == _configured_team_id:
 		_restart_body_animation()
 		_apply_preview_state()
@@ -37,7 +32,6 @@ func configure_preview(character_id: String, character_skin_id: String = "", tea
 	_clear_current_body_view()
 	_preview_team_id = team_id
 	_configured_character_id = normalized_character_id
-	_configured_character_skin_id = normalized_skin_id
 	_configured_team_id = team_id
 
 	var character_presentation := CharacterLoaderScript.load_character_presentation(normalized_character_id)
@@ -80,15 +74,6 @@ func configure_preview(character_id: String, character_skin_id: String = "", tea
 		_clear_configured_keys()
 		return
 	_body_view.call("setup_from_animation_set", animation_set)
-
-	if not normalized_skin_id.is_empty():
-		var character_skin := CharacterSkinCatalogScript.get_by_id(normalized_skin_id)
-		if character_skin == null:
-			push_error("RoomCharacterPreview.configure_preview failed: missing CharacterSkinDef for %s" % normalized_skin_id)
-			_clear_current_body_view()
-			_clear_configured_keys()
-			return
-		SkinApplierScript.new().apply_character_skin(_body_view, character_skin)
 
 	_apply_preview_state()
 
@@ -150,7 +135,6 @@ func _reset_sprites_recursive(node: Node) -> void:
 
 func _clear_configured_keys() -> void:
 	_configured_character_id = ""
-	_configured_character_skin_id = ""
 	_configured_team_id = -1
 
 

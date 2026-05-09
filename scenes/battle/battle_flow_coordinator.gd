@@ -5,9 +5,7 @@ const BattleRuntimeConfigBuilderScript = preload("res://gameplay/battle/runtime/
 const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battle/actors/battle_player_visual_profile_builder.gd")
 const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -248,14 +246,12 @@ func _build_runtime_config_cache_key(app_runtime: Node, start_config: BattleStar
 	for member in room_snapshot.sorted_members():
 		if member == null:
 			continue
-		parts.append("%d:%d:%d:%s:%s:%s:%s" % [
+		parts.append("%d:%d:%d:%s:%s" % [
 			int(member.peer_id),
 			int(member.slot_index),
 			int(member.team_id),
 			String(member.character_id),
-			String(member.character_skin_id),
 			String(member.bubble_style_id),
-			String(member.bubble_skin_id),
 		])
 	return "|".join(parts)
 
@@ -334,9 +330,7 @@ func _build_fallback_room_snapshot_from_start_config(start_config: BattleStartCo
 		member.slot_index = int(player_entry.get("slot_index", -1))
 		member.team_id = int(player_entry.get("team_id", 1))
 		member.character_id = _resolve_character_id_from_start_config(start_config, peer_id)
-		member.character_skin_id = _resolve_character_skin_id_from_start_config(start_config, peer_id)
 		member.bubble_style_id = _resolve_bubble_style_id_from_start_config(start_config, peer_id)
-		member.bubble_skin_id = _resolve_bubble_skin_id_from_start_config(start_config, peer_id)
 		snapshot.members.append(member)
 	return snapshot
 
@@ -364,18 +358,6 @@ func _resolve_team_id_from_start_config(start_config: BattleStartConfig, peer_id
 	return fallback_team_id
 
 
-func _resolve_character_skin_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
-	if start_config == null:
-		return ""
-	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
-	if not player_entry.is_empty() and not String(player_entry.get("character_skin_id", "")).strip_edges().is_empty():
-		return String(player_entry.get("character_skin_id", ""))
-	for loadout in start_config.character_loadouts:
-		if int(loadout.get("peer_id", -1)) == peer_id:
-			return String(loadout.get("character_skin_id", ""))
-	return ""
-
-
 func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
 	if start_config == null:
 		return ""
@@ -385,18 +367,6 @@ func _resolve_bubble_style_id_from_start_config(start_config: BattleStartConfig,
 	for loadout in start_config.player_bubble_loadouts:
 		if int(loadout.get("peer_id", -1)) == peer_id:
 			return String(loadout.get("bubble_style_id", ""))
-	return ""
-
-
-func _resolve_bubble_skin_id_from_start_config(start_config: BattleStartConfig, peer_id: int) -> String:
-	if start_config == null:
-		return ""
-	var player_entry := _find_player_entry_for_peer(start_config, peer_id)
-	if not player_entry.is_empty() and not String(player_entry.get("bubble_skin_id", "")).strip_edges().is_empty():
-		return String(player_entry.get("bubble_skin_id", ""))
-	for loadout in start_config.player_bubble_loadouts:
-		if int(loadout.get("peer_id", -1)) == peer_id:
-			return String(loadout.get("bubble_skin_id", ""))
 	return ""
 
 
@@ -421,34 +391,16 @@ func _build_room_selection_state_from_snapshot(snapshot: RoomSnapshot, start_con
 			"slot_index": member.slot_index,
 			"team_id": _resolve_team_id_from_start_config(start_config, peer_id, member.team_id),
 			"character_id": _resolve_character_id_from_start_config(start_config, peer_id),
-			"character_skin_id": _resolve_character_skin_id(_resolve_character_skin_id_from_start_config(start_config, peer_id)),
 			"bubble_style_id": _resolve_bubble_style_id(_resolve_bubble_style_id_from_start_config(start_config, peer_id)),
-			"bubble_skin_id": _resolve_bubble_skin_id(_resolve_bubble_skin_id_from_start_config(start_config, peer_id)),
 			"ready": member.ready,
 		}
 	return state
-
-
-func _resolve_character_skin_id(character_skin_id: String) -> String:
-	if character_skin_id.is_empty():
-		return ""
-	if CharacterSkinCatalogScript.has_id(character_skin_id):
-		return character_skin_id
-	return ""
 
 
 func _resolve_bubble_style_id(bubble_style_id: String) -> String:
 	if BubbleCatalogScript.has_bubble(bubble_style_id):
 		return bubble_style_id
 	return BubbleCatalogScript.get_default_bubble_id()
-
-
-func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
-	if bubble_skin_id.is_empty():
-		return ""
-	if BubbleSkinCatalogScript.has_id(bubble_skin_id):
-		return bubble_skin_id
-	return ""
 
 
 func _find_slot_index_for_peer(app_runtime: Node, peer_id: int) -> int:

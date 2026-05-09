@@ -49,13 +49,11 @@ func verify_resume_ticket(message: Dictionary):
 	return result
 
 
-func is_loadout_allowed(claim, character_id: String, character_skin_id: String, bubble_style_id: String, bubble_skin_id: String) -> bool:
+func is_loadout_allowed(claim, character_id: String, bubble_style_id: String) -> bool:
 	if claim == null:
 		return false
 	return _contains(claim.allowed_character_ids, character_id) \
-		and _contains(claim.allowed_character_skin_ids, character_skin_id) \
-		and _contains(claim.allowed_bubble_style_ids, bubble_style_id) \
-		and _contains(claim.allowed_bubble_skin_ids, bubble_skin_id)
+		and _contains(claim.allowed_bubble_style_ids, bubble_style_id)
 
 
 func resolve_requested_map_id(message: Dictionary, claim) -> String:

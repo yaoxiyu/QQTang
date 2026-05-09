@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://hcwwwvmyw5jp"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://7pxkorkk2tvt" path="res://network/runtime/battle_dedicated_server_bootstrap.gd" id="1_rb1yr"]
+[ext_resource type="Script" path="res://network/runtime/battle_dedicated_server_bootstrap.gd" id="1_rb1yr"]
 
 [node name="DedicatedServerScene" type="Node" unique_id=1597336451]
 script = ExtResource("1_rb1yr")

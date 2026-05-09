@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://corlic5dxf6m7"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://d3fu7by27bgxk" path="res://scenes/front/room_scene_controller.gd" id="1_room"]
-[ext_resource type="Script" uid="uid://b5kv8wffwjnso" path="res://presentation/battle/hud/room_hud_controller.gd" id="2_room_hud"]
-[ext_resource type="Script" uid="uid://dk0j54lci1uh7" path="res://presentation/front/preview/room_character_preview.gd" id="3_xxaqq"]
+[ext_resource type="Script" path="res://scenes/front/room_scene_controller.gd" id="1_room"]
+[ext_resource type="Script" path="res://presentation/battle/hud/room_hud_controller.gd" id="2_room_hud"]
+[ext_resource type="Script" path="res://presentation/front/preview/room_character_preview.gd" id="3_xxaqq"]
 
 [node name="RoomScene" type="Node" unique_id=1131888153]
 script = ExtResource("1_room")
@@ -368,7 +368,7 @@ text = "Character:"
 custom_minimum_size = Vector2(180, 180)
 layout_mode = 2
 script = ExtResource("3_xxaqq")
-metadata/_custom_type_script = "uid://dk0j54lci1uh7"
+metadata/_custom_type_script = ""
 
 [node name="PreviewViewport" type="SubViewport" parent="RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport" unique_id=1325659001]
 disable_3d = true

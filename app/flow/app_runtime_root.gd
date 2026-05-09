@@ -20,7 +20,7 @@ const FrontRuntimeContextScript = preload("res://app/flow/front_runtime_context.
 const BattleRuntimeContextScript = preload("res://app/flow/battle_runtime_context.gd")
 const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 signal runtime_state_changed(previous_state: int, next_state: int, reason: String)
 signal runtime_ready()

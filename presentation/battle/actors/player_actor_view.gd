@@ -1,7 +1,6 @@
 class_name BattlePlayerActorView
 extends Node2D
 
-const SkinApplierScript = preload("res://presentation/runtime/skin_applier.gd")
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const PlayerStatusEffectViewControllerScript = preload("res://presentation/battle/actors/player_status_effect_view_controller.gd")
@@ -120,10 +119,6 @@ func _rebuild_body_view() -> void:
 	var animation_set = _read_profile_value("animation_set")
 	if _body_view.has_method("setup_from_animation_set"):
 		_body_view.setup_from_animation_set(animation_set)
-
-	var character_skin = _read_profile_value("character_skin")
-	if character_skin != null:
-		SkinApplierScript.new().apply_character_skin(_body_view, character_skin)
 
 	if not _last_view_state.is_empty() and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)

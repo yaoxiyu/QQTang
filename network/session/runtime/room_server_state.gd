@@ -142,9 +142,7 @@ func upsert_member(
 	peer_id: int,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	team_id: int = 0,
 	account_id: String = "",
 	profile_id: String = "",
@@ -154,13 +152,11 @@ func upsert_member(
 ) -> void:
 	var profile : Dictionary = members.get(peer_id, {})
 	var resolved_team_id := _resolve_team_id(peer_id, team_id)
-	var resolved_loadout: Dictionary = RoomSelectionPolicyScript.normalize_member_loadout(character_id, character_skin_id, bubble_style_id, bubble_skin_id)
+	var resolved_loadout: Dictionary = RoomSelectionPolicyScript.normalize_member_loadout(character_id, bubble_style_id)
 	profile["peer_id"] = peer_id
 	profile["player_name"] = player_name if not player_name.strip_edges().is_empty() else "Player%d" % peer_id
 	profile["character_id"] = String(resolved_loadout.get("character_id", ""))
-	profile["character_skin_id"] = String(resolved_loadout.get("character_skin_id", ""))
 	profile["bubble_style_id"] = String(resolved_loadout.get("bubble_style_id", ""))
-	profile["bubble_skin_id"] = String(resolved_loadout.get("bubble_skin_id", ""))
 	profile["team_id"] = resolved_team_id
 	members[peer_id] = profile
 	if not ready_map.has(peer_id):
@@ -169,7 +165,7 @@ func upsert_member(
 	members[peer_id] = profile
 	if owner_peer_id <= 0:
 		owner_peer_id = peer_id
-	
+
 	# LegacyMigration: Also create/update member binding
 	var binding := get_member_binding_by_transport_peer(peer_id)
 	if binding == null:
@@ -177,9 +173,7 @@ func upsert_member(
 			peer_id,
 			String(profile["player_name"]),
 			String(profile["character_id"]),
-			String(profile["character_skin_id"]),
 			String(profile["bubble_style_id"]),
-			String(profile["bubble_skin_id"]),
 			resolved_team_id,
 			account_id,
 			profile_id,
@@ -190,9 +184,7 @@ func upsert_member(
 	else:
 		binding.player_name = String(profile["player_name"])
 		binding.character_id = String(profile["character_id"])
-		binding.character_skin_id = String(profile["character_skin_id"])
 		binding.bubble_style_id = String(profile["bubble_style_id"])
-		binding.bubble_skin_id = String(profile["bubble_skin_id"])
 		binding.team_id = resolved_team_id
 		if not account_id.is_empty():
 			binding.account_id = account_id
@@ -228,9 +220,7 @@ func update_profile(
 	peer_id: int,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	team_id: int = 1
 ) -> void:
 	if not members.has(peer_id):
@@ -243,7 +233,7 @@ func update_profile(
 		var current_team_id := int(profile.get("team_id", _resolve_team_id(peer_id, 0)))
 		if team_id != current_team_id:
 			return
-	upsert_member(peer_id, player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
+	upsert_member(peer_id, player_name, character_id, bubble_style_id, team_id)
 
 
 func set_ready(peer_id: int, ready: bool) -> void:
@@ -392,9 +382,7 @@ func build_snapshot() -> RoomSnapshot:
 			member.peer_id = display_peer_id
 			member.player_name = binding.player_name
 			member.character_id = binding.character_id
-			member.character_skin_id = binding.character_skin_id
 			member.bubble_style_id = binding.bubble_style_id
-			member.bubble_skin_id = binding.bubble_skin_id
 			member.team_id = binding.team_id
 			member.ready = binding.ready
 			member.slot_index = binding.slot_index
@@ -411,9 +399,7 @@ func build_snapshot() -> RoomSnapshot:
 		member.peer_id = peer_id
 		member.player_name = String(profile.get("player_name", "Player%d" % peer_id))
 		member.character_id = String(profile.get("character_id", ""))
-		member.character_skin_id = String(profile.get("character_skin_id", ""))
 		member.bubble_style_id = String(profile.get("bubble_style_id", ""))
-		member.bubble_skin_id = String(profile.get("bubble_skin_id", ""))
 		member.team_id = int(profile.get("team_id", slot_index + 1))
 		member.ready = bool(ready_map.get(peer_id, false))
 		member.slot_index = slot_index
@@ -544,9 +530,7 @@ func create_member_binding(
 	transport_peer_id: int,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	team_id: int = 0,
 	account_id: String = "",
 	profile_id: String = "",
@@ -562,9 +546,7 @@ func create_member_binding(
 	binding.match_peer_id = transport_peer_id
 	binding.player_name = player_name if not player_name.strip_edges().is_empty() else "Player%d" % transport_peer_id
 	binding.character_id = character_id
-	binding.character_skin_id = character_skin_id
 	binding.bubble_style_id = bubble_style_id
-	binding.bubble_skin_id = bubble_skin_id
 	binding.team_id = team_id if team_id > 0 else slot_index + 1
 	binding.ready = false
 	binding.slot_index = slot_index

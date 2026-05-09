@@ -87,8 +87,8 @@ func _build_finalize_fixture() -> Dictionary:
 	state.ensure_room("room_alpha", 2, "ranked_match_room", "E2E Room")
 	state.assignment_id = "assign_alpha"
 	state.season_id = "season_s1"
-	state.upsert_member(11, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
-	state.upsert_member(12, "Beta", "", "", "", "", 2, "account_b", "profile_b")
+	state.upsert_member(11, "Alpha", "", "", 1, "account_a", "profile_a")
+	state.upsert_member(12, "Beta", "", "", 2, "account_b", "profile_b")
 
 	var config = BattleStartConfigScript.new()
 	config.match_id = "match_alpha"

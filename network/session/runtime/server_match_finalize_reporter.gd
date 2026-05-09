@@ -7,7 +7,7 @@ const BATTLE_REAP_PATH_TEMPLATE := "/internal/v1/battles/%s/reap"
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
 const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 var game_service_host: String = "127.0.0.1"
 var game_service_port: int = 18081

@@ -9,16 +9,12 @@ var nickname: String = "Player1"
 var avatar_id: String = ""
 var title_id: String = ""
 var default_character_id: String = ""
-var default_character_skin_id: String = ""
 var default_bubble_style_id: String = ""
-var default_bubble_skin_id: String = ""
 var preferred_map_id: String = ""
 var preferred_rule_set_id: String = ""
 var preferred_mode_id: String = ""
 var owned_character_ids: Array[String] = []
-var owned_character_skin_ids: Array[String] = []
 var owned_bubble_style_ids: Array[String] = []
-var owned_bubble_skin_ids: Array[String] = []
 var profile_version: int = 0
 var owned_asset_revision: int = 0
 var profile_source: String = "local_cache"
@@ -33,16 +29,12 @@ func to_dict() -> Dictionary:
 		"avatar_id": avatar_id,
 		"title_id": title_id,
 		"default_character_id": resolve_default_character_id(default_character_id),
-		"default_character_skin_id": default_character_skin_id,
 		"default_bubble_style_id": default_bubble_style_id,
-		"default_bubble_skin_id": default_bubble_skin_id,
 		"preferred_map_id": preferred_map_id,
 		"preferred_rule_set_id": preferred_rule_set_id,
 		"preferred_mode_id": preferred_mode_id,
 		"owned_character_ids": owned_character_ids.duplicate(),
-		"owned_character_skin_ids": owned_character_skin_ids.duplicate(),
 		"owned_bubble_style_ids": owned_bubble_style_ids.duplicate(),
-		"owned_bubble_skin_ids": owned_bubble_skin_ids.duplicate(),
 		"profile_version": profile_version,
 		"owned_asset_revision": owned_asset_revision,
 		"profile_source": profile_source,
@@ -58,16 +50,12 @@ static func from_dict(data: Dictionary) -> PlayerProfileState:
 	state.avatar_id = String(data.get("avatar_id", ""))
 	state.title_id = String(data.get("title_id", ""))
 	state.default_character_id = resolve_default_character_id(String(data.get("default_character_id", "")))
-	state.default_character_skin_id = String(data.get("default_character_skin_id", ""))
 	state.default_bubble_style_id = String(data.get("default_bubble_style_id", ""))
-	state.default_bubble_skin_id = String(data.get("default_bubble_skin_id", ""))
 	state.preferred_map_id = String(data.get("preferred_map_id", ""))
 	state.preferred_rule_set_id = String(data.get("preferred_rule_set_id", ""))
 	state.preferred_mode_id = String(data.get("preferred_mode_id", ""))
 	state.owned_character_ids = _to_string_array(data.get("owned_character_ids", []))
-	state.owned_character_skin_ids = _to_string_array(data.get("owned_character_skin_ids", []))
 	state.owned_bubble_style_ids = _to_string_array(data.get("owned_bubble_style_ids", []))
-	state.owned_bubble_skin_ids = _to_string_array(data.get("owned_bubble_skin_ids", []))
 	state.profile_version = int(data.get("profile_version", 0))
 	state.owned_asset_revision = int(data.get("owned_asset_revision", 0))
 	state.profile_source = String(data.get("profile_source", "local_cache"))

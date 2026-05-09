@@ -80,14 +80,14 @@ static func _connect_battle_adapter_logs(runtime: Node) -> void:
 		return
 	runtime.battle_session_adapter.set_meta(BATTLE_ADAPTER_LOG_BOUND_META, true)
 	runtime.battle_session_adapter.network_log_event.connect(func(message: String) -> void:
-		LogNetScript.debug("[QQT_BATTLE_NET] %s" % message, "", 0, "net.battle.client")
+		LogNetScript.debug("[BATTLE_NET] %s" % message, "", 0, "net.battle.client")
 	)
 	runtime.battle_session_adapter.network_transport_connected.connect(func() -> void:
-		LogNetScript.debug("[QQT_BATTLE_NET] transport_connected", "", 0, "net.battle.client")
+		LogNetScript.debug("[BATTLE_NET] transport_connected", "", 0, "net.battle.client")
 	)
 	runtime.battle_session_adapter.network_transport_disconnected.connect(func() -> void:
-		LogNetScript.warn("[QQT_BATTLE_NET] transport_disconnected", "", 0, "net.battle.client")
+		LogNetScript.warn("[BATTLE_NET] transport_disconnected", "", 0, "net.battle.client")
 	)
 	runtime.battle_session_adapter.network_transport_error.connect(func(code: int, message: String) -> void:
-		LogNetScript.warn("[QQT_BATTLE_NET] transport_error code=%d message=%s" % [code, message], "", 0, "net.battle.client")
+		LogNetScript.warn("[BATTLE_NET] transport_error code=%d message=%s" % [code, message], "", 0, "net.battle.client")
 	)

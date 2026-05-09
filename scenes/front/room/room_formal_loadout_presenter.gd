@@ -109,7 +109,7 @@ func _load_formal_character_icon(icon_path: String) -> Texture2D:
 	return texture
 
 
-func _add_formal_character_preview(parent: Control, character_id: String, character_skin_id: String, size: float, team_id: int = 0) -> void:
+func _add_formal_character_preview(parent: Control, character_id: String, size: float, team_id: int = 0) -> void:
 	if parent == null or character_id.strip_edges().is_empty():
 		return
 	var preview = RoomCharacterPreviewScene.instantiate()
@@ -127,7 +127,7 @@ func _add_formal_character_preview(parent: Control, character_id: String, charac
 		preview_control.set("stretch", true)
 	parent.add_child(preview)
 	if preview.has_method("configure_preview"):
-		preview.call_deferred("configure_preview", character_id, character_skin_id, team_id)
+		preview.call_deferred("configure_preview", character_id, team_id)
 
 
 func _color_for_character_id(character_id: String) -> Color:

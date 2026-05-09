@@ -1,7 +1,7 @@
 class_name LobbyDirectoryUseCase
 extends RefCounted
 
-const LOBBY_DIRECTORY_LOG_PREFIX := "[QQT_LOBBY_DIR]"
+const LOBBY_DIRECTORY_LOG_PREFIX := "[LOBBY_DIR]"
 const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 

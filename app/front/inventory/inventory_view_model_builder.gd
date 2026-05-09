@@ -29,12 +29,8 @@ func _is_equipped(item, profile) -> bool:
 	match String(item.asset_type):
 		"character":
 			return String(profile.default_character_id) == String(item.asset_id)
-		"character_skin":
-			return String(profile.default_character_skin_id) == String(item.asset_id)
 		"bubble":
 			return String(profile.default_bubble_style_id) == String(item.asset_id)
-		"bubble_skin":
-			return String(profile.default_bubble_skin_id) == String(item.asset_id)
 		"title":
 			return "title_id" in profile and String(profile.title_id) == String(item.asset_id)
 		"avatar":

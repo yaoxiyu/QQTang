@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://cgplqglnt25n1"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://dfbtfjcfs8p3m" path="res://scenes/front/login_scene_controller.gd" id="1_eng5b"]
+[ext_resource type="Script" path="res://scenes/front/login_scene_controller.gd" id="1_eng5b"]
 
 [node name="LoginScene" type="Node" unique_id=2061590289]
 script = ExtResource("1_eng5b")

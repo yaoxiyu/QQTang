@@ -1,4 +1,4 @@
-[gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="uid://audio_bus_layout_default"]
+[gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="_bus_layout_default"]
 
 [resource]
 bus/0/name="Master"

@@ -44,7 +44,7 @@ func _test_validate_rejects_account_mismatch() -> bool:
 func _create_fixture() -> Dictionary:
 	var state := RoomServerStateScript.new()
 	state.ensure_room("room_resume", 2, "private_room", "Resume Room")
-	var binding := state.create_member_binding(2, "Player2", "hero_default", "", "", "", 1, "account_2", "profile_2")
+	var binding := state.create_member_binding(2, "Player2", "hero_default", "", 1, "account_2", "profile_2")
 	var token := String(binding.reconnect_token)
 	var claim := MockTicketClaim.new()
 	claim.account_id = "account_2"

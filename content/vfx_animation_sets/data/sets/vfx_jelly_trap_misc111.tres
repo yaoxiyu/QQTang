@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="VfxAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/vfx_animation_sets/defs/vfx_animation_set_def.gd" id="1_xosrq"]
+
+[resource]
+script = ExtResource("1_xosrq")
+vfx_set_id = "vfx_jelly_trap_misc111"
+display_name = "QQT Misc111 Jelly Trap"
+enter_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/misc111/enter.png"
+loop_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/misc111/loop.png"
+release_strip_path = "asset://qqt-assets/derived/assets/animation/vfx/jelly_trap/misc111/release.png"
+frame_width = 73
+frame_height = 76
+enter_frames = 1
+loop_frames = 13
+release_frames = 2
+pivot = Vector2(36.5, 68)
+content_hash = "misc111_lifecycle_v1"

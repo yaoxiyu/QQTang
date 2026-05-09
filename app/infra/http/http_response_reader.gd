@@ -3,7 +3,7 @@ extends RefCounted
 
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const HTTP_LOG_PREFIX := "[QQT_HTTP]"
+const HTTP_LOG_PREFIX := "[HTTP]"
 const DEFAULT_POLL_DELAY_MSEC := 10
 
 

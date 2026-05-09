@@ -46,9 +46,7 @@ const FORMAL_ROOM_MIN_CUSTOM_OPEN_SLOTS := 2
 @onready var player_name_input: LineEdit = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/PlayerNameRow/PlayerNameInput")
 @onready var team_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/TeamRow/TeamSelector")
 @onready var character_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterRow/CharacterSelector")
-@onready var character_skin_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/CharacterSkinRow/CharacterSkinSelector")
 @onready var bubble_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleRow/BubbleSelector")
-@onready var bubble_skin_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/LocalLoadoutCard/LocalLoadoutVBox/BubbleSkinRow/BubbleSkinSelector")
 @onready var map_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/MapRow/MapSelector")
 @onready var rule_value_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/RuleRow/RuleValueLabel")
 @onready var game_mode_selector: OptionButton = get_node_or_null("RoomRoot/RoomScroll/MainLayout/RoomSelectionCard/RoomSelectionVBox/ModeRow/GameModeSelector")
@@ -66,11 +64,7 @@ const FORMAL_ROOM_MIN_CUSTOM_OPEN_SLOTS := 2
 @onready var team_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/TeamPreviewLabel")
 @onready var character_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewLabel")
 @onready var character_preview_viewport = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterPreviewViewport")
-@onready var character_skin_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterSkinPreviewLabel")
-@onready var character_skin_icon: TextureRect = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/CharacterSkinIcon")
 @onready var bubble_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubblePreviewLabel")
-@onready var bubble_skin_preview_label: Label = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubbleSkinPreviewLabel")
-@onready var bubble_skin_icon: TextureRect = get_node_or_null("RoomRoot/RoomScroll/MainLayout/PreviewCard/PreviewVBox/BubbleSkinIcon")
 @onready var leave_room_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/LeaveRoomButton")
 @onready var ready_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/ReadyButton")
 @onready var start_button: Button = get_node_or_null("RoomRoot/RoomScroll/MainLayout/ActionRow/StartButton")
@@ -192,7 +186,6 @@ func _populate_team_selector(team_option_max: int = 2) -> void:
 	_room_scene_selector_presenter.populate_team_selector(self, team_option_max)
 
 
-func _populate_character_skin_selector() -> void:
 	_room_scene_selector_presenter.populate_character_skin_selector(self)
 
 
@@ -200,7 +193,6 @@ func _populate_bubble_selector() -> void:
 	_room_scene_selector_presenter.populate_bubble_selector(self)
 
 
-func _populate_bubble_skin_selector() -> void:
 	_room_scene_selector_presenter.populate_bubble_skin_selector(self)
 
 

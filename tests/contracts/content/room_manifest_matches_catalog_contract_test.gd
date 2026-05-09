@@ -5,9 +5,7 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 
 const MANIFEST_PATH := "res://build/generated/room_manifest/room_manifest.json"
 
@@ -91,8 +89,6 @@ func test_room_manifest_matches_catalog_contract() -> void:
 
 	assert_eq(_to_sorted_string_array(manifest_assets.get("legal_character_ids", [])), _to_sorted_string_array(CharacterCatalogScript.get_character_ids()), "legal_character_ids should match CharacterCatalog")
 	assert_eq(_to_sorted_string_array(manifest_assets.get("legal_bubble_style_ids", [])), _to_sorted_string_array(BubbleCatalogScript.get_bubble_ids()), "legal_bubble_style_ids should match BubbleCatalog")
-	assert_eq(_to_sorted_string_array(manifest_assets.get("legal_character_skin_ids", [])), _to_sorted_string_array(_character_skin_ids()), "legal_character_skin_ids should match CharacterSkinCatalog")
-	assert_eq(_to_sorted_string_array(manifest_assets.get("legal_bubble_skin_ids", [])), _to_sorted_string_array(_bubble_skin_ids()), "legal_bubble_skin_ids should match BubbleSkinCatalog")
 
 
 func _load_manifest() -> Dictionary:
@@ -161,29 +157,6 @@ func _expected_custom_room_max_player_count(map_entry: Dictionary) -> int:
 			max_player_count = maxi(max_player_count, int((variant as Dictionary).get("max_player_count", 0)))
 	return max_player_count
 
-
-func _character_skin_ids() -> Array[String]:
-	var ids: Array[String] = []
-	for def in CharacterSkinCatalogScript.get_all():
-		if def == null:
-			continue
-		var skin_id := String(def.skin_id).strip_edges()
-		if skin_id.is_empty():
-			continue
-		ids.append(skin_id)
-	return ids
-
-
-func _bubble_skin_ids() -> Array[String]:
-	var ids: Array[String] = []
-	for def in BubbleSkinCatalogScript.get_all():
-		if def == null:
-			continue
-		var skin_id := String(def.bubble_skin_id).strip_edges()
-		if skin_id.is_empty():
-			continue
-		ids.append(skin_id)
-	return ids
 
 
 func _to_sorted_string_array(value) -> Array[String]:

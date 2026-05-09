@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterStatsDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_stats_def.gd" id="1_hjpax"]
+
+[resource]
+script = ExtResource("1_hjpax")
+stats_id = "char_stats_10101"
+initial_bubble_count = 2
+max_bubble_count = 6
+initial_bubble_power = 2
+max_bubble_power = 8
+initial_move_speed = 4
+max_move_speed = 7
+content_hash = "char_stats_char_stats_10101_csv_v1"

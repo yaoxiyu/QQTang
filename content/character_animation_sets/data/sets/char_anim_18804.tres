@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_d554d"]
+
+[resource]
+script = ExtResource("1_d554d")
+animation_set_id = "char_anim_18804"
+display_name = "资源角色18804"
+frame_width = 104
+frame_height = 104
+frames_per_direction = 6
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "18804_layered_bake_v1"

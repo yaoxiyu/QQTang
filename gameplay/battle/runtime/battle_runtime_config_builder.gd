@@ -6,8 +6,6 @@ const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.
 const ModeLoaderScript = preload("res://content/modes/runtime/mode_loader.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const MapThemeCatalogScript = preload("res://content/map_themes/catalog/map_theme_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const LogBattleScript = preload("res://app/logging/log_battle.gd")
@@ -129,13 +127,6 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 		if animation_set_id.is_empty():
 			return _fail_with("BattleRuntimeConfigBuilder._build_player_config: empty animation_set_id for peer=%d, character=%s" % [peer_id, character_id])
 
-	var character_skin_id := String(state.get("character_skin_id", ""))
-	var character_skin: CharacterSkinDef = null
-	if not character_skin_id.is_empty():
-		character_skin = CharacterSkinCatalogScript.get_by_id(character_skin_id)
-	if not character_skin_id.is_empty() and character_skin == null:
-		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load CharacterSkinDef for peer=%d, skin=%s" % [peer_id, character_skin_id])
-
 	var bubble_style_id := String(state.get("bubble_style_id", ""))
 	if bubble_style_id.is_empty():
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: bubble_style_id is empty for peer=%d" % peer_id)
@@ -147,13 +138,6 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 	if bubble_gameplay == null:
 		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load BubbleGameplayDef for peer=%d, bubble=%s" % [peer_id, bubble_style_id])
 
-	var bubble_skin_id := String(state.get("bubble_skin_id", ""))
-	var bubble_skin: BubbleSkinDef = null
-	if not bubble_skin_id.is_empty():
-		bubble_skin = BubbleSkinCatalogScript.get_by_id(bubble_skin_id)
-	if not bubble_skin_id.is_empty() and bubble_skin == null:
-		return _fail_with("BattleRuntimeConfigBuilder._build_player_config: failed to load BubbleSkinDef for peer=%d, skin=%s" % [peer_id, bubble_skin_id])
-
 	var player_config := PlayerRuntimeConfig.new()
 	player_config.peer_id = peer_id
 	player_config.player_slot = slot_index
@@ -162,10 +146,8 @@ func _build_player_config(player_state: Variant, peer_id: int) -> PlayerRuntimeC
 	player_config.character_id = character_id
 	player_config.character_stats = character_stats
 	player_config.character_presentation = character_presentation
-	player_config.character_skin = character_skin
 	player_config.bubble_style = bubble_style
 	player_config.bubble_gameplay = bubble_gameplay
-	player_config.bubble_skin = bubble_skin
 	return player_config
 
 

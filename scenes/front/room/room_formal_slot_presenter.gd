@@ -42,7 +42,7 @@ func _create_formal_slot_card(slot_index: int, member: RoomMemberState, is_open:
 		button.tooltip_text = member.player_name
 		button.set_meta("ui_asset_id", "ui.room.slot.occupied")
 		button.pressed.connect(Callable(self, "_show_formal_member_profile").bind(_member_to_profile_payload(member)))
-		_add_formal_character_preview(button, member.character_id, member.character_skin_id, 126.0, member.team_id)
+		_add_formal_character_preview(button, member.character_id, 126.0, member.team_id)
 		_add_formal_slot_team_overlay(button, member.team_id, member.player_name, is_top_slot)
 	elif is_open:
 		button.text = ""
@@ -251,7 +251,7 @@ func _build_formal_slot_grid_signature(snapshot: RoomSnapshot, view_model: Dicti
 			String(member.player_name),
 			String(member.character_id),
 			int(member.team_id),
-			String(member.character_skin_id),
+			
 			String(member.connection_state),
 		])
 	return "|".join(parts)

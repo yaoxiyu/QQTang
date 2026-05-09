@@ -11,7 +11,7 @@ const LogFrontScript = preload("res://app/logging/log_front.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
 const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
 const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
-const BATTLE_ENTRY_LOG_PREFIX := "[QQT_BATTLE_ENTRY]"
+const BATTLE_ENTRY_LOG_PREFIX := "[BATTLE_ENTRY]"
 
 var app_runtime: Node = null
 

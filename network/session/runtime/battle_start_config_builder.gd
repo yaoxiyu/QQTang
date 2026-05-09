@@ -10,7 +10,6 @@ const CharacterCatalogScript = preload("res://content/characters/catalog/charact
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const CharacterTeamAnimationResolverScript = preload("res://content/character_animation_sets/runtime/character_team_animation_resolver.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
@@ -134,9 +133,7 @@ func assign_spawn_slots(snapshot: RoomSnapshot) -> Array[Dictionary]:
 			"slot_index": member.slot_index,
 			"spawn_slot": member.slot_index,
 			"character_id": _resolve_character_id(member.character_id),
-			"character_skin_id": _resolve_character_skin_id(member.character_skin_id),
 			"bubble_style_id": _resolve_member_bubble_style_id(member),
-			"bubble_skin_id": _resolve_bubble_skin_id(member.bubble_skin_id),
 			"team_id": member.team_id,
 		})
 	return players
@@ -257,7 +254,6 @@ func _build_character_loadouts(player_slots: Array[Dictionary]) -> Array[Diction
 		)
 		loadout["slot_index"] = int(player_entry.get("slot_index", -1))
 		loadout["team_id"] = team_id
-		loadout["character_skin_id"] = _resolve_character_skin_id(String(player_entry.get("character_skin_id", "")))
 		loadout["animation_set_id"] = _resolve_team_animation_set_id(character_id, team_id)
 		loadouts.append(loadout)
 	return loadouts
@@ -298,7 +294,6 @@ func _build_player_bubble_loadouts(player_slots: Array[Dictionary], local_peer_i
 			"slot_index": int(player_entry.get("slot_index", -1)),
 			"team_id": int(player_entry.get("team_id", 0)),
 			"bubble_style_id": bubble_style_id,
-			"bubble_skin_id": _resolve_bubble_skin_id(String(player_entry.get("bubble_skin_id", ""))),
 		})
 	return loadouts
 
@@ -325,22 +320,6 @@ func _resolve_character_id(character_id: String) -> String:
 	if CharacterCatalogScript.has_character(character_id):
 		return character_id
 	return CharacterCatalogScript.get_default_character_id()
-
-
-func _resolve_character_skin_id(character_skin_id: String) -> String:
-	var trimmed := character_skin_id.strip_edges()
-	if trimmed.is_empty():
-		return ""
-	return trimmed
-
-
-func _resolve_bubble_skin_id(bubble_skin_id: String) -> String:
-	var trimmed := bubble_skin_id.strip_edges()
-	if trimmed.is_empty():
-		return ""
-	if BubbleSkinCatalogScript.has_id(trimmed):
-		return trimmed
-	return ""
 
 
 func _resolve_member_bubble_style_id(member: RoomMemberState) -> String:

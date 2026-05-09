@@ -36,14 +36,14 @@ func _test_casual_match_room_requires_expected_member_count() -> bool:
 	var state = RoomServerStateScript.new()
 	state.ensure_room("room_match", 1, "casual_match_room", "Ranked Room")
 	state.expected_member_count = 2
-	state.upsert_member(1, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
+	state.upsert_member(1, "Alpha", "", "", 1, "account_a", "profile_a")
 	state.set_ready(1, true)
 
 	var prefix := "casual_match_room_policy_test.member_count"
 	var ok := true
 	ok = qqt_check(not state.can_start(), "single member must not start match room", prefix) and ok
 
-	state.upsert_member(2, "Beta", "", "", "", "", 2, "account_b", "profile_b")
+	state.upsert_member(2, "Beta", "", "", 2, "account_b", "profile_b")
 	state.set_ready(2, true)
 	ok = qqt_check(not state.can_start(), "match room must enter queue instead of starting directly", prefix) and ok
 	return ok

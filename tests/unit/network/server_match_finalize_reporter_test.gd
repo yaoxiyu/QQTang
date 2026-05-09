@@ -51,8 +51,8 @@ func test_finalize_payload_contains_member_results() -> void:
 	state.ensure_room("room_alpha", 1, "casual_match_room", "")
 	state.assignment_id = "assign_alpha"
 	state.season_id = "season_s1"
-	state.upsert_member(1, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
-	state.upsert_member(2, "Beta", "", "", "", "", 2, "account_b", "profile_b")
+	state.upsert_member(1, "Alpha", "", "", 1, "account_a", "profile_a")
+	state.upsert_member(2, "Beta", "", "", 2, "account_b", "profile_b")
 
 	var config = BattleStartConfigScript.new()
 	config.match_id = "match_alpha"
@@ -89,8 +89,8 @@ func test_finalize_payload_falls_back_to_current_assignment_id() -> void:
 	state.assignment_id = ""
 	state.current_assignment_id = "assign_current"
 	state.season_id = "season_s1"
-	state.upsert_member(1, "Alpha", "", "", "", "", 1, "account_a", "profile_a")
-	state.upsert_member(2, "Beta", "", "", "", "", 2, "account_b", "profile_b")
+	state.upsert_member(1, "Alpha", "", "", 1, "account_a", "profile_a")
+	state.upsert_member(2, "Beta", "", "", 2, "account_b", "profile_b")
 
 	var config = BattleStartConfigScript.new()
 	config.match_id = "match_alpha"

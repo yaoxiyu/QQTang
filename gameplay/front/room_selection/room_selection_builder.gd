@@ -16,9 +16,7 @@ static func build_selection_state(
 		players[peer_id] = {
 			"peer_id": peer_id,
 			"character_id": String(player_state.get("character_id", "")),
-			"character_skin_id": String(player_state.get("character_skin_id", "")),
 			"bubble_style_id": String(player_state.get("bubble_style_id", "")),
-			"bubble_skin_id": String(player_state.get("bubble_skin_id", "")),
 			"ready": bool(player_state.get("ready", false)),
 		}
 

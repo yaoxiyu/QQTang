@@ -3,7 +3,7 @@ extends Control
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 signal settlement_shown(result: BattleResult)
 signal settlement_hidden()
 signal return_to_room_requested()

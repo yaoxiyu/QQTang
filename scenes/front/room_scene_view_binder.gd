@@ -2,7 +2,6 @@ class_name RoomSceneViewBinder
 extends RefCounted
 
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 
 
@@ -50,24 +49,18 @@ func update_preview(
 	if local_member != null:
 		var preview_team_id := selected_team_id if selected_team_id > 0 else local_member.team_id
 		var preview_character_id := _resolve_preview_character_id(_selected_controller_metadata(scene_controller, "character_selector", local_member.character_id))
-		var preview_character_skin_id := _resolve_preview_character_skin_id(_selected_controller_metadata(scene_controller, "character_skin_selector", local_member.character_skin_id))
 		var preview_bubble_style_id := _selected_controller_metadata(scene_controller, "bubble_selector", local_member.bubble_style_id)
-		var preview_bubble_skin_id := _selected_controller_metadata(scene_controller, "bubble_skin_selector", local_member.bubble_skin_id)
 		_set_text_by_name(scene_controller, "team_preview_label", "Team: %d" % preview_team_id)
 		_set_text_by_name(scene_controller, "character_preview_label", "Character: %s" % preview_character_id)
-		_set_text_by_name(scene_controller, "character_skin_preview_label", "Character Skin: %s" % preview_character_skin_id)
 		_set_text_by_name(scene_controller, "bubble_preview_label", "Bubble: %s" % preview_bubble_style_id)
-		_set_text_by_name(scene_controller, "bubble_skin_preview_label", "Bubble Skin: %s" % preview_bubble_skin_id)
-		_configure_preview(scene_controller, preview_character_id, preview_character_skin_id, preview_team_id)
+		_configure_preview(scene_controller, preview_character_id, preview_team_id)
 		return
 	if app_runtime == null or app_runtime.player_profile_state == null:
 		return
 	var profile = app_runtime.player_profile_state
 	_set_text_by_name(scene_controller, "team_preview_label", "Team: %d" % selected_team_id)
 	_set_text_by_name(scene_controller, "character_preview_label", "Character: %s" % String(profile.default_character_id))
-	_set_text_by_name(scene_controller, "character_skin_preview_label", "Character Skin: %s" % String(profile.default_character_skin_id))
 	_set_text_by_name(scene_controller, "bubble_preview_label", "Bubble: %s" % String(profile.default_bubble_style_id))
-	_set_text_by_name(scene_controller, "bubble_skin_preview_label", "Bubble Skin: %s" % String(profile.default_bubble_skin_id))
 	if String(profile.get("title_id")).strip_edges() != "":
 		_set_text_by_name(scene_controller, "mode_preview_label", "Mode: %s | Title: %s" % [snapshot.mode_id, String(profile.get("title_id"))])
 	if String(profile.get("avatar_id")).strip_edges() != "":
@@ -75,7 +68,6 @@ func update_preview(
 	_configure_preview(
 		scene_controller,
 		_resolve_preview_character_id(String(profile.default_character_id)),
-		_resolve_preview_character_skin_id(String(profile.default_character_skin_id)),
 		selected_team_id
 	)
 
@@ -174,10 +166,10 @@ func _set_text_by_name(scene_controller: Node, property_name: String, value: Str
 		node.text = value
 
 
-func _configure_preview(scene_controller: Node, character_id: String, character_skin_id: String, team_id: int) -> void:
+func _configure_preview(scene_controller: Node, character_id: String, team_id: int) -> void:
 	var viewport = _get_property(scene_controller, "character_preview_viewport")
 	if viewport != null and viewport.has_method("configure_preview"):
-		viewport.configure_preview(character_id, character_skin_id, team_id)
+		viewport.configure_preview(character_id, team_id)
 
 
 func _selected_controller_metadata(scene_controller: Node, selector_property_name: String, fallback_value: String) -> String:
@@ -194,13 +186,6 @@ func _resolve_preview_character_id(character_id: String) -> String:
 	if not trimmed.is_empty() and CharacterCatalogScript.has_character(trimmed):
 		return trimmed
 	return CharacterCatalogScript.get_default_character_id()
-
-
-func _resolve_preview_character_skin_id(character_skin_id: String) -> String:
-	var trimmed := character_skin_id.strip_edges()
-	if not trimmed.is_empty() and CharacterSkinCatalogScript.has_id(trimmed):
-		return trimmed
-	return CharacterSkinCatalogScript.get_default_skin_id()
 
 
 func _get_property(scene_controller: Node, property_name: String):

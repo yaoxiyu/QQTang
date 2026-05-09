@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="CharacterStatsDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_stats_def.gd" id="1_1fnyf"]
+
+[resource]
+script = ExtResource("1_1fnyf")
+stats_id = "char_stats_12101"
+initial_bubble_count = 2
+max_bubble_count = 8
+initial_move_speed = 3
+max_move_speed = 6
+content_hash = "char_stats_char_stats_12101_csv_v1"

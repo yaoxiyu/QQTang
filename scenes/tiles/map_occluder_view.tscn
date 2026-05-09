@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://d1gvg3ajv6vih"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://rtiplc3mkeq7" path="res://presentation/battle/tiles/map_occluder_view.gd" id="1_xb1ge"]
+[ext_resource type="Script" path="res://presentation/battle/tiles/map_occluder_view.gd" id="1_xb1ge"]
 
 [node name="MapOccluderView" type="Node2D" unique_id=120729696]
 script = ExtResource("1_xb1ge")

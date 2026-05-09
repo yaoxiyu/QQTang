@@ -57,9 +57,7 @@ func request_join_room(connection_config: ClientConnectionConfig) -> void:
 		connection_config.room_id_hint,
 		connection_config.player_name,
 		connection_config.selected_character_id,
-		connection_config.selected_character_skin_id,
 		connection_config.selected_bubble_style_id,
-		connection_config.selected_bubble_skin_id,
 		connection_config.room_ticket,
 		connection_config.room_ticket_id,
 		connection_config.account_id,
@@ -75,33 +73,11 @@ func request_create_room(connection_config: ClientConnectionConfig) -> void:
 			"has_connection_config": connection_config != null,
 		})
 		return
-	if _method_argument_count(client_room_runtime, "request_create_room") < 18:
-		client_room_runtime.request_create_room(
-			connection_config.room_id_hint,
-			connection_config.player_name,
-			connection_config.selected_character_id,
-			connection_config.selected_character_skin_id,
-			connection_config.selected_bubble_style_id,
-			connection_config.selected_bubble_skin_id,
-			connection_config.selected_map_id,
-			connection_config.selected_rule_set_id,
-			connection_config.selected_mode_id,
-			connection_config.room_kind,
-			connection_config.room_display_name,
-			connection_config.room_ticket,
-			connection_config.room_ticket_id,
-			connection_config.account_id,
-			connection_config.profile_id,
-			connection_config.device_session_id
-		)
-		return
 	client_room_runtime.request_create_room(
 		connection_config.room_id_hint,
 		connection_config.player_name,
 		connection_config.selected_character_id,
-		connection_config.selected_character_skin_id,
 		connection_config.selected_bubble_style_id,
-		connection_config.selected_bubble_skin_id,
 		connection_config.selected_map_id,
 		connection_config.selected_rule_set_id,
 		connection_config.selected_mode_id,
@@ -120,14 +96,12 @@ func request_create_room(connection_config: ClientConnectionConfig) -> void:
 func request_update_profile(
 	player_name: String,
 	character_id: String,
-	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String,
 	team_id: int
 ) -> void:
 	if client_room_runtime == null:
 		return
-	client_room_runtime.request_update_profile(player_name, character_id, character_skin_id, bubble_style_id, bubble_skin_id, team_id)
+	client_room_runtime.request_update_profile(player_name, character_id, bubble_style_id, team_id)
 
 
 func request_update_selection(map_id: String, rule_id: String, mode_id: String, open_slot_indices: Array[int] = []) -> void:
@@ -314,13 +288,3 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 
 func _log_room_anomaly(event_name: String, details: Dictionary) -> void:
 	LogNetScript.warn("%s %s" % [event_name, JSON.stringify(details)], "", 0, ROOM_GATEWAY_ANOMALY_TAG)
-
-
-func _method_argument_count(target: Object, method_name: String) -> int:
-	if target == null:
-		return 0
-	for method in target.get_method_list():
-		if String(method.get("name", "")) == method_name:
-			var args = method.get("args", [])
-			return args.size() if args is Array else 0
-	return 0

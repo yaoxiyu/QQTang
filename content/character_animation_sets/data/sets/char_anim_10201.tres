@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterAnimationSetDef" format=3]
+
+[ext_resource type="Script" path="res://content/character_animation_sets/defs/character_animation_set_def.gd" id="1_4bos4"]
+
+[resource]
+script = ExtResource("1_4bos4")
+animation_set_id = "char_anim_10201"
+display_name = "资源角色10201"
+frame_width = 100
+frame_height = 100
+frames_per_direction = 6
+pivot_origin = Vector2(50, 100)
+pivot_adjust = Vector2(0, -15)
+content_hash = "10201_layered_bake_v1"

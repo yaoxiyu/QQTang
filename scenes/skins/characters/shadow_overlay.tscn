@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://digi2wle5r3qo"]
+[gd_scene format=3 ]
 
 [node name="ShadowCharacterOverlay" type="Node2D"]
 

@@ -11,9 +11,7 @@ func apply_local_profile_defaults(controller: Node) -> void:
 		controller.player_name_input.text = profile.nickname
 	controller._select_metadata(controller.character_selector, PlayerProfileState.resolve_default_character_id(String(profile.default_character_id)))
 	controller._select_team_id(1)
-	controller._select_metadata(controller.character_skin_selector, profile.default_character_skin_id)
 	controller._select_metadata(controller.bubble_selector, profile.default_bubble_style_id)
-	controller._select_metadata(controller.bubble_skin_selector, profile.default_bubble_skin_id)
 	if String(profile.default_character_id).is_empty():
 		profile.default_character_id = PlayerProfileState.resolve_default_character_id("")
 		if controller._app_runtime.profile_repository != null and controller._app_runtime.profile_repository.has_method("save_profile"):
@@ -34,9 +32,7 @@ func on_profile_changed(controller: Node) -> void:
 	var result : Dictionary = controller._room_use_case.update_local_profile(
 		controller.player_name_input.text.strip_edges() if controller.player_name_input != null else "",
 		controller._selected_metadata(controller.character_selector),
-		controller._selected_metadata(controller.character_skin_selector),
 		controller._selected_metadata(controller.bubble_selector),
-		controller._selected_metadata(controller.bubble_skin_selector),
 		controller._selected_team_id()
 	)
 	if not bool(result.get("ok", false)):

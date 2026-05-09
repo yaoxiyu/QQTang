@@ -1,3 +1,0 @@
-skin_id,display_name,overlay_scene_path,applicable_slots,ui_icon_path,rarity,tags
-skin_gold,黄金皮肤,res://scenes/skins/characters/gold_overlay.tscn,body_overlay,res://assets/ui/skins/gold_icon.png,rare,starter
-skin_shadow,暗影皮肤,res://scenes/skins/characters/shadow_overlay.tscn,body_overlay;head_overlay,res://assets/ui/skins/shadow_icon.png,epic,shadow

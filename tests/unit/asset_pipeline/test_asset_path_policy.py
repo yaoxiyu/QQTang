@@ -14,7 +14,7 @@ class AssetPathPolicyTests(unittest.TestCase):
 
     def test_accepts_project_relative_paths(self) -> None:
         self.assertEqual(ensure_project_relative("source/down.png").as_posix(), "source/down.png")
-        self.assertEqual(ensure_project_relative("res://assets/a.png").as_posix(), "assets/a.png")
+        self.assertEqual(ensure_project_relative("res://external/assets/a.png").as_posix(), "assets/a.png")
 
 
 if __name__ == "__main__":

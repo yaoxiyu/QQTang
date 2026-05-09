@@ -1,7 +1,7 @@
-[gd_scene format=3 uid="uid://bml4x87rcw4u"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://lpphh23tjddj" path="res://gameplay/simulation/runtime/simulation_runner_node.gd" id="1_vd6sc"]
-[ext_resource type="Script" uid="uid://h635mgkrrpw8" path="res://presentation/runtime/presentation_bridge.gd" id="2_bln38"]
+[ext_resource type="Script" path="res://gameplay/simulation/runtime/simulation_runner_node.gd" id="1_vd6sc"]
+[ext_resource type="Script" path="res://presentation/runtime/presentation_bridge.gd" id="2_bln38"]
 
 [node name="SimulationPrototypeRoot" type="Node" unique_id=2130091115]
 

@@ -56,7 +56,7 @@ func _test_loadout_allowed_guard() -> bool:
 	if not bool(result.ok) or result.claim == null:
 		return qqt_check(false, "setup create ticket should verify", "room_ticket_verifier_test")
 	return qqt_check(
-		not verifier.is_loadout_allowed(result.claim, "character_not_owned", "", BubbleCatalogScript.get_default_bubble_id(), ""),
+		not verifier.is_loadout_allowed(result.claim, "character_not_owned", BubbleCatalogScript.get_default_bubble_id()),
 		"unowned loadout should fail verifier guard",
 		"room_ticket_verifier_test"
 	)
@@ -74,9 +74,7 @@ func _build_message(peer_id: int, purpose: String, room_id: String, room_kind: S
 		"requested_match_id": match_id,
 		"display_name": "Player%d" % peer_id,
 		"allowed_character_ids": [CharacterCatalogScript.get_default_character_id()],
-		"allowed_character_skin_ids": [""],
 		"allowed_bubble_style_ids": [BubbleCatalogScript.get_default_bubble_id()],
-		"allowed_bubble_skin_ids": [""],
 		"issued_at_unix_sec": int(Time.get_unix_time_from_system()) - 5,
 		"expire_at_unix_sec": int(Time.get_unix_time_from_system()) + 60,
 		"nonce": "nonce_%s_%d" % [purpose, peer_id],

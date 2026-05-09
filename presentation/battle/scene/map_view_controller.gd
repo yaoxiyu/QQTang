@@ -124,7 +124,7 @@ func handle_cell_destroyed(cell: Vector2i) -> void:
 	if not _destroy_latency_logged_once:
 		_destroy_latency_logged_once = true
 		var destroy_elapsed_ms := Time.get_ticks_msec() - destroy_start_ms
-		print("[QQT_SURFACE_WARMUP] first_destroy_dispatch_ms=%d cell=(%d,%d)" % [destroy_elapsed_ms, cell.x, cell.y])
+		print("[SURFACE_WARMUP] first_destroy_dispatch_ms=%d cell=(%d,%d)" % [destroy_elapsed_ms, cell.x, cell.y])
 
 
 func handle_cell_triggered(cell: Vector2i) -> void:
@@ -538,7 +538,7 @@ func _run_surface_gpu_warmup() -> void:
 	await get_tree().process_frame
 	warmup_root.queue_free()
 	var warmup_elapsed_ms := Time.get_ticks_msec() - warmup_start_ms
-	print("[QQT_SURFACE_WARMUP] textures=%d gpu_warmup_ms=%d" % [samples.size(), warmup_elapsed_ms])
+	print("[SURFACE_WARMUP] textures=%d gpu_warmup_ms=%d" % [samples.size(), warmup_elapsed_ms])
 
 
 func _load_texture_with_gif_fallback(texture_path: String, frames: Array[Texture2D] = []) -> Texture2D:

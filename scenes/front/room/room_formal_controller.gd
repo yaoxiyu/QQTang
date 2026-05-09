@@ -113,7 +113,7 @@ func _on_runtime_ready() -> void:
 		_refresh(snap)
 	_refresh_char_grid()
 	if _room_use_case != null:
-		_room_use_case.update_local_profile("", _selected_char_id, "", "", "", _selected_team_id)
+		_room_use_case.update_local_profile("", _selected_char_id, "", _selected_team_id)
 
 
 func _connect_runtime() -> void:
@@ -200,7 +200,7 @@ func _on_team_btn(tid: int) -> void:
 	_move_checkmark(tid)
 	_selected_team_id = tid
 	if _room_use_case != null:
-		_room_use_case.update_local_profile("", _selected_char_id, "", "", "", tid)
+		_room_use_case.update_local_profile("", _selected_char_id, "", tid)
 	LogFrontScript.debug("[room_fml] team: %d char=%s" % [tid, _selected_char_id], "", 0, TAG)
 
 
@@ -264,7 +264,7 @@ func _on_char_picked(cid: String) -> void:
 				b.texture_hover = _load_icon(hover_path)
 				b.texture_pressed = _load_icon(hover_path)
 	if _room_use_case != null:
-		_room_use_case.update_local_profile("", cid, "", "", "", _selected_team_id)
+		_room_use_case.update_local_profile("", cid, "", _selected_team_id)
 	LogFrontScript.debug("[room_fml] char: %s team=%d" % [cid, _selected_team_id], "", 0, TAG)
 
 
@@ -434,7 +434,7 @@ func _refresh_slots(snapshot, vm: Dictionary) -> void:
 		var tc: TextureRect = btn.get_node_or_null("TeamColor") as TextureRect
 		if m != null:
 			btn.tooltip_text = m.player_name
-			_add_preview(btn, m.character_id, m.character_skin_id, 126.0, m.team_id)
+			_add_preview(btn, m.character_id, 126.0, m.team_id)
 			if tc:
 				tc.texture = load(ROOM_ASSETS.get("team_color_strip_%d_path" % clampi(m.team_id, 1, 8)) as String)
 				tc.visible = true
@@ -476,7 +476,7 @@ func _add_team_overlay(btn: Button, tid: int, name_str: String, top: bool) -> vo
 	lbl.set_anchors_preset(Control.PRESET_FULL_RECT); strip.add_child(lbl)
 
 
-func _add_preview(parent: Control, cid: String, skin: String, size: float, team: int) -> void:
+func _add_preview(parent: Control, cid: String, size: float, team: int) -> void:
 	if parent == null or cid.strip_edges().is_empty(): return
 	var pv = RoomCharacterPreviewScene.instantiate()
 	if pv == null: return
@@ -487,7 +487,7 @@ func _add_preview(parent: Control, cid: String, skin: String, size: float, team:
 		pc.offset_left = 3.0; pc.offset_top = 3.0; pc.offset_right = -3.0; pc.offset_bottom = -3.0
 		pc.set("stretch", true)
 	parent.add_child(pv)
-	if pv.has_method("configure_preview"): pv.call_deferred("configure_preview", cid, skin, team)
+	if pv.has_method("configure_preview"): pv.call_deferred("configure_preview", cid, team)
 
 
 func _find_member(snapshot, i: int):

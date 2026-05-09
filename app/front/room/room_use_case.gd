@@ -24,7 +24,7 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 const LogPayloadSummarizerScript = preload("res://app/logging/log_payload_summarizer.gd")
 const LogSamplingPolicyScript = preload("res://app/logging/log_sampling_policy.gd")
 const ROOM_USE_CASE_LOG_TAG := "front.room.flow"
-const ROOM_ANOMALY_LOG_PREFIX := "[QQT_ROOM_ANOM]"
+const ROOM_ANOMALY_LOG_PREFIX := "[ROOM_ANOM]"
 
 var app_runtime: Node = null
 var room_client_gateway: RoomClientGateway = null
@@ -104,9 +104,7 @@ func leave_room() -> Dictionary:
 func update_local_profile(
 	player_name: String,
 	character_id: String,
-	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String,
 	team_id: int = 1
 ) -> Dictionary:
 	return _profile_command.update_local_profile(
@@ -114,9 +112,7 @@ func update_local_profile(
 		room_client_gateway,
 		player_name,
 		character_id,
-		character_skin_id,
 		bubble_style_id,
-		bubble_skin_id,
 		team_id
 	)
 

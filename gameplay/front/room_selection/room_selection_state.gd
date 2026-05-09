@@ -12,9 +12,7 @@ func ensure_player(peer_id: int) -> Dictionary:
 		players[peer_id] = {
 			"peer_id": peer_id,
 			"character_id": "",
-			"character_skin_id": "",
 			"bubble_style_id": "",
-			"bubble_skin_id": "",
 			"ready": false,
 		}
 	return players[peer_id]

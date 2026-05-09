@@ -13,7 +13,7 @@ const ServerMatchFinalizeReporterScript = preload("res://network/session/runtime
 const ServerMatchResumeCoordinatorScript = preload("res://network/session/runtime/server_match_resume_coordinator.gd")
 const MatchResumeSnapshotScript = preload("res://network/session/runtime/match_resume_snapshot.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 signal send_to_peer(peer_id: int, message: Dictionary)
 signal broadcast_message(message: Dictionary)

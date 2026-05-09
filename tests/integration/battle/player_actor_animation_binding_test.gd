@@ -7,7 +7,6 @@ const BattleRuntimeConfigScript = preload("res://gameplay/battle/runtime/battle_
 const PlayerRuntimeConfigScript = preload("res://gameplay/battle/runtime/player_runtime_config.gd")
 const CharacterLoaderScript = preload("res://content/characters/runtime/character_loader.gd")
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 
 
@@ -33,12 +32,9 @@ func _test_player_actor_binds_character_animation_set() -> void:
 	var profile = BattlePlayerVisualProfileScript.new()
 	profile.player_slot = 0
 	profile.character_id = "10101"
-	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
-	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 
 	_assert_true(profile.character_presentation != null, "profile loads char_pres_huoying")
-	_assert_true(profile.character_skin != null, "profile loads skin_gold")
 	_assert_true(profile.animation_set != null, "profile loads char_anim_qqt_10101")
 
 	actor_view.configure_visual_profile(profile)
@@ -150,7 +146,6 @@ func _test_remote_player_actor_uses_move_state_for_run_animation() -> void:
 	profile.player_slot = 0
 	profile.character_id = "10101"
 	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
-	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
@@ -184,7 +179,6 @@ func _test_remote_player_actor_uses_authoritative_anim_direction() -> void:
 	profile.player_slot = 0
 	profile.character_id = "10101"
 	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
-	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
@@ -218,7 +212,6 @@ func _test_actor_snaps_large_respawn_teleport() -> void:
 	profile.player_slot = 0
 	profile.character_id = "10101"
 	profile.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
-	profile.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	profile.animation_set = CharacterAnimationSetLoaderScript.load_animation_set("char_anim_qqt_10101")
 	actor_view.configure_visual_profile(profile)
 
@@ -278,7 +271,6 @@ func _test_visual_profile_builder_prefers_runtime_slot_and_team() -> void:
 	player_config.team_id = 8
 	player_config.character_id = "10101"
 	player_config.character_presentation = CharacterLoaderScript.load_character_presentation("10101")
-	player_config.character_skin = CharacterSkinCatalogScript.get_by_id("skin_gold")
 	runtime_config.player_configs.append(player_config)
 
 	var stale_player_slots: Array[Dictionary] = [{

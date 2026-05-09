@@ -6,5 +6,4 @@ extends RefCounted
 @export var character_type: int = 0
 @export var character_id: String = ""
 @export var character_presentation: CharacterPresentationDef
-@export var character_skin: CharacterSkinDef
 @export var animation_set: CharacterAnimationSetDef

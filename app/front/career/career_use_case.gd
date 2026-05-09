@@ -4,7 +4,7 @@ extends RefCounted
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const CareerSummaryStateScript = preload("res://app/front/career/career_summary_state.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
-const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
+const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 var auth_session_state: AuthSessionState = null
 var front_settings_state: FrontSettingsState = null

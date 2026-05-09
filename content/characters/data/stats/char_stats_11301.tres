@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CharacterStatsDef" format=3]
+
+[ext_resource type="Script" path="res://content/characters/defs/character_stats_def.gd" id="1_p635k"]
+
+[resource]
+script = ExtResource("1_p635k")
+stats_id = "char_stats_11301"
+initial_bubble_count = 2
+max_bubble_count = 8
+initial_bubble_power = 3
+max_bubble_power = 7
+initial_move_speed = 4
+max_move_speed = 6
+content_hash = "char_stats_char_stats_11301_csv_v1"

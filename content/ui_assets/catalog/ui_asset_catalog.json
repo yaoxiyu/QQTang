@@ -5,7 +5,7 @@
     {
       "asset_id": "ui.login.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/login/bg_main.png",
       "default_width": 1746,
       "default_height": 1193,
       "nine_patch": false,
@@ -16,7 +16,7 @@
     {
       "asset_id": "ui.login.logo.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/logo_main.png",
+      "resource_path": "res://external/assets/ui/front/login/logo_main.png",
       "default_width": 420,
       "default_height": 160,
       "nine_patch": false,
@@ -27,7 +27,7 @@
     {
       "asset_id": "ui.login.panel.auth",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/panel_auth.png",
+      "resource_path": "res://external/assets/ui/front/login/panel_auth.png",
       "default_width": 520,
       "default_height": 620,
       "nine_patch": true,
@@ -38,7 +38,7 @@
     {
       "asset_id": "ui.login.input.account.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/input_account_normal.png",
+      "resource_path": "res://external/assets/ui/front/login/input_account_normal.png",
       "default_width": 420,
       "default_height": 72,
       "nine_patch": true,
@@ -49,7 +49,7 @@
     {
       "asset_id": "ui.login.input.account.focused",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/input_account_focused.png",
+      "resource_path": "res://external/assets/ui/front/login/input_account_focused.png",
       "default_width": 420,
       "default_height": 72,
       "nine_patch": true,
@@ -60,7 +60,7 @@
     {
       "asset_id": "ui.login.input.password.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/input_password_normal.png",
+      "resource_path": "res://external/assets/ui/front/login/input_password_normal.png",
       "default_width": 420,
       "default_height": 72,
       "nine_patch": true,
@@ -71,7 +71,7 @@
     {
       "asset_id": "ui.login.input.password.focused",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/input_password_focused.png",
+      "resource_path": "res://external/assets/ui/front/login/input_password_focused.png",
       "default_width": 420,
       "default_height": 72,
       "nine_patch": true,
@@ -82,7 +82,7 @@
     {
       "asset_id": "ui.login.button.login.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_login_normal.png",
+      "resource_path": "res://external/assets/ui/front/login/button_login_normal.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -93,7 +93,7 @@
     {
       "asset_id": "ui.login.button.login.hover",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_login_hover.png",
+      "resource_path": "res://external/assets/ui/front/login/button_login_hover.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -104,7 +104,7 @@
     {
       "asset_id": "ui.login.button.login.pressed",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_login_pressed.png",
+      "resource_path": "res://external/assets/ui/front/login/button_login_pressed.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -115,7 +115,7 @@
     {
       "asset_id": "ui.login.button.login.disabled",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_login_disabled.png",
+      "resource_path": "res://external/assets/ui/front/login/button_login_disabled.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -126,7 +126,7 @@
     {
       "asset_id": "ui.login.button.register.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_register_normal.png",
+      "resource_path": "res://external/assets/ui/front/login/button_register_normal.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -137,7 +137,7 @@
     {
       "asset_id": "ui.login.button.guest.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/button_guest_normal.png",
+      "resource_path": "res://external/assets/ui/front/login/button_guest_normal.png",
       "default_width": 260,
       "default_height": 78,
       "nine_patch": true,
@@ -148,7 +148,7 @@
     {
       "asset_id": "ui.login.label.error",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/label_error.png",
+      "resource_path": "res://external/assets/ui/front/login/label_error.png",
       "default_width": 420,
       "default_height": 42,
       "nine_patch": false,
@@ -159,7 +159,7 @@
     {
       "asset_id": "ui.login.label.server_status",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/login/label_server_status.png",
+      "resource_path": "res://external/assets/ui/front/login/label_server_status.png",
       "default_width": 420,
       "default_height": 42,
       "nine_patch": false,
@@ -170,7 +170,7 @@
     {
       "asset_id": "ui.lobby.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/lobby/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/lobby/bg_main.png",
       "default_width": 1752,
       "default_height": 1191,
       "nine_patch": false,
@@ -181,7 +181,7 @@
     {
       "asset_id": "ui.lobby.panel.player_summary",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/lobby/panel_player_summary.png",
+      "resource_path": "res://external/assets/ui/front/lobby/panel_player_summary.png",
       "default_width": 420,
       "default_height": 180,
       "nine_patch": true,
@@ -192,7 +192,7 @@
     {
       "asset_id": "ui.lobby.button.shop.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/lobby/button_shop_normal.png",
+      "resource_path": "res://external/assets/ui/front/lobby/button_shop_normal.png",
       "default_width": 180,
       "default_height": 72,
       "nine_patch": true,
@@ -203,7 +203,7 @@
     {
       "asset_id": "ui.lobby.button.inventory.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/lobby/button_inventory_normal.png",
+      "resource_path": "res://external/assets/ui/front/lobby/button_inventory_normal.png",
       "default_width": 180,
       "default_height": 72,
       "nine_patch": true,
@@ -214,7 +214,7 @@
     {
       "asset_id": "ui.shop.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/shop/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/shop/bg_main.png",
       "default_width": 1752,
       "default_height": 1191,
       "nine_patch": false,
@@ -225,7 +225,7 @@
     {
       "asset_id": "ui.shop.card.offer.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/shop/card_offer_normal.png",
+      "resource_path": "res://external/assets/ui/front/shop/card_offer_normal.png",
       "default_width": 260,
       "default_height": 340,
       "nine_patch": true,
@@ -236,7 +236,7 @@
     {
       "asset_id": "ui.shop.button.buy.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/shop/button_buy_normal.png",
+      "resource_path": "res://external/assets/ui/front/shop/button_buy_normal.png",
       "default_width": 220,
       "default_height": 72,
       "nine_patch": true,
@@ -247,7 +247,7 @@
     {
       "asset_id": "ui.inventory.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/inventory/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/inventory/bg_main.png",
       "default_width": 1752,
       "default_height": 1191,
       "nine_patch": false,
@@ -258,7 +258,7 @@
     {
       "asset_id": "ui.inventory.card.asset.normal",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/inventory/card_asset_normal.png",
+      "resource_path": "res://external/assets/ui/front/inventory/card_asset_normal.png",
       "default_width": 160,
       "default_height": 190,
       "nine_patch": true,
@@ -269,7 +269,7 @@
     {
       "asset_id": "ui.room.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/room/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/room/bg_main.png",
       "default_width": 1740,
       "default_height": 1176,
       "nine_patch": false,
@@ -280,7 +280,7 @@
     {
       "asset_id": "ui.loading.bg.main",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/loading/bg_main.png",
+      "resource_path": "res://external/assets/ui/front/loading/bg_main.png",
       "default_width": 563,
       "default_height": 495,
       "nine_patch": false,
@@ -291,7 +291,7 @@
     {
       "asset_id": "ui.loading.progress.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/loading/progress_frame.png",
+      "resource_path": "res://external/assets/ui/front/loading/progress_frame.png",
       "default_width": 420,
       "default_height": 38,
       "nine_patch": true,
@@ -302,7 +302,7 @@
     {
       "asset_id": "ui.loading.progress.fill",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/front/loading/progress_fill.png",
+      "resource_path": "res://external/assets/ui/front/loading/progress_fill.png",
       "default_width": 412,
       "default_height": 28,
       "nine_patch": true,
@@ -313,7 +313,7 @@
     {
       "asset_id": "ui.battle.hud.timer.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/timer_frame.png",
+      "resource_path": "res://external/assets/ui/battle/hud/timer_frame.png",
       "default_width": 220,
       "default_height": 82,
       "nine_patch": true,
@@ -324,7 +324,7 @@
     {
       "asset_id": "ui.battle.hud.countdown.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/countdown_frame.png",
+      "resource_path": "res://external/assets/ui/battle/hud/countdown_frame.png",
       "default_width": 360,
       "default_height": 180,
       "nine_patch": true,
@@ -335,7 +335,7 @@
     {
       "asset_id": "ui.battle.hud.player_row",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/player_row.png",
+      "resource_path": "res://external/assets/ui/battle/hud/player_row.png",
       "default_width": 340,
       "default_height": 72,
       "nine_patch": true,
@@ -346,7 +346,7 @@
     {
       "asset_id": "ui.battle.hud.score_panel",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/score_panel.png",
+      "resource_path": "res://external/assets/ui/battle/hud/score_panel.png",
       "default_width": 360,
       "default_height": 260,
       "nine_patch": true,
@@ -357,7 +357,7 @@
     {
       "asset_id": "ui.battle.hud.team_score.red",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/team_score_red.png",
+      "resource_path": "res://external/assets/ui/battle/hud/team_score_red.png",
       "default_width": 180,
       "default_height": 90,
       "nine_patch": true,
@@ -368,7 +368,7 @@
     {
       "asset_id": "ui.battle.hud.team_score.blue",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/team_score_blue.png",
+      "resource_path": "res://external/assets/ui/battle/hud/team_score_blue.png",
       "default_width": 180,
       "default_height": 90,
       "nine_patch": true,
@@ -379,7 +379,7 @@
     {
       "asset_id": "ui.battle.hud.local_status.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/local_status_frame.png",
+      "resource_path": "res://external/assets/ui/battle/hud/local_status_frame.png",
       "default_width": 260,
       "default_height": 72,
       "nine_patch": true,
@@ -390,7 +390,7 @@
     {
       "asset_id": "ui.battle.hud.hp_bar.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/hp_bar_frame.png",
+      "resource_path": "res://external/assets/ui/battle/hud/hp_bar_frame.png",
       "default_width": 220,
       "default_height": 28,
       "nine_patch": true,
@@ -401,7 +401,7 @@
     {
       "asset_id": "ui.battle.hud.hp_bar.fill",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/hp_bar_fill.png",
+      "resource_path": "res://external/assets/ui/battle/hud/hp_bar_fill.png",
       "default_width": 212,
       "default_height": 20,
       "nine_patch": true,
@@ -412,7 +412,7 @@
     {
       "asset_id": "ui.battle.item_slot.empty",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/item_slot_empty.png",
+      "resource_path": "res://external/assets/ui/battle/hud/item_slot_empty.png",
       "default_width": 72,
       "default_height": 72,
       "nine_patch": true,
@@ -423,7 +423,7 @@
     {
       "asset_id": "ui.battle.item_slot.active",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/item_slot_active.png",
+      "resource_path": "res://external/assets/ui/battle/hud/item_slot_active.png",
       "default_width": 72,
       "default_height": 72,
       "nine_patch": true,
@@ -434,7 +434,7 @@
     {
       "asset_id": "ui.battle.item_slot.cooldown",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/item_slot_cooldown.png",
+      "resource_path": "res://external/assets/ui/battle/hud/item_slot_cooldown.png",
       "default_width": 72,
       "default_height": 72,
       "nine_patch": true,
@@ -445,7 +445,7 @@
     {
       "asset_id": "ui.battle.hud.toast.frame",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/toast_frame.png",
+      "resource_path": "res://external/assets/ui/battle/hud/toast_frame.png",
       "default_width": 420,
       "default_height": 96,
       "nine_patch": true,
@@ -456,7 +456,7 @@
     {
       "asset_id": "ui.battle.hud.network.good",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/network_good.png",
+      "resource_path": "res://external/assets/ui/battle/hud/network_good.png",
       "default_width": 48,
       "default_height": 48,
       "nine_patch": false,
@@ -467,7 +467,7 @@
     {
       "asset_id": "ui.battle.hud.network.warning",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/network_warning.png",
+      "resource_path": "res://external/assets/ui/battle/hud/network_warning.png",
       "default_width": 48,
       "default_height": 48,
       "nine_patch": false,
@@ -478,7 +478,7 @@
     {
       "asset_id": "ui.battle.hud.network.bad",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/battle/hud/network_bad.png",
+      "resource_path": "res://external/assets/ui/battle/hud/network_bad.png",
       "default_width": 48,
       "default_height": 48,
       "nine_patch": false,
@@ -544,7 +544,7 @@
     {
       "asset_id": "ui.currency.soft_gold.icon",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/economy/soft_gold_icon.png",
+      "resource_path": "res://external/assets/ui/economy/soft_gold_icon.png",
       "default_width": 48,
       "default_height": 48,
       "nine_patch": false,
@@ -555,7 +555,7 @@
     {
       "asset_id": "ui.currency.premium_gem.icon",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/economy/premium_gem_icon.png",
+      "resource_path": "res://external/assets/ui/economy/premium_gem_icon.png",
       "default_width": 48,
       "default_height": 48,
       "nine_patch": false,
@@ -566,7 +566,7 @@
     {
       "asset_id": "ui.placeholder.missing",
       "asset_kind": "texture",
-      "resource_path": "res://assets/ui/common/placeholder_missing.png",
+      "resource_path": "res://external/assets/ui/common/placeholder_missing.png",
       "default_width": 128,
       "default_height": 128,
       "nine_patch": false,

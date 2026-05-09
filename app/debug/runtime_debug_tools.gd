@@ -9,9 +9,7 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const DEFAULT_REMOTE_NAME: String = "RemoteFox"
 
 
@@ -32,9 +30,7 @@ func bootstrap_local_loop_room_if_enabled(room_controller: Node, runtime_config:
 		remote_member.slot_index = 1
 		remote_member.team_id = 2
 		remote_member.character_id = _resolve_debug_remote_character_id()
-		remote_member.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
 		remote_member.bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
-		remote_member.bubble_skin_id = BubbleSkinCatalogScript.get_default_skin_id()
 		room_controller.join_room(remote_member)
 
 	if room_controller.room_session.peers.size() == 2 and room_controller.room_session.peers.has(local_peer_id) and room_controller.room_session.peers.has(remote_peer_id):
@@ -66,9 +62,7 @@ func ensure_manual_local_loop_room(room_controller: Node, local_peer_id: int, re
 		remote_member.slot_index = 1
 		remote_member.team_id = 2
 		remote_member.character_id = _resolve_debug_remote_character_id()
-		remote_member.character_skin_id = CharacterSkinCatalogScript.get_default_skin_id()
 		remote_member.bubble_style_id = BubbleCatalogScript.get_default_bubble_id()
-		remote_member.bubble_skin_id = BubbleSkinCatalogScript.get_default_skin_id()
 		room_controller.join_room(remote_member)
 	else:
 		room_controller.set_member_ready(remote_peer_id, true)

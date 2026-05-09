@@ -38,10 +38,8 @@ type CreateTicketInput struct {
 	RoomKind                string `json:"room_kind"`
 	RequestedMatchID        string `json:"requested_match_id"`
 	AssignmentID            string `json:"assignment_id"`
-	SelectedCharacterID     string `json:"selected_character_id"`
-	SelectedCharacterSkinID string `json:"selected_character_skin_id"`
-	SelectedBubbleStyleID   string `json:"selected_bubble_style_id"`
-	SelectedBubbleSkinID    string `json:"selected_bubble_skin_id"`
+	SelectedCharacterID   string `json:"selected_character_id"`
+	SelectedBubbleStyleID string `json:"selected_bubble_style_id"`
 }
 
 type CreateTicketResult struct {
@@ -65,10 +63,8 @@ type CreateTicketResult struct {
 	AutoReadyOnJoin         bool     `json:"auto_ready_on_join"`
 	HiddenRoom              bool     `json:"hidden_room"`
 	DisplayName             string   `json:"display_name"`
-	AllowedCharacterIDs     []string `json:"allowed_character_ids"`
-	AllowedCharacterSkinIDs []string `json:"allowed_character_skin_ids"`
-	AllowedBubbleStyleIDs   []string `json:"allowed_bubble_style_ids"`
-	AllowedBubbleSkinIDs    []string `json:"allowed_bubble_skin_ids"`
+	AllowedCharacterIDs   []string `json:"allowed_character_ids"`
+	AllowedBubbleStyleIDs []string `json:"allowed_bubble_style_ids"`
 	IssuedAtUnixSec         int64    `json:"issued_at_unix_sec"`
 	ExpireAtUnixSec         int64    `json:"expire_at_unix_sec"`
 }
@@ -92,9 +88,7 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		return CreateTicketResult{}, err
 	}
 	if !isAllowedCharacterSelection(profileResp.OwnedCharacterIDs, input.SelectedCharacterID) ||
-		!contains(profileResp.OwnedCharacterSkinIDs, input.SelectedCharacterSkinID) ||
-		!contains(profileResp.OwnedBubbleStyleIDs, input.SelectedBubbleStyleID) ||
-		!contains(profileResp.OwnedBubbleSkinIDs, input.SelectedBubbleSkinID) {
+		!contains(profileResp.OwnedBubbleStyleIDs, input.SelectedBubbleStyleID) {
 		return CreateTicketResult{}, ErrLoadoutNotOwned
 	}
 
@@ -157,13 +151,11 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
 		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
-		AllowedCharacterIDs:     withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
-		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,
-		AllowedBubbleStyleIDs:   profileResp.OwnedBubbleStyleIDs,
-		AllowedBubbleSkinIDs:    profileResp.OwnedBubbleSkinIDs,
-		IssuedAtUnixSec:         now.Unix(),
-		ExpireAtUnixSec:         expireAt.Unix(),
-		Nonce:                   nonce,
+		AllowedCharacterIDs:   withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
+		AllowedBubbleStyleIDs: profileResp.OwnedBubbleStyleIDs,
+		IssuedAtUnixSec:       now.Unix(),
+		ExpireAtUnixSec:       expireAt.Unix(),
+		Nonce:                 nonce,
 	}
 	token, signedClaim, err := s.issuer.IssueTicket(claim)
 	if err != nil {
@@ -209,12 +201,10 @@ func (s *Service) CreateTicket(ctx context.Context, input CreateTicketInput) (Cr
 		AutoReadyOnJoin:         lockedClaim.AutoReadyOnJoin,
 		HiddenRoom:              lockedClaim.HiddenRoom,
 		DisplayName:             profileResp.Nickname,
-		AllowedCharacterIDs:     withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
-		AllowedCharacterSkinIDs: profileResp.OwnedCharacterSkinIDs,
-		AllowedBubbleStyleIDs:   profileResp.OwnedBubbleStyleIDs,
-		AllowedBubbleSkinIDs:    profileResp.OwnedBubbleSkinIDs,
-		IssuedAtUnixSec:         now.Unix(),
-		ExpireAtUnixSec:         expireAt.Unix(),
+		AllowedCharacterIDs:   withRandomCharacterPlaceholder(profileResp.OwnedCharacterIDs),
+		AllowedBubbleStyleIDs: profileResp.OwnedBubbleStyleIDs,
+		IssuedAtUnixSec:       now.Unix(),
+		ExpireAtUnixSec:       expireAt.Unix(),
 	}, nil
 }
 

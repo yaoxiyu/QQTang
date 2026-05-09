@@ -7,9 +7,7 @@ var room_kind: String = ""
 var requested_match_id: String = ""
 var assignment_id: String = ""
 var selected_character_id: String = ""
-var selected_character_skin_id: String = ""
 var selected_bubble_style_id: String = ""
-var selected_bubble_skin_id: String = ""
 
 
 func to_dict() -> Dictionary:
@@ -20,7 +18,5 @@ func to_dict() -> Dictionary:
 		"requested_match_id": requested_match_id,
 		"assignment_id": assignment_id,
 		"selected_character_id": selected_character_id,
-		"selected_character_skin_id": selected_character_skin_id,
 		"selected_bubble_style_id": selected_bubble_style_id,
-		"selected_bubble_skin_id": selected_bubble_skin_id,
 	}

@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://bd4vkx6o4px6e"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://d1kjie3nk2vog" path="res://presentation/battle/hud/settlement_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://presentation/battle/hud/settlement_controller.gd" id="1_controller"]
 
 [node name="SettlementController" type="Control" unique_id=548600662]
 layout_mode = 3

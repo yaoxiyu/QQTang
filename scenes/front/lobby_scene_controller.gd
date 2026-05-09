@@ -35,9 +35,7 @@ const CUSTOM_ROOM_PAGE_SIZE := 8
 @onready var inventory_status_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/InventoryStatusRow/InventoryStatusValue")
 @onready var shop_status_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/AccountCard/AccountVBox/ShopStatusRow/ShopStatusValue")
 @onready var default_character_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterRow/DefaultCharacterValue")
-@onready var default_character_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultCharacterSkinRow/DefaultCharacterSkinValue")
 @onready var default_bubble_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleRow/DefaultBubbleValue")
-@onready var default_bubble_skin_value: Label = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/ProfileCard/ProfileVBox/DefaultBubbleSkinRow/DefaultBubbleSkinValue")
 @onready var start_practice_button: Button = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/PracticeCard/PracticeVBox/StartPracticeButton")
 @onready var host_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/ServerRow/HostInput")
 @onready var port_input: LineEdit = get_node_or_null("LobbyRoot/MainLayout/ScrollArea/ScrollContent/OnlineCard/OnlineVBox/ServerRow/PortInput")
@@ -221,12 +219,8 @@ func _refresh_view() -> void:
 	_refresh_reference_lobby_summary(view_state)
 	if default_character_value != null:
 		default_character_value.text = String(view_state.default_character_id)
-	if default_character_skin_value != null:
-		default_character_skin_value.text = String(view_state.default_character_skin_id)
 	if default_bubble_value != null:
 		default_bubble_value.text = String(view_state.default_bubble_style_id)
-	if default_bubble_skin_value != null:
-		default_bubble_skin_value.text = String(view_state.default_bubble_skin_id)
 	if host_input != null:
 		host_input.text = String(view_state.last_server_host)
 	if port_input != null:

@@ -22,7 +22,6 @@ func build(runtime_config: BattleRuntimeConfig, player_slots: Array[Dictionary] 
 		profile.character_type = int(player_config.character_type)
 		profile.character_id = player_config.character_id
 		profile.character_presentation = player_config.character_presentation
-		profile.character_skin = player_config.character_skin
 		profile.animation_set = _load_animation_set(player_config.character_presentation, profile.team_id)
 		result[player_slot] = profile
 

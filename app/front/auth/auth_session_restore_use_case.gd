@@ -106,20 +106,14 @@ func _try_sync_profile() -> Dictionary:
 		if _has_object_property(app_runtime.player_profile_state, "title_id"):
 			app_runtime.player_profile_state.title_id = String(result.get("title_id", app_runtime.player_profile_state.title_id))
 		app_runtime.player_profile_state.default_character_id = PlayerProfileStateScript.resolve_default_character_id(String(result.get("default_character_id", app_runtime.player_profile_state.default_character_id)))
-		app_runtime.player_profile_state.default_character_skin_id = String(result.get("default_character_skin_id", app_runtime.player_profile_state.default_character_skin_id))
 		app_runtime.player_profile_state.default_bubble_style_id = String(result.get("default_bubble_style_id", app_runtime.player_profile_state.default_bubble_style_id))
-		app_runtime.player_profile_state.default_bubble_skin_id = String(result.get("default_bubble_skin_id", app_runtime.player_profile_state.default_bubble_skin_id))
 		app_runtime.player_profile_state.preferred_map_id = String(result.get("preferred_map_id", app_runtime.player_profile_state.preferred_map_id))
 		app_runtime.player_profile_state.preferred_rule_set_id = String(result.get("preferred_rule_set_id", app_runtime.player_profile_state.preferred_rule_set_id))
 		app_runtime.player_profile_state.preferred_mode_id = String(result.get("preferred_mode_id", app_runtime.player_profile_state.preferred_mode_id))
 		if _has_object_property(app_runtime.player_profile_state, "owned_character_ids"):
 			app_runtime.player_profile_state.owned_character_ids = PlayerProfileStateScript._to_string_array(result.get("owned_character_ids", []))
-		if _has_object_property(app_runtime.player_profile_state, "owned_character_skin_ids"):
-			app_runtime.player_profile_state.owned_character_skin_ids = PlayerProfileStateScript._to_string_array(result.get("owned_character_skin_ids", []))
 		if _has_object_property(app_runtime.player_profile_state, "owned_bubble_style_ids"):
 			app_runtime.player_profile_state.owned_bubble_style_ids = PlayerProfileStateScript._to_string_array(result.get("owned_bubble_style_ids", []))
-		if _has_object_property(app_runtime.player_profile_state, "owned_bubble_skin_ids"):
-			app_runtime.player_profile_state.owned_bubble_skin_ids = PlayerProfileStateScript._to_string_array(result.get("owned_bubble_skin_ids", []))
 		if _has_object_property(app_runtime.player_profile_state, "profile_version"):
 			app_runtime.player_profile_state.profile_version = int(result.get("profile_version", app_runtime.player_profile_state.profile_version))
 		if _has_object_property(app_runtime.player_profile_state, "owned_asset_revision"):

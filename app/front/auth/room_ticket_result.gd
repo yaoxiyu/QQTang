@@ -27,9 +27,7 @@ var auto_ready_on_join: bool = false
 var hidden_room: bool = false
 var display_name: String = ""
 var allowed_character_ids: Array[String] = []
-var allowed_character_skin_ids: Array[String] = []
 var allowed_bubble_style_ids: Array[String] = []
-var allowed_bubble_skin_ids: Array[String] = []
 var issued_at_unix_sec: int = 0
 var expire_at_unix_sec: int = 0
 
@@ -68,9 +66,7 @@ static func success_from_dict(data: Dictionary):
 	result.hidden_room = bool(data.get("hidden_room", false))
 	result.display_name = String(data.get("display_name", ""))
 	result.allowed_character_ids = _to_string_array(data.get("allowed_character_ids", []))
-	result.allowed_character_skin_ids = _to_string_array(data.get("allowed_character_skin_ids", []))
 	result.allowed_bubble_style_ids = _to_string_array(data.get("allowed_bubble_style_ids", []))
-	result.allowed_bubble_skin_ids = _to_string_array(data.get("allowed_bubble_skin_ids", []))
 	result.issued_at_unix_sec = int(data.get("issued_at_unix_sec", 0))
 	result.expire_at_unix_sec = int(data.get("expire_at_unix_sec", 0))
 	return result

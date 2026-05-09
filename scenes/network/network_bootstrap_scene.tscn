@@ -1,6 +1,6 @@
-[gd_scene format=3 uid="uid://pqopsy30jjyt"]
+[gd_scene format=3 ]
 
-[ext_resource type="Script" uid="uid://w65dcochrjsg" path="res://network/runtime/network_bootstrap.gd" id="1_ro6el"]
+[ext_resource type="Script" path="res://network/runtime/network_bootstrap.gd" id="1_ro6el"]
 
 [node name="NetworkBootstrap" type="Node" unique_id=1954345582]
 script = ExtResource("1_ro6el")

@@ -1,9 +1,7 @@
 extends RefCounted
 
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -13,9 +11,7 @@ func populate_selectors(controller: Node) -> void:
 	controller._suppress_selection_callbacks = true
 	populate_character_selector(controller)
 	populate_team_selector(controller)
-	populate_character_skin_selector(controller)
 	populate_bubble_selector(controller)
-	populate_bubble_skin_selector(controller)
 	populate_mode_selector(controller)
 	populate_map_selector(controller)
 	populate_match_format_selector(controller, "casual")
@@ -55,22 +51,6 @@ func populate_team_selector(controller: Node, team_option_max: int = 2) -> void:
 		controller.team_selector.set_item_metadata(controller.team_selector.item_count - 1, team_id)
 
 
-func populate_character_skin_selector(controller: Node) -> void:
-	if controller.character_skin_selector == null:
-		return
-	controller.character_skin_selector.clear()
-	controller.character_skin_selector.add_item("None")
-	controller.character_skin_selector.set_item_metadata(0, "")
-	var owned_ids := _get_owned_ids(controller, "character_skin")
-	for skin_def in CharacterSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		if not _should_include_owned_entry(owned_ids, String(skin_def.skin_id)):
-			continue
-		controller.character_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.skin_id))
-		controller.character_skin_selector.set_item_metadata(controller.character_skin_selector.item_count - 1, skin_def.skin_id)
-
-
 func populate_bubble_selector(controller: Node) -> void:
 	if controller.bubble_selector == null:
 		return
@@ -88,22 +68,6 @@ func populate_bubble_selector(controller: Node) -> void:
 		var fallback_id := _get_fallback_bubble_id(controller)
 		controller.bubble_selector.add_item(fallback_id)
 		controller.bubble_selector.set_item_metadata(controller.bubble_selector.item_count - 1, fallback_id)
-
-
-func populate_bubble_skin_selector(controller: Node) -> void:
-	if controller.bubble_skin_selector == null:
-		return
-	controller.bubble_skin_selector.clear()
-	controller.bubble_skin_selector.add_item("None")
-	controller.bubble_skin_selector.set_item_metadata(0, "")
-	var owned_ids := _get_owned_ids(controller, "bubble_skin")
-	for skin_def in BubbleSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		if not _should_include_owned_entry(owned_ids, String(skin_def.bubble_skin_id)):
-			continue
-		controller.bubble_skin_selector.add_item(String(skin_def.display_name if not skin_def.display_name.is_empty() else skin_def.bubble_skin_id))
-		controller.bubble_skin_selector.set_item_metadata(controller.bubble_skin_selector.item_count - 1, skin_def.bubble_skin_id)
 
 
 func populate_map_selector(controller: Node, mode_id: String = "") -> void:
@@ -227,12 +191,8 @@ func _get_owned_ids(controller: Node, asset_type: String) -> Array[String]:
 	match asset_type:
 		"character":
 			return profile.owned_character_ids
-		"character_skin":
-			return profile.owned_character_skin_ids
 		"bubble":
 			return profile.owned_bubble_style_ids
-		"bubble_skin":
-			return profile.owned_bubble_skin_ids
 		_:
 			return []
 

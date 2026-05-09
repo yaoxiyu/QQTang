@@ -13,9 +13,7 @@ var profile_name: String = ""
 var avatar_id: String = ""
 var title_id: String = ""
 var default_character_id: String = ""
-var default_character_skin_id: String = ""
 var default_bubble_style_id: String = ""
-var default_bubble_skin_id: String = ""
 var last_server_host: String = RoomDefaultsScript.DEFAULT_HOST
 var last_server_port: int = RoomDefaultsScript.DEFAULT_PORT
 var last_room_id: String = ""
@@ -68,9 +66,7 @@ func to_dict() -> Dictionary:
 		"avatar_id": avatar_id,
 		"title_id": title_id,
 		"default_character_id": default_character_id,
-		"default_character_skin_id": default_character_skin_id,
 		"default_bubble_style_id": default_bubble_style_id,
-		"default_bubble_skin_id": default_bubble_skin_id,
 		"last_server_host": last_server_host,
 		"last_server_port": last_server_port,
 		"last_room_id": last_room_id,

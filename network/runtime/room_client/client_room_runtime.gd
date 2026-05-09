@@ -119,9 +119,7 @@ func request_create_room(
 	room_id_hint: String,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	map_id: String = "",
 	rule_set_id: String = "",
 	mode_id: String = "",
@@ -146,9 +144,7 @@ func request_create_room(
 		"room_id_hint": room_id_hint,
 		"player_name": player_name,
 		"character_id": character_id,
-		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
-		"bubble_skin_id": bubble_skin_id,
 		"map_id": map_id,
 		"rule_set_id": rule_set_id,
 		"mode_id": mode_id,
@@ -168,9 +164,7 @@ func request_join_room(
 	room_id_hint: String,
 	player_name: String,
 	character_id: String,
-	character_skin_id: String = "",
 	bubble_style_id: String = "",
-	bubble_skin_id: String = "",
 	room_ticket: String = "",
 	room_ticket_id: String = "",
 	account_id: String = "",
@@ -186,9 +180,7 @@ func request_join_room(
 		"room_id_hint": room_id_hint,
 		"player_name": player_name,
 		"character_id": character_id,
-		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
-		"bubble_skin_id": bubble_skin_id,
 		"room_ticket": room_ticket,
 		"room_ticket_id": room_ticket_id,
 		"account_id": account_id,
@@ -200,18 +192,14 @@ func request_join_room(
 func request_update_profile(
 	player_name: String,
 	character_id: String,
-	character_skin_id: String,
 	bubble_style_id: String,
-	bubble_skin_id: String,
 	team_id: int
 ) -> void:
 	_send_to_server({
 		"message_type": TransportMessageTypesScript.ROOM_UPDATE_PROFILE,
 		"player_name": player_name,
 		"character_id": character_id,
-		"character_skin_id": character_skin_id,
 		"bubble_style_id": bubble_style_id,
-		"bubble_skin_id": bubble_skin_id,
 		"team_id": team_id,
 	})
 

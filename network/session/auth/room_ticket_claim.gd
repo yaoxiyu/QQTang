@@ -24,9 +24,7 @@ var auto_ready_on_join: bool = false
 var hidden_room: bool = false
 var display_name: String = ""
 var allowed_character_ids: Array[String] = []
-var allowed_character_skin_ids: Array[String] = []
 var allowed_bubble_style_ids: Array[String] = []
-var allowed_bubble_skin_ids: Array[String] = []
 var issued_at_unix_sec: int = 0
 var expire_at_unix_sec: int = 0
 var nonce: String = ""
@@ -56,9 +54,7 @@ func to_dict() -> Dictionary:
 		"hidden_room": hidden_room,
 		"display_name": display_name,
 		"allowed_character_ids": allowed_character_ids.duplicate(),
-		"allowed_character_skin_ids": allowed_character_skin_ids.duplicate(),
 		"allowed_bubble_style_ids": allowed_bubble_style_ids.duplicate(),
-		"allowed_bubble_skin_ids": allowed_bubble_skin_ids.duplicate(),
 		"issued_at_unix_sec": issued_at_unix_sec,
 		"expire_at_unix_sec": expire_at_unix_sec,
 		"nonce": nonce,
@@ -89,9 +85,7 @@ static func from_dict(data: Dictionary):
 	claim.hidden_room = bool(data.get("hidden_room", false))
 	claim.display_name = String(data.get("display_name", ""))
 	claim.allowed_character_ids = _to_string_array(data.get("allowed_character_ids", []))
-	claim.allowed_character_skin_ids = _to_string_array(data.get("allowed_character_skin_ids", []))
 	claim.allowed_bubble_style_ids = _to_string_array(data.get("allowed_bubble_style_ids", []))
-	claim.allowed_bubble_skin_ids = _to_string_array(data.get("allowed_bubble_skin_ids", []))
 	claim.issued_at_unix_sec = int(data.get("issued_at_unix_sec", 0))
 	claim.expire_at_unix_sec = int(data.get("expire_at_unix_sec", 0))
 	claim.nonce = String(data.get("nonce", ""))

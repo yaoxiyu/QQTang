@@ -6,9 +6,7 @@ const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
-const CharacterSkinCatalogScript = preload("res://content/character_skins/catalog/character_skin_catalog.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
-const BubbleSkinCatalogScript = preload("res://content/bubble_skins/catalog/bubble_skin_catalog.gd")
 
 const OUTPUT_DIR := "res://build/generated/room_manifest"
 const OUTPUT_PATH := OUTPUT_DIR + "/room_manifest.json"
@@ -91,9 +89,6 @@ func generate() -> void:
 		"default_character_id": CharacterCatalogScript.get_default_character_id(),
 		"default_bubble_style_id": BubbleCatalogScript.get_default_bubble_id(),
 		"legal_character_ids": _sorted_string_array(CharacterCatalogScript.get_character_ids()),
-		"legal_character_skin_ids": _sorted_string_array(_character_skin_ids()),
-		"legal_bubble_style_ids": _sorted_string_array(BubbleCatalogScript.get_bubble_ids()),
-		"legal_bubble_skin_ids": _sorted_string_array(_bubble_skin_ids()),
 	}
 
 	var payload := {
@@ -170,28 +165,6 @@ func _add_format_for_mode(mode_to_formats: Dictionary, mode_id: String, format_i
 	mode_to_formats[mode_id] = values
 
 
-func _character_skin_ids() -> Array[String]:
-	var result: Array[String] = []
-	for skin_def in CharacterSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		var skin_id := String(skin_def.skin_id).strip_edges()
-		if skin_id.is_empty():
-			continue
-		result.append(skin_id)
-	return result
-
-
-func _bubble_skin_ids() -> Array[String]:
-	var result: Array[String] = []
-	for skin_def in BubbleSkinCatalogScript.get_all():
-		if skin_def == null:
-			continue
-		var bubble_skin_id := String(skin_def.bubble_skin_id).strip_edges()
-		if bubble_skin_id.is_empty():
-			continue
-		result.append(bubble_skin_id)
-	return result
 
 
 func _to_string_array(value) -> Array[String]:

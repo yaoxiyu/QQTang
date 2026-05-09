@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://duw51tworhklw"]
+[gd_scene format=3 ]
 
 [ext_resource type="Script" path="res://presentation/front/preview/room_character_preview.gd" id="1_1xv1d"]
 
