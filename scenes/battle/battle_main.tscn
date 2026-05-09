@@ -4,17 +4,18 @@
 [ext_resource type="Script" uid="uid://dvx3nqkx0aya3" path="res://gameplay/battle/runtime/battle_bootstrap.gd" id="1_boot"]
 [ext_resource type="Script" uid="uid://h3bgaul4qbdn" path="res://presentation/battle/bridge/presentation_bridge.gd" id="2_bridge"]
 [ext_resource type="Script" uid="uid://ctvgjb1m7dhd3" path="res://presentation/battle/hud/battle_hud_controller.gd" id="3_hud"]
-[ext_resource type="Script" uid="uid://b4uablf8oylmg" path="res://presentation/battle/hud/countdown_panel.gd" id="4_count"]
-[ext_resource type="Script" uid="uid://cg8ppd228nu2u" path="res://presentation/battle/hud/player_status_panel.gd" id="5_player"]
 [ext_resource type="Script" uid="uid://bcr2eu6glga5p" path="res://presentation/battle/hud/network_status_panel.gd" id="6_net"]
-[ext_resource type="Script" uid="uid://533ulwiui3j2" path="res://presentation/battle/hud/match_message_panel.gd" id="7_msg"]
 [ext_resource type="Script" uid="uid://cdmn5fxorgqai" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
 [ext_resource type="Script" uid="uid://c7vpwopxwju7n" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
 [ext_resource type="Script" uid="uid://dq081f5vel7m7" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
-[ext_resource type="PackedScene" uid="uid://bd4vkx6o4px6e" path="res://scenes/battle/settlement_popup.tscn" id="11_settlement"]
-[ext_resource type="Script" uid="uid://mamfws2873ns" path="res://presentation/battle/hud/battle_meta_panel.gd" id="12_meta"]
-[ext_resource type="Script" uid="uid://d23hcfdjqmwg5" path="res://presentation/battle/hud/local_player_ability_panel.gd" id="13_ability"]
 [ext_resource type="Script" uid="uid://b8hlpavjx4lw6" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
+[ext_resource type="Texture2D" uid="uid://c6x2sjbb5xwck" path="res://external/assets/source/res/object/ui/game/gameTop.png" id="16_top"]
+[ext_resource type="Texture2D" uid="uid://cx1yv6tt8nu8i" path="res://external/assets/source/res/object/ui/game/gameLeft.png" id="17_left"]
+[ext_resource type="Texture2D" uid="uid://cdycnyasrtv77" path="res://external/assets/source/res/object/ui/game/dlg_statusBar.png" id="18_bottom"]
+[ext_resource type="Script" uid="uid://tag3odx87aky" path="res://presentation/battle/hud/battle_map_grid_preview.gd" id="19_grid"]
+[ext_resource type="Texture2D" uid="uid://pd0ofagn62sp" path="res://external/assets/source/res/object/ui/bg/bg_game.png" id="20_right"]
+[ext_resource type="Script" uid="uid://eyj0ick81aqs" path="res://presentation/battle/hud/battle_countdown_digits.gd" id="21_digits_script"]
+[ext_resource type="Texture2D" uid="uid://dnvv7q5xy680g" path="res://external/assets/source/res/object/ui/common/number3.png" id="22_digits_tex"]
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")
@@ -28,13 +29,15 @@ script = ExtResource("2_bridge")
 [node name="WorldRoot" type="Node2D" parent="." unique_id=445906454]
 
 [node name="EnvironmentRoot" type="Node2D" parent="WorldRoot" unique_id=956782632]
+z_index = -1000
+z_as_relative = false
 
 [node name="MapRoot" type="Node2D" parent="WorldRoot" unique_id=980950022]
 script = ExtResource("8_map")
 
 [node name="GroundLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=1672313657]
 
-[node name="SurfaceLayer" type="Node2D" parent="WorldRoot/MapRoot"]
+[node name="SurfaceLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=1413815340]
 
 [node name="StaticBlockLayer" type="Node2D" parent="WorldRoot/MapRoot" unique_id=246488867]
 
@@ -62,20 +65,64 @@ script = ExtResource("10_fx")
 
 [node name="BattleHUD" type="Node" parent="CanvasLayer" unique_id=1572829207]
 script = ExtResource("3_hud")
+countdown_panel_path = NodePath("")
+player_status_panel_path = NodePath("")
+match_message_panel_path = NodePath("")
+battle_meta_panel_path = NodePath("")
+local_player_ability_panel_path = NodePath("")
+team_score_panel_path = NodePath("")
+local_life_state_panel_path = NodePath("")
 
-[node name="CountdownPanel" type="Label" parent="CanvasLayer" unique_id=1056216100]
-offset_left = 24.0
-offset_top = 20.0
-offset_right = 264.0
-offset_bottom = 60.0
-script = ExtResource("4_count")
+[node name="MapTopFrame" type="TextureRect" parent="CanvasLayer" unique_id=205590111]
+offset_right = 623.0
+offset_bottom = 27.0
+mouse_filter = 2
+texture = ExtResource("16_top")
 
-[node name="PlayerStatusPanel" type="Label" parent="CanvasLayer" unique_id=1019691312]
-offset_left = 24.0
-offset_top = 72.0
-offset_right = 264.0
-offset_bottom = 220.0
-script = ExtResource("5_player")
+[node name="MapLeftFrame" type="TextureRect" parent="CanvasLayer" unique_id=102195730]
+offset_top = 27.0
+offset_right = 10.0
+offset_bottom = 571.0
+mouse_filter = 2
+texture = ExtResource("17_left")
+
+[node name="RightPlayerListFrame" type="TextureRect" parent="CanvasLayer" unique_id=205077341]
+offset_left = 600.0
+offset_right = 800.0
+offset_bottom = 600.0
+mouse_filter = 2
+texture = ExtResource("20_right")
+
+[node name="BottomStatusBarFrame" type="TextureRect" parent="CanvasLayer" unique_id=168550029]
+offset_top = 541.0
+offset_right = 556.0
+offset_bottom = 600.0
+mouse_filter = 2
+texture = ExtResource("18_bottom")
+
+[node name="MapGridPreview" type="Control" parent="CanvasLayer" unique_id=1219312746]
+z_index = 1
+custom_minimum_size = Vector2(600, 520)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 21.0
+offset_right = 610.0
+offset_bottom = 541.0
+mouse_filter = 2
+script = ExtResource("19_grid")
+
+[node name="CountdownDigits" type="Control" parent="CanvasLayer" unique_id=1819901127]
+custom_minimum_size = Vector2(135, 36)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 648.0
+offset_top = 54.0
+offset_right = 783.0
+offset_bottom = 90.0
+mouse_filter = 2
+script = ExtResource("21_digits_script")
+digits_texture = ExtResource("22_digits_tex")
 
 [node name="NetworkStatusPanel" type="Label" parent="CanvasLayer" unique_id=624551940]
 offset_left = 744.0
@@ -83,98 +130,6 @@ offset_top = 20.0
 offset_right = 1016.0
 offset_bottom = 140.0
 script = ExtResource("6_net")
-
-[node name="MatchMessagePanel" type="Label" parent="CanvasLayer" unique_id=1033004102]
-offset_left = 300.0
-offset_top = 18.0
-offset_right = 724.0
-offset_bottom = 66.0
-script = ExtResource("7_msg")
-
-[node name="BattleMetaPanel" type="PanelContainer" parent="CanvasLayer" unique_id=1703300412]
-offset_left = 24.0
-offset_top = 228.0
-offset_right = 284.0
-offset_bottom = 328.0
-script = ExtResource("12_meta")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/BattleMetaPanel" unique_id=1703300413]
-layout_mode = 2
-
-[node name="MapNameLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300414]
-layout_mode = 2
-text = "地图:"
-
-[node name="RuleNameLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300415]
-layout_mode = 2
-text = "规则:"
-
-[node name="MatchMetaLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=1703300416]
-layout_mode = 2
-text = "Match:"
-
-[node name="CharacterNameLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=682250566]
-layout_mode = 2
-text = "Character:"
-
-[node name="BubbleStyleLabel" type="Label" parent="CanvasLayer/BattleMetaPanel/VBoxContainer" unique_id=703995157]
-layout_mode = 2
-text = "Bubble:"
-
-[node name="LocalPlayerAbilityPanel" type="PanelContainer" parent="CanvasLayer" unique_id=1703300417]
-offset_left = 24.0
-offset_top = 340.0
-offset_right = 372.0
-offset_bottom = 388.0
-script = ExtResource("13_ability")
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/LocalPlayerAbilityPanel" unique_id=1703300418]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="BombCountLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300419]
-layout_mode = 2
-text = "Bomb 0/0"
-
-[node name="PowerLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300420]
-layout_mode = 2
-text = "Power 0"
-
-[node name="SpeedLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300421]
-layout_mode = 2
-text = "Speed 0"
-
-[node name="AbilityLabel" type="Label" parent="CanvasLayer/LocalPlayerAbilityPanel/HBoxContainer" unique_id=1703300422]
-layout_mode = 2
-text = "Kick Off"
-
-[node name="SettlementPopupAnchor" type="Control" parent="CanvasLayer" unique_id=1491785118]
-layout_mode = 3
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -220.0
-offset_right = 300.0
-offset_bottom = 220.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="SettlementController" parent="CanvasLayer/SettlementPopupAnchor" unique_id=1446683117 instance=ExtResource("11_settlement")]
-layout_mode = 1
-
-[node name="TeamScorePanel" type="PanelContainer" parent="CanvasLayer" unique_id=810424843]
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="TeamScoreLabel" type="Label" parent="CanvasLayer/TeamScorePanel" unique_id=1568844721]
-layout_mode = 2
-
-[node name="LocalLifeStatePanel" type="Label" parent="CanvasLayer" unique_id=1936075116]
-offset_right = 40.0
-offset_bottom = 23.0
 
 [node name="AudioRoot" type="Node" parent="." unique_id=1810718296]
 

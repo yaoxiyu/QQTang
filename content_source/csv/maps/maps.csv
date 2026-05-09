@@ -4,3 +4,4 @@ map_bomb01,bomb01,res://content/maps/previews/map_bomb01.preview.png,15,13,,5:4;
 map_treasure01,treasure01,res://content/maps/previews/map_treasure01.preview.png,15,13,,3:0;11:0;11:12;3:12,treasure,default_items,treasure,ruleset_score_team,true,100
 map_pig01,pig01,res://content/maps/previews/map_pig01.preview.png,15,13,,3:5;11:5;11:9;3:9,pig,default_items,pig,ruleset_score_team,true,100
 map_match01,match01,res://content/maps/previews/map_match01.preview.png,15,13,,7:5;7:10,match,default_items,match,ruleset_score_team,true,100
+map_bun01,bun01,res://content/maps/previews/map_bun01.preview.png,15,13,,1:1;1:3;5:1;5:3;9:9;13:9;9:12;13:12,bun,default_items,bun,ruleset_score_team,true,100

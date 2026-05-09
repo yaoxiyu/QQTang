@@ -1,5 +1,6 @@
 {
   "catalog_revision": 1,
+  "deprecation_notice": "DEPRECATED: 此 JSON 仅保留兼容兜底。UI 资产新增与维护请使用 content_source/csv/ui/ui_asset_catalog.csv，并逐步迁移运行时到 CSV 主路径。",
   "assets": [
     {
       "asset_id": "ui.login.bg.main",
@@ -482,6 +483,61 @@
       "default_height": 48,
       "nine_patch": false,
       "scale_mode": "keep_aspect",
+      "tags": "battle_hud",
+      "enabled": true
+    },
+    {
+      "asset_id": "ui.battle.hud.timer.digits",
+      "asset_kind": "texture",
+      "resource_path": "res://external/assets/source/res/object/ui/common/number3.png",
+      "default_width": 405,
+      "default_height": 36,
+      "nine_patch": false,
+      "scale_mode": "keep_aspect",
+      "tags": "battle_hud",
+      "enabled": true
+    },
+    {
+      "asset_id": "ui.battle.frame.player_list",
+      "asset_kind": "texture",
+      "resource_path": "res://external/assets/source/res/object/ui/bg/bg_game.png",
+      "default_width": 500,
+      "default_height": 1435,
+      "nine_patch": false,
+      "scale_mode": "stretch",
+      "tags": "battle_hud",
+      "enabled": true
+    },
+    {
+      "asset_id": "ui.battle.frame.status_bar",
+      "asset_kind": "texture",
+      "resource_path": "res://external/assets/source/res/object/ui/game/dlg_statusBar.png",
+      "default_width": 1517,
+      "default_height": 126,
+      "nine_patch": false,
+      "scale_mode": "stretch",
+      "tags": "battle_hud",
+      "enabled": true
+    },
+    {
+      "asset_id": "ui.battle.frame.map_top",
+      "asset_kind": "texture",
+      "resource_path": "res://external/assets/source/res/object/ui/game/gameTop.png",
+      "default_width": 1514,
+      "default_height": 383,
+      "nine_patch": false,
+      "scale_mode": "stretch",
+      "tags": "battle_hud",
+      "enabled": true
+    },
+    {
+      "asset_id": "ui.battle.frame.map_left",
+      "asset_kind": "texture",
+      "resource_path": "res://external/assets/source/res/object/ui/game/gameLeft.png",
+      "default_width": 76,
+      "default_height": 977,
+      "nine_patch": false,
+      "scale_mode": "stretch",
       "tags": "battle_hud",
       "enabled": true
     },

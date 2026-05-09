@@ -9,3 +9,6 @@ map_treasure01,2v2,true,true
 map_pig01,1v1,true,false
 map_pig01,2v2,true,true
 map_match01,1v1,true,false
+map_bun01,1v1,true,false
+map_bun01,2v2,true,true
+map_bun01,4v4,true,true

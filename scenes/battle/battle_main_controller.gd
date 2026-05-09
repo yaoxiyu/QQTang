@@ -20,18 +20,19 @@ const SETTLEMENT_SYNC_RETRY_DELAYS_SEC: Array[float] = [1.0, 2.0, 4.0, 4.0, 4.0]
 @onready var battle_bootstrap: BattleBootstrap = $BattleBootstrap
 @onready var presentation_bridge: BattlePresentationBridge = $BattleBootstrap/PresentationBridge
 @onready var battle_hud: BattleHudController = $CanvasLayer/BattleHUD
-@onready var battle_meta_panel: BattleMetaPanel = $CanvasLayer/BattleMetaPanel
-@onready var battle_meta_map_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MapNameLabel
-@onready var battle_meta_rule_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/RuleNameLabel
-@onready var battle_meta_match_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/MatchMetaLabel
-@onready var battle_meta_character_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/CharacterNameLabel
-@onready var battle_meta_bubble_label: Label = $CanvasLayer/BattleMetaPanel/VBoxContainer/BubbleStyleLabel
+@onready var battle_meta_panel: BattleMetaPanel = get_node_or_null("CanvasLayer/BattleMetaPanel")
+@onready var battle_meta_map_label: Label = get_node_or_null("CanvasLayer/BattleMetaPanel/VBoxContainer/MapNameLabel")
+@onready var battle_meta_rule_label: Label = get_node_or_null("CanvasLayer/BattleMetaPanel/VBoxContainer/RuleNameLabel")
+@onready var battle_meta_match_label: Label = get_node_or_null("CanvasLayer/BattleMetaPanel/VBoxContainer/MatchMetaLabel")
+@onready var battle_meta_character_label: Label = get_node_or_null("CanvasLayer/BattleMetaPanel/VBoxContainer/CharacterNameLabel")
+@onready var battle_meta_bubble_label: Label = get_node_or_null("CanvasLayer/BattleMetaPanel/VBoxContainer/BubbleStyleLabel")
 @onready var settlement_controller: SettlementController = $CanvasLayer/SettlementPopupAnchor/SettlementController
 @onready var battle_camera_controller: BattleCameraController = $BattleCameraController
 @onready var map_theme_environment_controller: MapThemeEnvironmentController = $MapThemeEnvironmentController
 @onready var world_root: Node2D = $WorldRoot
 @onready var canvas_layer: CanvasLayer = $CanvasLayer
 @onready var map_root: BattleMapViewController = $WorldRoot/MapRoot
+@onready var map_grid_preview: Control = get_node_or_null("CanvasLayer/MapGridPreview")
 
 var _app_runtime: Node = null
 var _battle_context: BattleContext = null
@@ -57,16 +58,18 @@ var _place_action_latched: bool = false
 var _runtime_bound: bool = false
 var _battle_visuals_released: bool = false
 var _runtime_reparenting: bool = false
+var _debug_panels_visible: bool = false
 
 
 func _ready() -> void:
 	_shutdown_coordinator.register_handle(self)
+	_apply_runtime_render_order()
 	_set_battle_visuals_available(false)
 	call_deferred("_bind_runtime")
 
 
 func _process(delta: float) -> void:
-	if settlement_controller.visible:
+	if settlement_controller != null and settlement_controller.visible:
 		return
 	if _shutting_down:
 		return
@@ -133,10 +136,11 @@ func _initialize_runtime() -> void:
 	if _app_runtime != null:
 		_app_runtime.register_battle_modules(self, battle_bootstrap, presentation_bridge, battle_hud, battle_camera_controller, settlement_controller)
 	_connect_session_signals()
-	if not settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
-		settlement_controller.return_to_room_requested.connect(_on_settlement_return_to_room_requested)
-	if not settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
-		settlement_controller.rematch_requested.connect(_on_settlement_rematch_requested)
+	if settlement_controller != null:
+		if not settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
+			settlement_controller.return_to_room_requested.connect(_on_settlement_return_to_room_requested)
+		if not settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
+			settlement_controller.rematch_requested.connect(_on_settlement_rematch_requested)
 
 	if _session_adapter != null:
 		if _app_runtime != null and _app_runtime.current_resume_snapshot != null:
@@ -224,10 +228,11 @@ func shutdown(_context: Variant) -> void:
 	_shutdown_complete = true
 	if _app_runtime != null:
 		_app_runtime.unregister_battle_modules(self)
-	if settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
-		settlement_controller.return_to_room_requested.disconnect(_on_settlement_return_to_room_requested)
-	if settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
-		settlement_controller.rematch_requested.disconnect(_on_settlement_rematch_requested)
+	if settlement_controller != null:
+		if settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
+			settlement_controller.return_to_room_requested.disconnect(_on_settlement_return_to_room_requested)
+		if settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
+			settlement_controller.rematch_requested.disconnect(_on_settlement_rematch_requested)
 	_disconnect_session_signals(true)
 	_shutdown_active_battle()
 
@@ -245,7 +250,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _requires_dedicated_authority_opening() and not _battle_visuals_released:
 		return
-	if event.is_action_pressed("ui_accept") and settlement_controller.visible:
+	if event.is_action_pressed("ui_accept") and settlement_controller != null and settlement_controller.visible:
 		settlement_controller.request_return_to_room()
 		return
 	if event.is_action_pressed("ui_left"):
@@ -268,6 +273,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_latch_direction_tap("down")
 	elif event.is_action_released("ui_down"):
 		_remove_direction("down")
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
+		_toggle_debug_panels()
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
 		match event.keycode:
 			KEY_SPACE:
@@ -327,6 +334,9 @@ func _on_battle_context_created(context: BattleContext) -> void:
 		map_root,
 		not _requires_dedicated_authority_opening()
 	)
+	_apply_map_preview_alignment()
+	if battle_hud != null:
+		battle_hud.set_debug_panels_visible(_debug_panels_visible)
 	_battle_visuals_released = not _requires_dedicated_authority_opening()
 	_set_battle_visuals_available(_battle_visuals_released)
 	call_deferred("_apply_battle_metadata")
@@ -544,6 +554,10 @@ func _remove_direction(direction: String) -> void:
 
 
 func _show_pending_settlement() -> void:
+	if settlement_controller == null:
+		_pending_settlement_result = null
+		_settlement_delay_remaining = 0.0
+		return
 	_battle_result_transition_controller.show_pending_settlement(
 		_app_runtime,
 		settlement_controller,
@@ -577,6 +591,8 @@ func _shutdown_active_battle() -> void:
 
 
 func _fetch_server_settlement_summary_with_retry(match_id: String, token: int) -> void:
+	if settlement_controller == null:
+		return
 	await _battle_result_transition_controller.fetch_server_settlement_summary_with_retry(
 		self,
 		_app_runtime,
@@ -656,3 +672,27 @@ func _log_online_flow(event_name: String, payload: Dictionary) -> void:
 
 func _get_settlement_sync_token() -> int:
 	return _settlement_sync_token
+
+
+func _toggle_debug_panels() -> void:
+	_debug_panels_visible = not _debug_panels_visible
+	if battle_hud != null and battle_hud.has_method("set_debug_panels_visible"):
+		battle_hud.set_debug_panels_visible(_debug_panels_visible)
+
+
+func _apply_map_preview_alignment() -> void:
+	if battle_camera_controller == null or map_grid_preview == null:
+		return
+	if not battle_camera_controller.has_method("set_map_screen_target_rect"):
+		return
+	var target_rect := Rect2(map_grid_preview.global_position, map_grid_preview.size)
+	battle_camera_controller.set_map_screen_target_rect(target_rect)
+
+
+func _apply_runtime_render_order() -> void:
+	# Runtime only: keep map rendered above UI without changing tscn-authored layout.
+	if canvas_layer != null:
+		canvas_layer.layer = -1
+	if world_root != null:
+		world_root.z_as_relative = false
+		world_root.z_index = 1000

@@ -299,13 +299,26 @@ func _rebuild_ground_tiles() -> void:
 		var rect := entry.get("rect", Rect2i()) as Rect2i
 		if texture == null or rect.size.x <= 0 or rect.size.y <= 0:
 			continue
+		var sprite := Sprite2D.new()
+		sprite.centered = false
+		sprite.texture = texture
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sprite.position = Vector2(rect.position.x, rect.position.y) * cell_size
+		var target_size := Vector2(float(rect.size.x) * cell_size, float(rect.size.y) * cell_size)
+		var texture_size := texture.get_size()
+		if texture_size.x > 0.0 and texture_size.y > 0.0:
+			sprite.scale = Vector2(
+				target_size.x / texture_size.x,
+				target_size.y / texture_size.y
+			)
+		else:
+			sprite.scale = Vector2.ONE
+		sprite.z_as_relative = false
+		sprite.z_index = BattleDepth.ground_z(rect.position)
+		ground_layer.add_child(sprite)
 		for y in range(rect.position.y, rect.position.y + rect.size.y):
 			for x in range(rect.position.x, rect.position.x + rect.size.x):
 				var cell := Vector2i(x, y)
-				var sprite := _build_textured_cell_sprite(texture, cell)
-				sprite.z_as_relative = false
-				sprite.z_index = BattleDepth.ground_z(cell)
-				ground_layer.add_child(sprite)
 				_ground_views_by_cell[cell] = sprite
 
 

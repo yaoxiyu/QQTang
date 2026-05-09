@@ -1128,13 +1128,50 @@ func (s *Service) SweepEmptyBattleRooms(now time.Time) int {
 		if s.game == nil || target.battleID == "" {
 			continue
 		}
-		_, _ = s.game.ReapBattle(gameclient.ReapBattleInput{
-			RoomID:       target.roomID,
-			AssignmentID: target.assignmentID,
-			BattleID:     target.battleID,
+		s.executeBattleReap(battleReapRequest{
+			roomID:       target.roomID,
+			assignmentID: target.assignmentID,
+			battleID:     target.battleID,
+			reason:       "empty_battle_room_sweep",
 		})
 	}
 	return len(targets)
+}
+
+func (s *Service) executeBattleReap(request battleReapRequest) bool {
+	if s == nil || s.game == nil || request.battleID == "" {
+		return false
+	}
+	_, err := s.game.ReapBattle(gameclient.ReapBattleInput{
+		RoomID:       request.roomID,
+		AssignmentID: request.assignmentID,
+		BattleID:     request.battleID,
+	})
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn(
+				"battle reap failed",
+				"event", "battle_reap_failed",
+				"room_id", request.roomID,
+				"assignment_id", request.assignmentID,
+				"battle_id", request.battleID,
+				"reason", request.reason,
+				"error", err.Error(),
+			)
+		}
+		return false
+	}
+	if s.logger != nil {
+		s.logger.Info(
+			"battle reaped",
+			"event", "battle_reaped",
+			"room_id", request.roomID,
+			"assignment_id", request.assignmentID,
+			"battle_id", request.battleID,
+			"reason", request.reason,
+		)
+	}
+	return true
 }
 
 func (s *Service) DirectorySnapshot(serverHost string, serverPort int32) *roomv1.RoomDirectorySnapshot {
@@ -1409,6 +1446,13 @@ type battleSyncTarget struct {
 	assignmentRevision int
 }
 
+type battleReapRequest struct {
+	roomID       string
+	assignmentID string
+	battleID     string
+	reason       string
+}
+
 func (s *Service) collectBattleSyncTargets() []battleSyncTarget {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -1446,6 +1490,7 @@ func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
 	}
 
 	updates := make([]QueueStatusSyncResult, 0, len(targets))
+	reapRequests := make([]battleReapRequest, 0, len(targets))
 	for _, target := range targets {
 		result, err := s.game.GetBattleAssignmentStatus(gameclient.GetBattleAssignmentStatusInput{
 			RoomID:        target.roomID,
@@ -1473,7 +1518,7 @@ func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
 			s.metrics.battleAssignmentStatusErrorCount.Add(1)
 			continue
 		}
-		room := s.applyBattleAssignmentProjection(target, result)
+		room, reapRequest := s.applyBattleAssignmentProjection(target, result)
 		if room != nil {
 			if isManualRoomKind(target.roomKind) {
 				s.metrics.manualBattleAssignmentSyncCount.Add(1)
@@ -1483,6 +1528,12 @@ func (s *Service) SyncBattleAssignmentStatus() []QueueStatusSyncResult {
 				Snapshot: room,
 			})
 		}
+		if reapRequest != nil {
+			reapRequests = append(reapRequests, *reapRequest)
+		}
+	}
+	for _, request := range reapRequests {
+		s.executeBattleReap(request)
 	}
 	return updates
 }
@@ -1504,24 +1555,24 @@ func (s *Service) applyBattleGoneProjection(target battleSyncTarget) *SnapshotPr
 	return s.snapshotProjectionLocked(room)
 }
 
-func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, result gameclient.GetBattleAssignmentStatusResult) *SnapshotProjection {
+func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, result gameclient.GetBattleAssignmentStatusResult) (*SnapshotProjection, *battleReapRequest) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	room := s.roomsByID[target.roomID]
 	if room == nil {
-		return nil
+		return nil, nil
 	}
 	if room.BattleState.AssignmentID != target.assignmentID {
-		return nil
+		return nil, nil
 	}
 	if result.AssignmentRevision > 0 && room.BattleState.AssignmentRevision > int(result.AssignmentRevision) {
 		s.metrics.battleAssignmentRevisionStaleDropCount.Add(1)
-		return nil
+		return nil, nil
 	}
 	if !shouldAcceptBattleAssignmentProjection(room.RoomState.Phase, result.BattlePhase, result.Finalized) {
 		s.logBattleProjectionIgnoredLocked(room, result)
-		return nil
+		return nil, nil
 	}
 
 	room.BattleState.Phase = result.BattlePhase
@@ -1546,6 +1597,7 @@ func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, resul
 		room.BattleState.ServerPort = int(result.ServerPort)
 	}
 	transitionFinalized := false
+	var reapRequest *battleReapRequest = nil
 	switch result.BattlePhase {
 	case "allocating":
 		room.RoomState.Phase = RoomPhaseBattleAllocating
@@ -1570,9 +1622,16 @@ func (s *Service) applyBattleAssignmentProjection(target battleSyncTarget, resul
 
 	if !transitionFinalized {
 		finalizeRoomTransition(room, s.roomOwnerByID[target.roomID])
+	} else if room.BattleState.BattleID != "" {
+		reapRequest = &battleReapRequest{
+			roomID:       room.RoomID,
+			assignmentID: room.BattleState.AssignmentID,
+			battleID:     room.BattleState.BattleID,
+			reason:       "terminal_phase:" + result.BattlePhase,
+		}
 	}
 	s.syncDirectoryEntryLocked(room)
-	return s.snapshotProjectionLocked(room)
+	return s.snapshotProjectionLocked(room), reapRequest
 }
 
 func shouldAcceptBattleAssignmentProjection(currentRoomPhase, resultBattlePhase string, finalized bool) bool {
