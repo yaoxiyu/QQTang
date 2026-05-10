@@ -69,6 +69,7 @@ func configure(
 	z_as_relative = false
 	z_index = BattleDepth.explosion_z(_resolve_center_cell())
 	_rebuild_cells()
+	set_process(true)
 
 
 func _process(delta: float) -> void:
@@ -222,7 +223,7 @@ func _resolve_bubble_type(p_bubble_style_id: String) -> int:
 
 
 func _max_segment_lifetime() -> float:
-	var max_frames := 1
+	var max_duration := 0.0
 	var keys := ["type2_cell"] if bubble_type == 2 else [
 		"center",
 		"arm_right",
@@ -238,8 +239,10 @@ func _max_segment_lifetime() -> float:
 		var frames := _get_segment_frames(key)
 		if frames == null:
 			continue
-		max_frames = maxi(max_frames, frames.get_frame_count(SEGMENT_ANIMATION_NAME))
-	return 1.2
+		var count := float(frames.get_frame_count(SEGMENT_ANIMATION_NAME))
+		var speed := maxf(frames.get_animation_speed(SEGMENT_ANIMATION_NAME), 1.0)
+		max_duration = maxf(max_duration, count / speed)
+	return maxf(max_duration, 0.0) + 0.2
 
 
 func _build_segment_modulate(segment_type: String, style: Dictionary) -> Color:

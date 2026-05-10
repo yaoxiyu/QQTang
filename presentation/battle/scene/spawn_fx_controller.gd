@@ -31,6 +31,7 @@ func spawn_explosion(
 	var view: BattleExplosionActorView = ExplosionActorViewScript.new()
 	view.configure(cells, cell_size, bubble_style_id, bubble_color)
 	fx_layer.add_child(view)
+	view.finished.connect(view.queue_free, CONNECT_ONE_SHOT)
 	LogPresentationScript.info(
 		"QQT_EXPLOSION_TRACE stage=spawn_fx event_tick=%d bubble_id=%d owner=%d cells=%d fx_children=%d style=%s color=%s payload_keys=%s" % [
 			int(event.tick),
