@@ -29,6 +29,9 @@ var _theme_materials: Dictionary = {}
 var _ground_views_by_cell: Dictionary = {}
 var _spawn_marker_views_by_cell: Dictionary = {}
 var _surface_views: Array[Node] = []
+var _channel_pass_mask_by_cell: Dictionary = {}
+var _surface_virtual_z_by_cell: Dictionary = {}
+var _surface_row_max_z: Dictionary = {}
 var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
@@ -59,6 +62,8 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 		_theme_materials = MapThemeMaterialRegistryScript.get_theme_materials(String(_map_theme.theme_id))
 		apply_tile_palette(_map_theme.tile_palette)
 	_clear_runtime_layers()
+	_rebuild_channel_pass_mask_cache()
+	_rebuild_surface_virtual_z_cache()
 	_rebuild_ground_tiles()
 	_rebuild_static_blocks()
 	_rebuild_breakable_blocks()
@@ -84,6 +89,21 @@ func clear_map() -> void:
 	_warmup_samples.clear()
 	_destroy_latency_logged_once = false
 	_clear_runtime_layers()
+	_channel_pass_mask_by_cell.clear()
+	_surface_virtual_z_by_cell.clear()
+	_surface_row_max_z.clear()
+
+
+func get_channel_pass_mask_by_cell() -> Dictionary:
+	return _channel_pass_mask_by_cell.duplicate()
+
+
+func get_surface_virtual_z_by_cell() -> Dictionary:
+	return _surface_virtual_z_by_cell.duplicate()
+
+
+func get_surface_row_max_z() -> Dictionary:
+	return _surface_row_max_z.duplicate()
 
 
 func apply_map_theme(map_theme: MapThemeDef) -> void:
@@ -176,6 +196,41 @@ func _clear_runtime_layers() -> void:
 	_static_views_by_cell.clear()
 	_breakable_views_by_cell.clear()
 	_occluder_views.clear()
+
+
+func _rebuild_channel_pass_mask_cache() -> void:
+	_channel_pass_mask_by_cell.clear()
+	if _runtime_layout == null:
+		return
+	for entry in _runtime_layout.channel_entries:
+		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var movement_pass_mask := clampi(int(entry.get("movement_pass_mask", TileConstants.PASS_NONE)), 0, 15)
+		_channel_pass_mask_by_cell[cell] = movement_pass_mask
+
+
+func _rebuild_surface_virtual_z_cache() -> void:
+	_surface_virtual_z_by_cell.clear()
+	_surface_row_max_z.clear()
+	if _runtime_layout == null:
+		return
+	for entry in _runtime_layout.surface_entries:
+		if String(entry.get("render_role", "surface")) == "occluder":
+			continue
+		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
+		var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
+		var z_bias := int(entry.get("z_bias", 0))
+		for occupied_cell in _anchored_rect_cells(anchor_cell, footprint, anchor_mode):
+			if occupied_cell.x < 0 or occupied_cell.y < 0 or occupied_cell.x >= _runtime_layout.width or occupied_cell.y >= _runtime_layout.height:
+				continue
+			var cell_z := BattleDepth.surface_z(occupied_cell, z_bias)
+			var last_z := int(_surface_virtual_z_by_cell.get(occupied_cell, -2147483648))
+			if cell_z > last_z:
+				_surface_virtual_z_by_cell[occupied_cell] = cell_z
+			var row_key := occupied_cell.y
+			var row_last_z := int(_surface_row_max_z.get(row_key, -2147483648))
+			if cell_z > row_last_z:
+				_surface_row_max_z[row_key] = cell_z
 
 
 func _clear_layer(layer: Node) -> void:
@@ -294,6 +349,32 @@ func _rebuild_surface_entries() -> void:
 		if String(entry.get("interaction_kind", "solid")) == "breakable":
 			var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
 			_breakable_views_by_cell[cell] = node
+
+
+func _resolve_surface_anchor_mode(anchor_mode: String) -> String:
+	if anchor_mode == "center":
+		return "center"
+	if anchor_mode == "bottom_center":
+		return "bottom_center"
+	if anchor_mode == "bottom_left":
+		return "bottom_left"
+	return "bottom_right"
+
+
+func _anchored_rect_cells(anchor_cell: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if size.x <= 0 or size.y <= 0:
+		return result
+	var left := anchor_cell.x - int(floor(float(size.x - 1) / 2.0))
+	for fy in range(size.y):
+		for fx in range(size.x):
+			if anchor_mode == "bottom_left":
+				result.append(Vector2i(anchor_cell.x + fx, anchor_cell.y - fy))
+			elif anchor_mode == "bottom_center" or anchor_mode == "center":
+				result.append(Vector2i(left + fx, anchor_cell.y - fy))
+			else:
+				result.append(Vector2i(anchor_cell.x - fx, anchor_cell.y - fy))
+	return result
 
 
 func _rebuild_ground_tiles() -> void:

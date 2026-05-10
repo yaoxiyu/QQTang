@@ -245,6 +245,7 @@ func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:
 		"entity_id": bubble.entity_id,
 		"owner_player_id": bubble.owner_player_id,
 		"bubble_style_id": bubble_style_id,
+		"cell_size": cell_size,
 		"position": _to_world_position(bubble.cell_x, bubble.cell_y),
 		"cell": Vector2i(bubble.cell_x, bubble.cell_y),
 		"color": _bubble_color_for_owner(world, bubble.owner_player_id),

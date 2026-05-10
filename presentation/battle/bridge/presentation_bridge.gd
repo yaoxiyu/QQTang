@@ -135,6 +135,12 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef) -> void:
 	if map_view != null and map_view.has_method("configure_map_presentation"):
 		map_view.configure_map_presentation(layout, map_theme, cell_size)
+	if actor_registry != null and map_view != null and map_view.has_method("get_channel_pass_mask_by_cell"):
+		actor_registry.configure_channel_pass_mask_by_cell(map_view.get_channel_pass_mask_by_cell())
+	if actor_registry != null and map_view != null and map_view.has_method("get_surface_virtual_z_by_cell"):
+		actor_registry.configure_surface_virtual_z_by_cell(map_view.get_surface_virtual_z_by_cell())
+	if actor_registry != null and map_view != null and map_view.has_method("get_surface_row_max_z"):
+		actor_registry.configure_surface_row_max_z(map_view.get_surface_row_max_z())
 
 
 func clear_bridge() -> void:
@@ -143,6 +149,9 @@ func clear_bridge() -> void:
 	if map_view != null and map_view.has_method("clear_map"):
 		map_view.clear_map()
 	if actor_registry != null:
+		actor_registry.configure_channel_pass_mask_by_cell({})
+		actor_registry.configure_surface_virtual_z_by_cell({})
+		actor_registry.configure_surface_row_max_z({})
 		actor_registry.clear_all()
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("clear_fx"):
 		spawn_fx_controller.clear_fx()

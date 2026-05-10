@@ -13,6 +13,9 @@ var _player_views: Dictionary = {}
 var _bubble_views: Dictionary = {}
 var _item_views: Dictionary = {}
 var _player_visual_profiles: Dictionary = {}
+var _channel_pass_mask_by_cell: Dictionary = {}
+var _surface_virtual_z_by_cell: Dictionary = {}
+var _surface_row_max_z: Dictionary = {}
 
 
 func configure(
@@ -27,6 +30,18 @@ func configure(
 
 func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> void:
 	_player_visual_profiles = player_visual_profiles.duplicate()
+
+
+func configure_channel_pass_mask_by_cell(channel_pass_mask_by_cell: Dictionary) -> void:
+	_channel_pass_mask_by_cell = channel_pass_mask_by_cell.duplicate()
+
+
+func configure_surface_virtual_z_by_cell(surface_virtual_z_by_cell: Dictionary) -> void:
+	_surface_virtual_z_by_cell = surface_virtual_z_by_cell.duplicate()
+
+
+func configure_surface_row_max_z(surface_row_max_z: Dictionary) -> void:
+	_surface_row_max_z = surface_row_max_z.duplicate()
 
 
 func sync_players(parent: Node, players: Array[Dictionary]) -> void:
@@ -104,6 +119,14 @@ func _sync_group(
 		if fallback_script == PlayerActorViewScript and view.has_method("configure_visual_profile"):
 			var player_slot := int(view_state.get("player_slot", -1))
 			view.configure_visual_profile(_player_visual_profiles.get(player_slot, null))
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_channel_occlusion"):
+			view.configure_channel_occlusion(_channel_pass_mask_by_cell)
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_priority_map"):
+			view.configure_surface_priority_map(_surface_virtual_z_by_cell)
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_row_priority_map"):
+			view.configure_surface_row_priority_map(_surface_row_max_z)
+		if fallback_script == BubbleActorViewScript and view.has_method("configure_channel_occlusion"):
+			view.configure_channel_occlusion(_channel_pass_mask_by_cell)
 
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)

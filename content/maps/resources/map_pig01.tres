@@ -1865,6 +1865,15 @@ surface_entries = Array[Dictionary]([{
 "trigger_texture_path": "res://external/assets/maps/elements/pig/elem8_trigger.gif",
 "z_bias": 0
 }])
+channel_entries = Array[Dictionary]([{
+"allow_place_bubble": true,
+"cell": Vector2i(0, 2),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(14, 2),
+"movement_pass_mask": 5
+}])
 bound_mode_id = "pig"
 bound_rule_set_id = "ruleset_score_team"
 match_format_id = "1v1"
@@ -1887,4 +1896,4 @@ match_format_variants = Array[Dictionary]([{
 }])
 matchmaking_ranked_enabled = true
 sort_order = 100
-content_hash = "755ac34c77c5fa195787a9783e4aa1853a4bd67d4aa66c33a311e63d4fffe750"
+content_hash = "cefec186290965762fbcf009b832ec017ca3a95b4632c58bc3134be906fba7d7"

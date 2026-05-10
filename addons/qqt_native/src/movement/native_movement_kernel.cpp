@@ -371,6 +371,9 @@ bool is_move_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_
     if (grid == nullptr) {
         return true;
     }
+    if (grid->tile_block_move != 0) {
+        return true;
+    }
     if (grid->bubble_id == -1) {
         return false;
     }
@@ -602,9 +605,17 @@ Dictionary find_overlap_blocked_cell(
     result["cell"] = Vector2i();
     for (int32_t index = 0; index < candidates.size(); ++index) {
         const Vector2i blocked_cell = candidates[index];
-        if (!is_transition_blocked_for_player_at_pos(
-                ctx, player_id, foot_cell.x, foot_cell.y, blocked_cell.x, blocked_cell.y, abs_pos.x, abs_pos.y)) {
+        const GridRecord *candidate_grid = find_grid_record(ctx, blocked_cell.x, blocked_cell.y);
+        if (candidate_grid == nullptr) {
             continue;
+        }
+        if (candidate_grid->tile_block_move == 0 && candidate_grid->bubble_id == -1) {
+            continue;
+        }
+        if (candidate_grid->bubble_id != -1) {
+            if (!is_bubble_blocking_at_pos(ctx, player_id, candidate_grid->bubble_id, abs_pos.x, abs_pos.y)) {
+                continue;
+            }
         }
         if (!is_overlapping_blocked_cell(abs_pos, Vec2i{blocked_cell.x, blocked_cell.y})) {
             continue;

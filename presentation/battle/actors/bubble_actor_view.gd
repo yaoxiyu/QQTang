@@ -13,6 +13,8 @@ var bubble_style_id: String = ""
 
 var _sprite: AnimatedSprite2D = null
 var _current_animation_set_id: String = ""
+var _channel_pass_mask_by_cell: Dictionary = {}
+var _hide_in_channel: bool = false
 
 
 func _ready() -> void:
@@ -24,9 +26,15 @@ func apply_view_state(view_state: Dictionary) -> void:
 	bubble_id = int(view_state.get("entity_id", -1))
 	position = view_state.get("position", Vector2.ZERO)
 	bubble_style_id = String(view_state.get("bubble_style_id", bubble_style_id))
+	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
+	_hide_in_channel = _channel_pass_mask_by_cell.has(cell)
 	z_as_relative = false
-	z_index = BattleDepth.bubble_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
+	z_index = BattleDepth.bubble_z(cell)
 	_refresh_visuals()
+
+
+func configure_channel_occlusion(channel_pass_mask_by_cell: Dictionary) -> void:
+	_channel_pass_mask_by_cell = channel_pass_mask_by_cell.duplicate()
 
 
 func _ensure_visuals() -> void:
@@ -39,9 +47,11 @@ func _ensure_visuals() -> void:
 func _refresh_visuals() -> void:
 	_ensure_visuals()
 	if _apply_animation_set():
-		_sprite.visible = true
+		_sprite.visible = not _hide_in_channel
 		return
 	_sprite.visible = false
+
+
 
 
 func _apply_animation_set() -> bool:

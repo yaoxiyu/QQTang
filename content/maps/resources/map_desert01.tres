@@ -2749,6 +2749,23 @@ surface_entries = Array[Dictionary]([{
 "trigger_texture_path": "",
 "z_bias": 0
 }])
+channel_entries = Array[Dictionary]([{
+"allow_place_bubble": true,
+"cell": Vector2i(7, 1),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(5, 3),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(9, 3),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(7, 11),
+"movement_pass_mask": 5
+}])
 bound_mode_id = "desert"
 bound_rule_set_id = "ruleset_classic"
 match_format_id = "1v1"
@@ -2763,11 +2780,12 @@ match_format_variants = Array[Dictionary]([{
 }, {
 "match_format_id": "2v2",
 "matchmaking_casual_enabled": true,
-"matchmaking_ranked_enabled": false,
+"matchmaking_ranked_enabled": true,
 "max_player_count": 4,
 "required_party_size": 2,
 "required_team_count": 2,
 "sort_order": 20
 }])
+matchmaking_ranked_enabled = true
 sort_order = 100
-content_hash = "2fbf6a2b53aaa51dde468e6f05497d0778bc6c860fc7c3e367237eaa860ef679"
+content_hash = "f101bcca349534871f6a5b14bad2779b27981957f593f91877aa437b872c298a"

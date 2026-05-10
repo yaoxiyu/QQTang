@@ -1481,7 +1481,13 @@ class MapEditor(tk.Tk):
                 self.model.spawns.remove((x, y))
         self.redraw()
 
-    def render_to_image(self, include_surface: bool = True, include_spawns: bool = True, draw_grid: bool = True) -> Image.Image:
+    def render_to_image(
+        self,
+        include_surface: bool = True,
+        include_spawns: bool = True,
+        include_channels: bool = True,
+        draw_grid: bool = True,
+    ) -> Image.Image:
         width = self.model.cols * CELL_SIZE + PREVIEW_MARGIN_LEFT * 2
         height = self.model.rows * CELL_SIZE + PREVIEW_MARGIN_TOP + 24
         img = Image.new("RGBA", (width, height), (35, 35, 35, 255))
@@ -1547,15 +1553,16 @@ class MapEditor(tk.Tk):
                     dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
                 img.alpha_composite(asset_img, (int(round(dx)), int(round(dy))))
 
-        for (cx, cy), channel in sorted(self.model.channels.items(), key=lambda item: (item[0][1], item[0][0])):
-            dirs = str(channel.get("movement_pass_dirs", "none"))
-            allow_place = bool(channel.get("allow_place_bubble", True))
-            px = ox + cx * CELL_SIZE
-            py = oy + cy * CELL_SIZE
-            draw.rectangle([px + 2, py + 2, px + CELL_SIZE - 2, py + CELL_SIZE - 2], outline=(80, 200, 255, 220), width=2)
-            draw.text((px + 4, py + 4), dirs.upper(), fill=(80, 200, 255, 255))
-            if not allow_place:
-                draw.text((px + 4, py + 20), "NO BOMB", fill=(255, 120, 120, 255))
+        if include_channels:
+            for (cx, cy), channel in sorted(self.model.channels.items(), key=lambda item: (item[0][1], item[0][0])):
+                dirs = str(channel.get("movement_pass_dirs", "none"))
+                allow_place = bool(channel.get("allow_place_bubble", True))
+                px = ox + cx * CELL_SIZE
+                py = oy + cy * CELL_SIZE
+                draw.rectangle([px + 2, py + 2, px + CELL_SIZE - 2, py + CELL_SIZE - 2], outline=(80, 200, 255, 220), width=2)
+                draw.text((px + 4, py + 4), dirs.upper(), fill=(80, 200, 255, 255))
+                if not allow_place:
+                    draw.text((px + 4, py + 20), "NO BOMB", fill=(255, 120, 120, 255))
 
         if include_spawns:
             for idx, (sx, sy) in enumerate(self.model.spawns, start=1):
@@ -1583,7 +1590,13 @@ class MapEditor(tk.Tk):
         include_spawns = layer == "spawn"
         self._clear_footprint_overlay()
         # 表现层编辑时显示地面+表现层；地面编辑时只显示地面。
-        img = self.render_to_image(include_surface=include_surface, include_spawns=include_spawns, draw_grid=True)
+        include_channels = layer == "channel"
+        img = self.render_to_image(
+            include_surface=include_surface,
+            include_spawns=include_spawns,
+            include_channels=include_channels,
+            draw_grid=True,
+        )
         self.canvas_img = ImageTk.PhotoImage(img)
         self.map_canvas.delete("all")
         self.map_canvas.create_image(0, 0, anchor="nw", image=self.canvas_img)
@@ -1714,7 +1727,12 @@ class MapEditor(tk.Tk):
         config = self.model.to_config(self.store)
         with tempfile.TemporaryDirectory() as tmp_dir:
             png_path = Path(tmp_dir) / "preview.png"
-            self.render_to_image(include_surface=True, include_spawns=True, draw_grid=False).save(png_path)
+            self.render_to_image(
+                include_surface=True,
+                include_spawns=False,
+                include_channels=False,
+                draw_grid=False,
+            ).save(png_path)
             return sync_official_map_csv(config, png_path, previous_map_id=previous_map_id)
 
     def _set_option_var(self, var: tk.StringVar, options: list[tuple[str, str]], option_id_value: str):
@@ -1755,7 +1773,12 @@ class MapEditor(tk.Tk):
         json_path = out / f"{base}.qqtang_map.json"
         png_path = out / f"{base}.preview.png"
         json_path.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
-        self.render_to_image(include_surface=True, include_spawns=True, draw_grid=False).save(png_path)
+        self.render_to_image(
+            include_surface=True,
+            include_spawns=False,
+            include_channels=False,
+            draw_grid=False,
+        ).save(png_path)
         try:
             map_id = sync_official_map_csv(config, png_path, previous_map_id=self.current_map_id)
         except Exception as exc:

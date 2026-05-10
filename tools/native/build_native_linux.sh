@@ -34,22 +34,21 @@ if [[ ! -f "$GODOT_CPP_LIB" ]]; then
   "$SCONS_EXE" -C "$GODOT_CPP_DIR" platform=linux target="$TARGET" arch="$ARCH"
 fi
 
+# SCons outputs to external/qqt_native/bin/ (set in SConstruct)
 "$SCONS_EXE" platform=linux target="$TARGET" arch="$ARCH"
 
-ARTIFACT="$NATIVE_DIR/bin/qqt_native.linux.${TARGET}.${ARCH}.so"
-LIB_ARTIFACT="$NATIVE_DIR/bin/libqqt_native.linux.${TARGET}.${ARCH}.so"
-if [[ -f "$LIB_ARTIFACT" ]]; then
+# SCons SharedLibrary on Linux prepends "lib" — make sure non-lib name exists
+EXTERNAL_DIR="$ROOT_DIR/external/qqt_native/bin"
+ARTIFACT="$EXTERNAL_DIR/qqt_native.linux.${TARGET}.${ARCH}.so"
+LIB_ARTIFACT="$EXTERNAL_DIR/libqqt_native.linux.${TARGET}.${ARCH}.so"
+
+if [[ -f "$LIB_ARTIFACT" && ! -f "$ARTIFACT" ]]; then
   cp "$LIB_ARTIFACT" "$ARTIFACT"
 fi
+
 if [[ ! -f "$ARTIFACT" ]]; then
   echo "missing artifact: $ARTIFACT" >&2
   exit 2
 fi
 
-EXTERNAL_ARTIFACT_DIR="$ROOT_DIR/external/qqt_native/bin"
-EXTERNAL_ARTIFACT="$EXTERNAL_ARTIFACT_DIR/qqt_native.linux.${TARGET}.${ARCH}.so"
-mkdir -p "$EXTERNAL_ARTIFACT_DIR"
-cp "$ARTIFACT" "$EXTERNAL_ARTIFACT"
-
 echo "[qqt_native] artifact ready: $ARTIFACT"
-echo "[qqt_native] external artifact synced: $EXTERNAL_ARTIFACT"

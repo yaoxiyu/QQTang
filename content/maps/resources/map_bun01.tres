@@ -3038,6 +3038,47 @@ surface_entries = Array[Dictionary]([{
 "trigger_texture_path": "",
 "z_bias": 0
 }])
+channel_entries = Array[Dictionary]([{
+"allow_place_bubble": true,
+"cell": Vector2i(3, 1),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(2, 2),
+"movement_pass_mask": 10
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(3, 2),
+"movement_pass_mask": 15
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(4, 2),
+"movement_pass_mask": 10
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(3, 3),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(11, 9),
+"movement_pass_mask": 5
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(10, 10),
+"movement_pass_mask": 10
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(11, 10),
+"movement_pass_mask": 15
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(12, 10),
+"movement_pass_mask": 10
+}, {
+"allow_place_bubble": true,
+"cell": Vector2i(11, 11),
+"movement_pass_mask": 5
+}])
 bound_mode_id = "bun"
 bound_rule_set_id = "ruleset_score_team"
 match_format_id = "1v1"
@@ -3069,4 +3110,4 @@ match_format_variants = Array[Dictionary]([{
 }])
 matchmaking_ranked_enabled = true
 sort_order = 100
-content_hash = "17421ef48d1ba8d6a26e08131f1c7fb28f5af8d89fee6d9c8a9459f1bca88f69"
+content_hash = "2ceb04a1b727fc8cd178bd31b162f7bef6634c58a50b36c69269244628b3f046"

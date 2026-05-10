@@ -63,6 +63,9 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	if color_value is Color:
 		_dynamic_color = color_value
 	_apply_dynamic_color_to_sprite()
+	# Intention: body sprite is the first hidden target for channel enter effect.
+	# Other parts can follow the same view_state-driven visibility contract later.
+	_body_sprite.visible = not bool(view_state.get("hide_body_sprite", false))
 	var animation_name := _resolve_animation_name(
 		facing,
 		anim_is_moving,
