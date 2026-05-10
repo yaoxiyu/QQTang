@@ -65,6 +65,6 @@ func _generate_row(row: PackedStringArray, header_index: Dictionary) -> void:
 
 
 func _normalize_strip_uri(strip_path: String) -> String:
-	if strip_path.begins_with("res://external/assets/animation/"):
-		return "asset://%s/derived/%s" % [ASSET_PACK_ID, strip_path.trim_prefix("res://")]
+	if strip_path.begins_with("res://external/"):
+		return "asset://%s/derived/%s" % [ASSET_PACK_ID, strip_path.trim_prefix("res://external/")]
 	return strip_path
