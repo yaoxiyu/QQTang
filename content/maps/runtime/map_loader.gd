@@ -105,8 +105,88 @@ static func build_grid_state_from_layout(layout: MapRuntimeLayout) -> GridState:
 	for index in range(layout.spawn_points.size()):
 		var spawn: Vector2i = layout.spawn_points[index]
 		grid.set_static_cell(spawn.x, spawn.y, TileFactory.make_spawn(index))
+	_apply_surface_entries_to_grid(grid, layout.surface_entries)
+	_apply_channel_entries_to_grid(grid, layout.channel_entries)
 
 	return grid
+
+
+static func _apply_surface_entries_to_grid(grid: GridState, surface_entries: Array[Dictionary]) -> void:
+	if grid == null or surface_entries.is_empty():
+		return
+	for entry in surface_entries:
+		var interaction_kind := String(entry.get("interaction_kind", "solid"))
+		if interaction_kind == "none":
+			continue
+		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var collision_footprint := entry.get("collision_footprint", Vector2i.ONE) as Vector2i
+		var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
+		var movement_pass_mask := clampi(int(entry.get("movement_pass_mask", 0)), 0, 15)
+		for cell in _anchored_rect_cells(anchor_cell, collision_footprint, anchor_mode):
+			if not grid.is_in_bounds(cell.x, cell.y):
+				continue
+			grid.set_static_cell(cell.x, cell.y, _make_surface_collision_cell(interaction_kind, movement_pass_mask))
+
+
+static func _apply_channel_entries_to_grid(grid: GridState, channel_entries: Array[Dictionary]) -> void:
+	if grid == null or channel_entries.is_empty():
+		return
+	for entry in channel_entries:
+		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		if not grid.is_in_bounds(cell.x, cell.y):
+			continue
+		var movement_pass_mask := clampi(int(entry.get("movement_pass_mask", TileConstants.PASS_NONE)), 0, 15)
+		var allow_place_bubble := bool(entry.get("allow_place_bubble", true))
+		var static_cell := grid.get_static_cell(cell.x, cell.y)
+		static_cell.movement_pass_mask = movement_pass_mask
+		static_cell.allow_place_bubble = allow_place_bubble
+		if movement_pass_mask == TileConstants.PASS_ALL:
+			static_cell.tile_flags &= ~TileConstants.TILE_BLOCK_MOVE
+		elif movement_pass_mask == TileConstants.PASS_NONE:
+			static_cell.tile_flags |= TileConstants.TILE_BLOCK_MOVE
+		grid.set_static_cell(cell.x, cell.y, static_cell)
+
+
+static func _make_surface_collision_cell(interaction_kind: String, movement_pass_mask: int) -> CellStatic:
+	if interaction_kind == "breakable":
+		var cell := TileFactory.make_breakable_block()
+		cell.movement_pass_mask = movement_pass_mask
+		if movement_pass_mask == TileConstants.PASS_ALL:
+			cell.tile_flags &= ~TileConstants.TILE_BLOCK_MOVE
+		return cell
+	var solid := TileFactory.make_solid_wall()
+	solid.movement_pass_mask = movement_pass_mask
+	if movement_pass_mask == TileConstants.PASS_ALL:
+		solid.tile_flags &= ~TileConstants.TILE_BLOCK_MOVE
+	return solid
+
+
+static func _resolve_surface_anchor_mode(anchor_mode: String) -> String:
+	if anchor_mode == "center":
+		return "center"
+	if anchor_mode == "bottom_center":
+		return "bottom_center"
+	if anchor_mode == "bottom_left":
+		return "bottom_left"
+	return "bottom_right"
+
+
+static func _anchored_rect_cells(anchor_cell: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if size.x <= 0 or size.y <= 0:
+		return result
+	var left := anchor_cell.x - int(floor(float(size.x - 1) / 2.0))
+	for fy in range(size.y):
+		for fx in range(size.x):
+			if anchor_mode == "bottom_left":
+				result.append(Vector2i(anchor_cell.x + fx, anchor_cell.y - fy))
+			elif anchor_mode == "bottom_center":
+				result.append(Vector2i(left + fx, anchor_cell.y - fy))
+			elif anchor_mode == "center":
+				result.append(Vector2i(left + fx, anchor_cell.y - fy))
+			else:
+				result.append(Vector2i(anchor_cell.x - fx, anchor_cell.y - fy))
+	return result
 
 
 static func has_map_metadata(map_id: String) -> bool:
@@ -144,6 +224,7 @@ static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayo
 	layout.tile_theme_id = resource.tile_theme_id
 	layout.floor_tile_entries = resource.floor_tile_entries.duplicate(true)
 	layout.surface_entries = resource.surface_entries.duplicate(true)
+	layout.channel_entries = resource.channel_entries.duplicate(true)
 	return layout if _validate_layout(layout) else null
 
 
@@ -161,6 +242,7 @@ static func _build_config_from_resource(resource: MapResource) -> Dictionary:
 		"breakable_blocks": resource.breakable_cells.duplicate(),
 		"floor_tile_entries": resource.floor_tile_entries.duplicate(true),
 		"surface_entries": resource.surface_entries.duplicate(true),
+		"channel_entries": resource.channel_entries.duplicate(true),
 	}
 
 
@@ -197,6 +279,7 @@ static func _build_layout_from_config(config: Dictionary) -> MapRuntimeLayout:
 	layout.tile_theme_id = ""
 	layout.floor_tile_entries = []
 	layout.surface_entries = []
+	layout.channel_entries = []
 	return layout if _validate_layout(layout) else null
 
 

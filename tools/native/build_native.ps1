@@ -15,7 +15,7 @@ $repoRoot = $repoRoot.Path
 $activity = 'native-windows'
 $projectRoot = Join-Path $repoRoot 'addons/qqt_native'
 $sconstructPath = Join-Path $projectRoot 'SConstruct'
-$binDir = Join-Path $projectRoot 'bin'
+$binDir = Join-Path $repoRoot 'external/qqt_native/bin'
 $godotCppRoot = Join-Path $projectRoot 'third_party\godot-cpp'
 $godotCppLib = Join-Path $godotCppRoot ("bin\libgodot-cpp.{0}.{1}.{2}.lib" -f $Platform, $Target, $Arch)
 

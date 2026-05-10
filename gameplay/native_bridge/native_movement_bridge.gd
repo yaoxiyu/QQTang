@@ -137,11 +137,12 @@ func _pack_blocked_grid_records(ctx: SimContext) -> PackedInt32Array:
 	for y in range(ctx.state.grid.height):
 		for x in range(ctx.state.grid.width):
 			var cell := ctx.state.grid.get_static_cell(x, y)
+			var movement_pass_mask := clampi(int(cell.movement_pass_mask), 0, 15)
 			packed.append(x)
 			packed.append(y)
-			packed.append(int((cell.tile_flags & TileConstants.TILE_BLOCK_MOVE) != 0))
+			packed.append(int(movement_pass_mask == TileConstants.PASS_NONE))
 			packed.append(ctx.queries.get_bubble_at(x, y))
-			packed.append(0)
+			packed.append(movement_pass_mask)
 	return packed
 
 

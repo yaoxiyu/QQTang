@@ -1,0 +1,2876 @@
+[gd_resource type="Resource" script_class="MapResource" format=3]
+
+[ext_resource type="Script" path="res://content/maps/resources/map_resource.gd" id="1_2ar66"]
+
+[resource]
+script = ExtResource("1_2ar66")
+map_id = "map_snow01"
+display_name = "snow01"
+width = 15
+height = 13
+solid_cells = Array[Vector2i]([Vector2i(0, 2), Vector2i(0, 3), Vector2i(0, 6), Vector2i(0, 9), Vector2i(0, 10), Vector2i(1, 0), Vector2i(1, 4), Vector2i(1, 8), Vector2i(1, 12), Vector2i(2, 2), Vector2i(2, 6), Vector2i(2, 10), Vector2i(3, 0), Vector2i(3, 4), Vector2i(3, 8), Vector2i(3, 12), Vector2i(4, 2), Vector2i(4, 6), Vector2i(4, 10), Vector2i(5, 0), Vector2i(5, 4), Vector2i(5, 8), Vector2i(5, 12), Vector2i(6, 2), Vector2i(6, 6), Vector2i(6, 10), Vector2i(7, 0), Vector2i(7, 4), Vector2i(7, 8), Vector2i(7, 12), Vector2i(8, 2), Vector2i(8, 6), Vector2i(8, 10), Vector2i(9, 0), Vector2i(9, 4), Vector2i(9, 8), Vector2i(9, 12), Vector2i(10, 2), Vector2i(10, 6), Vector2i(10, 10), Vector2i(11, 0), Vector2i(11, 4), Vector2i(11, 8), Vector2i(11, 12), Vector2i(12, 2), Vector2i(12, 6), Vector2i(12, 10), Vector2i(13, 0), Vector2i(13, 4), Vector2i(13, 8), Vector2i(13, 12), Vector2i(14, 2), Vector2i(14, 3), Vector2i(14, 6), Vector2i(14, 9), Vector2i(14, 10)])
+breakable_cells = Array[Vector2i]([Vector2i(0, 0), Vector2i(0, 1), Vector2i(0, 4), Vector2i(0, 11), Vector2i(0, 12), Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(1, 5), Vector2i(1, 7), Vector2i(1, 9), Vector2i(1, 10), Vector2i(1, 11), Vector2i(2, 0), Vector2i(2, 1), Vector2i(2, 4), Vector2i(2, 8), Vector2i(2, 11), Vector2i(2, 12), Vector2i(3, 5), Vector2i(3, 7), Vector2i(4, 0), Vector2i(4, 1), Vector2i(4, 4), Vector2i(4, 8), Vector2i(4, 11), Vector2i(4, 12), Vector2i(5, 3), Vector2i(5, 9), Vector2i(6, 0), Vector2i(6, 12), Vector2i(7, 2), Vector2i(7, 10), Vector2i(8, 0), Vector2i(8, 12), Vector2i(9, 3), Vector2i(9, 9), Vector2i(10, 0), Vector2i(10, 1), Vector2i(10, 4), Vector2i(10, 8), Vector2i(10, 11), Vector2i(10, 12), Vector2i(11, 5), Vector2i(11, 7), Vector2i(12, 0), Vector2i(12, 1), Vector2i(12, 4), Vector2i(12, 8), Vector2i(12, 11), Vector2i(12, 12), Vector2i(13, 1), Vector2i(13, 2), Vector2i(13, 3), Vector2i(13, 5), Vector2i(13, 7), Vector2i(13, 9), Vector2i(13, 10), Vector2i(13, 11), Vector2i(14, 0), Vector2i(14, 1), Vector2i(14, 4), Vector2i(14, 8), Vector2i(14, 11), Vector2i(14, 12)])
+spawn_points = Array[Vector2i]([Vector2i(3, 1), Vector2i(11, 1), Vector2i(11, 11), Vector2i(3, 11)])
+tile_theme_id = "snow"
+floor_tile_entries = Array[Dictionary]([{
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 0, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 1, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 2, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 3, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 4, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 5, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 6, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 7, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 8, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 9, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 10, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(0, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(1, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(2, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(3, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(4, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(5, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(6, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(7, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(8, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(9, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(10, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(11, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(12, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(13, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(14, 11, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(0, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(1, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(2, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(3, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(4, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(5, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(6, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(7, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(8, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(9, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(10, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(11, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(12, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}, {
+"elem_key": "snow/elem13_stand",
+"rect": Rect2i(13, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem13_stand.png"
+}, {
+"elem_key": "snow/elem1_stand",
+"rect": Rect2i(14, 12, 1, 1),
+"texture_path": "res://external/assets/maps/elements/snow/elem1_stand.png"
+}])
+surface_entries = Array[Dictionary]([{
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0001",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0002",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0003",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0004",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0005",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0006",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(8, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0007",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -8, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem4_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0008",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem4_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem4_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(6, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0009",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -6, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0010",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0011",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0012",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0013",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0014",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 0),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0015",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(0, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0016",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0017",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0018",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0019",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0020",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0021",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0022",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 1),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0023",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(1, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0024",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0025",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem11_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0026",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem11_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem11_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0027",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(8, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0028",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -8, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0029",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(6, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0030",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -6, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0031",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem4_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0032",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem4_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem4_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0033",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 2),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0034",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(2, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0035",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0036",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0037",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0038",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0039",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 3),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0040",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(3, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0041",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0042",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0043",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem5_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0044",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem5_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem5_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0045",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0046",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem6_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0047",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem6_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0048",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0049",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem11_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0050",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem11_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem11_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0051",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0052",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 4),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0053",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(4, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 5),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0054",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(5, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 5),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0055",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(5, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 5),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0056",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(5, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 5),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0057",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(5, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0058",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0059",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem6_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0060",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem6_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(8, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem6_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0061",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -8, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem6_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(6, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem6_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0062",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -6, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem6_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem6_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0063",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem6_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0064",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 6),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0065",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(6, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 7),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0066",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(7, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 7),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0067",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(7, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 7),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0068",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(7, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 7),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0069",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(7, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0070",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0071",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0072",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0073",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0074",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0075",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem4_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0076",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem4_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem4_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0077",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0078",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0079",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0080",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 8),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0081",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(8, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0082",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0083",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0084",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0085",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0086",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 9),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0087",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(9, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0088",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0089",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem11_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0090",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem11_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem11_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0091",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(8, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem16_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0092",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -8, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem16_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0093",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(6, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0094",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -6, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0095",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem5_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0096",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem5_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem5_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0097",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 10),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0098",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(10, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0099",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0100",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0101",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0102",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0103",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0104",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0105",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 11),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0106",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(11, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(14, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0107",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -14, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(13, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0108",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -13, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(12, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0109",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -12, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(11, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0110",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -11, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(10, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0111",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -10, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(9, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0112",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -9, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(8, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0113",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -8, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(7, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem11_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0114",
+"interaction_kind": "trigger_solid",
+"logic_type": "trigger",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -7, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem11_stand.png",
+"trigger_texture_path": "res://external/assets/maps/elements/snow/elem11_trigger.gif",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(6, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0115",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -6, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(5, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0116",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -5, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(4, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0117",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -4, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(3, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0118",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -3, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(2, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem2_die.gif",
+"elem_key": "snow/elem2_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0119",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -2, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem2_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(1, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "",
+"elem_key": "snow/elem7_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0120",
+"interaction_kind": "solid",
+"logic_type": "decoration",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, -1, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem7_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}, {
+"anchor_mode": "bottom_right",
+"cell": Vector2i(0, 12),
+"collision_footprint": Vector2i(1, 1),
+"die_texture_path": "res://external/assets/maps/elements/snow/elem3_die.gif",
+"elem_key": "snow/elem3_stand",
+"footprint": Vector2i(1, 1),
+"instance_id": "map_snow01_surface_0121",
+"interaction_kind": "breakable",
+"logic_type": "breakable",
+"movement_pass_mask": 0,
+"offset_px": Vector2(0, 0),
+"render_role": "surface",
+"sort_key": Vector3i(12, 0, 0),
+"texture_path": "res://external/assets/maps/elements/snow/elem3_stand.png",
+"trigger_texture_path": "",
+"z_bias": 0
+}])
+bound_mode_id = "snow"
+bound_rule_set_id = "ruleset_classic"
+match_format_id = "1v1"
+match_format_variants = Array[Dictionary]([{
+"match_format_id": "1v1",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": false,
+"max_player_count": 2,
+"required_party_size": 1,
+"required_team_count": 2,
+"sort_order": 10
+}, {
+"match_format_id": "2v2",
+"matchmaking_casual_enabled": true,
+"matchmaking_ranked_enabled": true,
+"max_player_count": 4,
+"required_party_size": 2,
+"required_team_count": 2,
+"sort_order": 20
+}])
+matchmaking_ranked_enabled = true
+sort_order = 100
+content_hash = "e4c6778ce092f8d4951a90223be9dbd9538a8be00cf3d7dcf52afb2c77436788"

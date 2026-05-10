@@ -8,6 +8,7 @@ func test_main() -> void:
 	ok = _test_source_scale_preserves_native_surface_overlap() and ok
 	ok = _test_default_edge_bleed_is_metadata_only_for_source_scale() and ok
 	ok = _test_die_texture_reanchors_without_fade() and ok
+	ok = _test_center_anchor_aligns_to_ground_center() and ok
 
 
 func _test_source_scale_preserves_native_surface_overlap() -> bool:
@@ -66,6 +67,25 @@ func _test_die_texture_reanchors_without_fade() -> bool:
 	ok = qqt_check((dump.get("texture_size", Vector2.ZERO) as Vector2) == Vector2(66, 73), "die should swap to die texture immediately", "map_surface_element_view") and ok
 	ok = qqt_check(is_equal_approx(view.modulate.a, 1.0), "die should not use alpha fade", "map_surface_element_view") and ok
 	view.queue_free()
+	return ok
+
+
+func _test_center_anchor_aligns_to_ground_center() -> bool:
+	var view: Node2D = MapSurfaceElementViewScript.new()
+	var texture := _make_texture(40, 40)
+	view.configure({
+		"cell": Vector2i(2, 3),
+		"footprint": Vector2i.ONE,
+		"anchor_mode": "center",
+		"offset_px": Vector2.ZERO,
+		"render_role": "surface",
+	}, 40.0, texture)
+	var dump: Dictionary = view.debug_dump_layout()
+	var pos := dump.get("position", Vector2.ZERO) as Vector2
+	var ok := true
+	ok = qqt_check(is_equal_approx(pos.x, 80.0), "center anchor x should align sprite center to ground center", "map_surface_element_view") and ok
+	ok = qqt_check(is_equal_approx(pos.y, 120.0), "center anchor y should align sprite center to ground center", "map_surface_element_view") and ok
+	view.free()
 	return ok
 
 

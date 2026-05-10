@@ -73,7 +73,7 @@ func _assert_surface_entries_are_valid(resource: MapResource) -> void:
 		assert_true(_texture_file_exists(texture_path), "surface texture must exist: %s" % texture_path)
 		var anchor_mode := String(entry.get("anchor_mode", ""))
 		var interaction_kind := String(entry.get("interaction_kind", ""))
-		assert_true(["bottom_right", "bottom_left", "bottom_center"].has(anchor_mode), "surface anchor must be supported: %s" % instance_id)
+		assert_true(["bottom_right", "bottom_left", "bottom_center", "center"].has(anchor_mode), "surface anchor must be supported: %s" % instance_id)
 		assert_true(["solid", "breakable", "trigger_solid"].has(interaction_kind), "surface interaction kind must be supported: %s" % instance_id)
 		var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
 		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
@@ -88,6 +88,9 @@ func _assert_surface_entries_are_valid(resource: MapResource) -> void:
 		elif anchor_mode == "bottom_center":
 			var footprint_left := cell.x - int(floor(float(footprint.x - 1) / 2.0))
 			assert_true(footprint_left >= 0 and footprint_left + footprint.x <= resource.width, "surface footprint x must fit from bottom-center anchor: %s" % instance_id)
+		elif anchor_mode == "center":
+			var center_footprint_left := cell.x - int(floor(float(footprint.x - 1) / 2.0))
+			assert_true(center_footprint_left >= 0 and center_footprint_left + footprint.x <= resource.width, "surface footprint x must fit from center anchor: %s" % instance_id)
 		else:
 			assert_true(cell.x - footprint.x + 1 >= 0, "surface footprint x must fit from bottom-right anchor: %s" % instance_id)
 		assert_true(cell.y - footprint.y + 1 >= 0, "surface footprint y must fit from bottom-right anchor: %s" % instance_id)
@@ -97,6 +100,9 @@ func _assert_surface_entries_are_valid(resource: MapResource) -> void:
 		elif anchor_mode == "bottom_center":
 			var collision_left := cell.x - int(floor(float(collision_footprint.x - 1) / 2.0))
 			assert_true(collision_left >= 0 and collision_left + collision_footprint.x <= resource.width, "surface collision x must fit from bottom-center anchor: %s" % instance_id)
+		elif anchor_mode == "center":
+			var center_collision_left := cell.x - int(floor(float(collision_footprint.x - 1) / 2.0))
+			assert_true(center_collision_left >= 0 and center_collision_left + collision_footprint.x <= resource.width, "surface collision x must fit from center anchor: %s" % instance_id)
 		else:
 			assert_true(cell.x - collision_footprint.x + 1 >= 0, "surface collision x must fit from bottom-right anchor: %s" % instance_id)
 		assert_true(cell.y - collision_footprint.y + 1 >= 0, "surface collision y must fit from bottom-right anchor: %s" % instance_id)

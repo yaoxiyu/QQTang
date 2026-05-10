@@ -1,0 +1,6 @@
+map_id,x,y,movement_pass_dirs,allow_place_bubble
+map_treasure01,2,3,lr,true
+map_treasure01,12,3,lr,true
+map_treasure01,7,6,lr,true
+map_treasure01,2,9,lr,true
+map_treasure01,12,9,lr,true

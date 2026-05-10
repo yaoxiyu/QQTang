@@ -120,6 +120,8 @@ func execute(ctx: SimContext) -> void:
 
 func _can_place_footprint(ctx: SimContext, footprint: Array[Vector2i]) -> bool:
 	for cell in footprint:
+		if not ctx.queries.can_place_bubble_at(cell.x, cell.y):
+			return false
 		if ctx.queries.is_hard_blocked(cell.x, cell.y):
 			return false
 		if ctx.queries.get_bubble_at(cell.x, cell.y) != -1:

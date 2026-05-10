@@ -56,6 +56,7 @@ OFFICIAL_MAPS_CSV = REPO_ROOT / "content_source/csv/maps/maps.csv"
 OFFICIAL_VARIANTS_CSV = REPO_ROOT / "content_source/csv/maps/map_match_variants.csv"
 OFFICIAL_FLOOR_CSV = REPO_ROOT / "content_source/csv/maps/map_floor_tiles.csv"
 OFFICIAL_SURFACE_CSV = REPO_ROOT / "content_source/csv/maps/map_surface_instances.csv"
+OFFICIAL_CHANNEL_CSV = REPO_ROOT / "content_source/csv/maps/map_channel_instances.csv"
 OFFICIAL_VISUAL_META_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_visual_meta.csv"
 OFFICIAL_ELEM_OVERRIDES_CSV = REPO_ROOT / "content_source/csv/maps/map_elem_overrides.csv"
 OFFICIAL_MATCH_FORMATS_CSV = REPO_ROOT / "content_source/csv/match_formats/match_formats.csv"
@@ -76,8 +77,28 @@ SURFACE_ANCHOR_LABELS = {
     "bottom_right": "右下角",
     "bottom_left": "左下角",
     "bottom_center": "底部中心",
+    "center": "完全中心",
 }
-SURFACE_ANCHOR_ORDER = ["bottom_right", "bottom_left", "bottom_center"]
+SURFACE_ANCHOR_ORDER = ["bottom_right", "bottom_left", "bottom_center", "center"]
+MOVEMENT_PASS_DIRS_ORDER = ["none", "u", "d", "l", "r", "ud", "lr", "ul", "ur", "dl", "dr", "lur", "ldr", "uld", "urd", "udlr"]
+MOVEMENT_PASS_DIRS_LABELS = {
+    "none": "全碰撞",
+    "u": "上向可通",
+    "d": "下向可通",
+    "l": "左向可通",
+    "r": "右向可通",
+    "ud": "上下可通",
+    "lr": "左右可通",
+    "ul": "上左可通",
+    "ur": "上右可通",
+    "dl": "下左可通",
+    "dr": "下右可通",
+    "lur": "左上右可通",
+    "ldr": "左下右可通",
+    "uld": "上左下可通",
+    "urd": "上右下可通",
+    "udlr": "四向全通",
+}
 
 
 @dataclass
@@ -99,6 +120,7 @@ class AssetMeta:
     footprint_h: int
     collision_w: int
     collision_h: int
+    movement_pass_dirs: str
     anchor_mode: str
     anchor_x: float
     anchor_y: float
@@ -258,6 +280,9 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
             collision_w = int(override.get("collision_w", collision_w))
             collision_h = int(override.get("collision_h", collision_h))
             anchor = str(override.get("anchor_mode", anchor))
+        movement_pass_dirs = str(override.get("movement_pass_dirs", "none")).strip().lower()
+        if movement_pass_dirs not in MOVEMENT_PASS_DIRS_ORDER:
+            movement_pass_dirs = "none"
         override_logic_type = str(override.get("logic_type", "")).strip()
         if width == CELL_SIZE and height == CELL_SIZE or override_logic_type == "floor":
             layer_hint = "floor"
@@ -293,6 +318,7 @@ def scan_assets(version_root: Path) -> List[AssetMeta]:
                 footprint_h=fp_h,
                 collision_w=collision_w,
                 collision_h=collision_h,
+                movement_pass_dirs=movement_pass_dirs,
                 anchor_mode=anchor,
                 anchor_x=anchor_x,
                 anchor_y=anchor_y,
@@ -322,6 +348,9 @@ def load_elem_overrides() -> Dict[str, dict]:
         anchor_mode = str(row.get("anchor_mode", "")).strip()
         if anchor_mode in SURFACE_ANCHOR_ORDER:
             item["anchor_mode"] = anchor_mode
+        movement_pass_dirs = str(row.get("movement_pass_dirs", "")).strip().lower()
+        if movement_pass_dirs in MOVEMENT_PASS_DIRS_ORDER:
+            item["movement_pass_dirs"] = movement_pass_dirs
         for field in ("footprint_w", "footprint_h", "collision_w", "collision_h"):
             raw = str(row.get(field, "")).strip()
             if not raw:
@@ -461,6 +490,7 @@ class MapModel:
         self.floor: List[List[Optional[str]]] = [[None for _ in range(cols)] for _ in range(rows)]
         self.floor_instances: Dict[Tuple[int, int], FloorInstance] = {}
         self.surface: Dict[Tuple[int, int], SurfaceInstance] = {}
+        self.channels: Dict[Tuple[int, int], Dict[str, object]] = {}
         self.spawns: List[Tuple[int, int]] = []
 
     def is_floor_complete(self) -> bool:
@@ -492,9 +522,9 @@ class MapModel:
                 "rows": self.rows,
                 "cell_size": CELL_SIZE,
             },
-            "render_rules": {
+                "render_rules": {
                 "floor": "fill_40x40_with_optional_pixel_expansion",
-                "surface_anchor": "default_bottom_right_override_bottom_left_or_bottom_center",
+                "surface_anchor": "default_bottom_right_override_bottom_left_or_bottom_center_or_center",
                 "surface_sort": "row_asc_col_desc_z_bias",
                 "surface_sort_formula": "sort_key=(layer,row,-col,z_bias)",
             },
@@ -504,6 +534,12 @@ class MapModel:
                     for inst in sorted(self.floor_instances.values(), key=lambda item: (item.y, item.x))
                 ],
                 "surface": surface_instances,
+                "channels": [{
+                    "x": x,
+                    "y": y,
+                    "movement_pass_dirs": str(channel.get("movement_pass_dirs", "none")),
+                    "allow_place_bubble": bool(channel.get("allow_place_bubble", True)),
+                } for (x, y), channel in sorted(self.channels.items(), key=lambda item: (item[0][1], item[0][0]))],
                 "spawns": [{"x": x, "y": y, "player_index": i + 1} for i, (x, y) in enumerate(self.spawns)],
             },
         }
@@ -545,6 +581,7 @@ def delete_official_map(map_id: str) -> None:
     remove_csv_rows(OFFICIAL_VARIANTS_CSV, lambda row: row.get("map_id", "") == map_id)
     remove_csv_rows(OFFICIAL_FLOOR_CSV, lambda row: row.get("map_id", "") == map_id)
     remove_csv_rows(OFFICIAL_SURFACE_CSV, lambda row: row.get("map_id", "") == map_id)
+    remove_csv_rows(OFFICIAL_CHANNEL_CSV, lambda row: row.get("map_id", "") == map_id)
     prefix = "res://content/maps/previews/"
     if preview_resource_path.startswith(prefix):
         preview_path = OFFICIAL_PREVIEW_DIR / preview_resource_path.removeprefix(prefix)
@@ -617,6 +654,18 @@ def load_official_map_model(map_id: str, store: "AssetStore") -> MapModel:
         fp_h = max(1, meta.footprint_h)
         if 0 <= x < cols and 0 <= y < rows:
             model.surface[(x, y)] = SurfaceInstance(elem_key, x, y, z_bias, fp_w, fp_h)
+    _channel_fields, channel_rows = read_csv_rows(OFFICIAL_CHANNEL_CSV)
+    for row in channel_rows:
+        if row.get("map_id", "") != map_id:
+            continue
+        x = int(row.get("x", "0") or "0")
+        y = int(row.get("y", "0") or "0")
+        dirs = str(row.get("movement_pass_dirs", "none")).strip().lower()
+        allow_place_bubble = str(row.get("allow_place_bubble", "true")).strip().lower() not in ("false", "0", "no")
+        if dirs not in MOVEMENT_PASS_DIRS_ORDER:
+            dirs = "none"
+        if 0 <= x < cols and 0 <= y < rows:
+            model.channels[(x, y)] = {"movement_pass_dirs": dirs, "allow_place_bubble": allow_place_bubble}
     return model
 
 
@@ -705,6 +754,20 @@ def sync_official_map_csv(config: dict, preview_png_path: Path, previous_map_id:
             }
         )
     append_csv_rows(OFFICIAL_SURFACE_CSV, surface_rows)
+
+    remove_csv_rows(OFFICIAL_CHANNEL_CSV, lambda row: row.get("map_id", "") == map_id)
+    channel_rows = []
+    for item in config["layers"].get("channels", []):
+        channel_rows.append(
+            {
+                "map_id": map_id,
+                "x": str(int(item["x"])),
+                "y": str(int(item["y"])),
+                "movement_pass_dirs": str(item.get("movement_pass_dirs", "none")),
+                "allow_place_bubble": "true" if bool(item.get("allow_place_bubble", True)) else "false",
+            }
+        )
+    append_csv_rows(OFFICIAL_CHANNEL_CSV, channel_rows)
     return map_id
 
 
@@ -810,6 +873,8 @@ class MapEditor(tk.Tk):
         self.mode_options = load_mode_options()
         self.rule_options = load_rule_options()
         self.current_layer = tk.StringVar(value="floor")
+        self.current_channel_dirs = tk.StringVar(value="none")
+        self.current_channel_allow_bubble = tk.BooleanVar(value=True)
         self.selected_asset_key: Optional[str] = None
         self.view_scale = 1
         self.canvas_img: Optional[ImageTk.PhotoImage] = None
@@ -897,8 +962,12 @@ class MapEditor(tk.Tk):
 
         layer_bar = ttk.LabelFrame(right, text="编辑层")
         layer_bar.pack(fill=tk.X, pady=(6, 6))
-        for txt, val in (("地面层", "floor"), ("表现层", "surface"), ("出生点", "spawn")):
+        for txt, val in (("地面层", "floor"), ("表现层", "surface"), ("通道层", "channel"), ("出生点", "spawn")):
             ttk.Radiobutton(layer_bar, text=txt, value=val, variable=self.current_layer, command=self.on_layer_changed).pack(side=tk.LEFT, padx=8, pady=4)
+        ttk.Label(layer_bar, text="通道类型:").pack(side=tk.LEFT, padx=(8, 2))
+        channel_cb = ttk.Combobox(layer_bar, textvariable=self.current_channel_dirs, state="readonly", values=MOVEMENT_PASS_DIRS_ORDER, width=6)
+        channel_cb.pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Checkbutton(layer_bar, text="可放泡泡", variable=self.current_channel_allow_bubble).pack(side=tk.LEFT, padx=(0, 8))
         ttk.Label(layer_bar, text="提示：表现层每次点击后按 row 升序 + col 降序全量重排渲染。右键删除当前格内容。", foreground="#555").pack(side=tk.LEFT, padx=12)
 
         self.map_canvas = tk.Canvas(right, background="#222", highlightthickness=0)
@@ -932,6 +1001,8 @@ class MapEditor(tk.Tk):
         layer = self.current_layer.get()
         if layer == "surface" and not self.model.is_floor_complete():
             self.status_var.set("地面层未铺满：纯装饰可放在空地面，其他表现层元素需要占用范围内有地面。")
+        elif layer == "channel":
+            self.status_var.set("通道层为独立碰撞层，和表现层方块不绑定。")
         self.refresh_asset_list()
         self.redraw()
 
@@ -942,7 +1013,7 @@ class MapEditor(tk.Tk):
         assets = self.store.filtered(
             self.theme_cb.get() or "全部",
             self.type_cb.get() or "全部",
-            "floor" if layer == "floor" else "surface" if layer == "surface" else "surface",
+            "floor" if layer == "floor" else "surface" if layer in ("surface", "channel", "spawn") else "surface",
             self.search_var.get(),
             self.anim_var.get(),
         )
@@ -989,7 +1060,7 @@ class MapEditor(tk.Tk):
         content.pack(fill=tk.BOTH, expand=True)
 
         ttk.Label(content, text=f"资产: {key}").pack(anchor="w")
-        ttk.Label(content, text=f"图像尺寸: {meta.width}×{meta.height}  当前占格: {meta.footprint_w}×{meta.footprint_h}  碰撞: {meta.collision_w}×{meta.collision_h}").pack(anchor="w", pady=(4, 0))
+        ttk.Label(content, text=f"图像尺寸: {meta.width}×{meta.height}  当前占格: {meta.footprint_w}×{meta.footprint_h}  碰撞: {meta.collision_w}×{meta.collision_h}  通行: {MOVEMENT_PASS_DIRS_LABELS.get(meta.movement_pass_dirs, meta.movement_pass_dirs)}").pack(anchor="w", pady=(4, 0))
 
         f = ttk.Frame(content)
         f.pack(fill=tk.X, pady=12)
@@ -1008,11 +1079,14 @@ class MapEditor(tk.Tk):
         logic_var = tk.StringVar(value=meta.logical_type)
         ttk.Label(f, text="逻辑类型:").grid(row=2, column=0, padx=4, pady=4)
         ttk.Combobox(f, textvariable=logic_var, state="readonly", values=LOGIC_TYPE_ORDER, width=12).grid(row=2, column=1, columnspan=3, sticky="w", padx=4, pady=4)
+        pass_var = tk.StringVar(value=meta.movement_pass_dirs if meta.movement_pass_dirs in MOVEMENT_PASS_DIRS_ORDER else "none")
+        ttk.Label(f, text="方向通行:").grid(row=3, column=0, padx=4, pady=4)
+        ttk.Combobox(f, textvariable=pass_var, state="readonly", values=MOVEMENT_PASS_DIRS_ORDER, width=12).grid(row=3, column=1, columnspan=3, sticky="w", padx=4, pady=4)
         current_anchor = meta.anchor_mode if meta.anchor_mode in SURFACE_ANCHOR_ORDER else "bottom_right"
         anchor_values = [f"{item}:{SURFACE_ANCHOR_LABELS[item]}" for item in SURFACE_ANCHOR_ORDER]
         anchor_var = tk.StringVar(value=f"{current_anchor}:{SURFACE_ANCHOR_LABELS[current_anchor]}")
-        ttk.Label(f, text="锚点:").grid(row=3, column=0, padx=4, pady=4)
-        ttk.Combobox(f, textvariable=anchor_var, state="readonly", values=anchor_values, width=14).grid(row=3, column=1, columnspan=3, sticky="w", padx=4, pady=4)
+        ttk.Label(f, text="锚点:").grid(row=4, column=0, padx=4, pady=4)
+        ttk.Combobox(f, textvariable=anchor_var, state="readonly", values=anchor_values, width=14).grid(row=4, column=1, columnspan=3, sticky="w", padx=4, pady=4)
 
         def _save():
             try:
@@ -1024,11 +1098,12 @@ class MapEditor(tk.Tk):
                 messagebox.showwarning("输入错误", "占格和碰撞宽高必须为整数。")
                 return
             logic_type = logic_var.get() if logic_var.get() in LOGIC_TYPE_ORDER else "decoration"
+            movement_pass_dirs = pass_var.get() if pass_var.get() in MOVEMENT_PASS_DIRS_ORDER else "none"
             anchor_type = anchor_var.get().split(":", 1)[0]
             anchor_type = anchor_type if anchor_type in SURFACE_ANCHOR_ORDER else "bottom_right"
-            self._save_elem_override(key, w, h, cw, ch, logic_type, anchor_type)
+            self._save_elem_override(key, w, h, cw, ch, logic_type, anchor_type, movement_pass_dirs)
             win.destroy()
-            self.status_var.set(f"已更新 {key} 占格={w}×{h} 碰撞={cw}×{ch} 逻辑={logic_type_label(logic_type)} 锚点={SURFACE_ANCHOR_LABELS.get(anchor_type, anchor_type)}")
+            self.status_var.set(f"已更新 {key} 占格={w}×{h} 碰撞={cw}×{ch} 通行={MOVEMENT_PASS_DIRS_LABELS.get(movement_pass_dirs, movement_pass_dirs)} 逻辑={logic_type_label(logic_type)} 锚点={SURFACE_ANCHOR_LABELS.get(anchor_type, anchor_type)}")
 
         button_bar = ttk.Frame(content)
         button_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(8, 0))
@@ -1039,11 +1114,11 @@ class MapEditor(tk.Tk):
         win.bind("<Escape>", lambda _event: win.destroy())
         save_button.focus_set()
 
-    def _save_elem_override(self, key: str, w: int, h: int, cw: int, ch: int, logic_type: str, anchor_mode: str):
+    def _save_elem_override(self, key: str, w: int, h: int, cw: int, ch: int, logic_type: str, anchor_mode: str, movement_pass_dirs: str):
         fieldnames, rows = read_csv_rows(OFFICIAL_ELEM_OVERRIDES_CSV)
         rows = [row for row in rows if str(row.get("elem_key", "")).strip() != key]
-        rows.append({"elem_key": key, "footprint_w": str(w), "footprint_h": str(h), "collision_w": str(cw), "collision_h": str(ch), "logic_type": logic_type, "anchor_mode": anchor_mode})
-        default_fieldnames = ["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode"]
+        rows.append({"elem_key": key, "footprint_w": str(w), "footprint_h": str(h), "collision_w": str(cw), "collision_h": str(ch), "logic_type": logic_type, "anchor_mode": anchor_mode, "movement_pass_dirs": movement_pass_dirs})
+        default_fieldnames = ["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode", "movement_pass_dirs"]
         if not fieldnames:
             fieldnames = list(default_fieldnames)
         for field in default_fieldnames:
@@ -1056,6 +1131,7 @@ class MapEditor(tk.Tk):
         self.store.by_key[key].collision_h = ch
         self.store.by_key[key].logical_type = logic_type
         self.store.by_key[key].anchor_mode = anchor_mode
+        self.store.by_key[key].movement_pass_dirs = movement_pass_dirs
         self.refresh_asset_list()
         self.redraw()
 
@@ -1174,6 +1250,12 @@ class MapEditor(tk.Tk):
 
     def _paint_cell(self, x: int, y: int, show_warning: bool, redraw: bool = True) -> bool:
         layer = self.current_layer.get()
+        if layer == "channel":
+            dirs = self.current_channel_dirs.get() if self.current_channel_dirs.get() in MOVEMENT_PASS_DIRS_ORDER else "none"
+            self.model.channels[(x, y)] = {"movement_pass_dirs": dirs, "allow_place_bubble": bool(self.current_channel_allow_bubble.get())}
+            if redraw:
+                self.redraw()
+            return True
         if not self.selected_asset_key:
             if show_warning:
                 messagebox.showwarning("未选择资产", "请先在左侧选择一个地图资产。")
@@ -1230,12 +1312,19 @@ class MapEditor(tk.Tk):
             left = x - ((w - 1) // 2)
             right = left + w - 1
             return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and left >= 0 and right < self.model.cols and y - h + 1 >= 0
+        if anchor_mode == "center":
+            left = x - ((w - 1) // 2)
+            right = left + w - 1
+            return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and left >= 0 and right < self.model.cols and y - h + 1 >= 0
         return x >= 0 and y >= 0 and x < self.model.cols and y < self.model.rows and x - w + 1 >= 0 and y - h + 1 >= 0
 
     def _anchor_rect_cells(self, x: int, y: int, w: int, h: int, anchor_mode: str) -> List[Tuple[int, int]]:
         if anchor_mode == "bottom_left":
             return [(x + dx, y - dy) for dy in range(h) for dx in range(w)]
         if anchor_mode == "bottom_center":
+            left = x - ((w - 1) // 2)
+            return [(left + dx, y - dy) for dy in range(h) for dx in range(w)]
+        if anchor_mode == "center":
             left = x - ((w - 1) // 2)
             return [(left + dx, y - dy) for dy in range(h) for dx in range(w)]
         return [(x - dx, y - dy) for dy in range(h) for dx in range(w)]
@@ -1321,6 +1410,8 @@ class MapEditor(tk.Tk):
                 x1 = ox + x * CELL_SIZE
             elif asset.anchor_mode == "bottom_center":
                 x1 = ox + (x - ((fp_w - 1) // 2)) * CELL_SIZE
+            elif asset.anchor_mode == "center":
+                x1 = ox + (x - ((fp_w - 1) // 2)) * CELL_SIZE
             else:
                 x1 = ox + (x - fp_w + 1) * CELL_SIZE
             y1 = oy + (y - fp_h + 1) * CELL_SIZE
@@ -1383,6 +1474,8 @@ class MapEditor(tk.Tk):
             inst = self._surface_instance_at_cell(x, y)
             if inst is not None:
                 self.model.surface.pop((inst.x, inst.y), None)
+        elif layer == "channel":
+            self.model.channels.pop((x, y), None)
         elif layer == "spawn":
             if (x, y) in self.model.spawns:
                 self.model.spawns.remove((x, y))
@@ -1437,14 +1530,32 @@ class MapEditor(tk.Tk):
                 asset_img = self.store.image(inst.asset_key)
                 if meta.anchor_mode == "bottom_left":
                     dx = ox + inst.x * CELL_SIZE
+                    dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
                 elif meta.anchor_mode == "bottom_center":
                     left_cell = inst.x - ((inst.footprint_w - 1) // 2)
                     center_x = ox + (left_cell + inst.footprint_w / 2) * CELL_SIZE
                     dx = center_x - meta.width / 2
+                    dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
+                elif meta.anchor_mode == "center":
+                    left_cell = inst.x - ((inst.footprint_w - 1) // 2)
+                    center_x = ox + (left_cell + inst.footprint_w / 2) * CELL_SIZE
+                    center_y = oy + (inst.y + 1 - inst.footprint_h / 2) * CELL_SIZE
+                    dx = center_x - meta.width / 2
+                    dy = center_y - meta.height / 2
                 else:
                     dx = ox + (inst.x + 1) * CELL_SIZE - meta.width
-                dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
+                    dy = oy + (inst.y + 1) * CELL_SIZE - meta.height
                 img.alpha_composite(asset_img, (int(round(dx)), int(round(dy))))
+
+        for (cx, cy), channel in sorted(self.model.channels.items(), key=lambda item: (item[0][1], item[0][0])):
+            dirs = str(channel.get("movement_pass_dirs", "none"))
+            allow_place = bool(channel.get("allow_place_bubble", True))
+            px = ox + cx * CELL_SIZE
+            py = oy + cy * CELL_SIZE
+            draw.rectangle([px + 2, py + 2, px + CELL_SIZE - 2, py + CELL_SIZE - 2], outline=(80, 200, 255, 220), width=2)
+            draw.text((px + 4, py + 4), dirs.upper(), fill=(80, 200, 255, 255))
+            if not allow_place:
+                draw.text((px + 4, py + 20), "NO BOMB", fill=(255, 120, 120, 255))
 
         if include_spawns:
             for idx, (sx, sy) in enumerate(self.model.spawns, start=1):
@@ -1468,7 +1579,7 @@ class MapEditor(tk.Tk):
 
     def redraw(self):
         layer = self.current_layer.get()
-        include_surface = layer in ("surface", "spawn")
+        include_surface = layer in ("surface", "channel", "spawn")
         include_spawns = layer == "spawn"
         self._clear_footprint_overlay()
         # 表现层编辑时显示地面+表现层；地面编辑时只显示地面。
@@ -1621,8 +1732,11 @@ class MapEditor(tk.Tk):
         if layer == "floor":
             self.model.floor = [[None for _ in range(self.model.cols)] for _ in range(self.model.rows)]
             self.model.surface.clear()
+            self.model.channels.clear()
         elif layer == "surface":
             self.model.surface.clear()
+        elif layer == "channel":
+            self.model.channels.clear()
         elif layer == "spawn":
             self.model.spawns.clear()
         self.redraw()

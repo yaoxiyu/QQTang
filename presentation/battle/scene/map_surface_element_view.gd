@@ -240,6 +240,11 @@ func _apply_anchor(texture: Texture2D, scale_value: Vector2) -> void:
 		var left_cell := cell.x - int(floor(float(footprint.x - 1) / 2.0))
 		var center_x := (float(left_cell) + float(footprint.x) * 0.5) * cell_size
 		origin = Vector2(center_x - scaled_size.x * 0.5, float(cell.y + 1) * cell_size - scaled_size.y)
+	elif anchor_mode == "center":
+		var left_cell := cell.x - int(floor(float(footprint.x - 1) / 2.0))
+		var center_x := (float(left_cell) + float(footprint.x) * 0.5) * cell_size
+		var center_y := (float(cell.y + 1) - float(footprint.y) * 0.5) * cell_size
+		origin = Vector2(center_x - scaled_size.x * 0.5, center_y - scaled_size.y * 0.5)
 	else:
 		origin = Vector2(float(cell.x + 1) * cell_size - scaled_size.x, float(cell.y + 1) * cell_size - scaled_size.y)
 	position = origin + offset_px

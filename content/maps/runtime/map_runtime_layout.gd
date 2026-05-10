@@ -15,6 +15,7 @@ var content_hash: String = ""
 var tile_theme_id: String = ""
 var floor_tile_entries: Array[Dictionary] = []
 var surface_entries: Array[Dictionary] = []
+var channel_entries: Array[Dictionary] = []
 
 
 func to_dict() -> Dictionary:
@@ -33,4 +34,5 @@ func to_dict() -> Dictionary:
 		"tile_theme_id": tile_theme_id,
 		"floor_tile_entries": floor_tile_entries.duplicate(true),
 		"surface_entries": surface_entries.duplicate(true),
+		"channel_entries": channel_entries.duplicate(true),
 	}

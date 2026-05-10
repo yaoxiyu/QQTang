@@ -83,6 +83,7 @@ struct GridRecord {
     int32_t cell_y = 0;
     int32_t tile_block_move = 0;
     int32_t bubble_id = -1;
+    int32_t movement_pass_mask = 15;
 };
 
 enum RailType {
@@ -142,6 +143,11 @@ int32_t sanitize_axis(int32_t value) {
 bool in_bounds(int32_t width, int32_t height, int32_t x, int32_t y) {
     return x >= 0 && y >= 0 && x < width && y < height;
 }
+
+constexpr int32_t PASS_N = 1;
+constexpr int32_t PASS_E = 2;
+constexpr int32_t PASS_S = 4;
+constexpr int32_t PASS_W = 8;
 
 int32_t resolve_movement_units_per_tick(int32_t speed_level) {
     const int32_t max_level = static_cast<int32_t>(sizeof(SPEED_TABLE) / sizeof(SPEED_TABLE[0]));
@@ -330,12 +336,39 @@ bool is_bubble_blocking_at_pos(const KernelContext &ctx, int32_t player_id, int3
     return false;
 }
 
+int32_t pass_bit_from_delta(int32_t dx, int32_t dy) {
+    if (dx == 1 && dy == 0) return PASS_E;
+    if (dx == -1 && dy == 0) return PASS_W;
+    if (dx == 0 && dy == 1) return PASS_S;
+    if (dx == 0 && dy == -1) return PASS_N;
+    return 0;
+}
+
+bool is_tile_transition_blocked(const KernelContext &ctx, int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y) {
+    const GridRecord *from = find_grid_record(ctx, from_x, from_y);
+    const GridRecord *to = find_grid_record(ctx, to_x, to_y);
+    if (from == nullptr || to == nullptr) {
+        return true;
+    }
+    const int32_t dx = to_x - from_x;
+    const int32_t dy = to_y - from_y;
+    const int32_t from_bit = pass_bit_from_delta(dx, dy);
+    if (from_bit == 0) {
+        return true;
+    }
+    const int32_t to_bit = pass_bit_from_delta(-dx, -dy);
+    if ((from->movement_pass_mask & from_bit) == 0) {
+        return true;
+    }
+    if ((to->movement_pass_mask & to_bit) == 0) {
+        return true;
+    }
+    return false;
+}
+
 bool is_move_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_id, int32_t cell_x, int32_t cell_y, int32_t candidate_x, int32_t candidate_y) {
     const GridRecord *grid = find_grid_record(ctx, cell_x, cell_y);
     if (grid == nullptr) {
-        return true;
-    }
-    if (grid->tile_block_move != 0) {
         return true;
     }
     if (grid->bubble_id == -1) {
@@ -355,6 +388,9 @@ bool is_move_blocked_for_player_cell(const KernelContext &ctx, int32_t player_id
 bool is_transition_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_id, int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y, int32_t candidate_x, int32_t candidate_y) {
     if (from_x == to_x && from_y == to_y) {
         return false;
+    }
+    if (is_tile_transition_blocked(ctx, from_x, from_y, to_x, to_y)) {
+        return true;
     }
     return is_move_blocked_for_player_at_pos(ctx, player_id, to_x, to_y, candidate_x, candidate_y);
 }
@@ -497,17 +533,19 @@ int32_t resolve_axis_blocking_limit(
     int32_t player_id,
     int32_t target_cell_x,
     int32_t target_cell_y,
-    int32_t /*current_abs_x*/,
-    int32_t /*current_abs_y*/,
+    int32_t current_abs_x,
+    int32_t current_abs_y,
     int32_t candidate_x,
     int32_t candidate_y,
     int32_t move_x,
     int32_t move_y
 ) {
     int32_t limit = axis_unbounded_sentinel(move_x, move_y);
+    const int32_t current_cell_x = abs_to_cell(current_abs_x);
+    const int32_t current_cell_y = abs_to_cell(current_abs_y);
 
     const GridRecord *grid = find_grid_record(ctx, target_cell_x, target_cell_y);
-    if (grid == nullptr || grid->tile_block_move != 0) {
+    if (is_tile_transition_blocked(ctx, current_cell_x, current_cell_y, target_cell_x, target_cell_y)) {
         const int32_t hard_limit = hard_wall_axis_limit(target_cell_x, target_cell_y, move_x, move_y);
         limit = tighten_axis_limit(limit, hard_limit, move_x, move_y);
     }
@@ -913,6 +951,7 @@ PackedByteArray QQTNativeMovementKernel::step_players(const PackedByteArray &inp
         grid.cell_y = blocked_grid[index + 1];
         grid.tile_block_move = blocked_grid[index + 2];
         grid.bubble_id = blocked_grid[index + 3];
+        grid.movement_pass_mask = blocked_grid[index + 4];
         const int64_t flat_index = static_cast<int64_t>(grid.cell_y) * ctx.width + grid.cell_x;
         if (flat_index < 0 || flat_index >= static_cast<int64_t>(ctx.grid_records.size())) {
             continue;

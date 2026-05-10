@@ -20,6 +20,7 @@ var tile_flags: int = 0
 # Phase38: 按方向表达通行能力，避免由表现贴图或命名推断规则。
 var movement_pass_mask: int = TileConstants.PASS_ALL
 var blast_pass_mask: int = TileConstants.PASS_ALL
+var allow_place_bubble: bool = true
 
 # 如果该格是机制格，可用来索引具体机关类型
 var mechanism_id: int = -1

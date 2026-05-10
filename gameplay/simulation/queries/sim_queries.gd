@@ -109,7 +109,25 @@ func is_hard_blocked(cell_x: int, cell_y: int) -> bool:
 	if not is_in_bounds(cell_x, cell_y):
 		return true
 	var cell = _state.grid.get_static_cell(cell_x, cell_y)
-	return (cell.tile_flags & TileConstants.TILE_BLOCK_MOVE) != 0
+	return (cell.tile_flags & TileConstants.TILE_BLOCK_MOVE) != 0 and cell.movement_pass_mask == TileConstants.PASS_NONE
+
+
+func is_transition_tile_blocked(from_x: int, from_y: int, to_x: int, to_y: int) -> bool:
+	if not is_in_bounds(from_x, from_y) or not is_in_bounds(to_x, to_y):
+		return true
+	var dx := to_x - from_x
+	var dy := to_y - from_y
+	var from_bit := _pass_bit_from_delta(dx, dy)
+	if from_bit == 0:
+		return true
+	var to_bit := _pass_bit_from_delta(-dx, -dy)
+	var from_cell := _state.grid.get_static_cell(from_x, from_y)
+	var to_cell := _state.grid.get_static_cell(to_x, to_y)
+	if (from_cell.movement_pass_mask & from_bit) == 0:
+		return true
+	if (to_cell.movement_pass_mask & to_bit) == 0:
+		return true
+	return false
 
 # 检查是否阻挡爆炸
 func is_explosion_blocked(cell_x: int, cell_y: int) -> bool:
@@ -139,6 +157,13 @@ func can_spawn_item(cell_x: int, cell_y: int) -> bool:
 	var cell = _state.grid.get_static_cell(cell_x, cell_y)
 	return (cell.tile_flags & TileConstants.TILE_CAN_SPAWN_ITEM) != 0
 
+
+func can_place_bubble_at(cell_x: int, cell_y: int) -> bool:
+	if not is_in_bounds(cell_x, cell_y):
+		return false
+	var cell = _state.grid.get_static_cell(cell_x, cell_y)
+	return bool(cell.allow_place_bubble)
+
 # 检查玩家是否被阻挡（cell 级薄包装：用目标格中心当作候选位置转发到 *_at_pos 版本）
 func is_move_blocked_for_player(player_id: int, cell_x: int, cell_y: int) -> bool:
 	var candidate_abs_x := GridMotionMath.get_cell_center_abs_x(cell_x)
@@ -166,7 +191,10 @@ func is_lane_blocked_for_player(player_id: int, cell_x: int, cell_y: int) -> boo
 	if player_id < 0:
 		return true
 
-	if is_hard_blocked(cell_x, cell_y):
+	var player := get_player(player_id)
+	if player == null:
+		return true
+	if is_transition_tile_blocked(player.cell_x, player.cell_y, cell_x, cell_y):
 		return true
 
 	var bubble_id := get_bubble_at(cell_x, cell_y)
@@ -203,6 +231,8 @@ func is_transition_blocked_for_player_at_pos(
 ) -> bool:
 	if from_x == to_x and from_y == to_y:
 		return false
+	if is_transition_tile_blocked(from_x, from_y, to_x, to_y):
+		return true
 	return is_move_blocked_for_player_at_pos(player_id, to_x, to_y, candidate_abs_x, candidate_abs_y)
 
 
@@ -285,8 +315,10 @@ func resolve_axis_blocking_limit_for_player(
 	var unbounded := _axis_unbounded_sentinel(move_x, move_y)
 	var limit := unbounded
 
-	# 1) 硬墙：玩家不能进入 target_cell。
-	if is_hard_blocked(target_cell_x, target_cell_y):
+	# 1) 静态碰撞：当前朝向下不允许进入 target_cell。
+	var current_cell_x := int(GridMotionMath.abs_to_cell_and_offset_x(current_abs_x).get("cell_x", 0))
+	var current_cell_y := int(GridMotionMath.abs_to_cell_and_offset_y(current_abs_y).get("cell_y", 0))
+	if is_transition_tile_blocked(current_cell_x, current_cell_y, target_cell_x, target_cell_y):
 		var hard_limit := _hard_wall_axis_limit(target_cell_x, target_cell_y, move_x, move_y)
 		limit = _tighten_axis_limit(limit, hard_limit, move_x, move_y)
 
@@ -462,6 +494,18 @@ static func _sign_of(value: int) -> int:
 	if value < 0:
 		return -1
 	return 1
+
+
+static func _pass_bit_from_delta(dx: int, dy: int) -> int:
+	if dx == 1 and dy == 0:
+		return TileConstants.PASS_E
+	if dx == -1 and dy == 0:
+		return TileConstants.PASS_W
+	if dx == 0 and dy == 1:
+		return TileConstants.PASS_S
+	if dx == 0 and dy == -1:
+		return TileConstants.PASS_N
+	return 0
 
 
 func _is_bubble_blocking_for_player(player_id: int, bubble_id: int) -> bool:

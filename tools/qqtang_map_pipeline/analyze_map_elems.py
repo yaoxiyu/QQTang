@@ -9,6 +9,10 @@ CELL_SIZE = 40
 IMAGE_EXTS = {".png", ".gif", ".jpg", ".jpeg", ".bmp"}
 DEFAULT_ELEM_OVERRIDES_CSV = Path("content_source/csv/maps/map_elem_overrides.csv")
 SURFACE_ANCHOR_MODES = {"bottom_right", "bottom_left", "bottom_center"}
+MOVEMENT_PASS_DIRS = {
+    "none", "u", "d", "l", "r", "ud", "lr", "ul", "ur", "dl", "dr",
+    "lur", "ldr", "uld", "urd", "udlr",
+}
 THEME_IDS = {
     "common": 1,
     "bomb": 2,
@@ -289,6 +293,9 @@ def read_elem_overrides(path: Path) -> dict[str, dict]:
                     override["collision_h"] = max(0, int(str(row.get("collision_h", "")).strip()))
             except ValueError:
                 continue
+            movement_pass_dirs = str(row.get("movement_pass_dirs", "")).strip().lower()
+            if movement_pass_dirs in MOVEMENT_PASS_DIRS:
+                override["movement_pass_dirs"] = movement_pass_dirs
             if override:
                 result[elem_key] = override
     return result
@@ -301,7 +308,7 @@ def ensure_elem_override_csv(path: Path) -> None:
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f,
-            fieldnames=["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode"],
+            fieldnames=["elem_key", "footprint_w", "footprint_h", "collision_w", "collision_h", "logic_type", "anchor_mode", "movement_pass_dirs"],
         )
         writer.writeheader()
 
@@ -391,6 +398,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         "geometry_type",
         "confidence",
         "review_reason",
+        "movement_pass_dirs",
     ]
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

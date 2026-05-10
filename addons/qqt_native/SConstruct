@@ -11,7 +11,7 @@ from SCons.Script import (  # pyright: ignore[reportMissingTypeStubs]
 
 PROJECT_DIR = os.getcwd()
 SRC_DIR = os.path.join(PROJECT_DIR, "src")
-BIN_DIR = os.path.join(PROJECT_DIR, "bin")
+BIN_DIR = os.path.join(PROJECT_DIR, "..", "..", "external", "qqt_native", "bin")
 GODOT_CPP_DIR = os.path.join(PROJECT_DIR, "third_party", "godot-cpp")
 
 ARGUMENTS = cast(dict[str, str], SCONS_ARGUMENTS)

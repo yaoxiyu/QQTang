@@ -12,6 +12,7 @@ const MAP_ELEM_VISUAL_META_CSV_PATH := "res://content_source/csv/maps/map_elem_v
 const MAP_ELEM_OVERRIDES_CSV_PATH := "res://content_source/csv/maps/map_elem_overrides.csv"
 const MAP_FLOOR_TILES_CSV_PATH := "res://content_source/csv/maps/map_floor_tiles.csv"
 const MAP_SURFACE_INSTANCES_CSV_PATH := "res://content_source/csv/maps/map_surface_instances.csv"
+const MAP_CHANNEL_INSTANCES_CSV_PATH := "res://content_source/csv/maps/map_channel_instances.csv"
 const OUTPUT_DIR := "res://content/maps/resources/"
 const GENERATED_FLOOR_TILE_DIR := "res://content/maps/generated/floor_tiles/"
 
@@ -23,6 +24,7 @@ func generate() -> void:
 	var visual_meta_rows := read_csv_rows(MAP_ELEM_VISUAL_META_CSV_PATH)
 	var floor_rows := read_csv_rows(MAP_FLOOR_TILES_CSV_PATH)
 	var surface_rows := read_csv_rows(MAP_SURFACE_INSTANCES_CSV_PATH)
+	var channel_rows := read_csv_rows(MAP_CHANNEL_INSTANCES_CSV_PATH)
 	if map_rows.is_empty():
 		record_error("generate_maps.gd: maps.csv has no data rows")
 		return
@@ -46,6 +48,7 @@ func generate() -> void:
 	_apply_elem_overrides(visual_meta_by_elem_key, override_rows, csv_reader)
 	var floor_rows_by_map_id := _group_rows_by_map_id(floor_rows, csv_reader, "map_floor_tiles.csv")
 	var surface_rows_by_map_id := _group_rows_by_map_id(surface_rows, csv_reader, "map_surface_instances.csv")
+	var channel_rows_by_map_id := _group_rows_by_map_id(channel_rows, csv_reader, "map_channel_instances.csv")
 	var valid_map_ids: Array[String] = []
 	for map_row in map_rows:
 		var map_resource := _build_map_resource(
@@ -54,6 +57,7 @@ func generate() -> void:
 			visual_meta_by_elem_key,
 			floor_rows_by_map_id,
 			surface_rows_by_map_id,
+			channel_rows_by_map_id,
 			csv_reader
 		)
 		if map_resource == null:
@@ -69,6 +73,7 @@ func _build_map_resource(
 	visual_meta_by_elem_key: Dictionary,
 	floor_rows_by_map_id: Dictionary,
 	surface_rows_by_map_id: Dictionary,
+	channel_rows_by_map_id: Dictionary,
 	csv_reader: ContentCsvReader
 ) -> MapResource:
 	var map_id := csv_reader.require_string(map_row, "map_id")
@@ -136,6 +141,13 @@ func _build_map_resource(
 		height,
 		csv_reader
 	)
+	var channel_entries := _build_channel_entries(
+		map_id,
+		channel_rows_by_map_id.get(map_id, []) as Array,
+		width,
+		height,
+		csv_reader
+	)
 	var decoration_cells: Dictionary = {}
 	for entry in surface_entries:
 		if String(entry.get("logic_type", "")) == "decoration":
@@ -176,6 +188,7 @@ func _build_map_resource(
 	map_resource.tile_theme_id = theme_id
 	map_resource.floor_tile_entries = floor_tile_entries
 	map_resource.surface_entries = surface_entries
+	map_resource.channel_entries = channel_entries
 	map_resource.bound_mode_id = bound_mode_id
 	map_resource.bound_rule_set_id = bound_rule_set_id
 	map_resource.match_format_id = String(default_variant.get("match_format_id", ""))
@@ -198,6 +211,7 @@ func _build_map_resource(
 		"item_spawn_profile_id": map_resource.item_spawn_profile_id,
 		"floor_tile_entries": map_resource.floor_tile_entries,
 		"surface_entries": map_resource.surface_entries,
+		"channel_entries": map_resource.channel_entries,
 		"bound_mode_id": map_resource.bound_mode_id,
 		"bound_rule_set_id": map_resource.bound_rule_set_id,
 		"custom_room_enabled": map_resource.custom_room_enabled,
@@ -264,6 +278,12 @@ func _apply_elem_overrides(visual_meta_by_elem_key: Dictionary, rows: Array, csv
 		var anchor_mode := csv_reader.optional_string(row, "anchor_mode", "")
 		if anchor_mode in ["bottom_right", "bottom_left", "bottom_center"]:
 			meta["anchor_mode"] = anchor_mode
+		var movement_pass_dirs := csv_reader.optional_string(row, "movement_pass_dirs", "")
+		if not movement_pass_dirs.is_empty():
+			meta["movement_pass_dirs"] = movement_pass_dirs
+		var movement_pass_mask := csv_reader.optional_string(row, "movement_pass_mask", "")
+		if not movement_pass_mask.is_empty():
+			meta["movement_pass_mask"] = movement_pass_mask
 
 
 func _build_visual_meta_by_elem_key(rows: Array[Dictionary], csv_reader: ContentCsvReader) -> Dictionary:
@@ -392,6 +412,7 @@ func _build_surface_entries(
 		var anchor_mode := _resolve_surface_anchor_mode(csv_reader.optional_string(visual_meta, "anchor_mode", "bottom_right"))
 		var z_bias := csv_reader.parse_int(row.get("z_bias", visual_meta.get("z_bias", "")), 0)
 		var interaction_kind := csv_reader.optional_string(visual_meta, "interaction_kind", "solid")
+		var movement_pass_mask := _resolve_movement_pass_mask(visual_meta, csv_reader)
 		if String(visual_meta.get("visual_layer", "")) != "surface":
 			record_error("generate_maps.gd: map %s surface elem_key must reference a surface asset: %s" % [map_id, elem_key])
 			continue
@@ -426,12 +447,38 @@ func _build_surface_entries(
 			"z_bias": z_bias,
 			"render_role": csv_reader.optional_string(row, "render_role", "surface"),
 			"interaction_kind": interaction_kind,
+			"movement_pass_mask": movement_pass_mask,
 			"die_texture_path": csv_reader.optional_string(visual_meta, "die_resource_path", ""),
 			"trigger_texture_path": csv_reader.optional_string(visual_meta, "trigger_resource_path", ""),
 			"sort_key": Vector3i(y, -x, z_bias),
 			"logic_type": csv_reader.optional_string(visual_meta, "logic_type", "decoration"),
 		})
 	return result
+
+
+func _resolve_movement_pass_mask(visual_meta: Dictionary, csv_reader: ContentCsvReader) -> int:
+	var raw_mask := csv_reader.optional_string(visual_meta, "movement_pass_mask", "")
+	if not raw_mask.is_empty():
+		var parsed_mask := csv_reader.parse_int(raw_mask, 15)
+		return clampi(parsed_mask, 0, 15)
+
+	var raw_dirs := csv_reader.optional_string(visual_meta, "movement_pass_dirs", "").to_lower()
+	if not raw_dirs.is_empty():
+		var bits := 0
+		if raw_dirs.contains("u") or raw_dirs.contains("n"):
+			bits |= 1
+		if raw_dirs.contains("r") or raw_dirs.contains("e"):
+			bits |= 2
+		if raw_dirs.contains("d") or raw_dirs.contains("s"):
+			bits |= 4
+		if raw_dirs.contains("l") or raw_dirs.contains("w"):
+			bits |= 8
+		return bits
+
+	var interaction_kind := csv_reader.optional_string(visual_meta, "interaction_kind", "solid")
+	if interaction_kind == "none":
+		return 15
+	return 0
 
 
 func _collect_surface_cells(surface_entries: Array[Dictionary], interaction_kinds: Array[String]) -> Array[Vector2i]:
@@ -451,6 +498,54 @@ func _collect_surface_cells(surface_entries: Array[Dictionary], interaction_kind
 			result.append(cell)
 	result.sort()
 	return result
+
+
+func _build_channel_entries(
+	map_id: String,
+	rows: Array,
+	width: int,
+	height: int,
+	csv_reader: ContentCsvReader
+) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var seen: Dictionary = {}
+	for row_value in rows:
+		var row: Dictionary = row_value
+		var x := csv_reader.parse_int(row.get("x", ""), -1)
+		var y := csv_reader.parse_int(row.get("y", ""), -1)
+		var movement_pass_mask := _parse_channel_movement_mask(String(row.get("movement_pass_dirs", "")), csv_reader.parse_int(row.get("movement_pass_mask", ""), -1))
+		var allow_place_bubble := csv_reader.parse_bool(row.get("allow_place_bubble", "true"), true)
+		if x < 0 or y < 0 or x >= width or y >= height:
+			record_error("generate_maps.gd: map %s channel entry out of bounds (%d,%d)" % [map_id, x, y])
+			continue
+		var cell := Vector2i(x, y)
+		if seen.has(cell):
+			continue
+		seen[cell] = true
+		result.append({
+			"cell": cell,
+			"movement_pass_mask": movement_pass_mask,
+			"allow_place_bubble": allow_place_bubble,
+		})
+	return result
+
+
+func _parse_channel_movement_mask(raw_dirs: String, raw_mask: int) -> int:
+	if raw_mask >= 0:
+		return clampi(raw_mask, 0, 15)
+	var dirs := raw_dirs.strip_edges().to_lower()
+	if dirs.is_empty() or dirs == "none":
+		return 0
+	var bits := 0
+	if dirs.contains("u") or dirs.contains("n"):
+		bits |= 1
+	if dirs.contains("r") or dirs.contains("e"):
+		bits |= 2
+	if dirs.contains("d") or dirs.contains("s"):
+		bits |= 4
+	if dirs.contains("l") or dirs.contains("w"):
+		bits |= 8
+	return bits
 
 
 func _resolve_surface_anchor_mode(anchor_mode: String) -> String:

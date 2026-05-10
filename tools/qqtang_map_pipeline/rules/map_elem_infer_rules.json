@@ -2,7 +2,7 @@
   "cell_size": 40,
   "default_sort": "row_asc_col_desc",
   "surface_anchor_mode": "bottom_right",
-  "surface_anchor_override_modes": ["bottom_right", "bottom_left", "bottom_center"],
+  "surface_anchor_override_modes": ["bottom_right", "bottom_left", "bottom_center", "center"],
   "rules": [
     {
       "name": "floor_40x40",
