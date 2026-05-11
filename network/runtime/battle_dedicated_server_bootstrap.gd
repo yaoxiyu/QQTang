@@ -48,6 +48,8 @@ var _dev_player_count: int = 2
 var _dev_map_id_override: String = ""
 var _dev_rule_set_id_override: String = ""
 var _dev_ai_drivers: Dictionary = {}  # peer_id -> AiInputDriver
+var _dev_pending_ai_ready: bool = false  # Set after loading to send fake READY next frame
+var _dev_pending_opening_ack_frames: int = 0  # Countdown to send fake OPENING_SNAPSHOT_ACK for AI peers
 var _dev_tick_counter: int = 0
 var _dev_tick_accumulator: float = 0.0
 
@@ -198,9 +200,47 @@ func _process(delta: float) -> void:
 					"input": ai_input,
 				}
 				_battle_runtime.handle_battle_message(input_message)
-	# ------------------------------------------------------------------
-	# END DEV MODE ONLY
-	# ------------------------------------------------------------------
+		# ------------------------------------------------------------------
+		# DEV MODE ONLY: Send fake MATCH_LOADING_READY for AI peers on the
+		# frame after _begin_battle_loading() completes.
+		# ------------------------------------------------------------------
+		# ------------------------------------------------------------------
+		# DEV MODE ONLY: Send fake MATCH_LOADING_READY for AI peers after
+		# begin_loading, then schedule OPENING_SNAPSHOT_ACK for later.
+		# ------------------------------------------------------------------
+		if _dev_pending_ai_ready:
+			_dev_pending_ai_ready = false
+			for ai_peer_id in _dev_ai_drivers.keys():
+				LogNetScript.info("dev_loading: fake MATCH_LOADING_READY for AI peer=%d" % int(ai_peer_id), "", 0, "net.battle_ds_bootstrap")
+				_battle_runtime.handle_loading_message({
+					"message_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+					"msg_type": TransportMessageTypesScript.MATCH_LOADING_READY,
+					"sender_peer_id": int(ai_peer_id),
+					"match_id": _match_id,
+					"revision": 1,
+				})
+			# Schedule OPENING_SNAPSHOT_ACK for next frame, after the
+			# loading coordinator commits the match.
+			_dev_pending_opening_ack_frames = 2
+
+		# ------------------------------------------------------------------
+		# DEV MODE ONLY: Send fake OPENING_SNAPSHOT_ACK for AI peers so the
+		# ServerMatchService transitions to RUNNING without waiting 3s timeout.
+		# Without this, human inputs are dropped during WAITING_READY phase.
+		# ------------------------------------------------------------------
+		if _dev_pending_opening_ack_frames > 0:
+			_dev_pending_opening_ack_frames -= 1
+			if _dev_pending_opening_ack_frames == 0:
+				for ai_peer_id in _dev_ai_drivers.keys():
+					LogNetScript.info("dev_loading: fake OPENING_SNAPSHOT_ACK for AI peer=%d" % int(ai_peer_id), "", 0, "net.battle_ds_bootstrap")
+					_battle_runtime.handle_battle_message({
+						"message_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
+						"msg_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
+						"sender_peer_id": int(ai_peer_id),
+					})
+		# ------------------------------------------------------------------
+		# END DEV MODE ONLY
+		# ------------------------------------------------------------------
 
 
 func _exit_tree() -> void:
@@ -380,9 +420,53 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	})
 	# Gate: once all expected peers have joined, begin match loading
 	var expected := int(_manifest.get("expected_member_count", 0))
-	if expected > 0 and _joined_peer_ids.size() >= expected and not _loading_started:
-		_loading_started = true
-		_begin_battle_loading()
+	# DEV MODE ONLY: Start as soon as the first (human) peer connects.
+	# Remaining players are AI-controlled via _dev_ai_drivers injected in _process().
+	if expected > 0 and not _loading_started:
+		if _dev_mode:
+			# Create sessions and AI drivers for all non-first slots, then
+			# begin loading immediately so the human can start playing.
+			var manifest_members: Array = _manifest.get("members", [])
+			for idx in range(manifest_members.size()):
+				if idx == 0:
+					continue  # Slot 0 is the human peer, already connected.
+				var m: Dictionary = manifest_members[idx] if manifest_members[idx] is Dictionary else {}
+				var ai_member_id := _member_identity_key(
+					String(m.get("account_id", "dev_account_%d" % (idx + 1))),
+					String(m.get("profile_id", "dev_profile_%d" % (idx + 1)))
+				)
+				var ai_peer_id := 100 + idx
+				if not _member_sessions_by_id.has(ai_member_id):
+					_member_sessions_by_id[ai_member_id] = {
+						"member_id": ai_member_id,
+						"account_id": String(m.get("account_id", "dev_account_%d" % (idx + 1))),
+						"profile_id": String(m.get("profile_id", "dev_profile_%d" % (idx + 1))),
+						"ticket_id": "",
+						"device_session_id": "dev_ai_session_%d" % idx,
+						"match_peer_id": ai_peer_id,
+						"transport_peer_id": ai_peer_id,
+						"slot_index": idx,
+						"assigned_team_id": int(m.get("assigned_team_id", (idx % 2) + 1)),
+						"connection_state": "connected",
+						"disconnect_deadline_msec": 0,
+						"resume_token_hash": "",
+						"resume_issued_at_msec": 0,
+					}
+					_member_id_by_peer_id[ai_peer_id] = ai_member_id
+				if not _dev_ai_drivers.has(ai_peer_id):
+					var ai_driver := AiInputDriverScript.new()
+					ai_driver.configure(ai_peer_id)
+					_dev_ai_drivers[ai_peer_id] = ai_driver
+				if not _joined_peer_ids.has(ai_peer_id):
+					_joined_peer_ids.append(ai_peer_id)
+			_refresh_joined_peer_ids_from_sessions()
+			_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
+			_loading_started = true
+			_begin_battle_loading()
+		elif _joined_peer_ids.size() >= expected:
+			_loading_started = true
+			_begin_battle_loading()
+	# END DEV MODE ONLY
 
 
 func _handle_battle_resume_request(message: Dictionary) -> void:
@@ -770,6 +854,11 @@ func _begin_battle_loading() -> void:
 		return
 	_report_ds_instance_active()
 
+	# DEV MODE ONLY: Flag to send fake MATCH_LOADING_READY on next frame.
+	if _dev_mode:
+		_dev_pending_ai_ready = true
+	# END DEV MODE ONLY
+
 
 func _report_battle_ready() -> void:
 	# DEV MODE ONLY: Skip HTTP reporting to game service and DS manager.
@@ -853,12 +942,17 @@ func _plain_json_fail(error_code: String, user_message: String) -> Dictionary:
 func _send_to_peer(peer_id: int, message: Dictionary) -> void:
 	if _transport == null:
 		return
+	# DEV MODE ONLY: Skip synthetic AI peers (IDs >= 100) that have no real transport.
+	if _dev_mode and peer_id >= 100:
+		return
+	# END DEV MODE ONLY
 	_transport.send_to_peer(peer_id, message)
 
 
 func _broadcast_message(message: Dictionary) -> void:
 	if _transport == null:
 		return
+	# DEV MODE ONLY: Broadcast only; synthetic AI peers are filtered in _send_to_peer.
 	_transport.broadcast(message)
 
 

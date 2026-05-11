@@ -93,7 +93,7 @@ var max_bomb_capacity: int = 5
 var bomb_available: int = 1
 var bomb_range: int = 1
 var max_bomb_range: int = 5
-var bomb_fuse_ticks: int = 300  # 默认引信时间（tick）
+var bomb_fuse_ticks: int = 90  # 默认引信时间（tick）
 
 # ====================
 # 技能修饰符

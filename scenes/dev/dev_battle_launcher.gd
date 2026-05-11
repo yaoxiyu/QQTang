@@ -27,6 +27,8 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
+const BattleEntryContextScript = preload("res://app/front/battle/battle_entry_context.gd")
+const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 
 const BATTLE_SCENE_PATH := "res://scenes/battle/battle_main.tscn"
 const LOG_PREFIX := "[dev_launcher]"
@@ -91,7 +93,29 @@ func _start_ds_client() -> void:
 	_app_runtime.battle_session_adapter = _session_adapter
 	_app_runtime.apply_canonical_start_config(_config)
 
-	_log("DS client connecting to %s:%d" % [_ds_address, _ds_port])
+	# Build a dev BattleEntryContext so the network gateway can send
+	# BATTLE_ENTRY_REQUEST when the transport connects to the DS.
+	# The DS in --qqt-dev-mode accepts any ticket.
+	var entry_ctx := BattleEntryContextScript.new()
+	entry_ctx.battle_id = _config.battle_id
+	entry_ctx.match_id = _config.match_id
+	entry_ctx.map_id = _config.map_id
+	entry_ctx.mode_id = _config.mode_id
+	entry_ctx.rule_set_id = _config.rule_set_id
+	entry_ctx.battle_server_host = _ds_address
+	entry_ctx.battle_server_port = _ds_port
+	entry_ctx.battle_ticket = "dev_ticket"
+	entry_ctx.battle_ticket_id = "dev_ticket_1"
+	entry_ctx.source_room_id = "dev_room_ds"
+	_app_runtime.current_battle_entry_context = entry_ctx
+
+	# Provide a minimal AuthSessionState for device_session_id in the entry request.
+	var auth_state := AuthSessionStateScript.new()
+	auth_state.device_session_id = "dev_session_1"
+	_app_runtime.auth_session_state = auth_state
+
+	_log("DS client connecting to %s:%d battle_id=%s" % [_ds_address, _ds_port, _config.battle_id])
+	_log("Controls: Arrows=move Space=bomb F3=debug J=latency K=loss L=rollback")
 	_instance_battle_scene()
 
 

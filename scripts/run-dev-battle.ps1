@@ -85,15 +85,19 @@ switch ($Mode) {
     }
 
     "ds_client" {
-        Write-Host "[run-dev-battle] Starting DS (dev mode) on ${DsHost}:${DsPort}..." -ForegroundColor Green
+        # Shared dev battle ID so DS and client agree on the same battle.
+        $devBattleId = "dev_battle_$([System.Random]::new().Next(10000, 99999))"
+
+        Write-Host "[run-dev-battle] Starting DS (dev mode) on ${DsHost}:${DsPort} battle_id=$devBattleId..." -ForegroundColor Green
 
         $dsArgs = @(
             "--headless",
             "--path", $projectRoot,
             "res://scenes/network/dedicated_server_scene.tscn",
             "--",
-            "--qqt-port", $DsPort,
-            "--qqt-host", $DsHost,
+            "--qqt-ds-port", $DsPort,
+            "--qqt-ds-host", $DsHost,
+            "--qqt-battle-id", $devBattleId,
             "--qqt-dev-mode",
             "--qqt-dev-player-count=$PlayerCount"
         )
@@ -119,6 +123,7 @@ switch ($Mode) {
             "--",
             "--qqt-dev-launcher-ds-addr=$DsHost",
             "--qqt-dev-launcher-ds-port=$DsPort",
+            "--qqt-dev-launcher-battle-id=$devBattleId",
             "--qqt-dev-launcher-player-count=$PlayerCount"
         ) + $extraArgs
 
