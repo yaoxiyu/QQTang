@@ -330,6 +330,15 @@ func _route_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.OPENING_SNAPSHOT_ACK, TransportMessageTypesScript.BATTLE_READY:
 			_battle_runtime.handle_battle_message(message)
 		TransportMessageTypesScript.MATCH_LOADING_READY:
+			# DEV MODE ONLY: Remap sender_peer_id from ENet ID to logical ID=1.
+			if _dev_mode:
+				var msg_sender := int(message.get("sender_peer_id", 0))
+				if msg_sender > 0:
+					var dev_msg := message.duplicate(true)
+					dev_msg["sender_peer_id"] = 1
+					_battle_runtime.handle_loading_message(dev_msg)
+					return
+			# END DEV MODE ONLY
 			_battle_runtime.handle_loading_message(message)
 		_:
 			if message_type == TransportMessageTypesScript.ROOM_CREATE_REQUEST \
@@ -591,6 +600,10 @@ func _validate_battle_entry_request_dev(message: Dictionary) -> Dictionary:
 # END DEV MODE ONLY
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Accept any entry request by constructing member identity
+# from the message and matching against the dev-constructed manifest.
+# ------------------------------------------------------------------
 func _validate_battle_resume_request(message: Dictionary) -> Dictionary:
 	var requested_battle_id := String(message.get("battle_id", "")).strip_edges()
 	if requested_battle_id.is_empty():
@@ -755,6 +768,10 @@ func _construct_dev_manifest() -> void:
 # END DEV MODE ONLY
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Construct a fake battle manifest in memory.
+# This replaces the normal HTTP fetch from game_service.
+# ------------------------------------------------------------------
 func _fetch_manifest() -> void:
 	if _battle_id.is_empty():
 		LogNetScript.warn("battle_ds: no battle_id, skipping manifest fetch", "", 0, "net.battle_ds_bootstrap")
@@ -822,7 +839,12 @@ func _begin_battle_loading() -> void:
 		if transport_peer_id <= 0:
 			continue
 		var member := RoomMemberState.new()
-		member.peer_id = transport_peer_id
+		# DEV MODE ONLY: Use logical peer_id=1 for the human so INPUT_BATCH peer_id matches.
+		var logical_peer_id := transport_peer_id
+		if _dev_mode and idx == 0:
+			logical_peer_id = 1
+		# END DEV MODE ONLY
+		member.peer_id = logical_peer_id
 		member.player_name = String(m.get("profile_id", "Player%d" % transport_peer_id))
 		member.ready = true
 		member.slot_index = idx
@@ -835,7 +857,7 @@ func _begin_battle_loading() -> void:
 			"member_id": member_id,
 			"account_id": String(m.get("account_id", "")),
 			"profile_id": String(m.get("profile_id", "")),
-			"match_peer_id": int(session.get("match_peer_id", transport_peer_id)),
+			"match_peer_id": logical_peer_id,
 			"transport_peer_id": transport_peer_id,
 			"connection_state": "connected",
 			"disconnect_deadline_msec": int(session.get("disconnect_deadline_msec", 0)),
@@ -866,6 +888,11 @@ func _report_battle_ready() -> void:
 		LogNetScript.info("battle_ready reported (dev mode stub) battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
 		return
 	# END DEV MODE ONLY
+	# DEV MODE ONLY: Skip HTTP reporting to game service and DS manager.
+	if _dev_mode:
+		LogNetScript.info("battle_ready reported (dev mode stub) battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+		return
+	# END DEV MODE ONLY
 	if _battle_id.is_empty():
 		return
 	if _manifest_client == null:
@@ -884,6 +911,10 @@ func _report_ds_instance_ready() -> void:
 	if _dev_mode:
 		return
 	# END DEV MODE ONLY
+	# DEV MODE ONLY: Skip DS manager reporting.
+	if _dev_mode:
+		return
+	# END DEV MODE ONLY
 	if _battle_id.is_empty() or _ds_manager_base_url.is_empty():
 		return
 	var path := "/internal/v1/battles/%s/ready" % _battle_id.uri_encode()
@@ -895,6 +926,10 @@ func _report_ds_instance_ready() -> void:
 
 
 func _report_ds_instance_active() -> void:
+	# DEV MODE ONLY: Skip DS manager reporting.
+	if _dev_mode:
+		return
+	# END DEV MODE ONLY
 	# DEV MODE ONLY: Skip DS manager reporting.
 	if _dev_mode:
 		return
@@ -942,13 +977,28 @@ func _plain_json_fail(error_code: String, user_message: String) -> Dictionary:
 func _send_to_peer(peer_id: int, message: Dictionary) -> void:
 	if _transport == null:
 		return
-	# DEV MODE ONLY: Skip synthetic AI peers (IDs >= 100) that have no real transport.
-	if _dev_mode and peer_id >= 100:
-		return
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: Remap logical peer_ids to transport IDs.
+	# The client uses _local_peer_id=1, but the DS sees the ENet
+	# transport ID. Map peer_id=1 to the human's real transport ID.
+	# ------------------------------------------------------------------
+	if _dev_mode:
+		# Skip synthetic AI peers with no real transport.
+		if peer_id >= 100:
+			return
+		# Map logical peer_id=1 to the human's ENet transport ID.
+		if peer_id == 1:
+			for member_id in _member_sessions_by_id.keys():
+				var session: Dictionary = _member_sessions_by_id.get(String(member_id), {})
+				if int(session.get("slot_index", -1)) == 0:
+					var real_peer := int(session.get("transport_peer_id", 0))
+					if real_peer > 0:
+						_transport.send_to_peer(real_peer, message)
+					return
+	# ------------------------------------------------------------------
 	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 	_transport.send_to_peer(peer_id, message)
-
-
 func _broadcast_message(message: Dictionary) -> void:
 	if _transport == null:
 		return
