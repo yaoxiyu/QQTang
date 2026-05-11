@@ -9,17 +9,16 @@ class_name BubblePassPhase
 extends RefCounted
 
 enum Phase {
-	A = 0,  # 自由穿越：玩家在该轴上完全无视泡泡
-	B = 1,  # 单向墙：泡泡中心在该轴成为方向化阻挡
-	C = 2,  # 完全阻挡：泡泡在该轴上恢复为常规障碍
+	A = 0,  # 自由穿越（|d| < M/2）
+	B = 1,  # 对称阻挡（M/2 <= |d| < M）
+	C = 2,  # 完全阻挡（|d| >= M），不可重回重叠
 }
 
 var player_id: int = -1
 var phase_x: int = Phase.A
 var phase_y: int = Phase.A
-# 仅在 phase_x in {B, C} 时有意义；A 时强制为 0。
+# sign 仅在 A→B 推进时记录方向（确定性写入），不参与阻挡逻辑。
 var sign_x: int = 0
-# 仅在 phase_y in {B, C} 时有意义；A 时强制为 0。
 var sign_y: int = 0
 
 

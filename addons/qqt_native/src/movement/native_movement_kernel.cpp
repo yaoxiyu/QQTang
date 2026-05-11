@@ -607,11 +607,15 @@ Dictionary find_overlap_blocked_cell(
 ) {
     Array candidates;
     if (move_x != 0) {
-        candidates.append(Vector2i(target_cell.x, foot_cell.y - 1));
-        candidates.append(Vector2i(target_cell.x, foot_cell.y + 1));
+        candidates.append(Vector2i(foot_cell.x, foot_cell.y - 1));
+        candidates.append(Vector2i(foot_cell.x, foot_cell.y + 1));
+        candidates.append(Vector2i(target_cell.x, target_cell.y - 1));
+        candidates.append(Vector2i(target_cell.x, target_cell.y + 1));
     } else if (move_y != 0) {
-        candidates.append(Vector2i(foot_cell.x - 1, target_cell.y));
-        candidates.append(Vector2i(foot_cell.x + 1, target_cell.y));
+        candidates.append(Vector2i(foot_cell.x - 1, foot_cell.y));
+        candidates.append(Vector2i(foot_cell.x + 1, foot_cell.y));
+        candidates.append(Vector2i(target_cell.x - 1, target_cell.y));
+        candidates.append(Vector2i(target_cell.x + 1, target_cell.y));
     }
 
     Dictionary result;

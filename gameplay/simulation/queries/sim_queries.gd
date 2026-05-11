@@ -384,44 +384,29 @@ func _bubble_phase_axis_limit(
 	var center := resolve_bubble_reference_center(bubble, Vector2i(candidate_abs_x, candidate_abs_y))
 	var phase = BubblePassPhaseHelper.find_phase(bubble, player_id)
 	if phase == null:
-		# 无 phase 条目：在当前模式下视为完全阻挡（C 等价），但要按 move 方向选 sign。
 		if MovementTuning.bubble_phase_init_mode() == 0:
-			return _phase_axis_distance_limit(
-				center.x if move_x != 0 else center.y,
-				_default_block_sign(candidate_abs_x if move_x != 0 else candidate_abs_y, center.x if move_x != 0 else center.y),
-				BubblePassPhaseScript.Phase.C,
-				move_x,
-				move_y
-			)
-		# 懒初始化模式：按候选位置 d 推断的 phase 等价于不阻挡（A,A 区段内）。
+			var player_axis := candidate_abs_x if move_x != 0 else candidate_abs_y
+			var center_axis := center.x if move_x != 0 else center.y
+			return _phase_axis_distance_limit(center_axis, player_axis, BubblePassPhaseScript.Phase.C, move_x, move_y)
 		return _axis_unbounded_sentinel(move_x, move_y)
 
 	if move_x != 0:
-		return _phase_axis_distance_limit(center.x, int(phase.sign_x), int(phase.phase_x), move_x, move_y)
-	return _phase_axis_distance_limit(center.y, int(phase.sign_y), int(phase.phase_y), move_x, move_y)
+		return _phase_axis_distance_limit(center.x, candidate_abs_x, int(phase.phase_x), move_x, move_y)
+	return _phase_axis_distance_limit(center.y, candidate_abs_y, int(phase.phase_y), move_x, move_y)
 
 
-static func _phase_axis_distance_limit(center_axis: int, sign_axis: int, phase_axis: int, move_x: int, move_y: int) -> int:
-	# A 阶段不阻挡；B/C 给出 d·sign >= 阈值 → 边界 = center + sign·阈值
+static func _phase_axis_distance_limit(center_axis: int, player_axis: int, phase_axis: int, move_x: int, move_y: int) -> int:
 	if phase_axis == BubblePassPhaseScript.Phase.A:
 		return _axis_unbounded_sentinel(move_x, move_y)
-	if sign_axis == 0:
-		# 防御：B/C 必须有 sign，否则按完全阻挡处理（限位收紧到 center）。
-		return center_axis
 	var threshold := GridMotionMath.HALF_CELL_UNITS if phase_axis == BubblePassPhaseScript.Phase.B else GridMotionMath.CELL_UNITS
-	return center_axis + sign_axis * threshold
+	if player_axis >= center_axis:
+		return center_axis + threshold
+	return center_axis - threshold
 
-
-static func _default_block_sign(player_axis: int, center_axis: int) -> int:
-	if player_axis > center_axis:
-		return 1
-	if player_axis < center_axis:
-		return -1
-	return 1
 
 
 # 双轴 phase 状态机的阻挡判定。
-# 语义：A=该轴自由；B(s)=候选位置在该轴必须满足 d·s >= M/2；C(s)=d·s >= M。
+# 语义：A=该轴自由；B=候选位置在该轴必须满足 |d| >= M/2；C=|d| >= M。阻挡为对称（不依赖 sign）。
 # 任一轴违反则判定阻挡；两轴都在 A 则完全放行。
 # pass_phases 中无该玩家条目时：
 #   BUBBLE_PHASE_INIT_MODE == 0 → 视为完全阻挡（未重叠进泡泡）
@@ -453,20 +438,20 @@ func is_bubble_blocking_at_pos(
 static func _phase_blocks(phase, d_x: int, d_y: int) -> bool:
 	if int(phase.phase_x) == BubblePassPhaseScript.Phase.A and int(phase.phase_y) == BubblePassPhaseScript.Phase.A:
 		return false
-	if _axis_violates(int(phase.phase_x), int(phase.sign_x), d_x):
+	if _axis_violates(int(phase.phase_x), d_x):
 		return true
-	if _axis_violates(int(phase.phase_y), int(phase.sign_y), d_y):
+	if _axis_violates(int(phase.phase_y), d_y):
 		return true
 	return false
 
 
-static func _axis_violates(axis_phase: int, axis_sign: int, d: int) -> bool:
+static func _axis_violates(axis_phase: int, d: int) -> bool:
 	if axis_phase == BubblePassPhaseScript.Phase.A:
 		return false
-	var signed_d := d * axis_sign
+	var abs_d := absi(d)
 	if axis_phase == BubblePassPhaseScript.Phase.B:
-		return signed_d < GridMotionMath.HALF_CELL_UNITS
-	return signed_d < GridMotionMath.CELL_UNITS
+		return abs_d < GridMotionMath.HALF_CELL_UNITS
+	return abs_d < GridMotionMath.CELL_UNITS
 
 
 static func _compute_lazy_phase(d_x: int, d_y: int) -> Variant:
