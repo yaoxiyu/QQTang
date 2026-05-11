@@ -16,6 +16,12 @@ const LogNetScript = preload("res://app/logging/log_net.gd")
 const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_token_utils.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
+const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
+const AiInputDriverScript = preload("res://gameplay/simulation/systems/ai_input_driver.gd")
+const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
 
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
@@ -35,6 +41,15 @@ var _match_id: String = ""
 var _source_room_id: String = ""
 var _source_room_kind: String = ""
 var _season_id: String = ""
+
+# Dev mode fields
+var _dev_mode: bool = false
+var _dev_player_count: int = 2
+var _dev_map_id_override: String = ""
+var _dev_rule_set_id_override: String = ""
+var _dev_ai_drivers: Dictionary = {}  # peer_id -> AiInputDriver
+var _dev_tick_counter: int = 0
+var _dev_tick_accumulator: float = 0.0
 
 # Manifest + peer gate.
 var _manifest_client: GameServiceBattleManifestClient = null
@@ -60,9 +75,13 @@ func _ready() -> void:
 	_ds_manager_auth_signer = _build_ds_manager_auth_signer()
 	_ds_manager_http_client = _build_ds_manager_http_client(_ds_manager_base_url)
 	_battle_ticket_verifier = BattleTicketVerifierScript.new()
-	_battle_ticket_verifier.configure(battle_ticket_secret)
+	if _dev_mode:
+		_battle_ticket_verifier.configure(battle_ticket_secret, true)
+		LogNetScript.warn("DEV MODE ENABLED: ticket verification relaxed, manifest constructed, DSM reporting disabled. This must NOT run in production.", "", 0, "net.battle_ds_bootstrap")
+	else:
+		_battle_ticket_verifier.configure(battle_ticket_secret)
 
-	if _battle_id.is_empty() and _assignment_id.is_empty():
+	if _battle_id.is_empty() and _assignment_id.is_empty() and not _dev_mode:
 		LogNetScript.warn("battle_ds started without --qqt-battle-id / --qqt-assignment-id, waiting for allocation", "", 0, "net.battle_ds_bootstrap")
 
 	_battle_runtime = ServerBattleRuntimeScript.new()
@@ -89,7 +108,10 @@ func _ready() -> void:
 	_shutdown_coordinator.register_handle(_transport)
 	LogNetScript.info("battle_ds started on %s:%d battle_id=%s assignment_id=%s" % [authority_host, listen_port, _battle_id, _assignment_id], "", 0, "net.battle_ds_bootstrap")
 
-	_fetch_manifest()
+	if _dev_mode:
+		_construct_dev_manifest()
+	else:
+		_fetch_manifest()
 
 
 func _apply_command_line_overrides() -> void:
@@ -127,13 +149,58 @@ func _apply_command_line_overrides() -> void:
 		if parsed_resume_window > 0.0:
 			resume_window_sec = parsed_resume_window
 
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: command line flags for quick battle launcher.
+	# These flags are never passed by the production ds_manager_service.
+	# ------------------------------------------------------------------
+	if parsed.has("--qqt-dev-mode"):
+		_dev_mode = true
+	if parsed.has("--qqt-dev-player-count"):
+		var parsed_count := int(String(parsed["--qqt-dev-player-count"]).to_int())
+		if parsed_count >= 2:
+			_dev_player_count = parsed_count
+	if parsed.has("--qqt-dev-map-id"):
+		_dev_map_id_override = String(parsed["--qqt-dev-map-id"]).strip_edges()
+	if parsed.has("--qqt-dev-rule-set-id"):
+		_dev_rule_set_id_override = String(parsed["--qqt-dev-rule-set-id"]).strip_edges()
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 
-func _process(_delta: float) -> void:
+
+func _process(delta: float) -> void:
 	if _transport == null:
 		return
 	_transport.poll()
 	for message in _transport.consume_incoming():
 		_route_message(message)
+
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: Inject AI inputs for non-player peers.
+	# In production, all peers send their own input via the network.
+	# ------------------------------------------------------------------
+	if _dev_mode and _loading_started and _battle_runtime != null:
+		_dev_tick_accumulator += delta
+		var tick_dt: float = TickRunnerScript.TICK_DT
+		while _dev_tick_accumulator >= tick_dt:
+			_dev_tick_accumulator -= tick_dt
+			_dev_tick_counter += 1
+			for peer_id in _joined_peer_ids:
+				var driver: AiInputDriver = _dev_ai_drivers.get(peer_id, null)
+				if driver == null:
+					continue
+				var ai_input := driver.sample_input_for_tick(_dev_tick_counter)
+				var input_message := {
+					"message_type": TransportMessageTypesScript.INPUT_BATCH,
+					"msg_type": TransportMessageTypesScript.INPUT_BATCH,
+					"sender_peer_id": peer_id,
+					"tick": _dev_tick_counter,
+					"input": ai_input,
+				}
+				_battle_runtime.handle_battle_message(input_message)
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 
 
 func _exit_tree() -> void:
@@ -249,9 +316,11 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	var member_id := String(validation.get("member_id", ""))
 	var manifest_member: Dictionary = validation.get("manifest_member", {})
 	var ticket_id := String(claim.ticket_id) if claim != null else ""
-	if _used_battle_ticket_ids.has(ticket_id):
+	# DEV MODE ONLY: Skip ticket dedup (tickets are not used in dev mode).
+	if not _dev_mode and _used_battle_ticket_ids.has(ticket_id):
 		_reject_peer(peer_id, TransportMessageTypesScript.BATTLE_ENTRY_REJECTED, "BATTLE_TICKET_ALREADY_CONSUMED", "Battle ticket is already consumed")
 		return
+	# END DEV MODE ONLY
 	var resume_token := ResumeTokenUtilsScript.generate_resume_token()
 	var existing_session: Dictionary = _member_sessions_by_id.get(member_id, {})
 	if not existing_session.is_empty() and String(existing_session.get("connection_state", "connected")) == "connected":
@@ -261,12 +330,19 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	if match_peer_id <= 0:
 		match_peer_id = peer_id
 	var slot_index := int(validation.get("slot_index", int(existing_session.get("slot_index", 0))))
+	# DEV MODE ONLY: Resolve account/profile from manifest when claim is null.
+	var resolved_account_id := String(manifest_member.get("account_id", "dev_account_%d" % peer_id))
+	var resolved_profile_id := String(manifest_member.get("profile_id", "dev_profile_%d" % peer_id))
+	if claim != null:
+		resolved_account_id = String(claim.account_id)
+		resolved_profile_id = String(claim.profile_id)
+	# END DEV MODE ONLY
 	var session := {
 		"member_id": member_id,
-		"account_id": String(claim.account_id) if claim != null else "",
-		"profile_id": String(claim.profile_id) if claim != null else "",
+		"account_id": resolved_account_id,
+		"profile_id": resolved_profile_id,
 		"ticket_id": ticket_id,
-		"device_session_id": String(claim.device_session_id) if claim != null else "",
+		"device_session_id": String(claim.device_session_id) if claim != null else "dev_session_%d" % peer_id,
 		"match_peer_id": match_peer_id,
 		"transport_peer_id": peer_id,
 		"slot_index": slot_index,
@@ -278,12 +354,21 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 	}
 	_member_sessions_by_id[member_id] = session
 	_member_id_by_peer_id[peer_id] = member_id
-	_used_battle_ticket_ids[ticket_id] = true
+	# DEV MODE ONLY: Skip ticket ID tracking in dev mode (tickets are not verified).
+	if not _dev_mode:
+		_used_battle_ticket_ids[ticket_id] = true
+	# END DEV MODE ONLY
 	_refresh_joined_peer_ids_from_sessions()
 	_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
 	LogNetScript.info("battle_entry_request accepted peer=%d member_id=%s battle_id=%s" % [peer_id, member_id, _battle_id], "", 0, "net.battle_ds_bootstrap")
 	if not _joined_peer_ids.has(peer_id):
 		_joined_peer_ids.append(peer_id)
+	# DEV MODE ONLY: Create AI driver for non-first peers (slot > 0 means AI-controlled).
+	if _dev_mode and slot_index > 0 and not _dev_ai_drivers.has(peer_id):
+		var ai_driver := AiInputDriverScript.new()
+		ai_driver.configure(peer_id)
+		_dev_ai_drivers[peer_id] = ai_driver
+	# END DEV MODE ONLY
 	_send_to_peer(peer_id, {
 		"message_type": TransportMessageTypesScript.BATTLE_ENTRY_ACCEPTED,
 		"battle_id": _battle_id,
@@ -339,6 +424,16 @@ func _on_match_finished(_result) -> void:
 
 
 func _validate_battle_entry_request(message: Dictionary) -> Dictionary:
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: Accept any entry request without ticket verification.
+	# Peer identity is extracted from the message itself.
+	# ------------------------------------------------------------------
+	if _dev_mode:
+		return _validate_battle_entry_request_dev(message)
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
+
 	if _battle_ticket_verifier == null:
 		return _plain_json_fail("BATTLE_TICKET_VERIFIER_MISSING", "Battle ticket verifier is not configured")
 	if _manifest.is_empty():
@@ -359,6 +454,58 @@ func _validate_battle_entry_request(message: Dictionary) -> Dictionary:
 	result["slot_index"] = int(match.get("slot_index", 0))
 	return result
 
+
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Accept any entry request by constructing member identity
+# from the message and matching against the dev-constructed manifest.
+# ------------------------------------------------------------------
+func _validate_battle_entry_request_dev(message: Dictionary) -> Dictionary:
+	var peer_id := int(message.get("sender_peer_id", 0))
+	if peer_id <= 0:
+		return _plain_json_fail("BATTLE_ENTRY_INVALID_PEER", "Invalid peer id")
+
+	# In dev mode, each connecting peer claims an available manifest slot.
+	# The first peer (human) typically sends slot_index=0.
+	# Additional peers get subsequent slots for AI control.
+	var claimed_slot := int(message.get("slot_index", -1))
+	var manifest_members: Array = _manifest.get("members", [])
+
+	var matched_member: Dictionary = {}
+	var matched_slot := -1
+	for idx in range(manifest_members.size()):
+		var m: Dictionary = manifest_members[idx] if manifest_members[idx] is Dictionary else {}
+		if claimed_slot >= 0 and idx == claimed_slot:
+			matched_member = m
+			matched_slot = idx
+			break
+	if matched_member.is_empty():
+		# Fallback: assign next available slot
+		for idx in range(manifest_members.size()):
+			var m: Dictionary = manifest_members[idx] if manifest_members[idx] is Dictionary else {}
+			var member_id := _member_identity_key(String(m.get("account_id", "")), String(m.get("profile_id", "")))
+			if not _member_sessions_by_id.has(member_id):
+				matched_member = m
+				matched_slot = idx
+				break
+	if matched_member.is_empty():
+		return _plain_json_fail("BATTLE_DEV_SLOTS_FULL", "All dev battle slots are occupied")
+
+	var member_id := _member_identity_key(
+		String(matched_member.get("account_id", "dev_account_%d" % peer_id)),
+		String(matched_member.get("profile_id", "dev_profile_%d" % peer_id))
+	)
+	return {
+		"ok": true,
+		"error_code": "",
+		"user_message": "",
+		"claim": null,
+		"member_id": member_id,
+		"manifest_member": matched_member,
+		"slot_index": matched_slot,
+	}
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------
 
 func _validate_battle_resume_request(message: Dictionary) -> Dictionary:
 	var requested_battle_id := String(message.get("battle_id", "")).strip_edges()
@@ -456,6 +603,73 @@ func _reject_peer(peer_id: int, message_type: String, error_code: String, user_m
 
 
 # --- Manifest fetch + begin_loading ---
+
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Construct a fake battle manifest in memory.
+# This replaces the normal HTTP fetch from game_service.
+# ------------------------------------------------------------------
+func _construct_dev_manifest() -> void:
+	# Resolve content IDs from catalogs or command-line overrides.
+	var map_id := _dev_map_id_override if not _dev_map_id_override.is_empty() else MapCatalogScript.get_default_map_id()
+	var rule_set_id := _dev_rule_set_id_override if not _dev_rule_set_id_override.is_empty() else RuleSetCatalogScript.get_default_rule_id()
+	var mode_id := ModeCatalogScript.get_default_mode_id()
+
+	# Fallback IDs for environments where content may not be fully loaded.
+	if _battle_id.is_empty():
+		_battle_id = "dev_battle_%d" % randi_range(10000, 99999)
+	if _assignment_id.is_empty():
+		_assignment_id = "dev_assignment_%s" % _battle_id
+	if _match_id.is_empty():
+		_match_id = "dev_match_%s" % _battle_id
+	if _source_room_id.is_empty():
+		_source_room_id = "dev_room_%s" % _battle_id
+	_source_room_kind = "dedicated_server"
+	_season_id = "dev_season_1"
+
+	if _battle_runtime != null:
+		_battle_runtime.battle_id = _battle_id
+		_battle_runtime.assignment_id = _assignment_id
+		_battle_runtime.match_id = _match_id
+		_battle_runtime.room_kind = _source_room_kind
+		_battle_runtime.season_id = _season_id
+
+	# Build fake member list.
+	var members: Array[Dictionary] = []
+	var character_ids := CharacterCatalogScript.get_character_ids()
+	for i in range(_dev_player_count):
+		var character_id := character_ids[i % character_ids.size()] if not character_ids.is_empty() else ""
+		members.append({
+			"account_id": "dev_account_%d" % (i + 1),
+			"profile_id": "dev_profile_%d" % (i + 1),
+			"assigned_team_id": 1 if i == 0 else 2,
+			"character_id": character_id,
+		})
+
+	_manifest = {
+		"expected_member_count": _dev_player_count,
+		"map_id": map_id,
+		"rule_set_id": rule_set_id,
+		"mode_id": mode_id,
+		"members": members,
+		"assignment_id": _assignment_id,
+		"match_id": _match_id,
+		"source_room_id": _source_room_id,
+		"source_room_kind": _source_room_kind,
+		"season_id": _season_id,
+	}
+
+	_member_sessions_by_id.clear()
+	_member_id_by_peer_id.clear()
+	_used_battle_ticket_ids.clear()
+	_joined_peer_ids.clear()
+	_loading_started = false
+	_dev_ai_drivers.clear()
+
+	LogNetScript.info("dev_manifest constructed: expected_member_count=%d map_id=%s mode_id=%s" % [_dev_player_count, map_id, mode_id], "", 0, "net.battle_ds_bootstrap")
+	_report_battle_ready()
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------
 
 func _fetch_manifest() -> void:
 	if _battle_id.is_empty():
@@ -558,6 +772,11 @@ func _begin_battle_loading() -> void:
 
 
 func _report_battle_ready() -> void:
+	# DEV MODE ONLY: Skip HTTP reporting to game service and DS manager.
+	if _dev_mode:
+		LogNetScript.info("battle_ready reported (dev mode stub) battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
+		return
+	# END DEV MODE ONLY
 	if _battle_id.is_empty():
 		return
 	if _manifest_client == null:
@@ -572,6 +791,10 @@ func _report_battle_ready() -> void:
 
 
 func _report_ds_instance_ready() -> void:
+	# DEV MODE ONLY: Skip DS manager reporting.
+	if _dev_mode:
+		return
+	# END DEV MODE ONLY
 	if _battle_id.is_empty() or _ds_manager_base_url.is_empty():
 		return
 	var path := "/internal/v1/battles/%s/ready" % _battle_id.uri_encode()
@@ -583,6 +806,10 @@ func _report_ds_instance_ready() -> void:
 
 
 func _report_ds_instance_active() -> void:
+	# DEV MODE ONLY: Skip DS manager reporting.
+	if _dev_mode:
+		return
+	# END DEV MODE ONLY
 	if _ds_instance_active_reported or _battle_id.is_empty() or _ds_manager_base_url.is_empty():
 		return
 	var path := "/internal/v1/battles/%s/active" % _battle_id.uri_encode()
