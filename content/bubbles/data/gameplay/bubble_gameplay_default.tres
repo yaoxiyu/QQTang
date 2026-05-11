@@ -5,5 +5,4 @@
 [resource]
 script = ExtResource("1_rnw0u")
 bubble_gameplay_id = "bubble_gameplay_default"
-fuse_ticks = 180
 content_hash = "bubble_gameplay_bubble_gameplay_default_csv_v1"

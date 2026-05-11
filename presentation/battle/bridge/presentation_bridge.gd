@@ -141,6 +141,10 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 		actor_registry.configure_surface_virtual_z_by_cell(map_view.get_surface_virtual_z_by_cell())
 	if actor_registry != null and map_view != null and map_view.has_method("get_surface_row_max_z"):
 		actor_registry.configure_surface_row_max_z(map_view.get_surface_row_max_z())
+	if actor_registry != null and map_view != null and map_view.has_method("get_surface_render_z_by_cell"):
+		actor_registry.configure_surface_render_z_by_cell(map_view.get_surface_render_z_by_cell())
+
+
 
 
 func clear_bridge() -> void:
@@ -152,6 +156,7 @@ func clear_bridge() -> void:
 		actor_registry.configure_channel_pass_mask_by_cell({})
 		actor_registry.configure_surface_virtual_z_by_cell({})
 		actor_registry.configure_surface_row_max_z({})
+		actor_registry.configure_surface_render_z_by_cell({})
 		actor_registry.clear_all()
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("clear_fx"):
 		spawn_fx_controller.clear_fx()

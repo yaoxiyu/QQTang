@@ -5,6 +5,5 @@
 [resource]
 script = ExtResource("1_btbej")
 bubble_gameplay_id = "bubble_gameplay_round"
-fuse_ticks = 180
 can_be_kicked = true
 content_hash = "bubble_gameplay_bubble_gameplay_round_csv_v1"

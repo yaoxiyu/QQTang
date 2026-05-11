@@ -32,6 +32,7 @@ var _surface_views: Array[Node] = []
 var _channel_pass_mask_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
+var _surface_render_z_by_cell: Dictionary = {}
 var _breakable_views_by_cell: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
@@ -39,6 +40,10 @@ var _animation_frames_cache: Dictionary = {}
 var _sprite_frames_cache: Dictionary = {}
 var _warmup_samples: Dictionary = {}
 var _destroy_latency_logged_once: bool = false
+
+var _z_debug_labels: Array[Node] = []
+var _z_debug_mode: int = 0
+
 var _tile_palette: Dictionary = {
 	"ground": Color(0.88, 0.88, 0.82, 1.0),
 	"solid": Color(0.20, 0.22, 0.28, 1.0),
@@ -92,6 +97,7 @@ func clear_map() -> void:
 	_channel_pass_mask_by_cell.clear()
 	_surface_virtual_z_by_cell.clear()
 	_surface_row_max_z.clear()
+	_surface_render_z_by_cell.clear()
 
 
 func get_channel_pass_mask_by_cell() -> Dictionary:
@@ -104,6 +110,10 @@ func get_surface_virtual_z_by_cell() -> Dictionary:
 
 func get_surface_row_max_z() -> Dictionary:
 	return _surface_row_max_z.duplicate()
+
+
+func get_surface_render_z_by_cell() -> Dictionary:
+	return _surface_render_z_by_cell.duplicate()
 
 
 func apply_map_theme(map_theme: MapThemeDef) -> void:
@@ -211,6 +221,7 @@ func _rebuild_channel_pass_mask_cache() -> void:
 func _rebuild_surface_virtual_z_cache() -> void:
 	_surface_virtual_z_by_cell.clear()
 	_surface_row_max_z.clear()
+	_surface_render_z_by_cell.clear()
 	if _runtime_layout == null:
 		return
 	for entry in _runtime_layout.surface_entries:
@@ -220,6 +231,7 @@ func _rebuild_surface_virtual_z_cache() -> void:
 		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
 		var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
 		var z_bias := int(entry.get("z_bias", 0))
+		var surface_render_z := BattleDepth.surface_z(anchor_cell, z_bias)
 		for occupied_cell in _anchored_rect_cells(anchor_cell, footprint, anchor_mode):
 			if occupied_cell.x < 0 or occupied_cell.y < 0 or occupied_cell.x >= _runtime_layout.width or occupied_cell.y >= _runtime_layout.height:
 				continue
@@ -231,6 +243,63 @@ func _rebuild_surface_virtual_z_cache() -> void:
 			var row_last_z := int(_surface_row_max_z.get(row_key, -2147483648))
 			if cell_z > row_last_z:
 				_surface_row_max_z[row_key] = cell_z
+
+			var render_last_z := int(_surface_render_z_by_cell.get(occupied_cell, -2147483648))
+			if surface_render_z > render_last_z:
+				_surface_render_z_by_cell[occupied_cell] = surface_render_z
+
+
+func set_z_debug_mode(mode: int) -> void:
+	_z_debug_mode = mode
+	_clear_z_debug_labels()
+	if mode > 0:
+		_rebuild_z_debug_labels()
+
+
+func _clear_z_debug_labels() -> void:
+	for label in _z_debug_labels:
+		if is_instance_valid(label):
+			label.queue_free()
+	_z_debug_labels.clear()
+
+
+func _rebuild_z_debug_labels() -> void:
+	_clear_z_debug_labels()
+	var debug_layer := get_node_or_null("../DebugLayer")
+	if debug_layer == null:
+		return
+	if _runtime_layout == null:
+		return
+
+	# Channel cells marker (red)
+	for entry in _runtime_layout.channel_entries:
+		var ch_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var label := Label.new()
+		label.text = "CH"
+		label.position = Vector2(float(ch_cell.x) * cell_size + 2.0, float(ch_cell.y) * cell_size + 2.0)
+		label.add_theme_font_size_override("font_size", 9)
+		label.add_theme_color_override("font_color", Color.RED if _z_debug_mode == 1 else Color(1.0, 0.5, 0.5, 1.0))
+		label.z_index = 10000
+		debug_layer.add_child(label)
+		_z_debug_labels.append(label)
+
+	# Surface elements: show anchor cell + z_index + render_z
+	for entry in _runtime_layout.surface_entries:
+		if String(entry.get("render_role", "surface")) == "occluder":
+			continue
+		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var z_bias := int(entry.get("z_bias", 0))
+		var surf_z := BattleDepth.surface_z(anchor_cell, z_bias)
+		var label := Label.new()
+		label.text = "S z=%d" % surf_z
+		label.position = Vector2(float(anchor_cell.x) * cell_size, float(anchor_cell.y) * cell_size)
+		label.add_theme_font_size_override("font_size", 9)
+		label.add_theme_color_override("font_color", Color.BLACK if _z_debug_mode == 1 else Color.WHITE)
+		label.z_index = 10000
+		debug_layer.add_child(label)
+		_z_debug_labels.append(label)
+
+
 
 
 func _clear_layer(layer: Node) -> void:

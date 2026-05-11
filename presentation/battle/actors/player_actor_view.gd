@@ -36,6 +36,7 @@ var _is_local_player: bool = false
 var _channel_pass_mask_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
+var _surface_render_z_by_cell: Dictionary = {}
 
 
 func _ready() -> void:
@@ -82,10 +83,26 @@ func apply_view_state(view_state: Dictionary) -> void:
 	var surface_row_z := int(_surface_row_max_z.get(cell.y, -2147483648))
 	if surface_row_z >= resolved_player_z:
 		resolved_player_z = surface_row_z + 1
-	z_index = resolved_player_z
 	_last_view_state = view_state.duplicate(true)
 	_apply_channel_occlusion_state()
-
+	var surface_render_z := -2147483648
+	if not _channel_pass_mask_by_cell.is_empty():
+		var ch_cell_size: float = float(_last_view_state.get("cell_size", 40.0))
+		var collision_center: Vector2 = _resolve_collision_center(_last_view_state, ch_cell_size)
+		var world_cell := Vector2i(int(floor(collision_center.x / ch_cell_size)), int(floor(collision_center.y / ch_cell_size)))
+		var overlap_dist_sq := ch_cell_size * ch_cell_size
+		for sample_cell in _candidate_channel_cells(world_cell):
+			if sample_cell.y != world_cell.y:
+				continue
+			if not _channel_pass_mask_by_cell.has(sample_cell):
+				continue
+			var ch_center := Vector2((float(sample_cell.x) + 0.5) * ch_cell_size, (float(sample_cell.y) + 0.5) * ch_cell_size)
+			if collision_center.distance_squared_to(ch_center) <= overlap_dist_sq:
+				var cell_render_z := int(_surface_render_z_by_cell.get(sample_cell, -2147483648))
+				surface_render_z = max(surface_render_z, cell_render_z)
+	if surface_render_z > resolved_player_z:
+		resolved_player_z = surface_render_z + 1
+	z_index = resolved_player_z
 	if _body_view != null and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
 	if _team_marker_view != null and _team_marker_view.has_method("apply_actor_state"):
@@ -104,6 +121,10 @@ func configure_surface_priority_map(surface_virtual_z_by_cell: Dictionary) -> vo
 
 func configure_surface_row_priority_map(surface_row_max_z: Dictionary) -> void:
 	_surface_row_max_z = surface_row_max_z.duplicate()
+
+
+func configure_surface_render_z_by_cell(surface_render_z_by_cell: Dictionary) -> void:
+	_surface_render_z_by_cell = surface_render_z_by_cell.duplicate()
 
 
 func _apply_channel_occlusion_state() -> void:

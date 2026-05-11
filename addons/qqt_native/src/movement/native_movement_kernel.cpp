@@ -259,16 +259,16 @@ Vec2i resolve_bubble_reference_center(const KernelContext &ctx, const BubbleReco
     return best_center;
 }
 
-// 单轴是否违反 phase 约束：A 自由；B(s) 要求 d*s >= M/2；C(s) 要求 d*s >= M。
-bool axis_violates(int32_t axis_phase, int32_t axis_sign, int32_t d) {
+// 单轴是否违反 phase 约束：A 自由；B 要求 |d| >= M/2；C 要求 |d| >= M。
+bool axis_violates(int32_t axis_phase, int32_t d) {
     if (axis_phase == PHASE_A) {
         return false;
     }
-    const int32_t signed_d = d * axis_sign;
+    const int32_t abs_d = std::abs(d);
     if (axis_phase == PHASE_B) {
-        return signed_d < HALF_CELL_UNITS;
+        return abs_d < HALF_CELL_UNITS;
     }
-    return signed_d < CELL_UNITS;
+    return abs_d < CELL_UNITS;
 }
 
 // 候选位置 + phase 推断（懒初始化模式下使用）
@@ -327,10 +327,10 @@ bool is_bubble_blocking_at_pos(const KernelContext &ctx, int32_t player_id, int3
     if (phase->phase_x == PHASE_A && phase->phase_y == PHASE_A) {
         return false;
     }
-    if (axis_violates(phase->phase_x, phase->sign_x, d_x)) {
+    if (axis_violates(phase->phase_x, d_x)) {
         return true;
     }
-    if (axis_violates(phase->phase_y, phase->sign_y, d_y)) {
+    if (axis_violates(phase->phase_y, d_y)) {
         return true;
     }
     return false;
@@ -389,13 +389,27 @@ bool is_move_blocked_for_player_cell(const KernelContext &ctx, int32_t player_id
 }
 
 bool is_transition_blocked_for_player_at_pos(const KernelContext &ctx, int32_t player_id, int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y, int32_t candidate_x, int32_t candidate_y) {
-    if (from_x == to_x && from_y == to_y) {
-        return false;
-    }
     if (is_tile_transition_blocked(ctx, from_x, from_y, to_x, to_y)) {
         return true;
     }
-    return is_move_blocked_for_player_at_pos(ctx, player_id, to_x, to_y, candidate_x, candidate_y);
+    // 扫描角色移动路径周围 3x3 区域的所有泡泡格。
+    // Phase C 阻挡半径 = M，相邻格内的玩家中心距泡泡中心可能 < M，需要拦住。
+    const int32_t cx_min = std::min(from_x, to_x) - 1;
+    const int32_t cx_max = std::max(from_x, to_x) + 1;
+    const int32_t cy_min = std::min(from_y, to_y) - 1;
+    const int32_t cy_max = std::max(from_y, to_y) + 1;
+    for (int32_t cy = cy_min; cy <= cy_max; ++cy) {
+        for (int32_t cx = cx_min; cx <= cx_max; ++cx) {
+            const GridRecord *grid = find_grid_record(ctx, cx, cy);
+            if (grid == nullptr || grid->bubble_id == -1) {
+                continue;
+            }
+            if (is_bubble_blocking_at_pos(ctx, player_id, grid->bubble_id, candidate_x, candidate_y)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 int32_t get_player_rail_constraint(const KernelContext &ctx, int32_t player_id, int32_t cell_x, int32_t cell_y) {
@@ -479,15 +493,16 @@ int32_t default_block_sign(int32_t player_axis, int32_t center_axis) {
     return 1;
 }
 
-int32_t phase_axis_distance_limit(int32_t center_axis, int32_t sign_axis, int32_t phase_axis, int32_t move_x, int32_t move_y) {
+int32_t phase_axis_distance_limit(int32_t center_axis, int32_t phase_axis, int32_t player_axis, int32_t move_x, int32_t move_y) {
     if (phase_axis == PHASE_A) {
         return axis_unbounded_sentinel(move_x, move_y);
     }
-    if (sign_axis == 0) {
-        return center_axis;
-    }
     const int32_t threshold = (phase_axis == PHASE_B) ? HALF_CELL_UNITS : CELL_UNITS;
-    return center_axis + sign_axis * threshold;
+    // 限位在玩家当前所在侧：玩家在中心右侧则限位在右侧，左侧则左侧
+    if (player_axis >= center_axis) {
+        return center_axis + threshold;
+    }
+    return center_axis - threshold;
 }
 
 int32_t bubble_phase_axis_limit(
@@ -516,16 +531,15 @@ int32_t bubble_phase_axis_limit(
             // 视为 C 阶段完全阻挡
             const int32_t player_axis = (move_x != 0) ? candidate_x : candidate_y;
             const int32_t center_axis = (move_x != 0) ? center.x : center.y;
-            const int32_t s = default_block_sign(player_axis, center_axis);
-            return phase_axis_distance_limit(center_axis, s, PHASE_C, move_x, move_y);
+            return phase_axis_distance_limit(center_axis, PHASE_C, player_axis, move_x, move_y);
         }
         return axis_unbounded_sentinel(move_x, move_y);
     }
 
     if (move_x != 0) {
-        return phase_axis_distance_limit(center.x, phase->sign_x, phase->phase_x, move_x, move_y);
+        return phase_axis_distance_limit(center.x, phase->phase_x, candidate_x, move_x, move_y);
     }
-    return phase_axis_distance_limit(center.y, phase->sign_y, phase->phase_y, move_x, move_y);
+    return phase_axis_distance_limit(center.y, phase->phase_y, candidate_y, move_x, move_y);
 }
 
 // MovementSystem 子步用：综合硬墙 + 泡泡 phase 边界，给出该轴允许到达的最远位置。

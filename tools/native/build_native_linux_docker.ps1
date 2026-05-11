@@ -72,13 +72,16 @@ Invoke-QQTIncrementalStep `
     -Total 2 `
     -Action {
         $mountPath = $rootPath -replace "\\", "/"
-        Write-Host "[qqt_native] building Linux native artifact in Ubuntu 24.04 container target=$Target arch=$Arch"
+        Write-Host "[qqt_native] building Linux native artifact in Ubuntu 24.04 container target=$Target arch=$Arch ForceBuild=$ForceBuild"
+        $extraArgs = @($Target, $Arch)
+        if ($ForceBuild) {
+            $extraArgs += '--clean'
+        }
         docker run --rm `
             -v "${mountPath}:/workspace" `
             -w /workspace `
             $Image `
-            $Target `
-            $Arch
+            @extraArgs
         if ($LASTEXITCODE -ne 0) {
             throw "native Linux artifact build failed (docker exit code: $LASTEXITCODE)"
         }

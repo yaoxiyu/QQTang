@@ -214,7 +214,7 @@ func is_transition_blocked_for_player(
 	to_y: int
 ) -> bool:
 	if from_x == to_x and from_y == to_y:
-		return false
+		return is_move_blocked_for_player(player_id, to_x, to_y)
 
 	return is_move_blocked_for_player(player_id, to_x, to_y)
 
@@ -230,7 +230,7 @@ func is_transition_blocked_for_player_at_pos(
 	candidate_abs_y: int
 ) -> bool:
 	if from_x == to_x and from_y == to_y:
-		return false
+		return is_move_blocked_for_player_at_pos(player_id, to_x, to_y, candidate_abs_x, candidate_abs_y)
 	if is_transition_tile_blocked(from_x, from_y, to_x, to_y):
 		return true
 	return is_move_blocked_for_player_at_pos(player_id, to_x, to_y, candidate_abs_x, candidate_abs_y)

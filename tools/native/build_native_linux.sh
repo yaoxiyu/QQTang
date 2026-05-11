@@ -35,15 +35,20 @@ if [[ ! -f "$GODOT_CPP_LIB" ]]; then
 fi
 
 # SCons outputs to external/qqt_native/bin/ (set in SConstruct)
-"$SCONS_EXE" platform=linux target="$TARGET" arch="$ARCH"
+if [[ "${3:-}" == "--clean" ]]; then
+  echo "[qqt_native] cleaning scons cache before rebuild"
+  "$SCONS_EXE" -c platform=linux target="$TARGET" arch="$ARCH" || true
+  rm -f .sconsign.dblite
+fi
+	"$SCONS_EXE" platform=linux target="$TARGET" arch="$ARCH"
 
 # SCons SharedLibrary on Linux prepends "lib" — make sure non-lib name exists
 EXTERNAL_DIR="$ROOT_DIR/external/qqt_native/bin"
 ARTIFACT="$EXTERNAL_DIR/qqt_native.linux.${TARGET}.${ARCH}.so"
 LIB_ARTIFACT="$EXTERNAL_DIR/libqqt_native.linux.${TARGET}.${ARCH}.so"
 
-if [[ -f "$LIB_ARTIFACT" && ! -f "$ARTIFACT" ]]; then
-  cp "$LIB_ARTIFACT" "$ARTIFACT"
+if [[ -f "$LIB_ARTIFACT" ]]; then
+  cp -f "$LIB_ARTIFACT" "$ARTIFACT"
 fi
 
 if [[ ! -f "$ARTIFACT" ]]; then

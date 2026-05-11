@@ -5,7 +5,7 @@ const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 
 const MOVE_STEP_UNITS : int = WorldMetrics.TENTH_CELL_UNITS
 const TURN_SNAP_WINDOW_UNITS : int = WorldMetrics.FIFTH_CELL_UNITS
-const PASS_ABSORB_WINDOW_UNITS : int = WorldMetrics.SIXTH_CELL_UNITS
+const PASS_ABSORB_WINDOW_UNITS : int = WorldMetrics.HALF_CELL_UNITS
 const BUBBLE_FORWARD_PLACE_WINDOW_UNITS : int = WorldMetrics.HALF_CELL_UNITS
 
 # 泡泡 overlap/距离判定的参考中心选择策略：

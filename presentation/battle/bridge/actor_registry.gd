@@ -16,6 +16,8 @@ var _player_visual_profiles: Dictionary = {}
 var _channel_pass_mask_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
+var _surface_render_z_by_cell: Dictionary = {}
+var _player_row_cells: Dictionary = {}
 
 
 func configure(
@@ -44,6 +46,10 @@ func configure_surface_row_max_z(surface_row_max_z: Dictionary) -> void:
 	_surface_row_max_z = surface_row_max_z.duplicate()
 
 
+func configure_surface_render_z_by_cell(surface_render_z_by_cell: Dictionary) -> void:
+	_surface_render_z_by_cell = surface_render_z_by_cell.duplicate()
+
+
 func sync_players(parent: Node, players: Array[Dictionary]) -> void:
 	_sync_group(parent, players, _player_views, player_scene, PlayerActorViewScript)
 
@@ -54,6 +60,8 @@ func sync_bubbles(parent: Node, bubbles: Array[Dictionary]) -> void:
 
 func sync_items(parent: Node, items: Array[Dictionary]) -> void:
 	_sync_group(parent, items, _item_views, item_scene, ItemActorViewScript)
+
+
 
 
 func clear_all() -> void:
@@ -125,13 +133,43 @@ func _sync_group(
 			view.configure_surface_priority_map(_surface_virtual_z_by_cell)
 		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_row_priority_map"):
 			view.configure_surface_row_priority_map(_surface_row_max_z)
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_render_z_by_cell"):
+			view.configure_surface_render_z_by_cell(_surface_render_z_by_cell)
 		if fallback_script == BubbleActorViewScript and view.has_method("configure_channel_occlusion"):
 			view.configure_channel_occlusion(_channel_pass_mask_by_cell)
 
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)
+		if fallback_script == PlayerActorViewScript:
+			_player_row_cells[entity_id] = view_state.get("cell", Vector2i.ZERO) as Vector2i
+
+	if fallback_script == PlayerActorViewScript:
+		_enforce_player_z_row_order(views)
 
 	_prune_missing(views, active_ids)
+
+
+
+func _enforce_player_z_row_order(views: Dictionary) -> void:
+	var row_players: Array[Dictionary] = []
+	for entity_id in views:
+		var view = views[entity_id]
+		if view == null or not is_instance_valid(view):
+			continue
+		var cell: Vector2i = _player_row_cells.get(entity_id, Vector2i.ZERO)
+		row_players.append({"view": view, "cell": cell, "z": view.z_index})
+	if row_players.size() < 2:
+		return
+	row_players.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.cell.y < b.cell.y)
+	var prev_z: int = int(row_players[0].z)
+	for i in range(1, row_players.size()):
+		var entry: Dictionary = row_players[i]
+		if entry.cell.y > row_players[i - 1].cell.y:
+			var min_z: int = prev_z + 1
+			if int(entry.z) < min_z:
+				entry.view.z_index = min_z
+				entry.z = min_z
+		prev_z = int(entry.z)
 
 
 func _instantiate_view(scene: PackedScene, fallback_script: Script) -> Node:

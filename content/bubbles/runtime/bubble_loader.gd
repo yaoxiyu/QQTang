@@ -50,7 +50,6 @@ static func load_metadata(bubble_id: String) -> Dictionary:
 		"spawn_fx_id": style.spawn_fx_id,
 		"explode_fx_id": style.explode_fx_id,
 		"bubble_gameplay_id": gameplay.bubble_gameplay_id,
-		"fuse_ticks": gameplay.fuse_ticks,
 		"move_speed_level": gameplay.move_speed_level,
 		"can_be_kicked": gameplay.can_be_kicked,
 		"content_hash": String(style.content_hash if not style.content_hash.is_empty() else gameplay.content_hash),

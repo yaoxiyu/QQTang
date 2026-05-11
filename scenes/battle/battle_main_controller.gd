@@ -59,6 +59,39 @@ var _runtime_bound: bool = false
 var _battle_visuals_released: bool = false
 var _runtime_reparenting: bool = false
 var _debug_panels_visible: bool = false
+var _z_debug_mode: int = 0
+var _z_debug_player_label: Label = null
+var _z_debug_canvas: CanvasLayer = null
+
+
+func _update_player_z_debug_label() -> void:
+	if _z_debug_mode == 0:
+		if _z_debug_player_label != null and is_instance_valid(_z_debug_player_label):
+			_z_debug_player_label.visible = false
+		return
+	if _z_debug_player_label == null:
+		if _z_debug_canvas == null:
+			_z_debug_canvas = CanvasLayer.new()
+			_z_debug_canvas.layer = 10
+			add_child(_z_debug_canvas)
+		_z_debug_player_label = Label.new()
+		_z_debug_player_label.position = Vector2(8, 36)
+		_z_debug_player_label.add_theme_font_size_override("font_size", 10)
+		_z_debug_player_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_z_debug_canvas.add_child(_z_debug_player_label)
+	_z_debug_player_label.visible = true
+	var color := Color.BLACK if _z_debug_mode == 1 else Color.WHITE
+	_z_debug_player_label.add_theme_color_override("font_color", color)
+	var lines: Array[String] = []
+	var actor_layer := world_root.get_node_or_null("ActorLayer")
+	if actor_layer != null:
+		for child in actor_layer.get_children():
+			if child is Node2D:
+				lines.append("P z=%d" % child.z_index)
+	if lines.is_empty():
+		lines.append("P (none)")
+	_z_debug_player_label.text = "
+".join(lines)
 
 
 func _ready() -> void:
@@ -86,6 +119,8 @@ func _process(delta: float) -> void:
 		return
 
 	_tick_accumulator += delta
+	if _z_debug_mode > 0:
+		_update_player_z_debug_label()
 	while _tick_accumulator >= TICK_INTERVAL_SEC and not _finished:
 		_tick_accumulator -= TICK_INTERVAL_SEC
 		_session_adapter.advance_authoritative_tick(_collect_local_input())
@@ -275,6 +310,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_remove_direction("down")
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F3:
 		_toggle_debug_panels()
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
+		_toggle_z_debug()
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
 		match event.keycode:
 			KEY_SPACE:
@@ -678,6 +715,13 @@ func _toggle_debug_panels() -> void:
 	_debug_panels_visible = not _debug_panels_visible
 	if battle_hud != null and battle_hud.has_method("set_debug_panels_visible"):
 		battle_hud.set_debug_panels_visible(_debug_panels_visible)
+
+
+func _toggle_z_debug() -> void:
+	_z_debug_mode = (_z_debug_mode + 1) % 3
+	if map_root != null and map_root.has_method("set_z_debug_mode"):
+		map_root.set_z_debug_mode(_z_debug_mode)
+	_update_player_z_debug_label()
 
 
 func _apply_map_preview_alignment() -> void:
