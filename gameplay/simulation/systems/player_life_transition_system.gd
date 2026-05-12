@@ -86,7 +86,7 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 	var player_id := player.entity_id
 	var foot_cell := PlayerLocator.get_foot_cell(player)
 	var killer_player_id := int(player.last_damage_from_player_id)
-	var respawn_enabled := _is_respawn_enabled(ctx)
+	var can_revive := _can_revive(ctx)
 	var respawn_ticks := _get_respawn_delay_ticks(ctx)
 	var death_display_ticks := _get_death_display_ticks(ctx)
 
@@ -97,7 +97,7 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 	player.trap_bubble_id = -1
 	player.trapped_timeout_ticks = 0
 
-	if respawn_enabled and respawn_ticks > 0:
+	if can_revive and respawn_ticks > 0:
 		player.life_state = PlayerState.LifeState.REVIVING
 		player.respawn_ticks = respawn_ticks
 		player.death_display_ticks = 0
@@ -168,9 +168,9 @@ func _remove_player_from_active_ids(ctx: SimContext, player_id: int) -> void:
 		ctx.state.players.active_ids.remove_at(active_pos)
 
 
-func _is_respawn_enabled(ctx: SimContext) -> bool:
+func _can_revive(ctx: SimContext) -> bool:
 	var rule_flags: Dictionary = _get_rule_flags(ctx)
-	return bool(rule_flags.get("respawn_enabled", false))
+	return bool(rule_flags.get("can_revive", false))
 
 
 func _get_respawn_delay_ticks(ctx: SimContext) -> int:

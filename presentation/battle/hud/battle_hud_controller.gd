@@ -10,6 +10,7 @@ const BattleMetaPanelScript = preload("res://presentation/battle/hud/battle_meta
 const LocalPlayerAbilityPanelScript = preload("res://presentation/battle/hud/local_player_ability_panel.gd")
 const BattleHudResourceBinderScript = preload("res://presentation/battle/hud/battle_hud_resource_binder.gd")
 const BattleHudAssetIdsScript = preload("res://presentation/battle/hud/battle_hud_asset_ids.gd")
+const PlayerListPanelScript = preload("res://presentation/battle/hud/player_list_panel.gd")
 const UiAssetResolverScript = preload("res://app/front/ui_resources/ui_asset_resolver.gd")
 const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
 
@@ -21,6 +22,7 @@ const WorldTiming = preload("res://gameplay/shared/world_timing.gd")
 @export var local_player_ability_panel_path: NodePath = ^"../LocalPlayerAbilityPanel"
 @export var team_score_panel_path: NodePath = ^"../TeamScorePanel/TeamScoreLabel"
 @export var local_life_state_panel_path: NodePath = ^"../LocalLifeStatePanel"
+@export var player_list_panel_path: NodePath = ^"../PlayerListPanel"
 @export var countdown_digits_path: NodePath = ^"../CountdownDigits"
 @export var tick_rate: int = WorldTiming.TICK_RATE
 @export var debug_panels_visible_default: bool = false
@@ -37,6 +39,7 @@ var battle_meta_panel: Node = null
 var local_player_ability_panel: Node = null
 var team_score_panel: Label = null
 var local_life_state_panel: Label = null
+var player_list_panel = null
 var countdown_digits: Node = null
 
 var _last_message: String = ""
@@ -46,6 +49,9 @@ var _pending_rule_display_name: String = ""
 var _pending_match_meta_text: String = ""
 var _pending_character_display_name: String = ""
 var _pending_bubble_display_name: String = ""
+var _pending_show_score: bool = false
+var _pending_visual_profiles: Dictionary = {}
+var _pending_player_names: Array[String] = []
 var _hud_asset_bindings: Dictionary = {}
 var _reference_item_bar: HBoxContainer = null
 var _ui_asset_resolver = null
@@ -67,6 +73,11 @@ func _ready() -> void:
 	team_score_panel = get_node_or_null(team_score_panel_path)
 	local_life_state_panel = get_node_or_null(local_life_state_panel_path)
 	countdown_digits = get_node_or_null(countdown_digits_path)
+	player_list_panel = get_node_or_null(player_list_panel_path)
+	if player_list_panel == null:
+		player_list_panel = PlayerListPanelScript.new()
+		player_list_panel.name = "PlayerListPanel"
+		add_child(player_list_panel)
 	_bind_hud_resource_ids()
 	_apply_reference_frames()
 	_bind_reference_frame_nodes()
@@ -96,6 +107,8 @@ func consume_battle_state(world: SimWorld) -> void:
 
 	_apply_team_scores(world)
 	_apply_local_life_state(world)
+	if player_list_panel != null and player_list_panel.has_method("apply_battle_state"):
+		player_list_panel.apply_battle_state(world)
 
 
 func consume_network_metrics(metrics: Dictionary) -> void:
@@ -193,6 +206,8 @@ func reset_hud() -> void:
 		team_score_panel.text = ""
 	if local_life_state_panel != null:
 		local_life_state_panel.text = ""
+	if player_list_panel != null and player_list_panel.has_method("configure"):
+		player_list_panel.configure(false, {}, null)
 
 
 func set_debug_panels_visible(visible: bool) -> void:
@@ -521,6 +536,20 @@ func set_extended_battle_metadata(
 
 func set_local_player_entity_id(entity_id: int) -> void:
 	_local_player_entity_id = entity_id
+
+
+func configure_player_list_panel(show_score: bool, visual_profiles: Dictionary, player_names: Array[String] = []) -> void:
+	_pending_show_score = show_score
+	_pending_visual_profiles = visual_profiles.duplicate()
+	_pending_player_names = player_names.duplicate()
+	_apply_player_list_panel_config()
+
+
+func _apply_player_list_panel_config() -> void:
+	if player_list_panel == null or not player_list_panel.has_method("configure"):
+		return
+	var score_digits_texture := _load_ui_texture(BattleHudAssetIdsScript.SCORE_DIGITS)
+	player_list_panel.configure(_pending_show_score, _pending_visual_profiles, _pending_player_names, score_digits_texture)
 
 
 func _build_local_player_status(world: SimWorld) -> Dictionary:

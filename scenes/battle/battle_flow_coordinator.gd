@@ -7,6 +7,7 @@ const BattlePlayerVisualProfileBuilderScript = preload("res://presentation/battl
 const RoomSelectionStateScript = preload("res://gameplay/front/room_selection/room_selection_state.gd")
 const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalog.gd")
+const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
@@ -66,6 +67,7 @@ func initialize_battle_context(
 	battle_camera_controller.configure_from_world(battle_context.sim_world, presentation_bridge.cell_size)
 	apply_content_style_overrides(app_runtime, presentation_bridge)
 	apply_player_visual_profiles(app_runtime, presentation_bridge)
+	apply_player_list_panel_config(app_runtime, battle_hud)
 	apply_map_theme(app_runtime, presentation_bridge, map_theme_environment_controller, map_root)
 	var local_player_entity_id := resolve_local_player_entity_id(app_runtime, battle_context)
 	presentation_bridge.set_local_player_entity_id(local_player_entity_id)
@@ -205,6 +207,35 @@ func apply_player_visual_profiles(app_runtime: Node, presentation_bridge: Node) 
 		"front.battle.scene"
 	)
 	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
+
+
+func apply_player_list_panel_config(app_runtime: Node, battle_hud: Node) -> void:
+	if battle_hud == null or not battle_hud.has_method("configure_player_list_panel"):
+		return
+	var start_config: BattleStartConfig = app_runtime.current_start_config if app_runtime != null else null
+	if start_config == null:
+		return
+	var rule_set_def := RuleSetCatalogScript.get_by_id(String(start_config.rule_set_id))
+	var show_score := false
+	if rule_set_def != null:
+		show_score = bool(rule_set_def.show_score)
+	var room_snapshot := _resolve_battle_room_snapshot(app_runtime, start_config)
+	if room_snapshot == null:
+		return
+	var runtime_config := _get_runtime_config(app_runtime, start_config, room_snapshot)
+	if runtime_config == null:
+		return
+	var player_visual_profiles := _battle_player_visual_profile_builder.build(runtime_config, start_config.player_slots)
+	var player_names: Array[String] = []
+	player_names.resize(8)
+	player_names.fill("")
+	for entry in start_config.player_slots:
+		var slot_idx: int = int(entry.get("slot_index", -1))
+		if slot_idx < 1 or slot_idx > 8:
+			continue
+		var name_str: String = String(entry.get("player_name", entry.get("display_name", "")))
+		player_names[slot_idx - 1] = name_str
+	battle_hud.configure_player_list_panel(show_score, player_visual_profiles, player_names)
 
 
 func apply_map_theme(app_runtime: Node, presentation_bridge: Node, map_theme_environment_controller: Node, map_root: Node) -> void:

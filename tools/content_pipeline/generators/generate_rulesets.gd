@@ -22,6 +22,8 @@ func generate() -> void:
         def.respawn_enabled = get_cell(row, header_index, "respawn_enabled") == "true"
         def.friendly_fire = get_cell(row, header_index, "friendly_fire") == "true"
         def.sudden_death_enabled = get_cell(row, header_index, "sudden_death_enabled") == "true"
+        def.show_score = get_cell(row, header_index, "show_score") == "true"
+        def.can_revive = get_cell(row, header_index, "can_revive") == "true"
         def.item_drop_profile_id = get_cell(row, header_index, "item_drop_profile_id")
         def.score_policy = get_cell(row, header_index, "score_policy")
         def.player_explosion_profile_id = get_cell(row, header_index, "player_explosion_profile_id")

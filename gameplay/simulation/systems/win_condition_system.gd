@@ -26,7 +26,7 @@ func execute(ctx: SimContext) -> void:
 	if _try_end_single_participating_team_match(ctx):
 		return
 
-	if _get_score_policy(ctx) == "team_score":
+	if _can_revive(ctx):
 		return
 
 	var active_team_ids := _collect_active_team_ids(ctx)
@@ -117,8 +117,8 @@ func _is_player_active_for_team_survival(player: PlayerState) -> bool:
 			return false
 
 
-func _get_score_policy(ctx: SimContext) -> String:
+func _can_revive(ctx: SimContext) -> bool:
 	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
-		return String(rule_flags.get("score_policy", "last_survivor"))
-	return "last_survivor"
+		return bool(rule_flags.get("can_revive", false))
+	return false

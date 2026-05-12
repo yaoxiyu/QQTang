@@ -18,6 +18,7 @@ const NETWORK_GOOD := "ui.battle.hud.network.good"
 const NETWORK_WARNING := "ui.battle.hud.network.warning"
 const NETWORK_BAD := "ui.battle.hud.network.bad"
 const TIMER_DIGITS := "ui.battle.hud.timer.digits"
+const SCORE_DIGITS := "ui.battle.hud.score.digits"
 const FRAME_PLAYER_LIST := "ui.battle.frame.player_list"
 const FRAME_STATUS_BAR := "ui.battle.frame.status_bar"
 const FRAME_MAP_TOP := "ui.battle.frame.map_top"
@@ -56,6 +57,7 @@ static func required_asset_ids() -> Array[String]:
 		NETWORK_WARNING,
 		NETWORK_BAD,
 		TIMER_DIGITS,
+		SCORE_DIGITS,
 		FRAME_PLAYER_LIST,
 		FRAME_STATUS_BAR,
 		FRAME_MAP_TOP,

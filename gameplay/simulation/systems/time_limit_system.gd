@@ -18,7 +18,7 @@ func execute(ctx: SimContext) -> void:
 
 	ctx.state.match_state.phase = MatchState.Phase.ENDED
 	ctx.state.match_state.ended_reason = MatchState.EndReason.TIME_UP
-	if _get_score_policy(ctx) == "team_score":
+	if _can_revive(ctx):
 		_apply_team_score_time_up_result(ctx)
 	else:
 		_apply_non_score_time_up_result(ctx)
@@ -154,11 +154,11 @@ func _is_player_active_for_team_survival(player: PlayerState) -> bool:
 			return false
 
 
-func _get_score_policy(ctx: SimContext) -> String:
+func _can_revive(ctx: SimContext) -> bool:
 	var rule_flags : Dictionary = ctx.config.system_flags.get("rule_set", {})
 	if rule_flags is Dictionary:
-		return String(rule_flags.get("score_policy", "last_survivor"))
-	return "last_survivor"
+		return bool(rule_flags.get("can_revive", false))
+	return false
 
 
 func _get_score_tiebreak_policy(ctx: SimContext) -> String:

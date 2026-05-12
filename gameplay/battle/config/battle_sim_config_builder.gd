@@ -38,6 +38,8 @@ func _build_rule_set_flags(rule_set_def: RuleSetDef) -> Dictionary:
 		return {}
 	return {
 		"rule_set_id": String(rule_set_def.rule_set_id),
+		"show_score": bool(rule_set_def.show_score),
+		"can_revive": bool(rule_set_def.can_revive),
 		"respawn_enabled": bool(rule_set_def.respawn_enabled),
 		"score_policy": String(rule_set_def.score_policy),
 		"rescue_touch_enabled": bool(rule_set_def.rescue_touch_enabled),

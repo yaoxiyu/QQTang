@@ -1,21 +1,29 @@
-[gd_scene format=3 ]
+[gd_scene format=3 uid="uid://c8etuv8rogx0i"]
 
-[ext_resource type="Script" path="res://scenes/battle/battle_main_controller.gd" id="0_root"]
-[ext_resource type="Script" path="res://gameplay/battle/runtime/battle_bootstrap.gd" id="1_boot"]
-[ext_resource type="Script" path="res://presentation/battle/bridge/presentation_bridge.gd" id="2_bridge"]
-[ext_resource type="Script" path="res://presentation/battle/hud/battle_hud_controller.gd" id="3_hud"]
-[ext_resource type="Script" path="res://presentation/battle/hud/network_status_panel.gd" id="6_net"]
-[ext_resource type="Script" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
-[ext_resource type="Script" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
-[ext_resource type="Script" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
-[ext_resource type="Script" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
-[ext_resource type="Texture2D" path="res://external/assets/source/res/object/ui/game/gameTop.png" id="16_top"]
-[ext_resource type="Texture2D" path="res://external/assets/source/res/object/ui/game/gameLeft.png" id="17_left"]
-[ext_resource type="Texture2D" path="res://external/assets/source/res/object/ui/game/dlg_statusBar.png" id="18_bottom"]
-[ext_resource type="Script" path="res://presentation/battle/hud/battle_map_grid_preview.gd" id="19_grid"]
-[ext_resource type="Texture2D" path="res://external/assets/source/res/object/ui/bg/bg_game.png" id="20_right"]
-[ext_resource type="Script" path="res://presentation/battle/hud/battle_countdown_digits.gd" id="21_digits_script"]
-[ext_resource type="Texture2D" path="res://external/assets/source/res/object/ui/common/number3.png" id="22_digits_tex"]
+[ext_resource type="Script" uid="uid://bhdsw0kri8vyo" path="res://scenes/battle/battle_main_controller.gd" id="0_root"]
+[ext_resource type="Script" uid="uid://clefghmd4ccxt" path="res://gameplay/battle/runtime/battle_bootstrap.gd" id="1_boot"]
+[ext_resource type="Script" uid="uid://brmvyy0bacom1" path="res://presentation/battle/bridge/presentation_bridge.gd" id="2_bridge"]
+[ext_resource type="Script" uid="uid://be1slme0fgv2f" path="res://presentation/battle/hud/battle_hud_controller.gd" id="3_hud"]
+[ext_resource type="Script" uid="uid://ch3u402i1q5oq" path="res://presentation/battle/hud/network_status_panel.gd" id="6_net"]
+[ext_resource type="Script" uid="uid://brthms6dcefu0" path="res://presentation/battle/scene/map_view_controller.gd" id="8_map"]
+[ext_resource type="Script" uid="uid://bm3n1q38itgl7" path="res://presentation/battle/scene/battle_camera_controller.gd" id="9_camera"]
+[ext_resource type="Script" uid="uid://cskaj04ce5i4c" path="res://presentation/battle/scene/spawn_fx_controller.gd" id="10_fx"]
+[ext_resource type="Script" uid="uid://c5w8b3srrvmk4" path="res://presentation/battle/scene/map_theme_environment_controller.gd" id="15_ppvt3"]
+[ext_resource type="Texture2D" uid="uid://c6x2sjbb5xwck" path="res://external/assets/source/res/object/ui/game/gameTop.png" id="16_top"]
+[ext_resource type="Texture2D" uid="uid://cx1yv6tt8nu8i" path="res://external/assets/source/res/object/ui/game/gameLeft.png" id="17_left"]
+[ext_resource type="Texture2D" uid="uid://cdycnyasrtv77" path="res://external/assets/source/res/object/ui/game/dlg_statusBar.png" id="18_bottom"]
+[ext_resource type="Script" uid="uid://fpbxxe8mcw65" path="res://presentation/battle/hud/battle_map_grid_preview.gd" id="19_grid"]
+[ext_resource type="Texture2D" uid="uid://pd0ofagn62sp" path="res://external/assets/source/res/object/ui/bg/bg_game.png" id="20_right"]
+[ext_resource type="Script" uid="uid://eyj0ick81aqs" path="res://presentation/battle/hud/battle_countdown_digits.gd" id="21_digits_script"]
+[ext_resource type="Texture2D" uid="uid://dnvv7q5xy680g" path="res://external/assets/source/res/object/ui/common/number3.png" id="22_digits_tex"]
+[ext_resource type="Script" uid="uid://c4hx3bacn1qsj" path="res://presentation/battle/hud/player_list_panel.gd" id="23_player_list"]
+[ext_resource type="Texture2D" uid="uid://d4d3wgi1kerf5" path="res://external/assets/source/res/object/ui/common/number4.png" id="24_number4"]
+[ext_resource type="Texture2D" uid="uid://bfin3522gqpll" path="res://external/assets/source/res/object/cloth/cloth12301_stand.png" id="25_cloth_qmark"]
+[ext_resource type="Script" uid="uid://nm7hex3nyu16" path="res://presentation/battle/hud/score_digits.gd" id="26_score_digits"]
+
+[sub_resource type="AtlasTexture" id="atlas_rank_0"]
+atlas = ExtResource("24_number4")
+region = Rect2(0, 0, 16, 18)
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")
@@ -130,6 +138,162 @@ offset_top = 20.0
 offset_right = 1016.0
 offset_bottom = 140.0
 script = ExtResource("6_net")
+
+[node name="PlayerListPanel" type="Node2D" parent="CanvasLayer" unique_id=1819912345]
+script = ExtResource("23_player_list")
+rank_x = 662.0
+
+[node name="PH_Char1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=176450814]
+position = Vector2(700, 145)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=818709277]
+position = Vector2(662, 82)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=613416563]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 640.0
+offset_top = 121.0
+offset_right = 712.0
+offset_bottom = 139.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=2054139795]
+position = Vector2(700, 195)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=863372701]
+position = Vector2(662, 146)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score2" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1620030170]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 137.0
+offset_right = 752.0
+offset_bottom = 155.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=2046514550]
+position = Vector2(610, 210)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1334452819]
+position = Vector2(662, 210)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score3" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=66200485]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 201.0
+offset_right = 752.0
+offset_bottom = 219.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=955745353]
+position = Vector2(610, 274)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1394582476]
+position = Vector2(662, 274)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score4" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=2018217389]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 265.0
+offset_right = 752.0
+offset_bottom = 283.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=95409703]
+position = Vector2(610, 338)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1640387368]
+position = Vector2(662, 338)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score5" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=634627399]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 329.0
+offset_right = 752.0
+offset_bottom = 347.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1549183649]
+position = Vector2(610, 402)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=812053079]
+position = Vector2(662, 402)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score6" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=933060578]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 393.0
+offset_right = 752.0
+offset_bottom = 411.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1331795101]
+position = Vector2(610, 466)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1270525641]
+position = Vector2(662, 466)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score7" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=185647294]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 457.0
+offset_right = 752.0
+offset_bottom = 475.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
+
+[node name="PH_Char8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=478417820]
+position = Vector2(610, 530)
+texture = ExtResource("25_cloth_qmark")
+
+[node name="PH_Rank8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=419905423]
+position = Vector2(662, 530)
+texture = SubResource("atlas_rank_0")
+
+[node name="PH_Score8" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1713132759]
+custom_minimum_size = Vector2(72, 18)
+layout_mode = 3
+anchors_preset = 0
+offset_left = 680.0
+offset_top = 521.0
+offset_right = 752.0
+offset_bottom = 539.0
+script = ExtResource("26_score_digits")
+digits_texture = ExtResource("24_number4")
 
 [node name="AudioRoot" type="Node" parent="." unique_id=1810718296]
 

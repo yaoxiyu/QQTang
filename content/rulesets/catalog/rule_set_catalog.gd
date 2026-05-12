@@ -118,6 +118,8 @@ static func get_rule_metadata(rule_set_id: String) -> Dictionary:
 		"respawn_enabled": def.respawn_enabled,
 		"friendly_fire": def.friendly_fire,
 		"sudden_death_enabled": def.sudden_death_enabled,
+		"show_score": def.show_score,
+		"can_revive": def.can_revive,
 		"item_drop_profile": def.item_drop_profile_id,
 		"item_drop_profile_id": def.item_drop_profile_id,
 		"player_explosion_profile_id": def.player_explosion_profile_id,

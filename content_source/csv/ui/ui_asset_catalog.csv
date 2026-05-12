@@ -44,6 +44,7 @@ ui.battle.hud.network.good,texture,res://external/assets/ui/battle/hud/network_g
 ui.battle.hud.network.warning,texture,res://external/assets/ui/battle/hud/network_warning.png,,,48,48,false,keep_aspect,battle_hud,true
 ui.battle.hud.network.bad,texture,res://external/assets/ui/battle/hud/network_bad.png,,,48,48,false,keep_aspect,battle_hud,true
 ui.battle.hud.timer.digits,texture,res://external/assets/source/res/object/ui/common/number3.png,,,405,36,false,keep_aspect,battle_hud,true
+ui.battle.hud.score.digits,texture,res://external/assets/source/res/object/ui/common/number4.png,,,240,18,false,keep_aspect,battle_hud,true
 ui.battle.frame.player_list,texture,res://external/assets/source/res/object/ui/bg/bg_game.png,,,500,1435,false,stretch,battle_hud,true
 ui.battle.frame.status_bar,texture,res://external/assets/source/res/object/ui/game/dlg_statusBar.png,,,1517,126,false,stretch,battle_hud,true
 ui.battle.frame.map_top,texture,res://external/assets/source/res/object/ui/game/gameTop.png,,,1514,383,false,stretch,battle_hud,true
