@@ -34,6 +34,7 @@ var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
 var _surface_render_z_by_cell: Dictionary = {}
 var _breakable_views_by_cell: Dictionary = {}
+var _surface_breakable_cells: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
 var _occluder_views: Array[Node] = []
 var _animation_frames_cache: Dictionary = {}
@@ -205,6 +206,7 @@ func _clear_runtime_layers() -> void:
 	_surface_views.clear()
 	_static_views_by_cell.clear()
 	_breakable_views_by_cell.clear()
+	_surface_breakable_cells.clear()
 	_occluder_views.clear()
 
 
@@ -418,6 +420,7 @@ func _rebuild_surface_entries() -> void:
 		if String(entry.get("interaction_kind", "solid")) == "breakable":
 			var cell := entry.get("cell", Vector2i.ZERO) as Vector2i
 			_breakable_views_by_cell[cell] = node
+			_surface_breakable_cells[cell] = true
 
 
 func _resolve_surface_anchor_mode(anchor_mode: String) -> String:
@@ -518,6 +521,8 @@ func _sync_breakable_views_from_grid_cache() -> void:
 		if int(cell_data.get("tile_type", TileConstants.TileType.EMPTY)) != TileConstants.TileType.BREAKABLE_BLOCK:
 			continue
 		var cell := Vector2i(int(cell_data.get("x", 0)), int(cell_data.get("y", 0)))
+		if _surface_breakable_cells.has(cell):
+			continue
 		alive_breakable_cells[cell] = true
 		if _breakable_views_by_cell.has(cell):
 			continue
@@ -540,6 +545,8 @@ func _sync_breakable_views_from_grid_cache() -> void:
 	var stale_cells: Array[Vector2i] = []
 	for cell_variant in _breakable_views_by_cell.keys():
 		var cell := cell_variant as Vector2i
+		if _surface_breakable_cells.has(cell):
+			continue
 		if alive_breakable_cells.has(cell):
 			continue
 		stale_cells.append(cell)

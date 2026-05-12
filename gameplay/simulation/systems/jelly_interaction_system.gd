@@ -15,14 +15,27 @@ func get_name() -> StringName:
 func execute(ctx: SimContext) -> void:
 	var trapped_players := _collect_trapped_players(ctx)
 	if trapped_players.is_empty():
+		_log_pending_trap_diagnostic(ctx)
 		return
 
 	var normal_players := _collect_normal_players(ctx)
+	_log_pierce_diagnostic(ctx, trapped_players, normal_players)
 
 	for trapped_player in trapped_players:
 		if trapped_player == null or trapped_player.life_state != PlayerState.LifeState.TRAPPED:
 			continue
 		if _should_preserve_authoritative_remote_state(ctx, trapped_player):
+			LogSimulationScript.debug(
+				"jelly_skip_remote tick=%d trapped_player_id=%d slot=%d client_slot=%d" % [
+					ctx.tick,
+					trapped_player.entity_id,
+					trapped_player.player_slot,
+					ctx.state.runtime_flags.client_controlled_player_slot if ctx.state.runtime_flags != null else -1,
+				],
+				"",
+				0,
+				"sim.jelly.diag"
+			)
 			continue
 		var touched := false
 
@@ -39,9 +52,21 @@ func execute(ctx: SimContext) -> void:
 				if _is_rescue_enabled(ctx):
 					_rescue_player(ctx, trapped_player, actor_player)
 					break
+				else:
+					LogSimulationScript.debug(
+						"jelly_no_rescue_rule tick=%d trapped_player_id=%d rescuer_player_id=%d" % [
+							ctx.tick, trapped_player.entity_id, actor_player.entity_id,
+						], "", 0, "sim.jelly.diag"
+					)
 			elif _is_enemy_execute_enabled(ctx):
 				_execute_player(ctx, trapped_player, actor_player)
 				break
+			else:
+				LogSimulationScript.debug(
+					"jelly_no_execute_rule tick=%d trapped_player_id=%d enemy_player_id=%d" % [
+						ctx.tick, trapped_player.entity_id, actor_player.entity_id,
+					], "", 0, "sim.jelly.diag"
+				)
 		if trapped_player.life_state == PlayerState.LifeState.TRAPPED:
 			_tick_trapped_timeout(ctx, trapped_player, touched)
 
@@ -233,3 +258,74 @@ func _should_preserve_authoritative_remote_state(ctx: SimContext, player: Player
 
 func _should_log_jelly_timeout_periodic(tick: int) -> bool:
 	return tick % JELLY_TIMEOUT_LOG_INTERVAL_TICKS == 0
+
+
+func _log_pierce_diagnostic(ctx: SimContext, trapped_players: Array[PlayerState], normal_players: Array[PlayerState]) -> void:
+	for trapped_player in trapped_players:
+		if trapped_player == null:
+			continue
+		var trapped_abs := PlayerLocator.get_abs_pos(trapped_player)
+		var trapped_foot := PlayerLocator.get_foot_cell(trapped_player)
+		for actor_player in normal_players:
+			if actor_player == null or actor_player.entity_id == trapped_player.entity_id:
+				continue
+			var actor_abs := PlayerLocator.get_abs_pos(actor_player)
+			var actor_foot := PlayerLocator.get_foot_cell(actor_player)
+			var dx := absi(trapped_abs.x - actor_abs.x)
+			var dy := absi(trapped_abs.y - actor_abs.y)
+			var touching := (dx <= CELL_UNITS and dy < CELL_UNITS) or (dy <= CELL_UNITS and dx < CELL_UNITS)
+			LogSimulationScript.debug(
+				"jelly_diag tick=%d trapped_id=%d trapped_cell=(%d,%d) trapped_abs=(%d,%d) actor_id=%d actor_cell=(%d,%d) actor_abs=(%d,%d) dx=%d dy=%d touching=%s same_team=%s" % [
+					ctx.tick,
+					trapped_player.entity_id,
+					trapped_foot.x, trapped_foot.y,
+					trapped_abs.x, trapped_abs.y,
+					actor_player.entity_id,
+					actor_foot.x, actor_foot.y,
+					actor_abs.x, actor_abs.y,
+					dx, dy,
+					"true" if touching else "false",
+					"true" if trapped_player.team_id == actor_player.team_id else "false",
+				],
+				"",
+				0,
+				"sim.jelly.diag"
+			)
+
+
+func _log_pending_trap_diagnostic(ctx: SimContext) -> void:
+	if ctx == null or ctx.scratch == null:
+		return
+	if ctx.scratch.players_to_trap.is_empty():
+		return
+	for pending_id in ctx.scratch.players_to_trap:
+		var victim := ctx.state.players.get_player(int(pending_id))
+		if victim == null:
+			continue
+		var victim_abs := PlayerLocator.get_abs_pos(victim)
+		var victim_foot := PlayerLocator.get_foot_cell(victim)
+		for player_id in ctx.state.players.active_ids:
+			var actor_player := ctx.state.players.get_player(player_id)
+			if actor_player == null or actor_player.entity_id == victim.entity_id:
+				continue
+			if not actor_player.alive or actor_player.life_state != PlayerState.LifeState.NORMAL:
+				continue
+			var actor_abs := PlayerLocator.get_abs_pos(actor_player)
+			var dx := absi(victim_abs.x - actor_abs.x)
+			var dy := absi(victim_abs.y - actor_abs.y)
+			var touching := (dx <= CELL_UNITS and dy < CELL_UNITS) or (dy <= CELL_UNITS and dx < CELL_UNITS)
+			if not touching:
+				continue
+			LogSimulationScript.info(
+				"jelly_same_tick_blindspot tick=%d pending_trapped_id=%d pending_cell=(%d,%d) walker_id=%d walker_cell=(%d,%d) dx=%d dy=%d note=victim_still_NORMAL_in_jelly_system" % [
+					ctx.tick,
+					victim.entity_id,
+					victim_foot.x, victim_foot.y,
+					actor_player.entity_id,
+					PlayerLocator.get_foot_cell(actor_player).x, PlayerLocator.get_foot_cell(actor_player).y,
+					dx, dy,
+				],
+				"",
+				0,
+				"sim.jelly.diag"
+			)

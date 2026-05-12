@@ -18,7 +18,7 @@ func register_factory(type_key: String, factory: Callable) -> void:
 		_total_reused[type_key] = 0
 
 
-func prewarm(type_key: String, count: int, parent: Node, configure_callable: Callable = Callable()) -> void:
+func prewarm(type_key: String, count: int, _parent: Node = null, configure_callable: Callable = Callable()) -> void:
 	if not _factory.has(type_key):
 		push_error("FxPool.prewarm: unknown type_key=%s" % type_key)
 		return
@@ -28,8 +28,6 @@ func prewarm(type_key: String, count: int, parent: Node, configure_callable: Cal
 		_total_created[type_key] += 1
 		if configure_callable.is_valid():
 			configure_callable.call(node)
-		if parent != null:
-			parent.add_child(node)
 
 
 func acquire(type_key: String, parent: Node, configure_callable: Callable) -> Node:
@@ -50,6 +48,8 @@ func acquire(type_key: String, parent: Node, configure_callable: Callable) -> No
 	if configure_callable.is_valid():
 		configure_callable.call(node)
 
+	if node.get_parent() != null:
+		node.get_parent().remove_child(node)
 	parent.add_child(node)
 	return node
 
