@@ -11,7 +11,7 @@ const FRAME_FLAG_LATEST := 1 << 0
 const FRAME_FLAG_EDGE_ACTION := 1 << 1
 const FRAME_FLAG_RESEND := 1 << 2
 const FRAME_FLAG_HAS_SEQ := 1 << 3
-const INPUT_BATCH_WARN_FRAMES := 10
+const INPUT_BATCH_WARN_FRAMES := 12
 
 var _local_peer_id: int = 0
 var _controlled_peer_id: int = 0

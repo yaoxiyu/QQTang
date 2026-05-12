@@ -5,6 +5,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtime/client_runtime_snapshot_applier.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const RollbackTelemetryScript = preload("res://network/session/runtime/rollback_telemetry.gd")
 
 const TRACE_TAG := "sync.trace"
 
@@ -263,8 +264,13 @@ func _log_missing_bubble_state_after_place(tick_id: int, events: Array) -> void:
 			continue
 		var bubble = world.state.bubbles.get_bubble(bubble_id)
 		if bubble == null:
-			LogSyncScript.warn(
-				"anomaly=placed_event_without_world_bubble tick=%d bubble_id=%d payload=%s" % [tick_id, bubble_id, str(event.payload)],
+			# The bubble is queued in pending_authoritative_events_by_tick
+			# and will be spawned when the prediction loop replays this
+			# tick (this is the normal path when local placement was
+			# rejected or the bubble belongs to another peer). Log at
+			# DEBUG so the trace stays available without flooding WARN.
+			LogSyncScript.debug(
+				"placed_event_pending_apply tick=%d bubble_id=%d" % [tick_id, bubble_id],
 				"",
 				0,
 				"%s sync.client_authority_ingestion" % TRACE_TAG
@@ -367,7 +373,13 @@ func _log_snapshot_mismatch(authoritative_snapshot: WorldSnapshot) -> void:
 		])
 	if reasons.is_empty() or _should_suppress_rollback_probe_log(reasons):
 		return
-	LogSyncScript.info(
+	RollbackTelemetryScript.shared().record_probe(
+		reasons,
+		_runtime.prediction_controller.predicted_until_tick if _runtime.prediction_controller != null else -1,
+		_runtime.client_session.last_confirmed_tick if _runtime.client_session != null else -1
+	)
+	RollbackTelemetryScript.shared().flush_if_due()
+	LogSyncScript.debug(
 		"rollback_probe tick=%d reasons=%s predicted_until=%d ack_tick=%d local_player=%s auth_player=%s local_bubbles=%d auth_bubbles=%d local_items=%d auth_items=%d" % [
 			authoritative_snapshot.tick_id,
 			", ".join(reasons),

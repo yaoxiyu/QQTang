@@ -13,6 +13,7 @@ const ClientAuthorityIngestionScript = preload("res://network/session/runtime/cl
 const ClientPredictionPolicyScript = preload("res://network/session/runtime/client_prediction_policy.gd")
 const ClientRuntimeShutdownHandleScript = preload("res://network/session/runtime/client_runtime_shutdown_handle.gd")
 const RuntimeShutdownContextScript = preload("res://app/runtime/runtime_shutdown_context.gd")
+const RollbackTelemetryScript = preload("res://network/session/runtime/rollback_telemetry.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const TRACE_TAG := "sync.trace"
 
@@ -290,6 +291,7 @@ func _shutdown_runtime_internal(_context: Variant) -> void:
 	controlled_peer_id = 0
 	_correction_count = 0
 	_last_resync_tick = -1
+	RollbackTelemetryScript.reset_shared()
 	latest_authoritative_events.clear()
 	pending_authoritative_events_by_tick.clear()
 	_authority_ingestion.reset()
@@ -350,7 +352,9 @@ func _resolve_ignored_local_player_keys_for_rollback() -> Array[String]:
 
 func _on_prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i) -> void:
 	_correction_count += 1
-	LogSyncScript.info(
+	RollbackTelemetryScript.shared().record_correction(from_pos, to_pos)
+	RollbackTelemetryScript.shared().flush_if_due()
+	LogSyncScript.debug(
 		"rollback_corrected entity=%d from=%s to=%s correction_count=%d last_resync_tick=%d" % [
 			entity_id,
 			str(from_pos),

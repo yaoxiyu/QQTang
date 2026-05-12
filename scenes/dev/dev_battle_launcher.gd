@@ -115,8 +115,23 @@ func _start_ds_client() -> void:
 	_app_runtime.auth_session_state = auth_state
 
 	_log("DS client connecting to %s:%d battle_id=%s" % [_ds_address, _ds_port, _config.battle_id])
-	_log("Controls: Arrows=move Space=bomb F3=debug J=latency K=loss L=rollback")
+	_log("Controls: Arrows=move Space=bomb F3=debug J=latency K=loss L=rollback O=toggle_remote_AI(dev_only)")
 	_instance_battle_scene()
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: Mount the dev DS AI toggle helper so the O key in
+	# DS_CLIENT mode can pause/resume the server-side AI drivers.
+	# The helper only runs while this dev launcher is alive and is never
+	# referenced by production scenes / flows.
+	# ------------------------------------------------------------------
+	var DevDsAiToggleScript := load("res://scenes/dev/dev_ds_ai_toggle.gd")
+	if DevDsAiToggleScript != null:
+		var toggle_node: Node = DevDsAiToggleScript.new()
+		toggle_node.name = "DevDsAiToggle"
+		add_child(toggle_node)
+		toggle_node.configure(_session_adapter)
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 
 
 func _setup_app_runtime() -> void:

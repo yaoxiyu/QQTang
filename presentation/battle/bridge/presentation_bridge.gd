@@ -326,6 +326,12 @@ func _contains_fx_worthy_event(events: Array) -> bool:
 func _contains_bubble_placed_without_actor(world: SimWorld, events: Array) -> bool:
 	if actor_registry == null or world == null:
 		return false
+	# Flag a real desync only when the bubble is already present in the
+	# predicted world but the actor view is missing. A bubble_id that is
+	# not yet in world.bubbles simply means prediction has not applied the
+	# authoritative placed event on this tick yet (common when the local
+	# place prediction was rejected and the server's placement arrives a
+	# few ticks later). That is not a view-layer anomaly.
 	for event in events:
 		if event == null or int(event.event_type) != SimEventScript.EventType.BUBBLE_PLACED:
 			continue
@@ -333,7 +339,7 @@ func _contains_bubble_placed_without_actor(world: SimWorld, events: Array) -> bo
 		if bubble_id < 0:
 			continue
 		if world.state.bubbles.get_bubble(bubble_id) == null:
-			return true
+			continue
 		if actor_registry.get_actor_view(bubble_id) == null:
 			return true
 	return false

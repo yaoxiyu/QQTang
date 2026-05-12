@@ -69,6 +69,43 @@
 - 客户端最低版本不再依赖旧路由。
 - 至少一个 Phase 的观察期无旧路由流量。
 
+## TD-2026-05-12-001 客户端 ack_tick 心跳超时检测与 DS 自动重连
+
+### 背景
+
+客户端通过 `ClientSession.last_confirmed_tick` 跟踪 DS 下发的 ack_tick（见 [client_session.gd:51](network/session/runtime/client_session.gd#L51)，[client_runtime.gd:192](network/session/runtime/client_runtime.gd#L192)）。当前实现只在收到 ack 时更新计数，没有在 ack_tick 长时间停滞的情况下主动判定链路异常，也没有向上层反馈"DS 已断连"或触发任何重连流程。一旦 DS 进程崩溃、网络中断或 UDP 单向不通，客户端会持续发送输入但观测不到状态推进，表现为"战斗静止"而非显式掉线。
+
+### 当前状态
+
+- 已有：ack_tick 字段、last_confirmed_tick 维护、客户端输入批提交。
+- 缺失：ack_tick 停滞阈值判定、断连事件上抛、重连/重入房逻辑、UI 兜底提示。
+
+### 目标
+
+在 ack_tick 长期不更新时，客户端能在有限时间内识别与 DS 的链路断开，触发重连或优雅降级（回大厅/结算占位），并避免误报（短暂抖动不应触发）。
+
+### 范围
+
+- 在 `ClientSession` / `ClientRuntime` 中增加 ack_tick 最近更新时间戳，以帧或实时时钟衡量停滞时长。
+- 定义分级阈值：软超时（警告/UI 提示）、硬超时（判定断连）。阈值需可配置，区分弱网和真断连。
+- 断连判定后发出 signal/事件，交由会话层或战斗外壳决定：尝试重连 DS（沿用原房间票据/session token）、回退到房间/大厅、或走结算占位。
+- 重连成功后需要对齐 tick、重放未确认输入或按服务器权威 snapshot 重建状态，保证确定性不被破坏。
+- 与现有 `battle_dedicated_server_bootstrap` 下的 DS 生命周期信号、房间票据复用机制对齐。
+- 单机/AI/回放模式不应触发该逻辑。
+
+### 风险
+
+- 阈值过紧会在弱网下误判断连，阈值过松会让玩家长时间"假死"。
+- 重连过程若不对齐 tick/seq，会造成输入重复提交或 snapshot 漂移。
+- 与 matchmaking/room ticket 流程交互复杂，需要保证重入的权限校验。
+
+### 验收标准
+
+- DS 主动 kill 后，客户端在硬超时内进入断连状态并触发重连或降级路径，不再卡在静止画面。
+- 模拟 500ms~2s 网络抖动不触发断连判定。
+- 重连成功后 GDScript/native snapshot checksum 保持一致，无重复输入。
+- 有对应的集成测试覆盖 DS 崩溃、网络中断、短抖动三种场景。
+
 ## TD-2026-05-07-002 Production Legacy/Compat 代码注释登记
 
 运行时 legacy/compat 代码必须在此登记，否则 release sanity 应报错。

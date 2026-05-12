@@ -5,6 +5,7 @@ const GridMotionMath = preload("res://gameplay/simulation/movement/grid_motion_m
 const NativeSnapshotDiffBridgeScript = preload("res://gameplay/native_bridge/native_snapshot_diff_bridge.gd")
 const NativeRollbackPlannerBridgeScript = preload("res://gameplay/native_bridge/native_rollback_planner_bridge.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
+const RollbackTelemetryScript = preload("res://network/session/runtime/rollback_telemetry.gd")
 
 const PLAN_NOOP := 0
 const PLAN_ROLLBACK := 1
@@ -345,7 +346,11 @@ func _log_rollback_plan(snapshot: WorldSnapshot, diff_result: Dictionary, plan: 
 	var decision := int(plan.get("decision", PLAN_NOOP))
 	if decision == PLAN_NOOP:
 		return
-	LogSyncScript.info(
+	var replay_ticks: int = max(0, predicted_until_tick - snapshot.tick_id)
+	var force_resync := bool(plan.get("force_resync", false))
+	RollbackTelemetryScript.shared().record_plan(replay_ticks, force_resync)
+	RollbackTelemetryScript.shared().flush_if_due()
+	LogSyncScript.debug(
 		"rollback_plan tick=%d decision=%d predicted_until=%d last_auth=%d reason=%s field=%s local=%s auth=%s replay_ticks=%d force=%s" % [
 			snapshot.tick_id,
 			decision,
@@ -355,8 +360,8 @@ func _log_rollback_plan(snapshot: WorldSnapshot, diff_result: Dictionary, plan: 
 			String(diff_result.get("first_diff_field", "")),
 			str(diff_result.get("local_value", null)),
 			str(diff_result.get("authority_value", null)),
-			max(0, predicted_until_tick - snapshot.tick_id),
-			str(plan.get("force_resync", false)),
+			replay_ticks,
+			str(force_resync),
 		],
 		"",
 		0,

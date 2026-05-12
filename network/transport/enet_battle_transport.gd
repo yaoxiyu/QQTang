@@ -6,10 +6,12 @@ const BattleTransportChannelsScript = preload("res://network/transport/battle_tr
 const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const DEBUG_TRANSPORT_LOGS: bool = true
-const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = true
+const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = BattleWireBudgetContractScript.UNRELIABLE_SOFT_LIMIT_BYTES
 const MTU_PROMOTION_WARN_INTERVAL_MSEC: int = 3000
+const HIGH_FREQ_LOG_FLUSH_INTERVAL_MSEC: int = 5000
+const HIGH_FREQ_LOG_MESSAGE_TYPES: Array[String] = ["INPUT_BATCH", "STATE_SUMMARY", "STATE_DELTA", "CHECKPOINT"]
 
 var _peer: ENetMultiplayerPeer = null
 var _local_peer_id: int = 0
@@ -35,6 +37,8 @@ var _last_mtu_promotion_warn_msec_by_type: Dictionary = {}
 var _unreliable_promoted_to_reliable_count: int = 0
 var _unreliable_promoted_to_reliable_count_by_type: Dictionary = {}
 var _last_promoted_payload_bytes_by_type: Dictionary = {}
+var _high_freq_log_buckets: Dictionary = {}
+var _high_freq_log_last_flush_msec: int = 0
 
 
 func initialize(config: Dictionary = {}) -> void:
@@ -129,6 +133,8 @@ func shutdown(_context: Variant = null) -> void:
 	_target_host = ""
 	_target_port = 0
 	_reset_transport_metrics()
+	_high_freq_log_buckets.clear()
+	_high_freq_log_last_flush_msec = 0
 
 
 func poll() -> void:
@@ -169,7 +175,12 @@ func poll() -> void:
 		_increment_metric(_received_count_by_channel, packet_channel, 1)
 		_incoming_queue.append(message)
 		_log_event_probe("transport_recv", sender_peer_id, message, payload.size())
-		_debug_log("received %s from %d" % [str(message.get("message_type", message.get("msg_type", "unknown"))), sender_peer_id])
+		var recv_message_type := String(message.get("message_type", message.get("msg_type", "unknown")))
+		if _is_high_freq_message_type(recv_message_type):
+			_high_freq_log_record("received", recv_message_type, payload.size())
+		else:
+			_debug_log("received %s from %d" % [recv_message_type, sender_peer_id])
+	_high_freq_log_flush_if_due()
 
 
 func is_server() -> bool:
@@ -197,18 +208,25 @@ func send_to_peer(peer_id: int, message: Dictionary) -> void:
 	_log_event_probe("transport_send", peer_id, message, 0)
 	var payload := TransportMessageCodecScript.encode_message(message)
 	_send_payload_to_peer(peer_id, payload, message_type)
+	_high_freq_log_flush_if_due()
 
 
 func broadcast(message: Dictionary) -> void:
-	_debug_log("broadcast %s -> %s" % [str(message.get("message_type", message.get("msg_type", "unknown"))), str(_remote_peer_ids)])
 	if _peer == null:
 		return
+	if _remote_peer_ids.is_empty():
+		return
 	var message_type := _message_type(message)
+	if _is_high_freq_message_type(message_type):
+		_high_freq_log_record("broadcast", message_type, 0)
+	else:
+		_debug_log("broadcast %s -> %s" % [message_type, str(_remote_peer_ids)])
 	for peer_id in _remote_peer_ids.duplicate():
 		_log_event_probe("transport_broadcast", peer_id, message, 0)
 	var payload := TransportMessageCodecScript.encode_message(message)
 	for peer_id in _remote_peer_ids.duplicate():
 		_send_payload_to_peer(peer_id, payload, message_type)
+	_high_freq_log_flush_if_due()
 
 
 func consume_incoming() -> Array[Dictionary]:
@@ -342,18 +360,40 @@ func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type:
 		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	_peer.set_target_peer(peer_id)
 	var result := _peer.put_packet(payload)
+	var resolved_channel: int = _peer.transfer_channel
+	var resolved_mode: int = _peer.transfer_mode
 	if result == OK:
-		_increment_metric(_sent_count_by_channel, _peer.transfer_channel, 1)
-		_increment_metric(_sent_bytes_by_channel, _peer.transfer_channel, payload.size())
+		_increment_metric(_sent_count_by_channel, resolved_channel, 1)
+		_increment_metric(_sent_bytes_by_channel, resolved_channel, payload.size())
 		_increment_metric(_sent_count_by_type, message_type, 1)
-	_debug_log("send %s -> %d channel=%d mode=%d result=%d" % [
-		message_type,
-		peer_id,
-		_peer.transfer_channel,
-		_peer.transfer_mode,
-		result,
-	])
+	if result == OK and _is_high_freq_message_type(message_type):
+		_high_freq_log_record("send", message_type, payload.size())
+	else:
+		_debug_log("send %s -> %d channel=%d mode=%d result=%d" % [
+			message_type,
+			peer_id,
+			resolved_channel,
+			resolved_mode,
+			result,
+		])
 	if result != OK:
+		LogNetScript.warn(
+			"transport_send_failed message_type=%s peer=%d channel=%d mode=%d result=%d payload_bytes=%d connection_status=%s remote_peers=%s server_mode=%s local_peer=%d" % [
+				message_type,
+				peer_id,
+				resolved_channel,
+				resolved_mode,
+				result,
+				payload.size(),
+				_connection_status_name(_peer.get_connection_status()),
+				str(_remote_peer_ids),
+				str(_server_mode),
+				_local_peer_id,
+			],
+			"",
+			0,
+			"net.transport"
+		)
 		if result == ERR_INVALID_PARAMETER and _remote_peer_ids.has(peer_id):
 			_remove_remote_peer(peer_id, "send_invalid_peer")
 		transport_error.emit(result, "ENet transport failed to send packet")
@@ -566,3 +606,63 @@ func _debug_log(message: String) -> void:
 	if not DEBUG_TRANSPORT_LOGS:
 		return
 	LogNetScript.debug(message, "", 0, "net.transport")
+
+
+func _is_high_freq_message_type(message_type: String) -> bool:
+	return HIGH_FREQ_LOG_MESSAGE_TYPES.has(message_type)
+
+
+func _high_freq_log_record(direction: String, message_type: String, payload_bytes: int) -> void:
+	if not DEBUG_TRANSPORT_LOGS:
+		return
+	var key := direction + "|" + message_type
+	var bucket: Dictionary = _high_freq_log_buckets.get(key, {
+		"direction": direction,
+		"message_type": message_type,
+		"count": 0,
+		"bytes_sum": 0,
+		"bytes_max": 0,
+	})
+	bucket["count"] = int(bucket.get("count", 0)) + 1
+	bucket["bytes_sum"] = int(bucket.get("bytes_sum", 0)) + payload_bytes
+	if payload_bytes > int(bucket.get("bytes_max", 0)):
+		bucket["bytes_max"] = payload_bytes
+	_high_freq_log_buckets[key] = bucket
+	if _high_freq_log_last_flush_msec == 0:
+		_high_freq_log_last_flush_msec = Time.get_ticks_msec()
+
+
+func _high_freq_log_flush_if_due() -> void:
+	if not DEBUG_TRANSPORT_LOGS:
+		return
+	if _high_freq_log_buckets.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	if _high_freq_log_last_flush_msec == 0:
+		_high_freq_log_last_flush_msec = now
+		return
+	if now - _high_freq_log_last_flush_msec < HIGH_FREQ_LOG_FLUSH_INTERVAL_MSEC:
+		return
+	var window_msec: int = max(1, now - _high_freq_log_last_flush_msec)
+	for key in _high_freq_log_buckets.keys():
+		var bucket: Dictionary = _high_freq_log_buckets[key]
+		var count := int(bucket.get("count", 0))
+		if count <= 0:
+			continue
+		var bytes_sum := int(bucket.get("bytes_sum", 0))
+		var bytes_avg := int(bytes_sum / count) if count > 0 else 0
+		LogNetScript.debug(
+			"transport_high_freq_summary direction=%s message_type=%s window_msec=%d count=%d bytes_avg=%d bytes_max=%d" % [
+				String(bucket.get("direction", "")),
+				String(bucket.get("message_type", "")),
+				window_msec,
+				count,
+				bytes_avg,
+				int(bucket.get("bytes_max", 0)),
+			],
+			"",
+			0,
+			"net.transport"
+		)
+	_high_freq_log_buckets.clear()
+	_high_freq_log_last_flush_msec = now

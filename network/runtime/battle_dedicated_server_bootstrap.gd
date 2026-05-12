@@ -17,11 +17,20 @@ const ResumeTokenUtilsScript = preload("res://network/session/runtime/resume_tok
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
+const MapSelectionCatalogScript = preload("res://content/maps/catalog/map_selection_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const AiInputDriverScript = preload("res://gameplay/simulation/systems/ai_input_driver.gd")
 const TickRunnerScript = preload("res://gameplay/simulation/runtime/tick_runner.gd")
+# ------------------------------------------------------------------
+# DEV MODE ONLY: PlayerInputFrame is used to bypass the wire-protocol
+# envelope when injecting AI inputs directly into server_session.
+# ------------------------------------------------------------------
+const PlayerInputFrameScript = preload("res://gameplay/simulation/input/player_input_frame.gd")
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------
 
 @export var listen_port: int = 9000
 @export var max_clients: int = 8
@@ -52,6 +61,17 @@ var _dev_pending_ai_ready: bool = false  # Set after loading to send fake READY 
 var _dev_pending_opening_ack_frames: int = 0  # Countdown to send fake OPENING_SNAPSHOT_ACK for AI peers
 var _dev_tick_counter: int = 0
 var _dev_tick_accumulator: float = 0.0
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Toggle for server-side AI input injection. The dev
+# client (scenes/dev/dev_ds_ai_toggle.gd) sends DEV_TOGGLE_AI messages
+# to flip this flag so the human can pause / resume the AI drivers.
+# Has no effect outside _dev_mode.
+# ------------------------------------------------------------------
+const _DEV_TOGGLE_AI_MESSAGE_TYPE := "DEV_TOGGLE_AI"
+var _dev_ai_inputs_enabled: bool = true
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------
 
 # Manifest + peer gate.
 var _manifest_client: GameServiceBattleManifestClient = null
@@ -187,19 +207,49 @@ func _process(delta: float) -> void:
 		while _dev_tick_accumulator >= tick_dt:
 			_dev_tick_accumulator -= tick_dt
 			_dev_tick_counter += 1
+			# ------------------------------------------------------------------
+			# DEV MODE ONLY: Skip AI input injection when toggled off via the
+			# dev client's DEV_TOGGLE_AI message. _dev_tick_counter still
+			# advances so resuming does not retro-fire stale ticks.
+			# ------------------------------------------------------------------
+			if not _dev_ai_inputs_enabled:
+				continue
+			# ------------------------------------------------------------------
+			# END DEV MODE ONLY
+			# ------------------------------------------------------------------
 			for peer_id in _joined_peer_ids:
 				var driver: AiInputDriver = _dev_ai_drivers.get(peer_id, null)
 				if driver == null:
 					continue
 				var ai_input := driver.sample_input_for_tick(_dev_tick_counter)
-				var input_message := {
-					"message_type": TransportMessageTypesScript.INPUT_BATCH,
-					"msg_type": TransportMessageTypesScript.INPUT_BATCH,
-					"sender_peer_id": peer_id,
-					"tick": _dev_tick_counter,
-					"input": ai_input,
-				}
-				_battle_runtime.handle_battle_message(input_message)
+				# ------------------------------------------------------------------
+				# DEV MODE ONLY: Inject the AI input directly into the server_session
+				# input queue. Going through handle_battle_message would require a
+				# fully-formed wire-protocol INPUT_BATCH envelope (wire_version,
+				# frames[], frame_count, ack_base_tick, ...). The native input
+				# buffer also requires tick_id strictly greater than the current
+				# authority tick, so _dev_tick_counter is unusable here. We fetch
+				# the live authority tick from the server_session and submit a
+				# PlayerInputFrame for tick = authority_tick + 1.
+				# ------------------------------------------------------------------
+				var server_session = _dev_resolve_server_session()
+				if server_session == null:
+					continue
+				var authority_tick: int = _dev_get_authority_tick(server_session)
+				if authority_tick < 0:
+					continue
+				var ai_frame := PlayerInputFrameScript.new()
+				ai_frame.peer_id = peer_id
+				ai_frame.tick_id = authority_tick + 1
+				ai_frame.seq = ai_frame.tick_id
+				ai_frame.move_x = int(ai_input.get("move_x", 0))
+				ai_frame.move_y = int(ai_input.get("move_y", 0))
+				ai_frame.action_bits = int(ai_input.get("action_bits", 0))
+				ai_frame.sanitize()
+				server_session.receive_input(ai_frame)
+				# ------------------------------------------------------------------
+				# END DEV MODE ONLY
+				# ------------------------------------------------------------------
 		# ------------------------------------------------------------------
 		# DEV MODE ONLY: Send fake MATCH_LOADING_READY for AI peers on the
 		# frame after _begin_battle_loading() completes.
@@ -320,6 +370,16 @@ func _route_message(message: Dictionary) -> void:
 	if _battle_runtime == null:
 		return
 	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: Handle DEV_TOGGLE_AI from the dev client and return
+	# early so the message never reaches the production routing branches.
+	# ------------------------------------------------------------------
+	if _dev_mode and message_type == _DEV_TOGGLE_AI_MESSAGE_TYPE:
+		_handle_dev_toggle_ai_message(message)
+		return
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 	match message_type:
 		TransportMessageTypesScript.BATTLE_ENTRY_REQUEST:
 			_handle_battle_entry_request(message)
@@ -708,8 +768,27 @@ func _reject_peer(peer_id: int, message_type: String, error_code: String, user_m
 func _construct_dev_manifest() -> void:
 	# Resolve content IDs from catalogs or command-line overrides.
 	var map_id := _dev_map_id_override if not _dev_map_id_override.is_empty() else MapCatalogScript.get_default_map_id()
-	var rule_set_id := _dev_rule_set_id_override if not _dev_rule_set_id_override.is_empty() else RuleSetCatalogScript.get_default_rule_id()
-	var mode_id := ModeCatalogScript.get_default_mode_id()
+	# ------------------------------------------------------------------
+	# DEV MODE ONLY: prefer the map's canonical mode/rule binding so the
+	# manifest agrees with BattleStartConfigBuilder's authoritative
+	# binding lookup. Without this, dev manifests fall back to global
+	# default mode/rule and trigger spurious "rule/mode mismatch" warnings
+	# at battle start. The dev_battle_launcher follows the same logic.
+	# ------------------------------------------------------------------
+	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
+	var binding_mode_id := String(binding.get("bound_mode_id", ""))
+	var binding_rule_set_id := String(binding.get("bound_rule_set_id", ""))
+	var rule_set_id := _dev_rule_set_id_override
+	if rule_set_id.is_empty():
+		rule_set_id = binding_rule_set_id
+	if rule_set_id.is_empty():
+		rule_set_id = RuleSetCatalogScript.get_default_rule_id()
+	var mode_id := binding_mode_id
+	if mode_id.is_empty() or not ModeCatalogScript.has_mode(mode_id):
+		mode_id = ModeCatalogScript.get_default_mode_id()
+	# ------------------------------------------------------------------
+	# END DEV MODE ONLY
+	# ------------------------------------------------------------------
 
 	# Fallback IDs for environments where content may not be fully loaded.
 	if _battle_id.is_empty():
@@ -1155,3 +1234,61 @@ func _parse_http_url(url: String) -> Dictionary:
 		"port": port,
 		"path": path,
 	}
+
+
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Apply DEV_TOGGLE_AI from the dev client. The payload
+# may carry an explicit "enabled" boolean; otherwise the flag is just
+# flipped. Has no effect outside _dev_mode and is unreachable on
+# production servers because _route_message only dispatches it when
+# _dev_mode is true.
+# ------------------------------------------------------------------
+func _handle_dev_toggle_ai_message(message: Dictionary) -> void:
+	if message.has("enabled"):
+		_dev_ai_inputs_enabled = bool(message.get("enabled", _dev_ai_inputs_enabled))
+	else:
+		_dev_ai_inputs_enabled = not _dev_ai_inputs_enabled
+	LogNetScript.info("dev_toggle_ai applied enabled=%s" % str(_dev_ai_inputs_enabled), "", 0, "net.battle_ds_bootstrap")
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------
+# DEV MODE ONLY: Resolve the live ServerSession from the battle runtime
+# tree. We intentionally reach through internal members instead of
+# adding accessors to the production code, so that this dev shortcut
+# leaves no surface on ServerBattleRuntime / ServerMatchService /
+# AuthorityRuntime. Returns null if the match is not yet running.
+# ------------------------------------------------------------------
+func _dev_resolve_server_session():
+	if _battle_runtime == null:
+		return null
+	var match_service = _battle_runtime.get_match_service() if _battle_runtime.has_method("get_match_service") else null
+	if match_service == null:
+		return null
+	var authority = match_service.get("_authority_runtime")
+	if authority == null:
+		return null
+	return authority.get("server_session")
+
+
+func _dev_get_authority_tick(server_session) -> int:
+	if server_session == null:
+		return -1
+	var active_match = server_session.get("active_match")
+	if active_match == null:
+		return -1
+	var sim_world = active_match.get("sim_world")
+	if sim_world == null:
+		return -1
+	var state = sim_world.get("state")
+	if state == null:
+		return -1
+	var match_state = state.get("match_state")
+	if match_state == null:
+		return -1
+	return int(match_state.get("tick"))
+# ------------------------------------------------------------------
+# END DEV MODE ONLY
+# ------------------------------------------------------------------

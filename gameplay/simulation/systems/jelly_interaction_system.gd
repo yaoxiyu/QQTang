@@ -5,6 +5,7 @@ const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 
 const CELL_UNITS := 1000
+const JELLY_TIMEOUT_LOG_INTERVAL_TICKS := 30
 
 
 func get_name() -> StringName:
@@ -143,20 +144,35 @@ func _execute_player(ctx: SimContext, trapped_player: PlayerState, finisher_play
 
 func _tick_trapped_timeout(ctx: SimContext, trapped_player: PlayerState, touched: bool) -> void:
 	if touched:
-		LogSimulationScript.debug(
-			"jelly_timeout_paused tick=%d trapped_player_id=%d remaining_ticks=%d reason=touched" % [
-				ctx.tick,
-				trapped_player.entity_id,
-				trapped_player.trapped_timeout_ticks,
-			],
-			"",
-			0,
-			"sim.jelly.timeout"
-		)
+		if _should_log_jelly_timeout_periodic(ctx.tick):
+			LogSimulationScript.debug(
+				"jelly_timeout_paused tick=%d trapped_player_id=%d remaining_ticks=%d reason=touched" % [
+					ctx.tick,
+					trapped_player.entity_id,
+					trapped_player.trapped_timeout_ticks,
+				],
+				"",
+				0,
+				"sim.jelly.timeout"
+			)
 		return
 	if trapped_player.trapped_timeout_ticks <= 0:
+		if _should_log_jelly_timeout_periodic(ctx.tick):
+			LogSimulationScript.debug(
+				"jelly_timeout_disabled tick=%d trapped_player_id=%d remaining_ticks=%d" % [
+					ctx.tick,
+					trapped_player.entity_id,
+					trapped_player.trapped_timeout_ticks,
+				],
+				"",
+				0,
+				"sim.jelly.timeout"
+			)
+		return
+	trapped_player.trapped_timeout_ticks -= 1
+	if _should_log_jelly_timeout_periodic(ctx.tick) or trapped_player.trapped_timeout_ticks <= 0:
 		LogSimulationScript.debug(
-			"jelly_timeout_disabled tick=%d trapped_player_id=%d remaining_ticks=%d" % [
+			"jelly_timeout_tick tick=%d trapped_player_id=%d remaining_ticks=%d" % [
 				ctx.tick,
 				trapped_player.entity_id,
 				trapped_player.trapped_timeout_ticks,
@@ -165,18 +181,6 @@ func _tick_trapped_timeout(ctx: SimContext, trapped_player: PlayerState, touched
 			0,
 			"sim.jelly.timeout"
 		)
-		return
-	trapped_player.trapped_timeout_ticks -= 1
-	LogSimulationScript.debug(
-		"jelly_timeout_tick tick=%d trapped_player_id=%d remaining_ticks=%d" % [
-			ctx.tick,
-			trapped_player.entity_id,
-			trapped_player.trapped_timeout_ticks,
-		],
-		"",
-		0,
-		"sim.jelly.timeout"
-	)
 	if trapped_player.trapped_timeout_ticks <= 0:
 		trapped_player.last_damage_from_player_id = -1
 		LogSimulationScript.info(
@@ -214,3 +218,7 @@ func _get_rule_flags(ctx: SimContext) -> Dictionary:
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}
+
+
+func _should_log_jelly_timeout_periodic(tick: int) -> bool:
+	return tick % JELLY_TIMEOUT_LOG_INTERVAL_TICKS == 0
