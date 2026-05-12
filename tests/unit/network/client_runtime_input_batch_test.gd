@@ -75,7 +75,7 @@ func test_place_action_is_redundantly_sent_after_edge() -> void:
 	assert_true((int(((second_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
 	assert_true((int(((third_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
 	assert_false((int(((fourth_message.get("frames", []) as Array).back() as Dictionary).get("action_bits", 0)) & 1) != 0)
-	assert_eq(runtime.client_session.get_local_frame(int(first_message.get("latest_tick", 0))).action_bits, 0)
+	assert_eq(runtime.client_session.get_local_frame(int(first_message.get("latest_tick", 0))).action_bits, 1)
 
 	runtime.shutdown_runtime()
 	runtime.queue_free()

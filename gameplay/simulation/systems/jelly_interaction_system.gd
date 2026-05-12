@@ -22,6 +22,8 @@ func execute(ctx: SimContext) -> void:
 	for trapped_player in trapped_players:
 		if trapped_player == null or trapped_player.life_state != PlayerState.LifeState.TRAPPED:
 			continue
+		if _should_preserve_authoritative_remote_state(ctx, trapped_player):
+			continue
 		var touched := false
 
 		for actor_player in normal_players:
@@ -218,6 +220,15 @@ func _get_rule_flags(ctx: SimContext) -> Dictionary:
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}
+
+
+func _should_preserve_authoritative_remote_state(ctx: SimContext, player: PlayerState) -> bool:
+	if ctx == null or ctx.state == null or player == null:
+		return false
+	var runtime_flags := ctx.state.runtime_flags
+	if runtime_flags == null or not runtime_flags.client_prediction_mode:
+		return false
+	return player.player_slot != runtime_flags.client_controlled_player_slot
 
 
 func _should_log_jelly_timeout_periodic(tick: int) -> bool:

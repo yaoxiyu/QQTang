@@ -11,8 +11,8 @@ const PLAN_NOOP := 0
 const PLAN_ROLLBACK := 1
 const PLAN_FORCE_RESYNC := 2
 const PLAN_DROP_STALE_AUTHORITY := 3
-const MAX_SYNC_REPLAY_TICKS := 8
-const MAX_DEFERRED_REPLAY_TICKS := 32
+const MAX_SYNC_REPLAY_TICKS := 12
+const MAX_DEFERRED_REPLAY_TICKS := 48
 const TRACE_TAG := "sync.trace"
 
 signal prediction_corrected(entity_id: int, from_pos: Vector2i, to_pos: Vector2i)
@@ -25,7 +25,7 @@ var local_input_buffer: InputRingBuffer = InputRingBuffer.new()
 
 var local_peer_id: int = 0
 var last_authoritative_tick: int = 0
-var max_rollback_window: int = 16
+var max_rollback_window: int = 24
 var compare_bubbles: bool = true
 var compare_items: bool = true
 var rollback_count: int = 0

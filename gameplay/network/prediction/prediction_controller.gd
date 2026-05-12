@@ -37,7 +37,7 @@ func configure(
 		snapshot_buffer,
 		local_input_buffer,
 		local_peer_id,
-		16,
+		24,
 		p_compare_bubbles,
 		p_compare_items,
 		p_ignored_local_player_keys

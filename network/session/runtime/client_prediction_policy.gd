@@ -40,13 +40,11 @@ func is_dedicated_opening_lead_window() -> bool:
 func should_suppress_place_prediction() -> bool:
 	if _start_config == null:
 		return false
-	return String(_start_config.topology) == "dedicated_server"
+	return false
 
 
 func should_suppress_authority_only_entity_prediction() -> bool:
-	if _start_config == null:
-		return false
-	return String(_start_config.topology) == "dedicated_server"
+	return false
 
 
 func should_compare_authority_only_entities_in_rollback() -> bool:
@@ -54,14 +52,7 @@ func should_compare_authority_only_entities_in_rollback() -> bool:
 
 
 func resolve_ignored_local_player_keys_for_rollback() -> Array[String]:
-	if _start_config == null:
-		return []
-	if String(_start_config.topology) != "dedicated_server":
-		return []
-	return [
-		"last_place_bubble_pressed",
-		"bomb_available",
-	]
+	return []
 
 
 func reset() -> void:

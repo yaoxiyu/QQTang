@@ -13,6 +13,7 @@ func build_light_snapshot(sim_world: SimWorld, tick_id: int, include_checksum: b
 	snapshot.players = _capture_players(sim_world)
 	snapshot.bubbles = _capture_bubbles(sim_world)
 	snapshot.items = _capture_items(sim_world)
+	snapshot.rng_state = sim_world.rng.get_state()
 	if include_checksum:
 		snapshot.checksum = checksum_builder.build(sim_world, tick_id)
 	return snapshot

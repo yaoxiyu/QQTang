@@ -31,6 +31,8 @@ func initialize_default_pipeline() -> void:
 	_systems.clear()
 
 	# 按固定顺序添加系统
+	# ExplosionHit -> JellyInteraction -> PlayerLifeTransition 确保所有死亡/被困
+	# 状态在一个 PLTS 调用中统一处理，避免两次注册的竞态
 	add_system(PreTickSystem.new())
 	add_system(InputSystem.new())
 	add_system(MovementSystem.new())
@@ -38,10 +40,9 @@ func initialize_default_pipeline() -> void:
 	add_system(BombFuseSystem.new())
 	add_system(ExplosionResolveSystem.new())
 	add_system(ExplosionHitSystemScript.new())
-	add_system(PlayerLifeTransitionSystemScript.new())
 	add_system(JellyInteractionSystemScript.new())
-	add_system(DeathPresentationSystemScript.new())
 	add_system(PlayerLifeTransitionSystemScript.new())
+	add_system(DeathPresentationSystemScript.new())
 	add_system(RespawnSystemScript.new())
 	add_system(ScoreSystemScript.new())
 	add_system(StatusEffectSystem.new())

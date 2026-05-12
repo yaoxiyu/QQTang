@@ -28,6 +28,8 @@ func execute(ctx: SimContext) -> void:
 		var player = ctx.state.players.get_player(player_id)
 		if player == null or not player.alive:
 			continue
+		if player.life_state == PlayerState.LifeState.TRAPPED:
+			continue
 
 		var cmd = player.last_applied_command
 

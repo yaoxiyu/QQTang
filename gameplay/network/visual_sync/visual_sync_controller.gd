@@ -10,6 +10,8 @@ var local_light_speed: float = 14.0
 var local_medium_speed: float = 24.0
 var remote_light_speed: float = 18.0
 var remote_medium_speed: float = 28.0
+var max_extrapolate_pixels: float = 40.0
+var max_extrapolate_time: float = 0.5
 
 
 func bind_actor(entity_id: int, actor_view: Node, is_local: bool = false) -> void:
@@ -19,7 +21,10 @@ func bind_actor(entity_id: int, actor_view: Node, is_local: bool = false) -> voi
 		"target_visual_pos": _read_actor_pos(actor_view),
 		"correction_speed": _default_speed(is_local),
 		"correction_level": 0,
-		"last_rollback_tick": -1
+		"last_rollback_tick": -1,
+		"prev_target_pos": Vector2.ZERO,
+		"computed_velocity": Vector2.ZERO,
+		"last_target_change_time": 0.0,
 	}
 
 
@@ -69,6 +74,7 @@ func _flush_corrections() -> void:
 
 
 func _update_actor_visuals(delta: float) -> void:
+	var now: float = Time.get_ticks_msec() / 1000.0
 	for entity_id in actor_views.keys():
 		var actor: Node = actor_views.get(entity_id, null)
 		if actor == null:
@@ -78,9 +84,29 @@ func _update_actor_visuals(delta: float) -> void:
 		if meta.is_empty():
 			continue
 
+		var is_local := bool(meta.get("is_local", false))
 		var target_pos: Vector2 = meta.get("target_visual_pos", _read_actor_pos(actor))
+		var prev_target: Vector2 = meta.get("prev_target_pos", target_pos)
+
+		if not is_local and target_pos != prev_target and target_pos != Vector2.ZERO and prev_target != Vector2.ZERO:
+			var prev_time: float = meta.get("last_target_change_time", now)
+			var dt: float = max(now - prev_time, 0.001)
+			meta["computed_velocity"] = (target_pos - prev_target) / dt
+			meta["prev_target_pos"] = target_pos
+			meta["last_target_change_time"] = now
+		elif not is_local:
+			var prev_time: float = meta.get("last_target_change_time", now)
+			var elapsed: float = min(now - prev_time, max_extrapolate_time)
+			var velocity: Vector2 = meta.get("computed_velocity", Vector2.ZERO)
+			if velocity != Vector2.ZERO and elapsed > 0.0:
+				var extrapolated: Vector2 = target_pos + velocity * elapsed
+				var extrapolate_dist: float = target_pos.distance_to(extrapolated)
+				if extrapolate_dist > max_extrapolate_pixels:
+					extrapolated = target_pos + (extrapolated - target_pos).normalized() * max_extrapolate_pixels
+				target_pos = extrapolated
+
 		var current_pos := _read_actor_pos(actor)
-		var correction_speed := float(meta.get("correction_speed", _default_speed(bool(meta.get("is_local", false)))))
+		var correction_speed: float = meta.get("correction_speed", _default_speed(is_local))
 		var lerp_weight : float = clamp(correction_speed * delta, 0.0, 1.0)
 		var next_pos := current_pos.lerp(target_pos, lerp_weight)
 		_write_actor_pos(actor, next_pos)

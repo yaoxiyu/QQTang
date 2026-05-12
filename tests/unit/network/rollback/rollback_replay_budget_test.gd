@@ -16,7 +16,7 @@ func test_large_replay_uses_force_resync_instead_of_sync_rollback() -> void:
 		authority_world.step()
 	var authoritative_snapshot := snapshot_service.build_light_snapshot(authority_world, 10)
 
-	rollback.set_predicted_until_tick(50)
+	rollback.set_predicted_until_tick(65)
 	rollback._rollback_from_snapshot(authoritative_snapshot)
 
 	assert_eq(rollback.rollback_count, 0)
