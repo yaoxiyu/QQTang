@@ -138,21 +138,20 @@ script = ExtResource("6_net")
 [node name="PlayerListPanel" type="Node2D" parent="CanvasLayer" unique_id=1819912345]
 script = ExtResource("23_player_list")
 rank_x = 662.0
+char_clip_h = 36.0
 
-[node name="ClipChar1" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1398946060]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 116.0
 offset_right = 728.0
-offset_bottom = 172.0
-clip_contents = true
+offset_bottom = 152.0
 mouse_filter = 2
 
 [node name="PH_Char1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar1" unique_id=176450814]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=613416563]
@@ -166,20 +165,18 @@ offset_bottom = 138.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar2" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar2" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=461332104]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 167.0
 offset_right = 728.0
-offset_bottom = 223.0
-clip_contents = true
+offset_bottom = 203.0
 mouse_filter = 2
 
 [node name="PH_Char2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar2" unique_id=2054139795]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score2" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1620030170]
@@ -193,20 +190,18 @@ offset_bottom = 189.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar3" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar3" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1557403419]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 218.0
 offset_right = 728.0
-offset_bottom = 274.0
-clip_contents = true
+offset_bottom = 254.0
 mouse_filter = 2
 
 [node name="PH_Char3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar3" unique_id=2046514550]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score3" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=66200485]
@@ -220,20 +215,18 @@ offset_bottom = 240.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar4" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar4" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1056469141]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 269.0
 offset_right = 728.0
-offset_bottom = 325.0
-clip_contents = true
+offset_bottom = 305.0
 mouse_filter = 2
 
 [node name="PH_Char4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar4" unique_id=955745353]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score4" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=2018217389]
@@ -247,20 +240,18 @@ offset_bottom = 291.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar5" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar5" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1159473404]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 320.0
 offset_right = 728.0
-offset_bottom = 376.0
-clip_contents = true
+offset_bottom = 356.0
 mouse_filter = 2
 
 [node name="PH_Char5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar5" unique_id=95409703]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score5" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=634627399]
@@ -274,20 +265,18 @@ offset_bottom = 342.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar6" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar6" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=198205145]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 371.0
 offset_right = 728.0
-offset_bottom = 427.0
-clip_contents = true
+offset_bottom = 407.0
 mouse_filter = 2
 
 [node name="PH_Char6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar6" unique_id=1549183649]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score6" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=933060578]
@@ -301,20 +290,18 @@ offset_bottom = 393.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar7" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar7" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=999422711]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 422.0
 offset_right = 728.0
-offset_bottom = 478.0
-clip_contents = true
+offset_bottom = 458.0
 mouse_filter = 2
 
 [node name="PH_Char7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar7" unique_id=1331795101]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score7" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=185647294]
@@ -328,20 +315,18 @@ offset_bottom = 444.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="ClipChar8" type="Control" parent="CanvasLayer/PlayerListPanel"]
-anchor_left = 0.0
-anchor_top = 0.0
-anchor_right = 0.0
-anchor_bottom = 0.0
+[node name="ClipChar8" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1048225916]
+clip_contents = true
+layout_mode = 3
+anchors_preset = 0
 offset_left = 672.0
 offset_top = 473.0
 offset_right = 728.0
-offset_bottom = 529.0
-clip_contents = true
+offset_bottom = 509.0
 mouse_filter = 2
 
 [node name="PH_Char8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar8" unique_id=478417820]
-position = Vector2(28, 28)
+position = Vector2(28, 31)
 texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score8" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1713132759]

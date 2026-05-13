@@ -1,3 +1,4 @@
+@tool
 class_name PlayerListPanel
 extends Node2D
 
@@ -12,6 +13,11 @@ const MAX_SLOTS := 8
 @export var name_x: float = 590.0
 @export var score_x: float = 680.0
 @export var char_scale: float = 0.857
+@export var char_clip_h: float = 56.0:
+	set(v):
+		char_clip_h = v
+		if Engine.is_editor_hint():
+			_apply_clip_h()
 
 var _show_score: bool = false
 var _slot_sprites: Array[AnimatedSprite2D] = []
@@ -22,6 +28,20 @@ var _score_displays: Array = []
 var _score_digits_texture: Texture2D = null
 var _pending_player_names: Array[String] = []
 var _clip_containers: Array[Control] = []
+
+
+func _ready() -> void:
+	if Engine.is_editor_hint():
+		_apply_clip_h()
+
+
+func _apply_clip_h() -> void:
+	for slot_index in range(1, MAX_SLOTS + 1):
+		var clip_name := "ClipChar%d" % slot_index
+		var clip: Control = get_node_or_null(clip_name) as Control
+		if clip == null:
+			continue
+		clip.offset_bottom = clip.offset_top + char_clip_h
 
 
 func configure(show_score: bool, visual_profiles: Dictionary, player_names: Array[String], score_digits_texture: Texture2D = null) -> void:
@@ -55,17 +75,19 @@ func _ensure_clip(slot_index: int) -> Control:
 	if clip == null:
 		clip = Control.new()
 		clip.name = clip_name
-		clip.anchor_left = 0.0
-		clip.anchor_top = 0.0
-		clip.anchor_right = 0.0
-		clip.anchor_bottom = 0.0
-		clip.offset_left = char_x - 28.0
-		clip.offset_top = _slot_y(slot_index) - 28.0
-		clip.offset_right = char_x + 28.0
-		clip.offset_bottom = _slot_y(slot_index) + 28.0
 		clip.clip_contents = true
 		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(clip)
+	clip.anchor_left = 0.0
+	clip.anchor_top = 0.0
+	clip.anchor_right = 0.0
+	clip.anchor_bottom = 0.0
+	var half_w: float = 28.0
+	var char_half_h := 28.0 * char_scale
+	clip.offset_left = char_x - half_w
+	clip.offset_top = _slot_y(slot_index) - char_half_h
+	clip.offset_right = char_x + half_w
+	clip.offset_bottom = clip.offset_top + char_clip_h
 	return clip
 
 
@@ -97,7 +119,8 @@ func _build_slots(visual_profiles: Dictionary) -> void:
 		var char_sprite := AnimatedSprite2D.new()
 		char_sprite.name = "CharSlot%d" % slot_index
 		char_sprite.centered = true
-		char_sprite.position = Vector2(char_x - clip.offset_left, _slot_y(slot_index) - clip.offset_top)
+		var char_half_h := 28.0 * char_scale
+		char_sprite.position = Vector2(char_x - clip.offset_left, char_half_h)
 		char_sprite.scale = Vector2.ONE * char_scale
 		clip.add_child(char_sprite)
 		_slot_sprites.append(char_sprite)
