@@ -211,6 +211,7 @@ func _capture_mode_state(sim_world: SimWorld) -> Dictionary:
 	return {
 		"mode_runtime_type": String(sim_world.state.mode.mode_runtime_type),
 		"team_alive_counts": sim_world.state.mode.team_alive_counts.duplicate(true),
+		"team_scores": sim_world.state.mode.team_scores.duplicate(true),
 		"mode_timer_ticks": sim_world.state.mode.mode_timer_ticks,
 		"payload_owner_id": sim_world.state.mode.payload_owner_id,
 		"payload_cell_x": sim_world.state.mode.payload_cell_x,
@@ -258,3 +259,4 @@ func _restore_mode_state(sim_world: SimWorld, mode_state: Dictionary) -> void:
 	sim_world.state.mode.sudden_death_active = bool(mode_state.get("sudden_death_active", false))
 	sim_world.state.mode.custom_ints = mode_state.get("custom_ints", {}).duplicate(true)
 	sim_world.state.mode.custom_flags = mode_state.get("custom_flags", {}).duplicate(true)
+	sim_world.state.mode.team_scores = mode_state.get("team_scores", {}).duplicate(true)

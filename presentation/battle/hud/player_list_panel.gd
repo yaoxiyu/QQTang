@@ -9,7 +9,6 @@ const MAX_SLOTS := 8
 @export var start_y: float = 82.0
 @export var slot_spacing: float = 64.0
 @export var char_x: float = 610.0
-@export var rank_x: float = 620.0
 @export var name_x: float = 590.0
 @export var score_x: float = 680.0
 @export var char_scale: float = 0.857
@@ -20,14 +19,9 @@ const MAX_SLOTS := 8
 			_apply_clip_h()
 
 var _show_score: bool = false
-var _slot_sprites: Array[AnimatedSprite2D] = []
-var _slot_ranks: Array[Sprite2D] = []
-var _slot_names: Array[Label] = []
 var _slot_profiles: Array = []
-var _score_displays: Array = []
 var _score_digits_texture: Texture2D = null
 var _pending_player_names: Array[String] = []
-var _clip_containers: Array[Control] = []
 
 
 func _ready() -> void:
@@ -36,215 +30,119 @@ func _ready() -> void:
 
 
 func _apply_clip_h() -> void:
-	for slot_index in range(1, MAX_SLOTS + 1):
-		var clip_name := "ClipChar%d" % slot_index
+	for ui in range(1, MAX_SLOTS + 1):
+		var clip_name := "ClipChar%d" % ui
 		var clip: Control = get_node_or_null(clip_name) as Control
 		if clip == null:
 			continue
 		clip.offset_bottom = clip.offset_top + char_clip_h
 
 
+# slot_0: 0-indexed slot number (matches PlayerState.player_slot and visual_profiles keys)
+# ui_slot: 1-indexed for tscn node names (PH_Char1-8, ClipChar1-8, PH_Score1-8)
+func _ui_slot(slot_0: int) -> int:
+	return slot_0 + 1
+
+
 func configure(show_score: bool, visual_profiles: Dictionary, player_names: Array[String], score_digits_texture: Texture2D = null) -> void:
 	_show_score = show_score
 	_score_digits_texture = score_digits_texture
 	_pending_player_names = player_names.duplicate()
-	_remove_runtime_children()
-	_slot_sprites.clear()
-	_slot_ranks.clear()
-	_slot_names.clear()
-	_slot_profiles.clear()
-	_score_displays.clear()
-	_build_slots(visual_profiles)
+	_slot_profiles.resize(MAX_SLOTS)
+	_slot_profiles.fill(null)
+
+	for slot_0 in range(MAX_SLOTS):
+		var profile: Variant = visual_profiles.get(slot_0, null)
+		_slot_profiles[slot_0] = profile
+
+		# Set character sprite_frames from visual profile
+		var char_node := _get_char_node(slot_0)
+		if char_node != null and profile != null and profile.get("animation_set") != null:
+			var anim_set: Variant = profile.animation_set
+			if anim_set is CharacterAnimationSetDefScript:
+				char_node.sprite_frames = anim_set.sprite_frames
+				char_node.speed_scale = 0.5
+				_play_anim(char_node, "idle_down")
+
+		# Set score digits texture + initial visibility
+		var score_node: Control = _get_score_node(slot_0)
+		if score_node != null and score_node.has_method("set_value"):
+			if _score_digits_texture != null:
+				score_node.set("digits_texture", _score_digits_texture)
+			score_node.visible = _show_score and _has_profile_for_slot(slot_0)
+
+	_apply_names()
 
 
 func apply_battle_state(world: SimWorld) -> void:
 	if world == null:
 		return
 
-	for slot_index in range(1, MAX_SLOTS + 1):
-		var player := _find_player_by_slot(world, slot_index)
-		_update_slot_animation(slot_index, player)
+	for slot_0 in range(MAX_SLOTS):
+		var player := _find_player_by_slot(world, slot_0)
+		var char_node := _get_char_node(slot_0)
+		if char_node == null:
+			continue
+
+		if not _has_profile_for_slot(slot_0) or player == null:
+			char_node.sprite_frames = null
+			char_node.visible = false
+		else:
+			char_node.visible = true
+			_update_animation(char_node, slot_0, player)
 
 	if _show_score:
-		_update_score_displays(world)
+		_update_scores(world)
 
 
-func _ensure_clip(slot_index: int) -> Control:
-	var clip_name := "ClipChar%d" % slot_index
+func _get_char_node(slot_0: int) -> AnimatedSprite2D:
+	var ui := _ui_slot(slot_0)
+	var clip_name := "ClipChar%d" % ui
 	var clip: Control = get_node_or_null(clip_name) as Control
 	if clip == null:
-		clip = Control.new()
-		clip.name = clip_name
-		clip.clip_contents = true
-		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(clip)
-	clip.anchor_left = 0.0
-	clip.anchor_top = 0.0
-	clip.anchor_right = 0.0
-	clip.anchor_bottom = 0.0
-	var half_w: float = 28.0
-	var char_half_h := 28.0 * char_scale
-	clip.offset_left = char_x - half_w
-	clip.offset_top = _slot_y(slot_index) - char_half_h
-	clip.offset_right = char_x + half_w
-	clip.offset_bottom = clip.offset_top + char_clip_h
-	return clip
+		return null
+	return clip.get_node_or_null("PH_Char%d" % ui) as AnimatedSprite2D
 
 
-func _remove_runtime_children() -> void:
-	for child in get_children():
-		if child is AnimatedSprite2D or child is Sprite2D or child is Label:
-			child.queue_free()
-	for clip in _clip_containers:
-		if clip != null and is_instance_valid(clip):
-			for child in clip.get_children():
-				if child is AnimatedSprite2D or child is Sprite2D:
-					child.queue_free()
+func _get_score_node(slot_0: int) -> Control:
+	return get_node_or_null("PH_Score%d" % _ui_slot(slot_0)) as Control
 
 
-func _build_slots(visual_profiles: Dictionary) -> void:
-	_clip_containers.clear()
-	for slot_index in range(1, MAX_SLOTS + 1):
-		_clip_containers.append(_ensure_clip(slot_index))
-
-	_slot_profiles.resize(MAX_SLOTS + 1)
-	_slot_profiles.fill(null)
-
-	for slot_index in range(1, MAX_SLOTS + 1):
-		var profile: Variant = visual_profiles.get(slot_index, null)
-		_slot_profiles[slot_index] = profile
-
-		# Character animation sprite — clipped per slot
-		var clip := _clip_containers[slot_index - 1]
-		var char_sprite := AnimatedSprite2D.new()
-		char_sprite.name = "CharSlot%d" % slot_index
-		char_sprite.centered = true
-		var char_half_h := 28.0 * char_scale
-		char_sprite.position = Vector2(char_x - clip.offset_left, char_half_h)
-		char_sprite.scale = Vector2.ONE * char_scale
-		clip.add_child(char_sprite)
-		_slot_sprites.append(char_sprite)
-
-		if profile != null and profile.get("animation_set") != null:
-			var anim_set: Variant = profile.animation_set
-			if anim_set is CharacterAnimationSetDefScript:
-				char_sprite.sprite_frames = anim_set.sprite_frames
-				char_sprite.speed_scale = 0.5
-				_play_animation(char_sprite, "idle_down")
-
-		# Rank placeholder sprite
-		var rank_sprite := Sprite2D.new()
-		rank_sprite.name = "RankSlot%d" % slot_index
-		rank_sprite.centered = true
-		rank_sprite.position = Vector2(rank_x, _slot_y(slot_index))
-		rank_sprite.visible = false
-		add_child(rank_sprite)
-		_slot_ranks.append(rank_sprite)
-
-		# Name label
-		var name_label := Label.new()
-		name_label.name = "NameSlot%d" % slot_index
-		name_label.anchor_left = 0.0
-		name_label.anchor_top = 0.0
-		name_label.anchor_right = 0.0
-		name_label.anchor_bottom = 0.0
-		name_label.offset_left = name_x - 40.0
-		name_label.offset_top = _slot_y(slot_index) - 8.0
-		name_label.offset_right = name_x
-		name_label.offset_bottom = _slot_y(slot_index) + 8.0
-		name_label.add_theme_font_size_override("font_size", 10)
-		name_label.add_theme_color_override("font_color", Color(0.92, 0.96, 1.0, 1.0))
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		name_label.visible = false
-		add_child(name_label)
-		_slot_names.append(name_label)
-
-		# Score display per slot
-		if _show_score:
-			_create_score_display_for_slot(slot_index)
-
-	_apply_pending_names()
+func _has_profile_for_slot(slot_0: int) -> bool:
+	var profile: Variant = _slot_profiles[slot_0]
+	return profile != null and profile.get("animation_set") != null
 
 
-func _apply_pending_names() -> void:
-	for slot_index in range(1, min(_pending_player_names.size(), MAX_SLOTS) + 1):
-		var name_str: String = _pending_player_names[slot_index - 1]
-		if not name_str.is_empty():
-			var name_idx := slot_index - 1
-			if name_idx < _slot_names.size():
-				_slot_names[name_idx].text = name_str
-				_slot_names[name_idx].visible = true
-
-
-func _slot_y(slot_index: int) -> float:
-	return start_y + float(slot_index - 1) * slot_spacing
-
-
-func _create_score_display_for_slot(slot_index: int) -> void:
-	var digits: Control = ScoreDigitsScript.new()
-	digits.name = "ScoreSlot%d" % slot_index
-	digits.anchor_left = 0.0
-	digits.anchor_top = 0.0
-	digits.anchor_right = 0.0
-	digits.anchor_bottom = 0.0
-	digits.offset_left = score_x
-	digits.offset_top = _slot_y(slot_index) - 9.0
-	digits.offset_right = score_x + 72.0
-	digits.offset_bottom = _slot_y(slot_index) + 9.0
-	if digits.has_method("set_value"):
-		digits.set("digits_texture", _score_digits_texture)
-	add_child(digits)
-	_score_displays.append(digits)
-
-
-func _update_slot_animation(slot_index: int, player: PlayerState) -> void:
-	var sprite_index := slot_index - 1
-	if sprite_index < 0 or sprite_index >= _slot_sprites.size():
-		return
-
-	var sprite := _slot_sprites[sprite_index]
-	if sprite == null or not is_instance_valid(sprite):
-		return
-
-	var profile: Variant = _slot_profiles[slot_index]
-	if profile == null or profile.get("animation_set") == null:
-		sprite.sprite_frames = null
+func _update_animation(char_node: AnimatedSprite2D, slot_0: int, player: PlayerState) -> void:
+	var profile: Variant = _slot_profiles[slot_0]
+	if profile == null:
 		return
 
 	var anim_set: Variant = profile.animation_set
 	if not anim_set is CharacterAnimationSetDefScript:
 		return
 
-	if sprite.sprite_frames != anim_set.sprite_frames:
-		sprite.sprite_frames = anim_set.sprite_frames
-		sprite.speed_scale = 0.5
-
-	if player == null:
-		_play_animation(sprite, "idle_down")
-		return
+	if char_node.sprite_frames != anim_set.sprite_frames:
+		char_node.sprite_frames = anim_set.sprite_frames
+		char_node.speed_scale = 0.5
 
 	var current_anim := ""
-	if sprite.sprite_frames != null and sprite.animation in sprite.sprite_frames.get_animation_names():
-		current_anim = sprite.animation
+	if char_node.sprite_frames != null and char_node.animation in char_node.sprite_frames.get_animation_names():
+		current_anim = char_node.animation
 
-	var target_anim := _resolve_target_animation(player)
-	if target_anim != current_anim:
-		_play_animation(sprite, target_anim)
-
-
-func _resolve_target_animation(player: PlayerState) -> String:
+	var target_anim := "idle_down"
 	match int(player.life_state):
-		PlayerState.LifeState.DEAD:
-			return "dead_down"
-		PlayerState.LifeState.REVIVING:
-			return "dead_down"
+		PlayerState.LifeState.DEAD, PlayerState.LifeState.REVIVING:
+			target_anim = "dead_down"
 		_:
 			if not player.alive:
-				return "dead_down"
-			return "idle_down"
+				target_anim = "dead_down"
+
+	if target_anim != current_anim:
+		_play_anim(char_node, target_anim)
 
 
-func _play_animation(sprite: AnimatedSprite2D, anim_name: String) -> void:
+func _play_anim(sprite: AnimatedSprite2D, anim_name: String) -> void:
 	if sprite.sprite_frames == null:
 		return
 	if not sprite.sprite_frames.has_animation(anim_name):
@@ -255,39 +153,38 @@ func _play_animation(sprite: AnimatedSprite2D, anim_name: String) -> void:
 	sprite.play(anim_name)
 
 
-func _update_score_displays(world: SimWorld) -> void:
-	var slot_team_map: Dictionary = {}
-	for slot_index in range(1, MAX_SLOTS + 1):
-		var player := _find_player_by_slot(world, slot_index)
-		if player != null and player.team_id > 0:
-			slot_team_map[slot_index] = player.team_id
-
-	var team_scores: Dictionary = {}
-	for team_id in slot_team_map.values():
-		if not team_scores.has(team_id):
-			team_scores[team_id] = int(world.state.mode.team_scores.get(team_id, 0))
-
-	for slot_index in range(1, MAX_SLOTS + 1):
-		var display_idx := slot_index - 1
-		if display_idx < 0 or display_idx >= _score_displays.size():
+func _update_scores(world: SimWorld) -> void:
+	for slot_0 in range(MAX_SLOTS):
+		var score_node: Control = _get_score_node(slot_0)
+		if score_node == null or not score_node.has_method("set_value"):
 			continue
-		var team_id: int = int(slot_team_map.get(slot_index, -1))
-		var digits_control = _score_displays[display_idx]
-		if team_id < 0 or not digits_control.has_method("set_value"):
-			digits_control.set_visible_digits(false)
+		var player := _find_player_by_slot(world, slot_0)
+		if player == null or not _has_profile_for_slot(slot_0):
+			score_node.set_visible_digits(false)
 			continue
-		var score: int = int(team_scores.get(team_id, 0))
-		digits_control.set_value(score)
-		digits_control.set_visible_digits(true)
+		score_node.set_value(player.score)
+		score_node.set_visible_digits(true)
 
 
-func _find_player_by_slot(world: SimWorld, slot_index: int) -> PlayerState:
+func _apply_names() -> void:
+	for slot_0 in range(MAX_SLOTS):
+		var name_node: Label = get_node_or_null("NameSlot%d" % _ui_slot(slot_0)) as Label
+		if name_node == null:
+			continue
+		if slot_0 < _pending_player_names.size() and not _pending_player_names[slot_0].is_empty():
+			name_node.text = _pending_player_names[slot_0]
+			name_node.visible = true
+		else:
+			name_node.visible = false
+
+
+func _find_player_by_slot(world: SimWorld, slot_0: int) -> PlayerState:
 	if world == null:
 		return null
 	for player_id in range(world.state.players.size()):
 		var player := world.state.players.get_player(player_id)
 		if player == null:
 			continue
-		if player.player_slot == slot_index:
+		if player.player_slot == slot_0:
 			return player
 	return null

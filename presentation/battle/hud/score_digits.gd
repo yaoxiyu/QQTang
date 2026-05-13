@@ -69,10 +69,10 @@ func _apply_value(value: int) -> void:
 	_ensure_glyphs()
 	if value == _current_value:
 		return
-	_current_value = value
 	var source_texture: Texture2D = _resolve_digits_texture()
 	if source_texture == null:
 		return
+	_current_value = value
 	var text_value: String = str(clampi(value, 0, 999))
 	# Right-align digits
 	var padded: String = text_value.rpad(MAX_DIGITS, " ")

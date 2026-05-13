@@ -18,7 +18,6 @@
 [ext_resource type="Texture2D" uid="uid://dnvv7q5xy680g" path="res://external/assets/source/res/object/ui/common/number3.png" id="22_digits_tex"]
 [ext_resource type="Script" uid="uid://c4hx3bacn1qsj" path="res://presentation/battle/hud/player_list_panel.gd" id="23_player_list"]
 [ext_resource type="Texture2D" uid="uid://d4d3wgi1kerf5" path="res://external/assets/source/res/object/ui/common/number4.png" id="24_number4"]
-[ext_resource type="Texture2D" uid="uid://bfin3522gqpll" path="res://external/assets/source/res/object/cloth/cloth12301_stand.png" id="25_cloth_qmark"]
 [ext_resource type="Script" uid="uid://nm7hex3nyu16" path="res://presentation/battle/hud/score_digits.gd" id="26_score_digits"]
 
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
@@ -137,7 +136,10 @@ script = ExtResource("6_net")
 
 [node name="PlayerListPanel" type="Node2D" parent="CanvasLayer" unique_id=1819912345]
 script = ExtResource("23_player_list")
-rank_x = 662.0
+start_y = 140.0
+slot_spacing = 51.0
+char_x = 700.0
+score_x = 635.0
 char_clip_h = 36.0
 
 [node name="ClipChar1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1398946060]
@@ -145,14 +147,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 116.0
+offset_top = 109.0
 offset_right = 728.0
 offset_bottom = 152.0
 mouse_filter = 2
 
-[node name="PH_Char1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar1" unique_id=176450814]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char1" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar1" unique_id=176450814]
+position = Vector2(28, 22)
 
 [node name="PH_Score1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=613416563]
 custom_minimum_size = Vector2(48, 18)
@@ -170,14 +171,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 167.0
+offset_top = 160.0
 offset_right = 728.0
 offset_bottom = 203.0
 mouse_filter = 2
 
-[node name="PH_Char2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar2" unique_id=2054139795]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char2" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar2" unique_id=2054139795]
+position = Vector2(28, 22)
 
 [node name="PH_Score2" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1620030170]
 custom_minimum_size = Vector2(48, 18)
@@ -195,14 +195,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 218.0
+offset_top = 211.0
 offset_right = 728.0
 offset_bottom = 254.0
 mouse_filter = 2
 
-[node name="PH_Char3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar3" unique_id=2046514550]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char3" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar3" unique_id=2046514550]
+position = Vector2(28, 22)
 
 [node name="PH_Score3" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=66200485]
 custom_minimum_size = Vector2(48, 18)
@@ -220,14 +219,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 269.0
+offset_top = 262.0
 offset_right = 728.0
 offset_bottom = 305.0
 mouse_filter = 2
 
-[node name="PH_Char4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar4" unique_id=955745353]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char4" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar4" unique_id=955745353]
+position = Vector2(28, 22)
 
 [node name="PH_Score4" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=2018217389]
 custom_minimum_size = Vector2(48, 18)
@@ -245,14 +243,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 320.0
+offset_top = 313.0
 offset_right = 728.0
 offset_bottom = 356.0
 mouse_filter = 2
 
-[node name="PH_Char5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar5" unique_id=95409703]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char5" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar5" unique_id=95409703]
+position = Vector2(28, 22)
 
 [node name="PH_Score5" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=634627399]
 custom_minimum_size = Vector2(48, 18)
@@ -270,14 +267,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 371.0
+offset_top = 364.0
 offset_right = 728.0
 offset_bottom = 407.0
 mouse_filter = 2
 
-[node name="PH_Char6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar6" unique_id=1549183649]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char6" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar6" unique_id=1549183649]
+position = Vector2(28, 22)
 
 [node name="PH_Score6" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=933060578]
 custom_minimum_size = Vector2(48, 18)
@@ -295,14 +291,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 422.0
+offset_top = 415.0
 offset_right = 728.0
 offset_bottom = 458.0
 mouse_filter = 2
 
-[node name="PH_Char7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar7" unique_id=1331795101]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char7" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar7" unique_id=1331795101]
+position = Vector2(28, 22)
 
 [node name="PH_Score7" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=185647294]
 custom_minimum_size = Vector2(48, 18)
@@ -320,14 +315,13 @@ clip_contents = true
 layout_mode = 3
 anchors_preset = 0
 offset_left = 672.0
-offset_top = 473.0
+offset_top = 466.0
 offset_right = 728.0
 offset_bottom = 509.0
 mouse_filter = 2
 
-[node name="PH_Char8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar8" unique_id=478417820]
-position = Vector2(28, 31)
-texture = ExtResource("25_cloth_qmark")
+[node name="PH_Char8" type="AnimatedSprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar8" unique_id=478417820]
+position = Vector2(28, 22)
 
 [node name="PH_Score8" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1713132759]
 custom_minimum_size = Vector2(48, 18)

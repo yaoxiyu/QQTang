@@ -231,10 +231,13 @@ func apply_player_list_panel_config(app_runtime: Node, battle_hud: Node) -> void
 	player_names.fill("")
 	for entry in start_config.player_slots:
 		var slot_idx: int = int(entry.get("slot_index", -1))
-		if slot_idx < 1 or slot_idx > 8:
+		var slot_0 := slot_idx
+		if slot_0 >= 8:
+			slot_0 = slot_idx - 1
+		if slot_0 < 0 or slot_0 >= 8:
 			continue
 		var name_str: String = String(entry.get("player_name", entry.get("display_name", "")))
-		player_names[slot_idx - 1] = name_str
+		player_names[slot_0] = name_str
 	battle_hud.configure_player_list_panel(show_score, player_visual_profiles, player_names)
 
 
