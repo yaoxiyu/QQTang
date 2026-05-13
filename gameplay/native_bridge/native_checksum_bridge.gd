@@ -71,6 +71,17 @@ func _pack_players(sim_world: SimWorld) -> PackedInt32Array:
 		packed.append(player.max_bomb_capacity)
 		packed.append(player.bomb_range)
 		packed.append(player.max_bomb_range)
+		for backpack_id in player.passive_backpack:
+			packed.append(hash(backpack_id))
+		packed.append(-777777)
+		for slot in player.usable_slots:
+			if slot is Dictionary:
+				packed.append(hash(String(slot.get("battle_item_id", ""))))
+				packed.append(int(slot.get("count", 0)))
+			else:
+				packed.append(0)
+				packed.append(0)
+		packed.append(-888888)
 	return packed
 
 
@@ -106,6 +117,7 @@ func _pack_items(sim_world: SimWorld) -> PackedInt32Array:
 		packed.append(item.cell_x)
 		packed.append(item.cell_y)
 		packed.append(item.item_type)
+		packed.append(hash(item.battle_item_id))
 		packed.append(int(item.alive))
 	return packed
 

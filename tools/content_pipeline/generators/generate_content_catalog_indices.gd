@@ -8,6 +8,8 @@ const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
+const BattleItemCatalogScript = preload("res://content/items/catalog/battle_item_catalog.gd")
+const PlayerItemCatalogScript = preload("res://content/items/catalog/player_item_catalog.gd")
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 
 const OUTPUT_DIR := "res://build/generated/content_catalog"
@@ -24,6 +26,8 @@ func generate() -> void:
 	RuleSetCatalogScript.load_all()
 	MatchFormatCatalogScript.load_all()
 	ItemCatalogScript.ensure_loaded()
+	BattleItemCatalogScript.ensure_loaded()
+	PlayerItemCatalogScript.ensure_loaded()
 	_write_index("characters", _character_entries())
 	_write_index("bubbles", _bubble_entries())
 	_write_index("maps", _map_entries())
@@ -31,6 +35,8 @@ func generate() -> void:
 	_write_index("rulesets", _rule_entries())
 	_write_index("match_formats", _match_format_entries())
 	_write_index("items", _item_entries())
+	_write_index("battle_items", _battle_item_entries())
+	_write_index("player_items", _player_item_entries())
 	_write_summary()
 	GeneratedCatalogIndexLoaderScript.set_enabled(previous_enabled)
 
@@ -149,11 +155,31 @@ func _item_entries() -> Array:
 	return result
 
 
+func _battle_item_entries() -> Array:
+	var result: Array = []
+	for entry in BattleItemCatalogScript.get_all_battle_item_entries():
+		if entry is Dictionary:
+			var e := (entry as Dictionary).duplicate(true)
+			e["id"] = String(e.get("battle_item_id", ""))
+			result.append(e)
+	return result
+
+
+func _player_item_entries() -> Array:
+	var result: Array = []
+	for entry in PlayerItemCatalogScript.get_all_player_item_entries():
+		if entry is Dictionary:
+			var e := (entry as Dictionary).duplicate(true)
+			e["id"] = String(e.get("player_item_id", ""))
+			result.append(e)
+	return result
+
+
 func _write_summary() -> void:
 	var summary := {
 		"schema_version": 1,
 		"generated_at_unix_ms": int(Time.get_unix_time_from_system() * 1000.0),
-		"indices": ["characters", "bubbles", "maps", "modes", "rulesets", "match_formats", "items"],
+		"indices": ["characters", "bubbles", "maps", "modes", "rulesets", "match_formats", "items", "battle_items", "player_items"],
 	}
 	var path := "%s/content_catalog_summary.json" % OUTPUT_DIR
 	var file := FileAccess.open(path, FileAccess.WRITE)

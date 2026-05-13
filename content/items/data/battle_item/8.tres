@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_cjkff"]
+
+[resource]
+script = ExtResource("1_cjkff")
+battle_item_id = "8"
+item_type = 8
+display_name = "Max Speed"
+description = "Set speed to maximum."
+rarity = "rare"
+stand_source = "external/assets/source/res/object/item/item8_stand.gif"
+effect_type = "stat_mod"
+effect_target = "speed_level"
+effect_mode = "set_max"
+content_hash = "battle_item_8_csv_v1"

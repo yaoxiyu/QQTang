@@ -15,7 +15,8 @@ func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
 	var item_config: Dictionary = item_builder.build_for_start_config(start_config)
 	var explosion_config: Dictionary = explosion_builder.build_for_start_config(start_config)
 	var rule_set_def: RuleSetDef = RuleSetCatalogScript.get_by_id(String(start_config.rule_set_id))
-	sim_config.item_defs = item_config.get("items_by_type", {}).duplicate(true)
+	sim_config.item_defs = item_config.get("items_by_battle_item_id", {}).duplicate(true)
+	sim_config.item_defs_by_type = item_config.get("items_by_type", {}).duplicate(true)
 	sim_config.system_flags["item_drop_profile"] = {
 		"profile_id": String(item_config.get("profile_id", "")),
 		"drop_enabled": bool(item_config.get("drop_enabled", true)),
@@ -42,6 +43,7 @@ func _build_rule_set_flags(rule_set_def: RuleSetDef) -> Dictionary:
 		"can_revive": bool(rule_set_def.can_revive),
 		"respawn_enabled": bool(rule_set_def.respawn_enabled),
 		"score_policy": String(rule_set_def.score_policy),
+		"drop_battle_backpack_on_death": bool(rule_set_def.drop_battle_backpack_on_death),
 		"rescue_touch_enabled": bool(rule_set_def.rescue_touch_enabled),
 		"enemy_touch_execute_enabled": bool(rule_set_def.enemy_touch_execute_enabled),
 		"trapped_timeout_sec": int(rule_set_def.trapped_timeout_sec),

@@ -4,6 +4,7 @@ extends RefCounted
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 const ItemLoaderScript = preload("res://content/items/runtime/item_loader.gd")
+const BattleItemCatalogScript = preload("res://content/items/catalog/battle_item_catalog.gd")
 
 const DROP_PROFILE_REGISTRY := {
 	"default_items": {
@@ -11,42 +12,42 @@ const DROP_PROFILE_REGISTRY := {
 		"brick_drop_mode": "weighted_random",
 		"max_spawn_per_match": 999,
 		"drop_pool": [
-			{"item_id": "1", "weight": 30},
-			{"item_id": "2", "weight": 30},
-			{"item_id": "3", "weight": 25},
-				{"item_id": "6", "weight": 5},
-				{"item_id": "7", "weight": 5},
-				{"item_id": "8", "weight": 5},
-			],
-			"empty_weight": 50,
+			{"battle_item_id": "1", "weight": 30},
+			{"battle_item_id": "2", "weight": 30},
+			{"battle_item_id": "3", "weight": 25},
+			{"battle_item_id": "6", "weight": 5},
+			{"battle_item_id": "7", "weight": 5},
+			{"battle_item_id": "8", "weight": 5},
+		],
+		"empty_weight": 50,
 	},
 	"classic_plus_items": {
 		"drop_enabled": true,
 		"brick_drop_mode": "weighted_random",
 		"max_spawn_per_match": 999,
 		"drop_pool": [
-			{"item_id": "1", "weight": 35},
-			{"item_id": "2", "weight": 35},
-			{"item_id": "3", "weight": 30},
-				{"item_id": "6", "weight": 5},
-				{"item_id": "7", "weight": 5},
-				{"item_id": "8", "weight": 5},
-			],
-			"empty_weight": 35,
+			{"battle_item_id": "1", "weight": 35},
+			{"battle_item_id": "2", "weight": 35},
+			{"battle_item_id": "3", "weight": 30},
+			{"battle_item_id": "6", "weight": 5},
+			{"battle_item_id": "7", "weight": 5},
+			{"battle_item_id": "8", "weight": 5},
+		],
+		"empty_weight": 35,
 	},
 	"quick_match_items": {
 		"drop_enabled": true,
 		"brick_drop_mode": "weighted_random",
 		"max_spawn_per_match": 999,
 		"drop_pool": [
-			{"item_id": "1", "weight": 25},
-			{"item_id": "2", "weight": 40},
-			{"item_id": "3", "weight": 35},
-				{"item_id": "6", "weight": 5},
-				{"item_id": "7", "weight": 5},
-				{"item_id": "8", "weight": 5},
-			],
-			"empty_weight": 30,
+			{"battle_item_id": "1", "weight": 25},
+			{"battle_item_id": "2", "weight": 40},
+			{"battle_item_id": "3", "weight": 35},
+			{"battle_item_id": "6", "weight": 5},
+			{"battle_item_id": "7", "weight": 5},
+			{"battle_item_id": "8", "weight": 5},
+		],
+		"empty_weight": 30,
 	},
 }
 
@@ -74,20 +75,37 @@ func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_
 	var resolved_pool: Array[Dictionary] = []
 	var enabled_items: Array[Dictionary] = []
 	var items_by_type := {}
+	var items_by_battle_item_id := {}
 	for drop_entry in profile_template.get("drop_pool", []):
-		var item_id := String(drop_entry.get("item_id", ""))
-		if item_id.is_empty() or not ItemCatalogScript.has_item(item_id):
+		var battle_item_id := String(drop_entry.get("battle_item_id", ""))
+		if battle_item_id.is_empty():
 			continue
-		var item_definition := ItemLoaderScript.load_item_definition(item_id)
+		var item_definition: Dictionary = {}
+		if BattleItemCatalogScript.has_battle_item(battle_item_id):
+			item_definition = BattleItemCatalogScript.get_battle_item_entry(battle_item_id)
+		elif ItemCatalogScript.has_item(battle_item_id):
+			item_definition = ItemLoaderScript.load_item_definition(battle_item_id)
+		else:
+			continue
 		if item_definition.is_empty():
 			continue
 		enabled_items.append(item_definition.duplicate(true))
-		items_by_type[int(item_definition.get("item_type", 0))] = item_definition.duplicate(true)
+		var item_type := int(item_definition.get("item_type", 0))
+		if item_type > 0:
+			items_by_type[item_type] = item_definition.duplicate(true)
+		items_by_battle_item_id[battle_item_id] = item_definition.duplicate(true)
 		resolved_pool.append({
-			"item_id": item_id,
-			"item_type": int(item_definition.get("item_type", 0)),
-			"display_name": String(item_definition.get("display_name", item_id)),
+			"battle_item_id": battle_item_id,
+			"item_type": item_type,
+			"display_name": String(item_definition.get("display_name", battle_item_id)),
 			"pickup_effect_type": String(item_definition.get("pickup_effect_type", "")),
+			"backpack_type": String(item_definition.get("backpack_type", "none")),
+			"effect_type": String(item_definition.get("effect_type", "")),
+			"effect_target": String(item_definition.get("effect_target", "")),
+			"effect_mode": String(item_definition.get("effect_mode", "")),
+			"effect_value": int(item_definition.get("effect_value", 0)),
+			"hotkey_action": String(item_definition.get("hotkey_action", "")),
+			"hotkey_spawn_battle_item_id": String(item_definition.get("hotkey_spawn_battle_item_id", "")),
 			"weight": int(drop_entry.get("weight", 0)),
 		})
 
@@ -100,6 +118,7 @@ func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_
 		"drop_pool": resolved_pool,
 		"enabled_items": enabled_items,
 		"items_by_type": items_by_type,
+		"items_by_battle_item_id": items_by_battle_item_id,
 	}
 
 

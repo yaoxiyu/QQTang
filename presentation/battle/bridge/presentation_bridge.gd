@@ -446,7 +446,8 @@ func _on_item_picked_event_routed(event: SimEvent) -> void:
 			int(event.payload.get("cell_y", 0))
 		)),
 		cell_size,
-		int(event.payload.get("item_type", 0))
+		int(event.payload.get("item_type", 0)),
+		String(event.payload.get("battle_item_id", ""))
 	)
 	fx_layer.add_child(fx)
 

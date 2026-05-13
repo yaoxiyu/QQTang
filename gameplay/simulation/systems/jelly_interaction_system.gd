@@ -19,7 +19,7 @@ func execute(ctx: SimContext) -> void:
 		return
 
 	var normal_players := _collect_normal_players(ctx)
-	_log_pierce_diagnostic(ctx, trapped_players, normal_players)
+	# _log_pierce_diagnostic(ctx, trapped_players, normal_players)
 
 	for trapped_player in trapped_players:
 		if trapped_player == null or trapped_player.life_state != PlayerState.LifeState.TRAPPED:

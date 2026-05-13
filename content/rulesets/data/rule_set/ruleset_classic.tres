@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_lcphx")
 rule_set_id = "ruleset_classic"
+drop_battle_backpack_on_death = true
 player_explosion_profile_id = "player_trap_default"
 player_down_policy = "jelly"
 rescue_touch_enabled = true

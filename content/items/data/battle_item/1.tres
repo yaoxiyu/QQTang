@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_d7ik4"]
+
+[resource]
+script = ExtResource("1_d7ik4")
+battle_item_id = "1"
+item_type = 1
+display_name = "Bubble Up"
+description = "Increase the number of bubbles the player can place by one."
+stand_source = "external/assets/source/res/object/item/item1_stand.gif"
+backpack_type = "battle_passive"
+effect_type = "stat_mod"
+effect_target = "bomb_capacity"
+effect_mode = "add"
+effect_value = 1
+content_hash = "battle_item_1_csv_v1"

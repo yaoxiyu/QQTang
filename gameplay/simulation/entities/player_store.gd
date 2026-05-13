@@ -133,6 +133,19 @@ func restore_player_from_snapshot(data: Dictionary) -> int:
 	player.deaths = int(data.get("deaths", 0))
 	player.score = int(data.get("score", 0))
 	player.controller_type = int(data.get("controller_type", player.controller_type))
+	player.passive_backpack.clear()
+	for bp_id in data.get("passive_backpack", []):
+		player.passive_backpack.append(String(bp_id))
+	var us_data = data.get("usable_slots", [])
+	for i: int in range(6):
+		if i < us_data.size():
+			var slot = us_data[i]
+			if slot is Dictionary:
+				player.usable_slots[i] = {"battle_item_id": String(slot.get("battle_item_id", "")), "count": int(slot.get("count", 0))}
+			else:
+				player.usable_slots[i] = null
+		else:
+			player.usable_slots[i] = null
 
 	while _states.size() <= entity_id:
 		_states.append(null)

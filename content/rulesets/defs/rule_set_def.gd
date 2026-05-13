@@ -8,6 +8,7 @@ class_name RuleSetDef
 @export var friendly_fire: bool = false
 @export var sudden_death_enabled: bool = true
 @export var item_drop_profile_id: String = ""
+@export var drop_battle_backpack_on_death: bool = false
 @export var player_explosion_profile_id: String = "player_kill_default"
 @export var bubble_explosion_profile_id: String = "bubble_chain_immediate"
 @export var item_explosion_profile_id: String = "item_destroy_default"

@@ -65,13 +65,15 @@ func spawn_item(
 	p_item_type: int,
 	p_cell_x: int,
 	p_cell_y: int,
-	p_pickup_delay_ticks: int = 0
+	p_pickup_delay_ticks: int = 0,
+	p_battle_item_id: String = ""
 ) -> int:
 	var item := ItemState.new()
 
 	item.entity_id = _allocate_id()
 	item.generation = 1
 	item.item_type = p_item_type
+	item.battle_item_id = p_battle_item_id
 	item.cell_x = p_cell_x
 	item.cell_y = p_cell_y
 	item.spawn_tick = 0  # 由系统设置
@@ -98,6 +100,7 @@ func restore_item_from_snapshot(data: Dictionary) -> int:
 	item.generation = int(data.get("generation", 1))
 	item.alive = bool(data.get("alive", true))
 	item.item_type = int(data.get("item_type", 0))
+	item.battle_item_id = String(data.get("battle_item_id", ""))
 	item.cell_x = int(data.get("cell_x", 0))
 	item.cell_y = int(data.get("cell_y", 0))
 	item.spawn_tick = int(data.get("spawn_tick", 0))

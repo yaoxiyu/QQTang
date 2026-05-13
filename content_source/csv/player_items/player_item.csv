@@ -1,0 +1,2 @@
+player_item_id,display_name,item_type,icon_path,rarity,target_character_id,skin_slot,stackable,max_stack
+currency_gold,金币,currency,,common,,,true,999999

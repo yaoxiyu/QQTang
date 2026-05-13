@@ -207,7 +207,7 @@ func reset_hud() -> void:
 	if local_life_state_panel != null:
 		local_life_state_panel.text = ""
 	if player_list_panel != null and player_list_panel.has_method("configure"):
-		player_list_panel.configure(false, {}, null)
+		player_list_panel.configure(false, {}, [] as Array[String])
 
 
 func set_debug_panels_visible(visible: bool) -> void:

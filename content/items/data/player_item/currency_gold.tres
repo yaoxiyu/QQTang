@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="PlayerItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/player_item_definition.gd" id="1_i37es"]
+
+[resource]
+script = ExtResource("1_i37es")
+player_item_id = "currency_gold"
+display_name = "金币"
+item_type = "currency"
+stackable = true
+max_stack = 999999
+content_hash = "player_item_currency_gold_csv_v1"

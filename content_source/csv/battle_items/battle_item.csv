@@ -1,0 +1,7 @@
+battle_item_id,item_type,display_name,description,rarity,stand_source,trigger_source,enabled,backpack_type,apply_on_pickup,effect_type,effect_target,effect_mode,effect_value,hotkey_action,hotkey_spawn_battle_item_id
+1,1,Bubble Up,"Increase the number of bubbles the player can place by one.",common,external/assets/source/res/object/item/item1_stand.gif,,true,battle_passive,true,stat_mod,bomb_capacity,add,1,,
+2,2,Power Up,"Increase explosion range by one.",common,external/assets/source/res/object/item/item2_stand.gif,,true,battle_passive,true,stat_mod,bomb_range,add,1,,
+3,3,Speed Up,"Increase movement speed level by one.",common,external/assets/source/res/object/item/item3_stand.gif,,true,battle_passive,true,stat_mod,speed_level,add,1,,
+6,6,Max Bubble,"Set bubble capacity to maximum.",rare,external/assets/source/res/object/item/item6_stand.gif,,true,none,true,stat_mod,bomb_capacity,set_max,0,,
+7,7,Max Power,"Set explosion range to maximum.",rare,external/assets/source/res/object/item/item7_stand.gif,,true,none,true,stat_mod,bomb_range,set_max,0,,
+8,8,Max Speed,"Set speed to maximum.",rare,external/assets/source/res/object/item/item8_stand.gif,,true,none,true,stat_mod,speed_level,set_max,0,,

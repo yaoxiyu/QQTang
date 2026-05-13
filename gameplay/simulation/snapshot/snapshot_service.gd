@@ -133,7 +133,9 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"kills": player.kills,
 			"deaths": player.deaths,
 			"score": player.score,
-			"controller_type": player.controller_type
+			"controller_type": player.controller_type,
+			"passive_backpack": player.passive_backpack.duplicate(),
+			"usable_slots": player.usable_slots.duplicate()
 		})
 	players.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return players
@@ -181,11 +183,14 @@ func _capture_items(sim_world: SimWorld) -> Array[Dictionary]:
 			"generation": item.generation,
 			"alive": item.alive,
 			"item_type": item.item_type,
+			"battle_item_id": item.battle_item_id,
 			"cell_x": item.cell_x,
 			"cell_y": item.cell_y,
 			"spawn_tick": item.spawn_tick,
 			"pickup_delay_ticks": item.pickup_delay_ticks,
-			"visible": item.visible
+			"visible": item.visible,
+			"scatter_from_x": item.scatter_from_x,
+			"scatter_from_y": item.scatter_from_y
 		})
 	items.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return items

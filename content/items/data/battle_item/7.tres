@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_761vu"]
+
+[resource]
+script = ExtResource("1_761vu")
+battle_item_id = "7"
+item_type = 7
+display_name = "Max Power"
+description = "Set explosion range to maximum."
+rarity = "rare"
+stand_source = "external/assets/source/res/object/item/item7_stand.gif"
+effect_type = "stat_mod"
+effect_target = "bomb_range"
+effect_mode = "set_max"
+content_hash = "battle_item_7_csv_v1"

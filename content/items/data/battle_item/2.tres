@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_0po6k"]
+
+[resource]
+script = ExtResource("1_0po6k")
+battle_item_id = "2"
+item_type = 2
+display_name = "Power Up"
+description = "Increase explosion range by one."
+stand_source = "external/assets/source/res/object/item/item2_stand.gif"
+backpack_type = "battle_passive"
+effect_type = "stat_mod"
+effect_target = "bomb_range"
+effect_mode = "add"
+effect_value = 1
+content_hash = "battle_item_2_csv_v1"

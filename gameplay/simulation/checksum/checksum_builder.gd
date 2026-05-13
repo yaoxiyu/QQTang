@@ -34,6 +34,17 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(player.max_bomb_capacity)
 		parts.append(player.bomb_range)
 		parts.append(player.max_bomb_range)
+		for backpack_id in player.passive_backpack:
+			parts.append(hash(backpack_id))
+		parts.append(-777777)
+		for slot in player.usable_slots:
+			if slot is Dictionary:
+				parts.append(hash(String(slot.get("battle_item_id", ""))))
+				parts.append(int(slot.get("count", 0)))
+			else:
+				parts.append(0)
+				parts.append(0)
+		parts.append(-888888)
 
 	for bubble in _get_sorted_bubbles(sim_world):
 		parts.append(bubble.entity_id)
@@ -61,6 +72,7 @@ func build(sim_world: SimWorld, tick_id: int) -> int:
 		parts.append(item.cell_x)
 		parts.append(item.cell_y)
 		parts.append(item.item_type)
+		parts.append(hash(item.battle_item_id))
 		parts.append(int(item.alive))
 
 	for wall in _get_sorted_walls(sim_world):

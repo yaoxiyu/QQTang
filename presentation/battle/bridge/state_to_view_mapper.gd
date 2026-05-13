@@ -253,14 +253,18 @@ func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:
 
 
 func map_item_state(item: ItemState) -> Dictionary:
-	return {
+	var view := {
 		"entity_id": item.entity_id,
 		"item_type": item.item_type,
+		"battle_item_id": item.battle_item_id,
 		"cell_size": cell_size,
 		"position": _to_world_position(item.cell_x, item.cell_y),
 		"cell": Vector2i(item.cell_x, item.cell_y),
 		"color": _item_palette.get(item.item_type, Color(1.0, 1.0, 1.0, 1.0)),
 	}
+	if item.scatter_from_x >= 0:
+		view["scatter_from"] = _to_world_position(item.scatter_from_x, item.scatter_from_y)
+	return view
 
 
 func _to_world_position(cell_x: int, cell_y: int) -> Vector2:

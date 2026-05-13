@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_bei0f"]
+
+[resource]
+script = ExtResource("1_bei0f")
+battle_item_id = "6"
+item_type = 6
+display_name = "Max Bubble"
+description = "Set bubble capacity to maximum."
+rarity = "rare"
+stand_source = "external/assets/source/res/object/item/item6_stand.gif"
+effect_type = "stat_mod"
+effect_target = "bomb_capacity"
+effect_mode = "set_max"
+content_hash = "battle_item_6_csv_v1"

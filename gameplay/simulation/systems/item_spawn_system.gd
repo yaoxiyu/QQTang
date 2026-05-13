@@ -38,27 +38,37 @@ func _spawn_items_from_destroyed_cells(ctx: SimContext) -> void:
 		if _find_item_id_at_cell(ctx, cell_x, cell_y) != -1:
 			continue
 
-		var item_type: int = _resolve_item_type(ctx)
-		if item_type == 0:
+		var battle_item_id: String = _resolve_battle_item_id(ctx)
+		if battle_item_id.is_empty():
 			continue
 
-		var item_id: int = ctx.state.items.spawn_item(item_type, cell_x, cell_y, 2)
-		var item: ItemState = ctx.state.items.get_item(item_id)
-		if item == null:
-			continue
-		item.spawn_tick = ctx.tick
-		item.visible = true
-		ctx.state.items.update_item(item)
+		_spawn_battle_item(ctx, battle_item_id, cell_x, cell_y)
 
-		var spawned_event := SimEvent.new(ctx.tick, SimEvent.EventType.ITEM_SPAWNED)
-		spawned_event.payload = {
-			"item_id": item_id,
-			"item_type": item_type,
-			"cell_x": cell_x,
-			"cell_y": cell_y,
-			"drop_rate_percent": get_debug_drop_rate_percent(),
-		}
-		ctx.events.push(spawned_event)
+
+func _spawn_battle_item(ctx: SimContext, battle_item_id: String, cell_x: int, cell_y: int) -> void:
+	var item_definition: Dictionary = ctx.config.item_defs.get(battle_item_id, {})
+	if item_definition.is_empty():
+		return
+
+	var item_type: int = int(item_definition.get("item_type", 0))
+	var item_id: int = ctx.state.items.spawn_item(item_type, cell_x, cell_y, 2, battle_item_id)
+	var item: ItemState = ctx.state.items.get_item(item_id)
+	if item == null:
+		return
+	item.spawn_tick = ctx.tick
+	item.visible = true
+	ctx.state.items.update_item(item)
+
+	var spawned_event := SimEvent.new(ctx.tick, SimEvent.EventType.ITEM_SPAWNED)
+	spawned_event.payload = {
+		"item_id": item_id,
+		"item_type": item_type,
+		"battle_item_id": battle_item_id,
+		"cell_x": cell_x,
+		"cell_y": cell_y,
+		"drop_rate_percent": get_debug_drop_rate_percent(),
+	}
+	ctx.events.push(spawned_event)
 
 
 func _find_item_id_at_cell(ctx: SimContext, cell_x: int, cell_y: int) -> int:
@@ -71,41 +81,42 @@ func _find_item_id_at_cell(ctx: SimContext, cell_x: int, cell_y: int) -> int:
 	return -1
 
 
-func _resolve_item_type(ctx: SimContext) -> int:
+func _resolve_battle_item_id(ctx: SimContext) -> String:
 	if ctx == null or ctx.config == null:
-		return _resolve_legacy_debug_item_type(ctx)
+		return _resolve_legacy_debug_item_id(ctx)
 	var item_drop_profile: Dictionary = ctx.config.system_flags.get("item_drop_profile", {})
 	if not item_drop_profile.is_empty():
-		return _roll_item_type_from_profile(ctx, item_drop_profile)
-	return _resolve_legacy_debug_item_type(ctx)
+		return _roll_battle_item_id_from_profile(ctx, item_drop_profile)
+	return _resolve_legacy_debug_item_id(ctx)
 
 
-func _roll_item_type_from_profile(ctx: SimContext, item_drop_profile: Dictionary) -> int:
+func _roll_battle_item_id_from_profile(ctx: SimContext, item_drop_profile: Dictionary) -> String:
 	if not bool(item_drop_profile.get("drop_enabled", true)):
-		return 0
+		return ""
 	var total_weight: int = max(int(item_drop_profile.get("empty_weight", 0)), 0)
 	for entry in item_drop_profile.get("drop_pool", []):
 		total_weight += max(int(entry.get("weight", 0)), 0)
 	if total_weight <= 0:
-		return 0
+		return ""
 	var roll: int = int(ctx.rng.range_int(0, total_weight - 1))
 	var cursor: int = max(int(item_drop_profile.get("empty_weight", 0)), 0)
 	if roll < cursor:
-		return 0
+		return ""
 	for entry in item_drop_profile.get("drop_pool", []):
 		cursor += max(int(entry.get("weight", 0)), 0)
 		if roll < cursor:
-			return int(entry.get("item_type", 0))
-	return 0
+			return String(entry.get("battle_item_id", ""))
+	return ""
 
 
-func _resolve_legacy_debug_item_type(ctx: SimContext) -> int:
+func _resolve_legacy_debug_item_id(ctx: SimContext) -> String:
 	if ctx == null or ctx.rng == null:
-		return 0
+		return ""
 	var drop_selector: int = ctx.rng.range_int(0, 99)
 	if drop_selector >= get_debug_drop_rate_percent():
-		return 0
-	return ctx.rng.range_int(1, 3)
+		return ""
+	var legacy_type: int = ctx.rng.range_int(1, 3)
+	return String.num(legacy_type)
 
 
 func _should_suppress_authority_entity_side_effects(ctx: SimContext) -> bool:

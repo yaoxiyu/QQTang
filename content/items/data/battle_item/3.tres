@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BattleItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/battle_item_definition.gd" id="1_cjtbf"]
+
+[resource]
+script = ExtResource("1_cjtbf")
+battle_item_id = "3"
+item_type = 3
+display_name = "Speed Up"
+description = "Increase movement speed level by one."
+stand_source = "external/assets/source/res/object/item/item3_stand.gif"
+backpack_type = "battle_passive"
+effect_type = "stat_mod"
+effect_target = "speed_level"
+effect_mode = "add"
+effect_value = 1
+content_hash = "battle_item_3_csv_v1"

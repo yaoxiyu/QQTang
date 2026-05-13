@@ -93,7 +93,7 @@ var max_bomb_capacity: int = 5
 var bomb_available: int = 1
 var bomb_range: int = 1
 var max_bomb_range: int = 5
-var bomb_fuse_ticks: int = 180  # 默认引信时间（tick）
+var bomb_fuse_ticks: int = 90  # 默认引信时间（tick）
 
 # ====================
 # 技能修饰符
@@ -102,6 +102,12 @@ var has_push: bool = false
 var has_remote: bool = false
 var has_pierce: bool = false
 var can_cross_own_bubble: bool = false
+
+# ====================
+# 背包
+# ====================
+var passive_backpack: Array[String] = []  # 战斗被动背包，battle_item_id 列表，无限容量
+var usable_slots: Array = [null, null, null, null, null, null]  # 6格可使用背包，null 或 {"battle_item_id": String, "count": int}
 
 # ====================
 # 状态计时器

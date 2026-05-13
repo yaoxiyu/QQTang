@@ -23,6 +23,7 @@ var player_defs: Array[Resource] = []
 
 # 道具配置
 var item_defs: Dictionary = {}
+var item_defs_by_type: Dictionary = {}
 
 # 泡泡配置
 var bubble_defs: Dictionary = {}

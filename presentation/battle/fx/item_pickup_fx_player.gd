@@ -2,6 +2,7 @@ class_name ItemPickupFxPlayer
 extends Node2D
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
+const BattleItemCatalogScript = preload("res://content/items/catalog/battle_item_catalog.gd")
 
 var _sprite: AnimatedSprite2D = null
 
@@ -10,11 +11,15 @@ func _ready() -> void:
 	_ensure_sprite()
 
 
-func configure(world_position: Vector2, cell_size: float, item_type: int) -> void:
+func configure(world_position: Vector2, cell_size: float, item_type: int, battle_item_id: String = "") -> void:
 	position = world_position
 	_ensure_sprite()
 
-	var entry := ItemCatalogScript.get_item_entry_by_type(item_type)
+	var entry: Dictionary = {}
+	if not battle_item_id.is_empty() and BattleItemCatalogScript.has_battle_item(battle_item_id):
+		entry = BattleItemCatalogScript.get_battle_item_entry(battle_item_id)
+	else:
+		entry = ItemCatalogScript.get_item_entry_by_type(item_type)
 	var trigger_path := String(entry.get("trigger_anim_path", ""))
 	if trigger_path.is_empty():
 		queue_free()
