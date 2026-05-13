@@ -506,7 +506,8 @@ func _build_player_statuses(world: SimWorld) -> Array[Dictionary]:
 			"bomb_capacity": player.bomb_capacity,
 			"bomb_range": player.bomb_range,
 			"speed_level": player.speed_level,
-			"has_kick": player.has_kick,
+			"max_bomb_range": player.max_bomb_range,
+			"max_speed_level": player.max_speed_level,
 		})
 
 	return statuses
@@ -571,7 +572,8 @@ func _build_local_player_status(world: SimWorld) -> Dictionary:
 				"bomb_capacity": player.bomb_capacity,
 				"bomb_range": player.bomb_range,
 				"speed_level": player.speed_level,
-				"has_kick": player.has_kick,
+				"max_bomb_range": player.max_bomb_range,
+				"max_speed_level": player.max_speed_level,
 			}
 	if controlled_slot >= 0:
 		for player_id in world.state.players.active_ids:
@@ -586,7 +588,8 @@ func _build_local_player_status(world: SimWorld) -> Dictionary:
 				"bomb_capacity": player.bomb_capacity,
 				"bomb_range": player.bomb_range,
 				"speed_level": player.speed_level,
-				"has_kick": player.has_kick,
+				"max_bomb_range": player.max_bomb_range,
+				"max_speed_level": player.max_speed_level,
 			}
 	for player_id in world.state.players.active_ids:
 		var player := world.state.players.get_player(player_id)
@@ -598,7 +601,8 @@ func _build_local_player_status(world: SimWorld) -> Dictionary:
 			"bomb_capacity": player.bomb_capacity,
 			"bomb_range": player.bomb_range,
 			"speed_level": player.speed_level,
-			"has_kick": player.has_kick,
+			"max_bomb_range": player.max_bomb_range,
+			"max_speed_level": player.max_speed_level,
 		}
 	return {}
 

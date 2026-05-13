@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_fy7gd"]
+
+[resource]
+script = ExtResource("1_fy7gd")
+item_id = "6"
+display_name = "Max Bubble"
+description = "Set bubble capacity to maximum."
+icon_path = "res://external/assets/derived/assets/animation/items/6/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/6/stand"
+item_type = 6
+pickup_effect_type = "max_bomb_capacity"
+rarity = "rare"
+content_hash = "item_6_csv_v1"

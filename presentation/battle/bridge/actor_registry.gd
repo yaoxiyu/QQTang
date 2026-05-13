@@ -298,7 +298,9 @@ func _sync_group(
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)
 		if fallback_script == PlayerActorViewScript:
-			_player_row_cells[entity_id] = view_state.get("cell", Vector2i.ZERO) as Vector2i
+			var _cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
+			var _offset_y := int((view_state.get("offset", Vector2.ZERO) as Vector2).y)
+			_player_row_cells[entity_id] = {"cell": _cell, "offset_y": _offset_y}
 
 	if fallback_script == PlayerActorViewScript:
 		_enforce_player_z_row_order(views)
@@ -313,11 +315,19 @@ func _enforce_player_z_row_order(views: Dictionary) -> void:
 		var view = views[entity_id]
 		if view == null or not is_instance_valid(view):
 			continue
-		var cell: Vector2i = _player_row_cells.get(entity_id, Vector2i.ZERO)
-		row_players.append({"view": view, "cell": cell, "z": view.z_index})
+		var row_info: Dictionary = _player_row_cells.get(entity_id, {"cell": Vector2i.ZERO, "offset_y": 0})
+		var cell: Vector2i = row_info.get("cell", Vector2i.ZERO) as Vector2i
+		var offset_y: int = int(row_info.get("offset_y", 0))
+		row_players.append({"view": view, "cell": cell, "offset_y": offset_y, "z": view.z_index})
 	if row_players.size() < 2:
 		return
-	row_players.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.cell.y < b.cell.y)
+	row_players.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		if a.cell.y != b.cell.y:
+			return a.cell.y < b.cell.y
+		if a.cell.x != b.cell.x:
+			return a.cell.x > b.cell.x
+		return a.offset_y < b.offset_y
+	)
 	var prev_z: int = int(row_players[0].z)
 	for i in range(1, row_players.size()):
 		var entry: Dictionary = row_players[i]
@@ -326,6 +336,15 @@ func _enforce_player_z_row_order(views: Dictionary) -> void:
 			if int(entry.z) < min_z:
 				entry.view.z_index = min_z
 				entry.z = min_z
+		elif int(entry.z) <= prev_z:
+			var need_bump: bool = false
+			if entry.cell.x < row_players[i - 1].cell.x:
+				need_bump = true
+			elif entry.cell.x == row_players[i - 1].cell.x and entry.offset_y > row_players[i - 1].offset_y:
+				need_bump = true
+			if need_bump:
+				entry.view.z_index = prev_z + 1
+				entry.z = prev_z + 1
 		prev_z = int(entry.z)
 
 

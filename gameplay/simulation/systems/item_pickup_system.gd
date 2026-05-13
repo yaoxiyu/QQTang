@@ -59,8 +59,13 @@ func _apply_item_effect(ctx: SimContext, player, item_type: int) -> void:
 				player.bomb_available = min(player.bomb_available + 1, player.bomb_capacity)
 			"modify_speed":
 				player.speed_level = min(player.speed_level + 1, player.max_speed_level)
-			"grant_kick":
-				player.has_kick = true
+			"max_bomb_capacity":
+				player.bomb_capacity = player.max_bomb_capacity
+				player.bomb_available = player.bomb_capacity
+			"max_bomb_range":
+				player.bomb_range = player.max_bomb_range
+			"max_speed":
+				player.speed_level = player.max_speed_level
 			_:
 				_apply_legacy_item_effect(player, item_type)
 		return

@@ -118,7 +118,6 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"bomb_range": player.bomb_range,
 			"max_bomb_range": player.max_bomb_range,
 			"bomb_fuse_ticks": player.bomb_fuse_ticks,
-			"has_kick": player.has_kick,
 			"has_push": player.has_push,
 			"has_remote": player.has_remote,
 			"has_pierce": player.has_pierce,

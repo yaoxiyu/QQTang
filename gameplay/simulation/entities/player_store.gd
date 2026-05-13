@@ -117,7 +117,6 @@ func restore_player_from_snapshot(data: Dictionary) -> int:
 	player.bomb_range = int(data.get("bomb_range", player.bomb_range))
 	player.max_bomb_range = int(data.get("max_bomb_range", player.max_bomb_range))
 	player.bomb_fuse_ticks = int(data.get("bomb_fuse_ticks", player.bomb_fuse_ticks))
-	player.has_kick = bool(data.get("has_kick", false))
 	player.has_push = bool(data.get("has_push", false))
 	player.has_remote = bool(data.get("has_remote", false))
 	player.has_pierce = bool(data.get("has_pierce", false))

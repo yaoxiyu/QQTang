@@ -98,7 +98,6 @@ var bomb_fuse_ticks: int = 180  # 默认引信时间（tick）
 # ====================
 # 技能修饰符
 # ====================
-var has_kick: bool = false
 var has_push: bool = false
 var has_remote: bool = false
 var has_pierce: bool = false

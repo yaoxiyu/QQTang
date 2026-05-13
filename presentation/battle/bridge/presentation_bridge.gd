@@ -7,7 +7,6 @@ const BattleEventRouterScript = preload("res://presentation/battle/bridge/battle
 const ExplosionActorViewScript = preload("res://presentation/battle/actors/explosion_actor_view.gd")
 const CorrectionMarkerViewScript = preload("res://presentation/battle/actors/correction_marker_view.gd")
 const BrickBreakFxPlayerScript = preload("res://presentation/battle/fx/brick_break_fx_player.gd")
-const ItemSpawnFxPlayerScript = preload("res://presentation/battle/fx/item_spawn_fx_player.gd")
 const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
@@ -77,7 +76,6 @@ func _ready() -> void:
 	fx_pool = FxPoolScript.new()
 	fx_pool.register_factory("explosion", func(): return ExplosionActorViewScript.new())
 	fx_pool.register_factory("brick_break", func(): return BrickBreakFxPlayerScript.new())
-	fx_pool.register_factory("item_spawn", func(): return ItemSpawnFxPlayerScript.new())
 	fx_pool.register_factory("item_pickup", func(): return ItemPickupFxPlayerScript.new())
 	fx_pool.prewarm("explosion", 4, fx_layer)
 	fx_pool.prewarm("brick_break", 8, fx_layer)
@@ -433,18 +431,7 @@ func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 
 
 func _on_item_spawned_event_routed(event: SimEvent) -> void:
-	if event == null or fx_layer == null:
-		return
-	var fx = ItemSpawnFxPlayerScript.new()
-	fx.configure(
-		_to_world_center(Vector2i(
-			int(event.payload.get("cell_x", 0)),
-			int(event.payload.get("cell_y", 0))
-		)),
-		cell_size,
-		int(event.payload.get("item_type", 0))
-	)
-	fx_layer.add_child(fx)
+	pass
 
 
 func _on_item_picked_event_routed(event: SimEvent) -> void:

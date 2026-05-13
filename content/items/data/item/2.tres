@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_i1xdm"]
+
+[resource]
+script = ExtResource("1_i1xdm")
+item_id = "2"
+display_name = "Power Up"
+description = "Increase explosion range by one."
+icon_path = "res://external/assets/derived/assets/animation/items/2/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/2/stand"
+item_type = 2
+pickup_effect_type = "modify_bomb_range"
+content_hash = "item_2_csv_v1"

@@ -7,6 +7,7 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const MapCatalogScript = preload("res://content/maps/catalog/map_catalog.gd")
 const ModeCatalogScript = preload("res://content/modes/catalog/mode_catalog.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
+const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 
 const OUTPUT_DIR := "res://build/generated/content_catalog"
@@ -22,12 +23,14 @@ func generate() -> void:
 	ModeCatalogScript.load_all()
 	RuleSetCatalogScript.load_all()
 	MatchFormatCatalogScript.load_all()
+	ItemCatalogScript.ensure_loaded()
 	_write_index("characters", _character_entries())
 	_write_index("bubbles", _bubble_entries())
 	_write_index("maps", _map_entries())
 	_write_index("modes", _mode_entries())
 	_write_index("rulesets", _rule_entries())
 	_write_index("match_formats", _match_format_entries())
+	_write_index("items", _item_entries())
 	_write_summary()
 	GeneratedCatalogIndexLoaderScript.set_enabled(previous_enabled)
 
@@ -136,11 +139,21 @@ func _match_format_entries() -> Array:
 	return result
 
 
+func _item_entries() -> Array:
+	var result: Array = []
+	for entry in ItemCatalogScript.get_all_item_entries():
+		if entry is Dictionary:
+			var e := (entry as Dictionary).duplicate(true)
+			e["id"] = String(e.get("item_id", ""))
+			result.append(e)
+	return result
+
+
 func _write_summary() -> void:
 	var summary := {
 		"schema_version": 1,
 		"generated_at_unix_ms": int(Time.get_unix_time_from_system() * 1000.0),
-		"indices": ["characters", "bubbles", "maps", "modes", "rulesets", "match_formats"],
+		"indices": ["characters", "bubbles", "maps", "modes", "rulesets", "match_formats", "items"],
 	}
 	var path := "%s/content_catalog_summary.json" % OUTPUT_DIR
 	var file := FileAccess.open(path, FileAccess.WRITE)

@@ -246,7 +246,7 @@ func _test_item_spawn_system_spawns_from_destroyed_breakable() -> void:
 		"empty_weight": 0,
 		"drop_pool": [
 			{
-				"item_id": "power_up",
+				"item_id": "2",
 				"item_type": 1,
 				"display_name": "Power Up",
 				"pickup_effect_type": "modify_bomb_range",

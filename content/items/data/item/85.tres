@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_sjkb4"]
+
+[resource]
+script = ExtResource("1_sjkb4")
+item_id = "85"
+display_name = "Item 85"
+description = "Unknown item effect."
+icon_path = "res://external/assets/derived/assets/animation/items/85/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/85/stand"
+trigger_anim_path = "res://external/assets/derived/assets/animation/items/85/trigger"
+pickup_effect_type = "unknown"
+enabled = false
+content_hash = "item_85_csv_v1"

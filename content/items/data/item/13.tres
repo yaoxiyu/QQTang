@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_fpmab"]
+
+[resource]
+script = ExtResource("1_fpmab")
+item_id = "13"
+display_name = "Item 13"
+description = "Unknown item effect."
+icon_path = "res://external/assets/derived/assets/animation/items/13/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/13/stand"
+pickup_effect_type = "unknown"
+enabled = false
+content_hash = "item_13_csv_v1"

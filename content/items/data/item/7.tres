@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_56kkb"]
+
+[resource]
+script = ExtResource("1_56kkb")
+item_id = "7"
+display_name = "Max Power"
+description = "Set explosion range to maximum."
+icon_path = "res://external/assets/derived/assets/animation/items/7/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/7/stand"
+item_type = 7
+pickup_effect_type = "max_bomb_range"
+rarity = "rare"
+content_hash = "item_7_csv_v1"

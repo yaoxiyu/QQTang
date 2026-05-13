@@ -14,8 +14,14 @@ const OCCLUDER_Z_BIAS := 0
 const BUBBLE_Z_BIAS := 0
 const EXPLOSION_Z_BIAS := 1
 const ITEM_Z_BIAS := 2
+const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
+
 const PLAYER_Z_BIAS := 0
 const SURFACE_Z_BIAS := 5
+
+
+static func _offset_z_bias(offset_y: int) -> int:
+	return int(float(offset_y) / float(WorldMetrics.CELL_UNITS) * ROW_STEP)
 
 
 static func ground_z(cell: Vector2i) -> int:
@@ -42,8 +48,8 @@ static func item_z(cell: Vector2i, z_bias: int = 0) -> int:
 	return _row_z(LAYER_PRIORITY_FX, cell, ITEM_Z_BIAS + z_bias)
 
 
-static func player_z(cell: Vector2i, z_bias: int = 0) -> int:
-	return _row_z(LAYER_PRIORITY_ACTOR, cell, PLAYER_Z_BIAS + z_bias)
+static func player_z(cell: Vector2i, z_bias: int = 0, offset_y: int = 0) -> int:
+	return _row_z(LAYER_PRIORITY_ACTOR, cell, PLAYER_Z_BIAS + z_bias + _offset_z_bias(offset_y))
 
 
 static func surface_z(cell: Vector2i, z_bias: int = 0) -> int:

@@ -79,7 +79,8 @@ func apply_view_state(view_state: Dictionary) -> void:
 	_has_visual_target = true
 	z_as_relative = false
 	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
-	var resolved_player_z := BattleDepth.player_z(cell)
+	var cell_offset_y := int((view_state.get("offset", Vector2.ZERO) as Vector2).y)
+	var resolved_player_z := BattleDepth.player_z(cell, 0, cell_offset_y)
 	var surface_row_z := int(_surface_row_max_z.get(cell.y, -2147483648))
 	if surface_row_z >= resolved_player_z:
 		resolved_player_z = surface_row_z + 1

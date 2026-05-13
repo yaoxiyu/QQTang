@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_oyn25"]
+
+[resource]
+script = ExtResource("1_oyn25")
+item_id = "30034"
+display_name = "Item 30034"
+description = "Unknown item effect."
+icon_path = "res://external/assets/derived/assets/animation/items/30034/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/30034/stand"
+pickup_effect_type = "unknown"
+enabled = false
+content_hash = "item_30034_csv_v1"

@@ -55,8 +55,6 @@ static func _validate_item_definition(item_definition: Dictionary) -> bool:
 		return false
 	if String(item_definition.get("pickup_effect_type", "")).is_empty():
 		return false
-	if int(item_definition.get("max_stack", 0)) <= 0:
-		return false
 	if String(item_definition.get("content_hash", "")).is_empty():
 		return false
 	return true

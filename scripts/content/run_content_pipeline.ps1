@@ -16,14 +16,19 @@ $projectRoot = $projectRoot.Path
 
 $syntaxPreflightScript = Join-Path $projectRoot 'tests\scripts\check_gdscript_syntax.ps1'
 $mapGifConvertScript = Join-Path $projectRoot 'scripts\content\convert_map_gif_to_png_anim.ps1'
+$itemGifConvertScript = Join-Path $projectRoot 'scripts\content\convert_item_gif_to_png_anim.ps1'
 $cacheRoot = Join-Path $projectRoot 'build\.content-pipeline-cache'
 $activity = 'content-pipeline'
-Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 4 -Name 'gdscript syntax preflight' -Action {
+Invoke-QQTProgressStep -Activity $activity -Step 1 -Total 5 -Name 'gdscript syntax preflight' -Action {
     & $syntaxPreflightScript -GodotExe $GodotExecutable -ProjectPath $projectRoot
 }
 
-Invoke-QQTProgressStep -Activity $activity -Step 2 -Total 4 -Name 'map gif to png frames' -Action {
+Invoke-QQTProgressStep -Activity $activity -Step 2 -Total 5 -Name 'map gif to png frames' -Action {
     & $mapGifConvertScript -ProjectPath $projectRoot -AssetRoot 'external/assets/maps/elements' -CleanExistingFrames
+}
+
+Invoke-QQTProgressStep -Activity $activity -Step 3 -Total 5 -Name 'item gif to png frames' -Action {
+    & $itemGifConvertScript -ProjectPath $projectRoot -AssetRoot 'external/assets/source/res/object/item' -CleanExistingFrames
 }
 
 Push-Location $projectRoot
@@ -41,8 +46,12 @@ try {
         'build\generated\content_catalog\modes_catalog_index.json',
         'build\generated\content_catalog\rulesets_catalog_index.json',
         'build\generated\content_catalog\match_formats_catalog_index.json',
+        'build\generated\content_catalog\items_catalog_index.json',
         'build\generated\content_catalog\content_catalog_summary.json',
-        'build\generated\content_reports\content_pipeline_report.json'
+        'build\generated\content_reports\content_pipeline_report.json',
+        'content\items\data\item\1.tres',
+        'content\items\data\item\2.tres',
+        'content\items\data\item\3.tres'
     )
 
     Invoke-QQTIncrementalStep `
@@ -61,8 +70,11 @@ try {
             'content\modes\defs',
             'content\rulesets\defs',
             'content\match_formats\defs',
+            'content\items\defs',
+            'content\items\catalog',
             'external\assets\derived\assets\animation\characters\qqt_layered',
-            'external\assets\derived\assets\animation\characters\qqt_layered_team_variants'
+            'external\assets\derived\assets\animation\characters\qqt_layered_team_variants',
+            'external\assets\derived\assets\animation\items'
         ) `
         -ExcludePathParts @(
             '\.godot\',
@@ -73,8 +85,8 @@ try {
         -OutputPaths $requiredPaths `
         -Force:$ForceBuild `
         -Activity $activity `
-        -Step 3 `
-        -Total 4 `
+        -Step 4 `
+        -Total 5 `
         -Action {
             & cmd /c "`"$GodotExecutable`" --headless --path `"$projectRoot`" --script res://tools/content_pipeline/run_content_pipeline_cli.gd"
             if ($LASTEXITCODE -ne 0) {
@@ -87,7 +99,7 @@ try {
             }
         } | Out-Null
 
-    Write-QQTProgress -Activity $activity -Step 4 -Total 4 -Status 'verify outputs'
+    Write-QQTProgress -Activity $activity -Step 5 -Total 5 -Status 'verify outputs'
 
     foreach ($relativePath in $requiredPaths) {
         $fullPath = Join-Path $projectRoot $relativePath

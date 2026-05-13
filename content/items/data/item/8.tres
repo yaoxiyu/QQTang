@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" format=3]
+
+[ext_resource type="Script" path="res://content/items/defs/item_definition.gd" id="1_nx74d"]
+
+[resource]
+script = ExtResource("1_nx74d")
+item_id = "8"
+display_name = "Max Speed"
+description = "Set speed to maximum."
+icon_path = "res://external/assets/derived/assets/animation/items/8/stand/frame_0000.png"
+stand_anim_path = "res://external/assets/derived/assets/animation/items/8/stand"
+item_type = 8
+pickup_effect_type = "max_speed"
+rarity = "rare"
+content_hash = "item_8_csv_v1"

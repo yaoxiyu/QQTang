@@ -3,88 +3,75 @@ extends Node2D
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 
-var _icon_sprite: Sprite2D = null
-var _diamond: Polygon2D = null
+var _sprite: AnimatedSprite2D = null
 
 
 func _ready() -> void:
-	_ensure_visuals()
+	_ensure_sprite()
 
 
 func configure(world_position: Vector2, cell_size: float, item_type: int) -> void:
 	position = world_position
-	_ensure_visuals()
-	_apply_item_visual(cell_size, item_type, 0.16, 0.76)
-	scale = Vector2.ONE
-	modulate = Color(1, 1, 1, 0.95)
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(self, "position:y", world_position.y - max(cell_size * 0.3, 12.0), 0.2)
-	tween.tween_property(self, "modulate:a", 0.0, 0.2)
-	tween.tween_property(self, "scale", Vector2(0.4, 0.4), 0.2)
-	tween.finished.connect(queue_free)
+	_ensure_sprite()
 
-
-func _ensure_visuals() -> void:
-	if _icon_sprite == null:
-		_icon_sprite = Sprite2D.new()
-		_icon_sprite.centered = true
-		_icon_sprite.visible = false
-		add_child(_icon_sprite)
-	if _diamond == null:
-		_diamond = Polygon2D.new()
-		add_child(_diamond)
-
-
-func _apply_item_visual(cell_size: float, item_type: int, diamond_ratio: float, icon_ratio: float) -> void:
-	var icon := _resolve_item_icon(item_type)
-	if icon != null:
-		_icon_sprite.texture = icon
-		_icon_sprite.scale = _resolve_icon_scale(icon, cell_size, icon_ratio)
-		_icon_sprite.visible = true
-		_diamond.visible = false
-		return
-	_icon_sprite.texture = null
-	_icon_sprite.visible = false
-	_diamond.visible = true
-	var half: float = max(cell_size * diamond_ratio, 6.0)
-	_diamond.polygon = PackedVector2Array([
-		Vector2(0, -half),
-		Vector2(half, 0),
-		Vector2(0, half),
-		Vector2(-half, 0),
-	])
-	_diamond.color = _resolve_item_color(item_type)
-
-
-func _resolve_item_icon(item_type: int) -> Texture2D:
 	var entry := ItemCatalogScript.get_item_entry_by_type(item_type)
-	var icon_path := String(entry.get("icon_path", ""))
-	if icon_path.is_empty():
+	var trigger_path := String(entry.get("trigger_anim_path", ""))
+	if trigger_path.is_empty():
+		queue_free()
+		return
+
+	var sprite_frames := _build_sprite_frames(trigger_path)
+	if sprite_frames == null:
+		queue_free()
+		return
+
+	_sprite.sprite_frames = sprite_frames
+	_sprite.centered = true
+	_sprite.play("trigger")
+	if not _sprite.animation_finished.is_connected(_on_animation_finished):
+		_sprite.animation_finished.connect(_on_animation_finished)
+
+
+func _build_sprite_frames(trigger_path: String) -> SpriteFrames:
+	var dir := DirAccess.open(trigger_path)
+	if dir == null:
 		return null
-	return load(icon_path) as Texture2D
+
+	var frame_files: Array[String] = []
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while not file_name.is_empty():
+		if file_name.ends_with(".png"):
+			frame_files.append(file_name)
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	if frame_files.is_empty():
+		return null
+
+	frame_files.sort()
+
+	var sf := SpriteFrames.new()
+	sf.add_animation("trigger")
+	sf.set_animation_speed("trigger", 10.0)
+	sf.set_animation_loop("trigger", false)
+
+	for fn in frame_files:
+		var texture_path := trigger_path + "/" + fn
+		var texture := load(texture_path) as Texture2D
+		if texture != null:
+			sf.add_frame("trigger", texture)
+
+	return sf
 
 
-func _resolve_icon_scale(icon: Texture2D, cell_size: float, icon_ratio: float) -> Vector2:
-	if icon == null:
-		return Vector2.ONE
-	var texture_size := icon.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
-		return Vector2.ONE
-	var target_size : float = max(cell_size * icon_ratio, 10.0)
-	var scale_factor : float = target_size / max(texture_size.x, texture_size.y)
-	return Vector2.ONE * scale_factor
+func _on_animation_finished() -> void:
+	queue_free()
 
 
-func _resolve_item_color(item_type: int) -> Color:
-	match item_type:
-		1:
-			return Color(1.0, 0.6, 0.2, 0.95)
-		2:
-			return Color(0.95, 0.92, 0.35, 0.95)
-		3:
-			return Color(0.35, 0.92, 0.45, 0.95)
-		4:
-			return Color(0.45, 0.75, 1.0, 0.95)
-		_:
-			return Color(1.0, 1.0, 1.0, 0.95)
+func _ensure_sprite() -> void:
+	if _sprite != null:
+		return
+	_sprite = AnimatedSprite2D.new()
+	_sprite.centered = true
+	add_child(_sprite)

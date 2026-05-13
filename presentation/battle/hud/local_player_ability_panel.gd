@@ -29,13 +29,9 @@ func apply_player_ability(player_status: Dictionary) -> void:
 	var bomb_capacity := int(player_status.get("bomb_capacity", 0))
 	var bomb_range := int(player_status.get("bomb_range", 0))
 	var speed_level := int(player_status.get("speed_level", 0))
-	var has_kick := bool(player_status.get("has_kick", false))
-
 	if bomb_count_label != null:
 		bomb_count_label.text = "Bomb %d/%d" % [bomb_available, bomb_capacity]
 	if power_label != null:
-		power_label.text = "Power %d" % bomb_range
+		power_label.text = "Power %d/%d" % [bomb_range, int(player_status.get("max_bomb_range", 0))]
 	if speed_label != null:
-		speed_label.text = "Speed %d" % speed_level
-	if ability_label != null:
-		ability_label.text = "Kick %s" % ("On" if has_kick else "Off")
+		speed_label.text = "Speed %d/%d" % [speed_level, int(player_status.get("max_speed_level", 0))]
