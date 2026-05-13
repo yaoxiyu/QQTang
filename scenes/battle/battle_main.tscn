@@ -21,10 +21,6 @@
 [ext_resource type="Texture2D" uid="uid://bfin3522gqpll" path="res://external/assets/source/res/object/cloth/cloth12301_stand.png" id="25_cloth_qmark"]
 [ext_resource type="Script" uid="uid://nm7hex3nyu16" path="res://presentation/battle/hud/score_digits.gd" id="26_score_digits"]
 
-[sub_resource type="AtlasTexture" id="atlas_rank_0"]
-atlas = ExtResource("24_number4")
-region = Rect2(0, 0, 16, 18)
-
 [node name="BattleMain" type="Node2D" unique_id=1256179611]
 script = ExtResource("0_root")
 
@@ -143,155 +139,219 @@ script = ExtResource("6_net")
 script = ExtResource("23_player_list")
 rank_x = 662.0
 
-[node name="PH_Char1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=176450814]
-position = Vector2(700, 145)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar1" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 116.0
+offset_right = 728.0
+offset_bottom = 172.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=818709277]
-position = Vector2(662, 82)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char1" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar1" unique_id=176450814]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score1" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=613416563]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 640.0
-offset_top = 121.0
-offset_right = 712.0
-offset_bottom = 139.0
+offset_left = 635.0
+offset_top = 120.0
+offset_right = 683.0
+offset_bottom = 138.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=2054139795]
-position = Vector2(700, 195)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar2" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 167.0
+offset_right = 728.0
+offset_bottom = 223.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=863372701]
-position = Vector2(662, 146)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char2" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar2" unique_id=2054139795]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score2" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1620030170]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 137.0
-offset_right = 752.0
-offset_bottom = 155.0
+offset_left = 635.0
+offset_top = 171.0
+offset_right = 683.0
+offset_bottom = 189.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=2046514550]
-position = Vector2(610, 210)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar3" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 218.0
+offset_right = 728.0
+offset_bottom = 274.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1334452819]
-position = Vector2(662, 210)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char3" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar3" unique_id=2046514550]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score3" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=66200485]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 201.0
-offset_right = 752.0
-offset_bottom = 219.0
+offset_left = 635.0
+offset_top = 222.0
+offset_right = 683.0
+offset_bottom = 240.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=955745353]
-position = Vector2(610, 274)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar4" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 269.0
+offset_right = 728.0
+offset_bottom = 325.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1394582476]
-position = Vector2(662, 274)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char4" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar4" unique_id=955745353]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score4" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=2018217389]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 265.0
-offset_right = 752.0
-offset_bottom = 283.0
+offset_left = 635.0
+offset_top = 273.0
+offset_right = 683.0
+offset_bottom = 291.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=95409703]
-position = Vector2(610, 338)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar5" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 320.0
+offset_right = 728.0
+offset_bottom = 376.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1640387368]
-position = Vector2(662, 338)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char5" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar5" unique_id=95409703]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score5" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=634627399]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 329.0
-offset_right = 752.0
-offset_bottom = 347.0
+offset_left = 635.0
+offset_top = 324.0
+offset_right = 683.0
+offset_bottom = 342.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1549183649]
-position = Vector2(610, 402)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar6" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 371.0
+offset_right = 728.0
+offset_bottom = 427.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=812053079]
-position = Vector2(662, 402)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char6" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar6" unique_id=1549183649]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score6" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=933060578]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 393.0
-offset_right = 752.0
-offset_bottom = 411.0
+offset_left = 635.0
+offset_top = 375.0
+offset_right = 683.0
+offset_bottom = 393.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1331795101]
-position = Vector2(610, 466)
-texture = ExtResource("25_cloth_qmark")
+[node name="ClipChar7" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 422.0
+offset_right = 728.0
+offset_bottom = 478.0
+clip_contents = true
+mouse_filter = 2
 
-[node name="PH_Rank7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=1270525641]
-position = Vector2(662, 466)
-texture = SubResource("atlas_rank_0")
+[node name="PH_Char7" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar7" unique_id=1331795101]
+position = Vector2(28, 28)
+texture = ExtResource("25_cloth_qmark")
 
 [node name="PH_Score7" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=185647294]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 457.0
-offset_right = 752.0
-offset_bottom = 475.0
+offset_left = 635.0
+offset_top = 426.0
+offset_right = 683.0
+offset_bottom = 444.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 
-[node name="PH_Char8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=478417820]
-position = Vector2(610, 530)
+[node name="ClipChar8" type="Control" parent="CanvasLayer/PlayerListPanel"]
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 672.0
+offset_top = 473.0
+offset_right = 728.0
+offset_bottom = 529.0
+clip_contents = true
+mouse_filter = 2
+
+[node name="PH_Char8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel/ClipChar8" unique_id=478417820]
+position = Vector2(28, 28)
 texture = ExtResource("25_cloth_qmark")
 
-[node name="PH_Rank8" type="Sprite2D" parent="CanvasLayer/PlayerListPanel" unique_id=419905423]
-position = Vector2(662, 530)
-texture = SubResource("atlas_rank_0")
-
 [node name="PH_Score8" type="Control" parent="CanvasLayer/PlayerListPanel" unique_id=1713132759]
-custom_minimum_size = Vector2(72, 18)
+custom_minimum_size = Vector2(48, 18)
 layout_mode = 3
 anchors_preset = 0
-offset_left = 680.0
-offset_top = 521.0
-offset_right = 752.0
-offset_bottom = 539.0
+offset_left = 635.0
+offset_top = 477.0
+offset_right = 683.0
+offset_bottom = 495.0
 script = ExtResource("26_score_digits")
 digits_texture = ExtResource("24_number4")
 

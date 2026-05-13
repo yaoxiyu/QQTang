@@ -21,6 +21,7 @@ var _slot_profiles: Array = []
 var _score_displays: Array = []
 var _score_digits_texture: Texture2D = null
 var _pending_player_names: Array[String] = []
+var _clip_containers: Array[Control] = []
 
 
 func configure(show_score: bool, visual_profiles: Dictionary, player_names: Array[String], score_digits_texture: Texture2D = null) -> void:
@@ -48,13 +49,42 @@ func apply_battle_state(world: SimWorld) -> void:
 		_update_score_displays(world)
 
 
+func _ensure_clip(slot_index: int) -> Control:
+	var clip_name := "ClipChar%d" % slot_index
+	var clip: Control = get_node_or_null(clip_name) as Control
+	if clip == null:
+		clip = Control.new()
+		clip.name = clip_name
+		clip.anchor_left = 0.0
+		clip.anchor_top = 0.0
+		clip.anchor_right = 0.0
+		clip.anchor_bottom = 0.0
+		clip.offset_left = char_x - 28.0
+		clip.offset_top = _slot_y(slot_index) - 28.0
+		clip.offset_right = char_x + 28.0
+		clip.offset_bottom = _slot_y(slot_index) + 28.0
+		clip.clip_contents = true
+		clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(clip)
+	return clip
+
+
 func _remove_runtime_children() -> void:
 	for child in get_children():
-		if child is AnimatedSprite2D or child is Sprite2D or child is Label or child is Control:
+		if child is AnimatedSprite2D or child is Sprite2D or child is Label:
 			child.queue_free()
+	for clip in _clip_containers:
+		if clip != null and is_instance_valid(clip):
+			for child in clip.get_children():
+				if child is AnimatedSprite2D or child is Sprite2D:
+					child.queue_free()
 
 
 func _build_slots(visual_profiles: Dictionary) -> void:
+	_clip_containers.clear()
+	for slot_index in range(1, MAX_SLOTS + 1):
+		_clip_containers.append(_ensure_clip(slot_index))
+
 	_slot_profiles.resize(MAX_SLOTS + 1)
 	_slot_profiles.fill(null)
 
@@ -62,13 +92,14 @@ func _build_slots(visual_profiles: Dictionary) -> void:
 		var profile: Variant = visual_profiles.get(slot_index, null)
 		_slot_profiles[slot_index] = profile
 
-		# Character animation sprite
+		# Character animation sprite — clipped per slot
+		var clip := _clip_containers[slot_index - 1]
 		var char_sprite := AnimatedSprite2D.new()
 		char_sprite.name = "CharSlot%d" % slot_index
 		char_sprite.centered = true
-		char_sprite.position = Vector2(char_x, _slot_y(slot_index))
+		char_sprite.position = Vector2(char_x - clip.offset_left, _slot_y(slot_index) - clip.offset_top)
 		char_sprite.scale = Vector2.ONE * char_scale
-		add_child(char_sprite)
+		clip.add_child(char_sprite)
 		_slot_sprites.append(char_sprite)
 
 		if profile != null and profile.get("animation_set") != null:
