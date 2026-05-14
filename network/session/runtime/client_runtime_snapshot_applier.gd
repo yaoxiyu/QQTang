@@ -81,16 +81,18 @@ static func apply_authority_sideband(
 	var has_walls := include_walls and message.has("walls")
 	var has_match_state := message.has("match_state")
 	var has_mode_state := include_mode_state and message.has("mode_state")
+	var has_airplane := message.has("airplane")
 	var bubbles: Array[Dictionary] = coerce_dictionary_array(message.get("bubbles", []))
 	var items: Array[Dictionary] = coerce_dictionary_array(message.get("items", []))
 	var walls: Array[Dictionary] = []
 	var match_state: Dictionary = coerce_dictionary(message.get("match_state", {}))
 	var mode_state: Dictionary = {}
+	var airplane: Dictionary = coerce_dictionary(message.get("airplane", {}))
 	if has_walls:
 		walls = coerce_dictionary_array(message.get("walls", []))
 	if has_mode_state:
 		mode_state = coerce_dictionary(message.get("mode_state", {}))
-	if not has_bubbles and not has_items and not has_walls and not has_match_state and not has_mode_state:
+	if not has_bubbles and not has_items and not has_walls and not has_match_state and not has_mode_state and not has_airplane:
 		return -1
 	if has_bubbles:
 		restore_bubbles(world, bubbles)
@@ -102,6 +104,8 @@ static func apply_authority_sideband(
 		restore_match_state(world, match_state, message_tick)
 	if has_mode_state:
 		restore_mode_state(world, mode_state)
+	if has_airplane:
+		restore_airplane_state(world, airplane)
 	world.rebuild_runtime_indexes()
 	return message_tick
 
@@ -118,6 +122,10 @@ static func apply_authority_delta_sideband(world: SimWorld, message: Dictionary)
 		world.state.bubbles.restore_bubble_from_snapshot(bubble)
 	for item in coerce_dictionary_array(message.get("changed_items", [])):
 		world.state.items.restore_item_from_snapshot(item)
+	for wall in coerce_dictionary_array(message.get("changed_walls", [])):
+		restore_wall(world, wall)
+	if message.has("airplane"):
+		restore_airplane_state(world, coerce_dictionary(message.get("airplane", {})))
 	world.rebuild_runtime_indexes()
 	return message_tick
 
@@ -145,13 +153,17 @@ static func restore_items(world: SimWorld, items: Array[Dictionary]) -> void:
 
 static func restore_walls(world: SimWorld, walls: Array[Dictionary]) -> void:
 	for wall in walls:
-		var cell_x := int(wall.get("cell_x", 0))
-		var cell_y := int(wall.get("cell_y", 0))
-		var cell = world.state.grid.get_static_cell(cell_x, cell_y)
-		cell.tile_type = int(wall.get("tile_type", cell.tile_type))
-		cell.tile_flags = int(wall.get("tile_flags", cell.tile_flags))
-		cell.theme_variant = int(wall.get("theme_variant", cell.theme_variant))
-		world.state.grid.set_static_cell(cell_x, cell_y, cell)
+		restore_wall(world, wall)
+
+
+static func restore_wall(world: SimWorld, wall: Dictionary) -> void:
+	var cell_x := int(wall.get("cell_x", 0))
+	var cell_y := int(wall.get("cell_y", 0))
+	var cell = world.state.grid.get_static_cell(cell_x, cell_y)
+	cell.tile_type = int(wall.get("tile_type", cell.tile_type))
+	cell.tile_flags = int(wall.get("tile_flags", cell.tile_flags))
+	cell.theme_variant = int(wall.get("theme_variant", cell.theme_variant))
+	world.state.grid.set_static_cell(cell_x, cell_y, cell)
 
 
 static func restore_mode_state(world: SimWorld, mode_state: Dictionary) -> void:
@@ -177,6 +189,14 @@ static func restore_match_state(world: SimWorld, match_state: Dictionary, tick_i
 	world.state.match_state.winner_player_id = int(match_state.get("winner_player_id", world.state.match_state.winner_player_id))
 	world.state.match_state.ended_reason = int(match_state.get("ended_reason", world.state.match_state.ended_reason))
 	world.state.match_state.remaining_ticks = int(match_state.get("remaining_ticks", world.state.match_state.remaining_ticks))
+
+
+static func restore_airplane_state(world: SimWorld, airplane: Dictionary) -> void:
+	if world == null or world.state == null or world.state.item_pool_runtime == null or airplane.is_empty():
+		return
+	world.state.item_pool_runtime.airplane_active = bool(airplane.get("active", world.state.item_pool_runtime.airplane_active))
+	world.state.item_pool_runtime.airplane_x = float(airplane.get("x", world.state.item_pool_runtime.airplane_x))
+	world.state.item_pool_runtime.airplane_y = int(airplane.get("y", world.state.item_pool_runtime.airplane_y))
 
 
 static func denormalize_variant(value: Variant) -> Variant:

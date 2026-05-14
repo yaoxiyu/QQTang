@@ -89,28 +89,36 @@ static func build_grid_state(map_id: String) -> GridState:
 	return build_grid_state_from_layout(layout)
 
 
-static func build_decorative_surface_cells(map_id: String) -> Array[Vector2i]:
+static func build_airdrop_blocked_cells(map_id: String) -> Array[Vector2i]:
 	var layout := load_runtime_layout(map_id)
 	if layout == null:
 		return []
 	var blocked: Dictionary = {}
+	# Surface footprint cells are not valid air-drop landing cells,
+	# regardless of interaction semantics.
 	for entry in layout.surface_entries:
-		var kind := String(entry.get("interaction_kind", "none"))
-		if kind == "breakable" or kind == "solid":
-			continue
 		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
-		if footprint.x <= 1 and footprint.y <= 1:
+		if footprint.x <= 0 or footprint.y <= 0:
 			continue
 		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
 		var anchor_mode := String(entry.get("anchor_mode", "bottom_right"))
 		for cell in _surface_footprint_cells(anchor_cell, footprint, anchor_mode):
 			blocked["%d,%d" % [cell.x, cell.y]] = true
+	# Channel cells are also blocked for air-drop landing.
+	for entry in layout.channel_entries:
+		var channel_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		blocked["%d,%d" % [channel_cell.x, channel_cell.y]] = true
 	var result: Array[Vector2i] = []
 	for key in blocked.keys():
 		var key_str := String(key)
 		var parts := key_str.split(",")
 		result.append(Vector2i(int(parts[0]), int(parts[1])))
 	return result
+
+
+static func build_decorative_surface_cells(map_id: String) -> Array[Vector2i]:
+	# Compatibility alias for legacy callers.
+	return build_airdrop_blocked_cells(map_id)
 
 
 static func _surface_footprint_cells(anchor: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:

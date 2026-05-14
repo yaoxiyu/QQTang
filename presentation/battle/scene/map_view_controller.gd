@@ -33,6 +33,7 @@ var _channel_pass_mask_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
 var _surface_render_z_by_cell: Dictionary = {}
+var _surface_occlusion_by_cell: Dictionary = {}
 var _breakable_views_by_cell: Dictionary = {}
 var _surface_breakable_cells: Dictionary = {}
 var _static_views_by_cell: Dictionary = {}
@@ -99,10 +100,15 @@ func clear_map() -> void:
 	_surface_virtual_z_by_cell.clear()
 	_surface_row_max_z.clear()
 	_surface_render_z_by_cell.clear()
+	_surface_occlusion_by_cell.clear()
 
 
 func get_channel_pass_mask_by_cell() -> Dictionary:
 	return _channel_pass_mask_by_cell.duplicate()
+
+
+func get_channel_visual_policy_by_cell() -> Dictionary:
+	return {}
 
 
 func get_surface_virtual_z_by_cell() -> Dictionary:
@@ -115,6 +121,10 @@ func get_surface_row_max_z() -> Dictionary:
 
 func get_surface_render_z_by_cell() -> Dictionary:
 	return _surface_render_z_by_cell.duplicate()
+
+
+func get_surface_occlusion_by_cell() -> Dictionary:
+	return _surface_occlusion_by_cell.duplicate(true)
 
 
 func apply_map_theme(map_theme: MapThemeDef) -> void:
@@ -224,6 +234,7 @@ func _rebuild_surface_virtual_z_cache() -> void:
 	_surface_virtual_z_by_cell.clear()
 	_surface_row_max_z.clear()
 	_surface_render_z_by_cell.clear()
+	_surface_occlusion_by_cell.clear()
 	if _runtime_layout == null:
 		return
 	for entry in _runtime_layout.surface_entries:
@@ -234,6 +245,9 @@ func _rebuild_surface_virtual_z_cache() -> void:
 		var anchor_mode := _resolve_surface_anchor_mode(String(entry.get("anchor_mode", "bottom_right")))
 		var z_bias := int(entry.get("z_bias", 0))
 		var surface_render_z := BattleDepth.surface_z(anchor_cell, z_bias)
+		var instance_id := String(entry.get("instance_id", ""))
+		var render_role := String(entry.get("render_role", "surface"))
+		var interaction_kind := String(entry.get("interaction_kind", "solid"))
 		for occupied_cell in _anchored_rect_cells(anchor_cell, footprint, anchor_mode):
 			if occupied_cell.x < 0 or occupied_cell.y < 0 or occupied_cell.x >= _runtime_layout.width or occupied_cell.y >= _runtime_layout.height:
 				continue
@@ -249,6 +263,24 @@ func _rebuild_surface_virtual_z_cache() -> void:
 			var render_last_z := int(_surface_render_z_by_cell.get(occupied_cell, -2147483648))
 			if surface_render_z > render_last_z:
 				_surface_render_z_by_cell[occupied_cell] = surface_render_z
+			var local_occlusion_z := maxi(cell_z, surface_render_z)
+			var prev_occlusion = _surface_occlusion_by_cell.get(occupied_cell, null)
+			var prev_z := -2147483648
+			if prev_occlusion is Dictionary:
+				prev_z = int((prev_occlusion as Dictionary).get("render_z", -2147483648))
+			elif prev_occlusion != null:
+				prev_z = int(prev_occlusion)
+			if local_occlusion_z > prev_z:
+				_surface_occlusion_by_cell[occupied_cell] = {
+					"instance_id": instance_id,
+					"anchor_cell": anchor_cell,
+					"occupied_cell": occupied_cell,
+					"surface_z": cell_z,
+					"render_z": local_occlusion_z,
+					"render_role": render_role,
+					"interaction_kind": interaction_kind,
+					"z_bias": z_bias,
+				}
 
 
 func set_z_debug_mode(mode: int) -> void:
@@ -521,10 +553,10 @@ func _sync_breakable_views_from_grid_cache() -> void:
 		if int(cell_data.get("tile_type", TileConstants.TileType.EMPTY)) != TileConstants.TileType.BREAKABLE_BLOCK:
 			continue
 		var cell := Vector2i(int(cell_data.get("x", 0)), int(cell_data.get("y", 0)))
-		if _surface_breakable_cells.has(cell):
-			continue
 		alive_breakable_cells[cell] = true
 		if _breakable_views_by_cell.has(cell):
+			continue
+		if _surface_breakable_cells.has(cell):
 			continue
 		var view := presentation.tile_scene.instantiate()
 		if view == null or not view is Node2D:
@@ -545,8 +577,6 @@ func _sync_breakable_views_from_grid_cache() -> void:
 	var stale_cells: Array[Vector2i] = []
 	for cell_variant in _breakable_views_by_cell.keys():
 		var cell := cell_variant as Vector2i
-		if _surface_breakable_cells.has(cell):
-			continue
 		if alive_breakable_cells.has(cell):
 			continue
 		stale_cells.append(cell)

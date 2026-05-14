@@ -113,6 +113,10 @@ func restore_item_from_snapshot(data: Dictionary) -> int:
 	item.spawn_tick = int(data.get("spawn_tick", 0))
 	item.pickup_delay_ticks = int(data.get("pickup_delay_ticks", 0))
 	item.visible = bool(data.get("visible", true))
+	item.scatter_from_x = int(data.get("scatter_from_x", -1))
+	item.scatter_from_y = int(data.get("scatter_from_y", -1))
+	item.scatter_from_world_x = float(data.get("scatter_from_world_x", float(item.scatter_from_x)))
+	item.scatter_from_world_y = float(data.get("scatter_from_world_y", float(item.scatter_from_y)))
 
 	ItemDebugLogScript.write("[ITEM_POS] restore_snapshot eid=%d battle_item=%s pos=(%d,%d) data_keys=%s" % [entity_id, item.battle_item_id, item.cell_x, item.cell_y, str(data.keys())])
 

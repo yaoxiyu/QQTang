@@ -67,7 +67,7 @@ func configure(
 	bubble_color = p_bubble_color
 	bubble_type = _resolve_bubble_type(bubble_style_id)
 	z_as_relative = false
-	z_index = BattleDepth.explosion_z(_resolve_center_cell())
+	z_index = 0
 	_rebuild_cells()
 	set_process(true)
 
@@ -154,6 +154,8 @@ func _build_segment_node(cell: Vector2i, segment_type: String, style: Dictionary
 		var texture := frames.get_frame_texture(SEGMENT_ANIMATION_NAME, 0)
 		animated_sprite.scale = _resolve_texture_scale(texture)
 		animated_sprite.modulate = _build_segment_modulate(segment_type, style)
+		animated_sprite.z_as_relative = false
+		animated_sprite.z_index = BattleDepth.explosion_segment_z(cell)
 		add_child(animated_sprite)
 		animated_sprite.play(SEGMENT_ANIMATION_NAME)
 		return
@@ -167,6 +169,8 @@ func _build_segment_node(cell: Vector2i, segment_type: String, style: Dictionary
 	sprite.position = Vector2(cell.x, cell.y) * cell_size
 	sprite.scale = _resolve_texture_scale(texture)
 	sprite.modulate = _build_segment_modulate(segment_type, style)
+	sprite.z_as_relative = false
+	sprite.z_index = BattleDepth.explosion_segment_z(cell)
 	add_child(sprite)
 
 

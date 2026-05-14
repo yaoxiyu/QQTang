@@ -3,6 +3,7 @@ extends Node2D
 
 const ItemCatalogScript = preload("res://content/items/catalog/item_catalog.gd")
 const BattleItemCatalogScript = preload("res://content/items/catalog/battle_item_catalog.gd")
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 
 var _sprite: AnimatedSprite2D = null
 
@@ -11,9 +12,23 @@ func _ready() -> void:
 	_ensure_sprite()
 
 
-func configure(world_position: Vector2, cell_size: float, item_type: int, battle_item_id: String = "") -> void:
+func configure(
+	world_position: Vector2,
+	cell_size: float,
+	item_type: int,
+	battle_item_id: String = "",
+	cell: Vector2i = Vector2i(-1, -1),
+	z_override: int = -2147483648
+) -> void:
 	position = world_position
 	_ensure_sprite()
+	z_as_relative = false
+	if z_override != -2147483648:
+		z_index = z_override
+	elif cell.x >= 0 and cell.y >= 0:
+		z_index = BattleDepth.explosion_segment_z(cell)
+	else:
+		z_index = BattleDepth.debug_z()
 
 	var entry: Dictionary = {}
 	if not battle_item_id.is_empty() and BattleItemCatalogScript.has_battle_item(battle_item_id):

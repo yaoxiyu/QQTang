@@ -3,6 +3,9 @@ extends ISimSystem
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+const AIRBORNE_ARC_HEIGHT_CELLS := 1.5
+const AIRBORNE_SPEED_CELLS_PER_TICK := 0.12
+const AIRBORNE_PATH_SAMPLES := 20
 
 
 func get_name() -> StringName:
@@ -58,6 +61,8 @@ func _process_players_to_die(ctx: SimContext, player_ids: Array[int]) -> void:
 	for player_id in player_ids:
 		var player: PlayerState = ctx.state.players.get_player(player_id)
 		if not _can_finalize_death(player):
+			continue
+		if _should_defer_local_predicted_death(ctx, player):
 			continue
 		_finalize_player_death(ctx, player)
 
@@ -186,7 +191,10 @@ func _spawn_dropped_item(ctx: SimContext, cell: Vector2i, battle_item_id: String
 		return
 	var item_definition: Dictionary = ctx.config.item_defs.get(battle_item_id, {})
 	var item_type: int = int(item_definition.get("item_type", 0))
-	var item_id: int = ctx.state.items.spawn_item(item_type, cell.x, cell.y, 2, battle_item_id)
+	var scatter_from_cell_world := Vector2(float(scatter_from.x) + 0.5, float(scatter_from.y) + 0.5)
+	var target_cell_world := Vector2(float(cell.x) + 0.5, float(cell.y) + 0.5)
+	var pickup_delay_ticks := _compute_airborne_pickup_delay_ticks(scatter_from_cell_world, target_cell_world)
+	var item_id: int = ctx.state.items.spawn_item(item_type, cell.x, cell.y, pickup_delay_ticks, battle_item_id)
 	var item: ItemState = ctx.state.items.get_item(item_id)
 	if item == null:
 		return
@@ -194,6 +202,8 @@ func _spawn_dropped_item(ctx: SimContext, cell: Vector2i, battle_item_id: String
 	item.visible = true
 	item.scatter_from_x = scatter_from.x
 	item.scatter_from_y = scatter_from.y
+	item.scatter_from_world_x = scatter_from_cell_world.x
+	item.scatter_from_world_y = scatter_from_cell_world.y
 	ctx.state.items.update_item(item)
 
 	var spawned_event := SimEvent.new(ctx.tick, SimEvent.EventType.ITEM_SPAWNED)
@@ -205,6 +215,9 @@ func _spawn_dropped_item(ctx: SimContext, cell: Vector2i, battle_item_id: String
 		"cell_y": cell.y,
 		"scatter_from_x": scatter_from.x,
 		"scatter_from_y": scatter_from.y,
+		"scatter_from_world_x": scatter_from_cell_world.x,
+		"scatter_from_world_y": scatter_from_cell_world.y,
+		"pickup_delay_ticks": pickup_delay_ticks,
 	}
 	ctx.events.push(spawned_event)
 
@@ -311,3 +324,36 @@ func _get_rule_flags(ctx: SimContext) -> Dictionary:
 	if rule_flags is Dictionary:
 		return rule_flags
 	return {}
+
+
+func _should_defer_local_predicted_death(ctx: SimContext, player: PlayerState) -> bool:
+	if ctx == null or player == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	var runtime_flags := ctx.state.runtime_flags
+	if not runtime_flags.client_prediction_mode:
+		return false
+	return player.player_slot == int(runtime_flags.client_controlled_player_slot)
+
+
+func _compute_airborne_pickup_delay_ticks(from_cell_world: Vector2, to_cell_world: Vector2) -> int:
+	var path_length_cells := _estimate_parabola_path_length_cells(from_cell_world, to_cell_world)
+	var raw_ticks := path_length_cells / maxf(AIRBORNE_SPEED_CELLS_PER_TICK, 0.001)
+	return maxi(1, int(ceil(raw_ticks)))
+
+
+func _estimate_parabola_path_length_cells(from_cell_world: Vector2, to_cell_world: Vector2) -> float:
+	var mid := (from_cell_world + to_cell_world) * 0.5
+	mid.y -= AIRBORNE_ARC_HEIGHT_CELLS
+	var total := 0.0
+	var prev := from_cell_world
+	for i in range(1, AIRBORNE_PATH_SAMPLES + 1):
+		var t := float(i) / float(AIRBORNE_PATH_SAMPLES)
+		var point := _quadratic_bezier_point(from_cell_world, mid, to_cell_world, t)
+		total += prev.distance_to(point)
+		prev = point
+	return maxf(total, from_cell_world.distance_to(to_cell_world))
+
+
+func _quadratic_bezier_point(p0: Vector2, p1: Vector2, p2: Vector2, t: float) -> Vector2:
+	var u := 1.0 - t
+	return u * u * p0 + 2.0 * u * t * p1 + t * t * p2

@@ -26,6 +26,8 @@ var battle_item_id: String = ""
 var pool_category: String = ""
 var scatter_from_x: int = -1
 var scatter_from_y: int = -1
+var scatter_from_world_x: float = -1.0
+var scatter_from_world_y: float = -1.0
 
 # ====================
 # 位置

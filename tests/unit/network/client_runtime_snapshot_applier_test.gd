@@ -83,6 +83,50 @@ func test_checkpoint_with_walls_restores_local_walls() -> void:
 	world.dispose()
 
 
+func test_state_delta_with_changed_walls_restores_local_walls() -> void:
+	var world := _build_world()
+	var breakable_cell := _find_breakable_cell(world)
+	assert_ne(breakable_cell, Vector2i(-1, -1))
+	assert_eq(world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type, TileConstants.TileType.BREAKABLE_BLOCK)
+
+	ClientRuntimeSnapshotApplierScript.apply_authority_delta_sideband(world, {
+		"message_type": "STATE_DELTA",
+		"tick": 3,
+		"changed_walls": [{
+			"cell_x": breakable_cell.x,
+			"cell_y": breakable_cell.y,
+			"tile_type": TileConstants.TileType.EMPTY,
+			"tile_flags": 0,
+			"theme_variant": 0,
+		}],
+	})
+
+	var after_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
+	assert_eq(after_tile_type, TileConstants.TileType.EMPTY)
+	world.dispose()
+
+
+func test_state_summary_applies_airplane_payload() -> void:
+	var world := _build_world()
+	if world.state.item_pool_runtime == null:
+		world.state.item_pool_runtime = preload("res://gameplay/simulation/entities/item_pool_runtime.gd").new()
+
+	ClientRuntimeSnapshotApplierScript.apply_authority_sideband(world, {
+		"message_type": "STATE_SUMMARY",
+		"tick": 4,
+		"airplane": {
+			"active": true,
+			"x": 7.25,
+			"y": 3,
+		},
+	}, false, false)
+
+	assert_true(world.state.item_pool_runtime.airplane_active, "airplane active should follow authority sideband")
+	assert_eq(world.state.item_pool_runtime.airplane_y, 3, "airplane row should follow authority sideband")
+	assert_true(absf(world.state.item_pool_runtime.airplane_x - 7.25) < 0.0001, "airplane x should follow authority sideband")
+	world.dispose()
+
+
 func _build_world() -> SimWorld:
 	var world := SimWorld.new()
 	world.bootstrap(SimConfig.new(), {"grid": BuiltinMapFactory.build_basic_map()})

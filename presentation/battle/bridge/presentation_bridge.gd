@@ -14,9 +14,9 @@ const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const BattleAudioEventConfigScript = preload("res://presentation/battle/audio/battle_audio_event_config.gd")
 const FxPoolScript = preload("res://presentation/battle/fx/fx_pool.gd")
+const BattleDepthScript = preload("res://presentation/battle/battle_depth.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const TileConstantsScript = preload("res://gameplay/simulation/state/tile_constants.gd")
-const TileFactoryScript = preload("res://gameplay/simulation/state/tile_factory.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const DEBUG_TICK_LOGS := false
 const LOG_FX_ANOMALIES := false
@@ -26,6 +26,8 @@ const LOG_FX_ANOMALIES := false
 @export var fx_layer_path: NodePath = ^"../../WorldRoot/FxLayer"
 @export var spawn_fx_controller_path: NodePath = ^"../../SpawnFxController"
 @export var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
+@export var ground_depth_min_z: int = BattleDepthScript.DEFAULT_GROUND_MIN_Z
+@export var sky_depth_max_z: int = BattleDepthScript.DEFAULT_SKY_MAX_Z
 @export var player_actor_scene: PackedScene
 @export var bubble_actor_scene: PackedScene
 @export var item_actor_scene: PackedScene
@@ -51,6 +53,7 @@ var _airplane_view: Node2D = null
 
 
 func _ready() -> void:
+	BattleDepthScript.configure_depth_domains(ground_depth_min_z, sky_depth_max_z)
 	if has_node(map_view_path):
 		map_view = get_node(map_view_path)
 		if map_view != null:
@@ -146,6 +149,9 @@ func _sync_airplane_view(world: SimWorld) -> void:
 	var pool := world.state.item_pool_runtime
 	if pool == null:
 		return
+	var map_height := 0
+	if world.state != null and world.state.grid != null:
+		map_height = int(world.state.grid.height)
 
 	if not pool.airplane_active:
 		if _airplane_view != null:
@@ -155,24 +161,50 @@ func _sync_airplane_view(world: SimWorld) -> void:
 
 	if _airplane_view == null:
 		_airplane_view = AirplaneActorViewScript.new()
-		_airplane_view.configure(cell_size)
+		_airplane_view.configure(cell_size, map_height)
 		actor_layer.add_child(_airplane_view)
+	elif _airplane_view != null and _airplane_view.has_method("set_map_height"):
+		_airplane_view.set_map_height(map_height)
 
 	if _airplane_view != null and _airplane_view.has_method("update_position"):
 		_airplane_view.update_position(pool.airplane_x, pool.airplane_y)
 
 
 func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef) -> void:
+	BattleDepthScript.configure_depth_domains(ground_depth_min_z, sky_depth_max_z)
+	if layout != null:
+		var depth_validation := BattleDepthScript.validate_depth_domains(layout.height)
+		if not bool(depth_validation.get("ok", false)):
+			LogPresentationScript.warn(
+				"%s[presentation_bridge] depth_domain_gap_insufficient map_h=%d gap=%d ground_peak=%d sky_floor=%d" % [
+					TRACE_PREFIX,
+					int(layout.height),
+					int(depth_validation.get("gap", 0)),
+					int(depth_validation.get("ground_peak", 0)),
+					int(depth_validation.get("sky_floor", 0)),
+				],
+				"",
+				0,
+				"presentation.bridge.depth"
+			)
 	if map_view != null and map_view.has_method("configure_map_presentation"):
 		map_view.configure_map_presentation(layout, map_theme, cell_size)
 	if actor_registry != null and map_view != null and map_view.has_method("get_channel_pass_mask_by_cell"):
 		actor_registry.configure_channel_pass_mask_by_cell(map_view.get_channel_pass_mask_by_cell())
+	if actor_registry != null and map_view != null and map_view.has_method("get_channel_visual_policy_by_cell"):
+		actor_registry.configure_channel_visual_policy_by_cell(map_view.get_channel_visual_policy_by_cell())
+	elif actor_registry != null:
+		actor_registry.configure_channel_visual_policy_by_cell({})
 	if actor_registry != null and map_view != null and map_view.has_method("get_surface_virtual_z_by_cell"):
 		actor_registry.configure_surface_virtual_z_by_cell(map_view.get_surface_virtual_z_by_cell())
 	if actor_registry != null and map_view != null and map_view.has_method("get_surface_row_max_z"):
 		actor_registry.configure_surface_row_max_z(map_view.get_surface_row_max_z())
 	if actor_registry != null and map_view != null and map_view.has_method("get_surface_render_z_by_cell"):
 		actor_registry.configure_surface_render_z_by_cell(map_view.get_surface_render_z_by_cell())
+	if actor_registry != null and map_view != null and map_view.has_method("get_surface_occlusion_by_cell"):
+		actor_registry.configure_surface_occlusion_by_cell(map_view.get_surface_occlusion_by_cell())
+	elif actor_registry != null:
+		actor_registry.configure_surface_occlusion_by_cell({})
 
 
 
@@ -187,9 +219,11 @@ func clear_bridge() -> void:
 		map_view.clear_map()
 	if actor_registry != null:
 		actor_registry.configure_channel_pass_mask_by_cell({})
+		actor_registry.configure_channel_visual_policy_by_cell({})
 		actor_registry.configure_surface_virtual_z_by_cell({})
 		actor_registry.configure_surface_row_max_z({})
 		actor_registry.configure_surface_render_z_by_cell({})
+		actor_registry.configure_surface_occlusion_by_cell({})
 		actor_registry.clear_all()
 	if spawn_fx_controller != null and spawn_fx_controller.has_method("clear_fx"):
 		spawn_fx_controller.clear_fx()
@@ -458,19 +492,21 @@ func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 		int(event.payload.get("cell_x", 0)),
 		int(event.payload.get("cell_y", 0))
 	)
-	# 权威事件到达时，同步更新预测世界的 GridState，防止 grid_cache 重建已破坏的格子
+	var should_apply_destroy_visual := true
 	if _current_world != null and _current_world.state != null:
 		var grid := _current_world.state.grid
 		if grid.is_in_bounds(destroyed_cell.x, destroyed_cell.y):
-			var static_cell := grid.get_static_cell(destroyed_cell.x, destroyed_cell.y)
-			if static_cell.tile_type == TileConstantsScript.TileType.BREAKABLE_BLOCK:
-				grid.set_static_cell(destroyed_cell.x, destroyed_cell.y, TileFactoryScript.make_empty())
-	if map_view != null and map_view.has_method("handle_cell_destroyed"):
+			var current_cell := grid.get_static_cell(destroyed_cell.x, destroyed_cell.y)
+			# 仅当当前权威网格已不是可破坏方块时才移除表现层，避免偶发错误事件导致误炸显示。
+			should_apply_destroy_visual = current_cell.tile_type != TileConstantsScript.TileType.BREAKABLE_BLOCK
+	if should_apply_destroy_visual and map_view != null and map_view.has_method("handle_cell_destroyed"):
 		map_view.handle_cell_destroyed(destroyed_cell)
+	if not should_apply_destroy_visual:
+		return
 	if fx_layer == null:
 		return
 	var fx = fx_pool.acquire("brick_break", fx_layer, func(v: Node):
-		(v as BrickBreakFxPlayer).configure(_to_world_center(destroyed_cell), cell_size))
+		(v as BrickBreakFxPlayer).configure(_to_world_center(destroyed_cell), cell_size, Color(0.95, 0.72, 0.42, 0.75), destroyed_cell))
 	fx.finished.connect(_on_brick_break_finished.bind(fx), CONNECT_ONE_SHOT)
 
 
@@ -491,7 +527,11 @@ func _on_item_picked_event_routed(event: SimEvent) -> void:
 		)),
 		cell_size,
 		int(event.payload.get("item_type", 0)),
-		String(event.payload.get("battle_item_id", ""))
+		String(event.payload.get("battle_item_id", "")),
+		Vector2i(
+			int(event.payload.get("cell_x", 0)),
+			int(event.payload.get("cell_y", 0))
+		)
 	)
 	fx_layer.add_child(fx)
 

@@ -30,6 +30,7 @@ func build_checkpoint(active_match: BattleMatch, snapshot: WorldSnapshot) -> Dic
 		"items": snapshot.items,
 		"walls": walls_payload,
 		"breakable_blocks_remaining": current_breakable,
+		"airplane": _build_airplane_payload(snapshot.item_pool_runtime),
 		"match_state": snapshot.match_state.duplicate(true),
 		"mode_state": snapshot.mode_state.duplicate(true),
 		"rng_state": snapshot.rng_state,
@@ -50,3 +51,13 @@ func reset() -> void:
 	_last_profile.clear()
 	_last_wall_sync_count = -1
 	_profiler.reset()
+
+
+func _build_airplane_payload(item_pool_runtime: Dictionary) -> Dictionary:
+	if item_pool_runtime.is_empty():
+		return {}
+	return {
+		"active": bool(item_pool_runtime.get("airplane_active", false)),
+		"x": float(item_pool_runtime.get("airplane_x", 0.0)),
+		"y": int(item_pool_runtime.get("airplane_y", 0)),
+	}

@@ -6,6 +6,10 @@ var block_assignments: Dictionary = {}  # "x,y" → {"battle_item_id": String, "
 # 被装饰性地表元素覆盖的格子（>1x1 的表现层方块），不可空投（快照捕获）
 var blocked_drop_cells: Dictionary = {}  # "x,y" → true
 
+# 空投可落点缓存（全图扫描结果，快照捕获）
+var cached_drop_cells: Array[Vector2i] = []
+var cached_drop_index_by_key: Dictionary = {}  # "x,y" → int(index)
+
 # 回收池 — 被炸/死亡返回的道具，等待飞机空投（快照捕获）
 var recycle_pool: Dictionary = {}  # battle_item_id → count
 
@@ -18,6 +22,8 @@ var airplane_active: bool = false
 var airplane_x: float = 0.0  # 当前 x 坐标（浮点，支持平滑移动）
 var airplane_y: int = 0      # 飞行所在行
 var airplane_drop_cooldown: int = 0  # 空投冷却 tick
+var airplane_drop_plan_total: int = 0  # 本次飞行计划空投次数
+var airplane_drop_plan_done: int = 0   # 本次飞行已完成空投次数
 
 
 func has_assignment(cell_x: int, cell_y: int) -> bool:
@@ -80,7 +86,10 @@ func capture_snapshot() -> Dictionary:
 		"airplane_x": airplane_x,
 		"airplane_y": airplane_y,
 		"airplane_drop_cooldown": airplane_drop_cooldown,
+		"airplane_drop_plan_total": airplane_drop_plan_total,
+		"airplane_drop_plan_done": airplane_drop_plan_done,
 		"blocked_drop_cells": blocked_drop_cells.duplicate(true),
+		"cached_drop_cells": cached_drop_cells.duplicate(),
 	}
 
 
@@ -93,4 +102,18 @@ func restore_from_snapshot(data: Dictionary) -> void:
 	airplane_x = float(data.get("airplane_x", 0.0))
 	airplane_y = int(data.get("airplane_y", 0))
 	airplane_drop_cooldown = int(data.get("airplane_drop_cooldown", 0))
+	airplane_drop_plan_total = int(data.get("airplane_drop_plan_total", 0))
+	airplane_drop_plan_done = int(data.get("airplane_drop_plan_done", 0))
 	blocked_drop_cells = data.get("blocked_drop_cells", {}).duplicate(true)
+	cached_drop_cells = []
+	for cell in data.get("cached_drop_cells", []):
+		if cell is Vector2i:
+			cached_drop_cells.append(cell)
+	_rebuild_cached_drop_index()
+
+
+func _rebuild_cached_drop_index() -> void:
+	cached_drop_index_by_key.clear()
+	for idx in range(cached_drop_cells.size()):
+		var cell := cached_drop_cells[idx]
+		cached_drop_index_by_key["%d,%d" % [cell.x, cell.y]] = idx

@@ -1,6 +1,8 @@
 class_name BattleCorrectionMarkerView
 extends Node2D
 
+const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
+
 var lifetime: float = 0.45
 var _from_pos: Vector2 = Vector2.ZERO
 var _to_pos: Vector2 = Vector2.ZERO
@@ -10,9 +12,11 @@ var _to_marker: Polygon2D = null
 var _connector: Line2D = null
 
 
-func configure(from_pos: Vector2, to_pos: Vector2) -> void:
+func configure(from_pos: Vector2, to_pos: Vector2, z_override: int = -2147483648) -> void:
 	_from_pos = from_pos
 	_to_pos = to_pos
+	z_as_relative = false
+	z_index = BattleDepth.debug_z() if z_override == -2147483648 else z_override
 	_rebuild_visuals()
 
 

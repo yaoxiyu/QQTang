@@ -9,6 +9,7 @@ const NetworkErrorCodesScript = preload("res://network/runtime/network_error_cod
 const BattleFlowCoordinatorScript = preload("res://scenes/battle/battle_flow_coordinator.gd")
 const BattleResultTransitionControllerScript = preload("res://scenes/battle/battle_result_transition_controller.gd")
 const RuntimeShutdownCoordinatorScript = preload("res://app/runtime/runtime_shutdown_coordinator.gd")
+const BattleDepthScript = preload("res://presentation/battle/battle_depth.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
@@ -62,6 +63,9 @@ var _debug_panels_visible: bool = false
 var _z_debug_mode: int = 0
 var _z_debug_player_label: Label = null
 var _z_debug_canvas: CanvasLayer = null
+var _item_debug_overlay_root: Node2D = null
+var _item_debug_enabled: bool = false
+var _item_debug_labels: Array[Node] = []
 
 
 func _update_player_z_debug_label() -> void:
@@ -97,6 +101,7 @@ func _update_player_z_debug_label() -> void:
 func _ready() -> void:
 	_shutdown_coordinator.register_handle(self)
 	_apply_runtime_render_order()
+	_ensure_item_debug_overlay()
 	_set_battle_visuals_available(false)
 	call_deferred("_bind_runtime")
 
@@ -121,6 +126,10 @@ func _process(delta: float) -> void:
 	_tick_accumulator += delta
 	if _z_debug_mode > 0:
 		_update_player_z_debug_label()
+	if _item_debug_enabled:
+		_refresh_item_debug_overlay()
+	elif not _item_debug_labels.is_empty():
+		_clear_item_debug_overlay()
 	while _tick_accumulator >= TICK_INTERVAL_SEC and not _finished:
 		_tick_accumulator -= TICK_INTERVAL_SEC
 		_session_adapter.advance_authoritative_tick(_collect_local_input())
@@ -312,6 +321,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_toggle_debug_panels()
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F4:
 		_toggle_z_debug()
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_P:
+		_toggle_item_debug_overlay()
 	if event is InputEventKey and event.pressed and not event.echo and _session_adapter != null:
 		match event.keycode:
 			KEY_SPACE:
@@ -722,6 +733,62 @@ func _toggle_z_debug() -> void:
 	if map_root != null and map_root.has_method("set_z_debug_mode"):
 		map_root.set_z_debug_mode(_z_debug_mode)
 	_update_player_z_debug_label()
+
+
+func _ensure_item_debug_overlay() -> void:
+	if world_root != null and _item_debug_overlay_root == null:
+		var debug_layer := world_root.get_node_or_null("DebugLayer")
+		if debug_layer != null:
+			_item_debug_overlay_root = Node2D.new()
+			_item_debug_overlay_root.name = "ItemDebugOverlay"
+			_item_debug_overlay_root.z_as_relative = false
+			_item_debug_overlay_root.z_index = BattleDepthScript.debug_z()
+			_item_debug_overlay_root.visible = false
+			debug_layer.add_child(_item_debug_overlay_root)
+
+
+func _toggle_item_debug_overlay() -> void:
+	_item_debug_enabled = not _item_debug_enabled
+	if _item_debug_overlay_root != null:
+		_item_debug_overlay_root.visible = _item_debug_enabled
+	if battle_hud != null and battle_hud.match_message_panel != null:
+		battle_hud.match_message_panel.apply_message("ItemPos Debug %s (P)" % ("On" if _item_debug_enabled else "Off"))
+	if not _item_debug_enabled:
+		_clear_item_debug_overlay()
+
+
+func _refresh_item_debug_overlay() -> void:
+	if _item_debug_overlay_root == null or _battle_context == null or _battle_context.sim_world == null:
+		return
+	_clear_item_debug_overlay()
+	var world := _battle_context.sim_world
+	if world.state == null or world.state.items == null:
+		return
+	var item_ids := world.state.items.active_ids.duplicate()
+	item_ids.sort()
+	for item_id in item_ids:
+		var item := world.state.items.get_item(item_id)
+		if item == null or not item.alive or not item.visible:
+			continue
+		var marker := Label.new()
+		marker.text = "I%d (%d,%d)" % [item.entity_id, item.cell_x, item.cell_y]
+		marker.position = Vector2(
+			(float(item.cell_x) + 0.5) * presentation_bridge.cell_size + 4.0,
+			(float(item.cell_y) + 0.5) * presentation_bridge.cell_size - 18.0
+		)
+		marker.z_as_relative = false
+		marker.z_index = BattleDepthScript.debug_z()
+		marker.add_theme_font_size_override("font_size", 10)
+		marker.add_theme_color_override("font_color", Color(1.0, 0.95, 0.2, 1.0))
+		_item_debug_overlay_root.add_child(marker)
+		_item_debug_labels.append(marker)
+
+
+func _clear_item_debug_overlay() -> void:
+	for node in _item_debug_labels:
+		if node != null and is_instance_valid(node):
+			node.queue_free()
+	_item_debug_labels.clear()
 
 
 func _apply_map_preview_alignment() -> void:

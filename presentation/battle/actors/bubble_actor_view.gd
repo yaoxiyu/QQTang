@@ -5,6 +5,7 @@ const BubbleCatalogScript = preload("res://content/bubbles/catalog/bubble_catalo
 const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.gd")
 const BubbleAnimationSetCatalogScript = preload("res://content/bubble_animation_sets/catalog/bubble_animation_set_catalog.gd")
 const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
+const ChannelVisualPolicy = preload("res://presentation/battle/policy/channel_visual_policy.gd")
 
 const BUBBLE_ANIMATION_SPEED_SCALE: float = 0.5
 
@@ -14,6 +15,7 @@ var bubble_style_id: String = ""
 var _sprite: AnimatedSprite2D = null
 var _current_animation_set_id: String = ""
 var _channel_pass_mask_by_cell: Dictionary = {}
+var _channel_visual_policy_by_cell: Dictionary = {}
 var _hide_in_channel: bool = false
 
 
@@ -27,7 +29,7 @@ func apply_view_state(view_state: Dictionary) -> void:
 	position = view_state.get("position", Vector2.ZERO)
 	bubble_style_id = String(view_state.get("bubble_style_id", bubble_style_id))
 	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
-	_hide_in_channel = _channel_pass_mask_by_cell.has(cell)
+	_hide_in_channel = ChannelVisualPolicy.resolve_bubble_hidden(cell, _channel_pass_mask_by_cell, _channel_visual_policy_by_cell)
 	z_as_relative = false
 	z_index = BattleDepth.bubble_z(cell)
 	_refresh_visuals()
@@ -35,6 +37,10 @@ func apply_view_state(view_state: Dictionary) -> void:
 
 func configure_channel_occlusion(channel_pass_mask_by_cell: Dictionary) -> void:
 	_channel_pass_mask_by_cell = channel_pass_mask_by_cell.duplicate()
+
+
+func configure_channel_visual_policy(channel_visual_policy_by_cell: Dictionary) -> void:
+	_channel_visual_policy_by_cell = channel_visual_policy_by_cell.duplicate(true)
 
 
 func _ensure_visuals() -> void:

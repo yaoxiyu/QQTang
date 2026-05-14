@@ -284,8 +284,25 @@ func _initialize_item_pool(bootstrap_data: Dictionary) -> void:
 	var decorative_cells: Array = bootstrap_data.get("decorative_surface_cells", [])
 	for cell in decorative_cells:
 		pool.blocked_drop_cells["%d,%d" % [cell.x, cell.y]] = true
+	_initialize_airdrop_drop_cells_cache(pool)
 
 	state.item_pool_runtime = pool
+
+
+func _initialize_airdrop_drop_cells_cache(pool) -> void:
+	if pool == null or state == null or state.grid == null:
+		return
+	pool.cached_drop_cells.clear()
+	pool.cached_drop_index_by_key.clear()
+	for y in range(state.grid.height):
+		for x in range(state.grid.width):
+			var key := "%d,%d" % [x, y]
+			if pool.blocked_drop_cells.has(key):
+				continue
+			if state.grid.get_static_cell(x, y).tile_type != TileConstants.TileType.EMPTY:
+				continue
+			pool.cached_drop_index_by_key[key] = pool.cached_drop_cells.size()
+			pool.cached_drop_cells.append(Vector2i(x, y))
 
 
 func enqueue_input(input_frame: InputFrame) -> void:

@@ -196,7 +196,9 @@ func _capture_items(sim_world: SimWorld) -> Array[Dictionary]:
 			"pickup_delay_ticks": item.pickup_delay_ticks,
 			"visible": item.visible,
 			"scatter_from_x": item.scatter_from_x,
-			"scatter_from_y": item.scatter_from_y
+			"scatter_from_y": item.scatter_from_y,
+			"scatter_from_world_x": item.scatter_from_world_x,
+			"scatter_from_world_y": item.scatter_from_world_y
 		})
 	items.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return items

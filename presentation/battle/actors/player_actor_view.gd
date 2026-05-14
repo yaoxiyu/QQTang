@@ -7,6 +7,7 @@ const PlayerStatusEffectViewControllerScript = preload("res://presentation/battl
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
+const ChannelVisualPolicy = preload("res://presentation/battle/policy/channel_visual_policy.gd")
 
 const BODY_Z_INDEX := 0
 const TEAM_MARKER_Z_INDEX := -10
@@ -15,11 +16,6 @@ const LOCAL_VISUAL_LERP_SPEED := 16.0
 const REMOTE_VISUAL_LERP_SPEED := 22.0
 const TELEPORT_SNAP_DISTANCE_CELLS := 1.5
 const DEBUG_APPLY_VIEW_STATE_LOG := false
-const PASS_UP := 1
-const PASS_RIGHT := 2
-const PASS_DOWN := 4
-const PASS_LEFT := 8
-
 var player_id: int = -1
 var player_slot: int = 0
 var alive: bool = true
@@ -37,6 +33,8 @@ var _channel_pass_mask_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
 var _surface_render_z_by_cell: Dictionary = {}
+var _surface_occlusion_by_cell: Dictionary = {}
+var _last_depth_reason: String = "base"
 
 
 func _ready() -> void:
@@ -81,28 +79,22 @@ func apply_view_state(view_state: Dictionary) -> void:
 	var cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
 	var cell_offset_y := int((view_state.get("offset", Vector2.ZERO) as Vector2).y)
 	var resolved_player_z := BattleDepth.player_z(cell, 0, cell_offset_y)
-	var surface_row_z := int(_surface_row_max_z.get(cell.y, -2147483648))
-	if surface_row_z >= resolved_player_z:
-		resolved_player_z = surface_row_z + 1
 	_last_view_state = view_state.duplicate(true)
 	_apply_channel_occlusion_state()
-	var surface_render_z := -2147483648
-	if not _channel_pass_mask_by_cell.is_empty():
-		var ch_cell_size: float = float(_last_view_state.get("cell_size", 40.0))
-		var collision_center: Vector2 = _resolve_collision_center(_last_view_state, ch_cell_size)
-		var world_cell := Vector2i(int(floor(collision_center.x / ch_cell_size)), int(floor(collision_center.y / ch_cell_size)))
-		var overlap_dist_sq := ch_cell_size * ch_cell_size
-		for sample_cell in _candidate_channel_cells(world_cell):
-			if sample_cell.y != world_cell.y:
-				continue
-			if not _channel_pass_mask_by_cell.has(sample_cell):
-				continue
-			var ch_center := Vector2((float(sample_cell.x) + 0.5) * ch_cell_size, (float(sample_cell.y) + 0.5) * ch_cell_size)
-			if collision_center.distance_squared_to(ch_center) <= overlap_dist_sq:
-				var cell_render_z := int(_surface_render_z_by_cell.get(sample_cell, -2147483648))
-				surface_render_z = max(surface_render_z, cell_render_z)
-	if surface_render_z > resolved_player_z:
-		resolved_player_z = surface_render_z + 1
+	var ch_cell_size: float = float(_last_view_state.get("cell_size", 40.0))
+	var collision_center: Vector2 = _resolve_collision_center(_last_view_state, ch_cell_size)
+	var world_cell := Vector2i(int(floor(collision_center.x / ch_cell_size)), int(floor(collision_center.y / ch_cell_size)))
+	var depth_candidates := _build_surface_depth_candidates(cell, world_cell, collision_center, ch_cell_size)
+	var depth_resolve := ChannelVisualPolicy.resolve_player_z(
+		resolved_player_z,
+		cell,
+		depth_candidates,
+		_surface_occlusion_by_cell,
+		_surface_row_max_z
+	)
+	resolved_player_z = int(depth_resolve.get("z", resolved_player_z))
+	_last_depth_reason = String(depth_resolve.get("reason", "base"))
+	_last_view_state["depth_reason"] = _last_depth_reason
 	z_index = resolved_player_z
 	if _body_view != null and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
@@ -128,11 +120,16 @@ func configure_surface_render_z_by_cell(surface_render_z_by_cell: Dictionary) ->
 	_surface_render_z_by_cell = surface_render_z_by_cell.duplicate()
 
 
+func configure_surface_occlusion_by_cell(surface_occlusion_by_cell: Dictionary) -> void:
+	_surface_occlusion_by_cell = surface_occlusion_by_cell.duplicate(true)
+
+
 func _apply_channel_occlusion_state() -> void:
 	# Intention: keep this as a generic hook so later we can hide additional render parts, not only body sprite.
 	var cell_size: float = float(_last_view_state.get("cell_size", 40.0))
 	var collision_center: Vector2 = _resolve_collision_center(_last_view_state, cell_size)
 	_last_view_state["hide_body_sprite"] = _should_hide_in_channel(collision_center, cell_size)
+	_last_view_state["depth_reason"] = _last_depth_reason
 
 
 func _resolve_collision_center(view_state: Dictionary, cell_size: float) -> Vector2:
@@ -147,22 +144,7 @@ func _resolve_collision_center(view_state: Dictionary, cell_size: float) -> Vect
 
 
 func _should_hide_in_channel(world_position: Vector2, p_cell_size: float) -> bool:
-	if _channel_pass_mask_by_cell.is_empty():
-		return false
-	var cell_size: float = maxf(p_cell_size, 1.0)
-	var hide_distance_sq: float = (cell_size * 0.5) * (cell_size * 0.5)
-	var current_cell := Vector2i(
-		int(floor(world_position.x / cell_size)),
-		int(floor(world_position.y / cell_size))
-	)
-	for sample_cell in _candidate_channel_cells(current_cell):
-		if not _channel_pass_mask_by_cell.has(sample_cell):
-			continue
-		var channel_center := Vector2((float(sample_cell.x) + 0.5) * cell_size, (float(sample_cell.y) + 0.5) * cell_size)
-		if world_position.distance_squared_to(channel_center) <= hide_distance_sq:
-			return true
-	# Keep hidden while crossing a shared edge between connected channels to avoid edge flicker.
-	return _is_on_connected_channel_edge(world_position, current_cell, cell_size)
+	return ChannelVisualPolicy.resolve_player_body_hidden(world_position, p_cell_size, _channel_pass_mask_by_cell)
 
 
 func _candidate_channel_cells(current_cell: Vector2i) -> Array[Vector2i]:
@@ -175,33 +157,37 @@ func _candidate_channel_cells(current_cell: Vector2i) -> Array[Vector2i]:
 	]
 
 
-func _is_on_connected_channel_edge(world_position: Vector2, current_cell: Vector2i, cell_size: float) -> bool:
-	var epsilon := 0.001
-	var x_edge: float = round(world_position.x / cell_size)
-	if absf(world_position.x - x_edge * cell_size) <= epsilon:
-		var left_cell := Vector2i(int(x_edge) - 1, current_cell.y)
-		var right_cell := Vector2i(int(x_edge), current_cell.y)
-		if _channels_connected(left_cell, right_cell, Vector2i.RIGHT):
-			return true
-	var y_edge: float = round(world_position.y / cell_size)
-	if absf(world_position.y - y_edge * cell_size) <= epsilon:
-		var up_cell := Vector2i(current_cell.x, int(y_edge) - 1)
-		var down_cell := Vector2i(current_cell.x, int(y_edge))
-		if _channels_connected(up_cell, down_cell, Vector2i.DOWN):
-			return true
-	return false
-
-
-func _channels_connected(a: Vector2i, b: Vector2i, dir_from_a_to_b: Vector2i) -> bool:
-	var a_mask := int(_channel_pass_mask_by_cell.get(a, -1))
-	var b_mask := int(_channel_pass_mask_by_cell.get(b, -1))
-	if a_mask < 0 or b_mask < 0:
-		return false
-	if dir_from_a_to_b == Vector2i.RIGHT:
-		return (a_mask & PASS_RIGHT) != 0 and (b_mask & PASS_LEFT) != 0
-	if dir_from_a_to_b == Vector2i.DOWN:
-		return (a_mask & PASS_DOWN) != 0 and (b_mask & PASS_UP) != 0
-	return false
+func _build_surface_depth_candidates(
+	player_cell: Vector2i,
+	world_cell: Vector2i,
+	collision_center: Vector2,
+	cell_size: float
+) -> Array[Vector2i]:
+	var candidates: Array[Vector2i] = []
+	var seen: Dictionary = {}
+	var safe_cell_size := maxf(cell_size, 1.0)
+	# Only include nearby candidate cells to avoid pulling the player above
+	# unrelated next-row surfaces.
+	var include_dist_sq := (safe_cell_size * 0.76) * (safe_cell_size * 0.76)
+	var seed_cells: Array[Vector2i] = [
+		player_cell,
+		world_cell,
+		world_cell + Vector2i.LEFT,
+		world_cell + Vector2i.RIGHT,
+		world_cell + Vector2i.UP,
+		world_cell + Vector2i.DOWN,
+	]
+	for channel_cell in _candidate_channel_cells(world_cell):
+		seed_cells.append(channel_cell)
+	for candidate in seed_cells:
+		if seen.has(candidate):
+			continue
+		var candidate_center := Vector2((float(candidate.x) + 0.5) * safe_cell_size, (float(candidate.y) + 0.5) * safe_cell_size)
+		if collision_center.distance_squared_to(candidate_center) > include_dist_sq:
+			continue
+		seen[candidate] = true
+		candidates.append(candidate)
+	return candidates
 
 func configure_visual_profile(visual_profile) -> void:
 	if _visual_profile == visual_profile:

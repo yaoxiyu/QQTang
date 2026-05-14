@@ -8,8 +8,11 @@ const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 
 const STAND_ANIMATION_NAME := "stand"
 const STAND_ANIMATION_FPS := 8.0
-const SCATTER_DURATION := 0.8
 const SCATTER_HEIGHT_RATIO := 1.5
+const TICK_SECONDS := 1.0 / 30.0
+const MIN_SCATTER_DURATION_SEC := 0.05
+const FALLBACK_SCATTER_SPEED_PX_PER_SEC := 240.0
+const SCATTER_PATH_SAMPLES := 24
 const DERIVED_ANIM_ROOT := "res://external/assets/derived/assets/animation/items"
 
 static var _sprite_frames_cache: Dictionary = {}
@@ -26,7 +29,11 @@ var _fallback_body: Polygon2D = null
 var _fallback_outline: Line2D = null
 var _scatter_tween: Tween = null
 var _scatter_target: Vector2 = Vector2.ZERO
+var _scatter_target_cell: Vector2i = Vector2i.ZERO
 var _scatter_state: int = 0  # 0=none, 1=flying, 2=done
+var _scatter_path_points: Array[Vector2] = []
+var _scatter_path_lengths: Array[float] = []
+var _scatter_path_total_length: float = 0.0
 
 
 func _ready() -> void:
@@ -41,32 +48,49 @@ func apply_view_state(view_state: Dictionary) -> void:
 	cell_size_px = float(view_state.get("cell_size", cell_size_px))
 	size_px = BattleViewMetrics.item_half_size_px(cell_size_px)
 	var target_pos: Vector2 = view_state.get("position", Vector2.ZERO)
+	var target_cell := view_state.get("cell", Vector2i.ZERO) as Vector2i
 	item_color = view_state.get("color", item_color)
 	z_as_relative = false
 	if _scatter_state != 1:  # 飞行中保持 FLYING_Z，不被地面层级覆盖
-		z_index = BattleDepth.item_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
+		z_index = BattleDepth.item_ground_z(target_cell)
 	_refresh_visuals()
 
 	var scatter_from: Vector2 = view_state.get("scatter_from", Vector2(-1, -1))
-	if _scatter_state == 0 and scatter_from.x >= 0.0 and target_pos.distance_squared_to(scatter_from) > 1.0:
+	var spawn_tick := int(view_state.get("spawn_tick", -1))
+	var current_tick := int(view_state.get("current_tick", spawn_tick))
+	var pickup_delay_ticks := int(view_state.get("pickup_delay_ticks", 0))
+	var scatter_arrival_tick := spawn_tick + pickup_delay_ticks
+	var scatter_arrived_by_tick := spawn_tick >= 0 and pickup_delay_ticks > 0 and current_tick >= scatter_arrival_tick
+	var scatter_duration_sec := _resolve_scatter_duration_sec(scatter_from, target_pos, pickup_delay_ticks)
+	if _scatter_state == 1:
+		if scatter_arrived_by_tick or position.distance_squared_to(target_pos) <= 1.0:
+			_finish_scatter_now(target_pos, target_cell)
+			return
+	var should_scatter := _scatter_state == 0 \
+		and scatter_from.x >= 0.0 \
+		and target_pos.distance_squared_to(scatter_from) > 1.0 \
+		and not scatter_arrived_by_tick
+	if should_scatter:
 		_scatter_state = 1
-		_start_scatter_animation(scatter_from, target_pos)
+		_start_scatter_animation(scatter_from, target_pos, target_cell, scatter_duration_sec)
 	elif _scatter_state != 1:
 		position = target_pos
 	# else: _scatter_state == 1 (flying), tween controls position, don't touch
 
 
-func _start_scatter_animation(from: Vector2, to: Vector2) -> void:
+func _start_scatter_animation(from: Vector2, to: Vector2, target_cell: Vector2i, duration_sec: float) -> void:
 	if _scatter_tween != null and _scatter_tween.is_valid():
 		_scatter_tween.kill()
 	_scatter_target = to
+	_scatter_target_cell = target_cell
 
 	position = from
-	# 飞行中层级：基于飞越的最高行 + 500，确保高于该行所有表面元素
-	var max_row := maxi(int(from.y / cell_size_px), int(to.y / cell_size_px))
-	z_index = max_row * 100 + 500
-	_fallback_body.visible = false
-	_fallback_outline.visible = false
+	# 飞行中层级统一走 BattleDepth 空中深度带
+	z_index = BattleDepth.item_airborne_z_from_world(from, to, cell_size_px)
+	var has_sprite_frames := _sprite != null and _sprite.sprite_frames != null
+	_sprite.visible = has_sprite_frames
+	_fallback_body.visible = not has_sprite_frames
+	_fallback_outline.visible = not has_sprite_frames
 
 	_scatter_tween = create_tween()
 	_scatter_tween.set_trans(Tween.TRANS_SINE)
@@ -74,21 +98,41 @@ func _start_scatter_animation(from: Vector2, to: Vector2) -> void:
 
 	var mid: Vector2 = (from + to) * 0.5
 	mid.y -= cell_size_px * SCATTER_HEIGHT_RATIO
+	_build_scatter_path(from, mid, to)
 
-	_scatter_tween.tween_method(_on_scatter_step.bind(from, mid, to), 0.0, 1.0, SCATTER_DURATION)
+	_scatter_tween.tween_method(_on_scatter_step, 0.0, 1.0, maxf(duration_sec, MIN_SCATTER_DURATION_SEC))
 	_scatter_tween.tween_callback(_on_scatter_landed)
 
 
-func _on_scatter_step(t: float, p0: Vector2, p1: Vector2, p2: Vector2) -> void:
-	var u: float = 1.0 - t
-	position = u * u * p0 + 2.0 * u * t * p1 + t * t * p2
+func _on_scatter_step(progress: float) -> void:
+	if _scatter_path_points.size() <= 1 or _scatter_path_lengths.size() <= 1 or _scatter_path_total_length <= 0.0:
+		return
+	var target_length := clampf(progress, 0.0, 1.0) * _scatter_path_total_length
+	for i in range(1, _scatter_path_lengths.size()):
+		var segment_end := _scatter_path_lengths[i]
+		if target_length > segment_end and i < _scatter_path_lengths.size() - 1:
+			continue
+		var segment_start := _scatter_path_lengths[i - 1]
+		var segment_len := maxf(segment_end - segment_start, 0.0001)
+		var local_t := clampf((target_length - segment_start) / segment_len, 0.0, 1.0)
+		position = _scatter_path_points[i - 1].lerp(_scatter_path_points[i], local_t)
+		return
+	position = _scatter_path_points[_scatter_path_points.size() - 1]
 
 
 func _on_scatter_landed() -> void:
+	_finish_scatter_now(_scatter_target, _scatter_target_cell)
+
+
+func _finish_scatter_now(target_pos: Vector2, target_cell: Vector2i) -> void:
+	if _scatter_tween != null and _scatter_tween.is_valid():
+		_scatter_tween.kill()
+	_scatter_tween = null
+	_scatter_target = target_pos
 	position = _scatter_target
 	_scatter_state = 2
 	# 落地后恢复地面层级
-	z_index = BattleDepth.item_z(Vector2i(int(_scatter_target.x / cell_size_px), int(_scatter_target.y / cell_size_px)))
+	z_index = BattleDepth.item_ground_z(target_cell)
 	if _sprite.sprite_frames != null:
 		_sprite.visible = true
 		_fallback_body.visible = false
@@ -96,6 +140,35 @@ func _on_scatter_landed() -> void:
 	else:
 		_fallback_body.visible = true
 		_fallback_outline.visible = true
+
+
+func _resolve_scatter_duration_sec(scatter_from: Vector2, target_pos: Vector2, pickup_delay_ticks: int) -> float:
+	if pickup_delay_ticks > 0:
+		return float(pickup_delay_ticks) * TICK_SECONDS
+	var distance_px := target_pos.distance_to(scatter_from)
+	return distance_px / maxf(FALLBACK_SCATTER_SPEED_PX_PER_SEC, 1.0)
+
+
+func _build_scatter_path(from: Vector2, mid: Vector2, to: Vector2) -> void:
+	_scatter_path_points.clear()
+	_scatter_path_lengths.clear()
+	_scatter_path_points.append(from)
+	_scatter_path_lengths.append(0.0)
+	var total := 0.0
+	var prev := from
+	for i in range(1, SCATTER_PATH_SAMPLES + 1):
+		var t := float(i) / float(SCATTER_PATH_SAMPLES)
+		var point := _quadratic_bezier(from, mid, to, t)
+		total += prev.distance_to(point)
+		_scatter_path_points.append(point)
+		_scatter_path_lengths.append(total)
+		prev = point
+	_scatter_path_total_length = total
+
+
+func _quadratic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, t: float) -> Vector2:
+	var u := 1.0 - t
+	return u * u * p0 + 2.0 * u * t * p1 + t * t * p2
 
 
 func _ensure_visuals() -> void:

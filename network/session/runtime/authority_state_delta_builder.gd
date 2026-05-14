@@ -7,6 +7,8 @@ const BattleWireBudgetProfilerScript = preload("res://network/session/runtime/ba
 
 var _previous_bubbles_by_id: Dictionary = {}
 var _previous_items_by_id: Dictionary = {}
+var _previous_walls_by_cell: Dictionary = {}
+var _previous_airplane: Dictionary = {}
 var _previous_tick: int = -1
 var _profiler: RefCounted = BattleWireBudgetProfilerScript.new()
 var _last_profile: Dictionary = {}
@@ -21,11 +23,20 @@ func build_delta(_active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: i
 	var removed_bubble_ids := _collect_removed_ids(current_bubbles, _previous_bubbles_by_id)
 	var changed_items := _collect_changed_entries(current_items, _previous_items_by_id)
 	var removed_item_ids := _collect_removed_ids(current_items, _previous_items_by_id)
+	var current_walls := _index_walls_by_cell(snapshot.walls)
+	var changed_walls := _collect_changed_entries(current_walls, _previous_walls_by_cell)
+	var current_airplane := _extract_airplane_payload(snapshot.item_pool_runtime)
+	var airplane_changed := var_to_bytes(current_airplane) != var_to_bytes(_previous_airplane)
 	_previous_bubbles_by_id = current_bubbles.duplicate(true)
 	_previous_items_by_id = current_items.duplicate(true)
+	_previous_walls_by_cell = current_walls.duplicate(true)
+	_previous_airplane = current_airplane.duplicate(true)
 	var base_tick := _previous_tick
 	_previous_tick = tick_id
-	if changed_bubbles.is_empty() and removed_bubble_ids.is_empty() and changed_items.is_empty() and removed_item_ids.is_empty() and events.is_empty():
+	if changed_bubbles.is_empty() and removed_bubble_ids.is_empty() \
+		and changed_items.is_empty() and removed_item_ids.is_empty() \
+		and changed_walls.is_empty() and not airplane_changed \
+		and events.is_empty():
 		return {}
 	var delta := {
 		"message_type": TransportMessageTypesScript.STATE_DELTA,
@@ -37,6 +48,8 @@ func build_delta(_active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: i
 		"removed_bubble_ids": removed_bubble_ids,
 		"changed_items": changed_items,
 		"removed_item_ids": removed_item_ids,
+		"changed_walls": changed_walls,
+		"airplane": current_airplane if airplane_changed else {},
 		"event_details": events,
 		"events": events,
 	}
@@ -60,6 +73,8 @@ func build_metrics() -> Dictionary:
 func reset() -> void:
 	_previous_bubbles_by_id.clear()
 	_previous_items_by_id.clear()
+	_previous_walls_by_cell.clear()
+	_previous_airplane.clear()
 	_previous_tick = -1
 	_last_profile.clear()
 	_profiler.reset()
@@ -90,3 +105,24 @@ func _collect_removed_ids(current: Dictionary, previous: Dictionary) -> Array[in
 		if not current.has(entity_id):
 			removed.append(int(entity_id))
 	return removed
+
+
+func _index_walls_by_cell(walls: Array[Dictionary]) -> Dictionary:
+	var indexed: Dictionary = {}
+	for wall in walls:
+		var cell_x := int(wall.get("cell_x", -1))
+		var cell_y := int(wall.get("cell_y", -1))
+		if cell_x < 0 or cell_y < 0:
+			continue
+		indexed["%d,%d" % [cell_x, cell_y]] = wall.duplicate(true)
+	return indexed
+
+
+func _extract_airplane_payload(item_pool_runtime: Dictionary) -> Dictionary:
+	if item_pool_runtime.is_empty():
+		return {}
+	return {
+		"active": bool(item_pool_runtime.get("airplane_active", false)),
+		"x": float(item_pool_runtime.get("airplane_x", 0.0)),
+		"y": int(item_pool_runtime.get("airplane_y", 0)),
+	}

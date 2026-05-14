@@ -98,6 +98,7 @@ func build_item_views(world: SimWorld) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	if world == null:
 		return result
+	var current_tick := int(world.state.match_state.tick)
 
 	var item_ids := world.state.items.active_ids.duplicate()
 	item_ids.sort()
@@ -107,7 +108,7 @@ func build_item_views(world: SimWorld) -> Array[Dictionary]:
 		if item == null or not item.alive or not item.visible:
 			continue
 
-		result.append(map_item_state(item))
+		result.append(map_item_state(item, current_tick))
 
 	return result
 
@@ -253,17 +254,25 @@ func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:
 	}
 
 
-func map_item_state(item: ItemState) -> Dictionary:
+func map_item_state(item: ItemState, current_tick: int = 0) -> Dictionary:
 	var view := {
 		"entity_id": item.entity_id,
 		"item_type": item.item_type,
 		"battle_item_id": item.battle_item_id,
+		"spawn_tick": item.spawn_tick,
+		"current_tick": current_tick,
+		"pickup_delay_ticks": item.pickup_delay_ticks,
 		"cell_size": cell_size,
 		"position": _to_world_position(item.cell_x, item.cell_y),
 		"cell": Vector2i(item.cell_x, item.cell_y),
 		"color": _item_palette.get(item.item_type, Color(1.0, 1.0, 1.0, 1.0)),
 	}
-	if item.scatter_from_x >= 0:
+	if item.scatter_from_world_x >= 0.0 and item.scatter_from_world_y >= 0.0:
+		view["scatter_from"] = Vector2(
+			item.scatter_from_world_x * cell_size,
+			item.scatter_from_world_y * cell_size
+		)
+	elif item.scatter_from_x >= 0:
 		view["scatter_from"] = _to_world_position(item.scatter_from_x, item.scatter_from_y)
 	ItemDebugLogScript.write("[ITEM_POS] map_view eid=%d battle_item=%s cell=(%d,%d) world_pos=(%.1f,%.1f)" % [item.entity_id, item.battle_item_id, item.cell_x, item.cell_y, view.position.x, view.position.y])
 	return view

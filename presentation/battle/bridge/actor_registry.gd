@@ -19,9 +19,11 @@ var _bubble_identity_by_id: Dictionary = {}
 var _bubble_pending_prune: Dictionary = {}
 var _player_visual_profiles: Dictionary = {}
 var _channel_pass_mask_by_cell: Dictionary = {}
+var _channel_visual_policy_by_cell: Dictionary = {}
 var _surface_virtual_z_by_cell: Dictionary = {}
 var _surface_row_max_z: Dictionary = {}
 var _surface_render_z_by_cell: Dictionary = {}
+var _surface_occlusion_by_cell: Dictionary = {}
 var _player_row_cells: Dictionary = {}
 
 
@@ -43,6 +45,10 @@ func configure_channel_pass_mask_by_cell(channel_pass_mask_by_cell: Dictionary) 
 	_channel_pass_mask_by_cell = channel_pass_mask_by_cell.duplicate()
 
 
+func configure_channel_visual_policy_by_cell(channel_visual_policy_by_cell: Dictionary) -> void:
+	_channel_visual_policy_by_cell = channel_visual_policy_by_cell.duplicate(true)
+
+
 func configure_surface_virtual_z_by_cell(surface_virtual_z_by_cell: Dictionary) -> void:
 	_surface_virtual_z_by_cell = surface_virtual_z_by_cell.duplicate()
 
@@ -53,6 +59,10 @@ func configure_surface_row_max_z(surface_row_max_z: Dictionary) -> void:
 
 func configure_surface_render_z_by_cell(surface_render_z_by_cell: Dictionary) -> void:
 	_surface_render_z_by_cell = surface_render_z_by_cell.duplicate()
+
+
+func configure_surface_occlusion_by_cell(surface_occlusion_by_cell: Dictionary) -> void:
+	_surface_occlusion_by_cell = surface_occlusion_by_cell.duplicate(true)
 
 
 func sync_players(parent: Node, players: Array[Dictionary]) -> void:
@@ -185,6 +195,8 @@ func _sync_bubble_group(parent: Node, states: Array[Dictionary]) -> void:
 		_bubble_pending_prune.erase(entity_id)
 		if view.has_method("configure_channel_occlusion"):
 			view.configure_channel_occlusion(_channel_pass_mask_by_cell)
+		if view.has_method("configure_channel_visual_policy"):
+			view.configure_channel_visual_policy(_channel_visual_policy_by_cell)
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)
 
@@ -292,8 +304,12 @@ func _sync_group(
 			view.configure_surface_row_priority_map(_surface_row_max_z)
 		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_render_z_by_cell"):
 			view.configure_surface_render_z_by_cell(_surface_render_z_by_cell)
+		if fallback_script == PlayerActorViewScript and view.has_method("configure_surface_occlusion_by_cell"):
+			view.configure_surface_occlusion_by_cell(_surface_occlusion_by_cell)
 		if fallback_script == BubbleActorViewScript and view.has_method("configure_channel_occlusion"):
 			view.configure_channel_occlusion(_channel_pass_mask_by_cell)
+		if fallback_script == BubbleActorViewScript and view.has_method("configure_channel_visual_policy"):
+			view.configure_channel_visual_policy(_channel_visual_policy_by_cell)
 
 		if view.has_method("apply_view_state"):
 			view.apply_view_state(view_state)
