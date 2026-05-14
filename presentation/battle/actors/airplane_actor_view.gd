@@ -2,10 +2,13 @@ class_name AirplaneActorView
 extends Node2D
 
 const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
-const AIRPLANE_STAND_ANIM_DIR := "res://external/assets/source/res/object/misc/anim/misc101_stand"
+const AIRPLANE_STAND_ANIM_DIR := "res://external/assets/derived/assets/animation/misc/misc101_stand"
 const AIRPLANE_STAND_ANIM_NAME := "stand"
 const AIRPLANE_STAND_ANIM_FPS := 10.0
-const AIRPLANE_SMOOTH_FOLLOW_PX_PER_SEC := 520.0
+const VELOCITY_BLEND_ALPHA := 0.25
+const CORRECTION_HALF_LIFE_SEC := 0.08
+const AUTHORITY_PREDICTION_HORIZON_SEC := 0.25
+const MIN_SAMPLE_DT_SEC := 0.0001
 
 static var _sprite_frames_cache: Dictionary = {}
 
@@ -15,6 +18,8 @@ var _sprite: AnimatedSprite2D = null
 var _fallback_root: Node2D = null
 var _target_position: Vector2 = Vector2.ZERO
 var _has_target_position: bool = false
+var _last_authority_timestamp_sec: float = 0.0
+var _estimated_velocity_px_per_sec: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -27,8 +32,22 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not _has_target_position:
 		return
-	var max_step := AIRPLANE_SMOOTH_FOLLOW_PX_PER_SEC * maxf(delta, 0.0)
-	position = position.move_toward(_target_position, max_step)
+	var dt := maxf(delta, 0.0)
+	# 本地持续按估计速度前进，避免“追到目标后停顿”。
+	position += _estimated_velocity_px_per_sec * dt
+
+	var now_sec := _now_seconds()
+	var horizon := clampf(now_sec - _last_authority_timestamp_sec, 0.0, AUTHORITY_PREDICTION_HORIZON_SEC)
+	var predicted_target := _target_position + _estimated_velocity_px_per_sec * horizon
+	var error := predicted_target - position
+	var hard_snap_threshold := maxf(cell_size_px * 0.5, 24.0)
+	if error.length() > hard_snap_threshold:
+		position = predicted_target
+		return
+
+	# 小误差指数收敛，平滑纠偏到权威轨迹。
+	var correction_alpha := 1.0 - pow(0.5, dt / CORRECTION_HALF_LIFE_SEC) if dt > 0.0 else 1.0
+	position += error * correction_alpha
 
 
 func configure(p_cell_size: float, p_map_height: int = 0) -> void:
@@ -41,14 +60,28 @@ func set_map_height(p_map_height: int) -> void:
 
 
 func update_position(world_x: float, row_y: int) -> void:
-	_target_position = Vector2(
+	var new_target := Vector2(
 		(world_x + 0.5) * cell_size_px,
 		(float(row_y) + 0.5) * cell_size_px
 	)
 	if not _has_target_position:
+		_target_position = new_target
 		position = _target_position
 		_has_target_position = true
+		_last_authority_timestamp_sec = _now_seconds()
+		_estimated_velocity_px_per_sec = Vector2.ZERO
+	else:
+		var now_sec := _now_seconds()
+		var dt := maxf(now_sec - _last_authority_timestamp_sec, MIN_SAMPLE_DT_SEC)
+		var sample_velocity := (new_target - _target_position) / dt
+		_estimated_velocity_px_per_sec = _estimated_velocity_px_per_sec.lerp(sample_velocity, VELOCITY_BLEND_ALPHA)
+		_target_position = new_target
+		_last_authority_timestamp_sec = now_sec
 	z_index = BattleDepth.airplane_z(row_y, map_height)
+
+
+func _now_seconds() -> float:
+	return float(Time.get_ticks_usec()) / 1000000.0
 
 
 func _create_placeholder() -> void:

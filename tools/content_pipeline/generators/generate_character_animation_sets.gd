@@ -151,6 +151,10 @@ func _get_pose_strip_path(row: PackedStringArray, header_index: Dictionary, pose
 func _normalize_strip_uri(strip_path: String) -> String:
 	if strip_path.is_empty() or strip_path.begins_with("asset://"):
 		return strip_path
+	if strip_path.begins_with("res://external/assets/derived/"):
+		return "asset://%s/derived/%s" % [ASSET_PACK_ID, strip_path.trim_prefix("res://external/assets/derived/")]
+	if strip_path.begins_with("res://external/assets/"):
+		return "asset://%s/derived/assets/%s" % [ASSET_PACK_ID, strip_path.trim_prefix("res://external/assets/")]
 	if strip_path.begins_with("res://external/"):
 		return "asset://%s/derived/%s" % [ASSET_PACK_ID, strip_path.trim_prefix("res://external/")]
 	return strip_path

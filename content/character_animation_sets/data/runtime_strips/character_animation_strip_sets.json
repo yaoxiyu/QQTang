@@ -3182,7 +3182,7 @@
                                        "run_left":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/run_left.png",
                                        "run_right":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/run_right.png",
                                        "run_up":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/run_up.png",
-                                       "trigger_down":  "",
+                                       "trigger_down":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/trigger_down.png",
                                        "wait_down":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/wait_down.png",
                                        "win_down":  "asset://qqt-assets/derived/assets/animation/characters/qqt_layered/11001/victory_down.png"
                                    }

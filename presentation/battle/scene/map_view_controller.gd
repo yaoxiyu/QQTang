@@ -753,6 +753,25 @@ func _is_gif_path(path: String) -> bool:
 	return path.to_lower().ends_with(".gif")
 
 
+func _resolve_gif_frame_dir(texture_path: String) -> String:
+	var normalized_path := texture_path.strip_edges()
+	if normalized_path.is_empty() or not _is_gif_path(normalized_path):
+		return ""
+	var stem := normalized_path.get_file().get_basename()
+	const MAP_GIF_ROOT := "res://external/assets/maps/elements/"
+	if normalized_path.begins_with(MAP_GIF_ROOT):
+		var relative_file_path := normalized_path.trim_prefix(MAP_GIF_ROOT)
+		var relative_dir := relative_file_path.get_base_dir()
+		var derived_root := "res://external/assets/derived/assets/animation/map_elements"
+		if not relative_dir.is_empty() and relative_dir != ".":
+			derived_root = "%s/%s" % [derived_root, relative_dir]
+		return "%s/%s" % [derived_root, stem]
+	const MISC_GIF_ROOT := "res://external/assets/source/res/object/misc/"
+	if normalized_path.begins_with(MISC_GIF_ROOT):
+		return "res://external/assets/derived/assets/animation/misc/%s" % stem
+	return ""
+
+
 func _resolve_animation_frames(texture_path: String) -> Array[Texture2D]:
 	var normalized_path := texture_path.strip_edges()
 	if normalized_path.is_empty() or not _is_gif_path(normalized_path):
@@ -766,9 +785,10 @@ func _resolve_animation_frames(texture_path: String) -> Array[Texture2D]:
 					result.append(frame)
 			return result
 		return []
-	var base_dir := normalized_path.get_base_dir()
-	var stem := normalized_path.get_file().get_basename()
-	var anim_dir := "%s/anim/%s" % [base_dir, stem]
+	var anim_dir := _resolve_gif_frame_dir(normalized_path)
+	if anim_dir.is_empty():
+		_animation_frames_cache[normalized_path] = []
+		return []
 	var frames: Array[Texture2D] = []
 	var dir := DirAccess.open(anim_dir)
 	if dir != null:

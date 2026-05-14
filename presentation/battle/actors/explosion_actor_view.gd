@@ -8,28 +8,28 @@ const BubbleLoaderScript = preload("res://content/bubbles/runtime/bubble_loader.
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 const SEGMENT_TEXTURE_PATHS := {
-	"center": "res://external/assets/animation/explosions/normal/segments/center.png",
-	"arm_right": "res://external/assets/animation/explosions/normal/segments/arm_right.png",
-	"arm_up": "res://external/assets/animation/explosions/normal/segments/arm_up.png",
-	"arm_left": "res://external/assets/animation/explosions/normal/segments/arm_left.png",
-	"arm_down": "res://external/assets/animation/explosions/normal/segments/arm_down.png",
-	"tail_up": "res://external/assets/animation/explosions/normal/segments/tail_up.png",
-	"tail_down": "res://external/assets/animation/explosions/normal/segments/tail_down.png",
-	"tail_left": "res://external/assets/animation/explosions/normal/segments/tail_left.png",
-	"tail_right": "res://external/assets/animation/explosions/normal/segments/tail_right.png",
-	"type2_cell": "res://external/assets/animation/explosions/normal/segments/type2_cell.png",
+	"center": "res://external/assets/derived/assets/animation/explosions/normal/segments/center.png",
+	"arm_right": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_right.png",
+	"arm_up": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_up.png",
+	"arm_left": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_left.png",
+	"arm_down": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_down.png",
+	"tail_up": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_up.png",
+	"tail_down": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_down.png",
+	"tail_left": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_left.png",
+	"tail_right": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_right.png",
+	"type2_cell": "res://external/assets/derived/assets/animation/explosions/normal/segments/type2_cell.png",
 }
 const SEGMENT_FRAME_BASES := {
-	"center": "res://external/assets/animation/explosions/normal/segments/center",
-	"arm_right": "res://external/assets/animation/explosions/normal/segments/arm_right",
-	"arm_up": "res://external/assets/animation/explosions/normal/segments/arm_up",
-	"arm_left": "res://external/assets/animation/explosions/normal/segments/arm_left",
-	"arm_down": "res://external/assets/animation/explosions/normal/segments/arm_down",
-	"tail_up": "res://external/assets/animation/explosions/normal/segments/tail_up",
-	"tail_down": "res://external/assets/animation/explosions/normal/segments/tail_down",
-	"tail_left": "res://external/assets/animation/explosions/normal/segments/tail_left",
-	"tail_right": "res://external/assets/animation/explosions/normal/segments/tail_right",
-	"type2_cell": "res://external/assets/animation/explosions/normal/segments/type2_cell",
+	"center": "res://external/assets/derived/assets/animation/explosions/normal/segments/center",
+	"arm_right": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_right",
+	"arm_up": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_up",
+	"arm_left": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_left",
+	"arm_down": "res://external/assets/derived/assets/animation/explosions/normal/segments/arm_down",
+	"tail_up": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_up",
+	"tail_down": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_down",
+	"tail_left": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_left",
+	"tail_right": "res://external/assets/derived/assets/animation/explosions/normal/segments/tail_right",
+	"type2_cell": "res://external/assets/derived/assets/animation/explosions/normal/segments/type2_cell",
 }
 const SEGMENT_ANIMATION_NAME := "default"
 

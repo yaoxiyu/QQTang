@@ -351,14 +351,19 @@ function Add-TransparentEffectPixels {
         [System.Drawing.Bitmap]$MaskFrame,
         [int]$MinY = 0,
         [int]$MaxY = -1,
+        [int]$OffsetX = 0,
+        [int]$OffsetY = 0,
         [switch]$BlueOnly
     )
 
-    $copyWidth = [Math]::Min($Canvas.Width, $NormalFrame.Width)
-    $copyHeight = [Math]::Min($Canvas.Height, $NormalFrame.Height)
+    $copyWidth = [Math]::Min($Canvas.Width - $OffsetX, $NormalFrame.Width)
+    $copyHeight = [Math]::Min($Canvas.Height - $OffsetY, $NormalFrame.Height)
     if (-not $BlueOnly) {
         $copyWidth = [Math]::Min($copyWidth, $MaskFrame.Width)
         $copyHeight = [Math]::Min($copyHeight, $MaskFrame.Height)
+    }
+    if ($copyWidth -le 0 -or $copyHeight -le 0) {
+        return
     }
 
     for ($y = 0; $y -lt $copyHeight; $y++) {
@@ -376,16 +381,74 @@ function Add-TransparentEffectPixels {
             $isBlueEffect = $normalPixel.B -ge 130 -and $normalPixel.G -ge 80 -and $normalPixel.B -gt ($normalPixel.R + 35)
             if ($BlueOnly) {
                 if ($isBlueEffect) {
-                    $Canvas.SetPixel($x, $y, $normalPixel)
+                    $Canvas.SetPixel($x + $OffsetX, $y + $OffsetY, $normalPixel)
                 }
                 continue
             }
             $maskPixel = $MaskFrame.GetPixel($x, $y)
             if ($maskPixel.A -eq 0 -or $isBlueEffect) {
-                $Canvas.SetPixel($x, $y, $normalPixel)
+                $Canvas.SetPixel($x + $OffsetX, $y + $OffsetY, $normalPixel)
             }
         }
     }
+}
+
+function Resolve-ActionFrameSize {
+    param(
+        [object]$Assembly,
+        [string]$SourceAction,
+        [int]$Width,
+        [int]$Height
+    )
+
+    $characterId = [string]$Assembly.character_id
+    if ($SourceAction -ne 'trigger' -or $characterId -notin @('11001', '11101')) {
+        return [PSCustomObject]@{
+            width = $Width
+            height = $Height
+        }
+    }
+
+    $referenceRecord = Get-PartRecord 'cloth' $Assembly.cloth_id 'stand' 'down' '' $true
+    if ($null -eq $referenceRecord) {
+        return [PSCustomObject]@{
+            width = $Width
+            height = $Height
+        }
+    }
+    $referenceFrames = @(Get-Frames $referenceRecord)
+    if ($referenceFrames.Count -eq 0) {
+        return [PSCustomObject]@{
+            width = $Width
+            height = $Height
+        }
+    }
+    return [PSCustomObject]@{
+        width = [Math]::Max($Width, [int]$referenceFrames[0].Width)
+        height = [Math]::Max($Height, [int]$referenceFrames[0].Height)
+    }
+}
+
+function Resolve-FrameDrawOffset {
+    param(
+        [object]$Assembly,
+        [string]$SourceAction,
+        [int]$CanvasWidth,
+        [int]$CanvasHeight,
+        [System.Drawing.Bitmap]$SourceFrame
+    )
+
+    if ($SourceFrame -eq $null) {
+        return [PSCustomObject]@{ x = 0; y = 0 }
+    }
+    $characterId = [string]$Assembly.character_id
+    if ($SourceAction -eq 'trigger' -and $characterId -in @('11001', '11101')) {
+        return [PSCustomObject]@{
+            x = [int][Math]::Floor(($CanvasWidth - $SourceFrame.Width) / 2.0)
+            y = [int]($CanvasHeight - $SourceFrame.Height)
+        }
+    }
+    return [PSCustomObject]@{ x = 0; y = 0 }
 }
 
 function Convert-HexToDrawingColor {
@@ -496,8 +559,11 @@ function Compose-Animation {
     if ($master.Count -eq 0) {
         $master = @($layers | Select-Object -First 1)
     }
-    $width = $master[0].frames[0].Width
-    $height = $master[0].frames[0].Height
+    $width = [int]$master[0].frames[0].Width
+    $height = [int]$master[0].frames[0].Height
+    $resolvedSize = Resolve-ActionFrameSize $Assembly $SourceAction $width $height
+    $width = [int]$resolvedSize.width
+    $height = [int]$resolvedSize.height
     $frameCount = [int](@($layers | ForEach-Object { $_.frames.Count }) | Measure-Object -Maximum).Maximum
 
     $outputFrames = New-Object System.Collections.Generic.List[System.Drawing.Bitmap]
@@ -508,12 +574,13 @@ function Compose-Animation {
         foreach ($layer in $layers) {
             $layerFrames = $layer.frames
             $sourceFrame = $layerFrames[$frameIndex % $layerFrames.Count]
+            $drawOffset = Resolve-FrameDrawOffset $Assembly $SourceAction $width $height $sourceFrame
             if ($layer.variant -eq 'm' -and -not $TeamColor.IsEmpty) {
                 $colorized = New-ColorizedMaskFrame $sourceFrame $TeamColor
-                $graphics.DrawImage($colorized, 0, 0, $width, $height)
+                $graphics.DrawImage($colorized, $drawOffset.x, $drawOffset.y, $sourceFrame.Width, $sourceFrame.Height)
                 $colorized.Dispose()
             } else {
-                $graphics.DrawImage($sourceFrame, 0, 0, $width, $height)
+                $graphics.DrawImage($sourceFrame, $drawOffset.x, $drawOffset.y, $sourceFrame.Width, $sourceFrame.Height)
             }
         }
         $graphics.Dispose()
@@ -526,7 +593,8 @@ function Compose-Animation {
                 }
                 $normalFrame = $normalLayer.frames[$frameIndex % $normalLayer.frames.Count]
                 $maskFrame = $maskLayer[0].frames[$frameIndex % $maskLayer[0].frames.Count]
-                Add-TransparentEffectPixels $canvas $normalFrame $maskFrame
+                $effectOffset = Resolve-FrameDrawOffset $Assembly $SourceAction $width $height $normalFrame
+                Add-TransparentEffectPixels $canvas $normalFrame $maskFrame 0 -1 $effectOffset.x $effectOffset.y
             }
             if ($OutputAction -in @('defeat', 'dead')) {
                 $tearRecord = Get-PartRecord 'cloth' $Assembly.cloth_id 'faint' '' '' $false

@@ -4,6 +4,7 @@ extends Node2D
 const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
 const CharacterAnimationSetLoaderScript = preload("res://content/character_animation_sets/runtime/character_animation_set_loader.gd")
 const PlayerStatusEffectViewControllerScript = preload("res://presentation/battle/actors/player_status_effect_view_controller.gd")
+const PlayerIdentityMarkerSlotViewScript = preload("res://presentation/battle/actors/player_identity_marker_slot_view.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const BattleDepth = preload("res://presentation/battle/battle_depth.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
@@ -12,10 +13,24 @@ const ChannelVisualPolicy = preload("res://presentation/battle/policy/channel_vi
 const BODY_Z_INDEX := 0
 const TEAM_MARKER_Z_INDEX := -10
 const STATUS_EFFECT_Z_INDEX := 10
+const IDENTITY_SLOT_Z_INDEX := 20
 const LOCAL_VISUAL_LERP_SPEED := 16.0
 const REMOTE_VISUAL_LERP_SPEED := 22.0
 const TELEPORT_SNAP_DISTANCE_CELLS := 1.5
 const DEBUG_APPLY_VIEW_STATE_LOG := false
+const LOCAL_CONTROLLED_IDENTITY_MARKERS: Array[Dictionary] = [
+	{
+		"id": "local_controlled",
+		"visibility": "local_only",
+		"anim_dir": "res://external/assets/derived/assets/animation/misc/misc121_stand",
+		"anim_name": "stand",
+		"fps": 10.0,
+		"loop": true,
+		"offset_cells": Vector2(0.0, -0.95),
+		"z_index": IDENTITY_SLOT_Z_INDEX,
+		"require_alive": false,
+	},
+]
 var player_id: int = -1
 var player_slot: int = 0
 var alive: bool = true
@@ -24,6 +39,7 @@ var facing: int = 0
 var _body_view: Node2D = null
 var _team_marker_view: Node2D = null
 var _status_effect_controller: Node2D = null
+var _identity_marker_slot_view: Node2D = null
 var _last_view_state: Dictionary = {}
 var _visual_profile = null
 var _target_position: Vector2 = Vector2.ZERO
@@ -38,6 +54,7 @@ var _last_depth_reason: String = "base"
 
 
 func _ready() -> void:
+	_ensure_identity_marker_slot_view()
 	set_process(true)
 
 
@@ -102,6 +119,8 @@ func apply_view_state(view_state: Dictionary) -> void:
 		_team_marker_view.apply_actor_state(_last_view_state)
 	if _status_effect_controller != null and _status_effect_controller.has_method("apply_actor_state"):
 		_status_effect_controller.apply_actor_state(_last_view_state)
+	if _identity_marker_slot_view != null and _identity_marker_slot_view.has_method("apply_actor_state"):
+		_identity_marker_slot_view.apply_actor_state(_last_view_state)
 
 
 func configure_channel_occlusion(channel_pass_mask_by_cell: Dictionary) -> void:
@@ -225,6 +244,7 @@ func _rebuild_body_view() -> void:
 	add_child(_body_view)
 	_rebuild_team_marker_view(character_presentation)
 	_rebuild_status_effect_controller()
+	_ensure_identity_marker_slot_view()
 
 	var animation_set = _read_profile_value("animation_set")
 	if _body_view.has_method("setup_from_animation_set"):
@@ -236,6 +256,8 @@ func _rebuild_body_view() -> void:
 		_team_marker_view.apply_actor_state(_last_view_state)
 	if not _last_view_state.is_empty() and _status_effect_controller != null:
 		_status_effect_controller.apply_actor_state(_last_view_state)
+	if not _last_view_state.is_empty() and _identity_marker_slot_view != null:
+		_identity_marker_slot_view.apply_actor_state(_last_view_state)
 
 
 func _rebuild_team_marker_view(character_presentation: CharacterPresentationDef) -> void:
@@ -268,6 +290,18 @@ func _rebuild_status_effect_controller() -> void:
 	_status_effect_controller.z_as_relative = true
 	_status_effect_controller.z_index = STATUS_EFFECT_Z_INDEX
 	add_child(_status_effect_controller)
+
+
+func _ensure_identity_marker_slot_view() -> void:
+	if _identity_marker_slot_view != null:
+		return
+	_identity_marker_slot_view = PlayerIdentityMarkerSlotViewScript.new()
+	_identity_marker_slot_view.name = "IdentityMarkerSlot"
+	_identity_marker_slot_view.z_as_relative = true
+	_identity_marker_slot_view.z_index = IDENTITY_SLOT_Z_INDEX
+	if _identity_marker_slot_view.has_method("set_marker_definitions"):
+		_identity_marker_slot_view.set_marker_definitions(LOCAL_CONTROLLED_IDENTITY_MARKERS)
+	add_child(_identity_marker_slot_view)
 
 
 func _read_profile_value(key: String):

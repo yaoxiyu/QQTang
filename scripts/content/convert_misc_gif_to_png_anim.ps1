@@ -1,7 +1,7 @@
 param(
     [string]$ProjectPath = '',
-    [string]$AssetRoot = 'external/assets/maps/elements',
-    [string]$OutputRoot = 'external/assets/derived/assets/animation/map_elements',
+    [string]$AssetRoot = 'external/assets/source/res/object/misc',
+    [string]$OutputRoot = 'external/assets/derived/assets/animation/misc',
     [switch]$CleanExistingFrames
 )
 
@@ -122,11 +122,11 @@ foreach ($gif in $gifFiles) {
     }
     catch {
         $failed += 1
-        Write-Warning ("[map-gif] failed: {0} -> {1}" -f $gif.FullName, $_.Exception.Message)
+        Write-Warning ("[misc-gif] failed: {0} -> {1}" -f $gif.FullName, $_.Exception.Message)
     }
 }
 
-Write-Host ("[map-gif] converted={0} failed={1} source={2} output={3}" -f $converted, $failed, $assetRootPath, $resolvedOutputRoot)
+Write-Host ("[misc-gif] converted={0} failed={1} source={2} output={3}" -f $converted, $failed, $assetRootPath, $resolvedOutputRoot)
 if ($failed -gt 0) {
-    throw "[map-gif] conversion failed for $failed gif files"
+    throw "[misc-gif] conversion failed for $failed gif files"
 }

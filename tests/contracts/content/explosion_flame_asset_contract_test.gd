@@ -2,8 +2,8 @@ extends "res://tests/gut/base/qqt_gut_test.gd"
 
 const BattleExplosionActorViewScript = preload("res://presentation/battle/actors/explosion_actor_view.gd")
 
-const MANIFEST_PATH := "res://external/assets/animation/explosions/normal/explosion_normal_segments.json"
-const SEGMENTS_DIR := "res://external/assets/animation/explosions/normal/segments/"
+const MANIFEST_PATH := "res://external/assets/derived/assets/animation/explosions/normal/explosion_normal_segments.json"
+const SEGMENTS_DIR := "res://external/assets/derived/assets/animation/explosions/normal/segments/"
 
 
 func test_explosion_flame_assets_load_and_bind() -> void:
