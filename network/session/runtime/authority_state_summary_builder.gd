@@ -17,6 +17,7 @@ func build_core(active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: int
 		"wire_version": BattleWireBudgetContractScript.WIRE_VERSION,
 		"tick": tick_id,
 		"checksum": int(snapshot.checksum) if snapshot != null else 0,
+			"breakable_blocks_remaining": int(snapshot.breakable_blocks_remaining) if snapshot != null else -1,
 		"player_summary": active_match.build_player_position_summary() if active_match != null else [],
 		"match_phase": int(match_state.get("phase", 0)),
 		"remaining_ticks": int(match_state.get("remaining_ticks", 0)),

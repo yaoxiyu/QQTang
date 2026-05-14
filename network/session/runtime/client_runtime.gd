@@ -223,6 +223,7 @@ func build_metrics() -> Dictionary:
 		"rollback": rollback_metrics,
 		"input_lead_ticks": _resolve_runtime_input_lead_ticks() if start_config != null and prediction_controller != null else 0,
 		"stale_input_ack_count": client_session.stale_input_ack_count if client_session != null else 0,
+		"breakable_sync": get_breakable_sync_status(),
 	}
 	metrics.merge(input_batch_metrics, true)
 	return metrics
@@ -344,6 +345,13 @@ func _mark_predicted_players_as_network(predicted_world: SimWorld) -> void:
 func consume_pending_authoritative_events() -> Array:
 	_authority_ingestion.configure(self)
 	return _authority_ingestion.consume_pending_authoritative_events()
+
+
+func get_breakable_sync_status() -> Dictionary:
+	_authority_ingestion.configure(self)
+	if prediction_controller == null or prediction_controller.predicted_sim_world == null:
+		return {"in_sync": true, "server_count": -1, "local_count": -1}
+	return _authority_ingestion.get_breakable_sync_status(prediction_controller.predicted_sim_world)
 
 
 func _resolve_ignored_local_player_keys_for_rollback() -> Array[String]:

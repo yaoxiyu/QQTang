@@ -4,6 +4,7 @@ extends RefCounted
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const ClientRuntimeSnapshotApplierScript = preload("res://network/session/runtime/client_runtime_snapshot_applier.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
+const TileConstantsScript = preload("res://gameplay/simulation/state/tile_constants.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
 const RollbackTelemetryScript = preload("res://network/session/runtime/rollback_telemetry.gd")
 
@@ -13,6 +14,8 @@ var _runtime: Node = null
 var _last_authority_batch_metrics: Dictionary = {}
 var _latest_authoritative_event_tick: int = -1
 var _last_consumed_authoritative_event_tick: int = -1
+var _server_breakable_blocks_remaining: int = -1
+var _last_checkpoint_breakable_count: int = -1
 
 
 func configure(runtime: Node) -> void:
@@ -29,6 +32,7 @@ func ingest_network_message(message: Dictionary) -> void:
 		TransportMessageTypesScript.INPUT_ACK_BATCH:
 			_apply_ack_by_peer(message.get("ack_by_peer", {}))
 		TransportMessageTypesScript.STATE_SUMMARY:
+			_server_breakable_blocks_remaining = int(message.get("breakable_blocks_remaining", -1))
 			_apply_latest_state_summary(message)
 			_store_authoritative_events(message)
 			_inspect_pending_place_request(int(message.get("tick", 0)), "summary")
@@ -37,6 +41,8 @@ func ingest_network_message(message: Dictionary) -> void:
 			_store_authoritative_events(message)
 			_inspect_pending_place_request(int(message.get("tick", 0)), "delta")
 		TransportMessageTypesScript.CHECKPOINT, TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
+			_last_checkpoint_breakable_count = int(message.get("breakable_blocks_remaining", -1))
+			_server_breakable_blocks_remaining = _last_checkpoint_breakable_count
 			_apply_latest_authoritative_snapshot(message)
 			_inspect_pending_place_request(int(message.get("tick", 0)), "checkpoint")
 		TransportMessageTypesScript.MATCH_FINISHED:
@@ -87,10 +93,36 @@ func get_last_consumed_event_tick() -> int:
 	return _last_consumed_authoritative_event_tick
 
 
+func get_server_breakable_blocks_remaining() -> int:
+	return _server_breakable_blocks_remaining
+
+
+func get_breakable_sync_status(predicted_world: SimWorld) -> Dictionary:
+	if predicted_world == null or predicted_world.state == null:
+		return {"in_sync": true, "server_count": _server_breakable_blocks_remaining, "local_count": -1}
+	var local_count := _count_breakable_in_grid(predicted_world.state.grid)
+	var in_sync := _server_breakable_blocks_remaining < 0 or local_count == _server_breakable_blocks_remaining
+	return {"in_sync": in_sync, "server_count": _server_breakable_blocks_remaining, "local_count": local_count}
+
+
+func _count_breakable_in_grid(grid: GridState) -> int:
+	if grid == null:
+		return -1
+	var count := 0
+	for y in range(grid.height):
+		for x in range(grid.width):
+			var cell := grid.get_static_cell(x, y)
+			if cell.tile_type == TileConstantsScript.TileType.BREAKABLE_BLOCK:
+				count += 1
+	return count
+
+
 func reset() -> void:
 	_last_authority_batch_metrics.clear()
 	_latest_authoritative_event_tick = -1
 	_last_consumed_authoritative_event_tick = -1
+	_server_breakable_blocks_remaining = -1
+	_last_checkpoint_breakable_count = -1
 
 
 func _store_authoritative_events(message: Dictionary) -> void:

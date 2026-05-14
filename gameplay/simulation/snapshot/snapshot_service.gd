@@ -2,6 +2,7 @@ class_name SnapshotService
 extends RefCounted
 
 const BubblePassPhaseHelper = preload("res://gameplay/simulation/movement/bubble_pass_phase_helper.gd")
+const TileConstantsScript = preload("res://gameplay/simulation/state/tile_constants.gd")
 
 var checksum_builder: ChecksumBuilder = ChecksumBuilder.new()
 
@@ -23,6 +24,7 @@ func build_standard_snapshot(sim_world: SimWorld, tick_id: int, include_checksum
 	var snapshot := build_light_snapshot(sim_world, tick_id, false)
 	snapshot.rng_state = sim_world.rng.get_state()
 	snapshot.walls = _capture_walls(sim_world)
+	snapshot.breakable_blocks_remaining = _count_breakable_blocks(snapshot.walls)
 	snapshot.mode_state = _capture_mode_state(sim_world)
 	if include_checksum:
 		snapshot.checksum = checksum_builder.build(sim_world, tick_id)
@@ -209,6 +211,14 @@ func _capture_walls(sim_world: SimWorld) -> Array[Dictionary]:
 				"theme_variant": cell.theme_variant
 			})
 	return walls
+
+
+func _count_breakable_blocks(walls: Array[Dictionary]) -> int:
+	var count := 0
+	for wall in walls:
+		if int(wall.get("tile_type", 0)) == TileConstantsScript.TileType.BREAKABLE_BLOCK:
+			count += 1
+	return count
 
 
 func _capture_mode_state(sim_world: SimWorld) -> Dictionary:

@@ -8,6 +8,7 @@ static func snapshot_from_message(message: Dictionary) -> WorldSnapshot:
 	snapshot.bubbles = coerce_dictionary_array(message.get("bubbles", []))
 	snapshot.items = coerce_dictionary_array(message.get("items", []))
 	snapshot.walls = coerce_dictionary_array(message.get("walls", []))
+	snapshot.breakable_blocks_remaining = int(message.get("breakable_blocks_remaining", -1))
 	snapshot.match_state = coerce_dictionary(message.get("match_state", {}))
 	snapshot.mode_state = coerce_dictionary(message.get("mode_state", {}))
 	snapshot.rng_state = int(message.get("rng_state", 0))

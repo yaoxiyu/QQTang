@@ -7,6 +7,7 @@ var players: Array[Dictionary] = []
 var bubbles: Array[Dictionary] = []
 var items: Array[Dictionary] = []
 var walls: Array[Dictionary] = []
+var breakable_blocks_remaining: int = -1
 var match_state: Dictionary = {}
 var mode_state: Dictionary = {}
 var checksum: int = 0
@@ -20,6 +21,7 @@ func duplicate_deep() -> WorldSnapshot:
 	copy.bubbles = bubbles.duplicate(true)
 	copy.items = items.duplicate(true)
 	copy.walls = walls.duplicate(true)
+	copy.breakable_blocks_remaining = breakable_blocks_remaining
 	copy.match_state = match_state.duplicate(true)
 	copy.mode_state = mode_state.duplicate(true)
 	copy.checksum = checksum

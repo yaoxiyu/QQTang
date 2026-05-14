@@ -14,6 +14,8 @@ const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
 const BattleAudioEventConfigScript = preload("res://presentation/battle/audio/battle_audio_event_config.gd")
 const FxPoolScript = preload("res://presentation/battle/fx/fx_pool.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
+const TileConstantsScript = preload("res://gameplay/simulation/state/tile_constants.gd")
+const TileFactoryScript = preload("res://gameplay/simulation/state/tile_factory.gd")
 const TRACE_PREFIX := "[qq_battle_trace]"
 const DEBUG_TICK_LOGS := false
 const LOG_FX_ANOMALIES := false
@@ -43,6 +45,7 @@ var _bubble_color_by_slot: Dictionary = {}
 
 var _last_consumed_tick: int = -1
 var _local_player_entity_id: int = -1
+var _current_world: SimWorld = null
 
 
 func _ready() -> void:
@@ -88,6 +91,7 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	if world == null or actor_layer == null:
 		return
 
+	_current_world = world
 	var tick_id := int(world.state.match_state.tick)
 	var runtime_flags := world.state.runtime_flags
 	var force_client_refresh := runtime_flags != null and bool(runtime_flags.client_prediction_mode)
@@ -417,14 +421,23 @@ func _on_explosion_event_routed(event: SimEvent) -> void:
 
 
 func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
-	if event == null or fx_layer == null:
+	if event == null:
 		return
 	var destroyed_cell := Vector2i(
 		int(event.payload.get("cell_x", 0)),
 		int(event.payload.get("cell_y", 0))
 	)
+	# 权威事件到达时，同步更新预测世界的 GridState，防止 grid_cache 重建已破坏的格子
+	if _current_world != null and _current_world.state != null:
+		var grid := _current_world.state.grid
+		if grid.is_in_bounds(destroyed_cell.x, destroyed_cell.y):
+			var static_cell := grid.get_static_cell(destroyed_cell.x, destroyed_cell.y)
+			if static_cell.tile_type == TileConstantsScript.TileType.BREAKABLE_BLOCK:
+				grid.set_static_cell(destroyed_cell.x, destroyed_cell.y, TileFactoryScript.make_empty())
 	if map_view != null and map_view.has_method("handle_cell_destroyed"):
 		map_view.handle_cell_destroyed(destroyed_cell)
+	if fx_layer == null:
+		return
 	var fx = fx_pool.acquire("brick_break", fx_layer, func(v: Node):
 		(v as BrickBreakFxPlayer).configure(_to_world_center(destroyed_cell), cell_size))
 	fx.finished.connect(_on_brick_break_finished.bind(fx), CONNECT_ONE_SHOT)
