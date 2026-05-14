@@ -7,6 +7,7 @@ const BattleEventRouterScript = preload("res://presentation/battle/bridge/battle
 const ExplosionActorViewScript = preload("res://presentation/battle/actors/explosion_actor_view.gd")
 const CorrectionMarkerViewScript = preload("res://presentation/battle/actors/correction_marker_view.gd")
 const BrickBreakFxPlayerScript = preload("res://presentation/battle/fx/brick_break_fx_player.gd")
+const AirplaneActorViewScript = preload("res://presentation/battle/actors/airplane_actor_view.gd")
 const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
@@ -46,11 +47,15 @@ var _bubble_color_by_slot: Dictionary = {}
 var _last_consumed_tick: int = -1
 var _local_player_entity_id: int = -1
 var _current_world: SimWorld = null
+var _airplane_view: Node2D = null
 
 
 func _ready() -> void:
 	if has_node(map_view_path):
 		map_view = get_node(map_view_path)
+		if map_view != null:
+			map_view.z_as_relative = false
+			map_view.z_index = 0
 	if has_node(actor_layer_path):
 		actor_layer = get_node(actor_layer_path)
 		if actor_layer != null:
@@ -131,7 +136,30 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
 	_log_actor_sync_anomalies(world, tick_id, events)
+	_sync_airplane_view(world)
 	_last_consumed_tick = tick_id
+
+
+func _sync_airplane_view(world: SimWorld) -> void:
+	if world == null or actor_layer == null:
+		return
+	var pool := world.state.item_pool_runtime
+	if pool == null:
+		return
+
+	if not pool.airplane_active:
+		if _airplane_view != null:
+			_airplane_view.dispose()
+			_airplane_view = null
+		return
+
+	if _airplane_view == null:
+		_airplane_view = AirplaneActorViewScript.new()
+		_airplane_view.configure(cell_size)
+		actor_layer.add_child(_airplane_view)
+
+	if _airplane_view != null and _airplane_view.has_method("update_position"):
+		_airplane_view.update_position(pool.airplane_x, pool.airplane_y)
 
 
 func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef) -> void:
@@ -152,6 +180,9 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 func clear_bridge() -> void:
 	_last_consumed_tick = -1
 	_grid_cache.clear()
+	if _airplane_view != null:
+		_airplane_view.dispose()
+		_airplane_view = null
 	if map_view != null and map_view.has_method("clear_map"):
 		map_view.clear_map()
 	if actor_registry != null:

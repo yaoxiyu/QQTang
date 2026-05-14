@@ -43,14 +43,15 @@ func apply_view_state(view_state: Dictionary) -> void:
 	var target_pos: Vector2 = view_state.get("position", Vector2.ZERO)
 	item_color = view_state.get("color", item_color)
 	z_as_relative = false
-	z_index = BattleDepth.item_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
+	if _scatter_state != 1:  # 飞行中保持 FLYING_Z，不被地面层级覆盖
+		z_index = BattleDepth.item_z(view_state.get("cell", Vector2i.ZERO) as Vector2i)
 	_refresh_visuals()
 
 	var scatter_from: Vector2 = view_state.get("scatter_from", Vector2(-1, -1))
 	if _scatter_state == 0 and scatter_from.x >= 0.0 and target_pos.distance_squared_to(scatter_from) > 1.0:
 		_scatter_state = 1
 		_start_scatter_animation(scatter_from, target_pos)
-	elif _scatter_state == 2:
+	elif _scatter_state != 1:
 		position = target_pos
 	# else: _scatter_state == 1 (flying), tween controls position, don't touch
 
@@ -61,6 +62,9 @@ func _start_scatter_animation(from: Vector2, to: Vector2) -> void:
 	_scatter_target = to
 
 	position = from
+	# 飞行中层级：基于飞越的最高行 + 500，确保高于该行所有表面元素
+	var max_row := maxi(int(from.y / cell_size_px), int(to.y / cell_size_px))
+	z_index = max_row * 100 + 500
 	_fallback_body.visible = false
 	_fallback_outline.visible = false
 
@@ -83,6 +87,8 @@ func _on_scatter_step(t: float, p0: Vector2, p1: Vector2, p2: Vector2) -> void:
 func _on_scatter_landed() -> void:
 	position = _scatter_target
 	_scatter_state = 2
+	# 落地后恢复地面层级
+	z_index = BattleDepth.item_z(Vector2i(int(_scatter_target.x / cell_size_px), int(_scatter_target.y / cell_size_px)))
 	if _sprite.sprite_frames != null:
 		_sprite.visible = true
 		_fallback_body.visible = false

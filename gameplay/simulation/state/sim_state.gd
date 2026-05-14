@@ -29,6 +29,9 @@ var items: ItemStore = ItemStore.new()
 # 模式运行时状态
 var mode: ModeState = ModeState.new()
 
+# 道具池运行时状态
+var item_pool_runtime: RefCounted = null
+
 # 运行时标志
 var runtime_flags: RuntimeFlags = RuntimeFlags.new()
 

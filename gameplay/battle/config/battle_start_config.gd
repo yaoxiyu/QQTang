@@ -10,6 +10,7 @@ const DEFAULT_MATCH_DURATION_TICKS: int = 180 * TickRunnerScript.TICK_RATE
 const DEFAULT_OPENING_INPUT_FREEZE_TICKS: int = 2 * TickRunnerScript.TICK_RATE
 const DEFAULT_NETWORK_INPUT_LEAD_TICKS: int = 3
 const DEFAULT_ITEM_SPAWN_PROFILE_ID: String = "default_items"
+const DEFAULT_ITEM_POOL_ID: String = "default_items"
 const BUILD_MODE_CANDIDATE: String = "candidate"
 const BUILD_MODE_CANONICAL: String = "canonical"
 
@@ -33,6 +34,7 @@ var opening_input_freeze_ticks: int = 0
 var network_input_lead_ticks: int = 0
 var match_duration_ticks: int = DEFAULT_MATCH_DURATION_TICKS
 var item_spawn_profile_id: String = DEFAULT_ITEM_SPAWN_PROFILE_ID
+var item_pool_id: String = DEFAULT_ITEM_POOL_ID
 var snapshot_interval: int = 0
 var checksum_interval: int = 0
 var rollback_window: int = 0
@@ -71,6 +73,7 @@ func to_dict() -> Dictionary:
 		"network_input_lead_ticks": network_input_lead_ticks,
 		"match_duration_ticks": match_duration_ticks,
 		"item_spawn_profile_id": item_spawn_profile_id,
+		"item_pool_id": item_pool_id,
 		"snapshot_interval": snapshot_interval,
 		"checksum_interval": checksum_interval,
 		"rollback_window": rollback_window,
@@ -109,6 +112,7 @@ static func from_dict(data: Dictionary) -> BattleStartConfig:
 	config.network_input_lead_ticks = int(data.get("network_input_lead_ticks", 0))
 	config.match_duration_ticks = int(data.get("match_duration_ticks", DEFAULT_MATCH_DURATION_TICKS))
 	config.item_spawn_profile_id = String(data.get("item_spawn_profile_id", DEFAULT_ITEM_SPAWN_PROFILE_ID))
+	config.item_pool_id = String(data.get("item_pool_id", DEFAULT_ITEM_POOL_ID))
 	config.snapshot_interval = int(data.get("snapshot_interval", 0))
 	config.checksum_interval = int(data.get("checksum_interval", 0))
 	config.rollback_window = int(data.get("rollback_window", 0))

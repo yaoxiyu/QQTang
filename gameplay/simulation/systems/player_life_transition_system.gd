@@ -106,6 +106,13 @@ func _finalize_player_death(ctx: SimContext, player: PlayerState) -> void:
 		player.respawn_ticks = 0
 		player.death_display_ticks = death_display_ticks
 
+	# 非背包道具拾取后死亡时回收到池
+	var pool := ctx.state.item_pool_runtime
+	if pool != null:
+		for battle_item_id in player.collected_non_backpack_items:
+			pool.add_to_recycle(battle_item_id, 1)
+	player.collected_non_backpack_items.clear()
+
 	_drop_backpack_on_death(ctx, player, foot_cell)
 
 	ctx.state.players.update_player(player)

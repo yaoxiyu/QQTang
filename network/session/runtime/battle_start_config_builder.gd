@@ -199,6 +199,7 @@ func _build_start_config_internal(snapshot: RoomSnapshot, consume_match_id: bool
 	config.network_input_lead_ticks = DEFAULT_NETWORK_INPUT_LEAD_TICKS if resolved_topology == "dedicated_server" else 0
 	config.match_duration_ticks = _resolve_match_duration_ticks(resolved_rule_set_id)
 	config.item_spawn_profile_id = String(map_metadata.get("item_spawn_profile_id", BattleStartConfigScript.DEFAULT_ITEM_SPAWN_PROFILE_ID))
+	config.item_pool_id = String(map_metadata.get("item_pool_id", BattleStartConfigScript.DEFAULT_ITEM_POOL_ID))
 	config.session_mode = _resolve_session_mode(resolved_topology)
 	config.topology = resolved_topology
 	config.local_peer_id = int(player_slots[0].get("peer_id", 0)) if not player_slots.is_empty() else 0

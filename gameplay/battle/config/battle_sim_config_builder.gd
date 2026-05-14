@@ -3,6 +3,7 @@ extends RefCounted
 
 const BattleItemConfigBuilderScript = preload("res://gameplay/battle/config/battle_item_config_builder.gd")
 const BattleExplosionConfigBuilderScript = preload("res://gameplay/battle/config/battle_explosion_config_builder.gd")
+const ItemPoolRegistryScript = preload("res://gameplay/battle/config/item_pool_registry.gd")
 const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_catalog.gd")
 
 
@@ -31,6 +32,13 @@ func build_for_start_config(start_config: BattleStartConfig) -> SimConfig:
 	sim_config.system_flags["player_slots"] = start_config.player_slots.duplicate(true)
 	sim_config.system_flags["character_loadouts"] = start_config.character_loadouts.duplicate(true)
 	sim_config.system_flags["player_bubble_loadouts"] = start_config.player_bubble_loadouts.duplicate(true)
+	sim_config.system_flags["battle_seed"] = int(start_config.battle_seed)
+	var pool_id := String(start_config.item_pool_id)
+	if pool_id.is_empty():
+		pool_id = "default_items"
+	var pool_profile: Dictionary = ItemPoolRegistryScript.get_pool(pool_id)
+	sim_config.system_flags["item_pool_profile"] = pool_profile
+	sim_config.system_flags["item_pool_id"] = pool_id
 	return sim_config
 
 

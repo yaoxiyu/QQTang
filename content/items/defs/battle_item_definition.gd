@@ -10,6 +10,7 @@ extends Resource
 @export var trigger_source: String = ""
 @export var enabled: bool = true
 @export var backpack_type: String = "none"
+@export var pool_category: String = ""
 @export var apply_on_pickup: bool = true
 @export var effect_type: String = ""
 @export var effect_target: String = ""
@@ -36,6 +37,7 @@ func to_catalog_entry(resource_path: String) -> Dictionary:
 		"trigger_source": trigger_source,
 		"enabled": enabled,
 		"backpack_type": backpack_type,
+		"pool_category": pool_category,
 		"apply_on_pickup": apply_on_pickup,
 		"effect_type": effect_type,
 		"effect_target": effect_target,

@@ -77,6 +77,7 @@ func start_match(config: BattleStartConfig) -> bool:
 		"grid": MapLoaderScript.build_grid_state(start_config.map_id),
 		"player_slots": start_config.player_slots.duplicate(true),
 		"spawn_assignments": start_config.spawn_assignments.duplicate(true),
+		"decorative_surface_cells": MapLoaderScript.build_decorative_surface_cells(start_config.map_id),
 	})
 	predicted_world.state.match_state.remaining_ticks = int(start_config.match_duration_ticks)
 	predicted_world.state.match_state.phase = MatchState.Phase.PLAYING

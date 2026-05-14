@@ -58,6 +58,7 @@ func _try_apply_data_driven_effect(ctx: SimContext, player, battle_item_id: Stri
 		return false
 
 	var backpack_type := String(item_definition.get("backpack_type", "none"))
+	var pool_category := String(item_definition.get("pool_category", ""))
 	var apply_on_pickup := bool(item_definition.get("apply_on_pickup", true))
 
 	if apply_on_pickup:
@@ -71,6 +72,11 @@ func _try_apply_data_driven_effect(ctx: SimContext, player, battle_item_id: Stri
 			_add_to_usable_slots(player, battle_item_id)
 		"permanent":
 			pass
+
+	# 不进背包的物品拾取后记录，死亡时回收到池
+	if pool_category == "non_backpack":
+		if not player.collected_non_backpack_items.has(battle_item_id):
+			player.collected_non_backpack_items.append(battle_item_id)
 
 	return true
 

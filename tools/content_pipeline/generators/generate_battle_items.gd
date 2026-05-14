@@ -31,6 +31,7 @@ func generate() -> void:
 		def.trigger_source = reader.optional_string(row, "trigger_source", "")
 		def.enabled = reader.parse_bool(row.get("enabled", "false"))
 		def.backpack_type = reader.optional_string(row, "backpack_type", "none")
+		def.pool_category = reader.optional_string(row, "pool_category", "")
 		def.apply_on_pickup = reader.parse_bool(row.get("apply_on_pickup", "true"))
 		def.effect_type = reader.optional_string(row, "effect_type", "")
 		def.effect_target = reader.optional_string(row, "effect_target", "")

@@ -23,6 +23,7 @@ var generation: int = 0
 var alive: bool = true
 var item_type: int = 0
 var battle_item_id: String = ""
+var pool_category: String = ""
 var scatter_from_x: int = -1
 var scatter_from_y: int = -1
 

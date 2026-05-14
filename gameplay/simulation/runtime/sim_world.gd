@@ -12,6 +12,7 @@ class_name SimWorld
 extends RefCounted
 
 const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+const ItemPoolRuntimeScript = preload("res://gameplay/simulation/entities/item_pool_runtime.gd")
 
 # ====================
 # 核心组件
@@ -95,6 +96,7 @@ func bootstrap(p_config: SimConfig, bootstrap_data: Dictionary) -> void:
 	state.mode.mode_runtime_type = "default"
 	_initialize_spawned_players(bootstrap_data)
 	state.match_state.phase = MatchState.Phase.PLAYING
+	_initialize_item_pool(bootstrap_data)
 	state.indexes.rebuild_from_state(state)
 	tick_runner.set_tick(state.match_state.tick)
 
@@ -223,6 +225,67 @@ func step() -> Dictionary:
 		events = events.get_events(),
 		phase = state.match_state.phase
 	}
+
+
+func _initialize_item_pool(bootstrap_data: Dictionary) -> void:
+	var pool_profile: Dictionary = config.system_flags.get("item_pool_profile", {})
+	if pool_profile.is_empty():
+		return
+	var battle_seed := int(config.system_flags.get("battle_seed", 0))
+	var pool := ItemPoolRuntimeScript.new()
+	pool.airplane_interval_ticks = int(pool_profile.get("airplane_interval_sec", 10)) * int(config.tick_rate)
+	pool.airplane_timer_ticks = pool.airplane_interval_ticks
+	var pool_rng := SimRng.new(battle_seed ^ 0x7F139001)
+
+	var item_list: Array[String] = []
+	for entry in pool_profile.get("entries", []):
+		var bid := String(entry.get("battle_item_id", ""))
+		if bid.is_empty():
+			continue
+		var count := int(entry.get("count", 0))
+		for _i in range(count):
+			item_list.append(bid)
+
+		if item_list.is_empty():
+			state.item_pool_runtime = pool
+			return
+
+	var breakable_cells: Array[Vector2i] = []
+	for y in range(state.grid.height):
+		for x in range(state.grid.width):
+			var cell := state.grid.get_static_cell(x, y)
+			if cell.tile_type == 2:  # BREAKABLE_BLOCK
+				breakable_cells.append(Vector2i(x, y))
+
+	# Fisher-Yates shuffle
+	for i in range(item_list.size() - 1, 0, -1):
+		var j := int(pool_rng.range_int(0, i + 1))
+		var tmp = item_list[i]
+		item_list[i] = item_list[j]
+		item_list[j] = tmp
+
+	var assign_count := mini(item_list.size(), breakable_cells.size())
+	for i in range(assign_count):
+		var cell := breakable_cells[i]
+		var bid := item_list[i]
+		var pool_category := ""
+		var item_def: Dictionary = config.item_defs.get(bid, {})
+		if not item_def.is_empty():
+			pool_category = String(item_def.get("pool_category", ""))
+		pool.block_assignments["%d,%d" % [cell.x, cell.y]] = {
+			"battle_item_id": bid,
+			"pool_category": pool_category,
+		}
+
+	for i in range(assign_count, item_list.size()):
+		pool.add_to_recycle(item_list[i], 1)
+
+	# 标记被大型装饰地表覆盖的格子，禁止空投
+	var decorative_cells: Array = bootstrap_data.get("decorative_surface_cells", [])
+	for cell in decorative_cells:
+		pool.blocked_drop_cells["%d,%d" % [cell.x, cell.y]] = true
+
+	state.item_pool_runtime = pool
 
 
 func enqueue_input(input_frame: InputFrame) -> void:

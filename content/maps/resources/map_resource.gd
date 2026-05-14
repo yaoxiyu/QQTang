@@ -11,6 +11,7 @@ extends Resource
 @export var mechanism_cells: Array[Vector2i] = []
 @export var spawn_points: Array[Vector2i] = []
 @export var item_spawn_profile_id: String = "default_items"
+@export var item_pool_id: String = "default_items"
 @export var tile_theme_id: String = ""
 @export var floor_tile_entries: Array[Dictionary] = []
 @export var surface_entries: Array[Dictionary] = []
@@ -37,6 +38,7 @@ func to_metadata() -> Dictionary:
 		"height": height,
 		"spawn_points": spawn_points.duplicate(),
 		"item_spawn_profile_id": item_spawn_profile_id,
+		"item_pool_id": item_pool_id,
 		"floor_tile_entries": floor_tile_entries.duplicate(true),
 		"surface_entries": surface_entries.duplicate(true),
 		"channel_entries": channel_entries.duplicate(true),

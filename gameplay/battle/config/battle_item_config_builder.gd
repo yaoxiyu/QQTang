@@ -100,6 +100,7 @@ func build_for_rule(rule_set_id: String, fallback_profile_id: String = "default_
 			"display_name": String(item_definition.get("display_name", battle_item_id)),
 			"pickup_effect_type": String(item_definition.get("pickup_effect_type", "")),
 			"backpack_type": String(item_definition.get("backpack_type", "none")),
+			"pool_category": String(item_definition.get("pool_category", "")),
 			"effect_type": String(item_definition.get("effect_type", "")),
 			"effect_target": String(item_definition.get("effect_target", "")),
 			"effect_mode": String(item_definition.get("effect_mode", "")),

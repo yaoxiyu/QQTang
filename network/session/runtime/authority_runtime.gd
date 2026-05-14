@@ -54,6 +54,7 @@ func start_match(config: BattleStartConfig) -> bool:
 			"grid": MapLoaderScript.build_grid_state(start_config.map_id),
 			"player_slots": start_config.player_slots.duplicate(true),
 			"spawn_assignments": start_config.spawn_assignments.duplicate(true),
+			"decorative_surface_cells": MapLoaderScript.build_decorative_surface_cells(start_config.map_id),
 		},
 		start_config.battle_seed,
 		start_config.start_tick

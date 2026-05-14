@@ -108,6 +108,7 @@ var can_cross_own_bubble: bool = false
 # ====================
 var passive_backpack: Array[String] = []  # 战斗被动背包，battle_item_id 列表，无限容量
 var usable_slots: Array = [null, null, null, null, null, null]  # 6格可使用背包，null 或 {"battle_item_id": String, "count": int}
+var collected_non_backpack_items: Array[String] = []  # 已拾取的非背包道具ID，死亡时回收入池
 
 # ====================
 # 状态计时器

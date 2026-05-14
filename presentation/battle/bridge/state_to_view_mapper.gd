@@ -3,6 +3,7 @@ extends RefCounted
 
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
+const ItemDebugLogScript = preload("res://app/logging/item_debug_log.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
@@ -264,6 +265,7 @@ func map_item_state(item: ItemState) -> Dictionary:
 	}
 	if item.scatter_from_x >= 0:
 		view["scatter_from"] = _to_world_position(item.scatter_from_x, item.scatter_from_y)
+	ItemDebugLogScript.write("[ITEM_POS] map_view eid=%d battle_item=%s cell=(%d,%d) world_pos=(%.1f,%.1f)" % [item.entity_id, item.battle_item_id, item.cell_x, item.cell_y, view.position.x, view.position.y])
 	return view
 
 

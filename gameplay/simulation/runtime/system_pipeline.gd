@@ -18,6 +18,7 @@ const JellyInteractionSystemScript = preload("res://gameplay/simulation/systems/
 const RespawnSystemScript = preload("res://gameplay/simulation/systems/respawn_system.gd")
 const ScoreSystemScript = preload("res://gameplay/simulation/systems/score_system.gd")
 const DeathPresentationSystemScript = preload("res://gameplay/simulation/systems/death_presentation_system.gd")
+const ItemPoolSystemScript = preload("res://gameplay/simulation/systems/item_pool_system.gd")
 
 # 系统列表
 var _systems: Array[ISimSystem] = []
@@ -47,6 +48,7 @@ func initialize_default_pipeline() -> void:
 	add_system(ScoreSystemScript.new())
 	add_system(StatusEffectSystem.new())
 	add_system(ItemSpawnSystem.new())
+	add_system(ItemPoolSystemScript.new())
 	add_system(ItemPickupSystem.new())
 	add_system(WinConditionSystem.new())
 	add_system(TimeLimitSystemScript.new())

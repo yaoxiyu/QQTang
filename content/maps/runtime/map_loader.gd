@@ -89,6 +89,45 @@ static func build_grid_state(map_id: String) -> GridState:
 	return build_grid_state_from_layout(layout)
 
 
+static func build_decorative_surface_cells(map_id: String) -> Array[Vector2i]:
+	var layout := load_runtime_layout(map_id)
+	if layout == null:
+		return []
+	var blocked: Dictionary = {}
+	for entry in layout.surface_entries:
+		var kind := String(entry.get("interaction_kind", "none"))
+		if kind == "breakable" or kind == "solid":
+			continue
+		var footprint := entry.get("footprint", Vector2i.ONE) as Vector2i
+		if footprint.x <= 1 and footprint.y <= 1:
+			continue
+		var anchor_cell := entry.get("cell", Vector2i.ZERO) as Vector2i
+		var anchor_mode := String(entry.get("anchor_mode", "bottom_right"))
+		for cell in _surface_footprint_cells(anchor_cell, footprint, anchor_mode):
+			blocked["%d,%d" % [cell.x, cell.y]] = true
+	var result: Array[Vector2i] = []
+	for key in blocked.keys():
+		var key_str := String(key)
+		var parts := key_str.split(",")
+		result.append(Vector2i(int(parts[0]), int(parts[1])))
+	return result
+
+
+static func _surface_footprint_cells(anchor: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var left: int
+	if anchor_mode == "center" or anchor_mode == "bottom_center":
+		left = anchor.x - int(floorf(float(size.x - 1) / 2.0))
+	elif anchor_mode == "bottom_left":
+		left = anchor.x
+	else:
+		left = anchor.x - size.x + 1
+	for fy in range(size.y):
+		for fx in range(size.x):
+			cells.append(Vector2i(left + fx, anchor.y - fy))
+	return cells
+
+
 static func build_grid_state_from_layout(layout: MapRuntimeLayout) -> GridState:
 	if layout == null or layout.width <= 0 or layout.height <= 0:
 		return null
@@ -175,7 +214,7 @@ static func _anchored_rect_cells(anchor_cell: Vector2i, size: Vector2i, anchor_m
 	var result: Array[Vector2i] = []
 	if size.x <= 0 or size.y <= 0:
 		return result
-	var left := anchor_cell.x - int(floor(float(size.x - 1) / 2.0))
+	var left := anchor_cell.x - int(floorf(float(size.x - 1) / 2.0))
 	for fy in range(size.y):
 		for fx in range(size.x):
 			if anchor_mode == "bottom_left":
@@ -220,6 +259,7 @@ static func _build_layout_from_resource(resource: MapResource) -> MapRuntimeLayo
 	layout.mechanism_cells = resource.mechanism_cells.duplicate()
 	layout.spawn_points = resource.spawn_points.duplicate()
 	layout.item_spawn_profile_id = resource.item_spawn_profile_id
+	layout.item_pool_id = resource.item_pool_id
 	layout.content_hash = resource.content_hash
 	layout.tile_theme_id = resource.tile_theme_id
 	layout.floor_tile_entries = resource.floor_tile_entries.duplicate(true)
@@ -257,6 +297,7 @@ static func _build_layout_from_metadata(metadata: Dictionary) -> MapRuntimeLayou
 	layout.height = int(metadata.get("height", 0))
 	layout.spawn_points = metadata.get("spawn_points", []).duplicate()
 	layout.item_spawn_profile_id = String(metadata.get("item_spawn_profile_id", "default_items"))
+	layout.item_pool_id = String(metadata.get("item_pool_id", "default_items"))
 	layout.content_hash = String(metadata.get("content_hash", ""))
 	return layout if _validate_layout(layout) else null
 

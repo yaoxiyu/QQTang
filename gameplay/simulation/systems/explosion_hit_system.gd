@@ -78,6 +78,15 @@ func _process_item_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
 
 
 func _destroy_item(ctx: SimContext, item: ItemState) -> void:
+	var pool_category := String(item.pool_category)
+	var battle_item_id := String(item.battle_item_id)
+
+	# battle_backpack / non_backpack 被炸后回收到池
+	if not battle_item_id.is_empty() and pool_category in ["battle_backpack", "non_backpack"]:
+		var pool := ctx.state.item_pool_runtime
+		if pool != null:
+			pool.add_to_recycle(battle_item_id, 1)
+
 	item.alive = false
 	ctx.state.items.active_ids.erase(item.entity_id)
 

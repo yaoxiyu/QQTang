@@ -147,6 +147,10 @@ func restore_player_from_snapshot(data: Dictionary) -> int:
 		else:
 			player.usable_slots[i] = null
 
+	player.collected_non_backpack_items.clear()
+	for item_id in data.get("collected_non_backpack_items", []):
+		player.collected_non_backpack_items.append(String(item_id))
+
 	while _states.size() <= entity_id:
 		_states.append(null)
 		_generations.append(0)

@@ -11,6 +11,8 @@
 class_name ItemStore
 extends RefCounted
 
+const ItemDebugLogScript = preload("res://app/logging/item_debug_log.gd")
+
 # 道具状态数组
 var _states: Array[ItemState] = []
 
@@ -66,7 +68,8 @@ func spawn_item(
 	p_cell_x: int,
 	p_cell_y: int,
 	p_pickup_delay_ticks: int = 0,
-	p_battle_item_id: String = ""
+	p_battle_item_id: String = "",
+	p_pool_category: String = ""
 ) -> int:
 	var item := ItemState.new()
 
@@ -74,12 +77,15 @@ func spawn_item(
 	item.generation = 1
 	item.item_type = p_item_type
 	item.battle_item_id = p_battle_item_id
+	item.pool_category = p_pool_category
 	item.cell_x = p_cell_x
 	item.cell_y = p_cell_y
 	item.spawn_tick = 0  # 由系统设置
 	item.pickup_delay_ticks = p_pickup_delay_ticks
 	item.alive = true
 	item.visible = true
+
+	ItemDebugLogScript.write("[ITEM_POS] spawn_item eid=%d battle_item=%s pos=(%d,%d) pool_cat=%s" % [item.entity_id, p_battle_item_id, p_cell_x, p_cell_y, p_pool_category])
 
 	# 扩展数组
 	while _states.size() <= item.entity_id:
@@ -101,11 +107,14 @@ func restore_item_from_snapshot(data: Dictionary) -> int:
 	item.alive = bool(data.get("alive", true))
 	item.item_type = int(data.get("item_type", 0))
 	item.battle_item_id = String(data.get("battle_item_id", ""))
+	item.pool_category = String(data.get("pool_category", ""))
 	item.cell_x = int(data.get("cell_x", 0))
 	item.cell_y = int(data.get("cell_y", 0))
 	item.spawn_tick = int(data.get("spawn_tick", 0))
 	item.pickup_delay_ticks = int(data.get("pickup_delay_ticks", 0))
 	item.visible = bool(data.get("visible", true))
+
+	ItemDebugLogScript.write("[ITEM_POS] restore_snapshot eid=%d battle_item=%s pos=(%d,%d) data_keys=%s" % [entity_id, item.battle_item_id, item.cell_x, item.cell_y, str(data.keys())])
 
 	while _states.size() <= entity_id:
 		_states.append(null)

@@ -25,6 +25,7 @@ func build_standard_snapshot(sim_world: SimWorld, tick_id: int, include_checksum
 	snapshot.rng_state = sim_world.rng.get_state()
 	snapshot.walls = _capture_walls(sim_world)
 	snapshot.breakable_blocks_remaining = _count_breakable_blocks(snapshot.walls)
+	snapshot.item_pool_runtime = _capture_item_pool_runtime(sim_world)
 	snapshot.mode_state = _capture_mode_state(sim_world)
 	if include_checksum:
 		snapshot.checksum = checksum_builder.build(sim_world, tick_id)
@@ -44,6 +45,7 @@ func restore_snapshot(sim_world: SimWorld, snapshot: WorldSnapshot) -> void:
 	_restore_items(sim_world, snapshot.items)
 	_restore_walls(sim_world, snapshot.walls)
 	_restore_mode_state(sim_world, snapshot.mode_state)
+	_restore_item_pool_runtime(sim_world, snapshot.item_pool_runtime)
 	sim_world.rebuild_runtime_indexes()
 	if sim_world.tick_runner != null:
 		sim_world.tick_runner.set_tick(snapshot.tick_id)
@@ -137,7 +139,8 @@ func _capture_players(sim_world: SimWorld) -> Array[Dictionary]:
 			"score": player.score,
 			"controller_type": player.controller_type,
 			"passive_backpack": player.passive_backpack.duplicate(),
-			"usable_slots": player.usable_slots.duplicate()
+			"usable_slots": player.usable_slots.duplicate(),
+			"collected_non_backpack_items": player.collected_non_backpack_items.duplicate()
 		})
 	players.sort_custom(func(a: Dictionary, b: Dictionary): return int(a["entity_id"]) < int(b["entity_id"]))
 	return players
@@ -186,6 +189,7 @@ func _capture_items(sim_world: SimWorld) -> Array[Dictionary]:
 			"alive": item.alive,
 			"item_type": item.item_type,
 			"battle_item_id": item.battle_item_id,
+			"pool_category": item.pool_category,
 			"cell_x": item.cell_x,
 			"cell_y": item.cell_y,
 			"spawn_tick": item.spawn_tick,
@@ -219,6 +223,20 @@ func _count_breakable_blocks(walls: Array[Dictionary]) -> int:
 		if int(wall.get("tile_type", 0)) == TileConstantsScript.TileType.BREAKABLE_BLOCK:
 			count += 1
 	return count
+
+
+func _capture_item_pool_runtime(sim_world: SimWorld) -> Dictionary:
+	var pool := sim_world.state.item_pool_runtime
+	if pool == null or not pool.has_method("capture_snapshot"):
+		return {}
+	return pool.capture_snapshot()
+
+
+func _restore_item_pool_runtime(sim_world: SimWorld, data: Dictionary) -> void:
+	if sim_world.state.item_pool_runtime == null:
+		sim_world.state.item_pool_runtime = load("res://gameplay/simulation/entities/item_pool_runtime.gd").new()
+	if not data.is_empty() and sim_world.state.item_pool_runtime != null:
+		sim_world.state.item_pool_runtime.restore_from_snapshot(data)
 
 
 func _capture_mode_state(sim_world: SimWorld) -> Dictionary:

@@ -11,6 +11,7 @@ var breakable_cells: Array[Vector2i] = []
 var mechanism_cells: Array[Vector2i] = []
 var spawn_points: Array[Vector2i] = []
 var item_spawn_profile_id: String = "default_items"
+var item_pool_id: String = "default_items"
 var content_hash: String = ""
 var tile_theme_id: String = ""
 var floor_tile_entries: Array[Dictionary] = []
@@ -30,6 +31,7 @@ func to_dict() -> Dictionary:
 		"mechanism_cells": mechanism_cells.duplicate(),
 		"spawn_points": spawn_points.duplicate(),
 		"item_spawn_profile_id": item_spawn_profile_id,
+		"item_pool_id": item_pool_id,
 		"content_hash": content_hash,
 		"tile_theme_id": tile_theme_id,
 		"floor_tile_entries": floor_tile_entries.duplicate(true),

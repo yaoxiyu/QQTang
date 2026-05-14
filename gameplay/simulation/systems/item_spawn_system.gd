@@ -38,20 +38,36 @@ func _spawn_items_from_destroyed_cells(ctx: SimContext) -> void:
 		if _find_item_id_at_cell(ctx, cell_x, cell_y) != -1:
 			continue
 
-		var battle_item_id: String = _resolve_battle_item_id(ctx)
+		var battle_item_id: String = ""
+		var pool_category: String = ""
+
+		# 优先从物品池分配表查询
+		var pool := ctx.state.item_pool_runtime
+		if pool != null:
+			var assignment: Dictionary = pool.consume_assignment(cell_x, cell_y)
+			if not assignment.is_empty():
+				battle_item_id = String(assignment.get("battle_item_id", ""))
+				pool_category = String(assignment.get("pool_category", ""))
+
+		# 回退：加权随机（兼容未配置池的地图）
+		if battle_item_id.is_empty():
+			battle_item_id = _resolve_battle_item_id(ctx)
+
 		if battle_item_id.is_empty():
 			continue
 
-		_spawn_battle_item(ctx, battle_item_id, cell_x, cell_y)
+		_spawn_battle_item(ctx, battle_item_id, cell_x, cell_y, pool_category)
 
 
-func _spawn_battle_item(ctx: SimContext, battle_item_id: String, cell_x: int, cell_y: int) -> void:
+func _spawn_battle_item(ctx: SimContext, battle_item_id: String, cell_x: int, cell_y: int, pool_category: String = "") -> void:
 	var item_definition: Dictionary = ctx.config.item_defs.get(battle_item_id, {})
 	if item_definition.is_empty():
 		return
 
 	var item_type: int = int(item_definition.get("item_type", 0))
-	var item_id: int = ctx.state.items.spawn_item(item_type, cell_x, cell_y, 2, battle_item_id)
+	if pool_category.is_empty():
+		pool_category = String(item_definition.get("pool_category", ""))
+	var item_id: int = ctx.state.items.spawn_item(item_type, cell_x, cell_y, 2, battle_item_id, pool_category)
 	var item: ItemState = ctx.state.items.get_item(item_id)
 	if item == null:
 		return
