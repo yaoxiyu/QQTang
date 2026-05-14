@@ -24,4 +24,12 @@ $nativeBuild = Join-Path $projectRoot 'tools\native\build_native.ps1'
 & $nativeBuild -Target template_debug
 & $nativeBuild -Target template_release
 
-& cmd /c "`"$GodotPath`" --headless --path `"$projectRoot`" `"res://scenes/network/dedicated_server_scene.tscn`" -- --qqt-port $Port --qqt-host $Host --qqt-battle-id $BattleId --qqt-assignment-id $AssignmentId --qqt-match-id $MatchId --qqt-battle-ticket-secret $TicketSecret"
+# Avoid leaking ticket secret via process argv; pass secret through env var.
+$previousTicketSecret = [Environment]::GetEnvironmentVariable('QQT_BATTLE_TICKET_SECRET', 'Process')
+[Environment]::SetEnvironmentVariable('QQT_BATTLE_TICKET_SECRET', $TicketSecret, 'Process')
+try {
+    & cmd /c "`"$GodotPath`" --headless --path `"$projectRoot`" `"res://scenes/network/dedicated_server_scene.tscn`" -- --qqt-port $Port --qqt-host $Host --qqt-battle-id $BattleId --qqt-assignment-id $AssignmentId --qqt-match-id $MatchId"
+}
+finally {
+    [Environment]::SetEnvironmentVariable('QQT_BATTLE_TICKET_SECRET', $previousTicketSecret, 'Process')
+}

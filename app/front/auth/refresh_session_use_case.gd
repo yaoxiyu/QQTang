@@ -24,7 +24,7 @@ func refresh_session() -> Dictionary:
 			"user_message": "Refresh session gateway is missing",
 		}
 	var session: AuthSessionState = app_runtime.auth_session_state if app_runtime.auth_session_state != null else AuthSessionStateScript.new()
-	var result = app_runtime.auth_gateway.refresh_session(session.refresh_token, session.device_session_id)
+	var result = await app_runtime.auth_gateway.refresh_session(session.refresh_token, session.device_session_id)
 	if result == null:
 		return {
 			"ok": false,

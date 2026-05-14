@@ -21,7 +21,7 @@ func logout() -> Dictionary:
 		"user_message": "",
 	}
 	if app_runtime.auth_gateway != null and app_runtime.auth_gateway.has_method("logout") and app_runtime.auth_session_state != null:
-		logout_result = app_runtime.auth_gateway.logout(
+		logout_result = await app_runtime.auth_gateway.logout(
 			String(app_runtime.auth_session_state.access_token),
 			String(app_runtime.auth_session_state.refresh_token),
 			String(app_runtime.auth_session_state.device_session_id)

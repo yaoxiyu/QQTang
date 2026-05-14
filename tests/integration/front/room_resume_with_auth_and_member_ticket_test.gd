@@ -58,7 +58,7 @@ func _main_body() -> void:
 		runtime.room_ticket_gateway
 	)
 
-	var resume_result: Dictionary = runtime.lobby_use_case.resume_recent_room()
+	var resume_result: Dictionary = await runtime.lobby_use_case.resume_recent_room()
 	var entry_context = resume_result.get("entry_context", null)
 	var room_result: Dictionary = runtime.room_use_case.enter_room(entry_context)
 
@@ -76,6 +76,5 @@ func _main_body() -> void:
 		ok = qqt_check(String(runtime.room_use_case._pending_connection_config.device_session_id) == "dsess_alpha", "pending config should carry device session", prefix) and ok
 
 	runtime.queue_free()
-
 
 

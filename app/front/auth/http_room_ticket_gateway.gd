@@ -26,7 +26,7 @@ func issue_room_ticket(access_token: String, request):
 		"Authorization: Bearer %s" % access_token,
 	])
 	options.body_text = JSON.stringify(request.to_dict())
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return HttpRoomTicketResultScript.fail("ROOM_TICKET_URL_INVALID", "Room ticket service url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

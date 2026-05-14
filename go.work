@@ -1,0 +1,10 @@
+go 1.24.0
+
+use (
+	./services/account_service
+	./services/ds_agent
+	./services/ds_manager_service
+	./services/game_service
+	./services/room_service
+	./services/shared/contentmanifest
+)

@@ -25,11 +25,11 @@ func configure(p_base_url: String, p_key_id: String, p_shared_secret: String, p_
 
 
 func post_json(path: String, payload: Dictionary) -> Dictionary:
-	return _send_json_request(HTTPClient.METHOD_POST, path, payload)
+	return await _send_json_request(HTTPClient.METHOD_POST, path, payload)
 
 
 func get_json(path: String) -> Dictionary:
-	return _send_json_request(HTTPClient.METHOD_GET, path, null)
+	return await _send_json_request(HTTPClient.METHOD_GET, path, null)
 
 
 func _send_json_request(method: int, path: String, payload: Variant) -> Dictionary:
@@ -55,7 +55,7 @@ func _send_json_request(method: int, path: String, payload: Variant) -> Dictiona
 	options.log_tag = log_tag
 	options.connect_timeout_ms = 5000
 	options.read_timeout_ms = 8000
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
 		return _fail("INTERNAL_JSON_CONNECT_FAILED", "Failed to connect internal service")
 	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":

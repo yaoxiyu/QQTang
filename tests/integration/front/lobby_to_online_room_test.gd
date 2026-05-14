@@ -48,7 +48,7 @@ func _test_lobby_can_build_online_create_and_join_entry_contexts() -> void:
 		runtime.room_ticket_gateway
 	)
 
-	var create_result: Dictionary = runtime.lobby_use_case.create_private_room("192.168.0.10", 9100)
+	var create_result: Dictionary = await runtime.lobby_use_case.create_private_room("192.168.0.10", 9100)
 	_assert_true(bool(create_result.get("ok", false)), "lobby can create online room entry context: %s" % JSON.stringify(create_result))
 	var create_entry = create_result.get("entry_context", null)
 	_assert_true(create_entry != null, "online create entry context exists")
@@ -59,7 +59,7 @@ func _test_lobby_can_build_online_create_and_join_entry_contexts() -> void:
 		_assert_true(String(create_entry.server_host) == "192.168.0.10", "online create keeps server host")
 		_assert_true(int(create_entry.server_port) == 9100, "online create keeps server port")
 
-	var join_result: Dictionary = runtime.lobby_use_case.join_private_room("", 0, "ROOM-1001")
+	var join_result: Dictionary = await runtime.lobby_use_case.join_private_room("", 0, "ROOM-1001")
 	_assert_true(bool(join_result.get("ok", false)), "lobby can build online join entry context: %s" % JSON.stringify(join_result))
 	var join_entry = join_result.get("entry_context", null)
 	_assert_true(join_entry != null, "online join entry context exists")
@@ -85,5 +85,4 @@ func _free_current_scene(runtime: Node = null) -> void:
 		return
 	qqt_detach_and_free(tree.current_scene)
 	tree.current_scene = null
-
 

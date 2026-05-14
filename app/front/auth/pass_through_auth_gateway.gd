@@ -2,6 +2,7 @@ class_name PassThroughAuthGateway
 extends AuthGateway
 
 func register(request: RegisterRequest) -> RegisterResult:
+	await _yield_once()
 	if request == null:
 		return RegisterResult.fail("REGISTER_REQUEST_INVALID", "Register request is missing")
 	var nickname := request.nickname.strip_edges()
@@ -20,6 +21,7 @@ func register(request: RegisterRequest) -> RegisterResult:
 
 
 func login(request: LoginRequest) -> LoginResult:
+	await _yield_once()
 	if request == null:
 		return LoginResult.fail("LOGIN_REQUEST_INVALID", "Login request is missing")
 
@@ -48,6 +50,7 @@ func login(request: LoginRequest) -> LoginResult:
 
 
 func refresh_session(refresh_token: String, device_session_id: String) -> RefreshSessionResult:
+	await _yield_once()
 	return RefreshSessionResult.success_from_dict({
 		"ok": true,
 		"account_id": "guest::local_guest",
@@ -64,6 +67,7 @@ func refresh_session(refresh_token: String, device_session_id: String) -> Refres
 
 
 func logout(access_token: String, refresh_token: String, device_session_id: String) -> Dictionary:
+	await _yield_once()
 	return {
 		"ok": true,
 		"error_code": "",
@@ -73,6 +77,7 @@ func logout(access_token: String, refresh_token: String, device_session_id: Stri
 
 
 func get_current_session(access_token: String) -> Dictionary:
+	await _yield_once()
 	return {
 		"ok": true,
 		"error_code": "",
@@ -85,3 +90,9 @@ func get_current_session(access_token: String) -> Dictionary:
 		"session_state": "guest",
 		"validation_bypassed": true,
 	}
+
+
+func _yield_once() -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null:
+		await tree.process_frame

@@ -90,14 +90,14 @@ func TestCreateMatchRoomUsesManifestDefaultMatchFormat(t *testing.T) {
 	snapshot, err := service.CreateRoom(CreateRoomInput{
 		RoomKind:        "casual_match_room",
 		RoomDisplayName: "match-room",
-		RoomTicket:      "test-secret",
+		RoomTicket:      mustIssueCreateRoomTicket(t, "casual_match_room", "acc_1", "pro_1"),
 		AccountID:       "acc_1",
 		ProfileID:       "pro_1",
 		PlayerName:      "p1",
 		ConnectionID:    "conn_1",
 		Loadout: Loadout{
-			CharacterID:     "char_default",
-			BubbleStyleID:   "bubble_default",
+			CharacterID:   "char_default",
+			BubbleStyleID: "bubble_default",
 		},
 	})
 	if err != nil {

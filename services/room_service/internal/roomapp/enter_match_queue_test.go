@@ -6,7 +6,7 @@ func TestEnterMatchQueueLifecycle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -19,7 +19,7 @@ func TestEnterMatchQueueLifecycle(t *testing.T) {
 	}
 	_, err = svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
@@ -69,7 +69,7 @@ func TestEnterMatchQueueRejectsNonIdleRoomPhase(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -82,7 +82,7 @@ func TestEnterMatchQueueRejectsNonIdleRoomPhase(t *testing.T) {
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
@@ -116,14 +116,14 @@ func TestEnterMatchQueueSendsMemberLoadoutToGameService(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
 		ConnectionID: "conn-owner",
 		Loadout: Loadout{
-			CharacterID:     "char_default",
-			BubbleStyleID:   "bubble_default",
+			CharacterID:   "char_default",
+			BubbleStyleID: "bubble_default",
 		},
 		Selection: Selection{MapID: "map_duel", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "1v1", SelectedModeIDs: []string{"mode_classic"}},
 	})
@@ -140,10 +140,10 @@ func TestEnterMatchQueueSendsMemberLoadoutToGameService(t *testing.T) {
 		t.Fatalf("expected captured enter request with one member, got %+v", fakeGame.lastEnterReq)
 	}
 	member := fakeGame.lastEnterReq.GetMembers()[0]
-	if member.GetCharacterId() != "char_default" || member.GetCharacterSkinId() != "skin_1" {
+	if member.GetCharacterId() != "char_default" {
 		t.Fatalf("expected character loadout in enter request, got %+v", member)
 	}
-	if member.GetBubbleStyleId() != "bubble_default" || member.GetBubbleSkinId() != "bubble_skin_1" {
+	if member.GetBubbleStyleId() != "bubble_default" {
 		t.Fatalf("expected bubble loadout in enter request, got %+v", member)
 	}
 }

@@ -61,10 +61,10 @@ func (r *GodotProcessRunner) Start(battleID, assignmentID, matchID, host string,
 		fmt.Sprintf("--qqt-match-id=%s", matchID),
 		fmt.Sprintf("--qqt-ds-host=%s", host),
 		fmt.Sprintf("--qqt-ds-port=%d", port),
-		fmt.Sprintf("--qqt-battle-ticket-secret=%s", r.config.BattleTicketSecret),
 	)
 
 	cmd := exec.CommandContext(ctx, r.config.GodotExecutable, args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("QQT_BATTLE_TICKET_SECRET=%s", r.config.BattleTicketSecret))
 	logFile, err := r.attachBattleLog(cmd, battleID)
 	if err != nil {
 		cancel()
@@ -152,10 +152,10 @@ func (r *GodotProcessRunner) StartWithCallback(battleID, assignmentID, matchID, 
 		fmt.Sprintf("--qqt-match-id=%s", matchID),
 		fmt.Sprintf("--qqt-ds-host=%s", host),
 		fmt.Sprintf("--qqt-ds-port=%d", port),
-		fmt.Sprintf("--qqt-battle-ticket-secret=%s", r.config.BattleTicketSecret),
 	)
 
 	cmd := exec.CommandContext(ctx, r.config.GodotExecutable, args...)
+	cmd.Env = append(os.Environ(), fmt.Sprintf("QQT_BATTLE_TICKET_SECRET=%s", r.config.BattleTicketSecret))
 	logFile, err := r.attachBattleLog(cmd, battleID)
 	if err != nil {
 		cancel()

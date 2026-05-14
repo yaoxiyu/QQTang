@@ -26,7 +26,7 @@ func fetch_my_profile(access_token: String) -> Dictionary:
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return {
 			"ok": false,
@@ -81,7 +81,7 @@ func patch_loadout(access_token: String, payload: Dictionary) -> Dictionary:
 		"Authorization: Bearer %s" % access_token,
 	])
 	options.body_text = JSON.stringify(payload)
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return {
 			"ok": false,

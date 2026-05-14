@@ -58,7 +58,7 @@ func test_main() -> void:
 	settings.game_service_port = 18081
 	var use_case = SettlementSyncUseCaseScript.new()
 	use_case.configure(auth, settings, FakeSettlementGateway.new())
-	var fetch_result: Dictionary = use_case.fetch_match_summary("match_alpha")
+	var fetch_result: Dictionary = await use_case.fetch_match_summary("match_alpha")
 	var popup_result: Dictionary = use_case.apply_summary_to_popup(fetch_result.get("summary", null))
 	controller.apply_server_summary(popup_result.get("popup_summary", {}))
 	controller.set_return_button_mode_lobby()

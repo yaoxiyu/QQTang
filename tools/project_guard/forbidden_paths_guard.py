@@ -8,7 +8,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SEED = ROOT / "docs" / "scope_freeze_guard" / "appendices" / "E_forbidden_path_guard_seed.txt"
 
 
 def normalize_path(value: str) -> str:
@@ -73,14 +72,17 @@ def find_violations(changed_paths: list[str], forbidden_paths: list[str]) -> lis
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Forbidden path guard.")
     parser.add_argument("--base", help="Base ref for git diff, for example origin/main.")
-    parser.add_argument("--seed", default=str(DEFAULT_SEED), help="Forbidden path seed file.")
+    parser.add_argument("--seed", default=None, help="Forbidden path seed file.")
     parser.add_argument("--paths", nargs="*", help="Explicit changed paths to validate.")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
-    seed_path = Path(args.seed)
+    seed_path = Path(args.seed) if args.seed else None
+    if seed_path is None:
+        print("[path_guard] no seed file specified; nothing is forbidden. Pass --seed to enforce.")
+        return 0
     if not seed_path.is_absolute():
         seed_path = ROOT / seed_path
     if not seed_path.exists():

@@ -11,6 +11,7 @@ const LogFrontScript = preload("res://app/logging/log_front.gd")
 const HttpRequestHelperScript = preload("res://app/infra/http/http_request_helper.gd")
 const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
 const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const BATTLE_ENTRY_LOG_PREFIX := "[BATTLE_ENTRY]"
 
 var app_runtime: Node = null
@@ -56,7 +57,7 @@ func request_battle_ticket(ctx) -> Dictionary:
 		"url": url,
 	})
 
-	var result := _http_post_json(url, access_token, body)
+	var result := await _http_post_json(url, access_token, body)
 	if not bool(result.get("ok", false)):
 		_log_battle_entry("battle_ticket_request_failed", {
 			"error_code": String(result.get("error_code", "")),
@@ -99,7 +100,7 @@ func _resolve_account_service_base_url() -> String:
 			host = String(settings.account_service_host).strip_edges()
 		if "account_service_port" in settings and int(settings.account_service_port) > 0:
 			port = int(settings.account_service_port)
-	return "http://%s:%d" % [host, port]
+	return ServiceUrlBuilderScript.build_account_base_url(host, port, 18080)
 
 
 func _http_post_json(url: String, access_token: String, body: String) -> Dictionary:
@@ -117,7 +118,7 @@ func _http_post_json(url: String, access_token: String, body: String) -> Diction
 	options.log_tag = "front.battle.entry_use_case"
 	options.connect_timeout_ms = 5000
 	options.read_timeout_ms = 8000
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
 		return {"ok": false, "error_code": "CONNECT_FAILED", "user_message": "Failed to connect to account service", "data": {}}
 	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":

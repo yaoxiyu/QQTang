@@ -12,6 +12,7 @@ class FakeAuthGateway:
 	extends AuthGateway
 
 	func login(_request):
+		await _yield_once()
 		return LoginResultScript.success(
 			"account_http",
 			"profile_http",
@@ -27,11 +28,17 @@ class FakeAuthGateway:
 			"ok"
 		)
 
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
+
 
 class FakeProfileGateway:
 	extends RefCounted
 
 	func fetch_my_profile(_access_token: String) -> Dictionary:
+		await _yield_once()
 		return {
 			"ok": true,
 			"profile_id": "profile_http",
@@ -47,6 +54,11 @@ class FakeProfileGateway:
 			"profile_version": 2,
 			"owned_asset_revision": 3,
 		}
+
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
 
 
 class FakeAuthSessionRepository:
@@ -80,6 +92,10 @@ class FakeFrontSettingsRepository:
 
 
 func test_main() -> void:
+	await _main_body()
+
+
+func _main_body() -> void:
 	var use_case := LoginUseCaseScript.new()
 	var auth_session := AuthSessionStateScript.new()
 	var auth_session_repository := FakeAuthSessionRepository.new()
@@ -103,7 +119,7 @@ func test_main() -> void:
 	request.password = "pw"
 	request.server_host = "127.0.0.1"
 	request.server_port = 8080
-	var result := use_case.login(request)
+	var result := await use_case.login(request)
 
 	var prefix := "login_use_case_http_test"
 	var ok := true
@@ -116,5 +132,3 @@ func test_main() -> void:
 	ok = qqt_check(auth_session_repository.last_saved != null, "login should persist auth session", prefix) and ok
 	ok = qqt_check(profile_repository.last_saved != null, "login should persist profile cache", prefix) and ok
 	ok = qqt_check(front_settings_repository.save_count == 1, "login should persist front settings", prefix) and ok
-
-

@@ -22,11 +22,11 @@ func fetch_my_wallet(access_token: String) -> Dictionary:
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	return _execute(options)
+	return await _execute(options)
 
 
 func _execute(options) -> Dictionary:
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return _fail("WALLET_HTTP_URL_INVALID", "Wallet HTTP url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

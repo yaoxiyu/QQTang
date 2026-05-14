@@ -14,7 +14,7 @@ var _detail_panel: PanelContainer = null
 func _ready() -> void:
 	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	_build_ui()
-	_refresh()
+	await _refresh()
 
 
 func _build_ui() -> void:
@@ -96,7 +96,7 @@ func _refresh() -> void:
 	if _app_runtime == null or _app_runtime.inventory_use_case == null:
 		_set_status("Inventory runtime missing")
 		return
-	var result: Dictionary = _app_runtime.inventory_use_case.refresh_inventory()
+	var result: Dictionary = await _app_runtime.inventory_use_case.refresh_inventory()
 	if not bool(result.get("ok", false)):
 		_set_status(String(result.get("user_message", "Inventory refresh failed")))
 		return
@@ -126,13 +126,13 @@ func _on_equip_pressed() -> void:
 	if _app_runtime.profile_gateway == null or not _app_runtime.profile_gateway.has_method("patch_loadout"):
 		_set_status("Profile gateway missing")
 		return
-	var result: Dictionary = _app_runtime.profile_gateway.patch_loadout(_app_runtime.auth_session_state.access_token, payload)
+	var result: Dictionary = await _app_runtime.profile_gateway.patch_loadout(_app_runtime.auth_session_state.access_token, payload)
 	if not bool(result.get("ok", false)):
 		_set_status(String(result.get("user_message", "Equip failed")))
 		return
 	_apply_profile_result(result)
 	_set_status("Equipped")
-	_render()
+	await _render()
 
 
 func _can_equip(asset: Dictionary) -> bool:

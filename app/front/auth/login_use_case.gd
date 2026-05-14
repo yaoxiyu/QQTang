@@ -4,6 +4,7 @@ extends RefCounted
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const FrontSettingsStateScript = preload("res://app/front/profile/front_settings_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 var auth_gateway: AuthGateway = null
 var auth_session_state: AuthSessionState = null
@@ -43,7 +44,7 @@ func login(request: LoginRequest) -> Dictionary:
 			"user_message": "Auth gateway is not configured",
 		}
 
-	var result := auth_gateway.login(request)
+	var result := await auth_gateway.login(request)
 	if result == null:
 		return {
 			"ok": false,
@@ -67,7 +68,7 @@ func login(request: LoginRequest) -> Dictionary:
 			"user_message": "Failed to save auth session",
 		}
 
-	var profile_result := _fetch_and_apply_profile()
+	var profile_result := await _fetch_and_apply_profile()
 	if not bool(profile_result.get("ok", false)):
 		return profile_result
 
@@ -101,7 +102,11 @@ func _apply_settings_from_request(request: LoginRequest) -> void:
 func _configure_profile_gateway_from_settings() -> void:
 	if profile_gateway == null or not profile_gateway.has_method("configure_base_url"):
 		return
-	var base_url := "http://%s:%d" % [front_settings_state.account_service_host, front_settings_state.account_service_port]
+	var base_url := ServiceUrlBuilderScript.build_account_base_url(
+		front_settings_state.account_service_host,
+		front_settings_state.account_service_port,
+		18080
+	)
 	profile_gateway.configure_base_url(base_url)
 
 
@@ -129,7 +134,7 @@ func _fetch_and_apply_profile() -> Dictionary:
 			"error_code": "",
 			"user_message": "",
 		}
-	var result = profile_gateway.fetch_my_profile(auth_session_state.access_token)
+	var result = await profile_gateway.fetch_my_profile(auth_session_state.access_token)
 	if result == null:
 		if bool(auth_session_state.validation_bypassed):
 			player_profile_state.profile_id = auth_session_state.profile_id

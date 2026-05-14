@@ -8,14 +8,14 @@ func TestCreateRoom(t *testing.T) {
 	snapshot, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:        "private_room",
 		RoomDisplayName: "Test Room",
-		RoomTicket:      "ticket-create",
+		RoomTicket:      mustIssueCreateRoomTicket(t, "private_room", "acc-1", "pro-1"),
 		AccountID:       "acc-1",
 		ProfileID:       "pro-1",
 		PlayerName:      "owner",
 		ConnectionID:    "conn-1",
 		Loadout: Loadout{
-			CharacterID:     "char_default",
-			BubbleStyleID:   "bubble_default",
+			CharacterID:   "char_default",
+			BubbleStyleID: "bubble_default",
 		},
 		Selection: Selection{
 			MapID:     "map_arcade",

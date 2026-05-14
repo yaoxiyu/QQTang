@@ -14,6 +14,7 @@ class FakeAuthGateway:
 	var accounts: Dictionary = {}
 
 	func register(request):
+		await _yield_once()
 		var result = RegisterResultScript.new()
 		if request == null or String(request.account).is_empty():
 			result.ok = false
@@ -38,6 +39,7 @@ class FakeAuthGateway:
 		return result
 
 	func login(request):
+		await _yield_once()
 		var record: Dictionary = accounts.get(String(request.account), {})
 		if record.is_empty() or String(record.get("password", "")) != String(request.password):
 			return LoginResultScript.fail("LOGIN_FAILED", "login failed")
@@ -56,6 +58,11 @@ class FakeAuthGateway:
 			"login success"
 		)
 
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
+
 
 class FakeProfileGateway:
 	extends RefCounted
@@ -63,6 +70,7 @@ class FakeProfileGateway:
 	var accounts: Dictionary = {}
 
 	func fetch_my_profile(access_token: String) -> Dictionary:
+		await _yield_once()
 		var account_key := _extract_account(access_token)
 		var record: Dictionary = accounts.get(account_key, {})
 		return {
@@ -80,6 +88,11 @@ class FakeProfileGateway:
 			"profile_version": 1,
 			"owned_asset_revision": 1,
 		}
+
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
 
 	func _extract_account(access_token: String) -> String:
 		var token := String(access_token)
@@ -119,7 +132,7 @@ func _main_body() -> void:
 	register_request.nickname = "DemoUser"
 	register_request.server_host = "127.0.0.1"
 	register_request.server_port = 8080
-	var register_result: Dictionary = runtime.register_use_case.register(register_request)
+	var register_result: Dictionary = await runtime.register_use_case.register(register_request)
 	profile_gateway.accounts = auth_gateway.accounts.duplicate(true)
 
 	var login_request := LoginRequestScript.new()
@@ -127,7 +140,7 @@ func _main_body() -> void:
 	login_request.password = "pw123"
 	login_request.server_host = "127.0.0.1"
 	login_request.server_port = 8080
-	var login_result: Dictionary = runtime.login_use_case.login(login_request)
+	var login_result: Dictionary = await runtime.login_use_case.login(login_request)
 
 	var prefix := "login_register_then_login_test"
 	var ok := true
@@ -137,5 +150,4 @@ func _main_body() -> void:
 	ok = qqt_check(String(runtime.player_profile_state.nickname) == "DemoUser", "login should sync registered nickname", prefix) and ok
 
 	runtime.queue_free()
-
 

@@ -24,6 +24,10 @@ func test_boot_decision_can_route_to_login_or_lobby() -> void:
 
 
 func test_pass_through_login_updates_runtime_state() -> void:
+	await _test_pass_through_login_updates_runtime_state_async()
+
+
+func _test_pass_through_login_updates_runtime_state_async() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	var runtime_config := AppRuntimeConfigScript.new()
 	runtime_config.enable_pass_through_auth_fallback = true
@@ -37,7 +41,7 @@ func test_pass_through_login_updates_runtime_state() -> void:
 	request.server_host = "127.0.0.1"
 	request.server_port = 9100
 
-	var result: Dictionary = runtime.login_use_case.login(request)
+	var result: Dictionary = await runtime.login_use_case.login(request)
 	assert_true(bool(result.get("ok", false)), "pass-through login succeeds: %s" % JSON.stringify(result))
 	assert_true(
 		runtime.auth_session_state.login_status == runtime.auth_session_state.LoginStatus.LOGGED_IN,
@@ -61,5 +65,4 @@ func _should_boot_enter_lobby(runtime: Node) -> bool:
 		and bool(settings.auto_enter_lobby) \
 		and not String(profile.profile_id).strip_edges().is_empty() \
 		and not String(profile.nickname).strip_edges().is_empty()
-
 

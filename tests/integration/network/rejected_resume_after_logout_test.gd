@@ -21,8 +21,8 @@ func _main_body() -> void:
 	runtime.front_settings_state.reconnect_token = "token_logout"
 	runtime.front_settings_state.reconnect_match_id = "match_logout"
 
-	var logout_result: Dictionary = runtime.lobby_use_case.logout()
-	var resume_result: Dictionary = runtime.lobby_use_case.resume_recent_room()
+	var logout_result: Dictionary = await runtime.lobby_use_case.logout()
+	var resume_result: Dictionary = await runtime.lobby_use_case.resume_recent_room()
 
 	var prefix := "rejected_resume_after_logout_test"
 	var ok := true
@@ -31,5 +31,3 @@ func _main_body() -> void:
 	ok = qqt_check(String(resume_result.get("error_code", "")) == "RECONNECT_ROOM_MISSING", "resume should fail because reconnect state was cleared", prefix) and ok
 
 	runtime.queue_free()
-
-

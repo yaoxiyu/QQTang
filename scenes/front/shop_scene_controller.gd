@@ -14,7 +14,7 @@ var _detail_panel: PanelContainer = null
 func _ready() -> void:
 	_app_runtime = AppRuntimeRootScript.get_existing(get_tree())
 	_build_ui()
-	_refresh()
+	await _refresh()
 
 
 func _build_ui() -> void:
@@ -98,10 +98,10 @@ func _refresh() -> void:
 		_set_status("Shop runtime missing")
 		return
 	if _app_runtime.wallet_use_case != null:
-		_app_runtime.wallet_use_case.refresh_wallet()
+		await _app_runtime.wallet_use_case.refresh_wallet()
 	if _app_runtime.inventory_use_case != null:
-		_app_runtime.inventory_use_case.refresh_inventory()
-	var result: Dictionary = _app_runtime.shop_use_case.refresh_catalog()
+		await _app_runtime.inventory_use_case.refresh_inventory()
+	var result: Dictionary = await _app_runtime.shop_use_case.refresh_catalog()
 	if not bool(result.get("ok", false)):
 		_set_status(String(result.get("user_message", "Shop refresh failed")))
 		return
@@ -131,7 +131,7 @@ func _on_buy_pressed() -> void:
 	if bool(offer.get("owned", false)):
 		_set_status("Already owned")
 		return
-	var result: Dictionary = _app_runtime.shop_use_case.purchase_offer(String(offer.get("offer_id", "")))
+	var result: Dictionary = await _app_runtime.shop_use_case.purchase_offer(String(offer.get("offer_id", "")))
 	if not bool(result.get("ok", false)):
 		_set_status(String(result.get("user_message", "Purchase failed")))
 		return
@@ -142,7 +142,7 @@ func _on_buy_pressed() -> void:
 		if _app_runtime.inventory_use_case != null:
 			_app_runtime.inventory_use_case.current_inventory = purchase.inventory
 	_set_status("Purchase completed")
-	_render()
+	await _render()
 
 
 func _on_back_pressed() -> void:

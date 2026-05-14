@@ -139,9 +139,9 @@ func test_main() -> void:
 	await get_tree().process_frame
 
 	var ok := true
-	ok = qqt_check(bool(matchmaking.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"]).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
-	ok = qqt_check(bool(matchmaking.poll_queue_status().get("ok", false)), "smoke queue assign should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
-	var consume_result: Dictionary = matchmaking.consume_assignment_and_build_room_entry_context()
+	ok = qqt_check(bool((await matchmaking.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"])).get("ok", false)), "smoke queue enter should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	ok = qqt_check(bool((await matchmaking.poll_queue_status()).get("ok", false)), "smoke queue assign should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
+	var consume_result: Dictionary = await matchmaking.consume_assignment_and_build_room_entry_context()
 	ok = qqt_check(bool(consume_result.get("ok", false)), "smoke assignment consumption should succeed", "matchmaking_ranked_e2e_smoke_test") and ok
 
 	var battle_result = BattleResultScript.new()
@@ -149,7 +149,8 @@ func test_main() -> void:
 	battle_result.finish_reason = "last_survivor"
 	settlement_controller.show_result(battle_result)
 	settlement_controller.set_return_button_mode_lobby()
-	var popup_summary : Dictionary = settlement_sync.apply_summary_to_popup(settlement_sync.fetch_match_summary("match_smoke").get("summary", null)).get("popup_summary", {})
+	var fetch_result: Dictionary = await settlement_sync.fetch_match_summary("match_smoke")
+	var popup_summary : Dictionary = settlement_sync.apply_summary_to_popup(fetch_result.get("summary", null)).get("popup_summary", {})
 	settlement_controller.apply_server_summary(popup_summary)
 
 	var dump: Dictionary = settlement_controller.debug_dump_settlement_state()

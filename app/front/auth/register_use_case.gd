@@ -3,6 +3,7 @@ extends RefCounted
 
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 var app_runtime: Node = null
 
@@ -24,7 +25,7 @@ func register(request: RegisterRequest) -> Dictionary:
 			"error_code": "AUTH_GATEWAY_MISSING",
 			"user_message": "Auth gateway is not configured",
 		}
-	var result = app_runtime.auth_gateway.register(request)
+	var result = await app_runtime.auth_gateway.register(request)
 	if result == null:
 		return {
 			"ok": false,
@@ -54,8 +55,8 @@ func register(request: RegisterRequest) -> Dictionary:
 	if app_runtime.auth_session_repository != null and app_runtime.auth_session_repository.has_method("save_session"):
 		app_runtime.auth_session_repository.save_session(app_runtime.auth_session_state)
 	if app_runtime.profile_gateway != null and app_runtime.profile_gateway.has_method("configure_base_url"):
-		app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host.strip_edges() if not request.server_host.strip_edges().is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
-	var profile_result := _fetch_and_apply_profile()
+		app_runtime.profile_gateway.configure_base_url(ServiceUrlBuilderScript.build_account_base_url(request.server_host, request.server_port, 18080))
+	var profile_result := await _fetch_and_apply_profile()
 	if not bool(profile_result.get("ok", false)):
 		return profile_result
 	if app_runtime.profile_repository != null and app_runtime.profile_repository.has_method("save_profile"):
@@ -79,7 +80,7 @@ func _fetch_and_apply_profile() -> Dictionary:
 			"error_code": "",
 			"user_message": "",
 		}
-	var result = app_runtime.profile_gateway.fetch_my_profile(app_runtime.auth_session_state.access_token)
+	var result = await app_runtime.profile_gateway.fetch_my_profile(app_runtime.auth_session_state.access_token)
 	if result == null:
 		return {
 			"ok": false,

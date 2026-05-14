@@ -122,7 +122,7 @@ func _on_runtime_ready() -> void:
 	_populate_practice_selectors()
 	_configure_custom_room_controls()
 	_populate_custom_room_mode_filter()
-	_refresh_view()
+	await _refresh_view()
 	_connect_signals()
 	_auto_connect_room_directory()
 	_log_online_lobby("runtime_ready", _build_online_debug_context())
@@ -191,7 +191,7 @@ func _populate_mode_filter_selector(selector: OptionButton) -> void:
 func _refresh_view() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null:
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.enter_lobby()
+	var result: Dictionary = await _app_runtime.lobby_use_case.enter_lobby()
 	var view_state = result.get("view_state", null)
 	if view_state == null:
 		return
@@ -259,8 +259,8 @@ func _refresh_view() -> void:
 
 
 func _refresh_career_panel(view_state = null) -> void:
-	if view_state == null and _app_runtime != null and _app_runtime.lobby_use_case != null:
-		view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
+	if view_state == null:
+		return
 	if view_state == null:
 		return
 	if current_season_value != null:
@@ -361,7 +361,7 @@ func _on_create_custom_room_pressed() -> void:
 		"derived_rule_set_id": String(default_binding.get("bound_rule_set_id", "")),
 		"room_display_name": room_display_name,
 	})
-	var result: Dictionary = _app_runtime.lobby_use_case.create_custom_room(
+	var result: Dictionary = await _app_runtime.lobby_use_case.create_custom_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0,
 		visibility,
@@ -374,7 +374,7 @@ func _on_create_casual_match_room_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.create_casual_match_room(
+	var result: Dictionary = await _app_runtime.lobby_use_case.create_casual_match_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0
 	)
@@ -385,7 +385,7 @@ func _on_create_ranked_match_room_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.create_ranked_match_room(
+	var result: Dictionary = await _app_runtime.lobby_use_case.create_ranked_match_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0
 	)
@@ -396,7 +396,7 @@ func _on_join_room_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.join_private_room(
+	var result: Dictionary = await _app_runtime.lobby_use_case.join_private_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0,
 		room_id_input.text.strip_edges() if room_id_input != null else ""
@@ -480,7 +480,7 @@ func _join_custom_room_by_id(room_id: String) -> void:
 	_log_lobby_scene("ui_join_custom_room_pressed", {
 		"room_id": room_id,
 	})
-	var result: Dictionary = _app_runtime.lobby_use_case.join_public_room(
+	var result: Dictionary = await _app_runtime.lobby_use_case.join_public_room(
 		host_input.text.strip_edges() if host_input != null else "",
 		int(port_input.text.to_int()) if port_input != null else 0,
 		room_id
@@ -508,14 +508,18 @@ func _on_reconnect_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null or _app_runtime.room_use_case == null:
 		_set_message("Lobby room flow is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.resume_recent_room()
+	var result: Dictionary = await _app_runtime.lobby_use_case.resume_recent_room()
 	_handle_room_entry_result(result)
 
 
 func _on_logout_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null:
 		return
-	_app_runtime.lobby_use_case.logout()
+	if logout_button != null:
+		logout_button.disabled = true
+	await _app_runtime.lobby_use_case.logout()
+	if logout_button != null:
+		logout_button.disabled = false
 	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_login"):
 		_app_runtime.front_flow.enter_login()
 
@@ -924,8 +928,6 @@ func _create_player_list_row(player_data: Dictionary, pinned: bool) -> Control:
 
 
 func _build_self_profile_payload(view_state = null) -> Dictionary:
-	if view_state == null and _app_runtime != null and _app_runtime.lobby_use_case != null:
-		view_state = _app_runtime.lobby_use_case.enter_lobby(false).get("view_state", null)
 	if view_state == null:
 		return {
 			"name": current_profile_label.text if current_profile_label != null else "Player",
@@ -1103,23 +1105,28 @@ func _on_refresh_profile_pressed() -> void:
 	if _app_runtime == null or _app_runtime.lobby_use_case == null:
 		_set_message("Profile refresh is not available.")
 		return
-	var result: Dictionary = _app_runtime.lobby_use_case.refresh_profile()
+	if refresh_profile_button != null:
+		refresh_profile_button.disabled = true
+	_set_message("Refreshing profile...")
+	var result: Dictionary = await _app_runtime.lobby_use_case.refresh_profile()
+	if refresh_profile_button != null:
+		refresh_profile_button.disabled = false
 	if not bool(result.get("ok", false)):
 		_set_message(String(result.get("user_message", "Profile refresh failed")))
 		return
-	_refresh_view()
+	await _refresh_view()
 
 
 func _on_refresh_career_pressed() -> void:
 	if _app_runtime == null or _app_runtime.career_use_case == null:
 		_set_message("Career refresh is not available.")
 		return
-	var result: Dictionary = _app_runtime.career_use_case.refresh_career_summary()
+	var result: Dictionary = await _app_runtime.career_use_case.refresh_career_summary()
 	if not bool(result.get("ok", false)):
 		_log_online_lobby("refresh_career_failed", result)
 		_set_message(String(result.get("user_message", "Career refresh failed")))
 		return
-	_refresh_view()
+	await _refresh_view()
 	_log_online_lobby("refresh_career_succeeded", _build_online_debug_context())
 
 
@@ -1324,4 +1331,3 @@ func _build_online_debug_context() -> Dictionary:
 		"assignment_ticket_role": assignment_state.ticket_role if assignment_state != null else "",
 		"queue_assignment_consuming": _queue_assignment_consuming,
 	}
-

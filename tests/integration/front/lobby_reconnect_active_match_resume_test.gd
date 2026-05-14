@@ -31,8 +31,8 @@ class MockAppRuntime:
 func test_main() -> void:
 	var ok := true
 	ok = _test_lobby_reconnect_to_active_match_enters_resume_loading() and ok
-	ok = _test_lobby_reconnect_without_member_session_fails() and ok
-	ok = _test_lobby_reconnect_without_token_clears_stale_state() and ok
+	ok = await _test_lobby_reconnect_without_member_session_fails() and ok
+	ok = await _test_lobby_reconnect_without_token_clears_stale_state() and ok
 
 
 func _test_lobby_reconnect_to_active_match_enters_resume_loading() -> bool:
@@ -76,7 +76,7 @@ func _test_lobby_reconnect_without_member_session_fails() -> bool:
 	var use_case := LobbyUseCaseScript.new()
 	use_case.configure(null, null, null, settings, null)
 
-	var result := use_case.resume_recent_room()
+	var result := await use_case.resume_recent_room()
 
 	var prefix := "lobby_reconnect_active_match_resume_test"
 	var ok := true
@@ -97,7 +97,7 @@ func _test_lobby_reconnect_without_token_clears_stale_state() -> bool:
 	var use_case := LobbyUseCaseScript.new()
 	use_case.configure(null, null, null, settings, null)
 
-	var result := use_case.resume_recent_room()
+	var result := await use_case.resume_recent_room()
 
 	var prefix := "lobby_reconnect_active_match_resume_test"
 	var ok := true
@@ -153,4 +153,3 @@ func _build_resume_snapshot() -> MatchResumeSnapshot:
 		"checksum": 2,
 	}
 	return snapshot
-

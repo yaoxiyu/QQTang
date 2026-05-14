@@ -9,7 +9,7 @@ import (
 func TestJoinRoom(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -31,7 +31,7 @@ func TestJoinRoom(t *testing.T) {
 
 	snapshot, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -59,7 +59,7 @@ func TestJoinRoom(t *testing.T) {
 func TestJoinRoomAssignsFirstDifferentTeamForSingleExistingMember(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -92,7 +92,7 @@ func TestJoinRoomAssignsFirstDifferentTeamForSingleExistingMember(t *testing.T) 
 
 	snapshot, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -114,7 +114,7 @@ func TestJoinRoomAssignsFirstDifferentTeamForSingleExistingMember(t *testing.T) 
 func TestJoinRoomAssignsLeastPopulatedTeamWithAscendingTieBreak(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -135,7 +135,7 @@ func TestJoinRoomAssignsLeastPopulatedTeamWithAscendingTieBreak(t *testing.T) {
 	}
 	firstJoin, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-b", "pro-b"),
 		AccountID:    "acc-b",
 		ProfileID:    "pro-b",
 		PlayerName:   "b",
@@ -152,7 +152,7 @@ func TestJoinRoomAssignsLeastPopulatedTeamWithAscendingTieBreak(t *testing.T) {
 
 	snapshot, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-c", "pro-c"),
 		AccountID:    "acc-c",
 		ProfileID:    "pro-c",
 		PlayerName:   "c",
@@ -169,7 +169,7 @@ func TestJoinRoomAssignsLeastPopulatedTeamWithAscendingTieBreak(t *testing.T) {
 
 	snapshot, err = svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-d", "pro-d"),
 		AccountID:    "acc-d",
 		ProfileID:    "pro-d",
 		PlayerName:   "d",

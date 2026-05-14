@@ -11,6 +11,7 @@ class FakeProfileGateway:
 		pass
 
 	func fetch_my_profile(_access_token: String) -> Dictionary:
+		await _yield_once()
 		return {
 			"ok": true,
 			"profile_id": "profile_assets",
@@ -26,6 +27,11 @@ class FakeProfileGateway:
 			"profile_version": 7,
 			"owned_asset_revision": 11,
 		}
+
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
 
 
 func test_main() -> void:
@@ -49,7 +55,7 @@ func _main_body() -> void:
 		runtime.profile_gateway,
 		runtime.room_ticket_gateway
 	)
-	var result: Dictionary = runtime.lobby_use_case.refresh_profile()
+	var result: Dictionary = await runtime.lobby_use_case.refresh_profile()
 
 	var prefix := "lobby_fetch_profile_and_owned_assets_test"
 	var ok := true
@@ -59,5 +65,4 @@ func _main_body() -> void:
 	ok = qqt_check(String(runtime.player_profile_state.profile_source) == "cloud_cache", "refresh_profile should mark cloud cache source", prefix) and ok
 
 	runtime.queue_free()
-
 

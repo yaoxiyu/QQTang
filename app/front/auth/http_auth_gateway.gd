@@ -5,6 +5,7 @@ const RegisterResultScript = preload("res://app/front/auth/register_result.gd")
 const RefreshSessionResultScript = preload("res://app/front/auth/refresh_session_result.gd")
 const HttpRequestExecutorScript = preload("res://app/infra/http/http_request_executor.gd")
 const HttpRequestOptionsScript = preload("res://app/infra/http/http_request_options.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 var service_base_url: String = ""
 
@@ -18,7 +19,7 @@ func register(request: RegisterRequest) -> RegisterResult:
 		return RegisterResultScript.fail("REGISTER_REQUEST_INVALID", "Register request is missing")
 	service_base_url = _build_base_url(request.server_host, request.server_port)
 	return RegisterResultScript.success_from_dict(
-		_request_json(
+		await _request_json(
 			service_base_url + "/api/v1/auth/register",
 			HTTPClient.METHOD_POST,
 			{
@@ -35,7 +36,7 @@ func login(request: LoginRequest) -> LoginResult:
 	if request == null:
 		return LoginResult.fail("LOGIN_REQUEST_INVALID", "Login request is missing")
 	service_base_url = _build_base_url(request.server_host, request.server_port)
-	var response := _request_json(
+	var response := await _request_json(
 		service_base_url + "/api/v1/auth/login",
 		HTTPClient.METHOD_POST,
 		{
@@ -64,7 +65,7 @@ func login(request: LoginRequest) -> LoginResult:
 
 func refresh_session(refresh_token: String, device_session_id: String) -> RefreshSessionResult:
 	return RefreshSessionResultScript.success_from_dict(
-		_request_json(
+		await _request_json(
 			_require_base_url() + "/api/v1/auth/refresh",
 			HTTPClient.METHOD_POST,
 			{
@@ -76,7 +77,7 @@ func refresh_session(refresh_token: String, device_session_id: String) -> Refres
 
 
 func logout(access_token: String, refresh_token: String, device_session_id: String) -> Dictionary:
-	return _request_json(
+	return await _request_json(
 		_require_base_url() + "/api/v1/auth/logout",
 		HTTPClient.METHOD_POST,
 		{
@@ -88,7 +89,7 @@ func logout(access_token: String, refresh_token: String, device_session_id: Stri
 
 
 func get_current_session(access_token: String) -> Dictionary:
-	return _request_json(
+	return await _request_json(
 		_require_base_url() + "/api/v1/auth/session",
 		HTTPClient.METHOD_GET,
 		{},
@@ -97,13 +98,7 @@ func get_current_session(access_token: String) -> Dictionary:
 
 
 func _build_base_url(server_host: String, server_port: int) -> String:
-	var host := server_host.strip_edges()
-	if host.is_empty():
-		host = "127.0.0.1"
-	var port := server_port
-	if port <= 0:
-		port = 18080
-	return "http://%s:%d" % [host, port]
+	return ServiceUrlBuilderScript.build_account_base_url(server_host, server_port, 18080)
 
 
 func _require_base_url() -> String:
@@ -126,7 +121,7 @@ func _request_json(url: String, method: int, body: Dictionary, extra_headers: Ar
 		headers.append(String(header))
 	options.headers = headers
 	options.body_text = "" if method == HTTPClient.METHOD_GET else JSON.stringify(body)
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return {
 			"ok": false,

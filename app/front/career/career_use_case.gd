@@ -4,6 +4,7 @@ extends RefCounted
 const LobbyViewStateScript = preload("res://app/front/lobby/lobby_view_state.gd")
 const CareerSummaryStateScript = preload("res://app/front/career/career_summary_state.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 var auth_session_state: AuthSessionState = null
@@ -29,7 +30,7 @@ func refresh_career_summary() -> Dictionary:
 		return _fail("CAREER_GATEWAY_MISSING", "Career gateway is not available")
 	_configure_gateway()
 	_log_career("refresh_requested", {})
-	var response = career_gateway.fetch_my_career(auth_session_state.access_token)
+	var response = await career_gateway.fetch_my_career(auth_session_state.access_token)
 	if not bool(response.get("ok", false)):
 		_log_career("refresh_failed", response)
 		return _fail(String(response.get("error_code", "CAREER_FETCH_FAILED")), String(response.get("user_message", "Failed to fetch career summary")))
@@ -69,7 +70,7 @@ func _configure_gateway() -> void:
 	if front_settings_state == null:
 		return
 	if career_gateway != null and career_gateway.has_method("configure_base_url"):
-		career_gateway.configure_base_url("http://%s:%d" % [front_settings_state.game_service_host, front_settings_state.game_service_port])
+		career_gateway.configure_base_url(ServiceUrlBuilderScript.build_game_base_url(front_settings_state.game_service_host, front_settings_state.game_service_port, 18081))
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:

@@ -2,6 +2,7 @@ extends Node
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LoginRequestScript = preload("res://app/front/auth/login_request.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 @onready var login_root: Control = get_node_or_null("LoginRoot")
 @onready var main_layout: VBoxContainer = get_node_or_null("LoginRoot/MainLayout")
@@ -104,15 +105,20 @@ func _on_enter_lobby_pressed() -> void:
 	request.server_port = int(port_input.text.to_int()) if port_input != null else 0
 
 	if _app_runtime.profile_gateway != null and _app_runtime.profile_gateway.has_method("configure_base_url"):
-		_app_runtime.profile_gateway.configure_base_url("http://%s:%d" % [request.server_host if not request.server_host.is_empty() else "127.0.0.1", request.server_port if request.server_port > 0 else 18080])
-	var result: Dictionary = _app_runtime.login_use_case.login(request)
+		_app_runtime.profile_gateway.configure_base_url(ServiceUrlBuilderScript.build_account_base_url(request.server_host, request.server_port, 18080))
+	if enter_lobby_button != null:
+		enter_lobby_button.disabled = true
+	_set_message("Logging in...")
+	var result: Dictionary = await _app_runtime.login_use_case.login(request)
+	if enter_lobby_button != null:
+		enter_lobby_button.disabled = false
 	if not bool(result.get("ok", false)):
 		_set_message(String(result.get("user_message", "Login failed")))
 		_refresh_session_summary()
 		return
 	_set_message("")
 	_refresh_session_summary()
-	_refresh_front_state()
+	await _refresh_front_state()
 	if _app_runtime.front_flow != null and _app_runtime.front_flow.has_method("enter_lobby"):
 		_app_runtime.front_flow.enter_lobby()
 
@@ -124,7 +130,7 @@ func _on_register_pressed() -> void:
 	var port := int(port_input.text.to_int()) if port_input != null else 0
 	if port <= 0:
 		port = 18080
-	var register_url := "http://%s:%d/register" % [host, port]
+	var register_url := ServiceUrlBuilderScript.build_account_base_url(host, port, 18080) + "/register"
 	var open_result := OS.shell_open(register_url)
 	if open_result != OK:
 		_set_message("Failed to open register page: %s" % register_url)
@@ -164,11 +170,11 @@ func _refresh_front_state() -> void:
 	if _app_runtime == null:
 		return
 	if _app_runtime.wallet_use_case != null and _app_runtime.wallet_use_case.has_method("refresh_wallet"):
-		_app_runtime.wallet_use_case.refresh_wallet()
+		await _app_runtime.wallet_use_case.refresh_wallet()
 	if _app_runtime.inventory_use_case != null and _app_runtime.inventory_use_case.has_method("refresh_inventory"):
-		_app_runtime.inventory_use_case.refresh_inventory()
+		await _app_runtime.inventory_use_case.refresh_inventory()
 	if _app_runtime.shop_use_case != null and _app_runtime.shop_use_case.has_method("refresh_catalog"):
-		_app_runtime.shop_use_case.refresh_catalog()
+		await _app_runtime.shop_use_case.refresh_catalog()
 
 
 func _apply_formal_login_layout() -> void:
@@ -324,4 +330,3 @@ func _set_asset_meta(node: Node, asset_id: String) -> void:
 	if node == null:
 		return
 	node.set_meta("ui_asset_id", asset_id)
-

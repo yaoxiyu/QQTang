@@ -7,6 +7,7 @@ const BATTLE_REAP_PATH_TEMPLATE := "/internal/v1/battles/%s/reap"
 const LogNetScript = preload("res://app/logging/log_net.gd")
 const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
 const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 var game_service_host: String = "127.0.0.1"
@@ -27,7 +28,7 @@ func configure(
 	p_internal_auth_key_id: String = "primary"
 ) -> void:
 	var base_url := _read_env("GAME_SERVICE_BASE_URL", "")
-	var base_endpoint := _endpoint_from_base_url(base_url)
+	var base_endpoint := ServiceUrlBuilderScript.parse_host_and_explicit_port(base_url)
 	game_service_host = p_game_service_host.strip_edges() if not p_game_service_host.strip_edges().is_empty() else String(base_endpoint.get("host", "")).strip_edges()
 	if game_service_host.is_empty():
 		game_service_host = _read_env("GAME_SERVICE_HOST", "127.0.0.1")
@@ -47,7 +48,7 @@ func configure(
 	_internal_client = null
 	if not internal_auth_shared_secret.is_empty():
 		_internal_client = InternalJsonServiceClientScript.new()
-		_internal_client.configure("http://%s:%d" % [game_service_host, game_service_port], internal_auth_key_id, internal_auth_shared_secret, "net.online.finalize")
+		_internal_client.configure(ServiceUrlBuilderScript.build_game_base_url(game_service_host, game_service_port, 18081), internal_auth_key_id, internal_auth_shared_secret, "net.online.finalize")
 	_log_finalize("configure", {
 		"game_service_host": game_service_host,
 		"game_service_port": game_service_port,
@@ -314,7 +315,7 @@ func _send_internal_post_with_retry(path: String, payload: Dictionary) -> Dictio
 			"path": path,
 			"attempt": attempt + 1,
 		})
-		response = _send_internal_post_once(path, payload)
+		response = await _send_internal_post_once(path, payload)
 		if bool(response.get("ok", false)):
 			return response
 		if _is_terminal_internal_error(String(response.get("error_code", ""))):
@@ -341,7 +342,7 @@ func _send_internal_post_once(path: String, payload: Dictionary) -> Dictionary:
 			"error_code": "MATCH_FINALIZE_SECRET_MISSING",
 			"user_message": "GAME_INTERNAL_AUTH_SHARED_SECRET is missing",
 		}
-	var response: Dictionary = _internal_client.post_json(path, payload)
+	var response: Dictionary = await _internal_client.post_json(path, payload)
 	if bool(response.get("ok", false)):
 		return response
 	match String(response.get("error_code", "")):
@@ -373,23 +374,7 @@ func _read_env(name: String, fallback: String = "") -> String:
 
 
 func _endpoint_from_base_url(base_url: String) -> Dictionary:
-	var trimmed := base_url.strip_edges()
-	if trimmed.is_empty():
-		return {}
-	trimmed = trimmed.replace("http://", "").replace("https://", "")
-	var slash_index := trimmed.find("/")
-	if slash_index >= 0:
-		trimmed = trimmed.substr(0, slash_index)
-	var host := trimmed
-	var port := 0
-	var colon_index := trimmed.rfind(":")
-	if colon_index > 0:
-		host = trimmed.substr(0, colon_index)
-		port = int(trimmed.substr(colon_index + 1).to_int())
-	return {
-		"host": host.strip_edges(),
-		"port": port,
-	}
+	return ServiceUrlBuilderScript.parse_host_and_explicit_port(base_url)
 
 
 func _utc_now_string() -> String:

@@ -24,7 +24,7 @@ func fetch_match_summary(access_token: String, match_id: String) -> Dictionary:
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return _fail("SETTLEMENT_URL_INVALID", "Settlement service url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

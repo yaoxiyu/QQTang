@@ -56,6 +56,7 @@ func main() {
 		sessionService,
 		time.Duration(cfg.AccessTokenTTLSeconds)*time.Second,
 		time.Duration(cfg.RefreshTokenTTLSeconds)*time.Second,
+		auth.WithLoginSecurityHooks(buildLoginSecurityHooks(cfg)),
 	)
 	profileService := profile.NewService(profileRepo)
 	walletService := economy.NewWalletService(profileRepo, walletRepo)
@@ -102,4 +103,15 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("listen: %v", err)
 	}
+}
+
+func buildLoginSecurityHooks(cfg *config.Config) auth.LoginSecurityHooks {
+	if cfg == nil || !cfg.LoginRateLimitEnabled {
+		return auth.NewNoopLoginSecurityHooks()
+	}
+	return auth.NewRateLimitLoginSecurityHooks(
+		cfg.LoginRateLimitMaxFails,
+		time.Duration(cfg.LoginRateLimitWindowSec)*time.Second,
+		time.Duration(cfg.LoginRateLimitCooldownSec)*time.Second,
+	)
 }

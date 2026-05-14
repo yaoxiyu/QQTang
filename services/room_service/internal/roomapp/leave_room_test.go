@@ -10,7 +10,7 @@ import (
 func TestLeaveRoom(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -48,7 +48,7 @@ func TestLeaveRoom(t *testing.T) {
 func TestLeaveRoomTransfersOwnerToLowestOccupiedSlot(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -61,7 +61,7 @@ func TestLeaveRoomTransfersOwnerToLowestOccupiedSlot(t *testing.T) {
 	}
 	joined, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -107,7 +107,7 @@ func TestOwnerLeaveResetsTransferredOwnerAndRebuildsStartCapability(t *testing.T
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -152,7 +152,7 @@ func TestLeaveRoomDelaysEmptyBattleRoomCleanup(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEmptyBattleCleanupGrace(time.Millisecond)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -193,7 +193,7 @@ func TestMarkDisconnectedHidesAndCleansUpEmptyBattleRoom(t *testing.T) {
 	svc := newTestService(t)
 	svc.SetEmptyBattleCleanupGrace(time.Millisecond)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -244,7 +244,7 @@ func joinMemberForLeaveTest(t *testing.T, svc *Service, roomID string, name stri
 	t.Helper()
 	snapshot, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       roomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, roomID, "acc-"+name, "pro-"+name),
 		AccountID:    "acc-" + name,
 		ProfileID:    "pro-" + name,
 		PlayerName:   name,

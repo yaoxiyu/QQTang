@@ -12,7 +12,7 @@ func configure_base_url(base_url: String) -> void:
 
 
 func enter_queue(access_token: String, queue_type: String, match_format_id: String, mode_id: String, rule_set_id: String, selected_map_ids: Array[String]):
-	return _send_json_request(
+	return await _send_json_request(
 		HTTPClient.METHOD_POST,
 		"/api/v1/matchmaking/queue/enter",
 		access_token,
@@ -27,7 +27,7 @@ func enter_queue(access_token: String, queue_type: String, match_format_id: Stri
 
 
 func cancel_queue(access_token: String, queue_entry_id: String = ""):
-	return _send_json_request(
+	return await _send_json_request(
 		HTTPClient.METHOD_POST,
 		"/api/v1/matchmaking/queue/cancel",
 		access_token,
@@ -41,7 +41,7 @@ func get_queue_status(access_token: String, queue_entry_id: String = ""):
 	var path := "/api/v1/matchmaking/queue/status"
 	if not queue_entry_id.is_empty():
 		path += "?queue_entry_id=%s" % queue_entry_id.uri_encode()
-	return _send_json_request(HTTPClient.METHOD_GET, path, access_token, null)
+	return await _send_json_request(HTTPClient.METHOD_GET, path, access_token, null)
 
 
 func _send_json_request(method: int, path: String, access_token: String, payload: Variant):
@@ -56,7 +56,7 @@ func _send_json_request(method: int, path: String, access_token: String, payload
 		"Authorization: Bearer %s" % access_token,
 	])
 	options.body_text = "" if payload == null else JSON.stringify(payload)
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return _fail("MATCHMAKING_URL_INVALID", "Matchmaking service url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

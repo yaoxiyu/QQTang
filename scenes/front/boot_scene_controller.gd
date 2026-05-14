@@ -44,7 +44,7 @@ func _on_runtime_ready() -> void:
 		return
 	if status_label != null:
 		status_label.text = "Restoring session..."
-	var result: Dictionary = _app_runtime.auth_session_restore_use_case.restore_on_boot()
+	var result: Dictionary = await _app_runtime.auth_session_restore_use_case.restore_on_boot()
 	var next_route := String(result.get("next_route", "login"))
 	if next_route == "lobby":
 		if status_label != null:

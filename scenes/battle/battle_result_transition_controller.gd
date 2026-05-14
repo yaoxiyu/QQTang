@@ -149,7 +149,7 @@ func fetch_server_settlement_summary_with_retry(
 	for attempt in range(retry_delays_sec.size() + 1):
 		if settlement_sync_token_resolver.is_valid() and token != int(settlement_sync_token_resolver.call()):
 			return
-		var synced := _fetch_server_settlement_summary_once(app_runtime, settlement_controller, match_id, log_online_flow)
+		var synced := await _fetch_server_settlement_summary_once(app_runtime, settlement_controller, match_id, log_online_flow)
 		if synced:
 			return
 		if attempt >= retry_delays_sec.size():
@@ -171,7 +171,7 @@ func _fetch_server_settlement_summary_once(
 		log_online_flow.call("settlement_summary_fetch_requested", {
 			"match_id": match_id,
 		})
-	var fetch_result: Dictionary = app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
+	var fetch_result: Dictionary = await app_runtime.settlement_sync_use_case.fetch_match_summary(match_id)
 	if not bool(fetch_result.get("ok", false)):
 		if log_online_flow.is_valid():
 			log_online_flow.call("settlement_summary_fetch_failed", {

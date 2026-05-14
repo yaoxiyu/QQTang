@@ -47,6 +47,46 @@ static func read_body_bytes(
 	return chunks
 
 
+static func read_body_bytes_async(
+	client: HTTPClient,
+	log_scope: String = "",
+	log_tag: String = "",
+	source: String = "http_response_reader",
+	context: Dictionary = {}
+) -> PackedByteArray:
+	var chunks := PackedByteArray()
+	if client == null:
+		_warn(log_scope, log_tag, source, "client_missing", context)
+		return chunks
+	while true:
+		var status := client.get_status()
+		match status:
+			HTTPClient.STATUS_BODY:
+				var raw := client.read_response_body_chunk()
+				if not raw.is_empty():
+					chunks.append_array(raw)
+				client.poll()
+				await _yield_msec_async(DEFAULT_POLL_DELAY_MSEC)
+			HTTPClient.STATUS_REQUESTING, HTTPClient.STATUS_CONNECTING, HTTPClient.STATUS_RESOLVING:
+				client.poll()
+				await _yield_msec_async(DEFAULT_POLL_DELAY_MSEC)
+			HTTPClient.STATUS_CONNECTED, HTTPClient.STATUS_DISCONNECTED:
+				return chunks
+			HTTPClient.STATUS_CONNECTION_ERROR, HTTPClient.STATUS_CANT_CONNECT, HTTPClient.STATUS_CANT_RESOLVE, HTTPClient.STATUS_TLS_HANDSHAKE_ERROR:
+				var payload := context.duplicate(true)
+				payload["status"] = _status_name(status)
+				payload["response_code"] = client.get_response_code()
+				_warn(log_scope, log_tag, source, "transport_terminal_status", payload)
+				return chunks
+			_:
+				var payload := context.duplicate(true)
+				payload["status"] = _status_name(status)
+				payload["response_code"] = client.get_response_code()
+				_warn(log_scope, log_tag, source, "transport_unexpected_status", payload)
+				return chunks
+	return chunks
+
+
 static func _warn(log_scope: String, log_tag: String, source: String, event_name: String, payload: Dictionary) -> void:
 	var message := "%s[%s] %s %s" % [HTTP_LOG_PREFIX, source, event_name, JSON.stringify(payload)]
 	match log_scope:
@@ -82,3 +122,11 @@ static func _status_name(status: int) -> String:
 			return "TLS_HANDSHAKE_ERROR"
 		_:
 			return "UNKNOWN_%d" % status
+
+
+static func _yield_msec_async(delay_msec: int) -> void:
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null:
+		await tree.create_timer(float(max(delay_msec, 1)) / 1000.0).timeout
+	else:
+		OS.delay_msec(max(delay_msec, 1))

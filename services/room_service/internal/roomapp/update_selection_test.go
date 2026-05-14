@@ -5,7 +5,7 @@ import "testing"
 func TestUpdateSelection(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -45,7 +45,7 @@ func TestUpdateSelection(t *testing.T) {
 func TestUpdateSelectionRejectsNonOwner(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -58,7 +58,7 @@ func TestUpdateSelectionRejectsNonOwner(t *testing.T) {
 	}
 	joined, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -89,7 +89,7 @@ func TestUpdateSelectionRejectsNonOwner(t *testing.T) {
 func TestUpdateSelectionUpdatesOpenSlots(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -102,7 +102,7 @@ func TestUpdateSelectionUpdatesOpenSlots(t *testing.T) {
 	}
 	joined, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -165,7 +165,7 @@ func TestUpdateSelectionRejectsNonIdleRoomPhase(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",

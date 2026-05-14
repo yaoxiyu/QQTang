@@ -11,7 +11,7 @@ func TestStartManualRoomBattleLifecycle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -71,7 +71,7 @@ func TestDirectorySnapshotHidesManualRoomAfterBattleStart(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "custom_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -107,7 +107,7 @@ func TestStartManualRoomBattleDoesNotRequireOwnerReady(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -140,14 +140,14 @@ func TestStartManualRoomBattleSendsMemberLoadoutToGameService(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
 		ConnectionID: "conn-owner",
 		Loadout: Loadout{
-			CharacterID:     "char_2",
-			BubbleStyleID:   "bubble_2",
+			CharacterID:   "char_2",
+			BubbleStyleID: "bubble_2",
 		},
 		Selection: Selection{MapID: "map_arcade", RuleSetID: "ruleset_classic", ModeID: "mode_classic", MatchFormatID: "2v2"},
 	})
@@ -158,7 +158,16 @@ func TestStartManualRoomBattleSendsMemberLoadoutToGameService(t *testing.T) {
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID}); err != nil {
 		t.Fatalf("toggle ready failed: %v", err)
 	}
-	if _, err := svc.UpdateProfile(UpdateProfileInput{RoomID: created.RoomID, MemberID: created.OwnerMemberID, TeamID: 1, Loadout: Loadout{CharacterID: "char_2", 		t.Fatalf("update owner team failed: %v", err)
+	if _, err := svc.UpdateProfile(UpdateProfileInput{
+		RoomID:   created.RoomID,
+		MemberID: created.OwnerMemberID,
+		TeamID:   1,
+		Loadout: Loadout{
+			CharacterID:   "char_2",
+			BubbleStyleID: "bubble_2",
+		},
+	}); err != nil {
+		t.Fatalf("update owner team failed: %v", err)
 	}
 	if _, err := svc.ToggleReady(ToggleReadyInput{RoomID: created.RoomID, MemberID: guest}); err != nil {
 		t.Fatalf("toggle guest ready failed: %v", err)
@@ -180,7 +189,7 @@ func TestManualRoomFinalizedSyncReturnsRoomToIdle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -271,7 +280,7 @@ func TestManualRoomReturningSyncFreezesRoomUntilFinalized(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -368,7 +377,7 @@ func TestManualRoomBattleAssignmentSyncDoesNotRegressInBattleToReady(t *testing.
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -432,7 +441,7 @@ func TestManualRoomBattleGoneSyncCompletesReturn(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -491,7 +500,7 @@ func TestManualRoomFinalizedSyncResetsDisconnectedMemberBeforeResume(t *testing.
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -557,7 +566,7 @@ func TestManualRoomFinalizedSyncResetsDisconnectedMemberBeforeResume(t *testing.
 		MemberID:       guest,
 		ReconnectToken: reconnectToken,
 		ConnectionID:   "conn-guest-return",
-		RoomTicket:     "ticket-resume",
+		RoomTicket:     mustIssueResumeRoomTicket(t, created.RoomID),
 	})
 	if err != nil {
 		t.Fatalf("resume guest failed: %v", err)
@@ -572,7 +581,7 @@ func joinReadyManualBattleGuest(t *testing.T, svc *Service, roomID string) strin
 	t.Helper()
 	snapshot, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       roomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, roomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
@@ -613,7 +622,7 @@ func TestManualRoomNotInQueueSyncTargets(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -652,7 +661,7 @@ func TestManualRoomQueueStateCleanFullLifecycle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -713,7 +722,7 @@ func TestBattleAssignmentSyncDropsStaleRevision(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",

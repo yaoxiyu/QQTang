@@ -10,6 +10,7 @@ const GameServiceBattleManifestClientScript = preload("res://network/services/ga
 const InternalAuthSignerScript = preload("res://network/services/internal_auth_signer.gd")
 const InternalJsonServiceClientScript = preload("res://app/infra/http/internal_json_service_client.gd")
 const InternalServiceAuthConfigScript = preload("res://app/infra/http/internal_service_auth_config.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const BattleTicketVerifierScript = preload("res://network/services/battle_ticket_verifier.gd")
 const LogSystemInitializerScript = preload("res://app/logging/log_system_initializer.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
@@ -133,7 +134,7 @@ func _ready() -> void:
 	if _dev_mode:
 		_construct_dev_manifest()
 	else:
-		_fetch_manifest()
+		await _fetch_manifest()
 
 
 func _apply_command_line_overrides() -> void:
@@ -531,10 +532,10 @@ func _handle_battle_entry_request(message: Dictionary) -> void:
 			_refresh_joined_peer_ids_from_sessions()
 			_battle_runtime.set_member_bindings(_build_runtime_member_bindings())
 			_loading_started = true
-			_begin_battle_loading()
+			await _begin_battle_loading()
 		elif _joined_peer_ids.size() >= expected:
 			_loading_started = true
-			_begin_battle_loading()
+			await _begin_battle_loading()
 	# END DEV MODE ONLY
 
 
@@ -842,7 +843,7 @@ func _construct_dev_manifest() -> void:
 	_dev_ai_drivers.clear()
 
 	LogNetScript.info("dev_manifest constructed: expected_member_count=%d map_id=%s mode_id=%s" % [_dev_player_count, map_id, mode_id], "", 0, "net.battle_ds_bootstrap")
-	_report_battle_ready()
+	await _report_battle_ready()
 # ------------------------------------------------------------------
 # END DEV MODE ONLY
 # ------------------------------------------------------------------
@@ -856,13 +857,13 @@ func _fetch_manifest() -> void:
 		LogNetScript.warn("battle_ds: no battle_id, skipping manifest fetch", "", 0, "net.battle_ds_bootstrap")
 		return
 	_manifest_client = GameServiceBattleManifestClientScript.new()
-	var game_base_url := _normalize_http_base_url(_read_env("GAME_SERVICE_BASE_URL", ""))
+	var game_base_url := _normalize_game_service_base_url(_read_env("GAME_SERVICE_BASE_URL", ""))
 	if game_base_url.is_empty():
 		var game_host := _read_env("GAME_SERVICE_HOST", "127.0.0.1")
 		var game_port := int(_read_env("GAME_SERVICE_PORT", "18081").to_int())
 		if game_port <= 0:
 			game_port = 18081
-		game_base_url = "http://%s:%d" % [game_host, game_port]
+		game_base_url = ServiceUrlBuilderScript.build_game_base_url(game_host, game_port, 18081)
 	var secret_config: Dictionary = InternalServiceAuthConfigScript.resolve_shared_secret("GAME_INTERNAL_AUTH_SHARED_SECRET", "GAME_INTERNAL_SHARED_SECRET")
 	var secret := String(secret_config.get("shared_secret", ""))
 	var key_id := InternalServiceAuthConfigScript.resolve_key_id("GAME_INTERNAL_AUTH_KEY_ID", "primary")
@@ -884,7 +885,7 @@ func _fetch_manifest() -> void:
 	_joined_peer_ids.clear()
 	_loading_started = false
 	LogNetScript.info("battle_manifest fetched ok: expected_member_count=%d map_id=%s mode_id=%s" % [int(_manifest.get("expected_member_count", 0)), String(_manifest.get("map_id", "")), String(_manifest.get("mode_id", ""))], "", 0, "net.battle_ds_bootstrap")
-	_report_battle_ready()
+	await _report_battle_ready()
 
 
 func _begin_battle_loading() -> void:
@@ -953,7 +954,7 @@ func _begin_battle_loading() -> void:
 	if not bool(result.get("ok", false)):
 		LogNetScript.warn("battle_ds begin_loading failed: %s" % String(result.get("user_message", "")), "", 0, "net.battle_ds_bootstrap")
 		return
-	_report_ds_instance_active()
+	await _report_ds_instance_active()
 
 	# DEV MODE ONLY: Flag to send fake MATCH_LOADING_READY on next frame.
 	if _dev_mode:
@@ -982,7 +983,7 @@ func _report_battle_ready() -> void:
 		LogNetScript.warn("battle_ready report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 	else:
 		LogNetScript.info("battle_ready reported ok battle_id=%s" % _battle_id, "", 0, "net.battle_ds_bootstrap")
-	_report_ds_instance_ready()
+	await _report_ds_instance_ready()
 
 
 func _report_ds_instance_ready() -> void:
@@ -997,7 +998,7 @@ func _report_ds_instance_ready() -> void:
 	if _battle_id.is_empty() or _ds_manager_base_url.is_empty():
 		return
 	var path := "/internal/v1/battles/%s/ready" % _battle_id.uri_encode()
-	var result := _send_plain_json_request(_ds_manager_base_url, path, {})
+	var result := await _send_plain_json_request(_ds_manager_base_url, path, {})
 	if not bool(result.get("ok", false)):
 		LogNetScript.warn("ds_manager ready report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 	else:
@@ -1016,7 +1017,7 @@ func _report_ds_instance_active() -> void:
 	if _ds_instance_active_reported or _battle_id.is_empty() or _ds_manager_base_url.is_empty():
 		return
 	var path := "/internal/v1/battles/%s/active" % _battle_id.uri_encode()
-	var result := _send_plain_json_request(_ds_manager_base_url, path, {})
+	var result := await _send_plain_json_request(_ds_manager_base_url, path, {})
 	if not bool(result.get("ok", false)):
 		LogNetScript.warn("ds_manager active report failed: %s %s" % [String(result.get("error_code", "")), String(result.get("user_message", ""))], "", 0, "net.battle_ds_bootstrap")
 		return
@@ -1029,7 +1030,7 @@ func _send_plain_json_request(base_url: String, path: String, payload: Dictionar
 		return _plain_json_fail("PLAIN_JSON_URL_INVALID", "Target url is invalid")
 	if _ds_manager_auth_signer == null or _ds_manager_http_client == null:
 		return _plain_json_fail("PLAIN_JSON_AUTH_MISSING", "DSM internal auth signer is missing")
-	var result: Dictionary = _ds_manager_http_client.post_json(path, payload)
+	var result: Dictionary = await _ds_manager_http_client.post_json(path, payload)
 	if bool(result.get("ok", false)):
 		return result
 	match String(result.get("error_code", "")):
@@ -1190,7 +1191,7 @@ func _resolve_ds_manager_base_url() -> String:
 		_read_env("DSM_HTTP_ADDR", "127.0.0.1:18090"),
 	]
 	for raw in candidates:
-		var normalized := _normalize_http_base_url(String(raw))
+		var normalized := _normalize_ds_manager_base_url(String(raw))
 		if not normalized.is_empty():
 			LogNetScript.info("ds_manager url resolved: %s" % normalized, "", 0, "net.battle_ds_bootstrap")
 			return normalized
@@ -1198,42 +1199,12 @@ func _resolve_ds_manager_base_url() -> String:
 	return ""
 
 
-func _normalize_http_base_url(raw_url: String) -> String:
-	var value := raw_url.strip_edges().trim_suffix("/")
-	if value.is_empty():
-		return ""
-	if value.begins_with(":"):
-		value = "127.0.0.1" + value
-	if not value.begins_with("http://"):
-		value = "http://" + value
-	var parsed := _parse_http_url(value)
-	if parsed.is_empty():
-		return ""
-	return value
+func _normalize_game_service_base_url(raw_url: String) -> String:
+	return ServiceUrlBuilderScript.normalize_service_base_url(raw_url, 18081, "QQT_GAME_SERVICE_SCHEME")
 
 
-func _parse_http_url(url: String) -> Dictionary:
-	var normalized := url.strip_edges()
-	if not normalized.begins_with("http://"):
-		return {}
-	var without_scheme := normalized.substr(7)
-	var slash_index := without_scheme.find("/")
-	var host_port := without_scheme
-	var path := "/"
-	if slash_index >= 0:
-		host_port = without_scheme.substr(0, slash_index)
-		path = without_scheme.substr(slash_index, without_scheme.length() - slash_index)
-	var colon_index := host_port.rfind(":")
-	if colon_index <= 0 or colon_index >= host_port.length() - 1:
-		return {}
-	var port := int(host_port.substr(colon_index + 1, host_port.length() - colon_index - 1))
-	if port <= 0:
-		return {}
-	return {
-		"host": host_port.substr(0, colon_index),
-		"port": port,
-		"path": path,
-	}
+func _normalize_ds_manager_base_url(raw_url: String) -> String:
+	return ServiceUrlBuilderScript.normalize_service_base_url(raw_url, 18090, "QQT_DSM_SERVICE_SCHEME")
 
 
 # ------------------------------------------------------------------

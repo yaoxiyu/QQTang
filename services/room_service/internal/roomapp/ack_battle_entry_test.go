@@ -7,7 +7,7 @@ func TestAckBattleEntryLifecycle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -85,7 +85,7 @@ func TestAckBattleEntryRejectsNonBattleEntryReadyPhase(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -113,7 +113,7 @@ func TestAckBattleEntryAcceptsDuplicateAfterBattleStarted(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fakeGame)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "private_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "private_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",

@@ -94,9 +94,9 @@ func test_main() -> void:
 
 	var use_case = MatchmakingUseCaseScript.new()
 	use_case.configure(auth, profile, settings, FakeMatchmakingGateway.new(), FakeRoomTicketGateway.new())
-	use_case.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"])
-	use_case.poll_queue_status()
-	var consume_result: Dictionary = use_case.consume_assignment_and_build_room_entry_context()
+	await use_case.enter_queue("ranked", "2v2", "mode_ranked", "rule_standard", ["map_arcade"])
+	await use_case.poll_queue_status()
+	var consume_result: Dictionary = await use_case.consume_assignment_and_build_room_entry_context()
 
 	var prefix := "lobby_match_assignment_to_room_test"
 	var ok := true

@@ -252,14 +252,19 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 	if !s.Ready() {
 		return nil, fmt.Errorf("room app not ready")
 	}
-	if !s.verifier.Verify(input.RoomTicket) {
-		return nil, ErrInvalidTicket
-	}
 	normalizedRoomKind, err := normalizeRoomKind(input.RoomKind)
 	if err != nil {
 		return nil, err
 	}
 	input.RoomKind = normalizedRoomKind
+	if _, err := s.verifier.VerifyWithExpected(input.RoomTicket, auth.ExpectedRoomTicket{
+		Purpose:   "create",
+		RoomKind:  input.RoomKind,
+		AccountID: input.AccountID,
+		ProfileID: input.ProfileID,
+	}); err != nil {
+		return nil, ErrInvalidTicket
+	}
 
 	resolvedLoadout, err := s.validateLoadout(input.Loadout)
 	if err != nil {
@@ -286,8 +291,8 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 		ReconnectToken:  reconnectToken,
 		Ready:           false,
 		Loadout: domain.RoomLoadout{
-			CharacterID:     resolvedLoadout.CharacterID,
-			BubbleStyleID:   resolvedLoadout.BubbleStyleID,
+			CharacterID:   resolvedLoadout.CharacterID,
+			BubbleStyleID: resolvedLoadout.BubbleStyleID,
 		},
 	}
 
@@ -343,7 +348,12 @@ func (s *Service) CreateRoom(input CreateRoomInput) (*SnapshotProjection, error)
 }
 
 func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
-	if !s.verifier.Verify(input.RoomTicket) {
+	if _, err := s.verifier.VerifyWithExpected(input.RoomTicket, auth.ExpectedRoomTicket{
+		Purpose:   "join",
+		RoomID:    input.RoomID,
+		AccountID: input.AccountID,
+		ProfileID: input.ProfileID,
+	}); err != nil {
 		return nil, ErrInvalidTicket
 	}
 	resolvedLoadout, err := s.validateLoadout(input.Loadout)
@@ -378,8 +388,8 @@ func (s *Service) JoinRoom(input JoinRoomInput) (*SnapshotProjection, error) {
 		ReconnectToken:  reconnectToken,
 		Ready:           false,
 		Loadout: domain.RoomLoadout{
-			CharacterID:     resolvedLoadout.CharacterID,
-			BubbleStyleID:   resolvedLoadout.BubbleStyleID,
+			CharacterID:   resolvedLoadout.CharacterID,
+			BubbleStyleID: resolvedLoadout.BubbleStyleID,
 		},
 	}
 	room.ResumeBindings[memberID] = domain.ResumeBinding{
@@ -428,7 +438,10 @@ func resolveJoinTeamID(members map[string]domain.RoomMember) int {
 }
 
 func (s *Service) ResumeRoom(input ResumeRoomInput) (*SnapshotProjection, error) {
-	if !s.verifier.Verify(input.RoomTicket) {
+	if _, err := s.verifier.VerifyWithExpected(input.RoomTicket, auth.ExpectedRoomTicket{
+		Purpose: "resume",
+		RoomID:  input.RoomID,
+	}); err != nil {
 		return nil, ErrInvalidTicket
 	}
 
@@ -594,8 +607,8 @@ func (s *Service) UpdateProfile(input UpdateProfileInput) (*SnapshotProjection, 
 		member.TeamID = input.TeamID
 	}
 	member.Loadout = domain.RoomLoadout{
-		CharacterID:     resolvedLoadout.CharacterID,
-		BubbleStyleID:   resolvedLoadout.BubbleStyleID,
+		CharacterID:   resolvedLoadout.CharacterID,
+		BubbleStyleID: resolvedLoadout.BubbleStyleID,
 	}
 	room.Members[input.MemberID] = member
 	s.touchRoomSnapshotLocked(room)
@@ -1769,11 +1782,11 @@ func buildPartyMembers(members map[string]domain.RoomMember) []gameclient.PartyM
 	result := make([]gameclient.PartyMember, 0, len(members))
 	for _, member := range members {
 		result = append(result, gameclient.PartyMember{
-			AccountID:       member.AccountID,
-			ProfileID:       member.ProfileID,
-			TeamID:          member.TeamID,
-			CharacterID:     member.Loadout.CharacterID,
-			BubbleStyleID:   member.Loadout.BubbleStyleID,
+			AccountID:     member.AccountID,
+			ProfileID:     member.ProfileID,
+			TeamID:        member.TeamID,
+			CharacterID:   member.Loadout.CharacterID,
+			BubbleStyleID: member.Loadout.BubbleStyleID,
 		})
 	}
 	return result

@@ -30,7 +30,7 @@ func test_main() -> void:
 
 func _main_body() -> void:
 	var runtime : Node = _build_runtime()
-	var result: Dictionary = runtime.lobby_use_case.create_casual_match_room("127.0.0.1", 9100)
+	var result: Dictionary = await runtime.lobby_use_case.create_casual_match_room("127.0.0.1", 9100)
 	var entry = result.get("entry_context", null)
 	var prefix := "lobby_create_casual_match_room_test"
 	var ok := true
@@ -66,6 +66,5 @@ func _build_runtime():
 		runtime.room_ticket_gateway
 	)
 	return runtime
-
 
 

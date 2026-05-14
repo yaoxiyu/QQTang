@@ -6,7 +6,7 @@ func TestCreateMatchRoomDefaultsToManifestMatchFormat(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",

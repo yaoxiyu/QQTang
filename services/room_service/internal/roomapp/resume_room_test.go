@@ -5,7 +5,7 @@ import "testing"
 func TestResumeRoom(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -30,7 +30,7 @@ func TestResumeRoom(t *testing.T) {
 		MemberID:       member.MemberID,
 		ReconnectToken: "wrong-token",
 		ConnectionID:   "conn-resume",
-		RoomTicket:     "ticket-resume",
+		RoomTicket:     mustIssueResumeRoomTicket(t, created.RoomID),
 	})
 	if err == nil {
 		t.Fatalf("resume should fail on reconnect token mismatch")
@@ -47,7 +47,7 @@ func TestResumeRoom(t *testing.T) {
 			return token
 		}(),
 		ConnectionID: "conn-resume",
-		RoomTicket:   "ticket-resume",
+		RoomTicket:   mustIssueResumeRoomTicket(t, created.RoomID),
 	})
 	if err != nil {
 		t.Fatalf("resume room failed: %v", err)

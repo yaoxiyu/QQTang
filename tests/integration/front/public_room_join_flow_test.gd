@@ -20,11 +20,11 @@ func _test_public_room_create_and_join_keep_public_room_semantics() -> bool:
 	await get_tree().process_frame
 	runtime.front_flow.enter_lobby()
 
-	var create_result: Dictionary = runtime.lobby_use_case.create_public_room("127.0.0.1", 9100, "Alpha Room")
+	var create_result: Dictionary = await runtime.lobby_use_case.create_public_room("127.0.0.1", 9100, "Alpha Room")
 	var create_entry = create_result.get("entry_context", null)
 	var create_room_result: Dictionary = runtime.room_use_case.enter_room(create_entry)
 
-	var join_result: Dictionary = runtime.lobby_use_case.join_public_room("", 0, "ROOM-PUB-88")
+	var join_result: Dictionary = await runtime.lobby_use_case.join_public_room("", 0, "ROOM-PUB-88")
 	var join_entry = join_result.get("entry_context", null)
 
 	var prefix := "public_room_join_flow_test"
@@ -48,6 +48,5 @@ func _test_public_room_create_and_join_keep_public_room_semantics() -> bool:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	return ok
-
 
 

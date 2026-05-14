@@ -14,6 +14,7 @@ const RoomDefaultsScript = preload("res://app/front/room/room_defaults.gd")
 const MatchFormatCatalogScript = preload("res://content/match_formats/catalog/match_format_catalog.gd")
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 var auth_session_state: AuthSessionState = null
 var player_profile_state: PlayerProfileState = null
@@ -83,8 +84,8 @@ func enter_lobby(refresh_career_summary: bool = true) -> Dictionary:
 		view_state.reconnect_token = front_settings_state.reconnect_token
 		view_state.reconnect_state = front_settings_state.reconnect_state
 		view_state.reconnect_resume_deadline_msec = front_settings_state.reconnect_resume_deadline_msec
-	_try_attach_front_state(view_state)
-	_try_attach_career_summary(view_state, refresh_career_summary)
+	await _try_attach_front_state(view_state)
+	await _try_attach_career_summary(view_state, refresh_career_summary)
 	return {
 		"ok": true,
 		"error_code": "",
@@ -113,9 +114,9 @@ func create_custom_room(host: String, port: int, visibility: String, room_displa
 	var normalized_visibility := visibility.strip_edges().to_lower()
 	match normalized_visibility:
 		"private":
-			return create_private_room(host, port)
+			return await create_private_room(host, port)
 		"public":
-			return create_public_room(host, port, room_display_name)
+			return await create_public_room(host, port, room_display_name)
 		_:
 			return _fail("ROOM_VISIBILITY_INVALID", "Room visibility is invalid")
 
@@ -137,15 +138,15 @@ func create_private_room(host: String, port: int) -> Dictionary:
 		true,
 		false
 	)
-	return _attach_room_ticket(entry_context, "create")
+	return await _attach_room_ticket(entry_context, "create")
 
 
 func create_casual_match_room(host: String, port: int) -> Dictionary:
-	return _create_match_room(host, port, FrontRoomKindScript.CASUAL_MATCH_ROOM, "casual")
+	return await _create_match_room(host, port, FrontRoomKindScript.CASUAL_MATCH_ROOM, "casual")
 
 
 func create_ranked_match_room(host: String, port: int) -> Dictionary:
-	return _create_match_room(host, port, FrontRoomKindScript.RANKED_MATCH_ROOM, "ranked")
+	return await _create_match_room(host, port, FrontRoomKindScript.RANKED_MATCH_ROOM, "ranked")
 
 
 func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
@@ -174,7 +175,7 @@ func join_private_room(host: String, port: int, room_id: String) -> Dictionary:
 		true,
 		true
 	)
-	return _attach_room_ticket(entry_context, "join")
+	return await _attach_room_ticket(entry_context, "join")
 
 
 func create_public_room(host: String, port: int, room_display_name: String) -> Dictionary:
@@ -202,7 +203,7 @@ func create_public_room(host: String, port: int, room_display_name: String) -> D
 		false,
 		normalized_room_display_name
 	)
-	return _attach_room_ticket(entry_context, "create")
+	return await _attach_room_ticket(entry_context, "create")
 
 
 func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
@@ -231,7 +232,7 @@ func join_public_room(host: String, port: int, room_id: String) -> Dictionary:
 		true,
 		true
 	)
-	return _attach_room_ticket(entry_context, "join")
+	return await _attach_room_ticket(entry_context, "join")
 
 
 func logout() -> Dictionary:
@@ -241,7 +242,7 @@ func logout() -> Dictionary:
 		"user_message": "",
 	}
 	if logout_use_case != null and logout_use_case.has_method("logout"):
-		logout_result = logout_use_case.logout()
+		logout_result = await logout_use_case.logout()
 	if auth_session_state != null:
 		auth_session_state.clear()
 	if auth_session_repository != null and auth_session_repository.has_method("clear_session"):
@@ -266,7 +267,7 @@ func refresh_profile() -> Dictionary:
 	if auth_session_state == null or auth_session_state.access_token.strip_edges().is_empty():
 		return _fail("AUTH_SESSION_INVALID", "Access session is not available")
 	_configure_account_service_gateways()
-	var result = profile_gateway.fetch_my_profile(auth_session_state.access_token)
+	var result = await profile_gateway.fetch_my_profile(auth_session_state.access_token)
 	if result == null:
 		return _fail("PROFILE_FETCH_RESULT_MISSING", "Profile fetch result is missing")
 	if not bool(result.get("ok", false)):
@@ -298,7 +299,7 @@ func refresh_profile() -> Dictionary:
 		"ok": true,
 		"error_code": "",
 		"user_message": "",
-		"view_state": enter_lobby().get("view_state", null),
+		"view_state": (await enter_lobby()).get("view_state", null),
 	}
 
 
@@ -338,7 +339,7 @@ func resume_recent_room() -> Dictionary:
 		"match_id": front_settings_state.reconnect_match_id,
 	})
 	
-	return _attach_room_ticket(entry_context, "resume")
+	return await _attach_room_ticket(entry_context, "resume")
 
 
 func build_match_room_entry_context() -> Dictionary:
@@ -392,7 +393,7 @@ func _create_match_room(host: String, port: int, room_kind: String, queue_type: 
 	entry_context.match_format_id = MatchFormatCatalogScript.get_default_match_format_id()
 	entry_context.selected_match_mode_ids = []
 	entry_context.is_prequeue_match_room = true
-	return _attach_room_ticket(entry_context, "create")
+	return await _attach_room_ticket(entry_context, "create")
 
 
 func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Dictionary:
@@ -414,7 +415,7 @@ func _attach_room_ticket(entry_context: RoomEntryContext, purpose: String) -> Di
 			"purpose": purpose,
 			"changed_fields": loadout_result.changed_fields,
 		})
-	var result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
+	var result = await room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
 	if result == null or not result.ok:
 		return _fail(
 			String(result.error_code if result != null else "ROOM_TICKET_RESULT_MISSING"),
@@ -436,7 +437,7 @@ func _try_attach_career_summary(view_state: LobbyViewState, should_refresh: bool
 	if view_state == null or app_runtime == null or app_runtime.career_use_case == null:
 		return
 	if should_refresh and app_runtime.career_use_case.has_method("refresh_career_summary"):
-		var refresh_result: Dictionary = app_runtime.career_use_case.refresh_career_summary()
+		var refresh_result: Dictionary = await app_runtime.career_use_case.refresh_career_summary()
 		var has_cached_summary: bool = app_runtime.career_use_case.has_method("get_current_summary") and app_runtime.career_use_case.get_current_summary() != null
 		if not bool(refresh_result.get("ok", false)) and not has_cached_summary:
 			return
@@ -461,7 +462,7 @@ func _try_attach_front_state(view_state: LobbyViewState) -> void:
 	if app_runtime.wallet_use_case != null:
 		var wallet = app_runtime.wallet_use_case.get_current_wallet()
 		if wallet == null and app_runtime.wallet_use_case.has_method("refresh_wallet"):
-			var wallet_result: Dictionary = app_runtime.wallet_use_case.refresh_wallet()
+			var wallet_result: Dictionary = await app_runtime.wallet_use_case.refresh_wallet()
 			if bool(wallet_result.get("ok", false)):
 				wallet = wallet_result.get("wallet", null)
 		if wallet != null:
@@ -502,7 +503,7 @@ func _configure_account_service_gateways() -> void:
 			normalized_host = front_settings_state.account_service_host.strip_edges()
 		if front_settings_state.account_service_port > 0:
 			normalized_port = front_settings_state.account_service_port
-	var base_url := "http://%s:%d" % [normalized_host, normalized_port]
+	var base_url := ServiceUrlBuilderScript.build_account_base_url(normalized_host, normalized_port, 18080)
 	if profile_gateway != null and profile_gateway.has_method("configure_base_url"):
 		profile_gateway.configure_base_url(base_url)
 	if room_ticket_gateway != null and room_ticket_gateway.has_method("configure_base_url"):

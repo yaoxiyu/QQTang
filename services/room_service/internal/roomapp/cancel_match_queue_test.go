@@ -10,7 +10,7 @@ func TestCancelMatchQueueLifecycle(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -23,7 +23,7 @@ func TestCancelMatchQueueLifecycle(t *testing.T) {
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
@@ -98,7 +98,7 @@ func TestCancelMatchQueueAcceptsQueuedState(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fake)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -111,7 +111,7 @@ func TestCancelMatchQueueAcceptsQueuedState(t *testing.T) {
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
@@ -151,7 +151,7 @@ func TestCancelMatchQueueRejectsIdleRoomPhase(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -183,7 +183,7 @@ func TestCancelMatchQueueAcceptsBattleAllocatingRoomPhase(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, fake)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -196,7 +196,7 @@ func TestCancelMatchQueueAcceptsBattleAllocatingRoomPhase(t *testing.T) {
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",

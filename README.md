@@ -7,7 +7,7 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 - [Godot 4.6.2+](https://godotengine.org/) — 编辑器及运行时
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) — 后端服务容器
 - [PowerShell 7+](https://github.com/PowerShell/PowerShell) — 构建及启动脚本
-- Go 1.23+ — 后端服务编译（仅修改后端代码时需要）
+- Go 1.24+ — 后端服务编译（仅修改后端代码时需要）
 
 首次使用前，将 Godot 可执行文件放置于 `external/godot_binary/Godot.exe`（Windows）或通过脚本参数 `-GodotPath` 指定路径。
 

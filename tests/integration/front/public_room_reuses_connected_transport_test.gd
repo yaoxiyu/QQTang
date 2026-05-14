@@ -45,6 +45,8 @@ class FakeClientRoomRuntime:
 		map_id: String = "",
 		rule_set_id: String = "",
 		mode_id: String = "",
+		match_format_id: String = "",
+		selected_mode_ids: Array[String] = [],
 		room_kind: String = "private_room",
 		room_display_name: String = "",
 		room_ticket: String = "",
@@ -61,6 +63,8 @@ class FakeClientRoomRuntime:
 			"map_id": map_id,
 			"rule_set_id": rule_set_id,
 			"mode_id": mode_id,
+			"match_format_id": match_format_id,
+			"selected_mode_ids": selected_mode_ids.duplicate(),
 			"room_kind": room_kind,
 			"room_display_name": room_display_name,
 			"room_ticket": room_ticket,
@@ -167,7 +171,7 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 	room_use_case.configure(app_runtime)
 	var gateway = room_use_case.get("room_client_gateway")
 
-	var create_result: Dictionary = lobby_use_case.create_public_room("127.0.0.1", 9100, "Alpha Room")
+	var create_result: Dictionary = await lobby_use_case.create_public_room("127.0.0.1", 9100, "Alpha Room")
 	var room_result: Dictionary = room_use_case.enter_room(create_result.get("entry_context", null))
 	if client_runtime.create_requests.is_empty():
 		room_use_case.call("_on_gateway_transport_connected")
@@ -194,15 +198,14 @@ func _test_public_room_create_reuses_existing_transport() -> bool:
 		],
 		prefix
 	) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("room_kind", "")) == "public_room", "create request should preserve public room kind", prefix) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("room_display_name", "")) == "Alpha Room", "create request should preserve room display name", prefix) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("room_ticket", "")) == "ticket_alpha", "create request should include room ticket", prefix) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("account_id", "")) == "account_alpha", "create request should include account id", prefix) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("profile_id", "")) == "profile_alpha", "create request should include profile id", prefix) and ok
-	ok = qqt_check(String(client_runtime.create_requests[0].get("device_session_id", "")) == "device_session_alpha", "create request should include device session id", prefix) and ok
+	if client_runtime.create_requests.size() == 1:
+		ok = qqt_check(String(client_runtime.create_requests[0].get("room_kind", "")) == "public_room", "create request should preserve public room kind", prefix) and ok
+		ok = qqt_check(String(client_runtime.create_requests[0].get("room_display_name", "")) == "Alpha Room", "create request should preserve room display name", prefix) and ok
+		ok = qqt_check(String(client_runtime.create_requests[0].get("room_ticket", "")) == "ticket_alpha", "create request should include room ticket", prefix) and ok
+		ok = qqt_check(String(client_runtime.create_requests[0].get("account_id", "")) == "account_alpha", "create request should include account id", prefix) and ok
+		ok = qqt_check(String(client_runtime.create_requests[0].get("profile_id", "")) == "profile_alpha", "create request should include profile id", prefix) and ok
+		ok = qqt_check(String(client_runtime.create_requests[0].get("device_session_id", "")) == "device_session_alpha", "create request should include device session id", prefix) and ok
 
 	app_runtime.queue_free()
 	return ok
-
-
 

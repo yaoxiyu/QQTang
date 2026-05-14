@@ -45,7 +45,7 @@ func _main_body() -> void:
 		runtime.room_ticket_gateway
 	)
 
-	var result: Dictionary = runtime.lobby_use_case.create_ranked_match_room("127.0.0.1", 9100)
+	var result: Dictionary = await runtime.lobby_use_case.create_ranked_match_room("127.0.0.1", 9100)
 	var entry = result.get("entry_context", null)
 	var prefix := "lobby_create_ranked_match_room_test"
 	var ok := true
@@ -57,6 +57,5 @@ func _main_body() -> void:
 		ok = qqt_check(String(entry.match_format_id) == "1v1", "default match format should be 1v1", prefix) and ok
 		ok = qqt_check(entry.selected_match_mode_ids.is_empty(), "match mode pool should start empty", prefix) and ok
 	runtime.queue_free()
-
 
 

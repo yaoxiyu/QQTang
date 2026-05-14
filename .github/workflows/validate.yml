@@ -69,6 +69,40 @@ jobs:
             tests/reports/latest/cross_service_contract_suite_latest.txt
             tests/reports/latest/cross_service_contract_suite_latest.json
 
+  security-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan sensitive log patterns
+        run: |
+          set -euo pipefail
+          patterns=(
+            'ticket_debug'
+            'secret_sha256'
+            'expected_sig='
+            'provided_sig='
+          )
+          regex=$(IFS='|'; echo "${patterns[*]}")
+          hits=$(rg -n --no-heading --color never \
+            -g '*.go' -g '*.gd' \
+            -g '!**/*_test.go' \
+            -g '!**/test/**' \
+            -g '!**/tests/**' \
+            -g '!**/docs/**' \
+            -g '!**/generated/**' \
+            "$regex" \
+            app/ network/ services/ || true)
+          if [ -n "$hits" ]; then
+            echo "[security] sensitive log pattern detected:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "[security] no sensitive log patterns detected."
+
   linux-native-runtime:
     runs-on: ubuntu-latest
     timeout-minutes: 90

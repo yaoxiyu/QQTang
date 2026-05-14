@@ -5,6 +5,10 @@ const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.
 
 
 func test_main() -> void:
+	await _main_body()
+
+
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -26,7 +30,7 @@ func test_main() -> void:
 	entry_context.reconnect_member_id = "member_logout"
 	runtime.current_room_entry_context = entry_context
 
-	var result: Dictionary = runtime.lobby_use_case.logout()
+	var result: Dictionary = await runtime.lobby_use_case.logout()
 
 	var prefix := "logout_clears_resume_state_test"
 	var ok := true
@@ -39,4 +43,3 @@ func test_main() -> void:
 	ok = qqt_check(runtime.current_room_entry_context == null, "logout should clear current room entry context", prefix) and ok
 
 	runtime.queue_free()
-

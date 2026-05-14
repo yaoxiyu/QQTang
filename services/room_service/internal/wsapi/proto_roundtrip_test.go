@@ -21,7 +21,7 @@ func TestDecodeClientEnvelope_CreateRoomRoundtrip(t *testing.T) {
 			CreateRoom: &roomv1.CreateRoomRequest{
 				RoomKind:        "private_room",
 				RoomDisplayName: "Room Alpha",
-				RoomTicket:      "ticket-create",
+				RoomTicket:      mustIssueWsCreateRoomTicket("private_room", "acc-owner", "pro-owner"),
 				AccountId:       "acc-owner",
 				ProfileId:       "pro-owner",
 				PlayerName:      "owner",
@@ -88,8 +88,8 @@ func TestEncodeSnapshotPush_ContainsFieldsAndNoReconnectTokenLeak(t *testing.T) 
 				ConnectionState: "connected",
 				ReconnectToken:  uniqueReconnectToken,
 				Loadout: domain.RoomLoadout{
-					CharacterID:     "char_default",
-					BubbleStyleID:   "bubble_default",
+					CharacterID:   "char_default",
+					BubbleStyleID: "bubble_default",
 				},
 			},
 		},

@@ -22,7 +22,7 @@ func fetch_my_career(access_token: String) -> Dictionary:
 		"Content-Type: application/json",
 		"Authorization: Bearer %s" % access_token,
 	])
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return _fail("CAREER_URL_INVALID", "Career service url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

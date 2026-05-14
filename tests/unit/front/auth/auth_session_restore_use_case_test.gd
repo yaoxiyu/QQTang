@@ -11,6 +11,7 @@ class FakeAuthGateway:
 		pass
 
 	func refresh_session(_refresh_token: String, device_session_id: String):
+		await _yield_once()
 		var result = RefreshSessionResultScript.new()
 		result.ok = true
 		result.account_id = "account_restore"
@@ -26,6 +27,11 @@ class FakeAuthGateway:
 		result.validation_bypassed = false
 		return result
 
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
+
 
 class FakeProfileGateway:
 	extends RefCounted
@@ -34,6 +40,7 @@ class FakeProfileGateway:
 		pass
 
 	func fetch_my_profile(_access_token: String) -> Dictionary:
+		await _yield_once()
 		return {
 			"ok": true,
 			"profile_id": "profile_restore",
@@ -50,8 +57,17 @@ class FakeProfileGateway:
 			"owned_asset_revision": 6,
 		}
 
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
+
 
 func test_main() -> void:
+	await _main_body()
+
+
+func _main_body() -> void:
 	var runtime := AppRuntimeRootScript.new()
 	add_child(runtime)
 	runtime.initialize_runtime()
@@ -66,7 +82,7 @@ func test_main() -> void:
 	runtime.auth_session_state.access_expire_at_unix_sec = int(Time.get_unix_time_from_system()) - 1
 	runtime.auth_session_state.refresh_expire_at_unix_sec = int(Time.get_unix_time_from_system()) + 1000
 
-	var result: Dictionary = runtime.auth_session_restore_use_case.restore_on_boot()
+	var result: Dictionary = await runtime.auth_session_restore_use_case.restore_on_boot()
 
 	var prefix := "auth_session_restore_use_case_test"
 	var ok := true
@@ -77,4 +93,3 @@ func test_main() -> void:
 	ok = qqt_check(int(runtime.player_profile_state.profile_version) == 5, "restore should sync profile version", prefix) and ok
 
 	runtime.queue_free()
-

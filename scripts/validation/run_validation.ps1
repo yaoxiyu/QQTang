@@ -75,6 +75,7 @@ $protoScript = Join-Path $repoRoot 'scripts\proto\generate_proto.ps1'
 $crossServiceScript = Join-Path $repoRoot 'tests\scripts\run_cross_service_contract_suite.ps1'
 $pythonTestScript = Join-Path $repoRoot 'tests\scripts\run_python_contract_tests.py'
 $gdStyleCheckScript = Join-Path $repoRoot 'tools\lint\check_gdscript_style.py'
+$sensitiveLogPatternScript = Join-Path $repoRoot 'scripts\validation\check_sensitive_log_patterns.ps1'
 $gutScript = Join-Path $repoRoot 'tests\scripts\run_gut_suite.ps1'
 $releaseSanityScript = Join-Path $repoRoot 'tools\release\release_sanity_check.py'
 $csharpProj = Join-Path $repoRoot 'tests\csharp\QQTang.RoomClient.Tests\QQTang.RoomClient.Tests.csproj'
@@ -125,6 +126,10 @@ Invoke-Step -Name 'python_contract_tests' -Type 'script' -ReportHint 'tests/repo
 
 Invoke-Step -Name 'gdscript_style_check' -Type 'script' -Action {
     python $gdStyleCheckScript
+}
+
+Invoke-Step -Name 'sensitive_log_pattern_check' -Type 'script' -Action {
+    & $sensitiveLogPatternScript -RepoRoot $repoRoot
 }
 
 Invoke-Step -Name 'cross_service_contract_suite' -Type 'script' -ReportHint 'tests/reports/latest/cross_service_contract_suite_latest.{txt,json}' -Action {

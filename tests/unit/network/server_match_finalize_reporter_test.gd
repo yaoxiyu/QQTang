@@ -145,7 +145,7 @@ func test_finalize_request_uses_internal_json_service_client() -> void:
 	assert_not_null(reporter._internal_client, "reporter should configure internal json client when secret is provided")
 	var missing_secret = ServerMatchFinalizeReporterScript.new()
 	missing_secret.configure("127.0.0.1", 18081, "", "wp6_key")
-	var response := missing_secret._send_internal_post_once("/internal/v1/matches/finalize", {"a": 1})
+	var response := await missing_secret._send_internal_post_once("/internal/v1/matches/finalize", {"a": 1})
 	assert_eq(String(response.get("error_code", "")), "MATCH_FINALIZE_SECRET_MISSING", "missing secret should still map to finalize secret missing")
 
 

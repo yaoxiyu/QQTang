@@ -3,6 +3,7 @@ extends RefCounted
 
 const AuthSessionStateScript = preload("res://app/front/auth/auth_session_state.gd")
 const PlayerProfileStateScript = preload("res://app/front/profile/player_profile_state.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 
 var app_runtime: Node = null
 
@@ -22,15 +23,15 @@ func restore_on_boot() -> Dictionary:
 
 	var now_unix_sec := Time.get_unix_time_from_system()
 	if _is_access_token_usable(session, now_unix_sec):
-		var profile_sync := _try_sync_profile()
+		var profile_sync := await _try_sync_profile()
 		if not bool(profile_sync.get("ok", true)):
 			return profile_sync
 		return _lobby_result()
 
 	if _is_refresh_token_usable(session, now_unix_sec):
-		var refresh_result := _refresh_session()
+		var refresh_result := await _refresh_session()
 		if bool(refresh_result.get("ok", false)):
-			var profile_sync := _try_sync_profile()
+			var profile_sync := await _try_sync_profile()
 			if not bool(profile_sync.get("ok", true)):
 				return profile_sync
 			return _lobby_result()
@@ -51,7 +52,7 @@ func _refresh_session() -> Dictionary:
 			"next_route": "login",
 		}
 	var session: AuthSessionState = app_runtime.auth_session_state
-	var result = app_runtime.auth_gateway.refresh_session(session.refresh_token, session.device_session_id)
+	var result = await app_runtime.auth_gateway.refresh_session(session.refresh_token, session.device_session_id)
 	if result == null or not bool(result.ok):
 		return {
 			"ok": false,
@@ -92,7 +93,7 @@ func _try_sync_profile() -> Dictionary:
 		return {"ok": true}
 	if not app_runtime.profile_gateway.has_method("fetch_my_profile"):
 		return {"ok": true}
-	var result = app_runtime.profile_gateway.fetch_my_profile(app_runtime.auth_session_state.access_token)
+	var result = await app_runtime.profile_gateway.fetch_my_profile(app_runtime.auth_session_state.access_token)
 	if result == null:
 		return _error_result("PROFILE_FETCH_RESULT_MISSING", "Profile sync result is missing")
 	if not bool(result.get("ok", false)):
@@ -136,7 +137,7 @@ func _configure_gateways_from_settings() -> void:
 	var port := int(app_runtime.front_settings_state.account_service_port)
 	if port <= 0:
 		port = 18080
-	var base_url := "http://%s:%d" % [host, port]
+	var base_url := ServiceUrlBuilderScript.build_account_base_url(host, port, 18080)
 	if app_runtime.auth_gateway != null and app_runtime.auth_gateway.has_method("configure_base_url"):
 		app_runtime.auth_gateway.configure_base_url(base_url)
 	if app_runtime.profile_gateway != null and app_runtime.profile_gateway.has_method("configure_base_url"):

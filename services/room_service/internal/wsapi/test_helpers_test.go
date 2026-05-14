@@ -1,6 +1,11 @@
 package wsapi
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/url"
 	"os"
@@ -141,10 +146,11 @@ func encodeClientEnvelopeCreate(requestID string) []byte {
 }
 
 func encodeClientEnvelopeCreateWithRoomKind(requestID, roomKind string) []byte {
+	roomTicket := mustIssueWsCreateRoomTicket(roomKind, "acc-owner", "pro-owner")
 	create := make([]byte, 0, 128)
 	create = appendPBString(create, 2, roomKind)
 	create = appendPBString(create, 3, "Room Alpha")
-	create = appendPBString(create, 4, "ticket-create")
+	create = appendPBString(create, 4, roomTicket)
 	create = appendPBString(create, 6, "acc-owner")
 	create = appendPBString(create, 7, "pro-owner")
 	create = appendPBString(create, 9, "owner")
@@ -173,9 +179,10 @@ func decodeDirectorySnapshot(payload []byte) *roomv1.RoomDirectorySnapshot {
 }
 
 func encodeClientEnvelopeJoin(requestID, roomID string) []byte {
+	roomTicket := mustIssueWsJoinRoomTicket(roomID, "acc-joiner", "pro-joiner")
 	join := make([]byte, 0, 128)
 	join = appendPBString(join, 1, roomID)
-	join = appendPBString(join, 2, "ticket-join")
+	join = appendPBString(join, 2, roomTicket)
 	join = appendPBString(join, 4, "acc-joiner")
 	join = appendPBString(join, 5, "pro-joiner")
 	join = appendPBString(join, 7, "joiner")
@@ -212,11 +219,12 @@ func encodeClientEnvelopeUpdateSelection(requestID string, openSlotIndices []int
 }
 
 func encodeClientEnvelopeResume(requestID, roomID, memberID, reconnectToken string) []byte {
+	roomTicket := mustIssueWsResumeRoomTicket(roomID)
 	resume := make([]byte, 0, 96)
 	resume = appendPBString(resume, 1, roomID)
 	resume = appendPBString(resume, 2, memberID)
 	resume = appendPBString(resume, 3, reconnectToken)
-	resume = appendPBString(resume, 5, "ticket-resume")
+	resume = appendPBString(resume, 5, roomTicket)
 
 	env := make([]byte, 0, 128)
 	env = appendPBString(env, 1, "room.v1")
@@ -468,4 +476,59 @@ func appendPBVarint(dst []byte, field protowire.Number, value uint64) []byte {
 func appendPBBytes(dst []byte, field protowire.Number, value []byte) []byte {
 	dst = protowire.AppendTag(dst, field, protowire.BytesType)
 	return protowire.AppendBytes(dst, value)
+}
+
+func mustIssueWsCreateRoomTicket(roomKind, accountID, profileID string) string {
+	return issueWsRoomTicket(auth.RoomTicketClaims{
+		TicketID:        fmt.Sprintf("ws-ticket-create-%d", time.Now().UnixNano()),
+		AccountID:       accountID,
+		ProfileID:       profileID,
+		DeviceSessionID: "ws-dsess-test",
+		Purpose:         "create",
+		RoomKind:        roomKind,
+		IssuedAtUnixSec: time.Now().UTC().Unix(),
+		ExpireAtUnixSec: time.Now().UTC().Add(5 * time.Minute).Unix(),
+		Nonce:           "ws-nonce-create",
+	})
+}
+
+func mustIssueWsJoinRoomTicket(roomID, accountID, profileID string) string {
+	return issueWsRoomTicket(auth.RoomTicketClaims{
+		TicketID:        fmt.Sprintf("ws-ticket-join-%d", time.Now().UnixNano()),
+		AccountID:       accountID,
+		ProfileID:       profileID,
+		DeviceSessionID: "ws-dsess-test",
+		Purpose:         "join",
+		RoomID:          roomID,
+		IssuedAtUnixSec: time.Now().UTC().Unix(),
+		ExpireAtUnixSec: time.Now().UTC().Add(5 * time.Minute).Unix(),
+		Nonce:           "ws-nonce-join",
+	})
+}
+
+func mustIssueWsResumeRoomTicket(roomID string) string {
+	return issueWsRoomTicket(auth.RoomTicketClaims{
+		TicketID:        fmt.Sprintf("ws-ticket-resume-%d", time.Now().UnixNano()),
+		AccountID:       "acc-resume",
+		ProfileID:       "pro-resume",
+		DeviceSessionID: "ws-dsess-test",
+		Purpose:         "resume",
+		RoomID:          roomID,
+		IssuedAtUnixSec: time.Now().UTC().Unix(),
+		ExpireAtUnixSec: time.Now().UTC().Add(5 * time.Minute).Unix(),
+		Nonce:           "ws-nonce-resume",
+	})
+}
+
+func issueWsRoomTicket(claim auth.RoomTicketClaims) string {
+	claim.Signature = ""
+	payload, err := json.Marshal(claim)
+	if err != nil {
+		panic(err)
+	}
+	encodedPayload := base64.RawURLEncoding.EncodeToString(payload)
+	mac := hmac.New(sha256.New, []byte("test-secret"))
+	_, _ = mac.Write([]byte(encodedPayload))
+	signature := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+	return encodedPayload + "." + signature
 }

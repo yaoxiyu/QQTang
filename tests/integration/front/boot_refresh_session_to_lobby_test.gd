@@ -14,6 +14,7 @@ class FakeAuthGateway:
 		last_base_url = base_url
 
 	func refresh_session(_refresh_token: String, device_session_id: String):
+		await _yield_once()
 		var result = RefreshSessionResultScript.new()
 		result.ok = true
 		result.account_id = "account_refresh"
@@ -28,6 +29,11 @@ class FakeAuthGateway:
 		result.session_state = "active"
 		return result
 
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
+
 
 class FakeProfileGateway:
 	extends RefCounted
@@ -38,6 +44,7 @@ class FakeProfileGateway:
 		last_base_url = base_url
 
 	func fetch_my_profile(_access_token: String) -> Dictionary:
+		await _yield_once()
 		return {
 			"ok": true,
 			"profile_id": "profile_refresh",
@@ -53,6 +60,11 @@ class FakeProfileGateway:
 			"profile_version": 2,
 			"owned_asset_revision": 3,
 		}
+
+	func _yield_once() -> void:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree != null:
+			await tree.process_frame
 
 
 func test_main() -> void:
@@ -73,7 +85,7 @@ func _main_body() -> void:
 	runtime.auth_session_state.access_expire_at_unix_sec = int(Time.get_unix_time_from_system()) - 10
 	runtime.auth_session_state.refresh_expire_at_unix_sec = int(Time.get_unix_time_from_system()) + 3600
 
-	var result: Dictionary = runtime.auth_session_restore_use_case.restore_on_boot()
+	var result: Dictionary = await runtime.auth_session_restore_use_case.restore_on_boot()
 
 	var prefix := "boot_refresh_session_to_lobby_test"
 	var ok := true
@@ -83,5 +95,4 @@ func _main_body() -> void:
 	ok = qqt_check(String(runtime.player_profile_state.nickname) == "RefreshUser", "restore should sync profile", prefix) and ok
 
 	runtime.queue_free()
-
 

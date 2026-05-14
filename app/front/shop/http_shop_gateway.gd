@@ -22,7 +22,7 @@ func fetch_catalog(access_token: String, if_none_match: int = 0) -> Dictionary:
 	options.url = service_base_url + "/api/v1/shop/catalog" + suffix
 	options.log_tag = "front.shop.gateway"
 	options.headers = _auth_headers(access_token)
-	return _execute(options, "SHOP")
+	return await _execute(options, "SHOP")
 
 
 func purchase_offer(access_token: String, offer_id: String, idempotency_key: String, expected_catalog_revision: int) -> Dictionary:
@@ -38,7 +38,7 @@ func purchase_offer(access_token: String, offer_id: String, idempotency_key: Str
 		"idempotency_key": idempotency_key,
 		"expected_catalog_revision": expected_catalog_revision,
 	})
-	return _execute(options, "PURCHASE")
+	return await _execute(options, "PURCHASE")
 
 
 func _auth_headers(access_token: String) -> PackedStringArray:
@@ -49,7 +49,7 @@ func _auth_headers(access_token: String) -> PackedStringArray:
 
 
 func _execute(options, prefix: String) -> Dictionary:
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_URL_INVALID":
 		return _fail("%s_HTTP_URL_INVALID" % prefix, "Shop HTTP url is invalid")
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":

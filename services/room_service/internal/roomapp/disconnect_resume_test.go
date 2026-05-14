@@ -5,7 +5,7 @@ import "testing"
 func TestDisconnectThenResumeLifecycle(t *testing.T) {
 	svc := newTestService(t)
 	created, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -35,7 +35,7 @@ func TestDisconnectThenResumeLifecycle(t *testing.T) {
 		MemberID:       member.MemberID,
 		ReconnectToken: token,
 		ConnectionID:   "conn-resume",
-		RoomTicket:     "ticket-resume",
+		RoomTicket:     mustIssueResumeRoomTicket(t, created.RoomID),
 	})
 	if err != nil {
 		t.Fatalf("resume room failed: %v", err)

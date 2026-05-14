@@ -9,4 +9,8 @@ static func parse_url(url: String) -> Dictionary:
 
 
 static func execute(options: HttpRequestOptions) -> HttpResponse:
-	return HttpRequestExecutorScript.execute(options)
+	return await HttpRequestExecutorScript.execute_async(options)
+
+
+static func execute_async(options: HttpRequestOptions) -> HttpResponse:
+	return await HttpRequestExecutorScript.execute_async(options)

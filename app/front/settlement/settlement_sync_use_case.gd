@@ -3,6 +3,7 @@ extends RefCounted
 
 const SettlementSummaryStateScript = preload("res://app/front/settlement/settlement_summary_state.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const ONLINE_LOG_PREFIX := "[ONLINE]"
 
 var auth_session_state: AuthSessionState = null
@@ -30,7 +31,7 @@ func fetch_match_summary(match_id: String) -> Dictionary:
 	_log_settlement("fetch_match_summary_requested", {
 		"match_id": match_id,
 	})
-	var response = settlement_gateway.fetch_match_summary(auth_session_state.access_token, match_id)
+	var response = await settlement_gateway.fetch_match_summary(auth_session_state.access_token, match_id)
 	if not bool(response.get("ok", false)):
 		_log_settlement("fetch_match_summary_failed", {
 			"match_id": match_id,
@@ -78,7 +79,7 @@ func _configure_gateway() -> void:
 	if front_settings_state == null:
 		return
 	if settlement_gateway != null and settlement_gateway.has_method("configure_base_url"):
-		settlement_gateway.configure_base_url("http://%s:%d" % [front_settings_state.game_service_host, front_settings_state.game_service_port])
+		settlement_gateway.configure_base_url(ServiceUrlBuilderScript.build_game_base_url(front_settings_state.game_service_host, front_settings_state.game_service_port, 18081))
 
 
 func _fail(error_code: String, user_message: String) -> Dictionary:

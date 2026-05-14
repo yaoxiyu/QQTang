@@ -14,6 +14,7 @@ const RoomEntryContextScript = preload("res://app/front/room/room_entry_context.
 const LoadoutNormalizerScript = preload("res://app/front/loadout/loadout_normalizer.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
 const LogSamplingPolicyScript = preload("res://app/logging/log_sampling_policy.gd")
+const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builder.gd")
 const ONLINE_LOG_PREFIX := "[ONLINE]"
 const MATCHMAKING_LOG_TAG := "front.matchmaking.use_case"
 
@@ -52,7 +53,7 @@ func enter_queue(queue_type: String, match_format_id: String, mode_id: String, r
 		"rule_set_id": rule_set_id,
 		"selected_map_ids": selected_map_ids,
 	})
-	var response = matchmaking_gateway.enter_queue(auth_session_state.access_token, queue_type, match_format_id, mode_id, rule_set_id, selected_map_ids)
+	var response = await matchmaking_gateway.enter_queue(auth_session_state.access_token, queue_type, match_format_id, mode_id, rule_set_id, selected_map_ids)
 	if not bool(response.get("ok", false)):
 		_log_matchmaking("enter_queue_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_ENTER_FAILED")), String(response.get("user_message", "Failed to enter queue")))
@@ -79,7 +80,7 @@ func cancel_queue() -> Dictionary:
 	_log_matchmaking("cancel_queue_requested", {
 		"queue_entry_id": queue_entry_id,
 	})
-	var response = matchmaking_gateway.cancel_queue(auth_session_state.access_token, queue_entry_id)
+	var response = await matchmaking_gateway.cancel_queue(auth_session_state.access_token, queue_entry_id)
 	if not bool(response.get("ok", false)):
 		_log_matchmaking("cancel_queue_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_CANCEL_FAILED")), String(response.get("user_message", "Failed to cancel queue")))
@@ -97,7 +98,7 @@ func poll_queue_status() -> Dictionary:
 		return _fail("MATCHMAKING_USE_CASE_NOT_READY", "Matchmaking use case is not ready")
 	_configure_gateways()
 	var queue_entry_id := _current_queue_state.queue_entry_id if _current_queue_state != null else ""
-	var response = matchmaking_gateway.get_queue_status(auth_session_state.access_token, queue_entry_id)
+	var response = await matchmaking_gateway.get_queue_status(auth_session_state.access_token, queue_entry_id)
 	if not bool(response.get("ok", false)):
 		_log_matchmaking("poll_queue_status_failed", response)
 		return _fail(String(response.get("error_code", "MATCHMAKING_STATUS_FAILED")), String(response.get("user_message", "Failed to query queue status")))
@@ -138,7 +139,7 @@ func consume_assignment_and_build_room_entry_context() -> Dictionary:
 			"assignment_id": _current_assignment_state.assignment_id,
 			"changed_fields": loadout_result.changed_fields,
 		})
-	var ticket_result = room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
+	var ticket_result = await room_ticket_gateway.issue_room_ticket(auth_session_state.access_token, request)
 	if ticket_result == null or not bool(ticket_result.ok):
 		_log_matchmaking("consume_assignment_ticket_failed", {
 			"assignment_id": _current_assignment_state.assignment_id,
@@ -213,9 +214,9 @@ func _configure_gateways() -> void:
 	if front_settings_state == null:
 		return
 	if matchmaking_gateway != null and matchmaking_gateway.has_method("configure_base_url"):
-		matchmaking_gateway.configure_base_url("http://%s:%d" % [_normalize_host(front_settings_state.game_service_host), _normalize_port(front_settings_state.game_service_port, 18081)])
+		matchmaking_gateway.configure_base_url(ServiceUrlBuilderScript.build_game_base_url(_normalize_host(front_settings_state.game_service_host), _normalize_port(front_settings_state.game_service_port, 18081), 18081))
 	if room_ticket_gateway != null and room_ticket_gateway.has_method("configure_base_url"):
-		room_ticket_gateway.configure_base_url("http://%s:%d" % [_normalize_host(front_settings_state.account_service_host), _normalize_port(front_settings_state.account_service_port, 18080)])
+		room_ticket_gateway.configure_base_url(ServiceUrlBuilderScript.build_account_base_url(_normalize_host(front_settings_state.account_service_host), _normalize_port(front_settings_state.account_service_port, 18080), 18080))
 
 
 func _is_ready() -> bool:

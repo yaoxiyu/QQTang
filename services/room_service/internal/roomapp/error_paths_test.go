@@ -31,7 +31,7 @@ func TestCreateRoom_InvalidTicket(t *testing.T) {
 func TestCreateRoom_ForbiddenLoadout(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.CreateRoom(CreateRoomInput{
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "custom_room", "acc-1", "pro-1"),
 		AccountID:    "acc-1",
 		ProfileID:    "pro-1",
 		PlayerName:   "owner",
@@ -55,7 +55,7 @@ func TestCreateRoom_IllegalMatchModeSet(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-1", "pro-1"),
 		AccountID:    "acc-1",
 		ProfileID:    "pro-1",
 		PlayerName:   "owner",
@@ -72,7 +72,7 @@ func TestJoinRoom_StaleRoomID(t *testing.T) {
 	svc := newTestService(t)
 	_, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       "room-does-not-exist",
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, "room-does-not-exist", "acc-joiner", "pro-joiner"),
 		AccountID:    "acc-joiner",
 		ProfileID:    "pro-joiner",
 		PlayerName:   "joiner",
@@ -88,7 +88,7 @@ func TestEnterMatchQueue_InvalidSelectedModes(t *testing.T) {
 	svc := newTestServiceWithFakeGame(t, nil)
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -101,7 +101,7 @@ func TestEnterMatchQueue_InvalidSelectedModes(t *testing.T) {
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",

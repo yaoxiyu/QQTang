@@ -260,7 +260,7 @@ func createReadyMatchRoomForBattleProjectionTest(t *testing.T, svc *Service) (*S
 
 	created, err := svc.CreateRoom(CreateRoomInput{
 		RoomKind:     "casual_match_room",
-		RoomTicket:   "ticket-create",
+		RoomTicket:   mustIssueCreateRoomTicket(t, "casual_match_room", "acc-owner", "pro-owner"),
 		AccountID:    "acc-owner",
 		ProfileID:    "pro-owner",
 		PlayerName:   "owner",
@@ -273,7 +273,7 @@ func createReadyMatchRoomForBattleProjectionTest(t *testing.T, svc *Service) (*S
 	}
 	if _, err := svc.JoinRoom(JoinRoomInput{
 		RoomID:       created.RoomID,
-		RoomTicket:   "ticket-join",
+		RoomTicket:   mustIssueJoinRoomTicket(t, created.RoomID, "acc-guest", "pro-guest"),
 		AccountID:    "acc-guest",
 		ProfileID:    "pro-guest",
 		PlayerName:   "guest",
