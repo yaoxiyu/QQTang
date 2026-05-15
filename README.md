@@ -58,6 +58,36 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 ```
 然后走正常流程：登录 → 大厅 → 房间 → 匹配 → 战斗。
 
+### 批量启动客户端
+
+快速启动多个客户端实例，自动分配独立 slot，日志统一输出到 `logs/`。
+
+```powershell
+# 启动 2 个客户端（client1, client2）
+.\tools\start-clients.ps1 -Count 2
+
+# 测试环境，指定起始索引（client3, client4）
+.\tools\start-clients.ps1 -Profile test -Count 2 -StartIndex 3
+
+# 使用控制台客户端，跳过 dotnet build
+.\tools\start-clients.ps1 -Count 2 -UseConsoleClient -SkipDotnetBuild
+```
+
+常用参数：
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `-Profile` | `dev` | 环境配置：`dev` / `test` |
+| `-Count` | `1` | 启动的客户端数量 |
+| `-StartIndex` | `1` | 起始 slot 编号 |
+| `-UserSlotPrefix` | `client` | slot 名称前缀 |
+| `-GodotDir` | 自动检测 | Godot 可执行文件目录 |
+| `-LogRoot` | `logs/clients_{profile}_{timestamp}` | 日志输出根目录 |
+| `-UseConsoleClient` | false | 使用控制台版 Godot |
+| `-SkipDotnetBuild` | false | 跳过 C# 编译 |
+| `-Wait` | false | 等待所有客户端进程结束后再退出 |
+
+每个客户端以 `--qqt-user-slot <prefix><index>` 参数启动，日志写入 `<LogRoot>/<slot>.godot.log`，进程摘要写入 `<LogRoot>/clients_processes.txt`。
+
 ---
 
 ## 开发战斗快速测试
