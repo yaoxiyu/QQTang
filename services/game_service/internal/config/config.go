@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"qqtang/services/game_service/internal/platform/configx"
 	"qqtang/services/game_service/internal/queue"
@@ -25,6 +26,7 @@ type Config struct {
 	CaptainDeadlineSeconds   int
 	CommitDeadlineSeconds    int
 	LogSQL                   bool
+	GameEnv                  string
 
 	// DS Manager Service URL
 	DSManagerURL string
@@ -73,6 +75,7 @@ func LoadFromEnv() (*Config, error) {
 		CaptainDeadlineSeconds:   captainDeadlineSeconds,
 		CommitDeadlineSeconds:    commitDeadlineSeconds,
 		LogSQL:                   logSQL,
+		GameEnv:                  configx.Env("GAME_ENV", "development"),
 
 		// Room/Battle process split
 		DSManagerURL: configx.Env("GAME_DS_MANAGER_URL", "http://127.0.0.1:18090"),
@@ -105,6 +108,34 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.RoomManifestPath == "" {
 		return nil, fmt.Errorf("GAME_ROOM_MANIFEST_PATH is required")
 	}
+	if isProductionEnv(cfg.GameEnv) && isUnsafeDevSecret(cfg.JWTSharedSecret) {
+		return nil, fmt.Errorf("GAME_JWT_SHARED_SECRET uses unsafe development secret in production")
+	}
+	if isProductionEnv(cfg.GameEnv) && isUnsafeDevSecret(cfg.InternalSharedSecret) {
+		return nil, fmt.Errorf("GAME_INTERNAL_AUTH_SHARED_SECRET uses unsafe development secret in production")
+	}
 
 	return cfg, nil
+}
+
+func isProductionEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "prod", "production":
+		return true
+	default:
+		return false
+	}
+}
+
+func isUnsafeDevSecret(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	if lower == "" {
+		return true
+	}
+	for _, pattern := range []string{"dev_", "replace_me", "changeme", "qqtang_dev_pass"} {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }

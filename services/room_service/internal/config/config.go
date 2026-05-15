@@ -27,6 +27,8 @@ type Config struct {
 	RoomWSMaxFrameBytes                int
 	RoomWSReadTimeoutSeconds           int
 	RoomWSPingIntervalSeconds          int
+	RoomDeploymentMode                 string
+	RoomExpectedReplicas               int
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -51,6 +53,11 @@ func LoadFromEnv() (*Config, error) {
 		RoomEnv:                    envOr("ROOM_ENV", "development"),
 		RoomAllowAllOrigins:        envBoolOr("ROOM_ALLOW_ALL_ORIGINS", false),
 		RoomAllowedOrigins:         parseCSV(envOr("ROOM_ALLOWED_ORIGINS", "")),
+		RoomDeploymentMode:         envOr("ROOM_DEPLOYMENT_MODE", "single_instance"),
+	}
+	cfg.RoomExpectedReplicas, err = positiveInt("ROOM_EXPECTED_REPLICAS", 1)
+	if err != nil {
+		return nil, err
 	}
 	cfg.RoomEmptyBattleCleanupGraceSeconds, err = positiveInt("ROOM_EMPTY_BATTLE_CLEANUP_GRACE_SECONDS", 30)
 	if err != nil {
@@ -89,6 +96,12 @@ func LoadFromEnv() (*Config, error) {
 	}
 	if isProductionEnv(cfg.RoomEnv) && isUnsafeDevSecret(cfg.RoomTicketSecret) {
 		return nil, fmt.Errorf("ROOM_TICKET_SECRET uses unsafe development secret in production")
+	}
+	if isProductionEnv(cfg.RoomEnv) && strings.TrimSpace(strings.ToLower(cfg.RoomDeploymentMode)) != "single_instance" {
+		return nil, fmt.Errorf("ROOM_DEPLOYMENT_MODE must be single_instance in production until persistent room state is enabled")
+	}
+	if isProductionEnv(cfg.RoomEnv) && cfg.RoomExpectedReplicas > 1 {
+		return nil, fmt.Errorf("ROOM_EXPECTED_REPLICAS must be 1 in production until persistent room state is enabled")
 	}
 
 	return cfg, nil

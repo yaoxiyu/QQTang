@@ -1,6 +1,6 @@
 {
     "schema_version":  1,
-    "generated_by":  "scripts/content/sync_qqt_animation_set_rows.ps1",
+    "generated_by":  "scripts/content/sync_animation_set_rows.ps1",
     "entries":  [
                     {
                         "animation_set_id":  "char_anim_phase38_demo_character",

@@ -7,8 +7,8 @@ QQTang Map Editor - 基于 QQ堂 mapElem 资源的 2.5D 地图编辑器
     pip install pillow
 
 运行：
-    python qqtang_map_editor.py --asset-root /path/to/QQTangExtracted-master/QQTang5.2_Beta1Build1
-    python qqtang_map_editor.py --zip /path/to/QQTangExtracted-master.zip
+    python map_editor.py --asset-root /path/to/QQTangExtracted-master/QQTang5.2_Beta1Build1
+    python map_editor.py --zip /path/to/QQTangExtracted-master.zip
 
 设计原则：
     1. 地面层仅使用 40×40 资源，支持 40×40 范围内像素外扩。

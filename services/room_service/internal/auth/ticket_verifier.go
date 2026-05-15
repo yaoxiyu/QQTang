@@ -57,11 +57,6 @@ func NewTicketVerifier(secret string) *TicketVerifier {
 	return &TicketVerifier{secret: []byte(secret)}
 }
 
-func (v *TicketVerifier) Verify(ticket string) bool {
-	_, err := v.VerifyWithExpected(ticket, ExpectedRoomTicket{})
-	return err == nil
-}
-
 func (v *TicketVerifier) VerifyWithExpected(ticket string, expected ExpectedRoomTicket) (RoomTicketClaims, error) {
 	if v == nil || len(v.secret) == 0 || strings.TrimSpace(string(v.secret)) == "" {
 		return RoomTicketClaims{}, ErrTicketVerifierNotReady

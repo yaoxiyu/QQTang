@@ -170,6 +170,12 @@ func LoadFromEnv() (*Config, error) {
 	if isProductionEnv(cfg.DSMEnv) && isUnsafeDevSecret(cfg.BattleTicketSecret) {
 		return nil, fmt.Errorf("DSM_BATTLE_TICKET_SECRET uses unsafe development secret in production")
 	}
+	if isProductionEnv(cfg.DSMEnv) && strings.Contains(strings.ToLower(strings.TrimSpace(cfg.PoolMode)), "docker") {
+		return nil, fmt.Errorf("DSM_POOL_MODE docker variants are not allowed in production; use k8s/agent runtime allocator")
+	}
+	if isProductionEnv(cfg.DSMEnv) && strings.TrimSpace(cfg.DockerSocket) != "" {
+		return nil, fmt.Errorf("DSM_DOCKER_SOCKET must be empty in production")
+	}
 
 	return cfg, nil
 }

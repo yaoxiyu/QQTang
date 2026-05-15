@@ -71,7 +71,7 @@ hair10101_stand_1.png
 
 ### 源部件资产
 
-新增源资产索引，建议生成到 `content_source/object_manifest/parts.csv`：
+新增源资产索引，建议生成到 `content_source/qqt_object_manifest/parts.csv`：
 
 ```csv
 part,source_id,action,source_direction,project_direction,source_path,frame_width,frame_height,frame_count,source_format,content_hash
@@ -87,11 +87,11 @@ cloth,10101,stand,3,down,C:/.../object/cloth/cloth10101_stand_3.png,100,100,1,pn
 
 ### 角色装配表
 
-新增角色装配表，建议放在 `content_source/csv/characters/character_assemblies.csv`：
+新增角色装配表，建议放在 `content_source/csv/characters/qqt_character_assemblies.csv`：
 
 ```csv
 character_id,assembly_id,body_id,cloth_id,leg_id,foot_id,head_id,hair_id,face_id,mouth_id,npack_id,cap_id,fhadorn_id,thadorn_id,cladorn_id,default_palette_id,tags
-10101,10101,1,10101,10101,1,1,10101,10101,,,"10101",,,default,resource
+10101,qqt_10101,1,10101,10101,1,1,10101,10101,,,"10101",,,default,qqt_resource
 ```
 
 设计原因：
@@ -281,14 +281,14 @@ powershell -ExecutionPolicy Bypass -File scripts/content/scan_object_resources.p
 输出：
 
 ```text
-content_source/object_manifest/parts.csv
-content_source/object_manifest/character_coverage.csv
-content_source/object_manifest/summary.json
+content_source/qqt_object_manifest/parts.csv
+content_source/qqt_object_manifest/character_coverage.csv
+content_source/qqt_object_manifest/summary.json
 ```
 
 ### 阶段 2：装配表
 
-先用启发式生成 `character_assemblies.csv`：
+先用启发式生成 `qqt_character_assemblies.csv`：
 
 - `cloth/hair/face/leg` 优先取角色 id。
 - `body/foot/head` 使用公共 id。
@@ -305,7 +305,7 @@ powershell -ExecutionPolicy Bypass -File scripts/content/generate_character_asse
 输出：
 
 ```text
-content_source/csv/characters/character_assemblies.csv
+content_source/csv/characters/qqt_character_assemblies.csv
 ```
 
 ### 阶段 3：默认动作烘焙
@@ -335,14 +335,14 @@ powershell -ExecutionPolicy Bypass -File scripts/content/bake_layered_characters
 输出：
 
 ```text
-assets/animation/characters/layered/<character_id>/*.png
-assets/animation/characters/layered/layered_bake_manifest.csv
+assets/animation/characters/qqt_layered/<character_id>/*.png
+assets/animation/characters/qqt_layered/qqt_layered_bake_manifest.csv
 ```
 
 层级配置：
 
 ```text
-content_source/csv/characters/character_layer_rules.csv
+content_source/csv/characters/qqt_character_layer_rules.csv
 ```
 
 字段含义：
@@ -399,9 +399,9 @@ up   npack_m 1301
 
 烘焙策略：
 
-- 默认 `merged` 版同时取普通层和 `_m` 层，并按 `character_layer_rules.csv` 的 `layer_order` 排序绘制。
-- 不再保留单独 `_m` 对比输出目录，当前只维护 `assets/animation/characters/layered`。
-- 身体基础层先绘制，衣服和装饰后绘制；实际顺序由 `character_layer_rules.csv` 决定。
+- 默认 `merged` 版同时取普通层和 `_m` 层，并按 `qqt_character_layer_rules.csv` 的 `layer_order` 排序绘制。
+- 不再保留单独 `_m` 对比输出目录，当前只维护 `assets/animation/characters/qqt_layered`。
+- 身体基础层先绘制，衣服和装饰后绘制；实际顺序由 `qqt_character_layer_rules.csv` 决定。
 - `npack` 是 `object/npack` 下的附加显示层，当前参与 `10101`、`10301`、`10601` 的 `stand/walk` 拼接。
 - 烘焙帧数取参与层中的最大帧数，避免 `npack` 这类动画层被静态 cloth 主层截断。
 - `idle`、`run` 输出四方向：`right/up/left/down`。
@@ -425,7 +425,7 @@ up   npack_m 1301
 
 ### 阶段 5：替换当前占位资源
 
-将 `char_anim_<id>` 从占位 `11001` strip 切换到烘焙输出。
+将 `char_anim_qqt_<id>` 从占位 `11001` strip 切换到烘焙输出。
 
 ## 风险
 
@@ -434,3 +434,4 @@ up   npack_m 1301
 - GIF 解码要确认透明帧 dispose 行为，否则会出现残影。
 - 缺方向需要显式报告，避免长期被 fallback 掩盖。
 - 如果后续要保留完整换装能力，需要把装配表作为可配置内容，而不是一次性烘焙后丢弃。
+

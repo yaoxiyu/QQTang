@@ -436,7 +436,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--asset-root", default="external/assets/maps/elements")
     parser.add_argument("--csv-out", default="content_source/csv/maps/map_elem_visual_meta.csv")
-    parser.add_argument("--json-out", default="tools/qqtang_map_pipeline/generated/map_elem_visual_meta.json")
+    parser.add_argument("--json-out", default="tools/map_pipeline/generated/map_elem_visual_meta.json")
     parser.add_argument("--map-elements-out", default="content_source/csv/map_elements/map_elements.csv")
     args = parser.parse_args()
 

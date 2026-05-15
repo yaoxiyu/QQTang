@@ -34,6 +34,21 @@ jobs:
       - name: Setup Buf
         uses: bufbuild/buf-setup-action@v1
 
+      - name: Guard buf generate outputs
+        shell: pwsh
+        run: |
+          python tools/lint/check_buf_gen_targets.py
+
+      - name: Guard generated proto drift
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File tools/lint/check_proto_generated_clean.ps1
+
+      - name: Run forbidden path guard (default seed)
+        shell: pwsh
+        run: |
+          python tools/project_guard/forbidden_paths_guard.py
+
       - name: Install Godot Mono
         shell: pwsh
         run: |
@@ -102,6 +117,23 @@ jobs:
             exit 1
           fi
           echo "[security] no sensitive log patterns detected."
+
+      - name: Guard legacy map pipeline references
+        run: |
+          set -euo pipefail
+          hits=$(rg -n --no-heading --color never \
+            "tools/qqtang_map_pipeline" \
+            --glob '!tools/qqtang_map_pipeline/**' \
+            --glob '!tools/map_pipeline/**' \
+            --glob '!docs/archive/**' \
+            --glob '!.github/workflows/validate.yml' \
+            . || true)
+          if [ -n "$hits" ]; then
+            echo "[security] legacy map pipeline reference detected outside compatibility scope:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "[security] no legacy map pipeline references outside compatibility scope."
 
   linux-native-runtime:
     runs-on: ubuntu-latest

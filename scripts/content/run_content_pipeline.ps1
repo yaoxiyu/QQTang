@@ -70,7 +70,7 @@ try {
             'scripts\content\convert_map_gif_to_png_anim.ps1',
             'scripts\content\convert_item_gif_to_png_anim.ps1',
             'scripts\content\convert_misc_gif_to_png_anim.ps1',
-            'scripts\content\sync_qqt_animation_set_rows.ps1',
+            'scripts\content\sync_animation_set_rows.ps1',
             'content\characters\defs',
             'content\bubbles\defs',
             'content\maps\defs',
@@ -100,9 +100,9 @@ try {
                 throw "content pipeline failed (godot exit code: $LASTEXITCODE)"
             }
 
-            $syncQqtAnimationSetsScript = Join-Path $projectRoot 'scripts\content\sync_qqt_animation_set_rows.ps1'
-            if (Test-Path -LiteralPath $syncQqtAnimationSetsScript) {
-                & $syncQqtAnimationSetsScript -ProjectPath $projectRoot -AssetPackRoot (Join-Path $projectRoot 'external\assets')
+            $syncAnimationSetsScript = Join-Path $projectRoot 'scripts\content\sync_animation_set_rows.ps1'
+            if (Test-Path -LiteralPath $syncAnimationSetsScript) {
+                & $syncAnimationSetsScript -ProjectPath $projectRoot -AssetPackRoot (Join-Path $projectRoot 'external\assets')
             }
         } | Out-Null
 

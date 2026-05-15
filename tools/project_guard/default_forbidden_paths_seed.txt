@@ -1,0 +1,6 @@
+# Default forbidden-path seed (single source).
+# Use this with tools/project_guard/forbidden_paths_guard.py
+
+# Generated mirror files should not be edited directly.
+AGENTS.md
+CLAUDE.md

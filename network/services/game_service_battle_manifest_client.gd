@@ -28,14 +28,14 @@ func fetch_manifest(battle_id: String) -> Dictionary:
 	if battle_id.strip_edges().is_empty():
 		return _fail("MANIFEST_BATTLE_ID_MISSING", "battle_id is required")
 	var path := MANIFEST_PATH_PREFIX + battle_id.uri_encode() + "/manifest"
-	return _send_request(HTTPClient.METHOD_GET, path, null)
+	return await _send_request(HTTPClient.METHOD_GET, path, null)
 
 
 func post_ready(battle_id: String, server_host: String, server_port: int) -> Dictionary:
 	if battle_id.strip_edges().is_empty():
 		return _fail("READY_BATTLE_ID_MISSING", "battle_id is required")
 	var path := READY_PATH_PREFIX + battle_id.uri_encode() + "/ready"
-	return _send_request(HTTPClient.METHOD_POST, path, {
+	return await _send_request(HTTPClient.METHOD_POST, path, {
 		"server_host": server_host,
 		"server_port": server_port,
 	})
@@ -62,7 +62,7 @@ func _send_request(method: int, path: String, payload: Variant) -> Dictionary:
 	options.log_tag = LOG_TAG
 	options.connect_timeout_ms = 5000
 	options.read_timeout_ms = 5000
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_CONNECT_TIMEOUT":
 		return _fail("MANIFEST_CONNECT_TIMEOUT", "Game service connect timeout")
 	if response.error_code == "HTTP_CONNECT_FAILED":

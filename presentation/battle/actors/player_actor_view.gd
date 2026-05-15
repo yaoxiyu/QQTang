@@ -26,7 +26,7 @@ const LOCAL_CONTROLLED_IDENTITY_MARKERS: Array[Dictionary] = [
 		"anim_name": "stand",
 		"fps": 10.0,
 		"loop": true,
-		"offset_cells": Vector2(0.0, -0.95),
+		"offset_cells": Vector2(0.0, 50),
 		"z_index": IDENTITY_SLOT_Z_INDEX,
 		"require_alive": false,
 	},

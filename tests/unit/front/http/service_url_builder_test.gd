@@ -6,6 +6,8 @@ const ServiceUrlBuilderScript = preload("res://app/infra/http/service_url_builde
 func test_main() -> void:
 	var ok := true
 	var prefix := "service_url_builder_test"
+	OS.set_environment("QQT_ALLOW_INSECURE_HTTP", "1")
+	OS.set_environment("QQT_REQUIRE_HTTPS", "")
 
 	var game_from_base := ServiceUrlBuilderScript.normalize_service_base_url("http://game_service/internal", 18081, "QQT_GAME_SERVICE_SCHEME")
 	ok = qqt_check(game_from_base.find("://game_service:18081") >= 0, "normalize should pin game service default port when base url omits port", prefix) and ok
@@ -22,6 +24,8 @@ func test_main() -> void:
 
 	var endpoint_with_port: Dictionary = ServiceUrlBuilderScript.parse_host_and_explicit_port("http://game_service:18081/internal")
 	ok = qqt_check(int(endpoint_with_port.get("port", 0)) == 18081, "endpoint parser should read explicit port", prefix) and ok
+
+	OS.set_environment("QQT_ALLOW_INSECURE_HTTP", "")
 
 	if not ok:
 		push_error("service_url_builder_test failed")

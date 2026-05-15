@@ -1,0 +1,73 @@
+name: qqtang_services_prod
+
+services:
+  game_service:
+    build:
+      context: ../../
+      dockerfile: services/game_service/Dockerfile
+    environment:
+      GAME_HTTP_ADDR: 0.0.0.0:18081
+      GAME_ENV: production
+      GAME_GRPC_ADDR: 0.0.0.0:19081
+      GAME_POSTGRES_DSN: ${GAME_POSTGRES_DSN:?required}
+      GAME_ROOM_MANIFEST_PATH: /app/build/generated/room_manifest/room_manifest.json
+      GAME_JWT_SHARED_SECRET: ${GAME_JWT_SHARED_SECRET:?required}
+      GAME_INTERNAL_AUTH_KEY_ID: ${GAME_INTERNAL_AUTH_KEY_ID:-primary}
+      GAME_INTERNAL_AUTH_SHARED_SECRET: ${GAME_INTERNAL_AUTH_SHARED_SECRET:?required}
+      # Production should use external DS allocator/manager endpoint.
+      GAME_DS_MANAGER_URL: ${GAME_DS_MANAGER_URL:?required}
+      GAME_DEFAULT_DS_HOST: ${GAME_DEFAULT_DS_HOST:?required}
+      GAME_DEFAULT_DS_PORT: ${GAME_DEFAULT_DS_PORT:?required}
+      GAME_LOG_SQL: "false"
+    ports:
+      - "18081:18081"
+      - "19081:19081"
+
+  account_service:
+    build:
+      context: ../../
+      dockerfile: services/account_service/Dockerfile
+    environment:
+      ACCOUNT_ENV: production
+      ACCOUNT_HTTP_LISTEN_ADDR: 0.0.0.0:18080
+      ACCOUNT_POSTGRES_DSN: ${ACCOUNT_POSTGRES_DSN:?required}
+      ACCOUNT_TOKEN_SIGN_SECRET: ${ACCOUNT_TOKEN_SIGN_SECRET:?required}
+      ACCOUNT_ROOM_TICKET_SIGN_SECRET: ${ACCOUNT_ROOM_TICKET_SIGN_SECRET:?required}
+      ACCOUNT_BATTLE_TICKET_SIGN_SECRET: ${ACCOUNT_BATTLE_TICKET_SIGN_SECRET:?required}
+      ACCOUNT_GAME_SERVICE_BASE_URL: http://game_service:18081
+      ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID: ${ACCOUNT_GAME_INTERNAL_AUTH_KEY_ID:-primary}
+      ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET: ${ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET:?required}
+      ACCOUNT_LOG_SQL: "false"
+    depends_on:
+      - game_service
+    ports:
+      - "18080:18080"
+
+  room_service:
+    build:
+      context: ../../
+      dockerfile: services/room_service/Dockerfile
+    environment:
+      ROOM_ENV: production
+      ROOM_HTTP_ADDR: 0.0.0.0:19100
+      ROOM_WS_ADDR: 0.0.0.0:9100
+      ROOM_DEFAULT_PORT: 9100
+      ROOM_TICKET_SECRET: ${ROOM_TICKET_SECRET:?required}
+      ROOM_MANIFEST_PATH: /app/build/generated/room_manifest/room_manifest.json
+      ROOM_GAME_SERVICE_GRPC_ADDR: game_service:19081
+      ROOM_GAME_SERVICE_BASE_URL: http://game_service:18081
+      ROOM_GAME_INTERNAL_AUTH_KEY_ID: ${ROOM_GAME_INTERNAL_AUTH_KEY_ID:-primary}
+      ROOM_GAME_INTERNAL_AUTH_SHARED_SECRET: ${ROOM_GAME_INTERNAL_AUTH_SHARED_SECRET:?required}
+      ROOM_EMPTY_BATTLE_CLEANUP_GRACE_SECONDS: 30
+      ROOM_LOG_LEVEL: info
+      ROOM_SHARD_ID: ${ROOM_SHARD_ID:?required}
+      ROOM_INSTANCE_ID: ${ROOM_INSTANCE_ID:?required}
+      ROOM_ALLOWED_ORIGINS: ${ROOM_ALLOWED_ORIGINS:?required}
+      ROOM_ALLOW_ALL_ORIGINS: "false"
+      ROOM_DEPLOYMENT_MODE: single_instance
+      ROOM_EXPECTED_REPLICAS: 1
+    depends_on:
+      - game_service
+    ports:
+      - "19100:19100"
+      - "9100:9100"

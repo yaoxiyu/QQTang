@@ -27,6 +27,7 @@ Set-DefaultEnv 'DSM_GODOT_EXECUTABLE' (Join-Path $projectRoot 'external\godot_bi
 Set-DefaultEnv 'DSM_PROJECT_ROOT' $projectRoot
 Set-DefaultEnv 'DSM_BATTLE_SCENE_PATH' 'res://scenes/network/dedicated_server_scene.tscn'
 Set-DefaultEnv 'DSM_BATTLE_TICKET_SECRET' 'dev_battle_ticket_secret'
+Set-DefaultEnv 'QQT_ALLOW_INSECURE_HTTP' '1'
 Set-DefaultEnv 'DSM_BATTLE_LOG_DIR' ''
 Set-DefaultEnv 'DSM_DS_HOST' $cfg.Room.Host
 Set-DefaultEnv 'DSM_PORT_RANGE_START' '19010'

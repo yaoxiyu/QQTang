@@ -62,3 +62,28 @@ func TestLoadFromEnvRejectsMissingInternalAuthSecret(t *testing.T) {
 		t.Fatalf("expected missing internal auth secret error, got: %v", err)
 	}
 }
+
+func TestLoadFromEnvRejectsDevSecretsInProduction(t *testing.T) {
+	t.Setenv("GAME_ENV", "production")
+	t.Setenv("GAME_HTTP_ADDR", "127.0.0.1:19091")
+	t.Setenv("GAME_POSTGRES_DSN", "postgres://tester:pass@127.0.0.1:5432/test_db?sslmode=disable")
+	t.Setenv("GAME_JWT_SHARED_SECRET", "dev_jwt_secret")
+	t.Setenv("GAME_INTERNAL_AUTH_SHARED_SECRET", "dev_internal_shared_secret")
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected production config with dev secrets to be rejected")
+	}
+}
+
+func TestLoadFromEnvAllowsDevSecretsInDevelopment(t *testing.T) {
+	t.Setenv("GAME_ENV", "development")
+	t.Setenv("GAME_HTTP_ADDR", "127.0.0.1:19091")
+	t.Setenv("GAME_POSTGRES_DSN", "postgres://tester:pass@127.0.0.1:5432/test_db?sslmode=disable")
+	t.Setenv("GAME_JWT_SHARED_SECRET", "dev_jwt_secret")
+	t.Setenv("GAME_INTERNAL_AUTH_SHARED_SECRET", "dev_internal_shared_secret")
+
+	if _, err := LoadFromEnv(); err != nil {
+		t.Fatalf("expected development config to pass, got %v", err)
+	}
+}

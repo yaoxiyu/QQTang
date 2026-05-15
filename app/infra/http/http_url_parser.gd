@@ -42,5 +42,17 @@ static func parse(url: String) -> Dictionary:
 
 
 static func _is_https_required() -> bool:
+	if _is_insecure_http_allowed():
+		return false
 	var value := OS.get_environment("QQT_REQUIRE_HTTPS").strip_edges().to_lower()
+	if value == "0" or value == "false" or value == "no" or value == "off":
+		return false
+	if value == "1" or value == "true" or value == "yes" or value == "on":
+		return true
+	# Secure-by-default: require HTTPS unless explicitly relaxed for local dev.
+	return true
+
+
+static func _is_insecure_http_allowed() -> bool:
+	var value := OS.get_environment("QQT_ALLOW_INSECURE_HTTP").strip_edges().to_lower()
 	return value == "1" or value == "true" or value == "yes" or value == "on"

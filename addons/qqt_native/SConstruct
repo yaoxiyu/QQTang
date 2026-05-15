@@ -58,7 +58,7 @@ env.Append(CPPPATH=[
 ])
 
 if platform == "windows":
-    env.Append(CXXFLAGS=["/std:c++17", "/EHsc"])
+    env.Append(CXXFLAGS=["/std:c++17", "/EHsc", "/wd4819"])
     shared_suffix = ".dll"
     godot_cpp_suffix = ".lib"
 elif platform == "linux":
@@ -112,4 +112,3 @@ library = env.SharedLibrary(
 )
 
 Default(library)
-

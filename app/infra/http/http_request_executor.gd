@@ -7,6 +7,12 @@ const HttpResponseReaderScript = preload("res://app/infra/http/http_response_rea
 
 
 static func execute(options: HttpRequestOptions) -> HttpResponse:
+	if not _allow_sync_execute():
+		return HttpResponseScript.from_error(
+			"HTTP_SYNC_DISABLED",
+			"Synchronous HTTP execute is disabled. Use execute_async instead.",
+			ERR_UNAVAILABLE
+		)
 	if options == null or options.url.strip_edges().is_empty():
 		return HttpResponseScript.from_error("HTTP_URL_MISSING", "HTTP request url is missing", ERR_INVALID_PARAMETER)
 	var parsed_url := HttpRequestHelperScript.parse_url(options.url)
@@ -160,3 +166,8 @@ static func _yield_msec_async(delay_msec: int) -> void:
 		await tree.create_timer(float(max(delay_msec, 1)) / 1000.0).timeout
 	else:
 		OS.delay_msec(max(delay_msec, 1))
+
+
+static func _allow_sync_execute() -> bool:
+	var value := OS.get_environment("QQT_ALLOW_SYNC_HTTP_EXECUTE").strip_edges().to_lower()
+	return value == "1" or value == "true" or value == "yes" or value == "on"

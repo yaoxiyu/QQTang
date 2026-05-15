@@ -5,7 +5,7 @@ const TransportMessageCodecScript = preload("res://network/transport/transport_m
 const BattleTransportChannelsScript = preload("res://network/transport/battle_transport_channels.gd")
 const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
 const LogNetScript = preload("res://app/logging/log_net.gd")
-const DEBUG_TRANSPORT_LOGS: bool = true
+const DEBUG_TRANSPORT_LOGS_DEFAULT: bool = false
 const DEBUG_CLIENT_PACKET_PROBE_LOGS: bool = false
 const DEFAULT_CONNECT_TIMEOUT_SECONDS: float = 5.0
 const UNRELIABLE_PAYLOAD_SOFT_LIMIT_BYTES: int = BattleWireBudgetContractScript.UNRELIABLE_SOFT_LIMIT_BYTES
@@ -603,7 +603,7 @@ func _connection_status_name(connection_status: int) -> String:
 
 
 func _debug_log(message: String) -> void:
-	if not DEBUG_TRANSPORT_LOGS:
+	if not _is_debug_transport_logs_enabled():
 		return
 	LogNetScript.debug(message, "", 0, "net.transport")
 
@@ -613,7 +613,7 @@ func _is_high_freq_message_type(message_type: String) -> bool:
 
 
 func _high_freq_log_record(direction: String, message_type: String, payload_bytes: int) -> void:
-	if not DEBUG_TRANSPORT_LOGS:
+	if not _is_debug_transport_logs_enabled():
 		return
 	var key := direction + "|" + message_type
 	var bucket: Dictionary = _high_freq_log_buckets.get(key, {
@@ -633,7 +633,7 @@ func _high_freq_log_record(direction: String, message_type: String, payload_byte
 
 
 func _high_freq_log_flush_if_due() -> void:
-	if not DEBUG_TRANSPORT_LOGS:
+	if not _is_debug_transport_logs_enabled():
 		return
 	if _high_freq_log_buckets.is_empty():
 		return
@@ -666,3 +666,12 @@ func _high_freq_log_flush_if_due() -> void:
 		)
 	_high_freq_log_buckets.clear()
 	_high_freq_log_last_flush_msec = now
+
+
+func _is_debug_transport_logs_enabled() -> bool:
+	var value := OS.get_environment("QQT_DEBUG_TRANSPORT_LOGS").strip_edges().to_lower()
+	if value == "1" or value == "true" or value == "yes" or value == "on":
+		return true
+	if value == "0" or value == "false" or value == "no" or value == "off":
+		return false
+	return DEBUG_TRANSPORT_LOGS_DEFAULT

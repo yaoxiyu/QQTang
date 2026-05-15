@@ -46,6 +46,10 @@ class ForbiddenPathTests(unittest.TestCase):
         )
         self.assertEqual(violations, [])
 
+    def test_default_seed_path_is_configured(self) -> None:
+        args = self.guard.parse_args([])
+        self.assertEqual(args.seed, self.guard.DEFAULT_SEED)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"qqtang/services/account_service/internal/platform/configx"
 )
@@ -27,6 +28,7 @@ type Config struct {
 	LoginRateLimitCooldownSec int
 	AllowMultiDevice          bool
 	LogSQL                    bool
+	AccountEnv                string
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -95,6 +97,7 @@ func LoadFromEnv() (*Config, error) {
 		LoginRateLimitCooldownSec: loginRateLimitCooldownSec,
 		AllowMultiDevice:          allowMultiDevice,
 		LogSQL:                    logSQL,
+		AccountEnv:                configx.Env("ACCOUNT_ENV", "development"),
 	}
 
 	if cfg.HTTPListenAddr == "" {
@@ -118,6 +121,37 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.GameInternalSharedSecret == "" {
 		return nil, fmt.Errorf("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET is required")
 	}
+	if isProductionEnv(cfg.AccountEnv) && isUnsafeDevSecret(cfg.BattleTicketSignSecret) {
+		return nil, fmt.Errorf("ACCOUNT_BATTLE_TICKET_SIGN_SECRET uses unsafe development secret in production")
+	}
+	if isProductionEnv(cfg.AccountEnv) && isUnsafeDevSecret(cfg.RoomTicketSignSecret) {
+		return nil, fmt.Errorf("ACCOUNT_ROOM_TICKET_SIGN_SECRET uses unsafe development secret in production")
+	}
+	if isProductionEnv(cfg.AccountEnv) && isUnsafeDevSecret(cfg.GameInternalSharedSecret) {
+		return nil, fmt.Errorf("ACCOUNT_GAME_INTERNAL_AUTH_SHARED_SECRET uses unsafe development secret in production")
+	}
 
 	return cfg, nil
+}
+
+func isProductionEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "prod", "production":
+		return true
+	default:
+		return false
+	}
+}
+
+func isUnsafeDevSecret(secret string) bool {
+	lower := strings.ToLower(strings.TrimSpace(secret))
+	if lower == "" {
+		return true
+	}
+	for _, pattern := range []string{"dev_", "replace_me", "changeme", "qqtang_dev_pass"} {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
 }

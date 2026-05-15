@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_SEED = "tools/project_guard/default_forbidden_paths_seed.txt"
 
 
 def normalize_path(value: str) -> str:
@@ -72,7 +73,7 @@ def find_violations(changed_paths: list[str], forbidden_paths: list[str]) -> lis
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Forbidden path guard.")
     parser.add_argument("--base", help="Base ref for git diff, for example origin/main.")
-    parser.add_argument("--seed", default=None, help="Forbidden path seed file.")
+    parser.add_argument("--seed", default=DEFAULT_SEED, help="Forbidden path seed file.")
     parser.add_argument("--paths", nargs="*", help="Explicit changed paths to validate.")
     return parser.parse_args(argv)
 
@@ -123,5 +124,4 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
-
 

@@ -25,6 +25,9 @@ $composeFile = Join-Path $root ("deploy\docker\docker-compose.services.{0}.yml" 
 if (-not (Test-Path -LiteralPath $composeFile)) {
     throw "Service compose file not found: $composeFile"
 }
+if ($Profile -eq 'dev') {
+    Write-Warning "DEV compose may mount docker.sock and run privileged DS manager settings. Do NOT use dev compose in production."
+}
 $cacheRoot = Join-Path $root (Join-Path 'build' (Join-Path '.run-services-cache' $Profile))
 New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
 $progressActivity = "run-services:$Profile"

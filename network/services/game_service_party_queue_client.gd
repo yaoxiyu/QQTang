@@ -26,11 +26,11 @@ func configure(p_base_url: String, p_service_token: String, p_key_id: String = "
 
 
 func enter_party_queue(request: Dictionary) -> Dictionary:
-	return _send_json_request(HTTPClient.METHOD_POST, ENTER_PATH, request)
+	return await _send_json_request(HTTPClient.METHOD_POST, ENTER_PATH, request)
 
 
 func cancel_party_queue(party_room_id: String, queue_entry_id: String) -> Dictionary:
-	return _send_json_request(HTTPClient.METHOD_POST, CANCEL_PATH, {
+	return await _send_json_request(HTTPClient.METHOD_POST, CANCEL_PATH, {
 		"party_room_id": party_room_id,
 		"queue_entry_id": queue_entry_id,
 	})
@@ -41,7 +41,7 @@ func get_party_queue_status(party_room_id: String, queue_entry_id: String) -> Di
 		party_room_id.uri_encode(),
 		queue_entry_id.uri_encode(),
 	]
-	return _send_json_request(HTTPClient.METHOD_GET, STATUS_PATH + query, null)
+	return await _send_json_request(HTTPClient.METHOD_GET, STATUS_PATH + query, null)
 
 
 func _send_json_request(method: int, path: String, payload: Variant) -> Dictionary:
@@ -67,7 +67,7 @@ func _send_json_request(method: int, path: String, payload: Variant) -> Dictiona
 	options.body_text = body
 	options.log_tag = "net.party_queue"
 	LogNetScript.info("party_queue_client sending %s body_len=%d" % [path, body.length()], "", 0, "net.party_queue")
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
 		LogNetScript.warn("party_queue_client FAIL: connect failed", "", 0, "net.party_queue")
 		return ResultScript.fail("PARTY_QUEUE_CONNECT_FAILED", "Failed to connect game service")

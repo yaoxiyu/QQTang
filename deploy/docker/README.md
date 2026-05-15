@@ -31,8 +31,6 @@ Removed deployment-era compatibility scripts:
 - `tools/run_dev_services.ps1`
 - `tools/migrate.ps1`
 - `deploy/docker/build_services_dev.ps1`
-- `scripts/run-room-service.ps1`
-- `network/scripts/run-room-service.ps1`
 
 The service Docker Compose files validate Go service image readiness for:
 

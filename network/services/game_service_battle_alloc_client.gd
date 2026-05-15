@@ -24,7 +24,7 @@ func configure(p_base_url: String, p_service_token: String, p_key_id: String = "
 
 
 func request_manual_room_battle(request: Dictionary) -> Dictionary:
-	return _send_json_request(HTTPClient.METHOD_POST, MANUAL_ROOM_CREATE_PATH, request)
+	return await _send_json_request(HTTPClient.METHOD_POST, MANUAL_ROOM_CREATE_PATH, request)
 
 
 func _send_json_request(method: int, path: String, payload: Variant) -> Dictionary:
@@ -49,7 +49,7 @@ func _send_json_request(method: int, path: String, payload: Variant) -> Dictiona
 	options.connect_timeout_ms = 5000
 	options.read_timeout_ms = 8000
 	LogNetScript.info("battle_alloc_client sending %s body_len=%d" % [path, body.length()], "", 0, LOG_TAG)
-	var response = HttpRequestExecutorScript.execute(options)
+	var response = await HttpRequestExecutorScript.execute_async(options)
 	if response.error_code == "HTTP_CONNECT_FAILED" or response.error_code == "HTTP_CONNECT_TIMEOUT":
 		return _fail("BATTLE_ALLOC_CONNECT_FAILED", "Failed to connect game service")
 	if response.error_code == "HTTP_REQUEST_FAILED" or response.error_code == "HTTP_REQUEST_TIMEOUT":

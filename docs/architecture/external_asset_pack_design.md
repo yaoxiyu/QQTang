@@ -132,8 +132,8 @@ content/character_animation_sets/generated/sprite_frames/**
 │ qqt_character_assemblies.csv                    │
 │ qqt_character_layer_rules.csv                   │
 │ team_palettes.csv                               │
-│ bake_qqt_layered_characters.ps1                 │
-│ sync_qqt_animation_set_rows.ps1                 │
+│ bake_layered_characters.ps1                 │
+│ sync_animation_set_rows.ps1                 │
 └──────────────────┬──────────────────────────────┘
                    │ bake
                    ▼
@@ -172,7 +172,7 @@ content_source/qqt_object_manifest/parts.csv
 content_source/csv/characters/qqt_character_assemblies.csv
 content_source/csv/characters/qqt_character_layer_rules.csv
 content_source/csv/team_colors/team_palettes.csv
-scripts/content/bake_qqt_layered_characters.ps1
+scripts/content/bake_layered_characters.ps1
 ```
 
 如果以上输入完全一致，则生成出的像素结果必须一致。
@@ -547,10 +547,10 @@ scripts/assets/
 
 ```text
 scripts/content/
-  scan_qqt_object_resources.ps1
-  generate_qqt_character_assemblies.ps1
-  bake_qqt_layered_characters.ps1
-  sync_qqt_animation_set_rows.ps1
+  scan_object_resources.ps1
+  generate_character_assemblies.ps1
+  bake_layered_characters.ps1
+  sync_animation_set_rows.ps1
   run_content_pipeline.ps1
   validate_content_pipeline.ps1
 ```
@@ -562,9 +562,9 @@ scripts/content/
 ```powershell
 scripts/assets/restore_asset_pack.ps1 -AssetPackRoot external\assets
 scripts/assets/validate_asset_pack.ps1 -AssetPackRoot external\assets
-scripts/content/scan_qqt_object_resources.ps1 -ObjectRoot external\assets\source\res\object
-scripts/content/bake_qqt_layered_characters.ps1 -OutputRoot external\assets\derived\assets\animation\characters\qqt_layered
-scripts/content/sync_qqt_animation_set_rows.ps1
+scripts/content/scan_object_resources.ps1 -SourceRoot external\assets\source\res\object
+scripts/content/bake_layered_characters.ps1 -OutputRoot external\assets\derived\assets\animation\characters\qqt_layered
+scripts/content/sync_animation_set_rows.ps1
 scripts/content/run_content_pipeline.ps1
 scripts/content/validate_content_pipeline.ps1
 ```
@@ -573,7 +573,7 @@ scripts/content/validate_content_pipeline.ps1
 
 ### 13.3 外部输出安全
 
-当前 `bake_qqt_layered_characters.ps1` 有清理输出目录逻辑。支持外部目录后，必须调整安全规则：
+当前 `bake_layered_characters.ps1` 有清理输出目录逻辑。支持外部目录后，必须调整安全规则：
 
 - 允许清理 `ProjectPath/assets/animation/**`。
 - 允许清理显式传入且通过 `-AllowExternalOutput` 确认的资产包目录。
@@ -719,3 +719,5 @@ content_source/csv/**
 - Git 提交只包含代码、配置、manifest 和小型测试资源。
 
 这套方案将资产系统从“文件堆放”升级为“可复现、可校验、可外置、可按需加载”的工程化内容系统。
+
+

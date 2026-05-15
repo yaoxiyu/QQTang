@@ -87,3 +87,40 @@ func TestLoadFromEnvRejectsMissingInternalAuthSecret(t *testing.T) {
 		t.Fatalf("expected missing internal auth secret error, got %v", err)
 	}
 }
+
+func TestLoadFromEnvRejectsDockerPoolInProduction(t *testing.T) {
+	t.Setenv("DSM_ENV", "production")
+	t.Setenv("DSM_INTERNAL_AUTH_SHARED_SECRET", "prod_internal_shared_secret")
+	t.Setenv("DSM_BATTLE_TICKET_SECRET", "prod_battle_ticket_secret")
+	t.Setenv("DSM_POOL_MODE", "docker_warm_pool")
+	t.Setenv("DSM_DOCKER_SOCKET", "unix:///var/run/docker.sock")
+	t.Setenv("DSM_PORT_RANGE_START", "19010")
+	t.Setenv("DSM_PORT_RANGE_END", "19050")
+	t.Setenv("DSM_READY_TIMEOUT_SEC", "15")
+	t.Setenv("DSM_IDLE_REAP_TIMEOUT_SEC", "300")
+
+	_, err := LoadFromEnv()
+	if err == nil || !strings.Contains(err.Error(), "docker variants are not allowed in production") {
+		t.Fatalf("expected docker pool production rejection, got %v", err)
+	}
+}
+
+func TestLoadFromEnvAllowsDockerPoolInDevelopment(t *testing.T) {
+	t.Setenv("DSM_ENV", "development")
+	t.Setenv("DSM_INTERNAL_AUTH_SHARED_SECRET", "dev_internal_shared_secret")
+	t.Setenv("DSM_BATTLE_TICKET_SECRET", "dev_battle_ticket_secret")
+	t.Setenv("DSM_POOL_MODE", "docker_warm_pool")
+	t.Setenv("DSM_DOCKER_SOCKET", "unix:///var/run/docker.sock")
+	t.Setenv("DSM_PORT_RANGE_START", "19010")
+	t.Setenv("DSM_PORT_RANGE_END", "19050")
+	t.Setenv("DSM_READY_TIMEOUT_SEC", "15")
+	t.Setenv("DSM_IDLE_REAP_TIMEOUT_SEC", "300")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("expected development docker pool config to pass, got %v", err)
+	}
+	if cfg.PoolMode != "docker_warm_pool" {
+		t.Fatalf("unexpected pool mode: %s", cfg.PoolMode)
+	}
+}

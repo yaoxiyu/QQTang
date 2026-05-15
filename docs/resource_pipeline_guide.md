@@ -12,34 +12,34 @@
 
 ## 管线条目
 
-### 1. scan_qqt_object_resources
+### 1. scan_object_resources
 
 扫描角色部件源文件，生成 `parts.csv` 索引。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/content/scan_qqt_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
+powershell -ExecutionPolicy Bypass -File scripts/content/scan_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
 ```
 
 - 输出：`content_source/qqt_object_manifest/parts.csv`
 - 触发条件：`external/assets/source/res/object/` 下任何文件有变化
 
-### 2. generate_qqt_character_assemblies
+### 2. generate_character_assemblies
 
 从 `parts.csv` 生成角色装配表（角色 ID → 部件 ID 映射）。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/content/generate_qqt_character_assemblies.ps1
+powershell -ExecutionPolicy Bypass -File scripts/content/generate_character_assemblies.ps1
 ```
 
 - 输出：`content_source/csv/characters/qqt_character_assemblies.csv`
 - 触发条件：新增角色或更改角色部件映射时（仅修改已有角色的动画无需此步）
 
-### 3. bake_qqt_layered_characters
+### 3. bake_layered_characters
 
 将分层源 GIF/PNG 合成运行时 PNG 序列帧条带。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/content/bake_qqt_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
+powershell -ExecutionPolicy Bypass -File scripts/content/bake_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
 ```
 
 - 输出：
@@ -48,12 +48,12 @@ powershell -ExecutionPolicy Bypass -File scripts/content/bake_qqt_layered_charac
 - 动作映射：`stand`→`idle`、`walk`→`run`、`die`→`dead`、`win`→`victory`、`lose`→`defeat`
 - 方向规则：`idle`/`run` 输出四方向，其余动作只输出 `down` 方向
 
-### 4. sync_qqt_animation_set_rows
+### 4. sync_animation_set_rows
 
 将烘焙输出的条带路径同步到动画集 CSV 和运行时 JSON。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/content/sync_qqt_animation_set_rows.ps1 -AssetPackRoot "external/assets"
+powershell -ExecutionPolicy Bypass -File scripts/content/sync_animation_set_rows.ps1 -AssetPackRoot "external/assets"
 ```
 
 - 输出：
@@ -88,13 +88,13 @@ powershell -ExecutionPolicy Bypass -File scripts/content/validate_content_pipeli
 
 ```powershell
 # 1. 扫描源文件，更新哈希
-powershell -ExecutionPolicy Bypass -File scripts/content/scan_qqt_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
+powershell -ExecutionPolicy Bypass -File scripts/content/scan_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
 
 # 2. 烘焙角色动画
-powershell -ExecutionPolicy Bypass -File scripts/content/bake_qqt_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
+powershell -ExecutionPolicy Bypass -File scripts/content/bake_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
 
 # 3. 同步动画集
-powershell -ExecutionPolicy Bypass -File scripts/content/sync_qqt_animation_set_rows.ps1 -AssetPackRoot "external/assets"
+powershell -ExecutionPolicy Bypass -File scripts/content/sync_animation_set_rows.ps1 -AssetPackRoot "external/assets"
 
 # 4. 生成运行时资源（必须 ForceBuild）
 powershell -ExecutionPolicy Bypass -File scripts/content/run_content_pipeline.ps1 -ForceBuild
@@ -113,9 +113,9 @@ powershell -ExecutionPolicy Bypass -File scripts/content/run_content_pipeline.ps
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/assets/restore_asset_pack.ps1 -AssetPackRoot external\assets
 powershell -ExecutionPolicy Bypass -File scripts/assets/validate_asset_pack.ps1 -AssetPackRoot external\assets
-powershell -ExecutionPolicy Bypass -File scripts/content/scan_qqt_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
-powershell -ExecutionPolicy Bypass -File scripts/content/bake_qqt_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
-powershell -ExecutionPolicy Bypass -File scripts/content/sync_qqt_animation_set_rows.ps1 -AssetPackRoot "external/assets"
+powershell -ExecutionPolicy Bypass -File scripts/content/scan_object_resources.ps1 -SourceRoot "external/assets/source/res/object"
+powershell -ExecutionPolicy Bypass -File scripts/content/bake_layered_characters.ps1 -AssetPackRoot "external/assets" -AllowExternalOutput
+powershell -ExecutionPolicy Bypass -File scripts/content/sync_animation_set_rows.ps1 -AssetPackRoot "external/assets"
 powershell -ExecutionPolicy Bypass -File scripts/content/run_content_pipeline.ps1 -ForceBuild
 powershell -ExecutionPolicy Bypass -File scripts/content/validate_content_pipeline.ps1
 ```
@@ -125,13 +125,13 @@ powershell -ExecutionPolicy Bypass -File scripts/content/validate_content_pipeli
 ```text
 external/assets/source/res/object/        ← 源素材（你修改的文件在这里）
         │
-        ▼  scan_qqt_object_resources
+        ▼  scan_object_resources
 content_source/qqt_object_manifest/parts.csv
         │
-        ▼  bake_qqt_layered_characters
+        ▼  bake_layered_characters
 external/assets/derived/.../qqt_layered/  ← 烘焙后的 PNG 条带
         │
-        ▼  sync_qqt_animation_set_rows
+        ▼  sync_animation_set_rows
 content_source/csv/.../animation_sets.csv
 content/.../character_animation_strip_sets.json
         │
@@ -159,5 +159,5 @@ Docker 构建不得依赖本地手工复制。CI 流程中应确保管线在 Doc
 ## 注意事项
 
 - 涉及 Godot 的管线命令（`run_content_pipeline`）必须确保 GDScript 语法预检通过后才能执行
-- `bake_qqt_layered_characters` 需要 `-AllowExternalOutput` 参数才能写入项目外的 `external/assets` 目录
+- `bake_layered_characters` 需要 `-AllowExternalOutput` 参数才能写入项目外的 `external/assets` 目录
 - 修改源素材后必须用 `-ForceBuild`，因为增量缓存不追踪 `external/assets/source/` 目录

@@ -51,19 +51,19 @@ func main() {
 	app.SetEmptyBattleCleanupGrace(time.Duration(cfg.RoomEmptyBattleCleanupGraceSeconds) * time.Second)
 
 	wsServer := wsapi.NewServer(cfg.RoomWSAddr, app, logger, wsapi.OriginPolicy{
-			AllowedOrigins:      cfg.RoomAllowedOrigins,
-			AllowAll:            cfg.RoomAllowAllOrigins,
-			MaxFrameBytes:       int64(cfg.RoomWSMaxFrameBytes),
-			ReadTimeoutSeconds:  cfg.RoomWSReadTimeoutSeconds,
-			PingIntervalSeconds: cfg.RoomWSPingIntervalSeconds,
-		})
+		AllowedOrigins:      cfg.RoomAllowedOrigins,
+		AllowAll:            cfg.RoomAllowAllOrigins,
+		MaxFrameBytes:       int64(cfg.RoomWSMaxFrameBytes),
+		ReadTimeoutSeconds:  cfg.RoomWSReadTimeoutSeconds,
+		PingIntervalSeconds: cfg.RoomWSPingIntervalSeconds,
+	})
 	if err := wsServer.Start(); err != nil {
 		fatalf("start ws server: %v", err)
 	}
 
 	healthServer := &http.Server{
 		Addr:              cfg.RoomHTTPAddr,
-		Handler:           buildHealthMux(manifestLoader, reg, wsServer),
+		Handler:           buildHealthMux(cfg, manifestLoader, reg, wsServer),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -72,7 +72,15 @@ func main() {
 
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("room health server listening", "addr", cfg.RoomHTTPAddr)
+		logger.Info(
+			"room health server listening",
+			"addr", cfg.RoomHTTPAddr,
+			"env", cfg.RoomEnv,
+			"deployment_mode", cfg.RoomDeploymentMode,
+			"expected_replicas", cfg.RoomExpectedReplicas,
+			"instance_id", cfg.RoomInstanceID,
+			"shard_id", cfg.RoomShardID,
+		)
 		if err := healthServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("health server listen: %w", err)
 		}
@@ -96,13 +104,14 @@ func main() {
 	}
 }
 
-func buildHealthMux(manifestLoader *manifest.Loader, reg *registry.Registry, ws *wsapi.Server) *http.ServeMux {
+func buildHealthMux(cfg *config.Config, manifestLoader *manifest.Loader, reg *registry.Registry, ws *wsapi.Server) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) {
+		writeRuntimeMetadataHeaders(w, cfg)
 		if manifestLoader == nil || !manifestLoader.Ready() || reg == nil || !reg.Ready() || ws == nil || !ws.Ready() {
 			http.Error(w, "not ready", http.StatusServiceUnavailable)
 			return
@@ -111,6 +120,18 @@ func buildHealthMux(manifestLoader *manifest.Loader, reg *registry.Registry, ws 
 		_, _ = w.Write([]byte("ready"))
 	})
 	return mux
+}
+
+func writeRuntimeMetadataHeaders(w http.ResponseWriter, cfg *config.Config) {
+	if w == nil || cfg == nil {
+		return
+	}
+	headers := w.Header()
+	headers.Set("X-QQT-Room-Env", cfg.RoomEnv)
+	headers.Set("X-QQT-Room-Deployment-Mode", cfg.RoomDeploymentMode)
+	headers.Set("X-QQT-Room-Expected-Replicas", fmt.Sprintf("%d", cfg.RoomExpectedReplicas))
+	headers.Set("X-QQT-Room-Instance-ID", cfg.RoomInstanceID)
+	headers.Set("X-QQT-Room-Shard-ID", cfg.RoomShardID)
 }
 
 func fatalf(format string, args ...any) {

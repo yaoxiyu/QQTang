@@ -2,7 +2,7 @@ param(
     [string]$ProjectPath = '',
     [string]$CharactersCsv = 'content_source\csv\characters\characters.csv',
     [string]$AnimationSetsCsv = 'content_source\csv\character_animation_sets\character_animation_sets.csv',
-    [string]$TeamVariantRoot = 'assets\animation\characters\layered_team_variants',
+    [string]$TeamVariantRoot = 'assets\animation\characters\qqt_layered_team_variants',
     [string]$OverlayRoot = 'assets\animation\overlays\team_color',
     [string]$RuntimeStripManifest = 'content\character_animation_sets\data\runtime_strips\character_animation_strip_sets.json',
     [string]$AssetPackRoot = '',
@@ -160,7 +160,7 @@ foreach ($character in (Import-Csv -LiteralPath $charactersPath)) {
 $baseRows = @(
     $rows |
         Where-Object {
-            $_.animation_set_id -notmatch '^char_anim_.+_team_[0-9]{2}$' -and
+            $_.animation_set_id -notmatch '^char_anim_qqt_.+_team_[0-9]{2}$' -and
             $_.animation_set_id -notmatch '^team_marker_leg1_team_[0-9]{2}$'
         }
 )
@@ -168,7 +168,7 @@ $generatedRows = New-Object System.Collections.Generic.List[object]
 
 foreach ($baseRow in $baseRows) {
     $animationSetId = [string]$baseRow.animation_set_id
-    if ($animationSetId -notmatch '^char_anim_(.+)$') {
+    if ($animationSetId -notmatch '^char_anim_qqt_(.+)$') {
         continue
     }
     $characterId = $Matches[1]
@@ -210,7 +210,7 @@ foreach ($baseRow in $baseRows) {
             dead_down_strip_path = New-StripResourcePath "$teamRoot/dead_down.png" -Optional
             defeat_down_strip_path = New-StripResourcePath "$teamRoot/defeat_down.png" -Optional
             win_down_strip_path = New-StripResourcePath "$teamRoot/victory_down.png" -Optional
-            content_hash = ("{0}_team_{1:D2}_layered_bake_v1" -f $characterId, $teamId)
+            content_hash = ("qqt_{0}_team_{1:D2}_layered_bake_v1" -f $characterId, $teamId)
         }) | Out-Null
     }
 }

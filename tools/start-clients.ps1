@@ -42,6 +42,12 @@ if ([string]::IsNullOrWhiteSpace($LogRoot)) {
 }
 New-Item -ItemType Directory -Force -Path $LogRoot | Out-Null
 
+# Local dev convenience gate:
+# keep HTTP available for local service bring-up while production defaults to HTTPS.
+if ($Profile -eq 'dev' -and -not $env:QQT_ALLOW_INSECURE_HTTP) {
+    $env:QQT_ALLOW_INSECURE_HTTP = '1'
+}
+
 $processes = @()
 for ($offset = 0; $offset -lt $Count; $offset++) {
     $index = $StartIndex + $offset

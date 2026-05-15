@@ -27,16 +27,14 @@ func execute(ctx: SimContext) -> void:
 		if _should_defer_local_predicted_trap_resolution(ctx, trapped_player):
 			continue
 		if _should_preserve_authoritative_remote_state(ctx, trapped_player):
-			LogSimulationScript.debug(
+			_log_jelly_debug(
+				"sim.jelly.diag",
 				"jelly_skip_remote tick=%d trapped_player_id=%d slot=%d client_slot=%d" % [
 					ctx.tick,
 					trapped_player.entity_id,
 					trapped_player.player_slot,
 					ctx.state.runtime_flags.client_controlled_player_slot if ctx.state.runtime_flags != null else -1,
-				],
-				"",
-				0,
-				"sim.jelly.diag"
+				]
 			)
 			continue
 		var touched := false
@@ -55,19 +53,21 @@ func execute(ctx: SimContext) -> void:
 					_rescue_player(ctx, trapped_player, actor_player)
 					break
 				else:
-					LogSimulationScript.debug(
+					_log_jelly_debug(
+						"sim.jelly.diag",
 						"jelly_no_rescue_rule tick=%d trapped_player_id=%d rescuer_player_id=%d" % [
 							ctx.tick, trapped_player.entity_id, actor_player.entity_id,
-						], "", 0, "sim.jelly.diag"
+						]
 					)
 			elif _is_enemy_execute_enabled(ctx):
 				_execute_player(ctx, trapped_player, actor_player)
 				break
 			else:
-				LogSimulationScript.debug(
+				_log_jelly_debug(
+					"sim.jelly.diag",
 					"jelly_no_execute_rule tick=%d trapped_player_id=%d enemy_player_id=%d" % [
 						ctx.tick, trapped_player.entity_id, actor_player.entity_id,
-					], "", 0, "sim.jelly.diag"
+					]
 				)
 		if trapped_player.life_state == PlayerState.LifeState.TRAPPED:
 			_tick_trapped_timeout(ctx, trapped_player, touched)
@@ -174,41 +174,35 @@ func _execute_player(ctx: SimContext, trapped_player: PlayerState, finisher_play
 func _tick_trapped_timeout(ctx: SimContext, trapped_player: PlayerState, touched: bool) -> void:
 	if touched:
 		if _should_log_jelly_timeout_periodic(ctx.tick):
-			LogSimulationScript.debug(
+			_log_jelly_debug(
+				"sim.jelly.timeout",
 				"jelly_timeout_paused tick=%d trapped_player_id=%d remaining_ticks=%d reason=touched" % [
 					ctx.tick,
 					trapped_player.entity_id,
 					trapped_player.trapped_timeout_ticks,
-				],
-				"",
-				0,
-				"sim.jelly.timeout"
+				]
 			)
 		return
 	if trapped_player.trapped_timeout_ticks <= 0:
 		if _should_log_jelly_timeout_periodic(ctx.tick):
-			LogSimulationScript.debug(
+			_log_jelly_debug(
+				"sim.jelly.timeout",
 				"jelly_timeout_disabled tick=%d trapped_player_id=%d remaining_ticks=%d" % [
 					ctx.tick,
 					trapped_player.entity_id,
 					trapped_player.trapped_timeout_ticks,
-				],
-				"",
-				0,
-				"sim.jelly.timeout"
+				]
 			)
 		return
 	trapped_player.trapped_timeout_ticks -= 1
 	if _should_log_jelly_timeout_periodic(ctx.tick) or trapped_player.trapped_timeout_ticks <= 0:
-		LogSimulationScript.debug(
+		_log_jelly_debug(
+			"sim.jelly.timeout",
 			"jelly_timeout_tick tick=%d trapped_player_id=%d remaining_ticks=%d" % [
 				ctx.tick,
 				trapped_player.entity_id,
 				trapped_player.trapped_timeout_ticks,
-			],
-			"",
-			0,
-			"sim.jelly.timeout"
+			]
 		)
 	if trapped_player.trapped_timeout_ticks <= 0:
 		trapped_player.last_damage_from_player_id = -1
@@ -268,7 +262,7 @@ func _should_defer_local_predicted_trap_resolution(ctx: SimContext, player: Play
 
 
 func _should_log_jelly_timeout_periodic(tick: int) -> bool:
-	return tick % JELLY_TIMEOUT_LOG_INTERVAL_TICKS == 0
+	return _is_jelly_debug_enabled() and tick % JELLY_TIMEOUT_LOG_INTERVAL_TICKS == 0
 
 
 func _log_pierce_diagnostic(ctx: SimContext, trapped_players: Array[PlayerState], normal_players: Array[PlayerState]) -> void:
@@ -285,7 +279,8 @@ func _log_pierce_diagnostic(ctx: SimContext, trapped_players: Array[PlayerState]
 			var dx := absi(trapped_abs.x - actor_abs.x)
 			var dy := absi(trapped_abs.y - actor_abs.y)
 			var touching := (dx <= CELL_UNITS and dy < CELL_UNITS) or (dy <= CELL_UNITS and dx < CELL_UNITS)
-			LogSimulationScript.debug(
+			_log_jelly_debug(
+				"sim.jelly.diag",
 				"jelly_diag tick=%d trapped_id=%d trapped_cell=(%d,%d) trapped_abs=(%d,%d) actor_id=%d actor_cell=(%d,%d) actor_abs=(%d,%d) dx=%d dy=%d touching=%s same_team=%s" % [
 					ctx.tick,
 					trapped_player.entity_id,
@@ -297,10 +292,7 @@ func _log_pierce_diagnostic(ctx: SimContext, trapped_players: Array[PlayerState]
 					dx, dy,
 					"true" if touching else "false",
 					"true" if trapped_player.team_id == actor_player.team_id else "false",
-				],
-				"",
-				0,
-				"sim.jelly.diag"
+				]
 			)
 
 
@@ -327,7 +319,8 @@ func _log_pending_trap_diagnostic(ctx: SimContext) -> void:
 			var touching := (dx <= CELL_UNITS and dy < CELL_UNITS) or (dy <= CELL_UNITS and dx < CELL_UNITS)
 			if not touching:
 				continue
-			LogSimulationScript.info(
+			_log_jelly_debug(
+				"sim.jelly.diag",
 				"jelly_same_tick_blindspot tick=%d pending_trapped_id=%d pending_cell=(%d,%d) walker_id=%d walker_cell=(%d,%d) dx=%d dy=%d note=victim_still_NORMAL_in_jelly_system" % [
 					ctx.tick,
 					victim.entity_id,
@@ -335,8 +328,16 @@ func _log_pending_trap_diagnostic(ctx: SimContext) -> void:
 					actor_player.entity_id,
 					PlayerLocator.get_foot_cell(actor_player).x, PlayerLocator.get_foot_cell(actor_player).y,
 					dx, dy,
-				],
-				"",
-				0,
-				"sim.jelly.diag"
+				]
 			)
+
+
+func _log_jelly_debug(tag: String, message: String) -> void:
+	if not _is_jelly_debug_enabled():
+		return
+	LogSimulationScript.debug(message, "", 0, tag)
+
+
+func _is_jelly_debug_enabled() -> bool:
+	var value := OS.get_environment("QQT_DEBUG_JELLY_LOGS").strip_edges().to_lower()
+	return value == "1" or value == "true" or value == "yes" or value == "on"

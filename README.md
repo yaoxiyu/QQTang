@@ -34,10 +34,11 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 启动后可访问：
 | 服务 | 地址 |
 |------|------|
-| account_service | `http://127.0.0.1:18001` |
+| account_service | `http://127.0.0.1:18080` |
 | game_service | `http://127.0.0.1:18081` |
-| ds_manager_service | `http://127.0.0.1:18091` |
-| room_service | `127.0.0.1:19001` |
+| ds_manager_service | `http://127.0.0.1:18090` |
+| room_service (HTTP) | `http://127.0.0.1:19100` |
+| room_service (WS) | `ws://127.0.0.1:9100` |
 
 常用参数：
 | 参数 | 说明 |

@@ -1,5 +1,7 @@
 # 2026-05-08 地图编辑器 + 管线改动记录
 
+> 历史说明：本文中的 `tools/qqtang_map_pipeline/qqtang_map_editor.py` 为历史路径，当前正式入口已更新为 `tools/map_pipeline/map_editor.py`。
+
 ## 一、音频系统（已提交 `3dbd7b6`）
 
 新增 `services/audio/` + `content/audio/` + `content_source/csv/audio/`，

@@ -7,12 +7,14 @@ services:
       dockerfile: services/ds_manager_service/Dockerfile
     environment:
       DSM_HTTP_ADDR: 0.0.0.0:18090
+      DSM_ENV: test
       DSM_INTERNAL_AUTH_KEY_ID: primary
       DSM_INTERNAL_AUTH_SHARED_SECRET: services_test_internal_shared_secret
       DSM_GODOT_EXECUTABLE: ${QQT_DSM_GODOT_EXECUTABLE:-external/godot_binary/Godot_console.exe}
       DSM_PROJECT_ROOT: /workspace
       DSM_BATTLE_SCENE_PATH: res://scenes/network/dedicated_server_scene.tscn
       DSM_BATTLE_TICKET_SECRET: services_test_battle_ticket_secret
+      QQT_ALLOW_INSECURE_HTTP: "1"
       DSM_BATTLE_LOG_DIR: /tmp/qqt_battle_logs_test
       DSM_DS_HOST: 127.0.0.1
       DSM_PORT_RANGE_START: ${QQT_DSM_PORT_RANGE_START:-19110}
@@ -26,6 +28,7 @@ services:
       dockerfile: services/game_service/Dockerfile
     environment:
       GAME_HTTP_ADDR: 0.0.0.0:18081
+      GAME_ENV: test
       GAME_GRPC_ADDR: 0.0.0.0:19081
       GAME_POSTGRES_DSN: postgres://qqtang_game_test:qqtang_game_test_pass@host.docker.internal:54332/qqtang_game_test?sslmode=disable
       GAME_ROOM_MANIFEST_PATH: /app/build/generated/room_manifest/room_manifest.json
@@ -51,6 +54,7 @@ services:
       dockerfile: services/account_service/Dockerfile
     environment:
       ACCOUNT_HTTP_LISTEN_ADDR: 0.0.0.0:18080
+      ACCOUNT_ENV: test
       ACCOUNT_POSTGRES_DSN: postgres://qqtang_test:qqtang_test_pass@host.docker.internal:54330/qqtang_account_test?sslmode=disable
       ACCOUNT_TOKEN_SIGN_SECRET: services_test_account_access_secret
       ACCOUNT_ROOM_TICKET_SIGN_SECRET: services_test_room_ticket_secret
@@ -73,6 +77,7 @@ services:
       dockerfile: services/room_service/Dockerfile
     environment:
       ROOM_HTTP_ADDR: 0.0.0.0:19100
+      ROOM_ENV: test
       ROOM_WS_ADDR: 0.0.0.0:9100
       ROOM_DEFAULT_PORT: 9100
       ROOM_TICKET_SECRET: services_test_room_ticket_secret
@@ -81,6 +86,8 @@ services:
       ROOM_LOG_LEVEL: info
       ROOM_SHARD_ID: room-shard-test-01
       ROOM_INSTANCE_ID: room-instance-test-01
+      ROOM_DEPLOYMENT_MODE: single_instance
+      ROOM_EXPECTED_REPLICAS: 1
     depends_on:
       game_service:
         condition: service_healthy

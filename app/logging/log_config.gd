@@ -59,6 +59,7 @@ static func create_client_config() -> LogConfig:
 	config.file_prefix = "client_"
 	config.location_enabled = false
 	config.min_level = LogLevelConstants.Level.DEBUG if OS.is_debug_build() else LogLevelConstants.Level.INFO
+	config.log_directory = _resolve_log_directory()
 	return config
 
 ## 创建默认 Dedicated Server 配置
@@ -67,6 +68,10 @@ static func create_dedicated_server_config() -> LogConfig:
 	config.file_prefix = "dedicated_server_"
 	config.location_enabled = true
 	config.min_level = LogLevelConstants.Level.DEBUG if OS.is_debug_build() else LogLevelConstants.Level.INFO
+	config.log_directory = _resolve_log_directory()
+	if _is_dev_runtime():
+		# Dev DS is often terminated by launcher/script; flush each line to avoid empty files.
+		config.flush_interval_lines = 1
 	return config
 
 ## 创建开发环境配置（更详细的日志）
@@ -74,6 +79,7 @@ static func create_debug_config() -> LogConfig:
 	var config := LogConfig.new()
 	config.min_level = LogLevelConstants.Level.DEBUG
 	config.location_enabled = true
+	config.log_directory = _resolve_log_directory()
 	return config
 
 ## 创建生产环境配置（仅 INFO 及以上）
@@ -82,4 +88,26 @@ static func create_release_config() -> LogConfig:
 	config.min_level = LogLevelConstants.Level.INFO
 	config.location_enabled = false
 	config.console_enabled = false  # 生产环境关闭控制台输出
+	config.log_directory = _resolve_log_directory()
 	return config
+
+
+static func _resolve_log_directory() -> String:
+	var env_log_dir := OS.get_environment("QQT_LOG_DIR").strip_edges()
+	if not env_log_dir.is_empty():
+		return env_log_dir
+	if _is_dev_runtime():
+		return ProjectSettings.globalize_path("res://logs")
+	return "user://logs"
+
+
+static func _is_dev_runtime() -> bool:
+	for raw_arg in OS.get_cmdline_user_args():
+		var arg := String(raw_arg).strip_edges()
+		if arg == "--qqt-dev-mode":
+			return true
+		if arg.begins_with("--qqt-dev-launcher-"):
+			return true
+		if arg.begins_with("--qqt-dev-"):
+			return true
+	return false
