@@ -340,6 +340,7 @@ func buildSignedManifestHandlerWithSeededDB(t *testing.T, allocationState string
 		"http://unused",
 		"primary",
 		"internal_secret",
+		0,
 	)
 	manifestHandler := NewInternalBattleManifestHandler(service)
 	internalAuth := auth.NewInternalAuth("primary", "internal_secret", time.Minute)

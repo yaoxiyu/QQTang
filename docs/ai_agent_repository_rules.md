@@ -88,6 +88,7 @@
 ## HTTP 安全与执行门禁
 - 服务 URL 与 HTTP 解析默认强制 HTTPS（secure-by-default）。
 - 仅在本地/测试联调时，可通过 `QQT_ALLOW_INSECURE_HTTP=1` 放开 HTTP；生产环境不得依赖该开关。
+- `ds_manager_service` 的 battle DS warm-pool 透传 `QQT_ALLOW_INSECURE_HTTP` 仅允许 `DSM_ENV=development`，在 `test/prod` 显式禁止。
 - 同步 HTTP 执行默认禁用；仅允许在显式设置 `QQT_ALLOW_SYNC_HTTP_EXECUTE=1` 时用于本地调试，业务逻辑优先使用异步接口。
 
 ## 房间服务部署门禁

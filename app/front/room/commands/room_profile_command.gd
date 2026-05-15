@@ -17,6 +17,8 @@ func update_local_profile(
 ) -> Dictionary:
 	if app_runtime == null or app_runtime.room_session_controller == null:
 		return RoomErrorMapperScript.to_front_error("ROOM_CONTROLLER_MISSING", "Room controller is not available")
+	if room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime) and not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	var effective_team_id := _resolve_effective_team_id(app_runtime, team_id)
 	var result: Dictionary = app_runtime.room_session_controller.request_update_member_profile(
 		int(app_runtime.local_peer_id),
@@ -50,3 +52,11 @@ func _remember_selected_character(app_runtime: Object, character_id: String) -> 
 	app_runtime.player_profile_state.default_character_id = normalized
 	if app_runtime.profile_repository != null and app_runtime.profile_repository.has_method("save_profile"):
 		app_runtime.profile_repository.save_profile(app_runtime.player_profile_state)
+
+
+func _is_transport_connected(room_client_gateway: RefCounted) -> bool:
+	if room_client_gateway == null:
+		return false
+	if not room_client_gateway.has_method("is_transport_connected"):
+		return true
+	return bool(room_client_gateway.is_transport_connected())

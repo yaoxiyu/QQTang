@@ -15,6 +15,8 @@ type PoolConfig struct {
 	GameServiceBaseURL string
 	DSMBaseURL         string
 	ReadyTimeoutMS     int
+	ReadyTimeoutSec    int
+	IdleReapTimeoutSec int
 }
 
 type DockerWarmPool struct {
@@ -195,7 +197,69 @@ func (p *DockerWarmPool) GetBattle(_ context.Context, battleID string) (runtimep
 }
 
 func (p *DockerWarmPool) Reconcile(ctx context.Context) error {
-	return p.manager.Reconcile(ctx)
+	if err := p.manager.Reconcile(ctx); err != nil {
+		return err
+	}
+	return p.reapStaleLeases(ctx)
+}
+
+func (p *DockerWarmPool) reapStaleLeases(ctx context.Context) error {
+	leases := p.registry.All()
+	if len(leases) == 0 {
+		return nil
+	}
+
+	containers, err := p.runtime.ListPoolContainers(ctx, p.config.PoolID)
+	if err != nil {
+		return err
+	}
+	containerBySlot := map[string]ContainerInfo{}
+	for _, c := range containers {
+		containerBySlot[c.Labels[LabelSlotID]] = c
+	}
+
+	now := time.Now().UTC()
+	assignTimeout := time.Duration(p.config.ReadyTimeoutSec) * time.Second * 2
+	if assignTimeout < 30*time.Second {
+		assignTimeout = 30 * time.Second
+	}
+	idleTimeout := time.Duration(p.config.IdleReapTimeoutSec) * time.Second
+
+	for _, lease := range leases {
+		var shouldReap bool
+
+		switch lease.State {
+		case "FAILED":
+			shouldReap = true
+		case "ASSIGNING":
+			if now.After(lease.CreatedAt.Add(assignTimeout)) {
+				shouldReap = true
+			}
+		case "READY":
+			if !lease.ReadyAt.IsZero() && now.After(lease.ReadyAt.Add(idleTimeout)) {
+				shouldReap = true
+			}
+		case "ACTIVE":
+			container, exists := containerBySlot[lease.SlotID]
+			if !exists {
+				shouldReap = true
+			} else {
+				agentState, err := p.agent.State(ctx, container.AgentEndpoint)
+				if err == nil && agentState.State == "idle" {
+					shouldReap = true
+				}
+			}
+		}
+
+		if shouldReap {
+			if container, ok := containerBySlot[lease.SlotID]; ok {
+				_, _ = p.agent.Reset(ctx, container.AgentEndpoint)
+			}
+			p.registry.DeleteByBattle(lease.BattleID)
+		}
+	}
+
+	return nil
 }
 
 func (p *DockerWarmPool) waitReady(ctx context.Context, battleID string) (Lease, bool) {

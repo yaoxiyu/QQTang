@@ -27,11 +27,15 @@ class FakeFrontFlow:
 
 class FakeGateway:
 	extends RefCounted
+	var connected := true
 	var start_called := false
 	var rematch_called := false
 	var config_called := false
 	var last_format_id := ""
 	var last_mode_ids: Array[String] = []
+
+	func is_transport_connected() -> bool:
+		return connected
 
 	func request_start_match() -> void:
 		start_called = true
@@ -156,6 +160,28 @@ func test_online_start_match_rejects_when_authoritative_capability_false() -> vo
 	runtime.free()
 
 
+func test_online_start_match_rejects_when_transport_disconnected() -> void:
+	var command := RoomMatchCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var controller := FakeController.new()
+	var gateway := FakeGateway.new()
+	gateway.connected = false
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "private_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+	runtime.room_session_controller = controller
+	runtime.current_room_snapshot = _online_owner_snapshot(true)
+
+	var result: Dictionary = command.start_match(runtime, gateway)
+
+	assert_false(bool(result.get("ok", true)), "online start should reject when transport is disconnected")
+	assert_eq(String(result.get("error_code", "")), "ROOM_NOT_CONNECTED", "disconnected transport should use stable error code")
+	assert_false(gateway.start_called, "disconnected transport should not notify gateway")
+	controller.free()
+	runtime.free()
+
+
 func test_update_match_room_config_requests_gateway() -> void:
 	var command := RoomMatchCommandScript.new()
 	var runtime := FakeRuntime.new()
@@ -174,6 +200,24 @@ func test_update_match_room_config_requests_gateway() -> void:
 	runtime.free()
 
 
+func test_update_match_room_config_rejects_when_transport_disconnected() -> void:
+	var command := RoomMatchCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var gateway := FakeGateway.new()
+	gateway.connected = false
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "casual_match_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+
+	var result: Dictionary = command.update_match_room_config(runtime, gateway, "format_duo", ["mode_a"])
+
+	assert_false(bool(result.get("ok", true)), "match room config update should reject when transport disconnected")
+	assert_eq(String(result.get("error_code", "")), "ROOM_NOT_CONNECTED", "disconnected transport should use stable error code")
+	assert_false(gateway.config_called, "disconnected transport should not notify gateway")
+	runtime.free()
+
+
 func test_request_rematch_rejects_match_room() -> void:
 	var command := RoomMatchCommandScript.new()
 	var runtime := FakeRuntime.new()
@@ -187,6 +231,24 @@ func test_request_rematch_rejects_match_room() -> void:
 
 	assert_false(bool(result.get("ok", true)), "match room should reject rematch")
 	assert_eq(String(result.get("error_code", "")), "MATCH_ROOM_REMATCH_FORBIDDEN", "match room rematch should use stable error code")
+	runtime.free()
+
+
+func test_request_rematch_rejects_when_transport_disconnected() -> void:
+	var command := RoomMatchCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var gateway := FakeGateway.new()
+	gateway.connected = false
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "private_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+
+	var result: Dictionary = command.request_rematch(runtime, gateway)
+
+	assert_false(bool(result.get("ok", true)), "rematch should reject when transport disconnected")
+	assert_eq(String(result.get("error_code", "")), "ROOM_NOT_CONNECTED", "disconnected transport should use stable error code")
+	assert_false(gateway.rematch_called, "disconnected transport should not notify gateway")
 	runtime.free()
 
 

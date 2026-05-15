@@ -7,11 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
-	"qqtang/services/shared/internalauth"
 	"qqtang/services/game_service/internal/storage"
+	"qqtang/services/shared/internalauth"
 )
 
 var (
@@ -30,7 +31,10 @@ type Service struct {
 	httpClient         *http.Client
 }
 
-func NewService(assignmentRepo *storage.AssignmentRepository, battleInstanceRepo *storage.BattleInstanceRepository, dsManagerURL string, internalAuthKeyID string, internalSecret string) *Service {
+func NewService(assignmentRepo *storage.AssignmentRepository, battleInstanceRepo *storage.BattleInstanceRepository, dsManagerURL string, internalAuthKeyID string, internalSecret string, httpTimeout time.Duration) *Service {
+	if httpTimeout <= 0 {
+		httpTimeout = 45 * time.Second
+	}
 	return &Service{
 		assignmentRepo:     assignmentRepo,
 		battleInstanceRepo: battleInstanceRepo,
@@ -38,7 +42,7 @@ func NewService(assignmentRepo *storage.AssignmentRepository, battleInstanceRepo
 		internalAuthKeyID:  internalAuthKeyID,
 		internalSecret:     internalSecret,
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: httpTimeout,
 		},
 	}
 }
@@ -203,6 +207,7 @@ type dsAllocateResponse struct {
 }
 
 func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) (dsAllocateResponse, error) {
+	startedAt := time.Now()
 	body, err := json.Marshal(map[string]any{
 		"battle_id":             input.BattleID,
 		"assignment_id":         input.AssignmentID,
@@ -218,6 +223,15 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 	}
 
 	url := s.dsManagerURL + "/internal/v1/battles/allocate"
+	log.Printf(
+		"[battle_alloc] ds allocate request battle_id=%s assignment_id=%s match_id=%s wait_ready=%t expected_member_count=%d url=%s",
+		input.BattleID,
+		input.AssignmentID,
+		input.MatchID,
+		input.WaitReady,
+		input.ExpectedMemberCount,
+		url,
+	)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
 		return dsAllocateResponse{}, err
@@ -229,23 +243,69 @@ func (s *Service) requestDSAllocation(ctx context.Context, input AllocateInput) 
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
+		log.Printf(
+			"[battle_alloc] ds allocate transport error battle_id=%s assignment_id=%s elapsed_ms=%d err=%v",
+			input.BattleID,
+			input.AssignmentID,
+			time.Since(startedAt).Milliseconds(),
+			err,
+		)
 		return dsAllocateResponse{}, fmt.Errorf("ds_manager request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
+		log.Printf(
+			"[battle_alloc] ds allocate read error battle_id=%s assignment_id=%s status=%d elapsed_ms=%d err=%v",
+			input.BattleID,
+			input.AssignmentID,
+			resp.StatusCode,
+			time.Since(startedAt).Milliseconds(),
+			err,
+		)
 		return dsAllocateResponse{}, fmt.Errorf("ds_manager response read failed: %w", err)
 	}
 
 	var result dsAllocateResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
+		log.Printf(
+			"[battle_alloc] ds allocate parse error battle_id=%s assignment_id=%s status=%d elapsed_ms=%d body=%s err=%v",
+			input.BattleID,
+			input.AssignmentID,
+			resp.StatusCode,
+			time.Since(startedAt).Milliseconds(),
+			string(respBody),
+			err,
+		)
 		return dsAllocateResponse{}, fmt.Errorf("ds_manager response parse failed: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK || !result.OK {
+		log.Printf(
+			"[battle_alloc] ds allocate rejected battle_id=%s assignment_id=%s status=%d elapsed_ms=%d error_code=%s message=%s body=%s",
+			input.BattleID,
+			input.AssignmentID,
+			resp.StatusCode,
+			time.Since(startedAt).Milliseconds(),
+			result.ErrorCode,
+			result.Message,
+			string(respBody),
+		)
 		return dsAllocateResponse{}, fmt.Errorf("ds_manager allocation rejected: %s %s", result.ErrorCode, result.Message)
 	}
+
+	log.Printf(
+		"[battle_alloc] ds allocate success battle_id=%s assignment_id=%s status=%d elapsed_ms=%d ds_instance_id=%s server_host=%s server_port=%d allocation_state=%s",
+		input.BattleID,
+		input.AssignmentID,
+		resp.StatusCode,
+		time.Since(startedAt).Milliseconds(),
+		result.DSInstanceID,
+		result.ServerHost,
+		result.ServerPort,
+		result.AllocationState,
+	)
 
 	return result, nil
 }

@@ -29,6 +29,8 @@ func request_enter_match_queue(app_runtime: Object, room_client_gateway: RefCoun
 	var queue_check := can_enter_match_queue(app_runtime, room_client_gateway)
 	if not bool(queue_check.get("ok", false)):
 		return queue_check
+	if not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	room_client_gateway.request_enter_match_queue()
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
@@ -40,6 +42,8 @@ func request_cancel_match_queue(app_runtime: Object, room_client_gateway: RefCou
 		return RoomErrorMapperScript.to_front_error("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_cancel_match_queue"):
 		return RoomErrorMapperScript.to_front_error("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	if not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	room_client_gateway.request_cancel_match_queue()
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
@@ -69,3 +73,11 @@ func _is_queue_enter_acknowledged(snapshot: RoomSnapshot) -> bool:
 	if bool(snapshot.can_cancel_queue):
 		return true
 	return false
+
+
+func _is_transport_connected(room_client_gateway: RefCounted) -> bool:
+	if room_client_gateway == null:
+		return false
+	if not room_client_gateway.has_method("is_transport_connected"):
+		return true
+	return bool(room_client_gateway.is_transport_connected())

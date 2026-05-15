@@ -28,7 +28,11 @@ func connect_directory(host: String, port: int) -> Dictionary:
 		"port": normalized_port,
 		"already_connected": client_room_runtime.has_method("is_connected_to") and client_room_runtime.is_connected_to(normalized_host, normalized_port),
 	})
-	if client_room_runtime.has_method("is_connected_to") and client_room_runtime.is_connected_to(normalized_host, normalized_port):
+	var has_ready_transport: bool = client_room_runtime.has_method("is_connected_to") \
+		and client_room_runtime.is_connected_to(normalized_host, normalized_port) \
+		and client_room_runtime.has_method("is_transport_connected") \
+		and client_room_runtime.is_transport_connected()
+	if has_ready_transport:
 		if client_room_runtime.has_method("subscribe_room_directory"):
 			client_room_runtime.subscribe_room_directory()
 		if client_room_runtime.has_method("request_room_directory_snapshot"):

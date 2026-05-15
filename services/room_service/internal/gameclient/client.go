@@ -20,7 +20,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const defaultRPCTimeout = 3 * time.Second
+const (
+	defaultRPCTimeout       = 15 * time.Second
+	defaultHTTPTimeout      = 10 * time.Second
+	defaultDialTimeout      = 5 * time.Second
+)
 
 type Client struct {
 	addr       string
@@ -35,11 +39,18 @@ type Client struct {
 	stub gamev1.RoomControlServiceClient
 }
 
-func New(addr string) *Client {
+func New(addr string, rpcTimeout time.Duration) *Client {
+	if rpcTimeout <= 0 {
+		rpcTimeout = defaultRPCTimeout
+	}
+	httpTimeout := defaultHTTPTimeout
+	if rpcTimeout < httpTimeout {
+		httpTimeout = rpcTimeout
+	}
 	return &Client{
 		addr:       addr,
-		rpcTimeout: defaultRPCTimeout,
-		httpClient: &http.Client{Timeout: defaultRPCTimeout},
+		rpcTimeout: rpcTimeout,
+		httpClient: &http.Client{Timeout: httpTimeout},
 	}
 }
 
@@ -326,10 +337,10 @@ func (c *Client) stubClient() (gamev1.RoomControlServiceClient, error) {
 	if c.addr == "" {
 		return nil, fmt.Errorf("game service grpc addr is required")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), c.rpcTimeout)
-	defer cancel()
+	dialCtx, dialCancel := context.WithTimeout(context.Background(), defaultDialTimeout)
+	defer dialCancel()
 	conn, err := grpc.DialContext(
-		ctx,
+		dialCtx,
 		c.addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),

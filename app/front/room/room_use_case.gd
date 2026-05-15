@@ -457,7 +457,7 @@ func _log_completed_battle_entry_suppressed(snapshot: RoomSnapshot) -> void:
 func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 	_sync_pending_state_from_orchestrator()
 	_clear_enter_match_queue_pending("room_error:%s" % error_code)
-	_log_room_anomaly("gateway_room_error", {
+	var error_details := {
 		"error_code": error_code,
 		"user_message": user_message,
 		"await_room_before_enter": _runtime_state.await_room_before_enter,
@@ -466,7 +466,11 @@ func _on_gateway_room_error(error_code: String, user_message: String) -> void:
 		"pending_server_host": String(_runtime_state.pending_connection_config.server_host) if _runtime_state.pending_connection_config != null else "",
 		"pending_server_port": int(_runtime_state.pending_connection_config.server_port) if _runtime_state.pending_connection_config != null else 0,
 		"pending_room_id_hint": String(_runtime_state.pending_connection_config.room_id_hint) if _runtime_state.pending_connection_config != null else "",
-	})
+	}
+	if _is_expected_disconnected_room_error(error_code):
+		_log_room("gateway_room_error_expected_disconnected", error_details)
+	else:
+		_log_room_anomaly("gateway_room_error", error_details)
 	if _should_clear_pending_reconnect_ticket(error_code):
 		_clear_reconnect_ticket_after_rejected_resume(error_code)
 	_clear_pending_online_entry_state()
@@ -572,6 +576,14 @@ func _room_log_sample_every(event_name: String) -> int:
 			return 10
 		_:
 			return 1
+
+
+func _is_expected_disconnected_room_error(error_code: String) -> bool:
+	if String(error_code) != "ROOM_CONNECT_FAILED":
+		return false
+	if _runtime_state.await_room_before_enter:
+		return false
+	return _runtime_state.pending_online_entry_context == null and _runtime_state.pending_connection_config == null
 
 
 func _summarize_room_log_payload(event_name: String, details: Dictionary) -> Dictionary:

@@ -85,6 +85,16 @@ func (r *LeaseRegistry) GetByIdempotencyKey(key string) (Lease, bool) {
 	return *lease, true
 }
 
+func (r *LeaseRegistry) All() []Lease {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	result := make([]Lease, 0, len(r.byBattle))
+	for _, lease := range r.byBattle {
+		result = append(result, *lease)
+	}
+	return result
+}
+
 func (r *LeaseRegistry) DeleteByBattle(battleID string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

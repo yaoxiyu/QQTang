@@ -29,6 +29,7 @@ type Config struct {
 	RoomWSPingIntervalSeconds          int
 	RoomDeploymentMode                 string
 	RoomExpectedReplicas               int
+	RoomGameRPCTimeoutSeconds          int
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -72,6 +73,10 @@ func LoadFromEnv() (*Config, error) {
 		return nil, err
 	}
 	cfg.RoomWSPingIntervalSeconds, err = positiveInt("ROOM_WS_PING_INTERVAL_SECONDS", 10)
+	if err != nil {
+		return nil, err
+	}
+	cfg.RoomGameRPCTimeoutSeconds, err = positiveInt("ROOM_GAME_RPC_TIMEOUT_SECONDS", 60)
 	if err != nil {
 		return nil, err
 	}

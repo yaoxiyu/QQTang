@@ -29,7 +29,8 @@ type Config struct {
 	GameEnv                  string
 
 	// DS Manager Service URL
-	DSManagerURL string
+	DSManagerURL              string
+	DSManagerHTTPTimeoutSec   int
 }
 
 func LoadFromEnv() (*Config, error) {
@@ -79,6 +80,11 @@ func LoadFromEnv() (*Config, error) {
 
 		// Room/Battle process split
 		DSManagerURL: configx.Env("GAME_DS_MANAGER_URL", "http://127.0.0.1:18090"),
+	}
+
+	cfg.DSManagerHTTPTimeoutSec, err = configx.RequiredPositiveInt("GAME_DS_MANAGER_HTTP_TIMEOUT_SECONDS", 45)
+	if err != nil {
+		return nil, err
 	}
 
 	if cfg.HTTPListenAddr == "" {

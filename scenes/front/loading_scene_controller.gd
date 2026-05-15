@@ -285,8 +285,8 @@ func _run_battle_entry_flow() -> void:
 	_set_loading_status("Requesting battle ticket...")
 	_mark_loading_task_progress("battle_ticket", 0.25)
 	var battle_entry_use_case = BattleEntryUseCaseScript.new()
-	battle_entry_use_case.call("configure", _app_runtime)
-	var ticket_result_raw = battle_entry_use_case.call("request_battle_ticket", _battle_entry_context)
+	battle_entry_use_case.configure(_app_runtime)
+	var ticket_result_raw = await battle_entry_use_case.request_battle_ticket(_battle_entry_context)
 	var ticket_result: Dictionary = ticket_result_raw if ticket_result_raw is Dictionary else {"ok": false, "error_code": "INVALID_RESULT", "user_message": "Invalid ticket result"}
 	if not bool(ticket_result.get("ok", false)):
 		_mark_loading_task_failed("battle_ticket", String(ticket_result.get("error_code", "")), String(ticket_result.get("user_message", "")))

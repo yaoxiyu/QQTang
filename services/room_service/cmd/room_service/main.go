@@ -38,7 +38,7 @@ func main() {
 	reg := registry.New(cfg.RoomInstanceID, cfg.RoomShardID)
 	defer reg.Close()
 
-	gameClient := gameclient.New(cfg.RoomGameServiceGRPCAddr)
+	gameClient := gameclient.New(cfg.RoomGameServiceGRPCAddr, time.Duration(cfg.RoomGameRPCTimeoutSeconds)*time.Second)
 	gameClient.ConfigureInternalHTTP(cfg.RoomGameServiceBaseURL, cfg.RoomGameInternalAuthKeyID, cfg.RoomGameInternalAuthSecret)
 
 	app := roomapp.NewService(

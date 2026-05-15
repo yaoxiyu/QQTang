@@ -32,6 +32,7 @@ var _char_entries: Array = []
 var _char_cache_sig: String = ""
 var _tooltip: Control = null
 var _tooltip_cid: String = ""
+var _last_room_error_signature: String = ""
 
 @onready var bg_panel: PanelContainer = $BgPanel
 @onready var bg_texture: TextureRect = $BgPanel/BgTexture
@@ -138,6 +139,7 @@ func _refresh(snapshot) -> void:
 	_refresh_slots(snapshot, _last_vm)
 	_refresh_actions(snapshot, _last_vm)
 	_refresh_props(snapshot, _last_vm)
+	_sync_runtime_error_feedback()
 
 
 func _sync_selected_team_from_snapshot(snapshot, vm: Dictionary) -> void:
@@ -579,8 +581,12 @@ func _apply_action_tex(k: String) -> void:
 
 func _on_action() -> void:
 	if _room_use_case == null: return
-	if _is_host(): _room_use_case.start_match()
-	else: _room_use_case.toggle_ready()
+	if _is_host():
+		var result: Dictionary = _room_use_case.start_match()
+		_handle_room_action_result("start_match", result, "正在请求开始对局...")
+	else:
+		var result: Dictionary = _room_use_case.toggle_ready()
+		_handle_room_action_result("toggle_ready", result, "")
 
 
 func _on_leave() -> void: if _room_use_case != null: _room_use_case.leave_room()
@@ -641,6 +647,46 @@ func _set_feedback(msg: String) -> void:
 	timer.wait_time = 3.0; timer.one_shot = true
 	timer.timeout.connect(func(): if label != null: label.visible = false)
 	add_child(timer); timer.start()
+
+
+func _handle_room_action_result(action_name: String, result: Dictionary, pending_feedback: String) -> void:
+	LogFrontScript.debug("[room_fml] action=%s result=%s" % [action_name, JSON.stringify(result)], "", 0, TAG)
+	if result.is_empty():
+		_set_feedback("操作未返回结果，请稍后重试")
+		return
+	if not bool(result.get("ok", false)):
+		var code := String(result.get("error_code", ""))
+		var message := String(result.get("user_message", result.get("message", "操作失败"))).strip_edges()
+		if message.is_empty():
+			message = "操作失败: %s" % code if not code.is_empty() else "操作失败"
+		_set_feedback(message)
+		return
+	if bool(result.get("pending", false)) and not pending_feedback.is_empty():
+		_set_feedback(pending_feedback)
+		return
+	var user_message := String(result.get("user_message", "")).strip_edges()
+	if not user_message.is_empty():
+		_set_feedback(user_message)
+
+
+func _sync_runtime_error_feedback() -> void:
+	if _room_controller == null or _room_controller.room_runtime_context == null:
+		_last_room_error_signature = ""
+		return
+	var last_error: Dictionary = _room_controller.room_runtime_context.last_error
+	if last_error.is_empty():
+		_last_room_error_signature = ""
+		return
+	var error_code := String(last_error.get("error_code", ""))
+	var error_message := String(last_error.get("error_message", "")).strip_edges()
+	if error_message.is_empty():
+		return
+	var signature := "%s|%s" % [error_code, error_message]
+	if signature == _last_room_error_signature:
+		return
+	_last_room_error_signature = signature
+	LogFrontScript.warn("[room_fml] room_runtime_error code=%s message=%s" % [error_code, error_message], "", 0, TAG)
+	_set_feedback(error_message)
 
 
 # ═══ Role nav anim ═══

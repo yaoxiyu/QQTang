@@ -14,6 +14,8 @@ func start_match(app_runtime: Object, room_client_gateway: RefCounted) -> Dictio
 		var capability_check := _can_start_online_manual_room(app_runtime)
 		if not bool(capability_check.get("ok", false)):
 			return capability_check
+		if not _is_transport_connected(room_client_gateway):
+			return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 		room_client_gateway.request_start_match()
 		return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 	var result: Dictionary = app_runtime.room_session_controller.request_begin_match(int(app_runtime.local_peer_id))
@@ -29,6 +31,8 @@ func update_match_room_config(app_runtime: Object, room_client_gateway: RefCount
 		return RoomErrorMapperScript.to_front_error("ROOM_GATEWAY_MISSING", "Room gateway is not available")
 	if not room_client_gateway.has_method("request_update_match_room_config"):
 		return RoomErrorMapperScript.to_front_error("MATCH_ROOM_PROTOCOL_MISSING", "Match room protocol is not available")
+	if not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	room_client_gateway.request_update_match_room_config(match_format_id, selected_mode_ids)
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
@@ -40,6 +44,8 @@ func request_rematch(app_runtime: Object, room_client_gateway: RefCounted) -> Di
 		return RoomErrorMapperScript.to_front_error("MATCH_ROOM_REMATCH_FORBIDDEN", "Match rooms return to lobby after settlement")
 	if not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return RoomErrorMapperScript.to_front_error("NOT_ONLINE_ROOM", "Rematch is only supported in online rooms")
+	if not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	room_client_gateway.request_rematch()
 	return {"ok": true, "error_code": "", "user_message": "", "pending": true}
 
@@ -58,3 +64,11 @@ func _can_start_online_manual_room(app_runtime: Object) -> Dictionary:
 	if not bool(snapshot.can_start_manual_battle):
 		return RoomErrorMapperScript.to_front_error("ROOM_MEMBER_NOT_READY", "All non-host players must be ready before starting")
 	return {"ok": true}
+
+
+func _is_transport_connected(room_client_gateway: RefCounted) -> bool:
+	if room_client_gateway == null:
+		return false
+	if not room_client_gateway.has_method("is_transport_connected"):
+		return true
+	return bool(room_client_gateway.is_transport_connected())

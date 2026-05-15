@@ -17,6 +17,8 @@ func update_selection(app_runtime: Object, room_client_gateway: RefCounted, map_
 	var selection_check := can_update_selection(app_runtime)
 	if not bool(selection_check.get("ok", false)):
 		return selection_check
+	if room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime) and not _is_transport_connected(room_client_gateway):
+		return RoomErrorMapperScript.to_front_error("ROOM_NOT_CONNECTED", "尚未连接房间")
 	var result: Dictionary = app_runtime.room_session_controller.request_update_selection(
 		int(app_runtime.local_peer_id),
 		map_id,
@@ -26,3 +28,11 @@ func update_selection(app_runtime: Object, room_client_gateway: RefCounted, map_
 	if bool(result.get("ok", false)) and room_client_gateway != null and RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		room_client_gateway.request_update_selection(map_id, rule_id, mode_id)
 	return result
+
+
+func _is_transport_connected(room_client_gateway: RefCounted) -> bool:
+	if room_client_gateway == null:
+		return false
+	if not room_client_gateway.has_method("is_transport_connected"):
+		return true
+	return bool(room_client_gateway.is_transport_connected())

@@ -52,6 +52,7 @@ type Config struct {
 	GameServiceBaseURL         string
 	DSMBaseURL                 string
 	DSMEnv                     string
+	AllowInsecureHTTPForDS     bool
 
 	// Health check / reap settings
 	ReadyTimeoutSec    int
@@ -133,6 +134,14 @@ func LoadFromEnv() (*Config, error) {
 	cfg.GameServiceBaseURL = configx.Env("DSM_GAME_SERVICE_BASE_URL", "http://game_service:18081")
 	cfg.DSMBaseURL = configx.Env("DSM_BASE_URL", "http://ds_manager_service:18090")
 	cfg.DSMEnv = configx.Env("DSM_ENV", "development")
+	allowInsecureHTTP, err := configx.Bool("QQT_ALLOW_INSECURE_HTTP", false)
+	if err != nil {
+		return nil, fmt.Errorf("QQT_ALLOW_INSECURE_HTTP: %w", err)
+	}
+	if allowInsecureHTTP && !isDevelopmentEnv(cfg.DSMEnv) {
+		return nil, fmt.Errorf("QQT_ALLOW_INSECURE_HTTP is allowed only when DSM_ENV=development for DS runtime")
+	}
+	cfg.AllowInsecureHTTPForDS = allowInsecureHTTP && isDevelopmentEnv(cfg.DSMEnv)
 
 	cfg.PortRangeStart, err = configx.RequiredPositiveInt("DSM_PORT_RANGE_START", 19010)
 	if err != nil {
@@ -213,6 +222,15 @@ func findProjectRoot() (string, bool) {
 func isProductionEnv(value string) bool {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "prod", "production":
+		return true
+	default:
+		return false
+	}
+}
+
+func isDevelopmentEnv(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "dev", "development":
 		return true
 	default:
 		return false

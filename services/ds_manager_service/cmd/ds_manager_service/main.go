@@ -46,6 +46,20 @@ func main() {
 	var statusHandler *httpapi.StatusHandler
 	switch cfg.PoolMode {
 	case "docker_warm_pool":
+		containerEnv := map[string]string{
+			"DS_AGENT_INTERNAL_AUTH_KEY_ID":        cfg.DSAgentInternalAuthKeyID,
+			"DS_AGENT_INTERNAL_AUTH_SHARED_SECRET": cfg.DSAgentInternalAuthSecret,
+			"DS_BATTLE_PORT":                       strconv.Itoa(cfg.DSBattlePort),
+			"DSM_INTERNAL_AUTH_KEY_ID":             cfg.InternalAuthKeyID,
+			"DSM_INTERNAL_AUTH_SHARED_SECRET":      cfg.InternalSharedSecret,
+			"GAME_INTERNAL_AUTH_KEY_ID":            cfg.InternalAuthKeyID,
+			"GAME_INTERNAL_AUTH_SHARED_SECRET":     cfg.InternalSharedSecret,
+			"QQT_BATTLE_TICKET_SECRET":             cfg.BattleTicketSecret,
+		}
+		if cfg.AllowInsecureHTTPForDS {
+			containerEnv["QQT_ALLOW_INSECURE_HTTP"] = "1"
+		}
+
 		containerRuntime, err := dockerwarm.NewDockerEngineRuntime(cfg.DockerSocket)
 		if err != nil {
 			log.Fatalf("[ds_manager] docker runtime error: %v", err)
@@ -64,22 +78,15 @@ func main() {
 				DSBattlePort:      cfg.DSBattlePort,
 				DSHostPortStart:   cfg.DSHostPortRangeStart,
 				DSHostPortEnd:     cfg.DSHostPortRangeEnd,
-				ContainerEnv: map[string]string{
-					"DS_AGENT_INTERNAL_AUTH_KEY_ID":        cfg.DSAgentInternalAuthKeyID,
-					"DS_AGENT_INTERNAL_AUTH_SHARED_SECRET": cfg.DSAgentInternalAuthSecret,
-					"DS_BATTLE_PORT":                       strconv.Itoa(cfg.DSBattlePort),
-					"DSM_INTERNAL_AUTH_KEY_ID":             cfg.InternalAuthKeyID,
-					"DSM_INTERNAL_AUTH_SHARED_SECRET":      cfg.InternalSharedSecret,
-					"GAME_INTERNAL_AUTH_KEY_ID":            cfg.InternalAuthKeyID,
-					"GAME_INTERNAL_AUTH_SHARED_SECRET":     cfg.InternalSharedSecret,
-					"QQT_BATTLE_TICKET_SECRET":             cfg.BattleTicketSecret,
-				},
+				ContainerEnv:      containerEnv,
 			},
 			AdvertiseMode:      cfg.DSAdvertiseMode,
 			PublicHost:         cfg.DSPublicHost,
 			GameServiceBaseURL: cfg.GameServiceBaseURL,
 			DSMBaseURL:         cfg.DSMBaseURL,
 			ReadyTimeoutMS:     cfg.AllocateWaitReadyTimeoutMS,
+			ReadyTimeoutSec:    cfg.ReadyTimeoutSec,
+			IdleReapTimeoutSec: cfg.IdleReapTimeoutSec,
 		}, containerRuntime, agentClient, dockerwarm.NewLeaseRegistry())
 		allocateHandler = httpapi.NewRuntimePoolAllocateHandler(rtPool)
 		readyHandler = httpapi.NewRuntimePoolReadyHandler(rtPool)

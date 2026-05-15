@@ -124,3 +124,38 @@ func TestLoadFromEnvAllowsDockerPoolInDevelopment(t *testing.T) {
 		t.Fatalf("unexpected pool mode: %s", cfg.PoolMode)
 	}
 }
+
+func TestLoadFromEnvAllowsInsecureHTTPForDSInDevelopmentOnly(t *testing.T) {
+	t.Setenv("DSM_ENV", "development")
+	t.Setenv("QQT_ALLOW_INSECURE_HTTP", "true")
+	t.Setenv("DSM_INTERNAL_AUTH_SHARED_SECRET", "dev_internal_shared_secret")
+	t.Setenv("DSM_BATTLE_TICKET_SECRET", "dev_battle_ticket_secret")
+	t.Setenv("DSM_PORT_RANGE_START", "19010")
+	t.Setenv("DSM_PORT_RANGE_END", "19050")
+	t.Setenv("DSM_READY_TIMEOUT_SEC", "15")
+	t.Setenv("DSM_IDLE_REAP_TIMEOUT_SEC", "300")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("expected development insecure-http backdoor to pass, got %v", err)
+	}
+	if !cfg.AllowInsecureHTTPForDS {
+		t.Fatalf("AllowInsecureHTTPForDS should be true in development when QQT_ALLOW_INSECURE_HTTP=true")
+	}
+}
+
+func TestLoadFromEnvRejectsInsecureHTTPForDSOutsideDevelopment(t *testing.T) {
+	t.Setenv("DSM_ENV", "test")
+	t.Setenv("QQT_ALLOW_INSECURE_HTTP", "true")
+	t.Setenv("DSM_INTERNAL_AUTH_SHARED_SECRET", "test_internal_shared_secret")
+	t.Setenv("DSM_BATTLE_TICKET_SECRET", "test_battle_ticket_secret")
+	t.Setenv("DSM_PORT_RANGE_START", "19010")
+	t.Setenv("DSM_PORT_RANGE_END", "19050")
+	t.Setenv("DSM_READY_TIMEOUT_SEC", "15")
+	t.Setenv("DSM_IDLE_REAP_TIMEOUT_SEC", "300")
+
+	_, err := LoadFromEnv()
+	if err == nil || !strings.Contains(err.Error(), "QQT_ALLOW_INSECURE_HTTP is allowed only when DSM_ENV=development for DS runtime") {
+		t.Fatalf("expected non-development insecure-http rejection, got %v", err)
+	}
+}

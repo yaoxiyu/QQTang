@@ -42,7 +42,7 @@ func TestRequestDSAllocationSignsInternalAuthHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewService(nil, nil, server.URL, "primary", "shared-secret")
+	svc := NewService(nil, nil, server.URL, "primary", "shared-secret", 0)
 	result, err := svc.requestDSAllocation(context.Background(), AllocateInput{
 		AssignmentID:        "assign_1",
 		BattleID:            "battle_1",
@@ -87,7 +87,7 @@ func TestRequestDSBattleStatusSignsInternalAuthHeaders(t *testing.T) {
 	}))
 	defer server.Close()
 
-	svc := NewService(nil, nil, server.URL, "primary", "shared-secret")
+	svc := NewService(nil, nil, server.URL, "primary", "shared-secret", 0)
 	result, err := svc.requestDSBattleStatus(context.Background(), "battle_1")
 	if err != nil {
 		t.Fatalf("requestDSBattleStatus returned error: %v", err)

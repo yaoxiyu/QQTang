@@ -23,6 +23,8 @@ func should_cancel_queue_on_leave(app_runtime: Object, room_client_gateway: RefC
 func request_gateway_leave(app_runtime: Object, room_client_gateway: RefCounted, can_cancel_current_queue: bool) -> void:
 	if room_client_gateway == null or not RoomUseCaseRuntimeStateScript.is_online_room(app_runtime):
 		return
+	if not _is_transport_connected(room_client_gateway):
+		return
 	if should_cancel_queue_on_leave(app_runtime, room_client_gateway, can_cancel_current_queue):
 		room_client_gateway.request_cancel_match_queue()
 	if room_client_gateway.has_method("request_leave_room_and_disconnect"):
@@ -62,3 +64,11 @@ func _apply_match_room_return_policy(app_runtime: Object) -> void:
 	if app_runtime.current_room_entry_context != null:
 		app_runtime.current_room_entry_context.return_target = FrontReturnTargetScript.LOBBY
 		app_runtime.current_room_entry_context.return_to_lobby_after_settlement = true
+
+
+func _is_transport_connected(room_client_gateway: RefCounted) -> bool:
+	if room_client_gateway == null:
+		return false
+	if not room_client_gateway.has_method("is_transport_connected"):
+		return true
+	return bool(room_client_gateway.is_transport_connected())

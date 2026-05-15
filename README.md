@@ -17,10 +17,10 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 
 ```powershell
 # 开发环境（默认）
-.\tools\run-services.ps1
+powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1
 
 # 测试环境
-.\tools\run-services.ps1 -Profile test
+powershell -ExecutionPolicy Bypass -File .\tools\run-services.ps1 -Profile test
 ```
 
 此脚本会：
@@ -54,7 +54,7 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 
 在 Godot 编辑器中打开项目，或通过命令行：
 ```powershell
-.\external\godot_binary\Godot.exe --path .
+powershell -ExecutionPolicy Bypass -File .\external\godot_binary\Godot.exe --path .
 ```
 然后走正常流程：登录 → 大厅 → 房间 → 匹配 → 战斗。
 
@@ -64,13 +64,13 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 
 ```powershell
 # 启动 2 个客户端（client1, client2）
-.\tools\start-clients.ps1 -Count 2
+powershell -ExecutionPolicy Bypass -File .\tools\start-clients.ps1 -Count 2
 
 # 测试环境，指定起始索引（client3, client4）
-.\tools\start-clients.ps1 -Profile test -Count 2 -StartIndex 3
+powershell -ExecutionPolicy Bypass -File .\tools\start-clients.ps1 -Profile test -Count 2 -StartIndex 3
 
 # 使用控制台客户端，跳过 dotnet build
-.\tools\start-clients.ps1 -Count 2 -UseConsoleClient -SkipDotnetBuild
+powershell -ExecutionPolicy Bypass -File .\tools\start-clients.ps1 -Count 2 -UseConsoleClient -SkipDotnetBuild
 ```
 
 常用参数：
@@ -99,7 +99,7 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 最快的迭代方式，所有逻辑在一个进程内运行，1 个键盘控制角色 + N 个 AI 角色。
 
 ```powershell
-.\scripts\run-dev-battle.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\run-dev-battle.ps1
 ```
 
 可选参数：
@@ -127,7 +127,7 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 用于测试网络相关逻辑（回滚、预测、延迟/丢包）。启动一个 headless DS 进程和一个客户端进程。
 
 ```powershell
-.\scripts\run-dev-battle.ps1 -Mode ds_client
+powershell -ExecutionPolicy Bypass -File .\scripts\run-dev-battle.ps1 -Mode ds_client
 ```
 
 可选参数：
@@ -146,13 +146,13 @@ QQTang 是一款基于 Godot 引擎开发的多人休闲竞技游戏。
 也可以手动单独启动 dev mode DS：
 
 ```powershell
-.\external\godot_binary\Godot.exe --headless --path . res://scenes/network/dedicated_server_scene.tscn -- --qqt-dev-mode --qqt-dev-player-count 2 --qqt-port 9000
+powershell -ExecutionPolicy Bypass -File .\external\godot_binary\Godot.exe --headless --path . res://scenes/network/dedicated_server_scene.tscn -- --qqt-dev-mode --qqt-dev-player-count 2 --qqt-port 9000
 ```
 
 DS 启动后等待客户端连接。客户端同样通过 dev launcher 指定 DS 地址连接：
 
 ```powershell
-.\external\godot_binary\Godot.exe --path . res://scenes/dev/dev_battle_launcher.tscn -- --qqt-dev-launcher-ds-addr 127.0.0.1 --qqt-dev-launcher-ds-port 9000 --qqt-dev-launcher-player-count 2
+powershell -ExecutionPolicy Bypass -File .\external\godot_binary\Godot.exe --path . res://scenes/dev/dev_battle_launcher.tscn -- --qqt-dev-launcher-ds-addr 127.0.0.1 --qqt-dev-launcher-ds-port 9000 --qqt-dev-launcher-player-count 2
 ```
 
 ---

@@ -12,6 +12,22 @@ class FakeRuntime:
 	var room_session_controller: Node = null
 
 
+class FakeGateway:
+	extends RefCounted
+	var connected := true
+	var enter_called := false
+	var cancel_called := false
+
+	func is_transport_connected() -> bool:
+		return connected
+
+	func request_enter_match_queue() -> void:
+		enter_called = true
+
+	func request_cancel_match_queue() -> void:
+		cancel_called = true
+
+
 func test_can_enter_queue_rejects_missing_runtime() -> void:
 	var command := RoomQueueCommandScript.new()
 	var gateway := RoomClientGatewayScript.new()
@@ -83,3 +99,39 @@ func test_acknowledge_enter_match_queue_pending_returns_room_changed_for_differe
 	var reason := command.acknowledge_enter_match_queue_pending(state, snapshot)
 
 	assert_eq(reason, "room_changed", "snapshot from a different room should clear stale queue pending state")
+
+
+func test_request_enter_match_queue_rejects_when_transport_disconnected() -> void:
+	var command := RoomQueueCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "ranked_match_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+	var gateway := FakeGateway.new()
+	gateway.connected = false
+
+	var result: Dictionary = command.request_enter_match_queue(runtime, gateway)
+
+	assert_false(bool(result.get("ok", true)), "disconnected transport should reject queue enter")
+	assert_eq(String(result.get("error_code", "")), "ROOM_NOT_CONNECTED", "disconnected transport should use stable error code")
+	assert_false(gateway.enter_called, "disconnected transport should not send queue enter request")
+	runtime.free()
+
+
+func test_request_cancel_match_queue_rejects_when_transport_disconnected() -> void:
+	var command := RoomQueueCommandScript.new()
+	var runtime := FakeRuntime.new()
+	var entry := RoomEntryContextScript.new()
+	entry.room_kind = "ranked_match_room"
+	entry.topology = "dedicated_server"
+	runtime.current_room_entry_context = entry
+	var gateway := FakeGateway.new()
+	gateway.connected = false
+
+	var result: Dictionary = command.request_cancel_match_queue(runtime, gateway)
+
+	assert_false(bool(result.get("ok", true)), "disconnected transport should reject queue cancel")
+	assert_eq(String(result.get("error_code", "")), "ROOM_NOT_CONNECTED", "disconnected transport should use stable error code")
+	assert_false(gateway.cancel_called, "disconnected transport should not send queue cancel request")
+	runtime.free()

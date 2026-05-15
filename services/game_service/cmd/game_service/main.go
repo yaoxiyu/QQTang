@@ -68,7 +68,7 @@ func main() {
 	queueService.ConfigureRatingRepository(ratingRepo)
 	queueService.ConfigurePartyQueueRepositories(partyQueueRepo, partyQueueMemberRepo)
 	assignmentService := assignment.NewService(assignmentRepo, time.Duration(cfg.CaptainDeadlineSeconds)*time.Second)
-	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL, cfg.InternalAuthKeyID, cfg.InternalSharedSecret)
+	battleAllocService := battlealloc.NewService(assignmentRepo, battleInstanceRepo, cfg.DSManagerURL, cfg.InternalAuthKeyID, cfg.InternalSharedSecret, time.Duration(cfg.DSManagerHTTPTimeoutSec)*time.Second)
 	manualRoomService := battlealloc.NewManualRoomService(store.Pool, assignmentRepo, battleAllocService)
 	queueService.ConfigureBattleAllocator(newQueueBattleAllocatorAdapter(battleAllocService))
 	careerService := career.NewService(careerRepo, ratingRepo)

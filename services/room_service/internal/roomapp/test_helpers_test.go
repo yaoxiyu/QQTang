@@ -101,7 +101,7 @@ func newTestService(t *testing.T) *Service {
 		registry.New("test-instance", "test-shard"),
 		loader,
 		auth.NewTicketVerifier("test-secret"),
-		gameclient.New("127.0.0.1:19081"),
+		gameclient.New("127.0.0.1:19081", 0),
 	)
 }
 
@@ -206,7 +206,7 @@ func newTestServiceWithFakeGame(t *testing.T, fake *fakeGameControlServer) *Serv
 		registry.New("test-instance", "test-shard"),
 		loader,
 		auth.NewTicketVerifier("test-secret"),
-		gameclient.New(listener.Addr().String()),
+		gameclient.New(listener.Addr().String(), 0),
 	)
 }
 

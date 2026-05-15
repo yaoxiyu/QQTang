@@ -114,7 +114,7 @@ func newTestRoomApp(t *testing.T) *roomapp.Service {
 		registry.New("test-instance", "test-shard"),
 		loader,
 		auth.NewTicketVerifier("test-secret"),
-		gameclient.New("127.0.0.1:19081"),
+		gameclient.New("127.0.0.1:19081", 0),
 	)
 }
 

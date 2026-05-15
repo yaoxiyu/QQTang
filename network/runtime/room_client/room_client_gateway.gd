@@ -190,6 +190,12 @@ func request_rematch() -> void:
 	client_room_runtime.request_rematch()
 
 
+func is_transport_connected() -> bool:
+	if client_room_runtime == null or not client_room_runtime.has_method("is_transport_connected"):
+		return false
+	return bool(client_room_runtime.is_transport_connected())
+
+
 # LegacyMigration: Resume request
 func request_resume_room(connection_config: ClientConnectionConfig, member_id: String, reconnect_token: String, match_id: String) -> void:
 	if client_room_runtime == null or connection_config == null:
