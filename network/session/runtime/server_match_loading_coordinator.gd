@@ -3,6 +3,7 @@ extends RefCounted
 
 const MatchLoadingSnapshotScript = preload("res://network/session/runtime/match_loading_snapshot.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 var current_snapshot: MatchLoadingSnapshot = null
 var prepared_config = null
@@ -164,6 +165,8 @@ func mark_peer_ready(peer_id: int, match_id: String, revision: int) -> Dictionar
 	current_snapshot.ready_peer_ids = ready_peer_ids.duplicate()
 	current_snapshot._recalculate_waiting_peers()
 
+	LogNetScript.info("battle_ds mark_peer_ready peer=%d ready=%d/%d expected=%s" % [peer_id, ready_peer_ids.size(), expected_peer_ids.size(), str(expected_peer_ids)], "", 0, "net.battle_ds_bootstrap")
+
 	if ready_peer_ids.size() == expected_peer_ids.size():
 		return _try_commit_match()
 
@@ -229,6 +232,7 @@ func reset() -> void:
 
 
 func _try_commit_match() -> Dictionary:
+	LogNetScript.info("battle_ds try_commit_match all_peers_ready", "", 0, "net.battle_ds_bootstrap")
 	if not _commit_match_callable.is_valid():
 		abort_loading("commit_callable_invalid", "Server failed to commit match")
 		return {

@@ -245,6 +245,7 @@ func _route_message(message: Dictionary) -> void:
 				if msg_sender > 0:
 					var dev_msg := message.duplicate(true)
 					dev_msg["sender_peer_id"] = 1
+					LogNetScript.info("battle_ds received MATCH_LOADING_READY from enet_peer=%d match_id=%s revision=%d -> remapped to logical_peer=1" % [msg_sender, String(dev_msg.get("match_id", "")), int(dev_msg.get("revision", 0))], "", 0, "net.battle_ds_bootstrap")
 					_battle_runtime.handle_loading_message(dev_msg)
 					return
 			# END DEV MODE ONLY
@@ -800,6 +801,11 @@ func _begin_battle_loading() -> void:
 
 	# DEV MODE ONLY: Flag to send fake MATCH_LOADING_READY on next frame.
 	if _launch_config.dev_mode:
+		var prepared_cfg = result.get("config", null)
+		if prepared_cfg != null:
+			var match_id_str := String(prepared_cfg.match_id)
+			if not match_id_str.is_empty():
+				_dev_ai_bridge.set_match_id(match_id_str)
 		_dev_ai_bridge.flag_pending_ai_ready()
 	# END DEV MODE ONLY
 

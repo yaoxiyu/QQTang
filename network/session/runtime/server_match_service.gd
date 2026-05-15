@@ -7,6 +7,7 @@ const TransportMessageTypesScript = preload("res://network/transport/transport_m
 const MatchStartCoordinatorScript = preload("res://network/session/match_start_coordinator.gd")
 const AuthorityRuntimeScript = preload("res://network/session/runtime/authority_runtime.gd")
 const AuthorityFrameMessageMergerScript = preload("res://network/session/runtime/authority_frame_message_merger.gd")
+const LogNetScript = preload("res://app/logging/log_net.gd")
 
 const MAX_AUTHORITY_TICKS_PER_FRAME := 3
 const MAX_ACCUMULATOR_TICKS := 4
@@ -257,10 +258,13 @@ func _broadcast_opening_authority_state() -> void:
 	if _authority_runtime == null:
 		return
 	if _authority_runtime.has_method("poll_opening_messages"):
-		for message in _authority_runtime.poll_opening_messages():
+		var opening_msgs: Array = _authority_runtime.poll_opening_messages()
+		for message in opening_msgs:
+			LogNetScript.info("battle_ds broadcast_opening type=%s tick=%d" % [String(message.get("msg_type", message.get("message_type", ""))), int(message.get("start_tick", message.get("tick", 0)))], "", 0, "net.battle_ds_bootstrap")
 			broadcast_message.emit(message)
 	var checkpoint := build_resume_checkpoint_message()
 	if not checkpoint.is_empty():
+		LogNetScript.info("battle_ds broadcast_checkpoint tick=%d" % int(checkpoint.get("tick", 0)), "", 0, "net.battle_ds_bootstrap")
 		broadcast_message.emit(checkpoint)
 
 

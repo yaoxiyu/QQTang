@@ -49,6 +49,10 @@ func flag_pending_ai_ready() -> void:
 	pending_ai_ready = true
 
 
+func set_match_id(match_id: String) -> void:
+	_match_id = match_id
+
+
 func clear() -> void:
 	_drivers.clear()
 	_tick_counter = 0
