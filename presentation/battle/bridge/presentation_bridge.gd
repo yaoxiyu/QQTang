@@ -492,17 +492,12 @@ func _on_cell_destroyed_event_routed(event: SimEvent) -> void:
 		int(event.payload.get("cell_x", 0)),
 		int(event.payload.get("cell_y", 0))
 	)
-	var should_apply_destroy_visual := true
-	if _current_world != null and _current_world.state != null:
-		var grid := _current_world.state.grid
-		if grid.is_in_bounds(destroyed_cell.x, destroyed_cell.y):
-			var current_cell := grid.get_static_cell(destroyed_cell.x, destroyed_cell.y)
-			# 仅当当前权威网格已不是可破坏方块时才移除表现层，避免偶发错误事件导致误炸显示。
-			should_apply_destroy_visual = current_cell.tile_type != TileConstantsScript.TileType.BREAKABLE_BLOCK
-	if should_apply_destroy_visual and map_view != null and map_view.has_method("handle_cell_destroyed"):
+	if map_view != null and map_view.has_method("handle_cell_destroyed"):
 		map_view.handle_cell_destroyed(destroyed_cell)
-	if not should_apply_destroy_visual:
-		return
+	LogPresentationScript.info(
+		"stage=cell_destroy_visual_applied cell=(%d,%d)" % [destroyed_cell.x, destroyed_cell.y],
+		"", 0, "presentation.bridge.explosion_item"
+	)
 	if fx_layer == null:
 		return
 	var fx = fx_pool.acquire("brick_break", fx_layer, func(v: Node):

@@ -66,7 +66,16 @@ func should_compare_authority_only_entities_in_rollback() -> bool:
 
 
 func resolve_ignored_local_player_keys_for_rollback() -> Array[String]:
-	return []
+	return [
+		"trapped_timeout_ticks",
+		"respawn_ticks",
+		"death_display_ticks",
+		"invincible_ticks",
+		"stun_ticks",
+		"shield_ticks",
+		"bomb_available",
+		"move_remainder_units",
+	]
 
 
 func reset() -> void:

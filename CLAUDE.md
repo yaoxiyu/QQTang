@@ -123,6 +123,24 @@
 - 编号音效 `x05_01` ~ `x40_01` 语义未确认，写新功能时不得直接绑定这些 id；走 `_audit_numbered/` 隔离。
 - 音频子系统完整 API 和架构文档见 `docs/architecture/audio_system.md`。
 
+## 帧同步规则
+- `ignored_local_player_keys` 字段必须通过 `client_prediction_policy.gd` 统一管理，不得在各系统里单独跳过比较。
+- 计时器/冷却类字段（`*_ticks`）天然差 1-2 tick，应默认加入忽略列表；非计时器字段需评估后加入。
+- 新增 `PlayerState` 计时器字段时，必须同步到 `ignored_local_player_keys` 列表。
+
+## 帧同步权威快照冗余规则
+- 任何在 CHECKPOINT 中**条件性携带**的权威数据（仅在特定条件触发时发送全量），必须通过冗余机制保证丢包后可恢复。
+- 现行冗余策略：`authority_checkpoint_builder.gd` 中 wall 变更记录按**发送次数**冗余（`WALL_REDUNDANCY_SENDS=5`），每条变更至少被 5 个 reliable checkpoint 携带后才清除。
+- 未来新增条件性携带的权威数据时，必须按同模式补充冗余。
+
+## 内容管线 .tres 资源规则
+- 内容管线生成的 `.tres` 文件通过 `DirAccess` + `load()` 加载时，必须处理 PCK 环境下列出的 `.tres.remap` 文件名——先 `trim_suffix(".remap")` 再 `load()`。
+- 受影响的 catalog：`battle_item_catalog.gd`、`item_catalog.gd`。新增同类 catalog 时必须遵循相同模式。
+
+## 表现层事件信任规则
+- 来自 authority 的 `CELL_DESTROYED` 等事件应被无条件信任——事件的 grid 状态守卫已被移除，由 `_sync_breakable_views_from_grid_cache` 的 grid-driven 慢路径作为正确性兜底。
+- 新增 authority 事件的表现层处理时，遵循"快路径信任事件、慢路径 grid 兜底"原则。
+
 ## 任务结束时
 - 告诉用户需要如何验证本次修改，包括需要重新编译、生成哪些资源，调用什么脚本等
 - 若涉及 GDScript 相关流程，验证步骤必须包含：语法预检 -> 目标管线/测试命令 -> 失败归因分类。

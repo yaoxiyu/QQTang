@@ -34,6 +34,8 @@ static func _scan_data_dir() -> void:
 		if not file_name.ends_with(".tres") and not file_name.ends_with(".remap"):
 			file_name = dir.get_next()
 			continue
+		if file_name.ends_with(".remap"):
+			file_name = file_name.trim_suffix(".remap")
 		var resource_path := ITEM_DATA_DIR + file_name
 		var resource := load(resource_path)
 		if resource == null or not resource is ItemDefinitionScript:

@@ -4,6 +4,8 @@ extends ISimSystem
 const DROP_RATE_PROFILES: Array[int] = [25, 50, 75, 100]
 static var _drop_rate_profile_index: int = 2
 
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
+
 
 static func cycle_debug_drop_rate_percent() -> int:
 	_drop_rate_profile_index = (_drop_rate_profile_index + 1) % DROP_RATE_PROFILES.size()

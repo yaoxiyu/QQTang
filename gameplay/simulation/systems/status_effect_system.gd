@@ -13,6 +13,7 @@ class_name StatusEffectSystem
 extends ISimSystem
 
 const PlayerLocator = preload("res://gameplay/simulation/movement/player_locator.gd")
+const LogSimulationScript = preload("res://app/logging/log_simulation.gd")
 
 # ====================
 # 系统接口
@@ -62,6 +63,11 @@ func _process_destroyed_cells(ctx: SimContext) -> void:
 			"can_spawn_item": can_spawn_item,
 		}
 		ctx.events.push(destroyed_event)
+
+		LogSimulationScript.info(
+			"stage=cell_destroyed tick=%d cell=(%d,%d) can_spawn_item=%s" % [ctx.tick, cell.x, cell.y, str(can_spawn_item)],
+			"", 0, "sync.trace simulation.explosion_item"
+		)
 
 
 func _should_suppress_breakable_destroy_prediction(ctx: SimContext) -> bool:
