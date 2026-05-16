@@ -184,8 +184,9 @@ static func _apply_channel_entries_to_grid(grid: GridState, channel_entries: Arr
 			continue
 		var movement_pass_mask := clampi(int(entry.get("movement_pass_mask", TileConstants.PASS_NONE)), 0, 15)
 		var allow_place_bubble := bool(entry.get("allow_place_bubble", true))
-		var static_cell := grid.get_static_cell(cell.x, cell.y)
+		var static_cell := TileFactory.make_empty()
 		static_cell.movement_pass_mask = movement_pass_mask
+		static_cell.blast_pass_mask = movement_pass_mask
 		static_cell.allow_place_bubble = allow_place_bubble
 		if movement_pass_mask == TileConstants.PASS_ALL:
 			static_cell.tile_flags &= ~TileConstants.TILE_BLOCK_MOVE

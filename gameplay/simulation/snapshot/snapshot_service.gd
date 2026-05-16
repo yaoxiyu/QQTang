@@ -214,7 +214,10 @@ func _capture_walls(sim_world: SimWorld) -> Array[Dictionary]:
 				"cell_y": y,
 				"tile_type": cell.tile_type,
 				"tile_flags": cell.tile_flags,
-				"theme_variant": cell.theme_variant
+				"theme_variant": cell.theme_variant,
+				"movement_pass_mask": cell.movement_pass_mask,
+				"blast_pass_mask": cell.blast_pass_mask,
+				"allow_place_bubble": cell.allow_place_bubble
 			})
 	return walls
 
@@ -280,6 +283,9 @@ func _restore_walls(sim_world: SimWorld, walls: Array[Dictionary]) -> void:
 		cell.tile_type = int(wall.get("tile_type", cell.tile_type))
 		cell.tile_flags = int(wall.get("tile_flags", cell.tile_flags))
 		cell.theme_variant = int(wall.get("theme_variant", cell.theme_variant))
+		cell.movement_pass_mask = int(wall.get("movement_pass_mask", cell.movement_pass_mask))
+		cell.blast_pass_mask = int(wall.get("blast_pass_mask", cell.blast_pass_mask))
+		cell.allow_place_bubble = bool(wall.get("allow_place_bubble", cell.allow_place_bubble))
 		sim_world.state.grid.set_static_cell(int(wall.get("cell_x", 0)), int(wall.get("cell_y", 0)), cell)
 
 

@@ -10,7 +10,7 @@ const EXPLOSION_PAYLOAD_MAGIC := 1163153745 # "QQTE" little-endian i32 marker.
 const BUBBLE_RECORD_STRIDE := 12
 const PLAYER_RECORD_STRIDE := 6
 const ITEM_RECORD_STRIDE := 5
-const GRID_RECORD_STRIDE := 4
+const GRID_RECORD_STRIDE := 5
 
 
 func resolve(ctx: SimContext, pending_bubble_ids: Array[int] = []) -> Dictionary:
@@ -106,6 +106,7 @@ func _pack_grid_records(ctx: SimContext) -> PackedInt32Array:
 			records.append(y)
 			records.append(static_cell.tile_type)
 			records.append(static_cell.tile_flags)
+			records.append(static_cell.blast_pass_mask)
 	return records
 
 

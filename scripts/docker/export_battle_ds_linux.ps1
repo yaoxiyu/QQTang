@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$GodotExe = (Join-Path $PSScriptRoot '..\..\external\godot_binary\Godot.exe'),
     [string]$Preset = 'Linux Dedicated Server',
     [string]$OutputPath = 'build/docker/battle_ds/qqtang_battle_ds.x86_64',
@@ -24,9 +24,10 @@ $absoluteNativeOutput = Join-Path $repoRoot $NativeLibOutputPath
 $outputDir = Split-Path -Parent $absoluteOutput
 $presetPath = Join-Path $repoRoot 'export_presets.cfg'
 $presetTemplatePath = Join-Path $repoRoot 'scripts/docker/export_presets.battle_ds.cfg'
-$presetBackupPath = Join-Path $repoRoot 'export_presets.cfg.phase36_backup'
+$buildDir = Join-Path $repoRoot 'build'
+$presetBackupPath = Join-Path $buildDir 'export_presets.cfg.battle_ds_backup'
 $projectPath = Join-Path $repoRoot 'project.godot'
-$projectBackupPath = Join-Path $repoRoot 'project.godot.phase36_battle_ds_backup'
+$projectBackupPath = Join-Path $buildDir 'project.godot.battle_ds_backup'
 $externalNativeRoot = Join-Path $repoRoot 'external\qqt_native'
 $externalNativeGodotIgnore = Join-Path $externalNativeRoot '.gdignore'
 $createdPreset = $false
@@ -79,6 +80,7 @@ try {
         -Step 1 `
         -Total 1 `
         -Action {
+            New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
             if (Test-Path -LiteralPath $presetPath) {
                 Copy-Item -LiteralPath $presetPath -Destination $presetBackupPath -Force
                 $script:backedUpPreset = $true
@@ -86,8 +88,8 @@ try {
                 Copy-Item -LiteralPath $presetTemplatePath -Destination $presetPath -Force
                 $script:createdPreset = $true
             }
-            Copy-Item -LiteralPath $projectPath -Destination $projectBackupPath -Force
-            $script:backedUpProject = $true
+            # Read original project.godot first, then swap atomically to avoid
+            # leaving a half-modified file in the repo on crash.
             $projectText = Get-Content -LiteralPath $projectPath -Raw
             $escapedMainScene = $MainScene.Replace('\', '\\').Replace('"', '\"')
             $mainScenePattern = '(?m)^run/main_scene=.*$'
@@ -99,7 +101,12 @@ try {
                 $mainScenePattern,
                 ('run/main_scene="{0}"' -f $escapedMainScene)
             )
-            Set-Content -LiteralPath $projectPath -Value $updatedProjectText -Encoding UTF8
+            # Write modified version to a temp file first, then swap
+            $modifiedProjectPath = Join-Path $buildDir 'project.godot.battle_ds_modified'
+            Set-Content -LiteralPath $modifiedProjectPath -Value $updatedProjectText -Encoding UTF8
+            Move-Item -LiteralPath $projectPath -Destination $projectBackupPath -Force
+            $script:backedUpProject = $true
+            Move-Item -LiteralPath $modifiedProjectPath -Destination $projectPath -Force
 
             powershell -ExecutionPolicy Bypass -File tests/scripts/check_gdscript_syntax.ps1 -GodotExe $GodotExe
             New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
@@ -127,8 +134,7 @@ try {
 }
 finally {
     if ($backedUpProject -and (Test-Path -LiteralPath $projectBackupPath)) {
-        Copy-Item -LiteralPath $projectBackupPath -Destination $projectPath -Force
-        Remove-Item -LiteralPath $projectBackupPath -Force
+        Move-Item -LiteralPath $projectBackupPath -Destination $projectPath -Force
     }
     if ($createdPreset -and (Test-Path -LiteralPath $presetPath)) {
         Remove-Item -LiteralPath $presetPath -Force

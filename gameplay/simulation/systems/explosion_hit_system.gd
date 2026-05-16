@@ -62,6 +62,8 @@ func _process_item_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
 	var item: ItemState = ctx.state.items.get_item(hit_entry.target_entity_id)
 	if item == null or not item.alive:
 		return
+	if int(item.spawn_tick) == int(ctx.tick):
+		return
 
 	var reaction_result: Dictionary = ExplosionReactionResolver.resolve_item_reaction(ctx, item)
 	match int(reaction_result.get("reaction", ExplosionHitTypes.ItemReaction.DESTROY)):

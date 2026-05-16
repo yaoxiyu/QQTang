@@ -18,7 +18,7 @@ using namespace godot;
 
 namespace {
 constexpr const char *KERNEL_VERSION = "native_kernel_v1";
-constexpr int64_t WIRE_VERSION = 2;
+constexpr int64_t WIRE_VERSION = 3;
 constexpr int32_t EXPLOSION_PAYLOAD_MAGIC = 1163153745;
 
 enum TargetType {
@@ -33,7 +33,11 @@ constexpr int32_t TILE_BREAKABLE_BLOCK = 2;
 constexpr int32_t BUBBLE_RECORD_STRIDE = 12;
 constexpr int32_t PLAYER_RECORD_STRIDE = 6;
 constexpr int32_t ITEM_RECORD_STRIDE = 5;
-constexpr int32_t GRID_RECORD_STRIDE = 4;
+constexpr int32_t GRID_RECORD_STRIDE = 5;
+constexpr int32_t PASS_N = 1;
+constexpr int32_t PASS_E = 2;
+constexpr int32_t PASS_S = 4;
+constexpr int32_t PASS_W = 8;
 
 struct BubbleRecord {
     int32_t entity_id = -1;
@@ -72,6 +76,7 @@ struct GridRecord {
     int32_t cell_y = 0;
     int32_t tile_type = 0;
     int32_t tile_flags = 0;
+    int32_t blast_pass_mask = PASS_N | PASS_E | PASS_S | PASS_W;
 };
 
 Dictionary make_empty_result() {
@@ -102,6 +107,22 @@ int64_t make_cell_key(int32_t x, int32_t y) {
 
 int32_t positive_int(int32_t value, int32_t fallback = 1) {
     return value > 0 ? value : fallback;
+}
+
+int32_t pass_bit_from_delta(int32_t dx, int32_t dy) {
+    if (dx == 1 && dy == 0) {
+        return PASS_E;
+    }
+    if (dx == -1 && dy == 0) {
+        return PASS_W;
+    }
+    if (dx == 0 && dy == 1) {
+        return PASS_S;
+    }
+    if (dx == 0 && dy == -1) {
+        return PASS_N;
+    }
+    return 0;
 }
 
 int32_t footprint_size_for_cells(int32_t footprint_cells) {
@@ -377,6 +398,7 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
         grid.cell_y = grid_values[i + 1];
         grid.tile_type = grid_values[i + 2];
         grid.tile_flags = grid_values[i + 3];
+        grid.blast_pass_mask = grid_values[i + 4];
         grid_by_cell[make_cell_key(grid.cell_x, grid.cell_y)] = grid;
     }
 
@@ -450,9 +472,40 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
             }
         };
 
-        auto resolve_explosion_cell = [&](int32_t check_x, int32_t check_y) -> bool {
+        auto can_blast_pass_between = [&](int32_t from_x, int32_t from_y, int32_t to_x, int32_t to_y) -> bool {
+            const int32_t dx = to_x - from_x;
+            const int32_t dy = to_y - from_y;
+            if ((std::abs(dx) + std::abs(dy)) != 1) {
+                return true;
+            }
+            const int32_t from_bit = pass_bit_from_delta(dx, dy);
+            if (from_bit == 0) {
+                return false;
+            }
+            const int32_t to_bit = pass_bit_from_delta(-dx, -dy);
+            const auto from_found = grid_by_cell.find(make_cell_key(from_x, from_y));
+            const auto to_found = grid_by_cell.find(make_cell_key(to_x, to_y));
+            if (from_found == grid_by_cell.end() || to_found == grid_by_cell.end()) {
+                return false;
+            }
+            if (to_found->second.tile_type == TILE_BREAKABLE_BLOCK) {
+                return true;
+            }
+            if ((from_found->second.blast_pass_mask & from_bit) == 0) {
+                return false;
+            }
+            if ((to_found->second.blast_pass_mask & to_bit) == 0) {
+                return false;
+            }
+            return true;
+        };
+
+        auto resolve_explosion_cell = [&](int32_t prev_x, int32_t prev_y, int32_t check_x, int32_t check_y) -> bool {
             const auto grid_found = grid_by_cell.find(make_cell_key(check_x, check_y));
             if (grid_found == grid_by_cell.end()) {
+                return true;
+            }
+            if (!can_blast_pass_between(prev_x, prev_y, check_x, check_y)) {
                 return true;
             }
 
@@ -460,6 +513,12 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
             if (grid.tile_type == TILE_SOLID_WALL) {
                 return true;
             }
+
+            Dictionary covered;
+            covered["bubble_id"] = bubble.entity_id;
+            covered["cell_x"] = check_x;
+            covered["cell_y"] = check_y;
+            covered_cells.append(covered);
 
             if (grid.tile_type == TILE_BREAKABLE_BLOCK) {
                 Dictionary block_aux_data;
@@ -487,12 +546,6 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
                 return true;
             }
 
-            Dictionary covered;
-            covered["bubble_id"] = bubble.entity_id;
-            covered["cell_x"] = check_x;
-            covered["cell_y"] = check_y;
-            covered_cells.append(covered);
-
             collect_hits_at_cell(check_x, check_y);
             return false;
         };
@@ -505,11 +558,11 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
             const int32_t start_y = bubble.cell_y - margin;
             for (int32_t y = 0; y < size; ++y) {
                 for (int32_t x = 0; x < size; ++x) {
-                    resolve_explosion_cell(start_x + x, start_y + y);
+                    resolve_explosion_cell(bubble.cell_x, bubble.cell_y, start_x + x, start_y + y);
                 }
             }
         } else {
-            resolve_explosion_cell(bubble.cell_x, bubble.cell_y);
+            resolve_explosion_cell(bubble.cell_x, bubble.cell_y, bubble.cell_x, bubble.cell_y);
 
             const int32_t bubble_range = positive_int(bubble.power);
             for (int32_t dir_index = 0; dir_index < 4; ++dir_index) {
@@ -518,7 +571,9 @@ PackedByteArray QQTNativeExplosionKernel::resolve_explosions(const PackedByteArr
                 for (int32_t step = 1; step <= bubble_range; ++step) {
                     const int32_t check_x = bubble.cell_x + (dir_x * step);
                     const int32_t check_y = bubble.cell_y + (dir_y * step);
-                    if (resolve_explosion_cell(check_x, check_y)) {
+                    const int32_t prev_x = bubble.cell_x + (dir_x * (step - 1));
+                    const int32_t prev_y = bubble.cell_y + (dir_y * (step - 1));
+                    if (resolve_explosion_cell(prev_x, prev_y, check_x, check_y)) {
                         break;
                     }
                 }

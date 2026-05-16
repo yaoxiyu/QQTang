@@ -132,14 +132,28 @@ func _resolve_segment_type(cell: Vector2i, center_cell: Vector2i) -> String:
 		return "type2_cell"
 	if cell == center_cell:
 		return "center"
-	if cell.x == center_cell.x:
-		if cell.y < center_cell.y:
-			return "tail_up" if not covered_cells.has(cell + Vector2i.UP) else "arm_up"
-		return "tail_down" if not covered_cells.has(cell + Vector2i.DOWN) else "arm_down"
-	if cell.y == center_cell.y:
-		if cell.x < center_cell.x:
-			return "tail_left" if not covered_cells.has(cell + Vector2i.LEFT) else "arm_left"
-		return "tail_right" if not covered_cells.has(cell + Vector2i.RIGHT) else "arm_right"
+	var has_left := covered_cells.has(cell + Vector2i.LEFT)
+	var has_right := covered_cells.has(cell + Vector2i.RIGHT)
+	var has_up := covered_cells.has(cell + Vector2i.UP)
+	var has_down := covered_cells.has(cell + Vector2i.DOWN)
+	var neighbor_count := int(has_left) + int(has_right) + int(has_up) + int(has_down)
+
+	if neighbor_count >= 3:
+		return "center"
+	if neighbor_count == 1:
+		if has_down:
+			return "tail_up"
+		if has_up:
+			return "tail_down"
+		if has_right:
+			return "tail_left"
+		return "tail_right"
+	if neighbor_count == 2:
+		if has_up and has_down:
+			return "arm_up" if cell.y < center_cell.y else "arm_down"
+		if has_left and has_right:
+			return "arm_left" if cell.x < center_cell.x else "arm_right"
+		return "center"
 	return "center"
 
 

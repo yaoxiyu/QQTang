@@ -38,58 +38,21 @@ func get_name() -> StringName:
 	return "ExplosionResolveSystem"
 
 func execute(ctx: SimContext) -> void:
-	if NativeFeatureFlagsScript.enable_native_explosion:
-		if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_explosion_kernel():
-			if NativeFeatureFlagsScript.require_native_kernels:
-				push_error("[explosion_resolve_system] native explosion kernel is required but unavailable")
-				return
-		else:
-			_execute_native_path(ctx)
-			return
+	if _should_skip_in_client_prediction(ctx):
+		return
+	if not NativeFeatureFlagsScript.enable_native_explosion:
+		push_error("[explosion_resolve_system] native-only mode requires enable_native_explosion=true")
+		return
+	if not NativeKernelRuntimeScript.is_available() or not NativeKernelRuntimeScript.has_explosion_kernel():
+		push_error("[explosion_resolve_system] native-only mode requires available explosion kernel")
+		return
+	_execute_native_path(ctx)
 
-	var pending_bubble_queue: Array[int] = []
-	for bubble_id in ctx.scratch.bubbles_to_explode:
-		if ctx.scratch.queued_chain_bubble_ids.has(bubble_id):
-			continue
-		ctx.scratch.queued_chain_bubble_ids[bubble_id] = true
-		pending_bubble_queue.append(bubble_id)
 
-	while not pending_bubble_queue.is_empty():
-		var bubble_id: int = pending_bubble_queue.pop_front()
-		if ctx.scratch.processed_explosion_bubble_ids.has(bubble_id):
-			continue
-
-		var bubble: BubbleState = ctx.state.bubbles.get_bubble(bubble_id)
-		if bubble == null or not bubble.alive:
-			continue
-		ctx.scratch.processed_explosion_bubble_ids[bubble_id] = true
-
-		var center_x: int = bubble.cell_x
-		var center_y: int = bubble.cell_y
-
-		var covered_cells: Array[Vector2i] = []
-		if _is_square_explosion(bubble):
-			_resolve_square_explosion(ctx, bubble, pending_bubble_queue, covered_cells)
-		else:
-			_resolve_cross_explosion(ctx, bubble, pending_bubble_queue, covered_cells)
-
-		bubble.alive = false
-		ctx.state.bubbles.active_ids.erase(bubble_id)
-		ctx.state.indexes.active_bubble_ids.erase(bubble_id)
-		_clear_bubble_indexes(ctx, bubble)
-
-		ctx.scratch.exploded_bubble_ids.append(bubble_id)
-
-		var exploded_event := SimEvent.new(ctx.tick, SimEvent.EventType.BUBBLE_EXPLODED)
-		exploded_event.payload = {
-			"bubble_id": bubble_id,
-			"owner_player_id": bubble.owner_player_id,
-			"cell_x": center_x,
-			"cell_y": center_y,
-			"covered_cells": covered_cells
-		}
-		_log_invalid_explosion_coverage_if_needed(ctx, bubble_id, center_x, center_y, covered_cells)
-		ctx.events.push(exploded_event)
+func _should_skip_in_client_prediction(ctx: SimContext) -> bool:
+	if ctx == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	return bool(ctx.state.runtime_flags.client_prediction_mode)
 
 
 func _is_square_explosion(bubble: BubbleState) -> bool:
@@ -113,7 +76,18 @@ func _resolve_cross_explosion(
 		for i in range(1, bubble_range + 1):
 			var check_x: int = center_x + dir.x * i
 			var check_y: int = center_y + dir.y * i
-			var should_stop := _resolve_explosion_cell(ctx, bubble, check_x, check_y, pending_bubble_queue, covered_cells)
+			var prev_x: int = center_x + dir.x * (i - 1)
+			var prev_y: int = center_y + dir.y * (i - 1)
+			var should_stop := _resolve_explosion_cell(
+				ctx,
+				bubble,
+				prev_x,
+				prev_y,
+				check_x,
+				check_y,
+				pending_bubble_queue,
+				covered_cells
+			)
 			if should_stop:
 				break
 
@@ -134,6 +108,8 @@ func _resolve_square_explosion(
 			_resolve_explosion_cell(
 				ctx,
 				bubble,
+				bubble.cell_x,
+				bubble.cell_y,
 				start_x + x,
 				start_y + y,
 				pending_bubble_queue,
@@ -144,6 +120,8 @@ func _resolve_square_explosion(
 func _resolve_explosion_cell(
 	ctx: SimContext,
 	bubble: BubbleState,
+	prev_cell_x: int,
+	prev_cell_y: int,
 	cell_x: int,
 	cell_y: int,
 	pending_bubble_queue: Array[int],
@@ -151,12 +129,15 @@ func _resolve_explosion_cell(
 ) -> bool:
 	if not ctx.queries.is_in_bounds(cell_x, cell_y):
 		return true
+	if not _can_blast_pass_between(ctx, prev_cell_x, prev_cell_y, cell_x, cell_y):
+		return true
 
 	var static_cell = ctx.state.grid.get_static_cell(cell_x, cell_y)
 	if static_cell.tile_type == TileConstants.TileType.SOLID_WALL:
 		return true
 
 	if static_cell.tile_type == TileConstants.TileType.BREAKABLE_BLOCK:
+		_append_covered_cell(covered_cells, Vector2i(cell_x, cell_y))
 		var block_reaction: Dictionary = ExplosionReactionResolver.resolve_breakable_block_reaction(
 			ctx,
 			cell_x,
@@ -173,6 +154,36 @@ func _resolve_explosion_cell(
 	_append_covered_cell(covered_cells, Vector2i(cell_x, cell_y))
 	_collect_hits_at_cell(ctx, bubble, cell_x, cell_y, pending_bubble_queue)
 	return false
+
+
+func _can_blast_pass_between(ctx: SimContext, from_x: int, from_y: int, to_x: int, to_y: int) -> bool:
+	var dx := to_x - from_x
+	var dy := to_y - from_y
+	if absi(dx) + absi(dy) != 1:
+		return true
+	var from_bit := _pass_bit_from_delta(dx, dy)
+	if from_bit == 0:
+		return false
+	var to_bit := _pass_bit_from_delta(-dx, -dy)
+	var from_cell := ctx.state.grid.get_static_cell(from_x, from_y)
+	var to_cell := ctx.state.grid.get_static_cell(to_x, to_y)
+	if (int(from_cell.blast_pass_mask) & from_bit) == 0:
+		return false
+	if (int(to_cell.blast_pass_mask) & to_bit) == 0:
+		return false
+	return true
+
+
+func _pass_bit_from_delta(dx: int, dy: int) -> int:
+	if dx == 1 and dy == 0:
+		return TileConstants.PASS_E
+	if dx == -1 and dy == 0:
+		return TileConstants.PASS_W
+	if dx == 0 and dy == 1:
+		return TileConstants.PASS_S
+	if dx == 0 and dy == -1:
+		return TileConstants.PASS_N
+	return 0
 
 
 func _append_covered_cell(covered_cells: Array[Vector2i], cell: Vector2i) -> void:

@@ -42,6 +42,8 @@ func execute(ctx: SimContext) -> void:
 
 
 func _process_destroyed_cells(ctx: SimContext) -> void:
+	if _should_suppress_breakable_destroy_prediction(ctx):
+		return
 	for cell in ctx.scratch.cells_to_destroy:
 		if not ctx.state.grid.is_in_bounds(cell.x, cell.y):
 			continue
@@ -60,3 +62,9 @@ func _process_destroyed_cells(ctx: SimContext) -> void:
 			"can_spawn_item": can_spawn_item,
 		}
 		ctx.events.push(destroyed_event)
+
+
+func _should_suppress_breakable_destroy_prediction(ctx: SimContext) -> bool:
+	if ctx == null or ctx.state == null or ctx.state.runtime_flags == null:
+		return false
+	return bool(ctx.state.runtime_flags.client_prediction_mode)
