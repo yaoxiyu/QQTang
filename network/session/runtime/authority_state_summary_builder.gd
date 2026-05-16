@@ -13,7 +13,6 @@ func build_core(active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: int
 	var match_state: Dictionary = snapshot.match_state if snapshot != null else {}
 	var summary := {
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"wire_version": BattleWireBudgetContractScript.WIRE_VERSION,
 		"tick": tick_id,
 		"checksum": int(snapshot.checksum) if snapshot != null else 0,

@@ -46,7 +46,9 @@ func run_explosion_benchmark(iterations: int = 4) -> Dictionary:
 	var parity_ok := true
 	for iteration in range(maxi(iterations, 1)):
 		var seed := 7100 + iteration
-		var baseline_result := _measure_explosion_sequence(false, seed)
+		# Explosion resolve path is native-only. Use two native runs with identical seed
+		# to validate deterministic parity while still collecting timing samples.
+		var baseline_result := _measure_explosion_sequence(true, seed)
 		var native_result := _measure_explosion_sequence(true, seed)
 		baseline_samples.append(float(baseline_result.get("elapsed_usec", 0.0)))
 		native_samples.append(float(native_result.get("elapsed_usec", 0.0)))

@@ -52,7 +52,6 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 
 	var summary_message := {
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 1,
 		"checksum": 111,
 		"player_summary": authoritative_players,
@@ -96,7 +95,6 @@ func _test_state_summary_only_refreshes_sideband_entities_in_snapshot_buffer() -
 	var resync_before := client.prediction_controller.rollback_controller.force_resync_count
 	client.ingest_network_message({
 		"message_type": TransportMessageTypesScript.CHECKPOINT,
-		"msg_type": TransportMessageTypesScript.CHECKPOINT,
 		"tick": 1,
 		"players": authoritative_players,
 		"player_summary": authoritative_players,
@@ -213,7 +211,6 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 
 	client.ingest_network_message({
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 3,
 		"player_summary": [],
 		"bubbles": [{
@@ -240,7 +237,6 @@ func _test_dedicated_server_skips_non_aligned_sideband_restore() -> bool:
 
 	client.ingest_network_message({
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 1,
 		"player_summary": [],
 		"bubbles": [{
@@ -296,7 +292,6 @@ func _test_dedicated_server_accepts_monotonic_sideband_restore() -> bool:
 
 	client.ingest_network_message({
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 2,
 		"player_summary": [],
 		"bubbles": [{
@@ -366,7 +361,6 @@ func _test_dedicated_server_ignores_state_summary_walls_and_applies_checkpoint_w
 	}
 	var summary_message := {
 		"message_type": TransportMessageTypesScript.STATE_SUMMARY,
-		"msg_type": TransportMessageTypesScript.STATE_SUMMARY,
 		"tick": 2,
 		"player_summary": [],
 		"bubbles": [],
@@ -383,7 +377,6 @@ func _test_dedicated_server_ignores_state_summary_walls_and_applies_checkpoint_w
 	) and ok
 	var checkpoint_message := summary_message.duplicate(true)
 	checkpoint_message["message_type"] = TransportMessageTypesScript.CHECKPOINT
-	checkpoint_message["msg_type"] = TransportMessageTypesScript.CHECKPOINT
 	checkpoint_message["mode_state"] = {}
 	client.ingest_network_message(checkpoint_message)
 	var after_checkpoint_tile_type := world.state.grid.get_static_cell(breakable_cell.x, breakable_cell.y).tile_type
@@ -419,7 +412,6 @@ func _test_match_finished_rebinds_local_peer_context_for_client() -> bool:
 	)
 	client.ingest_network_message({
 		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
-		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
 		"result": {
 			"winner_peer_ids": [2],
 			"winner_team_ids": [2],

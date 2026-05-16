@@ -50,8 +50,6 @@ func get_snapshot(tick_id: int) -> WorldSnapshot:
 	var snapshot: WorldSnapshot = snapshots.get(tick_id, null)
 	if snapshot != null:
 		return snapshot.duplicate_deep()
-	if _native_ring != null and _native_ring.has_snapshot(tick_id):
-		return _native_snapshot_bridge.unpack_snapshot(_native_ring.get_snapshot(tick_id))
 	return null
 
 
@@ -74,8 +72,6 @@ func get_packed_snapshot(tick_id: int) -> PackedByteArray:
 	var snapshot: WorldSnapshot = snapshots.get(tick_id, null)
 	if snapshot != null:
 		return _native_snapshot_bridge.pack_snapshot(snapshot)
-	if _native_ring != null and _native_ring.has_snapshot(tick_id):
-		return _native_ring.get_snapshot(tick_id)
 	return PackedByteArray()
 
 

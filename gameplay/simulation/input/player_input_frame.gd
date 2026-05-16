@@ -56,3 +56,14 @@ static func from_dict(data: Dictionary) -> PlayerInputFrame:
 	frame.action_bits = int(data.get("action_bits", 0))
 	frame.sanitize()
 	return frame
+
+
+static func idle(peer_id: int, tick_id: int) -> PlayerInputFrame:
+	var frame := PlayerInputFrame.new()
+	frame.peer_id = peer_id
+	frame.tick_id = tick_id
+	frame.seq = tick_id
+	frame.move_x = 0
+	frame.move_y = 0
+	frame.action_bits = 0
+	return frame

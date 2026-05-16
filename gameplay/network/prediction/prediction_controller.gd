@@ -77,7 +77,7 @@ func _predict_one_tick(tick_id: int) -> void:
 
 	var frame := local_input_buffer.get_frame(tick_id)
 	if frame == null:
-		frame = _make_idle_local_input(tick_id)
+		frame = PlayerInputFrame.idle(local_peer_id, tick_id)
 
 	var slot := _find_local_player_slot()
 	if slot < 0:
@@ -107,18 +107,6 @@ func _find_local_player_slot() -> int:
 			return player.player_slot
 
 	return -1
-
-
-func _make_idle_local_input(tick_id: int) -> PlayerInputFrame:
-	var frame := PlayerInputFrame.new()
-	frame.peer_id = local_peer_id
-	frame.tick_id = tick_id
-	frame.seq = tick_id
-	frame.move_x = 0
-	frame.move_y = 0
-	frame.action_bits = 0
-	frame.sanitize()
-	return frame
 
 
 func _to_player_command(frame: PlayerInputFrame) -> PlayerCommand:

@@ -26,7 +26,7 @@ func test_main() -> void:
 
 	var fallback := buffer.get_input(1001, 6)
 	_assert(fallback.tick_id == 6, "fallback input should target requested tick")
-	_assert(fallback.move_x == -1, "fallback input should reuse latest merged movement")
+	_assert(fallback.move_x == 0, "fallback input should use idle movement")
 	_assert((fallback.action_bits & PlayerInputFrame.BIT_PLACE) == 0, "fallback input should clear one-shot actions")
 
 	var idle := buffer.get_input(2002, 10)
@@ -35,7 +35,7 @@ func test_main() -> void:
 
 	var collected := buffer.collect_inputs_for_tick([1001, 2002], 6)
 	_assert(collected.size() == 2, "collect_inputs_for_tick should return one frame per peer")
-	_assert(collected[1001].move_x == -1, "collected fallback input should match held movement")
+	_assert(collected[1001].move_x == 0, "collected fallback input should use idle movement")
 	_assert(collected[2002].tick_id == 6, "collected idle input should target requested tick")
 
 	buffer.ack_peer(1001, 5)

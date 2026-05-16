@@ -60,7 +60,6 @@ func merge_server_frame(messages: Array[Dictionary]) -> Array[Dictionary]:
 		result.append(latest_summary)
 	elif not ack_by_peer.is_empty():
 		result.append({
-			"msg_type": "INPUT_ACK_BATCH",
 			"message_type": "INPUT_ACK_BATCH",
 			"ack_by_peer": ack_by_peer.duplicate(true),
 		})
@@ -77,7 +76,7 @@ func merge_server_frame(messages: Array[Dictionary]) -> Array[Dictionary]:
 
 
 func _message_type(message: Dictionary) -> String:
-	return String(message.get("message_type", message.get("msg_type", "")))
+	return String(message.get("message_type", ""))
 
 
 func _message_tick(message: Dictionary) -> int:

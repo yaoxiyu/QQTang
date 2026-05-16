@@ -12,7 +12,7 @@ func test_main() -> void:
 	buffer.push_input(held)
 
 	var fallback := buffer.get_input(7, 4)
-	_assert(fallback.move_x == -1, "missing input should reuse last movement direction")
+	_assert(fallback.move_x == 0, "missing input should fallback to idle movement direction")
 	_assert(fallback.move_y == 0, "missing input should preserve neutral vertical axis when absent")
 	_assert((fallback.action_bits & PlayerInputFrame.BIT_PLACE) == 0, "missing input should clear one-shot place action")
 	_assert(fallback.seq == held.seq, "missing input should preserve last known sequence id")

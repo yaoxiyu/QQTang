@@ -175,7 +175,9 @@ func poll() -> void:
 		_increment_metric(_received_count_by_channel, packet_channel, 1)
 		_incoming_queue.append(message)
 		_log_event_probe("transport_recv", sender_peer_id, message, payload.size())
-		var recv_message_type := String(message.get("message_type", message.get("msg_type", "unknown")))
+		var recv_message_type := _message_type(message)
+		if recv_message_type.is_empty():
+			recv_message_type = "unknown"
 		if _is_high_freq_message_type(recv_message_type):
 			_high_freq_log_record("received", recv_message_type, payload.size())
 		else:
@@ -400,7 +402,7 @@ func _send_payload_to_peer(peer_id: int, payload: PackedByteArray, message_type:
 
 
 func _message_type(message: Dictionary) -> String:
-	return String(message.get("message_type", message.get("msg_type", "")))
+	return String(message.get("message_type", ""))
 
 
 func _log_event_probe(stage: String, peer_id: int, message: Dictionary, payload_bytes: int) -> void:
@@ -411,7 +413,7 @@ func _log_event_probe(stage: String, peer_id: int, message: Dictionary, payload_
 		var payload: Dictionary = (event as Dictionary).get("payload", {})
 		var covered_cells: Array = payload.get("covered_cells", [])
 		LogNetScript.info(
-			"QQT_EXPLOSION_TRACE stage=%s peer=%d msg_type=%s tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_bytes=%d payload_keys=%s" % [
+			"QQT_EXPLOSION_TRACE stage=%s peer=%d message_type=%s tick=%d event_tick=%d bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_bytes=%d payload_keys=%s" % [
 				stage,
 				peer_id,
 				_message_type(message),

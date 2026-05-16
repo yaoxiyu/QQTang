@@ -138,6 +138,10 @@ String message_type_for_code(uint8_t code) {
     }
 }
 
+String message_type_from_message(const Dictionary &message) {
+    return String(message.get("message_type", Variant()));
+}
+
 PackedByteArray wrap_body(uint8_t message_code, const PackedByteArray &body) {
     PackedByteArray bytes;
     bytes.append(MAGIC_0);
@@ -385,7 +389,7 @@ String QQTNativeBattleMessageCodec::get_kernel_version() const {
 }
 
 PackedByteArray QQTNativeBattleMessageCodec::encode_message(const Dictionary &message) const {
-    const String message_type = String(message.get("message_type", message.get("msg_type", "")));
+    const String message_type = message_type_from_message(message);
     const uint8_t code = message_code_for_type(message_type);
     if (code == CODE_INPUT_BATCH || code == CODE_STATE_SUMMARY || code == CODE_STATE_DELTA) {
         malformed_count += 1;
@@ -462,7 +466,6 @@ Dictionary QQTNativeBattleMessageCodec::decode_input_batch_v2(const PackedByteAr
     }
     Dictionary message;
     message["message_type"] = "INPUT_BATCH";
-    message["msg_type"] = "INPUT_BATCH";
     message["wire_version"] = int32_t(WIRE_VERSION);
     message["protocol_version"] = int32_t(read_u8(payload, offset));
     message["peer_id"] = int32_t(read_u32(payload, offset));
@@ -529,7 +532,6 @@ Dictionary QQTNativeBattleMessageCodec::decode_state_summary_v2(const PackedByte
     }
     Dictionary message;
     message["message_type"] = "STATE_SUMMARY";
-    message["msg_type"] = "STATE_SUMMARY";
     message["wire_version"] = int32_t(WIRE_VERSION);
     message["tick"] = int32_t(read_u32(payload, offset));
     message["checksum"] = int32_t(read_u32(payload, offset));
@@ -625,7 +627,6 @@ Dictionary QQTNativeBattleMessageCodec::decode_state_delta_v2(const PackedByteAr
     }
     Dictionary message;
     message["message_type"] = "STATE_DELTA";
-    message["msg_type"] = "STATE_DELTA";
     message["wire_version"] = int32_t(WIRE_VERSION);
     message["tick"] = int32_t(read_u32(payload, offset));
     message["base_tick"] = int32_t(read_u32(payload, offset));

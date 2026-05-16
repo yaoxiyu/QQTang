@@ -111,7 +111,6 @@ func _send_fake_loading_ready() -> void:
 		LogNetScript.info("dev_loading: fake MATCH_LOADING_READY for AI peer=%d" % int(ai_peer_id), "", 0, "net.battle_ds_bootstrap")
 		_battle_runtime.handle_loading_message({
 			"message_type": _transport_message_types_script.MATCH_LOADING_READY,
-			"msg_type": _transport_message_types_script.MATCH_LOADING_READY,
 			"sender_peer_id": int(ai_peer_id),
 			"match_id": _match_id,
 			"revision": 1,
@@ -124,7 +123,6 @@ func _send_fake_opening_ack() -> void:
 		LogNetScript.info("dev_loading: fake OPENING_SNAPSHOT_ACK for AI peer=%d" % int(ai_peer_id), "", 0, "net.battle_ds_bootstrap")
 		_battle_runtime.handle_battle_message({
 			"message_type": _transport_message_types_script.OPENING_SNAPSHOT_ACK,
-			"msg_type": _transport_message_types_script.OPENING_SNAPSHOT_ACK,
 			"sender_peer_id": int(ai_peer_id),
 		})
 

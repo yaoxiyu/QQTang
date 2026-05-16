@@ -371,7 +371,7 @@ func _connect_transport_signals() -> void:
 func _route_message(message: Dictionary) -> void:
 	if message.is_empty():
 		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if message_type.is_empty():
 		_log_room_anomaly("runtime_message_without_message_type", {
 			"keys": message.keys(),
@@ -563,7 +563,7 @@ func _send_to_server(message: Dictionary) -> void:
 		if send_error == 0:
 			return
 		_log_room_anomaly("send_to_server_ws_failed", {
-			"message_type": String(message.get("message_type", message.get("msg_type", ""))),
+			"message_type": _message_type(message),
 			"send_error": send_error,
 		})
 	if _allow_test_transport_fallback and _transport != null and _transport.has_method("is_transport_connected") and bool(_transport.is_transport_connected()):
@@ -571,7 +571,7 @@ func _send_to_server(message: Dictionary) -> void:
 		return
 	if _ws_client == null and (_transport == null or not _allow_test_transport_fallback):
 		_log_room_anomaly("send_to_server_while_not_connected", {
-			"message_type": String(message.get("message_type", message.get("msg_type", ""))),
+			"message_type": _message_type(message),
 			"has_transport": false,
 			"has_ws_client": false,
 			"connected": _connected,
@@ -703,6 +703,10 @@ func _get_sender_peer_id() -> int:
 	if _transport != null and _transport.has_method("get_local_peer_id"):
 		return int(_transport.get_local_peer_id())
 	return 1
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", ""))
 
 
 const LogNetScript = preload("res://app/logging/log_net.gd")

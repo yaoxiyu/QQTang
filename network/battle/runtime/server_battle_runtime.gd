@@ -67,7 +67,7 @@ func handle_loading_message(message: Dictionary) -> void:
 	_ensure_services()
 	if _loading_coordinator == null:
 		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if message_type == TransportMessageTypesScript.MATCH_LOADING_READY:
 		var peer_id := int(message.get("sender_peer_id", 0))
 		var msg_match_id := String(message.get("match_id", ""))
@@ -230,6 +230,10 @@ func _ensure_services() -> void:
 	if _match_service != null:
 		_match_service.authority_host = authority_host
 		_match_service.authority_port = authority_port
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", ""))
 
 
 func _connect_match_service_signals() -> void:

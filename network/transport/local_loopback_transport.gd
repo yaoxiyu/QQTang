@@ -152,7 +152,7 @@ func apply_debug_profile(profile: Dictionary) -> void:
 func _enqueue_message(message: Dictionary) -> void:
 	if not _connected:
 		return
-	var normalized := TransportMessageCodecScript.normalize_message(message)
+	var normalized := message.duplicate(true)
 	var message_type := str(normalized.get(TransportMessageCodecScript.MESSAGE_TYPE_KEY, ""))
 	if _debug_simulator.should_drop_message(message_type, _droppable_message_types):
 		_debug_simulator.record_dropped()

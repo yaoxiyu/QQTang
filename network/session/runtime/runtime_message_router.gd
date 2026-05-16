@@ -20,7 +20,7 @@ func set_fallback_handler(handler: Callable) -> void:
 
 func route_messages(messages: Array) -> void:
 	for message in messages:
-		var message_type := str(message.get("message_type", message.get("msg_type", "")))
+		var message_type := _message_type(message)
 		if DEBUG_ROUTER_LOGS:
 			LogSessionScript.debug("route %s" % message_type, "", 0, "session.message_router")
 		if _handlers.has(message_type):
@@ -29,3 +29,7 @@ func route_messages(messages: Array) -> void:
 				handler.call(message)
 		elif _fallback_handler.is_valid():
 			_fallback_handler.call(message)
+
+
+func _message_type(message: Dictionary) -> String:
+	return str(message.get("message_type", ""))

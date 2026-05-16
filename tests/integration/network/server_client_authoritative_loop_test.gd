@@ -62,8 +62,8 @@ func test_main() -> void:
 
 func _apply_server_messages(server: ServerSession, client_a: ClientSession, client_b: ClientSession) -> void:
 	for message in server.poll_messages():
-		var msg_type := String(message.get("msg_type", ""))
-		match msg_type:
+		var message_type := String(message.get("message_type", ""))
+		match message_type:
 			"INPUT_ACK":
 				var peer_id := int(message.get("peer_id", -1))
 				var ack_tick := int(message.get("ack_tick", 0))
@@ -83,5 +83,4 @@ func _apply_server_messages(server: ServerSession, client_a: ClientSession, clie
 
 func _assert(condition: bool, message: String) -> void:
 	assert_true(condition, message)
-
 

@@ -39,7 +39,6 @@ func _toggle_remote_ai() -> void:
 	_enabled_state = not _enabled_state
 	var payload := {
 		"message_type": DEV_TOGGLE_AI_MESSAGE_TYPE,
-		"msg_type": DEV_TOGGLE_AI_MESSAGE_TYPE,
 		"enabled": _enabled_state,
 	}
 	transport.send_to_peer(1, payload)

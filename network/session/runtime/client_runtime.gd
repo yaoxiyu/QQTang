@@ -149,6 +149,12 @@ func _resolve_runtime_input_lead_ticks() -> int:
 	return _prediction_policy.resolve_runtime_input_lead_ticks()
 
 
+func on_input_ack_updated() -> void:
+	if client_session == null:
+		return
+	_prediction_policy.observe_stale_input_ack_count(client_session.stale_input_ack_count)
+
+
 func _is_dedicated_opening_lead_window() -> bool:
 	return _prediction_policy.is_dedicated_opening_lead_window()
 

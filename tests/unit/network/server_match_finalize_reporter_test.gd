@@ -151,6 +151,9 @@ func test_finalize_request_uses_internal_json_service_client() -> void:
 
 func test_finalize_reporter_parses_game_service_base_url_endpoint() -> void:
 	var reporter = ServerMatchFinalizeReporterScript.new()
+	var previous_allow_insecure_http := OS.get_environment("QQT_ALLOW_INSECURE_HTTP")
+	OS.set_environment("QQT_ALLOW_INSECURE_HTTP", "1")
 	var endpoint: Dictionary = reporter._endpoint_from_base_url("http://game_service:18081/internal")
 	assert_eq(String(endpoint.get("host", "")), "game_service")
 	assert_eq(int(endpoint.get("port", 0)), 18081)
+	OS.set_environment("QQT_ALLOW_INSECURE_HTTP", previous_allow_insecure_http)

@@ -60,7 +60,7 @@ func _test_authority_client_match_flow_reaches_consistent_end() -> bool:
 		authority.ingest_network_message(input_message)
 		var outgoing := authority.advance_authoritative_tick({})
 		for message in outgoing:
-			var message_type := String(message.get("message_type", message.get("msg_type", "")))
+			var message_type := String(message.get("message_type", ""))
 			if message_type == TransportMessageTypesScript.STATE_SUMMARY:
 				summary_seen = true
 			if message_type == TransportMessageTypesScript.CHECKPOINT:

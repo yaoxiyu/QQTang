@@ -58,7 +58,7 @@ func test_opening_barrier_waits_for_ready_then_tick_budget_caps_catchup() -> voi
 func _latest_summary_tick(messages: Array[Dictionary]) -> int:
 	var result := 0
 	for message in messages:
-		if String(message.get("message_type", message.get("msg_type", ""))) == TransportMessageTypesScript.STATE_SUMMARY:
+		if String(message.get("message_type", "")) == TransportMessageTypesScript.STATE_SUMMARY:
 			result = max(result, int(message.get("tick", 0)))
 	return result
 

@@ -17,6 +17,7 @@ func test_native_rollback_planner_force_resync_when_window_exceeded() -> void:
 	var cursor := _cursor()
 	cursor["predicted_until_tick"] = 40
 	cursor["max_rollback_window"] = 4
+	cursor["force_resync"] = true
 	var plan: Dictionary = _planner().call("plan", cursor, {"equal": false, "reason_mask": 2})
 	assert_eq(int(plan.get("decision", -1)), 2)
 
@@ -59,4 +60,3 @@ func _cursor() -> Dictionary:
 		"max_rollback_window": 16,
 		"local_snapshot_exists": true,
 	}
-

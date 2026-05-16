@@ -47,7 +47,6 @@ func _test_join_accepted_starts_client_runtime() -> bool:
 	ok = qqt_check(authority.start_match(config), "authority runtime should start with a valid start config", prefix) and ok
 	router.route_messages([{
 		"message_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
-		"msg_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
 		"start_config": config.to_dict(),
 	}])
 	ok = qqt_check(bool(accepted_state.get("value", false)), "client should accept JOIN_BATTLE_ACCEPTED config", prefix) and ok
@@ -80,7 +79,6 @@ func _test_invalid_config_is_rejected_before_client_runtime_starts() -> bool:
 	invalid_config.map_content_hash = "tampered_hash"
 	router.route_messages([{
 		"message_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
-		"msg_type": TransportMessageTypesScript.JOIN_BATTLE_ACCEPTED,
 		"start_config": invalid_config.to_dict(),
 	}])
 	var prefix := "host_client_bootstrap_test"
@@ -132,4 +130,3 @@ func _cleanup_nodes(nodes: Array) -> void:
 			node.shutdown_runtime()
 		if is_instance_valid(node):
 			node.queue_free()
-

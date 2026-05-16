@@ -5,7 +5,6 @@ const NativeFeatureFlagsScript = preload("res://gameplay/native_bridge/native_fe
 const NativeKernelRuntimeScript = preload("res://gameplay/native_bridge/native_kernel_runtime.gd")
 
 const MESSAGE_TYPE_KEY := "message_type"
-const MESSAGE_TYPE_ALIAS_KEY := "msg_type"
 const HIGH_FREQUENCY_MESSAGE_TYPES := ["INPUT_BATCH", "STATE_SUMMARY", "STATE_DELTA"]
 
 static var _metrics: Dictionary = {
@@ -20,17 +19,8 @@ static var _metrics: Dictionary = {
 }
 
 
-static func normalize_message(message: Dictionary) -> Dictionary:
-	var normalized := message.duplicate(true)
-	if normalized.has(MESSAGE_TYPE_ALIAS_KEY) and not normalized.has(MESSAGE_TYPE_KEY):
-		normalized[MESSAGE_TYPE_KEY] = normalized[MESSAGE_TYPE_ALIAS_KEY]
-	elif normalized.has(MESSAGE_TYPE_KEY) and not normalized.has(MESSAGE_TYPE_ALIAS_KEY):
-		normalized[MESSAGE_TYPE_ALIAS_KEY] = normalized[MESSAGE_TYPE_KEY]
-	return normalized
-
-
 static func encode_message(message: Dictionary) -> PackedByteArray:
-	var normalized := normalize_message(message)
+	var normalized := message.duplicate(true)
 	if NativeFeatureFlagsScript.enable_native_battle_message_codec:
 		var native_codec := NativeKernelRuntimeScript.get_battle_message_codec_kernel()
 		if native_codec != null:
@@ -74,13 +64,13 @@ static func decode_message(payload: Variant) -> Dictionary:
 						native_decoded = native_codec.call("decode_message", payload)
 				if not native_decoded.is_empty():
 					_metrics["native_decode_count"] = int(_metrics.get("native_decode_count", 0)) + 1
-					return normalize_message(native_decoded)
+					return native_decoded.duplicate(true)
 				_metrics["malformed_count"] = int(_metrics.get("malformed_count", 0)) + 1
 				return {}
 		_metrics["malformed_count"] = int(_metrics.get("malformed_count", 0)) + 1
 		return {}
 	if payload is Dictionary:
-		var normalized_dict := normalize_message(payload)
+		var normalized_dict: Dictionary = (payload as Dictionary).duplicate(true)
 		if HIGH_FREQUENCY_MESSAGE_TYPES.has(String(normalized_dict.get(MESSAGE_TYPE_KEY, ""))):
 			_metrics["malformed_count"] = int(_metrics.get("malformed_count", 0)) + 1
 			return {}

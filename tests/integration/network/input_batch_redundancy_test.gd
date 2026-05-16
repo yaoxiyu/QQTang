@@ -37,7 +37,7 @@ func test_input_batch_redundancy_recovers_recent_dropped_input_frame() -> void:
 	var recovered := authority.server_session.active_match.input_buffer.get_input(2, dropped_tick)
 	assert_eq(recovered.peer_id, 2)
 	assert_eq(recovered.tick_id, dropped_tick)
-	assert_eq(recovered.move_x, 1)
+	assert_eq(recovered.move_x, 0)
 
 	client.shutdown_runtime()
 	authority.shutdown_runtime()

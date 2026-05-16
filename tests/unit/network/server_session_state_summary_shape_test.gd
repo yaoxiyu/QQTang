@@ -49,6 +49,6 @@ func test_state_summary_is_lightweight_and_checkpoint_keeps_full_state() -> void
 func _latest_message(messages: Array[Dictionary], message_type: String) -> Dictionary:
 	var result: Dictionary = {}
 	for message in messages:
-		if String(message.get("message_type", message.get("msg_type", ""))) == message_type:
+		if String(message.get("message_type", "")) == message_type:
 			result = message
 	return result

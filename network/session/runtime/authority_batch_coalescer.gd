@@ -134,7 +134,7 @@ func _empty_result() -> Dictionary:
 
 
 func _message_type(message: Dictionary) -> String:
-	return String(message.get("message_type", message.get("msg_type", "")))
+	return String(message.get("message_type", ""))
 
 
 func _message_tick(message: Dictionary) -> int:

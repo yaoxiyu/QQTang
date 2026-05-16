@@ -19,11 +19,7 @@ constexpr const char *TYPE_AUTHORITATIVE_SNAPSHOT = "AUTHORITATIVE_SNAPSHOT";
 constexpr const char *TYPE_MATCH_FINISHED = "MATCH_FINISHED";
 
 String message_type(const Dictionary &message) {
-    Variant value = message.get("message_type", Variant());
-    if (value.get_type() == Variant::NIL) {
-        value = message.get("msg_type", Variant());
-    }
-    return String(value);
+    return String(message.get("message_type", Variant()));
 }
 
 int32_t message_tick(const Dictionary &message) {

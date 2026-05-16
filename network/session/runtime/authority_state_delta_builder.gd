@@ -40,7 +40,6 @@ func build_delta(_active_match: BattleMatch, snapshot: WorldSnapshot, tick_id: i
 		return {}
 	var delta := {
 		"message_type": TransportMessageTypesScript.STATE_DELTA,
-		"msg_type": TransportMessageTypesScript.STATE_DELTA,
 		"wire_version": BattleWireBudgetContractScript.WIRE_VERSION,
 		"tick": tick_id,
 		"base_tick": base_tick,

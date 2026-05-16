@@ -106,7 +106,6 @@ func _bind_transport_signals() -> void:
 			_session_adapter.network_bootstrap_set_local_peer_id(_session_adapter.network_bootstrap_transport_local_peer_id())
 			_session_adapter.network_bootstrap_send_to_peer(1, {
 				"message_type": "JOIN_BATTLE_REQUEST",
-				"msg_type": "JOIN_BATTLE_REQUEST",
 				"sender_peer_id": _session_adapter.network_bootstrap_transport_local_peer_id(),
 			})
 	)
@@ -164,7 +163,6 @@ func _on_launch_match_pressed() -> void:
 	_host_launched = true
 	var accepted_message := {
 		"message_type": "JOIN_BATTLE_ACCEPTED",
-		"msg_type": "JOIN_BATTLE_ACCEPTED",
 		"protocol_version": config.protocol_version,
 		"match_id": config.match_id,
 		"sender_peer_id": 1,

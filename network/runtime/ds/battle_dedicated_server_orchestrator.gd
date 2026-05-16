@@ -218,7 +218,7 @@ func _disconnect_transport_signals() -> void:
 func _route_message(message: Dictionary) -> void:
 	if _battle_runtime == null:
 		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	# ------------------------------------------------------------------
 	# DEV MODE ONLY: Handle DEV_TOGGLE_AI from the dev client and return
 	# early so the message never reaches the production routing branches.
@@ -876,6 +876,10 @@ func _on_transport_error(code: int, message: String) -> void:
 func _read_env(env_name: String, fallback: String) -> String:
 	var value := OS.get_environment(env_name).strip_edges()
 	return value if not value.is_empty() else fallback
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", ""))
 
 
 func _normalize_game_service_base_url(raw_url: String) -> String:

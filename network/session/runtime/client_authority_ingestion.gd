@@ -25,7 +25,7 @@ func configure(runtime: Node) -> void:
 func ingest_network_message(message: Dictionary) -> void:
 	if _runtime == null or _runtime.client_session == null:
 		return
-	var message_type := str(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	match message_type:
 		TransportMessageTypesScript.INPUT_ACK:
 			_apply_batch_input_acks([message])
@@ -172,11 +172,11 @@ func _log_explosion_events(stage: String, tick_id: int, events: Array, source_me
 			continue
 		var covered_cells: Array = event.payload.get("covered_cells", [])
 		LogSyncScript.info(
-			"QQT_EXPLOSION_TRACE stage=%s tick=%d event_tick=%d msg_type=%s bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_keys=%s" % [
+			"QQT_EXPLOSION_TRACE stage=%s tick=%d event_tick=%d message_type=%s bubble_id=%d owner=%d cell=(%d,%d) covered_cells=%d payload_keys=%s" % [
 				stage,
 				tick_id,
 				int(event.tick),
-				String(source_message.get("message_type", source_message.get("msg_type", ""))),
+				_message_type(source_message),
 				int(event.payload.get("bubble_id", event.payload.get("entity_id", -1))),
 				int(event.payload.get("owner_player_id", -1)),
 				int(event.payload.get("cell_x", -1)),
@@ -200,6 +200,7 @@ func _apply_batch_input_acks(input_acks: Array) -> void:
 		var ack_peer_id := int((ack as Dictionary).get("peer_id", -1))
 		if ack_peer_id == expected_peer_id or ack_peer_id == _runtime.local_peer_id:
 			_runtime.client_session.on_input_ack(int((ack as Dictionary).get("ack_tick", 0)))
+			_runtime.on_input_ack_updated()
 
 
 func _apply_ack_by_peer(ack_by_peer: Variant) -> void:
@@ -213,9 +214,11 @@ func _apply_ack_by_peer(ack_by_peer: Variant) -> void:
 		fallback_ack_tick = max(fallback_ack_tick, ack_tick)
 		if peer_id == expected_peer_id or peer_id == _runtime.local_peer_id:
 			_runtime.client_session.on_input_ack(ack_tick)
+			_runtime.on_input_ack_updated()
 			return
 	if fallback_ack_tick >= 0:
 		_runtime.client_session.on_input_ack(fallback_ack_tick)
+		_runtime.on_input_ack_updated()
 
 
 func _apply_latest_state_summary(message: Dictionary) -> void:
@@ -267,7 +270,7 @@ func _apply_terminal_messages(messages: Array) -> void:
 func _apply_terminal_message(message: Dictionary) -> void:
 	if message.is_empty():
 		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if message_type != TransportMessageTypesScript.MATCH_FINISHED:
 		return
 	_runtime._finished = true
@@ -450,3 +453,7 @@ func _find_player_entry_for_log(values: Array[Dictionary]) -> String:
 		if int(entry.get("player_slot", -1)) == target_slot:
 			return str(entry)
 	return "{}"
+
+
+func _message_type(message: Dictionary) -> String:
+	return str(message.get("message_type", ""))

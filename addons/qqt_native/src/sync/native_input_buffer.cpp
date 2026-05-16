@@ -268,14 +268,9 @@ Dictionary QQTNativeInputBuffer::fallback_input(int32_t peer_id, int32_t tick_id
         fallback_idle_count += 1;
         return make_idle_input(peer_id, tick_id);
     }
-    Dictionary fallback;
-    fallback["peer_id"] = peer_id;
-    fallback["tick_id"] = tick_id;
+    fallback_idle_count += 1;
+    Dictionary fallback = make_idle_input(peer_id, tick_id);
     fallback["seq"] = int32_t(int64_t(last_it->second.get("seq", 0)));
-    fallback["move_x"] = int32_t(int64_t(last_it->second.get("move_x", 0)));
-    fallback["move_y"] = int32_t(int64_t(last_it->second.get("move_y", 0)));
-    fallback["action_bits"] = 0;
-    fallback_hold_move_count += 1;
     return fallback;
 }
 

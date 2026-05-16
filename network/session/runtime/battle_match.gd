@@ -51,10 +51,10 @@ func bootstrap_world(config: SimConfig, bootstrap_data: Dictionary = {}) -> void
 		_apply_controller_type(peer_id)
 
 
-func push_player_input(frame: PlayerInputFrame) -> void:
+func push_player_input(frame: PlayerInputFrame, authority_tick: int = -1) -> Dictionary:
 	if input_buffer == null:
-		return
-	input_buffer.push_input(frame)
+		return {"status": "drop_no_input_buffer"}
+	return input_buffer.push_input(frame, authority_tick)
 
 
 func build_input_frame_for_tick(tick_id: int) -> InputFrame:
@@ -85,6 +85,7 @@ func run_authoritative_tick() -> Dictionary:
 	snapshot.checksum = compute_checksum(tick_id)
 	snapshot_buffer.put(snapshot)
 	last_authoritative_snapshot = snapshot
+	result["authoritative_snapshot"] = snapshot
 	return result
 
 

@@ -78,8 +78,8 @@ func _deliver_client_inputs(current_tick: int) -> void:
 
 func _deliver_server_messages(current_tick: int) -> void:
 	for message in transport.pop_ready("server_to_client", current_tick):
-		var msg_type := String(message.get("msg_type", ""))
-		match msg_type:
+		var message_type := String(message.get("message_type", ""))
+		match message_type:
 			"INPUT_ACK":
 				var peer_id := int(message.get("peer_id", -1))
 				var ack_tick := int(message.get("ack_tick", 0))
@@ -104,7 +104,7 @@ func _queue_final_checkpoint(current_tick: int) -> void:
 		return
 
 	var message := {
-		"msg_type": "CHECKPOINT",
+		"message_type": "CHECKPOINT",
 		"tick": snapshot.tick_id,
 		"players": snapshot.players,
 		"player_summary": dual_runner.server.active_match.build_player_position_summary(),

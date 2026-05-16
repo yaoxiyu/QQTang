@@ -116,11 +116,6 @@ static func build_airdrop_blocked_cells(map_id: String) -> Array[Vector2i]:
 	return result
 
 
-static func build_decorative_surface_cells(map_id: String) -> Array[Vector2i]:
-	# Compatibility alias for legacy callers.
-	return build_airdrop_blocked_cells(map_id)
-
-
 static func _surface_footprint_cells(anchor: Vector2i, size: Vector2i, anchor_mode: String) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
 	var left: int

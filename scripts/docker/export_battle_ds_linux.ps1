@@ -33,6 +33,19 @@ $externalNativeGodotIgnore = Join-Path $externalNativeRoot '.gdignore'
 $createdPreset = $false
 $backedUpPreset = $false
 $backedUpProject = $false
+$originalAppData = $env:APPDATA
+
+function Test-HasLinuxExportTemplate([string]$appDataPath) {
+    if ([string]::IsNullOrWhiteSpace($appDataPath)) {
+        return $false
+    }
+    $templatesRoot = Join-Path $appDataPath 'Godot\export_templates'
+    if (-not (Test-Path -LiteralPath $templatesRoot -PathType Container)) {
+        return $false
+    }
+    $linuxTemplate = Get-ChildItem -Path $templatesRoot -Recurse -File -Filter 'linux_release.x86_64' -ErrorAction SilentlyContinue | Select-Object -First 1
+    return $null -ne $linuxTemplate
+}
 
 if (-not (Test-Path -LiteralPath $GodotExe)) {
     throw "Godot executable not found: $GodotExe"
@@ -49,6 +62,15 @@ if ((Test-Path -LiteralPath $externalNativeRoot -PathType Container) -and -not (
 
 Push-Location $repoRoot
 try {
+    if (-not (Test-HasLinuxExportTemplate $env:APPDATA)) {
+        $defaultAppData = [Environment]::GetFolderPath('ApplicationData')
+        if (Test-HasLinuxExportTemplate $defaultAppData) {
+            $env:APPDATA = $defaultAppData
+            Write-Host "[battle-ds-export] fallback APPDATA to $defaultAppData for Godot export templates"
+        } else {
+            throw "Godot export template linux_release.x86_64 not found under APPDATA=$($env:APPDATA) nor default APPDATA=$defaultAppData"
+        }
+    }
     $null = Invoke-QQTIncrementalStep `
         -Root $repoRoot `
         -CacheRoot $cacheRoot `
@@ -133,6 +155,7 @@ try {
         }
 }
 finally {
+    $env:APPDATA = $originalAppData
     if ($backedUpProject -and (Test-Path -LiteralPath $projectBackupPath)) {
         Move-Item -LiteralPath $projectBackupPath -Destination $projectPath -Force
     }

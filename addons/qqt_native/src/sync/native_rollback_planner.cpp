@@ -26,7 +26,7 @@ Dictionary QQTNativeRollbackPlanner::plan(const Dictionary &cursor, const Dictio
         decision = FORCE_RESYNC;
     } else if (bool(diff_result.get("equal", false))) {
         decision = NOOP;
-    } else if (force_resync || predicted_until_tick - authoritative_tick > max_rollback_window) {
+    } else if (force_resync) {
         decision = FORCE_RESYNC;
     } else {
         decision = ROLLBACK;

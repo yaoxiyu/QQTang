@@ -21,7 +21,6 @@ func build_checkpoint(active_match: BattleMatch, snapshot: WorldSnapshot) -> Dic
 		_last_wall_sync_count = current_breakable
 	var checkpoint := {
 		"message_type": TransportMessageTypesScript.CHECKPOINT,
-		"msg_type": TransportMessageTypesScript.CHECKPOINT,
 		"wire_version": BattleWireBudgetContractScript.WIRE_VERSION,
 		"tick": snapshot.tick_id,
 		"players": snapshot.players,

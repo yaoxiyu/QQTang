@@ -4,6 +4,8 @@ extends RefCounted
 const MIN_INPUT_LEAD_TICKS := 3
 const MAX_INPUT_LEAD_TICKS := 12
 const OPENING_INPUT_LEAD_TICKS := 6
+const STALE_ACK_RAISE_THRESHOLD := 3
+const STALE_ACK_RELAX_THRESHOLD := 1
 
 var _start_config: BattleStartConfig = null
 var _prediction_controller: PredictionController = null
@@ -24,6 +26,18 @@ func resolve_runtime_input_lead_ticks() -> int:
 	if is_dedicated_opening_lead_window():
 		return max(_runtime_input_lead_ticks, OPENING_INPUT_LEAD_TICKS)
 	return _runtime_input_lead_ticks
+
+
+func observe_stale_input_ack_count(stale_ack_count: int) -> void:
+	if _runtime_input_lead_ticks <= 0:
+		resolve_runtime_input_lead_ticks()
+	if stale_ack_count >= STALE_ACK_RAISE_THRESHOLD:
+		_runtime_input_lead_ticks = mini(MAX_INPUT_LEAD_TICKS, _runtime_input_lead_ticks + 1)
+	elif stale_ack_count <= STALE_ACK_RELAX_THRESHOLD:
+		var base_lead := int(_start_config.network_input_lead_ticks) if _start_config != null else MIN_INPUT_LEAD_TICKS
+		if base_lead <= 0:
+			base_lead = MIN_INPUT_LEAD_TICKS
+		_runtime_input_lead_ticks = maxi(clamp(base_lead, MIN_INPUT_LEAD_TICKS, MAX_INPUT_LEAD_TICKS), _runtime_input_lead_ticks - 1)
 
 
 func is_dedicated_opening_lead_window() -> bool:

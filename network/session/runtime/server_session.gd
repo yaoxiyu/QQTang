@@ -16,6 +16,11 @@ var outgoing_messages: Array[Dictionary] = []
 var _state_summary_builder: RefCounted = AuthorityStateSummaryBuilderScript.new()
 var _state_delta_builder: RefCounted = AuthorityStateDeltaBuilderScript.new()
 var _checkpoint_builder: RefCounted = AuthorityCheckpointBuilderScript.new()
+var _last_tick_snapshot: WorldSnapshot = null
+var _checkpoint_interval_ticks: int = 5
+const CHECKPOINT_FALLBACK_WINDOW_TICKS: int = 60
+var _last_fallback_idle_count: int = 0
+var _fallback_event_ticks: Array[int] = []
 
 
 func create_room(room_id: String, map_id: String = "", mode_id: String = "") -> void:
@@ -41,7 +46,7 @@ func start_match(config: SimConfig, bootstrap_data: Dictionary = {}, _seed: int 
 	active_match.bootstrap_world(config, bootstrap_data)
 
 	_queue_message({
-		"msg_type": "MATCH_START",
+		"message_type": "MATCH_START",
 		"match_id": active_match.match_id,
 		"start_tick": start_tick,
 		"seed": _seed,
@@ -50,10 +55,10 @@ func start_match(config: SimConfig, bootstrap_data: Dictionary = {}, _seed: int 
 	return true
 
 
-func receive_input(frame: PlayerInputFrame) -> void:
+func receive_input(frame: PlayerInputFrame, authority_tick: int = -1) -> Dictionary:
 	if active_match == null:
-		return
-	active_match.push_player_input(frame)
+		return {"status": "drop_no_active_match"}
+	return active_match.push_player_input(frame, authority_tick)
 
 
 func tick_once() -> void:
@@ -61,7 +66,6 @@ func tick_once() -> void:
 		return
 
 	var next_tick := active_match.sim_world.state.match_state.tick + 1
-	_tick_collect_inputs(next_tick)
 	_tick_world(next_tick)
 	_tick_snapshot(next_tick)
 	_tick_ack_inputs(next_tick)
@@ -81,11 +85,6 @@ func build_wire_budget_metrics() -> Dictionary:
 	}
 
 
-func _tick_collect_inputs(_tick_id: int) -> void:
-	if active_match == null:
-		return
-
-
 func _tick_world(_tick_id: int) -> void:
 	if active_match == null:
 		return
@@ -95,9 +94,12 @@ func _tick_world(_tick_id: int) -> void:
 		return
 
 	var tick_id := int(result.get("tick", 0))
-	var snapshot: WorldSnapshot = active_match.borrow_last_authoritative_snapshot()
-	if snapshot == null or snapshot.tick_id != tick_id:
-		snapshot = active_match.get_snapshot(tick_id)
+	var snapshot: WorldSnapshot = result.get("authoritative_snapshot", null)
+	if snapshot == null:
+		snapshot = active_match.borrow_last_authoritative_snapshot()
+		if snapshot == null or snapshot.tick_id != tick_id:
+			snapshot = active_match.get_snapshot(tick_id)
+	_last_tick_snapshot = snapshot
 	var events: Array = _serialize_events(result.get("events", []))
 	_log_bubble_placed_events(tick_id, events, snapshot)
 	_log_explosion_events(tick_id, events)
@@ -107,10 +109,15 @@ func _tick_world(_tick_id: int) -> void:
 		_queue_message(delta)
 
 func _tick_snapshot(tick_id: int) -> void:
-	if active_match == null or tick_id % 5 != 0:
+	if active_match == null:
+		return
+	var checkpoint_interval := _resolve_checkpoint_interval_ticks()
+	if checkpoint_interval <= 0 or tick_id % checkpoint_interval != 0:
 		return
 
-	var snapshot := active_match.borrow_last_authoritative_snapshot()
+	var snapshot := _last_tick_snapshot
+	if snapshot == null or snapshot.tick_id != tick_id:
+		snapshot = active_match.borrow_last_authoritative_snapshot()
 	if snapshot == null or snapshot.tick_id != tick_id:
 		snapshot = active_match.get_snapshot(tick_id)
 	if snapshot == null:
@@ -120,13 +127,35 @@ func _tick_snapshot(tick_id: int) -> void:
 	_queue_message(_checkpoint_builder.build_checkpoint(active_match, snapshot))
 
 
+func _resolve_checkpoint_interval_ticks() -> int:
+	if active_match == null or active_match.input_buffer == null:
+		return _checkpoint_interval_ticks
+	var current_tick: int = active_match.sim_world.state.match_state.tick
+	var metrics: Dictionary = active_match.input_buffer.get_native_metrics()
+	var current_idle_count: int = int(metrics.get("fallback_idle_count", 0))
+
+	# Detect new fallback events since last check and record their tick
+	if current_idle_count > _last_fallback_idle_count:
+		_fallback_event_ticks.append(current_tick)
+		_last_fallback_idle_count = current_idle_count
+
+	# Prune events outside the sliding window
+	var cutoff := current_tick - CHECKPOINT_FALLBACK_WINDOW_TICKS
+	while not _fallback_event_ticks.is_empty() and _fallback_event_ticks[0] <= cutoff:
+		_fallback_event_ticks.pop_front()
+
+	if not _fallback_event_ticks.is_empty():
+		return 3
+	return _checkpoint_interval_ticks
+
+
 func _tick_ack_inputs(tick_id: int) -> void:
 	if active_match == null:
 		return
 
 	for peer_id in active_match.peer_ids:
 		_queue_message({
-			"msg_type": "INPUT_ACK",
+			"message_type": "INPUT_ACK",
 			"peer_id": peer_id,
 			"ack_tick": tick_id
 		})
@@ -240,6 +269,9 @@ func shutdown(_context: Variant) -> void:
 		active_match.dispose()
 		active_match = null
 	outgoing_messages.clear()
+	_last_tick_snapshot = null
+	_last_fallback_idle_count = 0
+	_fallback_event_ticks.clear()
 	_state_summary_builder.reset()
 	_state_delta_builder.reset()
 	_checkpoint_builder.reset()

@@ -92,21 +92,13 @@ Write-Host ('TestDirs: {0}' -f ($resolvedTestDirs -join ', '))
 Write-Host ('TestFiles: {0}' -f ($resolvedTestFiles -join ', '))
 Write-Host ('RawXml: {0}' -f $rawXmlPath)
 
-$escapedGutArgs = @()
-foreach ($arg in $gutArgs) {
-    $argText = [string]$arg
-    if ($argText.Contains(' ') -or $argText.Contains(';') -or $argText.Contains('&')) {
-        $escapedGutArgs += ('"{0}"' -f ($argText -replace '"', '\"'))
-    } else {
-        $escapedGutArgs += $argText
-    }
-}
-$rawOutput = & cmd /c ('"{0}" {1}' -f $GodotExe, ($escapedGutArgs -join ' ')) 2>&1
+$rawOutput = & $GodotExe @gutArgs 2>&1
 $gutExitCode = if ($null -eq $LASTEXITCODE) { 0 } else { [int]$LASTEXITCODE }
 
 $filteredOutput = $rawOutput | Where-Object {
     $_ -notmatch 'Failed to read the root certificate store' -and
     $_ -notmatch 'get_system_ca_certificates' -and
+    $_ -notmatch 'RID allocations of type .* were leaked at exit' -and
     $_ -notmatch 'NativeCommandError' -and
     $_ -notmatch 'CategoryInfo' -and
     $_ -notmatch 'FullyQualifiedErrorId'

@@ -11,6 +11,7 @@ constexpr int32_t REASON_LOCAL_PLAYER = 2;
 constexpr int32_t REASON_BUBBLES = 4;
 constexpr int32_t REASON_ITEMS = 8;
 constexpr int32_t REASON_RNG = 16;
+constexpr int32_t REASON_WALLS = 32;
 
 bool variant_equal(const Variant &left, const Variant &right);
 
@@ -154,6 +155,9 @@ Dictionary QQTNativeSnapshotDiff::diff_snapshots(const Dictionary &local_snapsho
     }
     if (compare_items && !array_equal(local_snapshot.get("items", Array()), authority_snapshot.get("items", Array()))) {
         return make_result(false, REASON_ITEMS, "items");
+    }
+    if (!array_equal(local_snapshot.get("walls", Array()), authority_snapshot.get("walls", Array()))) {
+        return make_result(false, REASON_WALLS, "walls");
     }
     const int64_t local_rng = int64_t(local_snapshot.get("rng_state", 0));
     const int64_t authority_rng = int64_t(authority_snapshot.get("rng_state", 0));

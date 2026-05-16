@@ -31,11 +31,9 @@ func configure(peer_id: int, p_controlled_peer_id: int = 0, ring_capacity: int =
 func send_input(frame: PlayerInputFrame, prediction_frame: PlayerInputFrame = null) -> void:
 	# LegacyMigration: Use controlled_peer_id for battle control identity
 	frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
-	frame.sanitize()
 	network_input_buffer.put(frame)
 	if prediction_frame != null:
 		prediction_frame.peer_id = controlled_peer_id if controlled_peer_id > 0 else local_peer_id
-		prediction_frame.sanitize()
 		local_input_buffer.put(prediction_frame)
 	else:
 		local_input_buffer.put(frame)
@@ -75,7 +73,6 @@ func sample_input_for_tick(tick_id: int, move_x: int, move_y: int, action_bits: 
 	frame.move_x = move_x
 	frame.move_y = move_y
 	frame.action_bits = action_bits
-	frame.sanitize()
 	return frame
 
 

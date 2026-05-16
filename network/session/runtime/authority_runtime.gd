@@ -5,7 +5,6 @@ const MapLoaderScript = preload("res://content/maps/runtime/map_loader.gd")
 const BattleSimConfigBuilderScript = preload("res://gameplay/battle/config/battle_sim_config_builder.gd")
 const TransportMessageTypesScript = preload("res://network/transport/transport_message_types.gd")
 const LogSyncScript = preload("res://app/logging/log_sync.gd")
-const NativeInputBufferBridgeScript = preload("res://gameplay/native_bridge/native_input_buffer_bridge.gd")
 const BattleWireBudgetContractScript = preload("res://network/session/runtime/battle_wire_budget_contract.gd")
 const RuntimeShutdownContextScript = preload("res://app/runtime/runtime_shutdown_context.gd")
 const TRACE_TAG := "sync.trace"
@@ -22,8 +21,7 @@ var _finished: bool = false
 
 var _opening_input_freeze_drop_count: int = 0
 var _opening_input_freeze_end_logged: bool = false
-var _native_input_policy: RefCounted = NativeInputBufferBridgeScript.new()
-var _native_input_policy_metrics: Dictionary = {}
+var _input_buffer_metrics: Dictionary = {}
 var invalid_batch_drop_count: int = 0
 
 
@@ -70,9 +68,7 @@ func start_match(config: BattleStartConfig) -> bool:
 	_finished = false
 	_opening_input_freeze_drop_count = 0
 	_opening_input_freeze_end_logged = false
-	_native_input_policy = NativeInputBufferBridgeScript.new()
-	_native_input_policy.configure(8, 64, 4, false)
-	_native_input_policy_metrics.clear()
+	_input_buffer_metrics.clear()
 	match_started.emit(start_config)
 	log_event.emit("AuthorityRuntime started %s" % start_config.to_log_string())
 	return true
@@ -81,7 +77,7 @@ func start_match(config: BattleStartConfig) -> bool:
 func ingest_network_message(message: Dictionary) -> void:
 	if server_session == null:
 		return
-	var message_type := str(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if message_type == TransportMessageTypesScript.INPUT_BATCH:
 		_ingest_input_batch(message)
 		return
@@ -110,7 +106,6 @@ func _ingest_input_batch(message: Dictionary) -> void:
 		frame.move_x = int((frame_data as Dictionary).get("move_x", 0))
 		frame.move_y = int((frame_data as Dictionary).get("move_y", 0))
 		frame.action_bits = int((frame_data as Dictionary).get("action_bits", 0))
-		frame.sanitize()
 		_submit_input_frame(frame)
 
 
@@ -153,13 +148,16 @@ func _submit_input_frame(frame: PlayerInputFrame) -> void:
 		_opening_input_freeze_drop_count += 1
 		return
 	var authority_tick := _get_authority_tick()
-	var native_decision := _evaluate_native_input_policy(frame, authority_tick)
+	var native_decision: Dictionary = server_session.receive_input(frame, authority_tick)
+	_input_buffer_metrics["last_status"] = String(native_decision.get("status", ""))
+	_input_buffer_metrics["last_retargeted"] = bool(native_decision.get("retargeted", false))
+	_input_buffer_metrics["last_tick_id"] = int(native_decision.get("tick_id", frame.tick_id))
+	if server_session != null and server_session.active_match != null and server_session.active_match.input_buffer != null:
+		_input_buffer_metrics["native_buffer_metrics"] = server_session.active_match.input_buffer.get_native_metrics()
 	if native_decision.is_empty() or String(native_decision.get("status", "")).begins_with("drop_"):
 		return
 	if bool(native_decision.get("retargeted", false)):
 		frame.tick_id = int(native_decision.get("tick_id", frame.tick_id))
-		frame.sanitize()
-	server_session.receive_input(frame)
 
 
 func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionary]:
@@ -183,7 +181,7 @@ func advance_authoritative_tick(local_input: Dictionary = {}) -> Array[Dictionar
 		"authoritative_tick": sim_world.state.match_state.tick,
 		"remaining_ticks": sim_world.state.match_state.remaining_ticks,
 		"player_count": start_config.player_slots.size() if start_config != null else 0,
-		"native_input_policy": get_native_input_policy_metrics(),
+		"input_buffer": get_input_buffer_metrics(),
 	}
 	authoritative_tick_completed.emit(tick_result, metrics)
 
@@ -232,8 +230,7 @@ func shutdown(_context: Variant) -> void:
 	_finished = false
 	_opening_input_freeze_drop_count = 0
 	_opening_input_freeze_end_logged = false
-	_native_input_policy = NativeInputBufferBridgeScript.new()
-	_native_input_policy_metrics.clear()
+	_input_buffer_metrics.clear()
 
 
 func get_shutdown_metrics() -> Dictionary:
@@ -252,7 +249,6 @@ func _build_local_input_frame(tick_id: int, local_input: Dictionary) -> PlayerIn
 	frame.move_x = clamp(int(local_input.get("move_x", 0)), -1, 1)
 	frame.move_y = clamp(int(local_input.get("move_y", 0)), -1, 1)
 	frame.action_bits = int(local_input.get("action_bits", 0))
-	frame.sanitize()
 	return frame
 
 
@@ -262,22 +258,8 @@ func _get_authority_tick() -> int:
 	return int(server_session.active_match.sim_world.state.match_state.tick)
 
 
-func _evaluate_native_input_policy(frame: PlayerInputFrame, authority_tick: int) -> Dictionary:
-	if frame == null:
-		return {}
-	if _native_input_policy == null:
-		_native_input_policy = NativeInputBufferBridgeScript.new()
-		_native_input_policy.configure(8, 64, 4, false)
-	var decision: Dictionary = _native_input_policy.push_input_dict(frame.to_dict(), authority_tick)
-	_native_input_policy_metrics["last_status"] = String(decision.get("status", ""))
-	_native_input_policy_metrics["last_retargeted"] = bool(decision.get("retargeted", false))
-	_native_input_policy_metrics["last_tick_id"] = int(decision.get("tick_id", frame.tick_id))
-	_native_input_policy_metrics["native_buffer_metrics"] = _native_input_policy.get_metrics()
-	return decision
-
-
-func get_native_input_policy_metrics() -> Dictionary:
-	return _native_input_policy_metrics.duplicate(true)
+func get_input_buffer_metrics() -> Dictionary:
+	return _input_buffer_metrics.duplicate(true)
 
 
 func _is_opening_input_frozen() -> bool:
@@ -324,9 +306,12 @@ func _decorate_messages(messages: Array) -> Array[Dictionary]:
 
 func _decorate_message(message: Dictionary) -> Dictionary:
 	var decorated := message.duplicate(true)
-	decorated["message_type"] = str(decorated.get("message_type", decorated.get("msg_type", "")))
-	decorated["msg_type"] = decorated["message_type"]
+	decorated["message_type"] = _message_type(decorated)
 	decorated["protocol_version"] = int(start_config.protocol_version) if start_config != null else 1
 	decorated["match_id"] = String(start_config.match_id) if start_config != null else ""
 	decorated["sender_peer_id"] = local_peer_id
 	return decorated
+
+
+func _message_type(message: Dictionary) -> String:
+	return str(message.get("message_type", ""))

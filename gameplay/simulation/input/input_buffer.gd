@@ -54,12 +54,10 @@ func get_recorded_ticks() -> Array[int]:
 	return ticks
 
 
-func push_input(frame: PlayerInputFrame) -> void:
+func push_input(frame: PlayerInputFrame, authority_tick: int = -1) -> Dictionary:
 	if frame == null:
-		return
-
-	frame.sanitize()
-	_push_native_input(frame)
+		return {"status": "drop_empty"}
+	return _push_native_input(frame, authority_tick)
 
 
 func get_input(peer_id: int, tick_id: int) -> PlayerInputFrame:
@@ -119,10 +117,11 @@ func _ensure_native_bridge() -> void:
 	_native_bridge.configure(8, 64, 2, false)
 
 
-func _push_native_input(frame: PlayerInputFrame) -> void:
+func _push_native_input(frame: PlayerInputFrame, authority_tick: int = -1) -> Dictionary:
 	_ensure_native_bridge()
 	if _native_bridge != null:
-		_native_bridge.push_input_dict(frame.to_dict(), -1)
+		return _native_bridge.push_input_dict(frame.to_dict(), authority_tick)
+	return {"status": "drop_native_unavailable"}
 
 
 func _ack_native_peer(peer_id: int, ack_tick: int) -> void:

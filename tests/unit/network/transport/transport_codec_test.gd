@@ -13,7 +13,7 @@ func test_main() -> void:
 
 func _test_encode_decode_roundtrip() -> bool:
 	var original := {
-		"msg_type": TransportMessageTypesScript.PING,
+		"message_type": TransportMessageTypesScript.PING,
 		"protocol_version": 7,
 		"tick": 42,
 		"match_id": "codec_transport_match",
@@ -24,7 +24,6 @@ func _test_encode_decode_roundtrip() -> bool:
 	var ok := true
 	ok = qqt_check(payload.size() > 0, "encode_message should produce bytes", prefix) and ok
 	ok = qqt_check(String(decoded.get("message_type", "")) == TransportMessageTypesScript.PING, "decoded message_type should be preserved", prefix) and ok
-	ok = qqt_check(String(decoded.get("msg_type", "")) == TransportMessageTypesScript.PING, "decoded legacy msg_type should be preserved", prefix) and ok
 	ok = qqt_check(int(decoded.get("protocol_version", 0)) == 7, "protocol_version should survive roundtrip", prefix) and ok
 	ok = qqt_check(int(decoded.get("tick", 0)) == 42, "tick should survive roundtrip", prefix) and ok
 	ok = qqt_check(String(decoded.get("match_id", "")) == "codec_transport_match", "match_id should survive roundtrip", prefix) and ok
@@ -40,7 +39,6 @@ func _test_dictionary_decode_normalizes_message_type_keys() -> bool:
 	var prefix := "transport_codec_test"
 	var ok := true
 	ok = qqt_check(String(normalized.get("message_type", "")) == TransportMessageTypesScript.PING, "decode_message should keep message_type", prefix) and ok
-	ok = qqt_check(String(normalized.get("msg_type", "")) == TransportMessageTypesScript.PING, "decode_message should backfill msg_type", prefix) and ok
 	ok = qqt_check(int(normalized.get("tick", 0)) == 8, "decode_message should keep tick from dictionary input", prefix) and ok
 	return ok
 

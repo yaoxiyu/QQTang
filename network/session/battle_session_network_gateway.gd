@@ -35,7 +35,7 @@ func ingest_dedicated_server_message(message) -> void:
 		return
 	if _adapter.network_mode != _adapter.BattleNetworkMode.CLIENT:
 		return
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if _is_waiting_for_dedicated_full_authority():
 		if message_type == TransportMessageTypesScript.CHECKPOINT or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
 			_dedicated_first_full_authority_received = true
@@ -359,7 +359,7 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 		emit_opening_tick = true
 		_send_opening_snapshot_ack(int(latest_snapshot.get("tick", 0)))
 		_adapter.network_log_event.emit("client_authoritative_opening_ready type=%s tick=%d local_peer=%d controlled_peer=%d" % [
-			String(latest_snapshot.get("message_type", latest_snapshot.get("msg_type", ""))),
+			_message_type(latest_snapshot),
 			int(latest_snapshot.get("tick", 0)),
 			_adapter._bootstrap_local_peer_id,
 			_adapter._bootstrap_client_runtime.controlled_peer_id if _adapter._bootstrap_client_runtime != null else -1,
@@ -374,7 +374,7 @@ func _ingest_client_authority_messages(authority_messages: Array) -> void:
 
 
 func _is_client_authority_sync_message(message: Dictionary) -> bool:
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	return message_type == TransportMessageTypesScript.INPUT_ACK \
 		or message_type == TransportMessageTypesScript.STATE_SUMMARY \
 		or message_type == TransportMessageTypesScript.STATE_DELTA \
@@ -563,7 +563,7 @@ func on_bootstrap_input_frame_message(message) -> void:
 
 func on_bootstrap_client_runtime_message(message) -> void:
 	if (_adapter.network_mode == _adapter.BattleNetworkMode.CLIENT or _adapter.network_mode == _adapter.BattleNetworkMode.LOCAL_LOOPBACK) and _adapter._bootstrap_client_runtime != null:
-		var message_type := String(message.get("message_type", message.get("msg_type", "")))
+		var message_type := _message_type(message)
 		var emit_opening_tick := false
 		if _is_waiting_for_dedicated_full_authority():
 			if message_type == TransportMessageTypesScript.CHECKPOINT or message_type == TransportMessageTypesScript.AUTHORITATIVE_SNAPSHOT:
@@ -628,7 +628,10 @@ func on_bootstrap_match_finished_message(message) -> void:
 
 func on_bootstrap_unhandled_message(message) -> void:
 	if not message.is_empty():
-		_adapter.network_log_event.emit("Unhandled message %s" % str(message.get("message_type", message.get("msg_type", "unknown"))))
+		var unknown_type := _message_type(message)
+		if unknown_type.is_empty():
+			unknown_type = "unknown"
+		_adapter.network_log_event.emit("Unhandled message %s" % unknown_type)
 
 
 func _connect_transport_bridge_signals() -> void:
@@ -662,8 +665,12 @@ func _describe_message_types(messages: Array) -> Array:
 		if not (message is Dictionary):
 			result.append("<invalid>")
 			continue
-		result.append(String((message as Dictionary).get("message_type", (message as Dictionary).get("msg_type", ""))))
+		result.append(_message_type(message as Dictionary))
 	return result
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", ""))
 
 
 func _emit_client_runtime_tick() -> void:
@@ -711,7 +718,6 @@ func _send_opening_snapshot_ack(snapshot_tick: int) -> void:
 	_dedicated_opening_ack_sent = true
 	_adapter.transport.send_to_peer(1, {
 		"message_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
-		"msg_type": TransportMessageTypesScript.OPENING_SNAPSHOT_ACK,
 		"match_id": String(_adapter.start_config.match_id),
 		"sender_peer_id": _adapter._bootstrap_local_peer_id,
 		"peer_id": _adapter._bootstrap_local_peer_id,

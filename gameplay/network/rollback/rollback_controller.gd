@@ -95,25 +95,29 @@ func on_authoritative_snapshot(snapshot: WorldSnapshot) -> bool:
 	if snapshot == null:
 		return false
 
-	last_authoritative_tick = snapshot.tick_id
+	var previous_authoritative_tick := last_authoritative_tick
 	if predicted_sim_world == null:
 		return false
 
 	var local_snapshot := snapshot_buffer.get_snapshot(snapshot.tick_id)
 	if local_snapshot == null:
+		last_authoritative_tick = max(last_authoritative_tick, snapshot.tick_id)
 		_force_resync(snapshot)
 		return true
 
 	var diff_result := describe_snapshot_diff(local_snapshot, snapshot)
-	var plan := _plan_rollback(snapshot, local_snapshot, diff_result)
+	var plan := _plan_rollback(snapshot, local_snapshot, diff_result, previous_authoritative_tick)
 	_log_rollback_plan(snapshot, diff_result, plan)
 	match int(plan.get("decision", PLAN_NOOP)):
 		PLAN_NOOP:
+			last_authoritative_tick = max(last_authoritative_tick, snapshot.tick_id)
 			return false
 		PLAN_FORCE_RESYNC:
+			last_authoritative_tick = max(last_authoritative_tick, snapshot.tick_id)
 			_force_resync(snapshot)
 			return true
 		PLAN_ROLLBACK:
+			last_authoritative_tick = max(last_authoritative_tick, snapshot.tick_id)
 			_rollback_from_snapshot(snapshot)
 			return true
 		PLAN_DROP_STALE_AUTHORITY:
@@ -199,7 +203,7 @@ func _inject_local_inputs_for_tick(tick_id: int) -> void:
 
 	var frame := local_input_buffer.get_frame(tick_id)
 	if frame == null:
-		frame = _make_idle_local_input(tick_id)
+		frame = PlayerInputFrame.idle(local_peer_id, tick_id)
 
 	var slot := _find_local_player_slot()
 	if slot < 0:
@@ -242,11 +246,11 @@ func _should_force_resync(authoritative_snapshot: WorldSnapshot, local_snapshot:
 	return false
 
 
-func _plan_rollback(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary) -> Dictionary:
+func _plan_rollback(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, diff_result: Dictionary, latest_authoritative_tick: int = -1) -> Dictionary:
 	if _native_rollback_planner_bridge == null:
 		return {}
 	var plan: Dictionary = _native_rollback_planner_bridge.plan(
-		_build_planner_cursor(authoritative_snapshot, local_snapshot),
+		_build_planner_cursor(authoritative_snapshot, local_snapshot, latest_authoritative_tick),
 		diff_result
 	)
 	_last_native_planner_metrics = {
@@ -255,10 +259,10 @@ func _plan_rollback(authoritative_snapshot: WorldSnapshot, local_snapshot: World
 	return plan
 
 
-func _build_planner_cursor(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot) -> Dictionary:
+func _build_planner_cursor(authoritative_snapshot: WorldSnapshot, local_snapshot: WorldSnapshot, latest_authoritative_tick: int = -1) -> Dictionary:
 	return {
 		"authoritative_tick": authoritative_snapshot.tick_id if authoritative_snapshot != null else -1,
-		"latest_authoritative_tick": -1,
+		"latest_authoritative_tick": latest_authoritative_tick if latest_authoritative_tick >= 0 else last_authoritative_tick,
 		"predicted_until_tick": predicted_until_tick,
 		"max_rollback_window": max_rollback_window,
 		"local_snapshot_exists": local_snapshot != null,
@@ -277,6 +281,7 @@ func _snapshot_to_diff_dict(snapshot: WorldSnapshot) -> Dictionary:
 		"players": snapshot.players,
 		"bubbles": snapshot.bubbles,
 		"items": snapshot.items,
+		"walls": snapshot.walls,
 		"rng_state": snapshot.rng_state,
 	}
 
@@ -317,17 +322,6 @@ func _find_local_player_slot() -> int:
 			return player.player_slot
 
 	return -1
-
-
-func _make_idle_local_input(tick_id: int) -> PlayerInputFrame:
-	var frame := PlayerInputFrame.new()
-	frame.peer_id = local_peer_id
-	frame.tick_id = tick_id
-	frame.seq = tick_id
-	frame.move_x = 0
-	frame.move_y = 0
-	frame.action_bits = 0
-	return frame
 
 
 func _to_player_command(frame: PlayerInputFrame) -> PlayerCommand:

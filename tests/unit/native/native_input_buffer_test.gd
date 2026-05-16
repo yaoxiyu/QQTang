@@ -122,7 +122,7 @@ func test_fallback_action_cleared() -> void:
 
 	var fallback := _collect_one(kernel, 1, 11)
 	assert_eq(int(fallback.get("action_bits", 0)), 0)
-	assert_eq(int(fallback.get("move_x", 0)), 1)
+	assert_eq(int(fallback.get("move_x", 0)), 0)
 
 
 func test_native_input_buffer_late_policy_metrics() -> void:
@@ -172,4 +172,3 @@ func _frame(peer_id: int, tick_id: int, seq: int, move_x: int, move_y: int, acti
 		"move_y": move_y,
 		"action_bits": action_bits,
 	}
-

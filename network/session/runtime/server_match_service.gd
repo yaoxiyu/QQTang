@@ -176,7 +176,7 @@ func build_peer_candidate_config(config: BattleStartConfig, peer_id: int) -> Bat
 
 
 func ingest_runtime_message(message: Dictionary) -> void:
-	var message_type := String(message.get("message_type", message.get("msg_type", "")))
+	var message_type := _message_type(message)
 	if message_type == TransportMessageTypesScript.OPENING_SNAPSHOT_ACK or message_type == TransportMessageTypesScript.BATTLE_READY:
 		_mark_peer_ready(int(message.get("sender_peer_id", message.get("peer_id", 0))))
 		return
@@ -237,7 +237,6 @@ func build_resume_checkpoint_message() -> Dictionary:
 	
 	return {
 		"message_type": TransportMessageTypesScript.CHECKPOINT,
-		"msg_type": TransportMessageTypesScript.CHECKPOINT,
 		"protocol_version": int(_current_config.protocol_version) if _current_config != null else 1,
 		"match_id": String(_current_config.match_id) if _current_config != null else "",
 		"sender_peer_id": 1,
@@ -260,7 +259,7 @@ func _broadcast_opening_authority_state() -> void:
 	if _authority_runtime.has_method("poll_opening_messages"):
 		var opening_msgs: Array = _authority_runtime.poll_opening_messages()
 		for message in opening_msgs:
-			LogNetScript.info("battle_ds broadcast_opening type=%s tick=%d" % [String(message.get("msg_type", message.get("message_type", ""))), int(message.get("start_tick", message.get("tick", 0)))], "", 0, "net.battle_ds_bootstrap")
+			LogNetScript.info("battle_ds broadcast_opening type=%s tick=%d" % [_message_type(message), int(message.get("start_tick", message.get("tick", 0)))], "", 0, "net.battle_ds_bootstrap")
 			broadcast_message.emit(message)
 	var checkpoint := build_resume_checkpoint_message()
 	if not checkpoint.is_empty():
@@ -281,7 +280,6 @@ func abort_match_due_to_disconnect(peer_id: int) -> BattleResult:
 	shutdown_match()
 	broadcast_message.emit({
 		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
-		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
 		"protocol_version": int(aborted_config.protocol_version) if aborted_config != null else 1,
 		"match_id": String(aborted_config.match_id) if aborted_config != null else "",
 		"sender_peer_id": 1,
@@ -307,7 +305,6 @@ func abort_match_due_to_resume_timeout(member_id: String) -> BattleResult:
 	shutdown_match()
 	broadcast_message.emit({
 		"message_type": TransportMessageTypesScript.MATCH_FINISHED,
-		"msg_type": TransportMessageTypesScript.MATCH_FINISHED,
 		"protocol_version": int(aborted_config.protocol_version) if aborted_config != null else 1,
 		"match_id": String(aborted_config.match_id) if aborted_config != null else "",
 		"sender_peer_id": 1,
@@ -384,6 +381,10 @@ func _ensure_runtime() -> void:
 		add_child(_authority_runtime)
 		if not _authority_runtime.battle_finished.is_connected(_on_battle_finished):
 			_authority_runtime.battle_finished.connect(_on_battle_finished)
+
+
+func _message_type(message: Dictionary) -> String:
+	return String(message.get("message_type", ""))
 
 
 func _on_battle_finished(_result: BattleResult) -> void:
