@@ -14,11 +14,20 @@ var _current_pose_state: String = "normal"
 
 func apply_actor_state(view_state: Dictionary) -> void:
 	var pose_state := String(view_state.get("pose_state", "normal"))
+	var hide_in_channel := bool(view_state.get("hide_body_sprite", false))
+
+	# 通道隐藏状态每帧可能变化，不随 pose_state 不变而跳过
+	if _jelly_trap_view != null:
+		_jelly_trap_view.visible = not hide_in_channel
+
 	if pose_state == _current_pose_state:
 		return
 	_current_pose_state = pose_state
 	if pose_state == "trigger":
 		_show_jelly_trap()
+		# 新创建的果冻罩子也要立即响应通道隐藏状态
+		if _jelly_trap_view != null:
+			_jelly_trap_view.visible = not hide_in_channel
 	else:
 		_hide_jelly_trap()
 

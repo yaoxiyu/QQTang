@@ -15,6 +15,7 @@ const RoomSceneSelectionSubmitterScript = preload("res://scenes/front/room_scene
 const RoomSceneSnapshotCoordinatorScript = preload("res://scenes/front/room_scene_snapshot_coordinator.gd")
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const ROOM_SCENE_LOG_TAG := "front.room.scene"
+const ROOM_BGM_ID := "room"
 const FORMAL_ROOM_SLOT_COUNT := 8
 const FORMAL_ROOM_MIN_CUSTOM_OPEN_SLOTS := 2
 
@@ -144,6 +145,7 @@ func _bind_runtime() -> void:
 
 
 func _on_runtime_ready() -> void:
+	_play_room_bgm()
 	_room_controller = _app_runtime.room_session_controller
 	_front_flow = _app_runtime.front_flow
 	_room_use_case = _app_runtime.room_use_case
@@ -445,6 +447,12 @@ func _log_room(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("[room_scene] %s %s" % [event_name, JSON.stringify(payload)], "", 0, ROOM_SCENE_LOG_TAG)
 
 
+func _play_room_bgm() -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("play_bgm"):
+		audio_manager.call("play_bgm", ROOM_BGM_ID)
+
+
 func _try_consume_pending_room_action() -> void:
 	if _app_runtime == null:
 		return
@@ -532,4 +540,3 @@ func _on_formal_room_property_pressed() -> void:
 
 func _on_formal_choose_map_pressed() -> void:
 	pass
-

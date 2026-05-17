@@ -276,7 +276,7 @@ func _apply_terminal_message(message: Dictionary) -> void:
 	_runtime._finished = true
 	var result := BattleResult.from_dict(message.get("result", {}))
 	var resolved_local_peer_id: int = _runtime.controlled_peer_id if _runtime.controlled_peer_id > 0 else _runtime.local_peer_id
-	result.bind_local_peer_context(resolved_local_peer_id)
+	result.bind_local_peer_context(resolved_local_peer_id, _runtime.start_config)
 	_apply_match_finished_to_predicted_world(result)
 	_runtime.battle_finished.emit(result)
 

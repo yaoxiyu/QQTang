@@ -103,6 +103,7 @@ func _ready() -> void:
 	_apply_runtime_render_order()
 	_ensure_item_debug_overlay()
 	_set_battle_visuals_available(false)
+	_ensure_settlement_controller()
 	call_deferred("_bind_runtime")
 
 
@@ -133,6 +134,28 @@ func _process(delta: float) -> void:
 	while _tick_accumulator >= TICK_INTERVAL_SEC and not _finished:
 		_tick_accumulator -= TICK_INTERVAL_SEC
 		_session_adapter.advance_authoritative_tick(_collect_local_input())
+
+
+func _ensure_settlement_controller() -> void:
+	if settlement_controller != null:
+		return
+	var popup_scene := load("res://scenes/battle/settlement_popup.tscn")
+	if popup_scene == null:
+		return
+	var popup: Node = popup_scene.instantiate()
+	if popup == null:
+		return
+	popup.name = "SettlementController"
+	var anchor := Node.new()
+	anchor.name = "SettlementPopupAnchor"
+	add_child(anchor)
+	anchor.add_child(popup)
+	popup.z_index = BattleDepthScript.ui_layer_z()
+	settlement_controller = popup
+	if not settlement_controller.return_to_room_requested.is_connected(_on_settlement_return_to_room_requested):
+		settlement_controller.return_to_room_requested.connect(_on_settlement_return_to_room_requested)
+	if not settlement_controller.rematch_requested.is_connected(_on_settlement_rematch_requested):
+		settlement_controller.rematch_requested.connect(_on_settlement_rematch_requested)
 
 
 func _bind_runtime() -> void:
@@ -606,6 +629,11 @@ func _show_pending_settlement() -> void:
 		_pending_settlement_result = null
 		_settlement_delay_remaining = 0.0
 		return
+	if _battle_context != null and _battle_context.sim_world != null:
+		var w := _battle_context.sim_world
+		var map_center := Vector2(float(w.state.grid.width) * presentation_bridge.cell_size * 0.5, float(w.state.grid.height) * presentation_bridge.cell_size * 0.5)
+		if settlement_controller.has_method("configure_map_center"):
+			settlement_controller.configure_map_center(map_center)
 	_battle_result_transition_controller.show_pending_settlement(
 		_app_runtime,
 		settlement_controller,

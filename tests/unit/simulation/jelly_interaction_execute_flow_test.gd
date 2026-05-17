@@ -9,7 +9,7 @@ func test_main() -> void:
 	ok = _test_enemy_touch_executes_trapped_player_in_same_tick() and ok
 	ok = _test_enemy_touch_executes_adjacent_blocked_jelly_in_same_tick() and ok
 	ok = _test_score_mode_enemy_touch_scores_and_starts_respawn() and ok
-	ok = _test_trapped_player_explosion_starts_defeat_respawn() and ok
+	ok = _test_trapped_player_immune_to_explosion() and ok
 	ok = _test_trapped_player_auto_executes_after_timeout() and ok
 	ok = _test_trap_and_death_preserve_subcell_offset() and ok
 	ok = _test_respawn_invincibility_expires_before_next_explosion() and ok
@@ -73,7 +73,7 @@ func _test_score_mode_enemy_touch_scores_and_starts_respawn() -> bool:
 	return ok
 
 
-func _test_trapped_player_explosion_starts_defeat_respawn() -> bool:
+func _test_trapped_player_immune_to_explosion() -> bool:
 	var world := _make_world(true)
 	var attacker := world.state.players.get_player(world.state.players.active_ids[0])
 	var victim := world.state.players.get_player(world.state.players.active_ids[1])
@@ -87,6 +87,7 @@ func _test_trapped_player_explosion_starts_defeat_respawn() -> bool:
 	victim.offset_y = -125
 	victim.life_state = PlayerState.LifeState.TRAPPED
 	victim.alive = true
+	victim.trapped_timeout_ticks = 300
 	victim.last_damage_from_player_id = attacker.entity_id
 	world.state.players.update_player(attacker)
 	world.state.players.update_player(victim)
@@ -95,13 +96,14 @@ func _test_trapped_player_explosion_starts_defeat_respawn() -> bool:
 
 	var result := world.step()
 	var victim_after := world.state.players.get_player(victim.entity_id)
-	var prefix := "jelly_interaction_execute_flow.explosion_trapped"
+	var prefix := "jelly_interaction_execute_flow.explosion_trapped_immune"
 	var ok := true
-	ok = qqt_check(victim_after != null and not victim_after.alive, "exploded trapped victim should be inactive", prefix) and ok
-	ok = qqt_check(victim_after != null and victim_after.life_state == PlayerState.LifeState.REVIVING, "exploded trapped victim should enter REVIVING", prefix) and ok
-	ok = qqt_check(victim_after != null and victim_after.offset_x == 250 and victim_after.offset_y == -125, "exploded trapped victim should keep subcell offset", prefix) and ok
-	ok = qqt_check(_has_event(result["events"], SimEvent.EventType.PLAYER_KILLED), "exploded trapped victim should emit PLAYER_KILLED", prefix) and ok
-	ok = qqt_check(_has_player_pose(world, victim.entity_id, "defeat"), "exploded trapped victim should show defeat pose before respawn", prefix) and ok
+	ok = qqt_check(victim_after != null and victim_after.alive, "trapped victim should stay alive after explosion", prefix) and ok
+	ok = qqt_check(victim_after != null and victim_after.life_state == PlayerState.LifeState.TRAPPED, "trapped victim should stay TRAPPED after explosion", prefix) and ok
+	ok = qqt_check(victim_after != null and victim_after.offset_x == 250 and victim_after.offset_y == -125, "trapped victim should preserve subcell offset", prefix) and ok
+	ok = qqt_check(victim_after != null and victim_after.trapped_timeout_ticks == 299, "trapped timeout should tick down by 1", prefix) and ok
+	ok = qqt_check(not _has_event(result["events"], SimEvent.EventType.PLAYER_KILLED), "explosion on trapped victim should NOT emit PLAYER_KILLED", prefix) and ok
+	ok = qqt_check(_has_player_pose(world, victim.entity_id, "trigger"), "trapped victim should stay in trigger pose after explosion", prefix) and ok
 	world.dispose()
 	return ok
 

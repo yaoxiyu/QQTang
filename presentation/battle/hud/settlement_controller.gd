@@ -3,6 +3,7 @@ extends Control
 
 const AppRuntimeRootScript = preload("res://app/flow/app_runtime_root.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const BattleAudioEventConfigScript = preload("res://presentation/battle/audio/battle_audio_event_config.gd")
 const ONLINE_LOG_PREFIX := "[ONLINE]"
 signal settlement_shown(result: BattleResult)
 signal settlement_hidden()
@@ -53,6 +54,7 @@ var settlement_card_root: Control = null
 var settlement_card_bg: TextureRect = null
 var settlement_card_content_root: Control = null
 var _card_tween: Tween = null
+var _map_center: Vector2 = Vector2.ZERO
 var current_result: BattleResult = null
 var input_locked: bool = false
 var server_sync_state: String = "pending"
@@ -131,6 +133,7 @@ func show_result(result: BattleResult) -> void:
 	_set_input_locked(true)
 	_refresh_text()
 	visible = true
+	_play_settlement_bgm(current_result)
 	_show_settlement_card_only()
 	_play_settlement_card_slide_in()
 	_log_online_settlement("show_result", debug_dump_settlement_state())
@@ -149,6 +152,10 @@ func hide_result() -> void:
 	_refresh_text()
 	_log_online_settlement("hide_result", debug_dump_settlement_state())
 	settlement_hidden.emit()
+
+
+func configure_map_center(pos: Vector2) -> void:
+	_map_center = pos
 
 
 func _show_settlement_card_only() -> void:
@@ -189,7 +196,6 @@ func _show_settlement_card_only() -> void:
 	if rematch_button != null:
 		rematch_button.visible = false
 
-
 func _play_settlement_card_slide_in() -> void:
 	if settlement_card_root == null:
 		return
@@ -201,6 +207,9 @@ func _play_settlement_card_slide_in() -> void:
 	if card_size.x <= 0.0 or card_size.y <= 0.0:
 		card_size = Vector2(640.0, 360.0)
 	var target_pos := Vector2(
+		_map_center.x - card_size.x * 0.5,
+		_map_center.y - card_size.y * 0.5
+	) if _map_center != Vector2.ZERO else Vector2(
 		(viewport_rect.size.x - card_size.x) * 0.5,
 		(viewport_rect.size.y - card_size.y) * 0.5
 	)
@@ -211,23 +220,18 @@ func _play_settlement_card_slide_in() -> void:
 	_card_tween.set_ease(Tween.EASE_OUT)
 	_card_tween.tween_property(settlement_card_root, "position", target_pos, 0.45)
 
-
 func request_return_to_room() -> void:
 	return_to_room_requested.emit()
-
 
 ## LegacyMigration: Default post-battle action — return to source room instead of lobby.
 func request_return_to_source_room() -> void:
 	return_to_source_room_requested.emit()
 
-
 func request_rematch() -> void:
 	rematch_requested.emit()
 
-
 func reset_settlement() -> void:
 	hide_result()
-
 
 func apply_server_summary(summary: Dictionary) -> void:
 	var resolved_summary: Dictionary = summary.duplicate(true) if summary != null else {}
@@ -240,7 +244,6 @@ func apply_server_summary(summary: Dictionary) -> void:
 	_refresh_text()
 	_log_online_settlement("apply_server_summary", debug_dump_settlement_state())
 
-
 func set_return_button_mode_lobby() -> void:
 	return_to_lobby_mode = true
 	if return_button != null:
@@ -249,7 +252,6 @@ func set_return_button_mode_lobby() -> void:
 		rematch_button.disabled = true
 		rematch_button.visible = false
 	_log_online_settlement("set_return_button_mode_lobby", debug_dump_settlement_state())
-
 
 func set_return_button_mode_room() -> void:
 	return_to_lobby_mode = false
@@ -264,7 +266,6 @@ func set_return_button_mode_room() -> void:
 		rematch_button.disabled = false
 		rematch_button.visible = true
 	_log_online_settlement("set_return_button_mode_room", debug_dump_settlement_state())
-
 
 func debug_dump_settlement_state() -> Dictionary:
 	return {
@@ -288,11 +289,9 @@ func debug_dump_settlement_state() -> Dictionary:
 		"return_to_lobby_mode": return_to_lobby_mode,
 	}
 
-
 func _set_input_locked(frozen: bool) -> void:
 	input_locked = frozen
 	input_frozen.emit(input_locked)
-
 
 func _refresh_text() -> void:
 	if result_label != null:
@@ -326,7 +325,6 @@ func _refresh_text() -> void:
 	if career_summary_label != null:
 		career_summary_label.text = _build_career_summary_text()
 
-
 func _build_title_text() -> String:
 	if current_result == null:
 		return ""
@@ -343,7 +341,6 @@ func _build_title_text() -> String:
 	if not current_result.winner_team_ids.is_empty() or not current_result.winner_peer_ids.is_empty():
 		return "Defeat"
 	return "Match Ended"
-
 
 func _build_detail_text() -> String:
 	if current_result == null:
@@ -367,7 +364,6 @@ func _build_detail_text() -> String:
 
 	return "\n".join(lines)
 
-
 func _build_map_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
 	var ui_summary: Dictionary = manifest.get("ui_summary", {})
@@ -379,7 +375,6 @@ func _build_map_summary_text() -> String:
 	if not map_brief.is_empty():
 		return "地图: %s\n%s" % [display_name, map_brief]
 	return "地图: %s" % display_name
-
 
 func _build_rule_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
@@ -399,12 +394,10 @@ func _build_rule_summary_text() -> String:
 		return "规则: %s\n%s" % [display_name, "\n".join(detail_lines)]
 	return "规则: %s" % display_name
 
-
 func _build_finish_reason_text() -> String:
 	if current_result == null:
 		return ""
 	return "原因: %s" % _map_finish_reason_text(current_result.finish_reason)
-
 
 func _build_mode_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
@@ -415,7 +408,6 @@ func _build_mode_summary_text() -> String:
 		return ""
 	return "模式: %s" % display_name
 
-
 func _build_character_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
 	var local_peer_id := _resolve_local_peer_id()
@@ -425,7 +417,6 @@ func _build_character_summary_text() -> String:
 			return "角色: %s" % display_name
 	return ""
 
-
 func _build_bubble_summary_text() -> String:
 	var manifest := _resolve_current_manifest()
 	var local_peer_id := _resolve_local_peer_id()
@@ -434,7 +425,6 @@ func _build_bubble_summary_text() -> String:
 			var display_name := String(entry.get("display_name", entry.get("bubble_style_id", "")))
 			return "泡泡: %s" % display_name
 	return ""
-
 
 func _build_score_summary_text() -> String:
 	if current_result == null:
@@ -452,7 +442,6 @@ func _build_score_summary_text() -> String:
 		lines.append("Team %d : %d" % [team_id, int(current_result.team_scores.get(str(team_id), current_result.team_scores.get(team_id, 0)))])
 	return "\n".join(lines)
 
-
 func _build_team_outcome_text() -> String:
 	if current_result == null:
 		return ""
@@ -464,10 +453,8 @@ func _build_team_outcome_text() -> String:
 		lines.append("结果: %s" % _map_outcome_text(current_result.local_outcome))
 	return "\n".join(lines)
 
-
 func _build_server_sync_text() -> String:
 	return "Server Sync: %s" % _map_server_sync_text(server_sync_state)
-
 
 func _build_rating_delta_text() -> String:
 	if server_sync_state == "pending":
@@ -476,24 +463,20 @@ func _build_rating_delta_text() -> String:
 		return "Rating: %s -> %d" % [_format_signed_number(rating_delta), rating_after]
 	return "Rating: %s" % _format_signed_number(rating_delta)
 
-
 func _build_season_point_delta_text() -> String:
 	if server_sync_state == "pending":
 		return "Season Point: -"
 	return "Season Point: %s" % _format_signed_number(season_point_delta)
-
 
 func _build_reward_summary_text() -> String:
 	if reward_summary_text.strip_edges().is_empty():
 		return "Reward: -"
 	return "Reward: %s" % reward_summary_text
 
-
 func _build_career_summary_text() -> String:
 	if career_summary_text.strip_edges().is_empty():
 		return "Career: -"
 	return "Career: %s" % career_summary_text
-
 
 func _resolve_current_start_config():
 	if not is_inside_tree():
@@ -508,7 +491,6 @@ func _resolve_current_start_config():
 		return null
 	return app_runtime.current_start_config
 
-
 func _resolve_current_manifest() -> Dictionary:
 	if not is_inside_tree():
 		return {}
@@ -522,7 +504,6 @@ func _resolve_current_manifest() -> Dictionary:
 		return {}
 	return app_runtime.current_battle_content_manifest.duplicate(true)
 
-
 func _resolve_local_peer_id() -> int:
 	var start_config = _resolve_current_start_config()
 	if start_config == null:
@@ -531,7 +512,6 @@ func _resolve_local_peer_id() -> int:
 	if controlled_peer_id > 0:
 		return controlled_peer_id
 	return int(start_config.local_peer_id)
-
 
 func _map_finish_reason_text(finish_reason: String) -> String:
 	match finish_reason:
@@ -548,7 +528,6 @@ func _map_finish_reason_text(finish_reason: String) -> String:
 		_:
 			return finish_reason
 
-
 func _is_draw_result(result: BattleResult) -> bool:
 	if result == null:
 		return false
@@ -557,7 +536,6 @@ func _is_draw_result(result: BattleResult) -> bool:
 	if result.finish_reason == "time_up":
 		return result.winner_team_ids.is_empty() and result.winner_peer_ids.is_empty()
 	return (result.finish_reason == "last_survivor" or result.finish_reason == "team_eliminated") and result.winner_peer_ids.is_empty() and result.winner_team_ids.is_empty()
-
 
 func _map_outcome_text(local_outcome: String) -> String:
 	match local_outcome:
@@ -569,7 +547,6 @@ func _map_outcome_text(local_outcome: String) -> String:
 			return "Draw"
 		_:
 			return local_outcome
-
 
 func _map_server_sync_text(state: String) -> String:
 	match state.strip_edges().to_lower():
@@ -584,12 +561,30 @@ func _map_server_sync_text(state: String) -> String:
 		_:
 			return state
 
-
 func _format_signed_number(value: int) -> String:
 	if value > 0:
 		return "+%d" % value
 	return "%d" % value
 
+func _play_settlement_bgm(result: BattleResult) -> void:
+	if result == null:
+		return
+	var bgm_id := _resolve_settlement_bgm_id(result)
+	if bgm_id.is_empty():
+		return
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null and audio_manager.has_method("play_bgm"):
+		audio_manager.call("play_bgm", bgm_id)
+
+func _resolve_settlement_bgm_id(result: BattleResult) -> String:
+	var local_outcome := String(result.local_outcome).strip_edges().to_lower()
+	if local_outcome == "victory" or result.is_local_victory():
+		return BattleAudioEventConfigScript.BGM_RESULT_WIN
+	if local_outcome == "defeat":
+		return BattleAudioEventConfigScript.BGM_RESULT_LOSS
+	if local_outcome == "draw" or _is_draw_result(result):
+		return ""
+	return BattleAudioEventConfigScript.BGM_RESULT_LOSS
 
 func _log_online_settlement(event_name: String, payload: Dictionary) -> void:
 	LogFrontScript.debug("%s[settlement_controller] %s %s" % [ONLINE_LOG_PREFIX, event_name, JSON.stringify(payload)], "", 0, "front.settlement.controller")

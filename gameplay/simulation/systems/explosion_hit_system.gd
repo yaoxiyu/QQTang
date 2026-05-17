@@ -34,10 +34,7 @@ func _process_player_hit(ctx: SimContext, hit_entry: ExplosionHitEntry) -> void:
 		return
 
 	if player.life_state == PlayerState.LifeState.TRAPPED:
-		player.last_damage_from_player_id = hit_entry.source_player_id
-		ctx.state.players.update_player(player)
-		if not ctx.scratch.players_to_execute.has(player.entity_id):
-			ctx.scratch.players_to_execute.append(player.entity_id)
+		# 果冻状态免疫爆炸伤害，只能被队友救起、敌人刺破或超时爆炸
 		return
 
 	var reaction_result: Dictionary = ExplosionReactionResolver.resolve_player_reaction(ctx, player)

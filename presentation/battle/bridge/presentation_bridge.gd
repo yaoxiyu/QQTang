@@ -27,6 +27,7 @@ const RESPAWN_MARKER_FPS := 1.0
 const RESPAWN_COUNTDOWN_ANIM_DIR := "res://external/assets/derived/assets/animation/misc/misc211_stand"
 const RESPAWN_COUNTDOWN_ANIM_NAME := "stand"
 const RESPAWN_COUNTDOWN_SECONDS := 10
+const DEBUG_COUNTDOWN := false
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
 @export var actor_layer_path: NodePath = ^"../../WorldRoot/ActorLayer"
@@ -64,9 +65,12 @@ var _airplane_was_active: bool = false
 var _did_play_ready_go: bool = false
 var _respawn_marker_by_player_id: Dictionary = {}
 var _world_ui_layer: Node2D = null
-var _respawn_countdown_sprite: AnimatedSprite2D = null
-var _respawn_countdown_frames: SpriteFrames = null
-var _trapped_player_ids: Dictionary = {}
+var _respawn_countdown_sprite: Sprite2D = null
+var _respawn_countdown_textures: Array[Texture2D] = []
+var _last_life_state_by_player_id: Dictionary = {}
+var _last_logged_countdown_second: int = -1
+var _last_logged_countdown_hidden_reason: String = ""
+var _cd_process_frame_count: int = 0
 
 
 func _ready() -> void:
@@ -100,8 +104,6 @@ func _ready() -> void:
 	battle_event_router.explosion_event_routed.connect(_on_explosion_event_routed)
 	battle_event_router.cell_destroyed_event_routed.connect(_on_cell_destroyed_event_routed)
 	battle_event_router.bubble_placed_event_routed.connect(_on_bubble_placed_event_routed)
-	battle_event_router.player_trapped_event_routed.connect(_on_player_trapped_event_routed)
-	battle_event_router.player_killed_event_routed.connect(_on_player_killed_event_routed)
 	battle_event_router.player_revived_event_routed.connect(_on_player_revived_event_routed)
 
 	fx_pool = FxPoolScript.new()
@@ -118,6 +120,11 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _current_world == null:
 		return
+	_cd_process_frame_count += 1
+	if DEBUG_COUNTDOWN and _cd_process_frame_count % 60 == 0:
+		var tick := int(_current_world.state.match_state.tick)
+		var phase := int(_current_world.state.match_state.phase)
+		LogPresentationScript.info("cd_process frame=%d tick=%d phase=%d" % [_cd_process_frame_count, tick, phase], "", 0, "presentation.respawn.countdown")
 	_sync_local_respawn_countdown(_current_world)
 
 
@@ -168,9 +175,12 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
 	_sync_respawn_position_markers(world)
+	if DEBUG_COUNTDOWN:
+		LogPresentationScript.info("cd_consume_tick tick=%d phase=%d" % [tick_id, int(world.state.match_state.phase)], "", 0, "presentation.respawn.countdown")
 	_sync_local_respawn_countdown(world)
 	_log_actor_sync_anomalies(world, tick_id, events)
 	_sync_airplane_view(world)
+	_snapshot_player_life_states(world)
 	_last_consumed_tick = tick_id
 
 
@@ -255,7 +265,7 @@ func clear_bridge() -> void:
 		_airplane_view = null
 	_clear_respawn_position_markers()
 	_clear_respawn_countdown_ui()
-	_trapped_player_ids.clear()
+	_last_life_state_by_player_id.clear()
 	if map_view != null and map_view.has_method("clear_map"):
 		map_view.clear_map()
 	if actor_registry != null:
@@ -286,10 +296,6 @@ func dispose() -> void:
 			battle_event_router.cell_destroyed_event_routed.disconnect(_on_cell_destroyed_event_routed)
 		if battle_event_router.bubble_placed_event_routed.is_connected(_on_bubble_placed_event_routed):
 			battle_event_router.bubble_placed_event_routed.disconnect(_on_bubble_placed_event_routed)
-		if battle_event_router.player_trapped_event_routed.is_connected(_on_player_trapped_event_routed):
-			battle_event_router.player_trapped_event_routed.disconnect(_on_player_trapped_event_routed)
-		if battle_event_router.player_killed_event_routed.is_connected(_on_player_killed_event_routed):
-			battle_event_router.player_killed_event_routed.disconnect(_on_player_killed_event_routed)
 		if battle_event_router.player_revived_event_routed.is_connected(_on_player_revived_event_routed):
 			battle_event_router.player_revived_event_routed.disconnect(_on_player_revived_event_routed)
 		if battle_event_router.player_trap_executed_event_routed.is_connected(_on_player_trap_executed_event_routed):
@@ -605,8 +611,10 @@ func _on_player_revived_event_routed(event: SimEvent) -> void:
 	var revive_type := String(event.payload.get("revive_type", "")).strip_edges().to_lower()
 	var rescuer_player_id := int(event.payload.get("rescuer_player_id", -1))
 	var player_id := int(event.payload.get("player_id", -1))
-	var trapped_fallback := player_id >= 0 and _trapped_player_ids.has(player_id)
-	var is_rescue := revive_type == "rescue" or rescuer_player_id > 0 or trapped_fallback
+	var previous_life_state := int(_last_life_state_by_player_id.get(player_id, -1))
+	var is_rescue := revive_type == "rescue" \
+		or rescuer_player_id > 0 \
+		or previous_life_state == PlayerState.LifeState.TRAPPED
 	LogPresentationScript.info(
 		"revived_event tick=%d payload=%s revive_type=%s rescuer_player_id=%d is_rescue=%s" % [
 			int(event.tick),
@@ -643,7 +651,6 @@ func _on_player_revived_event_routed(event: SimEvent) -> void:
 			"presentation.audio.revive"
 		)
 		return
-	_trapped_player_ids.erase(player_id)
 	var gender := _resolve_player_gender_by_entity_id(player_id)
 	if gender == 1:
 		_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_RESCUED_FEMALE)
@@ -674,25 +681,7 @@ func _on_player_revived_event_routed(event: SimEvent) -> void:
 func _on_player_trap_executed_event_routed(event: SimEvent) -> void:
 	if event == null:
 		return
-	var player_id := int(event.payload.get("player_id", -1))
-	if player_id >= 0:
-		_trapped_player_ids.erase(player_id)
-
-
-func _on_player_trapped_event_routed(event: SimEvent) -> void:
-	if event == null:
-		return
-	var player_id := int(event.payload.get("player_id", -1))
-	if player_id >= 0:
-		_trapped_player_ids[player_id] = int(event.tick)
-
-
-func _on_player_killed_event_routed(event: SimEvent) -> void:
-	if event == null:
-		return
-	var player_id := int(event.payload.get("player_id", -1))
-	if player_id >= 0:
-		_trapped_player_ids.erase(player_id)
+	return
 
 
 func _sync_respawn_position_markers(world: SimWorld) -> void:
@@ -747,40 +736,83 @@ func _sync_respawn_position_markers(world: SimWorld) -> void:
 
 
 func _sync_local_respawn_countdown(world: SimWorld) -> void:
+	var sim_tick := int(world.state.match_state.tick) if world != null and world.state != null else -1
+
 	if world == null or world.state == null or world.config == null:
-		_clear_respawn_countdown_ui()
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard invalid_world", "", 0, "presentation.respawn.countdown")
+		_clear_respawn_countdown_ui("invalid_world")
 		return
 	if int(world.state.match_state.phase) == MatchState.Phase.ENDED:
-		_clear_respawn_countdown_ui()
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard match_ended", "", 0, "presentation.respawn.countdown")
+		_clear_respawn_countdown_ui("match_ended")
 		return
 	var rule_set: Dictionary = world.config.system_flags.get("rule_set", {}) as Dictionary
 	if not bool(rule_set.get("can_revive", false)):
-		_clear_respawn_countdown_ui()
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard can_revive_disabled", "", 0, "presentation.respawn.countdown")
+		_clear_respawn_countdown_ui("can_revive_disabled")
 		return
 	if _local_player_entity_id < 0:
-		_clear_respawn_countdown_ui()
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard invalid_local_player entity_id=%d" % _local_player_entity_id, "", 0, "presentation.respawn.countdown")
+		_clear_respawn_countdown_ui("invalid_local_player")
 		return
 	var player := world.state.players.get_player(_local_player_entity_id)
 	if player == null or int(player.life_state) != PlayerState.LifeState.REVIVING:
-		_clear_respawn_countdown_ui()
+		if DEBUG_COUNTDOWN:
+			var ls := int(player.life_state) if player != null else -1
+			LogPresentationScript.info("cd_guard not_reviving tick=%d entity=%d life_state=%d" % [sim_tick, _local_player_entity_id, ls], "", 0, "presentation.respawn.countdown")
+		_clear_respawn_countdown_ui("player_not_reviving")
 		return
+	var current_respawn_ticks := maxi(int(player.respawn_ticks), 0)
 	_ensure_respawn_countdown_sprite()
-	if _respawn_countdown_sprite == null or _respawn_countdown_frames == null:
+	if _respawn_countdown_sprite == null or _respawn_countdown_textures.is_empty():
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard null_sprite tick=%d sprite=%s textures=%d" % [sim_tick, str(_respawn_countdown_sprite != null), _respawn_countdown_textures.size()], "", 0, "presentation.respawn.countdown")
 		return
+	var respawn_delay_sec: int = maxi(int(rule_set.get("respawn_delay_sec", 0)), 1)
 	var tick_rate: int = maxi(int(world.config.tick_rate), 1)
-	var seconds_left: int = int(ceil(float(maxi(int(player.respawn_ticks), 0)) / float(tick_rate)))
+	var respawn_delay_ticks: int = respawn_delay_sec * tick_rate
+	var total_ticks := maxi(respawn_delay_ticks, 1)
+	var remaining_ratio := float(current_respawn_ticks) / float(total_ticks)
+	var seconds_left: int = int(ceil(remaining_ratio * float(RESPAWN_COUNTDOWN_SECONDS)))
 	seconds_left = clampi(seconds_left, 0, RESPAWN_COUNTDOWN_SECONDS)
-	var frame_count: int = _respawn_countdown_frames.get_frame_count(RESPAWN_COUNTDOWN_ANIM_NAME)
+	var frame_count: int = _respawn_countdown_textures.size()
 	if frame_count <= 0:
+		if DEBUG_COUNTDOWN:
+			LogPresentationScript.info("cd_guard zero_frames tick=%d frame_count=%d" % [sim_tick, frame_count], "", 0, "presentation.respawn.countdown")
 		return
 	var step_index: int = RESPAWN_COUNTDOWN_SECONDS - seconds_left
-	var frame_index: int = int(round(float(step_index) * float(frame_count - 1) / float(RESPAWN_COUNTDOWN_SECONDS)))
+	var denom: int = maxi(RESPAWN_COUNTDOWN_SECONDS - 1, 1)
+	var frame_index: int = int(round(float(step_index) * float(frame_count - 1) / float(denom)))
 	frame_index = clampi(frame_index, 0, frame_count - 1)
 	var center_pos: Vector2 = _resolve_world_center(world)
 	_respawn_countdown_sprite.position = center_pos
 	_respawn_countdown_sprite.visible = true
-	_respawn_countdown_sprite.frame = frame_index
-	_respawn_countdown_sprite.stop()
+	_respawn_countdown_sprite.texture = _respawn_countdown_textures[frame_index]
+	if DEBUG_COUNTDOWN:
+		LogPresentationScript.info(
+			"cd_frame tick=%d entity=%d respawn_ticks=%d total_ticks=%d ratio=%.4f sec_left=%d frame=%d/%d delay_sec=%d tick_rate=%d" % [
+				sim_tick,
+				int(player.entity_id),
+				current_respawn_ticks,
+				total_ticks,
+				remaining_ratio,
+				seconds_left,
+				frame_index,
+				frame_count,
+				respawn_delay_sec,
+				tick_rate,
+			],
+			"",
+			0,
+			"presentation.respawn.countdown"
+		)
+	if seconds_left != _last_logged_countdown_second:
+		_last_logged_countdown_second = seconds_left
+		_last_logged_countdown_hidden_reason = ""
 
 
 func _resolve_world_center(world: SimWorld) -> Vector2:
@@ -815,30 +847,42 @@ func _ensure_respawn_countdown_sprite() -> void:
 	_ensure_world_ui_layer()
 	if _world_ui_layer == null:
 		return
-	if _respawn_countdown_frames == null:
-		_respawn_countdown_frames = AnimDirSpriteFramesCacheScript.load_frames(
+	if _respawn_countdown_textures.is_empty():
+		var frames: SpriteFrames = AnimDirSpriteFramesCacheScript.load_frames(
 			RESPAWN_COUNTDOWN_ANIM_DIR,
 			RESPAWN_COUNTDOWN_ANIM_NAME,
 			1.0,
 			false
 		)
+		if frames != null:
+			var fc := frames.get_frame_count(RESPAWN_COUNTDOWN_ANIM_NAME)
+			for i in range(fc):
+				var tex: Texture2D = frames.get_frame_texture(RESPAWN_COUNTDOWN_ANIM_NAME, i)
+				if tex != null:
+					_respawn_countdown_textures.append(tex)
 	if _respawn_countdown_sprite != null:
 		return
-	_respawn_countdown_sprite = AnimatedSprite2D.new()
+	_respawn_countdown_sprite = Sprite2D.new()
 	_respawn_countdown_sprite.name = "RespawnCountdownSprite"
 	_respawn_countdown_sprite.centered = true
 	_respawn_countdown_sprite.visible = false
 	_respawn_countdown_sprite.z_as_relative = true
 	_respawn_countdown_sprite.z_index = 10
-	if _respawn_countdown_frames != null:
-		_respawn_countdown_sprite.sprite_frames = _respawn_countdown_frames
-		_respawn_countdown_sprite.animation = RESPAWN_COUNTDOWN_ANIM_NAME
 	_world_ui_layer.add_child(_respawn_countdown_sprite)
 
 
-func _clear_respawn_countdown_ui() -> void:
+func _clear_respawn_countdown_ui(reason: String = "") -> void:
 	if _respawn_countdown_sprite != null:
 		_respawn_countdown_sprite.visible = false
+	if not reason.is_empty() and reason != _last_logged_countdown_hidden_reason:
+		_last_logged_countdown_hidden_reason = reason
+		LogPresentationScript.info(
+			"respawn_countdown_hidden reason=%s" % reason,
+			"",
+			0,
+			"presentation.respawn.countdown"
+		)
+	_last_logged_countdown_second = -1
 
 
 func _create_respawn_position_marker() -> AnimatedSprite2D:
@@ -892,6 +936,17 @@ func _resolve_player_gender_by_entity_id(player_id: int) -> int:
 	if _is_female_name(player_name):
 		return 1
 	return 0
+
+
+func _snapshot_player_life_states(world: SimWorld) -> void:
+	_last_life_state_by_player_id.clear()
+	if world == null or world.state == null or world.state.players == null:
+		return
+	for pid in range(world.state.players.size()):
+		var player := world.state.players.get_player(pid)
+		if player == null:
+			continue
+		_last_life_state_by_player_id[int(player.entity_id)] = int(player.life_state)
 
 
 func _is_female_name(player_name: String) -> bool:

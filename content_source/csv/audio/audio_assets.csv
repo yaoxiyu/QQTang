@@ -18,6 +18,7 @@ match,BGM_SCENE,BGM,res://external/assets/audio/bgm/scene/match.ogg,loop,true,0.
 mine,BGM_MAP,BGM,res://external/assets/audio/bgm/map/mine.ogg,loop,true,0.0,false,
 player_loss,BGM_RESULT,BGM,res://external/assets/audio/bgm/result/PlayerLoss.ogg,one_shot,false,0.0,false,
 player_win,BGM_RESULT,BGM,res://external/assets/audio/bgm/result/PlayerWin.ogg,one_shot,false,0.0,false,
+room,BGM_SCENE,BGM,res://external/assets/audio/bgm/scene/room.mp3,loop,true,0.0,false,
 scene2,BGM_SCENE,BGM,res://external/assets/audio/bgm/scene/scene2.ogg,loop,true,0.0,false,
 sculpture,BGM_MAP,BGM,res://external/assets/audio/bgm/map/sculpture.ogg,loop,true,0.0,false,
 scene1,BGM_SCENE,BGM,res://external/assets/audio/bgm/scene/sene1.ogg,loop,true,0.0,false,

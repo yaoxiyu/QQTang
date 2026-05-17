@@ -115,8 +115,10 @@ func duplicate_deep() -> BattleResult:
 	return BattleResult.from_dict(to_dict())
 
 
-func bind_local_peer_context(peer_id: int) -> BattleResult:
+func bind_local_peer_context(peer_id: int, start_config: BattleStartConfig = null) -> BattleResult:
 	local_peer_id = peer_id
+	if start_config != null:
+		local_team_id = _resolve_local_team_id_from_config(start_config, local_peer_id)
 	local_outcome = _resolve_local_outcome(self)
 	return self
 
@@ -197,6 +199,17 @@ static func _resolve_local_outcome(result: BattleResult) -> String:
 	if not result.winner_peer_ids.is_empty():
 		return "defeat"
 	return ""
+
+
+static func _resolve_local_team_id_from_config(start_config: BattleStartConfig, peer_id: int) -> int:
+	if start_config == null or peer_id <= 0:
+		return -1
+	var resolved_peer_id := int(start_config.controlled_peer_id) if int(start_config.controlled_peer_id) > 0 else peer_id
+	for player_entry in start_config.players:
+		if int(player_entry.get("peer_id", -1)) != resolved_peer_id:
+			continue
+		return int(player_entry.get("team_id", -1))
+	return -1
 
 
 static func _coerce_dictionary(value: Variant) -> Dictionary:

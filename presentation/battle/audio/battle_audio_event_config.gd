@@ -9,6 +9,8 @@ const SFX_BUBBLE_EXPLODE := "x10_01"
 const SFX_JELLY_RESCUED_MALE := "x40_01"
 const SFX_JELLY_RESCUED_FEMALE := "x39_01"
 const SFX_JELLY_EXECUTED := "x12_01"
+const BGM_RESULT_WIN := "player_win"
+const BGM_RESULT_LOSS := "player_loss"
 
 const EXPLOSION_VOLUME_STEP_DB := 1.5
 const EXPLOSION_VOLUME_MAX_DB := 6.0
