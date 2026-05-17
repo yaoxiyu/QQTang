@@ -1,14 +1,17 @@
 [gd_resource type="Resource" script_class="CharacterPresentationDef" format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/actors/characters/character_sprite_body_view.tscn" id="1_on572"]
-[ext_resource type="Script" path="res://content/characters/defs/character_presentation_def.gd" id="2_00o1i"]
+[ext_resource type="PackedScene" path="res://scenes/actors/characters/character_sprite_body_view.tscn" id="1_00o1i"]
+[ext_resource type="Texture2D" path="res://external/assets/source/res/object/misc/misc131_stand.png" id="2_qio17"]
+[ext_resource type="Script" path="res://content/characters/defs/character_presentation_def.gd" id="3_bklmi"]
 
 [resource]
-script = ExtResource("2_00o1i")
+script = ExtResource("3_bklmi")
 presentation_id = "char_pres_qqt_14401"
 display_name = "Qqt 14401"
-body_scene = ExtResource("1_on572")
+body_scene = ExtResource("1_00o1i")
 animation_set_id = "char_anim_qqt_14401"
+foot_shadow_texture = ExtResource("2_qio17")
+foot_shadow_texture_path = "res://external/assets/source/res/object/misc/misc131_stand.png"
 skin_anchor_slots = PackedStringArray("body_overlay", "head_overlay", "back_overlay", "front_overlay")
 actor_scene_path = "res://scenes/actors/characters/character_sprite_body_view.tscn"
 content_hash = "char_pres_char_pres_qqt_14401_csv_v1"

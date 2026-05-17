@@ -2,12 +2,14 @@ class_name CharacterSpriteBodyView
 extends Node2D
 
 const CharacterAnimationSetDefScript = preload("res://content/character_animation_sets/defs/character_animation_set_def.gd")
+const CharacterPresentationDefScript = preload("res://content/characters/defs/character_presentation_def.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const LogPresentationScript = preload("res://app/logging/log_presentation.gd")
 const DEBUG_REMOTE_ANIM_LOG := false
-const BODY_ANIMATION_SPEED_SCALE: float = 0.5
+const BODY_ANIMATION_SPEED_SCALE: float = 1.0
 
 @onready var _body_sprite: AnimatedSprite2D = get_node_or_null("BodySprite")
+@onready var _shadow_sprite: Sprite2D = get_node_or_null("ShadowSprite")
 
 var _animation_set: CharacterAnimationSetDef = null
 var _current_animation_name: String = ""
@@ -16,11 +18,15 @@ var _dynamic_color_enabled: bool = false
 var _dynamic_color: Color = Color.WHITE
 
 
-func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
+func setup_from_animation_set(
+	animation_set: CharacterAnimationSetDef,
+	character_presentation: CharacterPresentationDef = null
+) -> void:
 	_body_sprite = get_node_or_null("BodySprite")
 	if _body_sprite == null:
 		LogPresentationScript.warn("CharacterSpriteBodyView.setup_from_animation_set missing BodySprite", "", 0, "presentation.character_body")
 		return
+	_shadow_sprite = get_node_or_null("ShadowSprite")
 	_animation_set = animation_set
 	if _animation_set == null:
 		_body_sprite.sprite_frames = null
@@ -39,6 +45,7 @@ func setup_from_animation_set(animation_set: CharacterAnimationSetDef) -> void:
 	_current_animation_name = ""
 	_current_pose_state = "normal"
 	_apply_dynamic_color_to_sprite()
+	_apply_shadow_from_presentation(character_presentation)
 
 
 func apply_actor_state(view_state: Dictionary) -> void:
@@ -66,6 +73,8 @@ func apply_actor_state(view_state: Dictionary) -> void:
 	# Intention: body sprite is the first hidden target for channel enter effect.
 	# Other parts can follow the same view_state-driven visibility contract later.
 	_body_sprite.visible = not bool(view_state.get("hide_body_sprite", false))
+	if _shadow_sprite != null:
+		_shadow_sprite.visible = _body_sprite.visible and _shadow_sprite.texture != null
 	var animation_name := _resolve_animation_name(
 		facing,
 		anim_is_moving,
@@ -218,3 +227,19 @@ func _apply_dynamic_color_to_sprite() -> void:
 		_body_sprite.modulate = Color.WHITE.lerp(_dynamic_color, 0.45)
 	else:
 		_body_sprite.modulate = Color.WHITE
+
+
+func _apply_shadow_from_presentation(character_presentation: CharacterPresentationDef) -> void:
+	if _shadow_sprite == null:
+		return
+	if character_presentation == null:
+		_shadow_sprite.texture = null
+		_shadow_sprite.visible = false
+		return
+	_shadow_sprite.texture = character_presentation.foot_shadow_texture
+	if _shadow_sprite.texture != null:
+		_shadow_sprite.position = Vector2(0.0, -_shadow_sprite.texture.get_height() * 0.5)
+	else:
+		_shadow_sprite.position = Vector2(0.0, 0.0)
+	_shadow_sprite.modulate = Color(1.0, 1.0, 1.0, 0.72)
+	_shadow_sprite.visible = _shadow_sprite.texture != null

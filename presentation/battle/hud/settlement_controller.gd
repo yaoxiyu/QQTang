@@ -28,6 +28,9 @@ signal input_frozen(frozen: bool)
 @export var career_summary_label_path: NodePath = ^"CareerSummaryLabel"
 @export var return_button_path: NodePath = ^"ActionRow/ReturnToRoomButton"
 @export var rematch_button_path: NodePath = ^"ActionRow/RematchButton"
+@export var settlement_card_root_path: NodePath = ^"SettlementCardRoot"
+@export var settlement_card_bg_path: NodePath = ^"SettlementCardRoot/Background"
+@export var settlement_card_content_root_path: NodePath = ^"SettlementCardRoot/ContentRoot"
 
 var result_label: Label = null
 var detail_label: Label = null
@@ -46,6 +49,10 @@ var reward_summary_label: Label = null
 var career_summary_label: Label = null
 var return_button: Button = null
 var rematch_button: Button = null
+var settlement_card_root: Control = null
+var settlement_card_bg: TextureRect = null
+var settlement_card_content_root: Control = null
+var _card_tween: Tween = null
 var current_result: BattleResult = null
 var input_locked: bool = false
 var server_sync_state: String = "pending"
@@ -92,6 +99,12 @@ func _ready() -> void:
 		return_button = get_node(return_button_path)
 	if has_node(rematch_button_path):
 		rematch_button = get_node(rematch_button_path)
+	if has_node(settlement_card_root_path):
+		settlement_card_root = get_node(settlement_card_root_path)
+	if has_node(settlement_card_bg_path):
+		settlement_card_bg = get_node(settlement_card_bg_path)
+	if has_node(settlement_card_content_root_path):
+		settlement_card_content_root = get_node(settlement_card_content_root_path)
 
 	if return_button != null and not return_button.pressed.is_connected(request_return_to_room):
 		return_button.pressed.connect(request_return_to_room)
@@ -99,6 +112,8 @@ func _ready() -> void:
 		rematch_button.pressed.connect(request_rematch)
 
 	visible = false
+	if settlement_card_root != null:
+		settlement_card_root.visible = false
 	_refresh_text()
 
 
@@ -116,6 +131,8 @@ func show_result(result: BattleResult) -> void:
 	_set_input_locked(true)
 	_refresh_text()
 	visible = true
+	_show_settlement_card_only()
+	_play_settlement_card_slide_in()
 	_log_online_settlement("show_result", debug_dump_settlement_state())
 	settlement_shown.emit(current_result)
 
@@ -123,10 +140,76 @@ func show_result(result: BattleResult) -> void:
 func hide_result() -> void:
 	current_result = null
 	_set_input_locked(false)
+	if _card_tween != null:
+		_card_tween.kill()
+		_card_tween = null
 	visible = false
+	if settlement_card_root != null:
+		settlement_card_root.visible = false
 	_refresh_text()
 	_log_online_settlement("hide_result", debug_dump_settlement_state())
 	settlement_hidden.emit()
+
+
+func _show_settlement_card_only() -> void:
+	if settlement_card_root != null:
+		settlement_card_root.visible = true
+	if result_label != null:
+		result_label.visible = false
+	if detail_label != null:
+		detail_label.visible = false
+	if map_summary_label != null:
+		map_summary_label.visible = false
+	if rule_summary_label != null:
+		rule_summary_label.visible = false
+	if finish_reason_label != null:
+		finish_reason_label.visible = false
+	if mode_summary_label != null:
+		mode_summary_label.visible = false
+	if character_summary_label != null:
+		character_summary_label.visible = false
+	if bubble_summary_label != null:
+		bubble_summary_label.visible = false
+	if score_summary_label != null:
+		score_summary_label.visible = false
+	if team_outcome_label != null:
+		team_outcome_label.visible = false
+	if server_sync_label != null:
+		server_sync_label.visible = false
+	if rating_delta_label != null:
+		rating_delta_label.visible = false
+	if season_point_delta_label != null:
+		season_point_delta_label.visible = false
+	if reward_summary_label != null:
+		reward_summary_label.visible = false
+	if career_summary_label != null:
+		career_summary_label.visible = false
+	if return_button != null:
+		return_button.visible = false
+	if rematch_button != null:
+		rematch_button.visible = false
+
+
+func _play_settlement_card_slide_in() -> void:
+	if settlement_card_root == null:
+		return
+	if _card_tween != null:
+		_card_tween.kill()
+		_card_tween = null
+	var viewport_rect := get_viewport_rect()
+	var card_size := settlement_card_root.size
+	if card_size.x <= 0.0 or card_size.y <= 0.0:
+		card_size = Vector2(640.0, 360.0)
+	var target_pos := Vector2(
+		(viewport_rect.size.x - card_size.x) * 0.5,
+		(viewport_rect.size.y - card_size.y) * 0.5
+	)
+	var start_pos := Vector2(target_pos.x, viewport_rect.size.y + card_size.y)
+	settlement_card_root.position = start_pos
+	_card_tween = create_tween()
+	_card_tween.set_trans(Tween.TRANS_SINE)
+	_card_tween.set_ease(Tween.EASE_OUT)
+	_card_tween.tween_property(settlement_card_root, "position", target_pos, 0.45)
 
 
 func request_return_to_room() -> void:

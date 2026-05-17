@@ -24,9 +24,9 @@ const LOCAL_CONTROLLED_IDENTITY_MARKERS: Array[Dictionary] = [
 		"visibility": "local_only",
 		"anim_dir": "res://external/assets/derived/assets/animation/misc/misc121_stand",
 		"anim_name": "stand",
-		"fps": 10.0,
+		"fps": 1.0,
 		"loop": true,
-		"offset_cells": Vector2(0.0, 50),
+		"offset_cells": Vector2(0.0, -0.95),
 		"z_index": IDENTITY_SLOT_Z_INDEX,
 		"require_alive": false,
 	},
@@ -112,6 +112,7 @@ func apply_view_state(view_state: Dictionary) -> void:
 	resolved_player_z = int(depth_resolve.get("z", resolved_player_z))
 	_last_depth_reason = String(depth_resolve.get("reason", "base"))
 	_last_view_state["depth_reason"] = _last_depth_reason
+	_last_view_state["actor_half_height_cells"] = _resolve_actor_half_height_cells(cell_size)
 	z_index = resolved_player_z
 	if _body_view != null and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
@@ -248,7 +249,7 @@ func _rebuild_body_view() -> void:
 
 	var animation_set = _read_profile_value("animation_set")
 	if _body_view.has_method("setup_from_animation_set"):
-		_body_view.setup_from_animation_set(animation_set)
+		_body_view.setup_from_animation_set(animation_set, character_presentation)
 
 	if not _last_view_state.is_empty() and _body_view.has_method("apply_actor_state"):
 		_body_view.apply_actor_state(_last_view_state)
@@ -310,3 +311,21 @@ func _read_profile_value(key: String):
 	if _visual_profile is Dictionary:
 		return (_visual_profile as Dictionary).get(key, null)
 	return _visual_profile.get(key)
+
+
+func _resolve_actor_half_height_cells(cell_size: float) -> float:
+	var animation_set = _read_profile_value("animation_set")
+	if animation_set == null:
+		return 0.5
+	var frame_height: float = 0.0
+	if animation_set is Dictionary:
+		frame_height = float((animation_set as Dictionary).get("frame_height", 0.0))
+	elif animation_set.has_method("get"):
+		frame_height = float(animation_set.get("frame_height"))
+	elif "frame_height" in animation_set:
+		frame_height = float(animation_set.frame_height)
+	if frame_height <= 0.0:
+		return 0.5
+	var body_scale := BattleViewMetrics.player_body_scale(cell_size, frame_height)
+	var actor_height_px := frame_height * body_scale
+	return actor_height_px * 0.5 / maxf(cell_size, 1.0)

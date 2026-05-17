@@ -1,6 +1,7 @@
 [gd_scene format=3 ]
 
 [ext_resource type="Script" path="res://presentation/battle/hud/settlement_controller.gd" id="1_controller"]
+[ext_resource type="Texture2D" path="res://external/assets/source/res/object/misc/misc300_stand.png" id="2_bg300"]
 
 [node name="SettlementController" type="Control" unique_id=548600662]
 layout_mode = 3
@@ -10,6 +11,33 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_controller")
+
+[node name="SettlementCardRoot" type="Control" parent="." unique_id=1186001]
+layout_mode = 0
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="SettlementCardRoot" unique_id=1186002]
+layout_mode = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_bg300")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ContentRoot" type="Control" parent="SettlementCardRoot" unique_id=1186003]
+layout_mode = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="ResultLabel" type="Label" parent="." unique_id=1513084540]
 layout_mode = 0

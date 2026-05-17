@@ -655,13 +655,14 @@ func _construct_dev_manifest() -> void:
 
 	# Build fake member list.
 	var members: Array[Dictionary] = []
+	var resolved_team_count: int = clampi(_launch_config.dev_team_count, 2, max(_launch_config.dev_player_count, 2))
 	var character_ids := CharacterCatalogScript.get_character_ids()
 	for i in range(_launch_config.dev_player_count):
 		var character_id := character_ids[i % character_ids.size()] if not character_ids.is_empty() else ""
 		members.append({
 			"account_id": "dev_account_%d" % (i + 1),
 			"profile_id": "dev_profile_%d" % (i + 1),
-			"assigned_team_id": 1 if i == 0 else 2,
+			"assigned_team_id": (i % resolved_team_count) + 1,
 			"character_id": character_id,
 		})
 

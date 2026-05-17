@@ -15,6 +15,8 @@ param(
 
     [int]$PlayerCount = 2,
 
+    [int]$TeamCount = 2,
+
     [string]$GodotPath = "",
 
     [int]$DsPort = 19010,
@@ -58,6 +60,13 @@ if (-not $SkipBuild) {
 
 # Build Godot extra args from optional params
 $extraArgs = @()
+if ($TeamCount -lt 2) {
+    $TeamCount = 2
+}
+if ($TeamCount -gt $PlayerCount) {
+    $TeamCount = $PlayerCount
+}
+$extraArgs += "--qqt-dev-launcher-team-count=$TeamCount"
 if ($MapId -ne "") {
     $extraArgs += "--qqt-dev-launcher-map-id=$MapId"
 }
@@ -68,6 +77,7 @@ if ($RuleSetId -ne "") {
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "[run-dev-battle] Mode: $Mode" -ForegroundColor Green
 Write-Host "[run-dev-battle] Player Count: $PlayerCount" -ForegroundColor Green
+Write-Host "[run-dev-battle] Team Count: $TeamCount" -ForegroundColor Green
 Write-Host "[run-dev-battle] Godot: $GodotPath" -ForegroundColor Green
 Write-Host "[run-dev-battle] Project: $projectRoot" -ForegroundColor Green
 Write-Host "[run-dev-battle] Logs: $projectLogDir" -ForegroundColor Green
@@ -108,7 +118,8 @@ try {
                 "--qqt-ds-host", $DsHost,
                 "--qqt-battle-id", $devBattleId,
                 "--qqt-dev-mode",
-                "--qqt-dev-player-count=$PlayerCount"
+                "--qqt-dev-player-count=$PlayerCount",
+                "--qqt-dev-team-count=$TeamCount"
             )
             if ($MapId -ne "") {
                 $dsArgs += "--qqt-dev-map-id=$MapId"

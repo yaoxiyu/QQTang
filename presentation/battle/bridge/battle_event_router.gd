@@ -4,6 +4,7 @@ extends Node
 signal explosion_event_routed(event: SimEvent)
 signal cell_destroyed_event_routed(event: SimEvent)
 signal bubble_placed_event_routed(event: SimEvent)
+signal player_trapped_event_routed(event: SimEvent)
 signal player_killed_event_routed(event: SimEvent)
 signal player_revived_event_routed(event: SimEvent)
 signal player_trap_executed_event_routed(event: SimEvent)
@@ -24,6 +25,8 @@ func route_events(events: Array) -> void:
 				cell_destroyed_event_routed.emit(event)
 			SimEvent.EventType.BUBBLE_PLACED:
 				bubble_placed_event_routed.emit(event)
+			SimEvent.EventType.PLAYER_TRAPPED:
+				player_trapped_event_routed.emit(event)
 			SimEvent.EventType.PLAYER_KILLED:
 				player_killed_event_routed.emit(event)
 			SimEvent.EventType.PLAYER_REVIVED:

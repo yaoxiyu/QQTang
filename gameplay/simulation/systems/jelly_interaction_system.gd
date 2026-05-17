@@ -138,6 +138,7 @@ func _rescue_player(ctx: SimContext, trapped_player: PlayerState, rescuer_player
 		"rescuer_player_id": rescuer_player.entity_id,
 		"cell_x": foot_cell.x,
 		"cell_y": foot_cell.y,
+		"revive_type": "rescue",
 	}
 	ctx.events.push(revived_event)
 
@@ -217,6 +218,16 @@ func _tick_trapped_timeout(ctx: SimContext, trapped_player: PlayerState, touched
 		)
 		if not ctx.scratch.players_to_execute.has(trapped_player.entity_id):
 			ctx.scratch.players_to_execute.append(trapped_player.entity_id)
+		var foot_cell := PlayerLocator.get_foot_cell(trapped_player)
+		var executed_event := SimEvent.new(ctx.tick, SimEvent.EventType.PLAYER_TRAP_EXECUTED)
+		executed_event.payload = {
+			"player_id": trapped_player.entity_id,
+			"finisher_player_id": -1,
+			"cell_x": foot_cell.x,
+			"cell_y": foot_cell.y,
+			"execute_type": "timeout",
+		}
+		ctx.events.push(executed_event)
 	ctx.state.players.update_player(trapped_player)
 
 

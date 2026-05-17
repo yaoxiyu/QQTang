@@ -18,7 +18,15 @@ func generate() -> void:
 		var row := split_csv_line(lines[i])
 		var def := CharacterDef.new()
 		def.character_id = get_cell(row, header_index, "character_id")
+		if def.character_id.strip_edges().is_empty():
+			continue
 		def.display_name = get_cell(row, header_index, "display_name")
+		def.chinese_name = get_cell(row, header_index, "chinese_name")
+		if def.chinese_name.strip_edges().is_empty():
+			def.chinese_name = def.display_name
+		def.gender = get_cell(row, header_index, "gender").strip_edges().to_lower()
+		if def.gender != "female":
+			def.gender = "male"
 		def.abbreviation = get_cell(row, header_index, "abbreviation")
 		def.illustration_path = get_cell(row, header_index, "illustration_path")
 		def.name_image_path = get_cell(row, header_index, "name_image_path")

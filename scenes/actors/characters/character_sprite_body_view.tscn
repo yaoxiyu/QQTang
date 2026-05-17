@@ -5,6 +5,10 @@
 [node name="CharacterSpriteBodyView" type="Node2D" unique_id=913510198]
 script = ExtResource("1_u55mi")
 
+[node name="ShadowSprite" type="Sprite2D" parent="." unique_id=198513002]
+centered = true
+z_index = -20
+
 [node name="BodySprite" type="AnimatedSprite2D" parent="." unique_id=280519313]
 
 [node name="SkinAnchor_BackOverlay" type="Node2D" parent="." unique_id=1630758554]

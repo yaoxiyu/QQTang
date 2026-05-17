@@ -45,6 +45,7 @@ var _session_adapter: Node = null
 var _config: BattleStartConfig = null
 var _battle_scene: Node = null
 var _player_count: int = 2
+var _team_count: int = 2
 var _map_id_override: String = ""
 var _rule_set_id_override: String = ""
 var _ds_address: String = "127.0.0.1"
@@ -55,7 +56,7 @@ var _battle_id: String = "dev_battle_local"
 func _ready() -> void:
 	LogSystemInitializerScript.initialize_client()
 	_parse_command_line()
-	_log("Dev Battle Launcher starting mode=%d player_count=%d" % [launch_mode, _player_count])
+	_log("Dev Battle Launcher starting mode=%d player_count=%d team_count=%d" % [launch_mode, _player_count, _team_count])
 	_print_available_maps()
 
 	match launch_mode:
@@ -171,6 +172,7 @@ func _instance_battle_scene() -> void:
 func _build_local_loopback_config() -> BattleStartConfig:
 	var map_id := _resolve_map_id()
 	var map_metadata := MapLoaderScript.load_map_metadata(map_id)
+	var resolved_team_count := _resolve_team_count()
 
 	# Resolve mode and rule set from map binding (authoritative), with CLI override support.
 	var binding := MapSelectionCatalogScript.get_map_binding(map_id)
@@ -197,7 +199,7 @@ func _build_local_loopback_config() -> BattleStartConfig:
 			"display_name": "Player%d" % (i + 1),
 			"slot_index": i,
 			"spawn_slot": i,
-			"team_id": 1 if i == 0 else 2,
+			"team_id": (i % resolved_team_count) + 1,
 			"character_id": RANDOM_CHARACTER_ID,
 			"bubble_style_id": BubbleCatalogScript.get_default_bubble_id(),
 		})
@@ -363,12 +365,23 @@ func _parse_command_line() -> void:
 		var pc := int(String(parsed["--qqt-dev-launcher-player-count"]).to_int())
 		if pc >= 1:
 			_player_count = pc
+	if parsed.has("--qqt-dev-launcher-team-count"):
+		var tc := int(String(parsed["--qqt-dev-launcher-team-count"]).to_int())
+		if tc >= 2:
+			_team_count = tc
 	if parsed.has("--qqt-dev-launcher-map-id"):
 		_map_id_override = String(parsed["--qqt-dev-launcher-map-id"]).strip_edges()
 	if parsed.has("--qqt-dev-launcher-rule-set-id"):
 		_rule_set_id_override = String(parsed["--qqt-dev-launcher-rule-set-id"]).strip_edges()
 	if parsed.has("--qqt-dev-launcher-battle-id"):
 		_battle_id = String(parsed["--qqt-dev-launcher-battle-id"]).strip_edges()
+
+
+func _resolve_team_count() -> int:
+	var clamped_player_count: int = max(_player_count, 1)
+	if clamped_player_count < 2:
+		return 1
+	return clampi(_team_count, 2, clamped_player_count)
 
 
 func _log(message: String) -> void:

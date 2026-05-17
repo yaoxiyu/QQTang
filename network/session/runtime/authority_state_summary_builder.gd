@@ -58,7 +58,20 @@ func _minimize_event_payload(payload: Variant) -> Dictionary:
 	if not (payload is Dictionary):
 		return minimized
 	var payload_dict := payload as Dictionary
-	for key in ["entity_id", "bubble_id", "item_id", "owner_player_id", "player_id", "cell_x", "cell_y", "can_spawn_item"]:
+	for key in [
+		"entity_id",
+		"bubble_id",
+		"item_id",
+		"owner_player_id",
+		"player_id",
+		"cell_x",
+		"cell_y",
+		"can_spawn_item",
+		"revive_type",
+		"rescuer_player_id",
+		"finisher_player_id",
+		"execute_type",
+	]:
 		if payload_dict.has(key):
 			minimized[key] = payload_dict[key]
 	return minimized

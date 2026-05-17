@@ -4,7 +4,11 @@ extends Node2D
 
 const CharacterAnimationSetDefScript = preload("res://content/character_animation_sets/defs/character_animation_set_def.gd")
 const ScoreDigitsScript = preload("res://presentation/battle/hud/score_digits.gd")
+const AnimDirSpriteFramesCacheScript = preload("res://presentation/battle/actors/anim_dir_sprite_frames_cache.gd")
 const MAX_SLOTS := 8
+const RESPAWN_COUNTDOWN_ANIM_DIR := "res://external/assets/derived/assets/animation/misc/misc211_stand"
+const RESPAWN_COUNTDOWN_ANIM_NAME := "stand"
+const RESPAWN_COUNTDOWN_FPS := 1.0
 
 @export var start_y: float = 82.0
 @export var slot_spacing: float = 64.0
@@ -22,11 +26,13 @@ var _show_score: bool = false
 var _slot_profiles: Array = []
 var _score_digits_texture: Texture2D = null
 var _pending_player_names: Array[String] = []
+var _respawn_countdown_overlays: Dictionary = {}
 
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		_apply_clip_h()
+	_ensure_respawn_countdown_overlays()
 
 
 func _apply_clip_h() -> void:
@@ -61,7 +67,7 @@ func configure(show_score: bool, visual_profiles: Dictionary, player_names: Arra
 			var anim_set: Variant = profile.animation_set
 			if anim_set is CharacterAnimationSetDefScript:
 				char_node.sprite_frames = anim_set.sprite_frames
-				char_node.speed_scale = 0.5
+				char_node.speed_scale = 1.0
 				_play_anim(char_node, "idle_down")
 
 		# Set score digits texture + initial visibility
@@ -69,7 +75,12 @@ func configure(show_score: bool, visual_profiles: Dictionary, player_names: Arra
 		if score_node != null and score_node.has_method("set_value"):
 			if _score_digits_texture != null:
 				score_node.set("digits_texture", _score_digits_texture)
+			if score_node.has_method("set_slot_index"):
+				score_node.call("set_slot_index", slot_0)
+			if score_node.has_method("set_team_score_style"):
+				score_node.call("set_team_score_style", true, false)
 			score_node.visible = _show_score and _has_profile_for_slot(slot_0)
+			score_node.call("set_value", 0)
 
 	_apply_names()
 
@@ -77,6 +88,7 @@ func configure(show_score: bool, visual_profiles: Dictionary, player_names: Arra
 func apply_battle_state(world: SimWorld) -> void:
 	if world == null:
 		return
+	_ensure_respawn_countdown_overlays()
 
 	for slot_0 in range(MAX_SLOTS):
 		var player := _find_player_by_slot(world, slot_0)
@@ -90,9 +102,45 @@ func apply_battle_state(world: SimWorld) -> void:
 		else:
 			char_node.visible = true
 			_update_animation(char_node, slot_0, player)
+		_update_respawn_countdown_overlay(world, slot_0, player)
 
 	if _show_score:
 		_update_scores(world)
+
+
+func _ensure_respawn_countdown_overlays() -> void:
+	for slot_0 in range(MAX_SLOTS):
+		if _respawn_countdown_overlays.has(slot_0):
+			continue
+		var clip := get_node_or_null("ClipChar%d" % _ui_slot(slot_0)) as Control
+		if clip == null:
+			continue
+		var overlay := AnimatedSprite2D.new()
+		overlay.name = "RespawnCountdownOverlay_%d" % _ui_slot(slot_0)
+		overlay.position = Vector2(clip.size.x * 0.5, clip.size.y * 0.5)
+		overlay.centered = true
+		overlay.z_index = 10
+		overlay.visible = false
+		var frames := AnimDirSpriteFramesCacheScript.load_frames(
+			RESPAWN_COUNTDOWN_ANIM_DIR,
+			RESPAWN_COUNTDOWN_ANIM_NAME,
+			RESPAWN_COUNTDOWN_FPS,
+			true
+		)
+		if frames != null:
+			overlay.sprite_frames = frames
+			overlay.play(RESPAWN_COUNTDOWN_ANIM_NAME)
+		clip.add_child(overlay)
+		_respawn_countdown_overlays[slot_0] = overlay
+
+
+func _update_respawn_countdown_overlay(world: SimWorld, slot_0: int, player: PlayerState) -> void:
+	var overlay := _respawn_countdown_overlays.get(slot_0, null) as AnimatedSprite2D
+	if overlay == null:
+		return
+	# Respawn countdown moved to world-center UI layer in PresentationBridge.
+	# Keep list overlays disabled to avoid duplicate hints.
+	overlay.visible = false
 
 
 func _get_char_node(slot_0: int) -> AnimatedSprite2D:
@@ -124,7 +172,7 @@ func _update_animation(char_node: AnimatedSprite2D, slot_0: int, player: PlayerS
 
 	if char_node.sprite_frames != anim_set.sprite_frames:
 		char_node.sprite_frames = anim_set.sprite_frames
-		char_node.speed_scale = 0.5
+		char_node.speed_scale = 1.0
 
 	var current_anim := ""
 	if char_node.sprite_frames != null and char_node.animation in char_node.sprite_frames.get_animation_names():
@@ -154,6 +202,22 @@ func _play_anim(sprite: AnimatedSprite2D, anim_name: String) -> void:
 
 
 func _update_scores(world: SimWorld) -> void:
+	var team_scores: Dictionary = {}
+	for slot_0 in range(MAX_SLOTS):
+		var p := _find_player_by_slot(world, slot_0)
+		if p == null or not _has_profile_for_slot(slot_0):
+			continue
+		var team_id := int(p.team_id)
+		team_scores[team_id] = int(team_scores.get(team_id, 0)) + int(p.score)
+	var max_team_score := -2147483648
+	for team_id_variant in team_scores.keys():
+		max_team_score = maxi(max_team_score, int(team_scores[team_id_variant]))
+	var leader_team_count := 0
+	for team_id_variant in team_scores.keys():
+		if int(team_scores[team_id_variant]) == max_team_score:
+			leader_team_count += 1
+	var all_teams_tied := team_scores.size() <= 1 or leader_team_count == team_scores.size()
+
 	for slot_0 in range(MAX_SLOTS):
 		var score_node: Control = _get_score_node(slot_0)
 		if score_node == null or not score_node.has_method("set_value"):
@@ -162,7 +226,14 @@ func _update_scores(world: SimWorld) -> void:
 		if player == null or not _has_profile_for_slot(slot_0):
 			score_node.set_visible_digits(false)
 			continue
-		score_node.set_value(player.score)
+		var player_team_id := int(player.team_id)
+		var team_score := int(team_scores.get(player_team_id, int(player.score)))
+		var team_is_leading := (not all_teams_tied) and int(team_scores.get(player_team_id, -2147483648)) == max_team_score
+		if score_node.has_method("set_slot_index"):
+			score_node.call("set_slot_index", slot_0)
+		if score_node.has_method("set_team_score_style"):
+			score_node.call("set_team_score_style", all_teams_tied, team_is_leading)
+		score_node.set_value(team_score)
 		score_node.set_visible_digits(true)
 
 

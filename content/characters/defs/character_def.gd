@@ -3,6 +3,8 @@ extends Resource
 
 @export var character_id: String = ""
 @export var display_name: String = ""
+@export var chinese_name: String = ""
+@export var gender: String = "male"
 @export var abbreviation: String = ""
 @export var illustration_path: String = ""
 @export var name_image_path: String = ""

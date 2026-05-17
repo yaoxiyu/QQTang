@@ -24,6 +24,8 @@ var _local_player_entity_id: int = -1
 var _last_player_positions: Dictionary = {}
 var _match_phase: int = MatchState.Phase.BOOTSTRAP
 var _winner_team_id: int = -1
+var _respawn_delay_ticks: int = 0
+var _death_display_ticks: int = 0
 
 
 func configure_content_styles(player_style_by_slot: Dictionary, bubble_style_by_slot: Dictionary, bubble_color_by_slot: Dictionary = {}) -> void:
@@ -62,6 +64,7 @@ func build_player_views(world: SimWorld) -> Array[Dictionary]:
 
 	_match_phase = int(world.state.match_state.phase)
 	_winner_team_id = int(world.state.match_state.winner_team_id)
+	_refresh_rule_tick_windows(world)
 
 	var player_ids := _collect_visible_player_ids(world)
 	player_ids.sort()
@@ -226,7 +229,8 @@ func _collect_visible_player_ids(world: SimWorld) -> Array[int]:
 			player_ids.append(player_id)
 			continue
 		if player.life_state == PlayerState.LifeState.REVIVING:
-			player_ids.append(player_id)
+			if _should_show_reviving_actor(player):
+				player_ids.append(player_id)
 			continue
 		if player.life_state == PlayerState.LifeState.DEAD and player.death_display_ticks > 0:
 			player_ids.append(player_id)
@@ -239,6 +243,31 @@ func _is_match_ended() -> bool:
 
 func _get_match_winner_team_id() -> int:
 	return _winner_team_id
+
+
+func _refresh_rule_tick_windows(world: SimWorld) -> void:
+	_respawn_delay_ticks = 0
+	_death_display_ticks = 0
+	if world == null or world.config == null:
+		return
+	var tick_rate: int = max(int(world.config.tick_rate), 1)
+	var rule_set: Dictionary = world.config.system_flags.get("rule_set", {}) as Dictionary
+	if rule_set.is_empty():
+		return
+	_respawn_delay_ticks = max(int(rule_set.get("respawn_delay_sec", 0)), 0) * tick_rate
+	_death_display_ticks = max(int(rule_set.get("death_display_sec", 0)), 0) * tick_rate
+
+
+func _should_show_reviving_actor(player: PlayerState) -> bool:
+	if player == null:
+		return false
+	if _respawn_delay_ticks <= 0:
+		return false
+	var display_ticks: int = mini(_death_display_ticks, _respawn_delay_ticks)
+	if display_ticks <= 0:
+		return false
+	var elapsed_ticks: int = _respawn_delay_ticks - max(int(player.respawn_ticks), 0)
+	return elapsed_ticks < display_ticks
 
 
 func map_bubble_state(world: SimWorld, bubble: BubbleState) -> Dictionary:

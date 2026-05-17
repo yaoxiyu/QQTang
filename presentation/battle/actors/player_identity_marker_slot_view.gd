@@ -107,7 +107,11 @@ func _apply_marker_visual(marker: Dictionary) -> void:
 func _apply_marker_anchor(marker: Dictionary, view_state: Dictionary) -> void:
 	var offset_cells: Vector2 = marker.get("offset_cells", DEFAULT_OFFSET)
 	var cell_size := float(view_state.get("cell_size", 40.0))
-	position = Vector2(offset_cells.x * cell_size, offset_cells.y * cell_size)
+	var actor_half_height_cells := float(view_state.get("actor_half_height_cells", 0.0))
+	position = Vector2(
+		offset_cells.x * cell_size,
+		(offset_cells.y - actor_half_height_cells) * cell_size
+	)
 
 	z_as_relative = true
 	z_index = int(marker.get("z_index", 20))
@@ -121,4 +125,3 @@ func _ensure_sprite() -> void:
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_sprite.visible = false
 	add_child(_sprite)
-

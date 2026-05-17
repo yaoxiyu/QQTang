@@ -63,6 +63,8 @@ static func build_character_metadata(character_id: String) -> Dictionary:
 		"id": resolved_character_id,
 		"character_id": String(character_def.character_id if not character_def.character_id.is_empty() else resolved_character_id),
 		"display_name": display_name,
+		"chinese_name": String(character_def.chinese_name if not character_def.chinese_name.is_empty() else display_name),
+		"gender": String(character_def.gender if not character_def.gender.is_empty() else "male").to_lower(),
 		"version": 1,
 		"content_hash": _resolve_content_hash(
 			resolved_character_id,

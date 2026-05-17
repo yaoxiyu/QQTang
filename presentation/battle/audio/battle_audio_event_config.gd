@@ -3,8 +3,11 @@ extends RefCounted
 
 const SFX_BUBBLE_PLACE := "x09_01"
 const SFX_ITEM_PICK := "x08_01"
+const SFX_ITEM_DROP_AIRPLANE := "x05_01"
+const SFX_READY_GO := "ready_go"
 const SFX_BUBBLE_EXPLODE := "x10_01"
-const SFX_JELLY_RESCUED := "x11_01"
+const SFX_JELLY_RESCUED_MALE := "x40_01"
+const SFX_JELLY_RESCUED_FEMALE := "x39_01"
 const SFX_JELLY_EXECUTED := "x12_01"
 
 const EXPLOSION_VOLUME_STEP_DB := 1.5

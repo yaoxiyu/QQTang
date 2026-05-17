@@ -4,6 +4,7 @@ class_name GenerateCharacterPresentations
 const CharacterAnimationSetCatalogScript = preload("res://content/character_animation_sets/catalog/character_animation_set_catalog.gd")
 const INPUT_CSV_PATH := "res://content_source/csv/characters/character_presentations.csv"
 const OUTPUT_DIR := "res://content/characters/data/presentation/"
+const DEFAULT_FOOT_SHADOW_TEXTURE_PATH := "res://external/assets/source/res/object/misc/misc131_stand.png"
 
 
 func generate() -> void:
@@ -31,6 +32,10 @@ func generate() -> void:
 		def.body_view_type = get_cell(row, header_index, "body_view_type")
 		if def.body_view_type.is_empty():
 			def.body_view_type = "sprite_frames_2d"
+		def.foot_shadow_texture_path = get_cell(row, header_index, "foot_shadow_texture_path")
+		if def.foot_shadow_texture_path.is_empty():
+			def.foot_shadow_texture_path = DEFAULT_FOOT_SHADOW_TEXTURE_PATH
+		def.foot_shadow_texture = load_resource_or_null(def.foot_shadow_texture_path) as Texture2D
 		def.animation_library_path = get_cell(row, header_index, "animation_library_path")
 		def.idle_anim = get_cell(row, header_index, "idle_anim")
 		def.run_anim = get_cell(row, header_index, "run_anim")

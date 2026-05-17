@@ -233,6 +233,8 @@ static func get_character_metadata(character_id: String) -> Dictionary:
 		"id": character_id,
 		"character_id": String(character_def.character_id if not character_def.character_id.is_empty() else character_id),
 		"display_name": display_name,
+		"chinese_name": String(character_def.chinese_name if not character_def.chinese_name.is_empty() else display_name),
+		"gender": String(character_def.gender if not character_def.gender.is_empty() else "male").to_lower(),
 			"abbreviation": String(character_def.abbreviation if not character_def.abbreviation.is_empty() else _extract_abbreviation_from_icon(character_def.selection_icon_path)),
 		"version": 1,
 		"content_hash": _resolve_content_hash(

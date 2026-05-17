@@ -11,6 +11,7 @@ const RuleSetCatalogScript = preload("res://content/rulesets/catalog/rule_set_ca
 const RoomTeamPaletteScript = preload("res://app/front/room/room_team_palette.gd")
 const ItemSpawnSystemScript = preload("res://gameplay/simulation/systems/item_spawn_system.gd")
 const LogFrontScript = preload("res://app/logging/log_front.gd")
+const CharacterCatalogScript = preload("res://content/characters/catalog/character_catalog.gd")
 const ONLINE_LOG_PREFIX := "[QQT_ONLINE]"
 
 var _content_manifest_builder = BattleContentManifestBuilderScript.new()
@@ -207,6 +208,29 @@ func apply_player_visual_profiles(app_runtime: Node, presentation_bridge: Node) 
 		"front.battle.scene"
 	)
 	presentation_bridge.configure_player_visual_profiles(player_visual_profiles)
+	var player_name_by_slot: Dictionary = {}
+	for entry in start_config.player_slots:
+		var slot_idx := int(entry.get("slot_index", -1))
+		if slot_idx < 0:
+			continue
+		player_name_by_slot[slot_idx] = String(entry.get("player_name", entry.get("display_name", "")))
+	if presentation_bridge.has_method("configure_player_names_by_slot"):
+		presentation_bridge.configure_player_names_by_slot(player_name_by_slot)
+	var character_gender_by_slot: Dictionary = {}
+	for entry in start_config.player_slots:
+		var slot_idx2 := int(entry.get("slot_index", -1))
+		if slot_idx2 < 0:
+			continue
+		var character_id := String(entry.get("character_id", "")).strip_edges()
+		if character_id.is_empty():
+			continue
+		var meta := CharacterCatalogScript.get_character_metadata(character_id)
+		var character_gender := String(meta.get("gender", "male")).strip_edges().to_lower()
+		if character_gender != "female":
+			character_gender = "male"
+		character_gender_by_slot[slot_idx2] = character_gender
+	if presentation_bridge.has_method("configure_character_gender_by_slot"):
+		presentation_bridge.configure_character_gender_by_slot(character_gender_by_slot)
 
 
 func apply_player_list_panel_config(app_runtime: Node, battle_hud: Node) -> void:
@@ -302,7 +326,7 @@ func resolve_local_player_entity_id(app_runtime: Node, battle_context: BattleCon
 		if int(player_entry.get("peer_id", -1)) != controlled_peer_id:
 			continue
 		var slot_index: int = int(player_entry.get("slot_index", -1))
-		for player_id in battle_context.sim_world.state.players.active_ids:
+		for player_id in range(battle_context.sim_world.state.players.size()):
 			var player: PlayerState = battle_context.sim_world.state.players.get_player(player_id)
 			if player != null and player.player_slot == slot_index:
 				return player.entity_id

@@ -20,6 +20,7 @@ var resume_window_sec: float = 20.0
 
 var dev_mode: bool = false
 var dev_player_count: int = 2
+var dev_team_count: int = 2
 var dev_map_id_override: String = ""
 var dev_rule_set_id_override: String = ""
 
@@ -86,6 +87,10 @@ func _parse_args(args: Array[String]) -> void:
 		var parsed_count := int(String(parsed["--qqt-dev-player-count"]).to_int())
 		if parsed_count >= 2:
 			dev_player_count = parsed_count
+	if parsed.has("--qqt-dev-team-count"):
+		var parsed_team_count := int(String(parsed["--qqt-dev-team-count"]).to_int())
+		if parsed_team_count >= 2:
+			dev_team_count = parsed_team_count
 	if parsed.has("--qqt-dev-map-id"):
 		dev_map_id_override = String(parsed["--qqt-dev-map-id"]).strip_edges()
 	if parsed.has("--qqt-dev-rule-set-id"):

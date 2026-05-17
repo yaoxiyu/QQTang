@@ -1,4 +1,4 @@
-presentation_id,body_scene_path,animation_set_id,body_view_type,animation_library_path,idle_anim,run_anim,dead_anim,hud_portrait_small_path,hud_portrait_large_path,skin_anchor_slots
+presentation_id,body_scene_path,animation_set_id,body_view_type,animation_library_path,idle_anim,run_anim,dead_anim,hud_portrait_small_path,hud_portrait_large_path,skin_anchor_slots,foot_shadow_texture_path
 char_pres_qqt_10101,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_qqt_10101,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
 char_pres_qqt_10201,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_qqt_10201,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay
 char_pres_qqt_10301,res://scenes/actors/characters/character_sprite_body_view.tscn,char_anim_qqt_10301,sprite_frames_2d,,idle,run,dead,,,body_overlay;head_overlay;back_overlay;front_overlay

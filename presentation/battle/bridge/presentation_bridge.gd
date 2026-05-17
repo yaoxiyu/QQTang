@@ -9,6 +9,7 @@ const CorrectionMarkerViewScript = preload("res://presentation/battle/actors/cor
 const BrickBreakFxPlayerScript = preload("res://presentation/battle/fx/brick_break_fx_player.gd")
 const AirplaneActorViewScript = preload("res://presentation/battle/actors/airplane_actor_view.gd")
 const ItemPickupFxPlayerScript = preload("res://presentation/battle/fx/item_pickup_fx_player.gd")
+const AnimDirSpriteFramesCacheScript = preload("res://presentation/battle/actors/anim_dir_sprite_frames_cache.gd")
 const BattleViewMetrics = preload("res://presentation/battle/battle_view_metrics.gd")
 const WorldMetrics = preload("res://gameplay/shared/world_metrics.gd")
 const SimEventScript = preload("res://gameplay/simulation/events/sim_event.gd")
@@ -20,10 +21,17 @@ const TileConstantsScript = preload("res://gameplay/simulation/state/tile_consta
 const TRACE_PREFIX := "[qq_battle_trace]"
 const DEBUG_TICK_LOGS := false
 const LOG_FX_ANOMALIES := false
+const RESPAWN_MARKER_ANIM_DIR := "res://external/assets/derived/assets/animation/misc/misc212_stand"
+const RESPAWN_MARKER_ANIM_NAME := "stand"
+const RESPAWN_MARKER_FPS := 1.0
+const RESPAWN_COUNTDOWN_ANIM_DIR := "res://external/assets/derived/assets/animation/misc/misc211_stand"
+const RESPAWN_COUNTDOWN_ANIM_NAME := "stand"
+const RESPAWN_COUNTDOWN_SECONDS := 10
 
 @export var map_view_path: NodePath = ^"../../WorldRoot/MapRoot"
 @export var actor_layer_path: NodePath = ^"../../WorldRoot/ActorLayer"
 @export var fx_layer_path: NodePath = ^"../../WorldRoot/FxLayer"
+@export var world_ui_layer_path: NodePath = ^"../../WorldRoot/SkyUiLayer"
 @export var spawn_fx_controller_path: NodePath = ^"../../SpawnFxController"
 @export var cell_size: float = BattleViewMetrics.DEFAULT_CELL_PIXELS
 @export var ground_depth_min_z: int = BattleDepthScript.DEFAULT_GROUND_MIN_Z
@@ -43,6 +51,8 @@ var state_to_view_mapper: BattleStateToViewMapper = null
 var battle_event_router: BattleEventRouter = null
 var fx_pool: FxPool = null
 var _player_visual_profiles: Dictionary = {}
+var _player_name_by_slot: Dictionary = {}
+var _character_gender_by_slot: Dictionary = {}
 var _bubble_style_by_slot: Dictionary = {}
 var _bubble_color_by_slot: Dictionary = {}
 
@@ -50,6 +60,13 @@ var _last_consumed_tick: int = -1
 var _local_player_entity_id: int = -1
 var _current_world: SimWorld = null
 var _airplane_view: Node2D = null
+var _airplane_was_active: bool = false
+var _did_play_ready_go: bool = false
+var _respawn_marker_by_player_id: Dictionary = {}
+var _world_ui_layer: Node2D = null
+var _respawn_countdown_sprite: AnimatedSprite2D = null
+var _respawn_countdown_frames: SpriteFrames = null
+var _trapped_player_ids: Dictionary = {}
 
 
 func _ready() -> void:
@@ -69,6 +86,7 @@ func _ready() -> void:
 		if fx_layer != null:
 			fx_layer.z_as_relative = false
 			fx_layer.z_index = 0
+	_ensure_world_ui_layer()
 	if has_node(spawn_fx_controller_path):
 		spawn_fx_controller = get_node(spawn_fx_controller_path)
 
@@ -82,6 +100,8 @@ func _ready() -> void:
 	battle_event_router.explosion_event_routed.connect(_on_explosion_event_routed)
 	battle_event_router.cell_destroyed_event_routed.connect(_on_cell_destroyed_event_routed)
 	battle_event_router.bubble_placed_event_routed.connect(_on_bubble_placed_event_routed)
+	battle_event_router.player_trapped_event_routed.connect(_on_player_trapped_event_routed)
+	battle_event_router.player_killed_event_routed.connect(_on_player_killed_event_routed)
 	battle_event_router.player_revived_event_routed.connect(_on_player_revived_event_routed)
 
 	fx_pool = FxPoolScript.new()
@@ -95,15 +115,24 @@ func _ready() -> void:
 	battle_event_router.item_picked_event_routed.connect(_on_item_picked_event_routed)
 
 
+func _process(_delta: float) -> void:
+	if _current_world == null:
+		return
+	_sync_local_respawn_countdown(_current_world)
+
+
 func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = []) -> void:
 	if world == null or actor_layer == null:
 		return
 
 	_current_world = world
+	if not _did_play_ready_go:
+		_play_sfx(BattleAudioEventConfigScript.SFX_READY_GO)
+		_did_play_ready_go = true
 	var tick_id := int(world.state.match_state.tick)
 	var runtime_flags := world.state.runtime_flags
 	var force_client_refresh := runtime_flags != null and bool(runtime_flags.client_prediction_mode)
-	if tick_id == _last_consumed_tick and not force_client_refresh:
+	if tick_id == _last_consumed_tick and not force_client_refresh and events.is_empty():
 		if DEBUG_TICK_LOGS:
 			LogPresentationScript.debug(
 				"consume_tick_result_skipped tick=%d force_client_refresh=%s event_count=%d" % [
@@ -138,6 +167,8 @@ func consume_tick_result(_result: Dictionary, world: SimWorld, events: Array = [
 	actor_registry.sync_players(actor_layer, state_to_view_mapper.build_player_views(world))
 	actor_registry.sync_bubbles(actor_layer, state_to_view_mapper.build_bubble_views(world))
 	actor_registry.sync_items(actor_layer, state_to_view_mapper.build_item_views(world))
+	_sync_respawn_position_markers(world)
+	_sync_local_respawn_countdown(world)
 	_log_actor_sync_anomalies(world, tick_id, events)
 	_sync_airplane_view(world)
 	_last_consumed_tick = tick_id
@@ -154,10 +185,15 @@ func _sync_airplane_view(world: SimWorld) -> void:
 		map_height = int(world.state.grid.height)
 
 	if not pool.airplane_active:
+		_airplane_was_active = false
 		if _airplane_view != null:
 			_airplane_view.dispose()
 			_airplane_view = null
 		return
+
+	if not _airplane_was_active:
+		_play_sfx(BattleAudioEventConfigScript.SFX_ITEM_DROP_AIRPLANE)
+	_airplane_was_active = true
 
 	if _airplane_view == null:
 		_airplane_view = AirplaneActorViewScript.new()
@@ -211,10 +247,15 @@ func configure_map_presentation(layout: MapRuntimeLayout, map_theme: MapThemeDef
 
 func clear_bridge() -> void:
 	_last_consumed_tick = -1
+	_did_play_ready_go = false
+	_airplane_was_active = false
 	_grid_cache.clear()
 	if _airplane_view != null:
 		_airplane_view.dispose()
 		_airplane_view = null
+	_clear_respawn_position_markers()
+	_clear_respawn_countdown_ui()
+	_trapped_player_ids.clear()
 	if map_view != null and map_view.has_method("clear_map"):
 		map_view.clear_map()
 	if actor_registry != null:
@@ -245,6 +286,10 @@ func dispose() -> void:
 			battle_event_router.cell_destroyed_event_routed.disconnect(_on_cell_destroyed_event_routed)
 		if battle_event_router.bubble_placed_event_routed.is_connected(_on_bubble_placed_event_routed):
 			battle_event_router.bubble_placed_event_routed.disconnect(_on_bubble_placed_event_routed)
+		if battle_event_router.player_trapped_event_routed.is_connected(_on_player_trapped_event_routed):
+			battle_event_router.player_trapped_event_routed.disconnect(_on_player_trapped_event_routed)
+		if battle_event_router.player_killed_event_routed.is_connected(_on_player_killed_event_routed):
+			battle_event_router.player_killed_event_routed.disconnect(_on_player_killed_event_routed)
 		if battle_event_router.player_revived_event_routed.is_connected(_on_player_revived_event_routed):
 			battle_event_router.player_revived_event_routed.disconnect(_on_player_revived_event_routed)
 		if battle_event_router.player_trap_executed_event_routed.is_connected(_on_player_trap_executed_event_routed):
@@ -294,6 +339,14 @@ func configure_player_visual_profiles(player_visual_profiles: Dictionary) -> voi
 		actor_registry.configure_player_visual_profiles(_player_visual_profiles)
 
 
+func configure_player_names_by_slot(player_name_by_slot: Dictionary) -> void:
+	_player_name_by_slot = player_name_by_slot.duplicate(true)
+
+
+func configure_character_gender_by_slot(character_gender_by_slot: Dictionary) -> void:
+	_character_gender_by_slot = character_gender_by_slot.duplicate(true)
+
+
 func set_local_player_entity_id(entity_id: int) -> void:
 	_local_player_entity_id = entity_id
 	if state_to_view_mapper == null:
@@ -303,12 +356,15 @@ func set_local_player_entity_id(entity_id: int) -> void:
 
 func _play_battle_sfx_for_events(events: Array) -> void:
 	var explosion_count := 0
+	var trap_executed_count := 0
 	for event in events:
 		if event == null:
 			continue
 		match int(event.event_type):
 			SimEventScript.EventType.BUBBLE_EXPLODED:
 				explosion_count += 1
+			SimEventScript.EventType.PLAYER_TRAP_EXECUTED:
+				trap_executed_count += 1
 			_:
 				pass
 	if explosion_count > 0:
@@ -316,6 +372,8 @@ func _play_battle_sfx_for_events(events: Array) -> void:
 			BattleAudioEventConfigScript.SFX_BUBBLE_EXPLODE,
 			BattleAudioEventConfigScript.explosion_volume_boost_db(explosion_count)
 		)
+	if trap_executed_count > 0:
+		_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_EXECUTED)
 
 
 func _log_actor_sync_anomalies(world: SimWorld, tick_id: int, events: Array) -> void:
@@ -542,19 +600,332 @@ func _on_bubble_placed_event_routed(event: SimEvent) -> void:
 func _on_player_revived_event_routed(event: SimEvent) -> void:
 	if event == null:
 		return
-	_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_RESCUED)
+	# Respawn should stay silent. Rescue from trapped bubble plays gender SFX.
+	# In some network paths revive_type may be omitted; rescuer_player_id is a stable rescue signal.
+	var revive_type := String(event.payload.get("revive_type", "")).strip_edges().to_lower()
+	var rescuer_player_id := int(event.payload.get("rescuer_player_id", -1))
+	var player_id := int(event.payload.get("player_id", -1))
+	var trapped_fallback := player_id >= 0 and _trapped_player_ids.has(player_id)
+	var is_rescue := revive_type == "rescue" or rescuer_player_id > 0 or trapped_fallback
+	LogPresentationScript.info(
+		"revived_event tick=%d payload=%s revive_type=%s rescuer_player_id=%d is_rescue=%s" % [
+			int(event.tick),
+			str(event.payload),
+			revive_type,
+			rescuer_player_id,
+			str(is_rescue),
+		],
+		"",
+		0,
+		"presentation.audio.revive"
+	)
+	if not is_rescue:
+		LogPresentationScript.info(
+			"revived_event skip_audio reason=not_rescue tick=%d player_id=%d revive_type=%s rescuer_player_id=%d" % [
+				int(event.tick),
+				int(event.payload.get("player_id", -1)),
+				revive_type,
+				rescuer_player_id,
+			],
+			"",
+			0,
+			"presentation.audio.revive"
+		)
+		return
+	if player_id < 0:
+		LogPresentationScript.warn(
+			"revived_event skip_audio reason=invalid_player_id tick=%d payload=%s" % [
+				int(event.tick),
+				str(event.payload),
+			],
+			"",
+			0,
+			"presentation.audio.revive"
+		)
+		return
+	_trapped_player_ids.erase(player_id)
+	var gender := _resolve_player_gender_by_entity_id(player_id)
+	if gender == 1:
+		_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_RESCUED_FEMALE)
+		LogPresentationScript.info(
+			"revived_event play_audio tick=%d player_id=%d gender=female sfx=%s" % [
+				int(event.tick),
+				player_id,
+				BattleAudioEventConfigScript.SFX_JELLY_RESCUED_FEMALE,
+			],
+			"",
+			0,
+			"presentation.audio.revive"
+		)
+	else:
+		_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_RESCUED_MALE)
+		LogPresentationScript.info(
+			"revived_event play_audio tick=%d player_id=%d gender=male sfx=%s" % [
+				int(event.tick),
+				player_id,
+				BattleAudioEventConfigScript.SFX_JELLY_RESCUED_MALE,
+			],
+			"",
+			0,
+			"presentation.audio.revive"
+		)
 
 
 func _on_player_trap_executed_event_routed(event: SimEvent) -> void:
 	if event == null:
 		return
-	_play_sfx(BattleAudioEventConfigScript.SFX_JELLY_EXECUTED)
+	var player_id := int(event.payload.get("player_id", -1))
+	if player_id >= 0:
+		_trapped_player_ids.erase(player_id)
+
+
+func _on_player_trapped_event_routed(event: SimEvent) -> void:
+	if event == null:
+		return
+	var player_id := int(event.payload.get("player_id", -1))
+	if player_id >= 0:
+		_trapped_player_ids[player_id] = int(event.tick)
+
+
+func _on_player_killed_event_routed(event: SimEvent) -> void:
+	if event == null:
+		return
+	var player_id := int(event.payload.get("player_id", -1))
+	if player_id >= 0:
+		_trapped_player_ids.erase(player_id)
+
+
+func _sync_respawn_position_markers(world: SimWorld) -> void:
+	if actor_layer == null or world == null or world.state == null:
+		_clear_respawn_position_markers()
+		return
+	if int(world.state.match_state.phase) == MatchState.Phase.ENDED:
+		_clear_respawn_position_markers()
+		return
+	var rule_set: Dictionary = world.config.system_flags.get("rule_set", {}) as Dictionary
+	if not bool(rule_set.get("can_revive", false)):
+		_clear_respawn_position_markers()
+		return
+	var tick_rate: int = max(int(world.config.tick_rate), 1)
+	var respawn_delay_ticks: int = max(int(rule_set.get("respawn_delay_sec", 0)), 0) * tick_rate
+	var death_display_ticks: int = max(int(rule_set.get("death_display_sec", 0)), 0) * tick_rate
+	var visible_after_ticks: int = mini(respawn_delay_ticks, death_display_ticks)
+	var active_marker_ids: Dictionary = {}
+	for player_id in range(world.state.players.size()):
+		var player := world.state.players.get_player(player_id)
+		if player == null:
+			continue
+		if int(player.entity_id) != _local_player_entity_id:
+			continue
+		if int(player.life_state) != PlayerState.LifeState.REVIVING:
+			continue
+		var elapsed_ticks: int = respawn_delay_ticks - max(int(player.respawn_ticks), 0)
+		if elapsed_ticks < visible_after_ticks:
+			continue
+		var marker: AnimatedSprite2D = _respawn_marker_by_player_id.get(player.entity_id, null) as AnimatedSprite2D
+		if marker == null:
+			marker = _create_respawn_position_marker()
+			if marker == null:
+				continue
+			_respawn_marker_by_player_id[player.entity_id] = marker
+			actor_layer.add_child(marker)
+		var spawn_cell: Vector2i = _resolve_respawn_spawn_cell(world, int(player.player_slot))
+		marker.position = _to_world_center(spawn_cell)
+		marker.z_as_relative = false
+		marker.z_index = BattleDepthScript.player_z(spawn_cell, -5)
+		marker.visible = true
+		active_marker_ids[player.entity_id] = true
+	var stale_ids: Array = _respawn_marker_by_player_id.keys()
+	for id_variant in stale_ids:
+		var pid := int(id_variant)
+		if active_marker_ids.has(pid):
+			continue
+		var stale_marker := _respawn_marker_by_player_id.get(pid, null) as Node
+		if stale_marker != null:
+			stale_marker.queue_free()
+		_respawn_marker_by_player_id.erase(pid)
+
+
+func _sync_local_respawn_countdown(world: SimWorld) -> void:
+	if world == null or world.state == null or world.config == null:
+		_clear_respawn_countdown_ui()
+		return
+	if int(world.state.match_state.phase) == MatchState.Phase.ENDED:
+		_clear_respawn_countdown_ui()
+		return
+	var rule_set: Dictionary = world.config.system_flags.get("rule_set", {}) as Dictionary
+	if not bool(rule_set.get("can_revive", false)):
+		_clear_respawn_countdown_ui()
+		return
+	if _local_player_entity_id < 0:
+		_clear_respawn_countdown_ui()
+		return
+	var player := world.state.players.get_player(_local_player_entity_id)
+	if player == null or int(player.life_state) != PlayerState.LifeState.REVIVING:
+		_clear_respawn_countdown_ui()
+		return
+	_ensure_respawn_countdown_sprite()
+	if _respawn_countdown_sprite == null or _respawn_countdown_frames == null:
+		return
+	var tick_rate: int = maxi(int(world.config.tick_rate), 1)
+	var seconds_left: int = int(ceil(float(maxi(int(player.respawn_ticks), 0)) / float(tick_rate)))
+	seconds_left = clampi(seconds_left, 0, RESPAWN_COUNTDOWN_SECONDS)
+	var frame_count: int = _respawn_countdown_frames.get_frame_count(RESPAWN_COUNTDOWN_ANIM_NAME)
+	if frame_count <= 0:
+		return
+	var step_index: int = RESPAWN_COUNTDOWN_SECONDS - seconds_left
+	var frame_index: int = int(round(float(step_index) * float(frame_count - 1) / float(RESPAWN_COUNTDOWN_SECONDS)))
+	frame_index = clampi(frame_index, 0, frame_count - 1)
+	var center_pos: Vector2 = _resolve_world_center(world)
+	_respawn_countdown_sprite.position = center_pos
+	_respawn_countdown_sprite.visible = true
+	_respawn_countdown_sprite.frame = frame_index
+	_respawn_countdown_sprite.stop()
+
+
+func _resolve_world_center(world: SimWorld) -> Vector2:
+	if world == null or world.state == null or world.state.grid == null:
+		return Vector2.ZERO
+	return Vector2(
+		float(world.state.grid.width) * cell_size * 0.5,
+		float(world.state.grid.height) * cell_size * 0.5
+	)
+
+
+func _ensure_world_ui_layer() -> void:
+	if _world_ui_layer != null:
+		return
+	if has_node(world_ui_layer_path):
+		_world_ui_layer = get_node(world_ui_layer_path) as Node2D
+	if _world_ui_layer == null:
+		var world_root := get_node_or_null("../../WorldRoot") as Node2D
+		if world_root == null:
+			return
+		_world_ui_layer = Node2D.new()
+		_world_ui_layer.name = "SkyUiLayer"
+		world_root.add_child(_world_ui_layer)
+	_world_ui_layer.z_as_relative = false
+	_world_ui_layer.z_index = BattleDepthScript.ui_layer_z()
+	var parent := _world_ui_layer.get_parent()
+	if parent != null:
+		parent.move_child(_world_ui_layer, parent.get_child_count() - 1)
+
+
+func _ensure_respawn_countdown_sprite() -> void:
+	_ensure_world_ui_layer()
+	if _world_ui_layer == null:
+		return
+	if _respawn_countdown_frames == null:
+		_respawn_countdown_frames = AnimDirSpriteFramesCacheScript.load_frames(
+			RESPAWN_COUNTDOWN_ANIM_DIR,
+			RESPAWN_COUNTDOWN_ANIM_NAME,
+			1.0,
+			false
+		)
+	if _respawn_countdown_sprite != null:
+		return
+	_respawn_countdown_sprite = AnimatedSprite2D.new()
+	_respawn_countdown_sprite.name = "RespawnCountdownSprite"
+	_respawn_countdown_sprite.centered = true
+	_respawn_countdown_sprite.visible = false
+	_respawn_countdown_sprite.z_as_relative = true
+	_respawn_countdown_sprite.z_index = 10
+	if _respawn_countdown_frames != null:
+		_respawn_countdown_sprite.sprite_frames = _respawn_countdown_frames
+		_respawn_countdown_sprite.animation = RESPAWN_COUNTDOWN_ANIM_NAME
+	_world_ui_layer.add_child(_respawn_countdown_sprite)
+
+
+func _clear_respawn_countdown_ui() -> void:
+	if _respawn_countdown_sprite != null:
+		_respawn_countdown_sprite.visible = false
+
+
+func _create_respawn_position_marker() -> AnimatedSprite2D:
+	var frames: SpriteFrames = AnimDirSpriteFramesCacheScript.load_frames(
+		RESPAWN_MARKER_ANIM_DIR,
+		RESPAWN_MARKER_ANIM_NAME,
+		RESPAWN_MARKER_FPS,
+		true
+	)
+	if frames == null:
+		return null
+	var marker := AnimatedSprite2D.new()
+	marker.sprite_frames = frames
+	marker.centered = true
+	marker.play(RESPAWN_MARKER_ANIM_NAME)
+	return marker
+
+
+func _resolve_respawn_spawn_cell(world: SimWorld, player_slot: int) -> Vector2i:
+	if world == null or world.config == null:
+		return Vector2i.ZERO
+	var spawn_assignments: Variant = world.config.system_flags.get("spawn_assignments", [])
+	if spawn_assignments is Array:
+		for entry in spawn_assignments:
+			if not (entry is Dictionary):
+				continue
+			if int(entry.get("slot_index", -1)) != player_slot:
+				continue
+			return Vector2i(int(entry.get("spawn_cell_x", 0)), int(entry.get("spawn_cell_y", 0)))
+	return Vector2i.ZERO
+
+
+func _clear_respawn_position_markers() -> void:
+	for marker in _respawn_marker_by_player_id.values():
+		if marker is Node:
+			(marker as Node).queue_free()
+	_respawn_marker_by_player_id.clear()
+
+
+func _resolve_player_gender_by_entity_id(player_id: int) -> int:
+	if _current_world == null or _current_world.state == null or _current_world.state.players == null:
+		return 0
+	var player := _current_world.state.players.get_player(player_id)
+	if player == null:
+		return 0
+	var slot_index := int(player.player_slot)
+	var character_gender := String(_character_gender_by_slot.get(slot_index, "male")).strip_edges().to_lower()
+	if character_gender == "female":
+		return 1
+	var player_name := String(_player_name_by_slot.get(int(player.player_slot), ""))
+	if _is_female_name(player_name):
+		return 1
+	return 0
+
+
+func _is_female_name(player_name: String) -> bool:
+	var raw := player_name.strip_edges()
+	if raw.is_empty():
+		return false
+	var female_names := {
+		"小倩": true,
+		"春丽": true,
+		"波波丽": true,
+		"玛丽亚": true,
+		"乌拉拉": true,
+		"丫丫": true,
+		"克莉丝": true,
+		"阿莎": true,
+	}
+	return bool(female_names.get(raw, false))
 
 
 func _play_sfx(audio_id: String, volume_offset_db: float = 0.0) -> void:
 	var audio_manager := get_node_or_null("/root/AudioManager")
 	if audio_manager != null and audio_manager.has_method("play_sfx"):
 		audio_manager.call("play_sfx", audio_id, volume_offset_db)
+		return
+	LogPresentationScript.warn(
+		"play_sfx_failed audio_id=%s volume_offset_db=%.2f has_audio_manager=%s" % [
+			audio_id,
+			volume_offset_db,
+			str(audio_manager != null),
+		],
+		"",
+		0,
+		"presentation.audio.play"
+	)
 
 
 func _to_world_center(cell: Vector2i) -> Vector2:

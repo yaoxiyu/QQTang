@@ -29,6 +29,7 @@ const DEBUG_Z := 200
 
 const DEFAULT_GROUND_MIN_Z := 0
 const DEFAULT_SKY_MAX_Z := 3800
+const UI_DOMAIN_MARGIN := 80
 const SKY_AIR_ITEM_DELTA := 20
 const SKY_GAP_MIN := 200
 const GROUND_PEAK_PADDING := 64
@@ -51,6 +52,7 @@ static func get_depth_domains() -> Dictionary:
 	return {
 		"ground_min_z": _ground_min_z,
 		"sky_max_z": _sky_max_z,
+		"ui_min_z": ui_layer_z(),
 	}
 
 
@@ -65,6 +67,7 @@ static func validate_depth_domains(map_height: int) -> Dictionary:
 		"gap": gap,
 		"ground_peak": ground_peak,
 		"sky_floor": sky_floor,
+		"ui_min_z": ui_layer_z(),
 	}
 
 
@@ -134,6 +137,14 @@ static func airplane_z(row_y: int, map_height: int = 0, z_bias: int = 0) -> int:
 
 static func debug_z(z_bias: int = 0) -> int:
 	return _safe_z(_sky_max_z + DEBUG_Z + z_bias)
+
+
+static func ui_layer_z() -> int:
+	return _safe_z(_sky_max_z + UI_DOMAIN_MARGIN)
+
+
+static func ui_z(z_bias: int = 0) -> int:
+	return _safe_z(ui_layer_z() + z_bias)
 
 
 static func _floor_z(cell: Vector2i, z_bias: int) -> int:
